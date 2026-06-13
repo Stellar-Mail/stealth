@@ -320,7 +320,10 @@ function ShortcutSettings() {
       </div>
       <div className="space-y-2">
         {shortcuts.map((s) => (
-          <div key={s.key} className="flex items-center justify-between rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2">
+          <div
+            key={s.key}
+            className="flex items-center justify-between rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2"
+          >
             <span className="text-sm text-foreground">{s.action}</span>
             <kbd className="rounded border border-white/10 bg-black/30 px-2 py-1 font-mono text-[11px] text-muted-foreground">
               {s.key}
@@ -344,8 +347,17 @@ function SettingsField({ label, value }: { label: string; value: string }) {
   );
 }
 
-function SettingsToggle({ label, description, defaultChecked }: { label: string; description: string; defaultChecked?: boolean }) {
-  const [checked, setChecked] = useState(defaultChecked ?? false);
+function SettingsToggle({
+  label,
+  description,
+  checked,
+  onChange,
+}: {
+  label: string;
+  description: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+}) {
   return (
     <div className="flex items-center justify-between">
       <div>
