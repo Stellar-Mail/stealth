@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AmbientBackground } from "@/components/mail/AmbientBackground";
 import { Sidebar } from "@/components/mail/Sidebar";
 import { Topbar } from "@/components/mail/Topbar";
@@ -23,6 +23,14 @@ import { usePreferences } from "@/features/preferences";
 import { CalendarWorkspace, useCalendar } from "@/features/calendar";
 import { FeedbackViewport } from "@/features/design-system/feedback/feedback-viewport";
 import { useFeedback } from "@/features/design-system/feedback/use-feedback";
+import { OnboardingModal, draftToMailboxPolicy, type OnboardingDraft } from "@/features/onboarding";
+import {
+  SenderConversionDialog,
+  resolveSenderConversion,
+  useSenderConversion,
+  type SenderConversionTarget,
+  type SenderPolicyChoice,
+} from "@/features/sender-conversion";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -56,7 +64,50 @@ function MailApp() {
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [calendarEventId, setCalendarEventId] = useState<string | null>(null);
   const [calendarCreateRequest, setCalendarCreateRequest] = useState(0);
-  const { preferences, setPreferences } = usePreferences();
+  const { preferences, setPreferences, hydrated } = usePreferences();
+  const senderConversion = useSenderConversion();
+
+  // Gate: show onboarding only after localStorage has been read (hydrated) and only
+  // when it has not been completed in a previous session.
+  const showOnboarding = hydrated && !preferences.onboardingCompleted;
+
+  /**
+   * Called by OnboardingModal once all 7 steps are complete.
+   * 1. Submits the mailbox policy to the protocol API.
+   * 2. Merges the draft into local UiPreferences so Settings reflects the same values.
+   * Errors propagate back to PolicyReviewStep for inline display (no silent swallow).
+   */
+  const handleOnboardingComplete = useCallback(
+    async (walletAddress: string, draft: OnboardingDraft) => {
+      const policy = draftToMailboxPolicy(draft);
+
+      const response = await fetch(`/api/v1/policies/${walletAddress}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "x-stealth-address": walletAddress,
+        },
+        body: JSON.stringify(policy),
+      });
+
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        const message =
+          (body as { error?: { message?: string } }).error?.message ??
+          `Policy submission failed (HTTP ${response.status}).`;
+        throw new Error(message);
+      }
+
+      setPreferences((prev) => ({
+        ...prev,
+        unknownSenders: draft.unknownSenderRule,
+        minimumPostage: draft.minimumPostage,
+        receiptOnDelivery: draft.receiptOnDelivery,
+        onboardingCompleted: true,
+      }));
+    },
+    [setPreferences],
+  );
   const calendar = useCalendar();
   const { dismiss: dismissFeedback, items: feedbackItems, notify: showToast } = useFeedback();
 
@@ -107,6 +158,26 @@ function MailApp() {
     setComposeOpen(true);
   };
 
+  // Opening the flow is inert — it only puts the sender in focus. No policy
+  // changes until the user explicitly confirms a choice in the dialog.
+  const openSenderConversion = (e: Email) =>
+    senderConversion.open({
+      emailId: e.id,
+      sender: e.from,
+      address: e.email,
+      currentPolicy: e.senderPolicy,
+    });
+
+  // Single applicator: mutating the shared `emails` array re-renders every open
+  // surface (list, reader, sender card, sidebar counts) from one source of truth.
+  const handleConvertSender = (target: SenderConversionTarget, choice: SenderPolicyChoice) => {
+    const email = emails.find((item) => item.id === target.emailId);
+    if (!email) return;
+    const result = resolveSenderConversion(email, choice);
+    updateEmail(email.id, result.patch);
+    showToast(result.toast.message, { tone: result.toast.tone });
+  };
+
   const quoteBody = (e: Email) =>
     `\n\n---\nOn ${e.time}, ${e.from} <${e.email}> wrote:\n${e.body
       .split("\n")
@@ -151,14 +222,7 @@ function MailApp() {
       updateEmail(e.id, { starred: !e.starred });
       showToast(e.starred ? "Removed star" : "Starred");
     },
-    onApproveSender: (e: Email) => {
-      updateEmail(e.id, { folder: "verified" });
-      showToast(`${e.from} can now mail you`);
-    },
-    onBlockSender: (e: Email) => {
-      updateEmail(e.id, { folder: "spam" });
-      showToast(`${e.from} blocked and postage marked for refund`);
-    },
+    onConvertSender: openSenderConversion,
     onShowToast: showToast,
     onAddEvent: (e: Email) => {
       if (!e.event) return;
@@ -310,6 +374,7 @@ function MailApp() {
               emails={emails}
               selectedId={selectedId}
               onSelect={setSelectedId}
+              onConvertSender={openSenderConversion}
               folder={folder}
               filters={filters}
               customFolder={customFolder}
@@ -320,6 +385,7 @@ function MailApp() {
             <RightPanel
               email={selected}
               onAction={handleContextAction}
+              onConvertSender={openSenderConversion}
               calendarEvents={calendar.visibleEvents}
               calendars={calendar.calendars}
               onOpenCalendar={(eventId) => {
@@ -402,6 +468,14 @@ function MailApp() {
       />
 
       <FeedbackViewport items={feedbackItems} onDismiss={dismissFeedback} />
+
+      <OnboardingModal open={showOnboarding} onComplete={handleOnboardingComplete} />
+
+      <SenderConversionDialog
+        target={senderConversion.target}
+        onConfirm={handleConvertSender}
+        onClose={senderConversion.close}
+      />
     </div>
   );
 }

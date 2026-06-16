@@ -9,6 +9,7 @@ import {
   type MailFolder,
 } from "./data";
 import { cn } from "@/lib/utils";
+import { ConvertSenderButton } from "@/features/sender-conversion";
 
 type FilterTab = "all" | "unread" | "flagged";
 
@@ -16,6 +17,7 @@ export function EmailList({
   emails,
   selectedId,
   onSelect,
+  onConvertSender,
   folder,
   filters,
   customFolder,
@@ -25,6 +27,7 @@ export function EmailList({
   emails: Email[];
   selectedId: string | null;
   onSelect: (id: string) => void;
+  onConvertSender: (email: Email) => void;
   folder: MailFolder;
   filters: MailFilters;
   customFolder?: string | null;
@@ -157,6 +160,15 @@ export function EmailList({
                   </div>
                 </div>
               </motion.button>
+              {e.folder === "requests" && (
+                <div className="mt-1 flex justify-end px-2">
+                  <ConvertSenderButton
+                    variant="subtle"
+                    label="Review sender"
+                    onClick={() => onConvertSender(e)}
+                  />
+                </div>
+              )}
             </motion.li>
           );
         })}

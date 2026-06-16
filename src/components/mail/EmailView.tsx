@@ -3,7 +3,6 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   Archive,
   BadgeCheck,
-  Ban,
   Braces,
   File,
   FileArchive,
@@ -23,6 +22,7 @@ import {
 import { cn } from "@/lib/utils";
 import { EventMailCard, type CalendarEvent, type CalendarResponse } from "@/features/calendar";
 import { OTPCard, detectOtp } from "@/features/otp";
+import { ConvertSenderButton, SenderBadge } from "@/features/sender-conversion";
 import type { Email } from "./data";
 
 export type EmailViewActions = {
@@ -32,8 +32,7 @@ export type EmailViewActions = {
   onArchive?: (email: Email) => void;
   onTrash?: (email: Email) => void;
   onToggleStar?: (email: Email) => void;
-  onApproveSender?: (email: Email) => void;
-  onBlockSender?: (email: Email) => void;
+  onConvertSender?: (email: Email) => void;
   onShowToast?: (message: string) => void;
   onAddEvent?: (email: Email) => CalendarEvent | void;
   getCalendarEvent?: (email: Email) => CalendarEvent | null;
@@ -172,6 +171,14 @@ export function EmailView({
               </div>
 
               <div className="flex items-center justify-end gap-1">
+                {actions.onConvertSender && (
+                  <ConvertSenderButton
+                    variant="ghost"
+                    label={email.senderPolicy ? "Sender" : "Add sender"}
+                    onClick={() => actions.onConvertSender?.(email)}
+                    className="hidden sm:inline-flex"
+                  />
+                )}
                 <motion.button
                   whileTap={{ scale: 0.9 }}
                   onClick={() => actions.onArchive?.(email)}
@@ -244,8 +251,7 @@ export function EmailView({
                   <SenderRequest
                     sender={email.from}
                     address={email.email}
-                    onApprove={() => actions.onApproveSender?.(email)}
-                    onBlock={() => actions.onBlockSender?.(email)}
+                    onManage={() => actions.onConvertSender?.(email)}
                   />
                 ) : null}
 
@@ -378,32 +384,25 @@ function ProtocolStatus({
 function SenderRequest({
   sender,
   address,
-  onApprove,
-  onBlock,
+  onManage,
 }: {
   sender: string;
   address: string;
-  onApprove: () => void;
-  onBlock: () => void;
+  onManage: () => void;
 }) {
   return (
     <div className="mt-5 rounded-xl border border-amber-200/15 bg-amber-100/[0.035] p-4">
       <p className="text-sm font-semibold text-foreground">Decide who can mail you</p>
       <p className="mt-1 text-xs leading-5 text-muted-foreground">
-        {sender} ({address}) paid postage, but is not in your trusted sender list.
+        {sender} ({address}) paid postage, but is not in your trusted sender list. Review how to
+        allow, verify, or block them before anything changes.
       </p>
       <div className="mt-3 flex gap-2">
         <button
-          onClick={onApprove}
+          onClick={onManage}
           className="inline-flex items-center gap-2 rounded-lg bg-foreground px-3 py-2 text-xs font-semibold text-background transition hover:opacity-90"
         >
-          <BadgeCheck className="h-3.5 w-3.5" /> Allow sender
-        </button>
-        <button
-          onClick={onBlock}
-          className="inline-flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-xs text-muted-foreground transition hover:bg-white/[0.05] hover:text-foreground"
-        >
-          <Ban className="h-3.5 w-3.5" /> Block and refund
+          <BadgeCheck className="h-3.5 w-3.5" /> Review sender
         </button>
       </div>
     </div>
@@ -455,8 +454,11 @@ function SenderIdentity({ email, compact = false }: { email: Email; compact?: bo
           .join("")}
       </div>
       <div className="min-w-0 flex-1">
-        <div className="mail-reader-meta truncate text-[12px] font-semibold leading-4 text-foreground/92">
-          {email.from}
+        <div className="mail-reader-meta flex items-center gap-1.5">
+          <span className="truncate text-[12px] font-semibold leading-4 text-foreground/92">
+            {email.from}
+          </span>
+          <SenderBadge policy={email.senderPolicy} />
         </div>
         <div className="mail-reader-meta truncate text-[9.5px] leading-3 text-muted-foreground/80">
           {email.email}

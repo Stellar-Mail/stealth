@@ -41,5 +41,5 @@ export function usePreferences() {
     return () => media.removeEventListener("change", apply);
   }, [hydrated, preferences]);
 
-  return { preferences, setPreferences };
+  return { preferences, setPreferences, hydrated };
 }

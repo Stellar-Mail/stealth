@@ -10,6 +10,8 @@ export type UiPreferences = {
   sound: boolean;
   unknownSenders: UnknownSenderPolicy;
   minimumPostage: string;
+  onboardingCompleted: boolean;
+  receiptOnDelivery: boolean;
 };
 
 export const defaultPreferences: UiPreferences = {
@@ -21,4 +23,6 @@ export const defaultPreferences: UiPreferences = {
   sound: false,
   unknownSenders: "request",
   minimumPostage: "0.0001",
+  onboardingCompleted: false,
+  receiptOnDelivery: false,
 };

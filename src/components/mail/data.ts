@@ -1,12 +1,25 @@
 import type { MailEvent } from "@/features/calendar";
-import type { Message, MailFolder, MailLocation, MailFilters } from "@/features/mailbox";
+import type {
+  Message,
+  MailFolder,
+  MailLocation,
+  MailFilters,
+} from "@/features/mailbox";
 
 // Re-export types for backwards compatibility
 export type { MailFolder, MailLocation, MailFilters };
 
+/**
+ * Per-sender policy applied through the sender-conversion flow.
+ * `undefined` means the sender has never been converted.
+ */
+export type SenderPolicy = "allow" | "verify" | "block";
+
 // Legacy type alias for compatibility
 export type Email = Message & {
   time: string; // Formatted time string for display
+  event?: MailEvent;
+  senderPolicy?: SenderPolicy;
 };
 
 export const defaultMailFilters: MailFilters = {
@@ -100,21 +113,43 @@ export function getFolderLabel(folder: MailFolder) {
 }
 
 export function getEmailsForFolder(allEmails: Email[], folder: MailFolder) {
-  if (folder === "all")
-    return allEmails.filter((email) => email.folder !== "spam" && email.folder !== "trash");
-  if (folder === "starred") return allEmails.filter((email) => email.starred);
-  if (folder === "inbox") return allEmails.filter((email) => inboxLocations.has(email.folder));
+  if (folder === "all") {
+    return allEmails.filter(
+      (email) => email.folder !== "spam" && email.folder !== "trash"
+    );
+  }
+
+  if (folder === "starred") {
+    return allEmails.filter((email) => email.starred);
+  }
+
+  if (folder === "inbox") {
+    return allEmails.filter((email) => inboxLocations.has(email.folder));
+  }
+
   return allEmails.filter((email) => email.folder === folder);
 }
 
-export function applyMailFilters(emails: Email[], filters: MailFilters): Email[] {
+export function applyMailFilters(
+  emails: Email[],
+  filters: MailFilters
+): Email[] {
   return emails.filter((email) => {
-    if (filters.unreadOnly && !email.unread) return false;
-    if (filters.hasAttachments && (!email.attachments || email.attachments.length === 0))
+    if (filters.unreadOnly && !email.unread) {
       return false;
+    }
+
+    if (
+      filters.hasAttachments &&
+      (!email.attachments || email.attachments.length === 0)
+    ) {
+      return false;
+    }
+
     if (filters.dateRange !== "all") {
       const now = Date.now();
       const msgDate = new Date(email.timestamp);
+
       const today = new Date(now);
       today.setHours(0, 0, 0, 0);
 
@@ -123,13 +158,16 @@ export function applyMailFilters(emails: Email[], filters: MailFilters): Email[]
       } else if (filters.dateRange === "week") {
         const weekAgo = new Date(now);
         weekAgo.setDate(weekAgo.getDate() - 7);
+
         if (msgDate < weekAgo) return false;
       } else if (filters.dateRange === "month") {
         const monthAgo = new Date(now);
         monthAgo.setMonth(monthAgo.getMonth() - 1);
+
         if (msgDate < monthAgo) return false;
       }
     }
+
     return true;
   });
 }

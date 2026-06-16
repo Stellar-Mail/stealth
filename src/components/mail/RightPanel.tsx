@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { format, isSameDay, parseISO } from "date-fns";
 import type { CalendarDefinition, CalendarEvent } from "@/features/calendar";
+import { ConvertSenderButton, SenderBadge } from "@/features/sender-conversion";
 import type { Email } from "./data";
 
 export type ContextAction = "snooze" | "translate" | "schedule" | "summarize";
@@ -21,6 +22,7 @@ export function RightPanel({
   email,
   onAction,
   onDraftReply,
+  onConvertSender,
   calendarEvents,
   calendars,
   onOpenCalendar,
@@ -29,6 +31,7 @@ export function RightPanel({
   email: Email | null;
   onAction: (action: ContextAction, email: Email) => void;
   onDraftReply: (email: Email, prompt: string) => void;
+  onConvertSender: (email: Email) => void;
   calendarEvents: CalendarEvent[];
   calendars: CalendarDefinition[];
   onOpenCalendar: (eventId?: string) => void;
@@ -184,11 +187,20 @@ export function RightPanel({
                 .slice(0, 2)
                 .join("")}
             </div>
-            <div className="min-w-0">
-              <div className="truncate text-sm text-foreground">{email.from}</div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5">
+                <span className="truncate text-sm text-foreground">{email.from}</span>
+                <SenderBadge policy={email.senderPolicy} />
+              </div>
               <div className="truncate text-[11px] text-muted-foreground">{email.email}</div>
             </div>
           </div>
+          <ConvertSenderButton
+            variant="subtle"
+            label={email.senderPolicy ? "Update sender policy" : "Convert to contact"}
+            onClick={() => onConvertSender(email)}
+            className="mt-3 w-full justify-center"
+          />
         </Card>
       )}
     </aside>
