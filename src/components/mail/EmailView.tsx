@@ -30,6 +30,7 @@ import { EventMailCard, type CalendarEvent, type CalendarResponse } from "@/feat
 import { OTPCard, detectOtp } from "@/features/otp";
 import { ConvertSenderButton, SenderBadge } from "@/features/sender-conversion";
 import { ProvenancePanel } from "./ProvenancePanel";
+import { EmailTrustBadges } from "./EmailTrustBadges";
 import type { Email } from "./data";
 import {
   getRecipientReadiness,
@@ -321,7 +322,8 @@ export function EmailView({
                           whileTap={{ scale: 0.98 }}
                           className={cn(
                             "glass-tile flex min-w-0 items-center gap-2 rounded-md px-2 py-1.5 transition-all duration-150",
-                            actions.onPreviewAttachment && "cursor-pointer hover:bg-white/[0.08] hover:border-white/15"
+                            actions.onPreviewAttachment &&
+                              "cursor-pointer hover:bg-white/[0.08] hover:border-white/15",
                           )}
                         >
                           <AttachmentIcon type={attachment.type} />
@@ -756,6 +758,7 @@ function SenderIdentity({ email, compact = false }: { email: Email; compact?: bo
             {email.from}
           </span>
           <SenderBadge policy={email.senderPolicy} />
+          <EmailTrustBadges email={email} max={3} size="sm" className="ml-1" />
         </div>
         <div className="mail-reader-meta truncate text-[9.5px] leading-3 text-muted-foreground/80">
           {email.email}

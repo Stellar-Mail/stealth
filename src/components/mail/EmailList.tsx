@@ -12,6 +12,7 @@ import {
 import { cn } from "@/lib/utils";
 import { ConvertSenderButton } from "@/features/sender-conversion";
 import { MobileMailCard } from "./MobileMailCard";
+import { EmailTrustBadges } from "./EmailTrustBadges";
 import { BulkActionBar } from "./BulkActionBar";
 import type { BulkActionRequest, BulkFailure, BulkProgressState } from "./bulk-actions";
 
@@ -350,14 +351,23 @@ export function EmailList({
                   )}
                   <div className="relative min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-2">
-                      <span
-                        className={cn(
-                          "mail-preview-heading truncate text-[13.5px] font-semibold leading-5 text-foreground/88",
-                          e.unread && "text-foreground/94",
-                        )}
-                      >
-                        {e.from}
-                      </span>
+                      <div className="flex min-w-0 items-center gap-1.5">
+                        <span
+                          className={cn(
+                            "mail-preview-heading truncate text-[13.5px] font-semibold leading-5 text-foreground/88",
+                            e.unread && "text-foreground/94",
+                          )}
+                        >
+                          {e.from}
+                        </span>
+                        <EmailTrustBadges
+                          email={e}
+                          max={1}
+                          size="sm"
+                          showLabels={false}
+                          className="shrink-0"
+                        />
+                      </div>
                       <span className="shrink-0 pt-0.5 text-[10.5px] font-medium leading-4 tabular-nums text-muted-foreground/85">
                         {e.time}
                       </span>

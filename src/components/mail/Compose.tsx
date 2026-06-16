@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { EmojiPicker } from "./EmojiPicker";
+import { TrustBadge, type TrustState } from "@/features/design-system";
 import { cn } from "@/lib/utils";
 
 import {
@@ -398,6 +399,12 @@ export function Compose({
   );
 }
 
+function recipientTrustState(policy: RecipientReadiness["policy"]): TrustState {
+  if (policy === "blocked") return "blocked";
+  if (policy === "verify") return "verified";
+  return "allowed";
+}
+
 function RecipientReadinessChips({ recipients }: { recipients: RecipientReadiness[] }) {
   if (!recipients.length) return null;
 
@@ -416,6 +423,12 @@ function RecipientReadinessChips({ recipients }: { recipients: RecipientReadines
                 : "border-amber-200/20 bg-amber-200/[0.06] text-amber-100",
           )}
         >
+          <TrustBadge
+            state={recipientTrustState(recipient.policy)}
+            showLabel={false}
+            size="sm"
+            className="mr-1 align-middle"
+          />
           {recipient.address} · {recipient.policy} · postage {recipient.postage}
         </span>
       ))}
