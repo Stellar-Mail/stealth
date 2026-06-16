@@ -107,5 +107,32 @@ export function getEmailsForFolder(allEmails: Email[], folder: MailFolder) {
   return allEmails.filter((email) => email.folder === folder);
 }
 
+export function applyMailFilters(emails: Email[], filters: MailFilters): Email[] {
+  return emails.filter((email) => {
+    if (filters.unreadOnly && !email.unread) return false;
+    if (filters.hasAttachments && (!email.attachments || email.attachments.length === 0))
+      return false;
+    if (filters.dateRange !== "all") {
+      const now = Date.now();
+      const msgDate = new Date(email.timestamp);
+      const today = new Date(now);
+      today.setHours(0, 0, 0, 0);
+
+      if (filters.dateRange === "today") {
+        if (msgDate < today) return false;
+      } else if (filters.dateRange === "week") {
+        const weekAgo = new Date(now);
+        weekAgo.setDate(weekAgo.getDate() - 7);
+        if (msgDate < weekAgo) return false;
+      } else if (filters.dateRange === "month") {
+        const monthAgo = new Date(now);
+        monthAgo.setMonth(monthAgo.getMonth() - 1);
+        if (msgDate < monthAgo) return false;
+      }
+    }
+    return true;
+  });
+}
+
 // Placeholder for seed data - will be populated from useMailbox
 export const emails: Email[] = [];

@@ -59,7 +59,7 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@nightly
         with:
-          targets: wasm32-unknown-unknown
+          targets: wasm32v1-none
 
       - name: Rust Cache
         uses: Swatinem/rust-cache@v2
@@ -74,14 +74,14 @@ jobs:
       - name: Build Contracts
         run: |
           cd contracts/soroban
-          cargo build --target wasm32-unknown-unknown --release
+          cargo build -Z build-std --target wasm32v1-none --release
 
       - name: Wasm Size
         run: |
           echo "### Wasm Binary Sizes" >> $GITHUB_STEP_SUMMARY
           echo "| Contract | Size |" >> $GITHUB_STEP_SUMMARY
           echo "| :--- | :--- |" >> $GITHUB_STEP_SUMMARY
-          TARGET_DIR="contracts/soroban/target/wasm32-unknown-unknown/release"
+          TARGET_DIR="contracts/soroban/target/wasm32v1-none/release"
           if [ -d "$TARGET_DIR" ]; then
             for wasm in $TARGET_DIR/*.wasm; do
               if [ -f "$wasm" ]; then
@@ -98,7 +98,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: contract-wasm
-          path: contracts/soroban/target/wasm32-unknown-unknown/release/*.wasm
+          path: contracts/soroban/target/wasm32v1-none/release/*.wasm
 
   security:
     name: Security & Dependency Review
