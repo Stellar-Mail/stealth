@@ -81,7 +81,14 @@ const folderColors = [
 ];
 
 export function Sidebar({
-  active, counts, onSelect, collapsed, onToggle, onCompose, customFolder, onSelectCustomFolder,
+  active,
+  counts,
+  onSelect,
+  collapsed,
+  onToggle,
+  onCompose,
+  customFolder,
+  onSelectCustomFolder,
 }: {
   active: MailFolder;
   counts: Partial<Record<MailFolder, number>>;
@@ -127,8 +134,12 @@ export function Sidebar({
         </div>
         {!collapsed && (
           <div className="flex flex-col leading-tight">
-            <span className="mail-preview-heading text-sm font-semibold tracking-tight silver-text">STEALTH</span>
-            <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">mail protocol</span>
+            <span className="mail-preview-heading text-sm font-semibold tracking-tight silver-text">
+              STEALTH
+            </span>
+            <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+              mail protocol
+            </span>
           </div>
         )}
         <button
@@ -187,7 +198,9 @@ export function Sidebar({
         {!collapsed && (
           <>
             <div className="mt-6 mb-2 flex items-center justify-between px-3">
-              <span className="mail-preview-heading text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">Folders</span>
+              <span className="mail-preview-heading text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                Folders
+              </span>
               <button
                 onClick={() => setIsAddingFolder(true)}
                 className="rounded p-1 text-muted-foreground transition hover:bg-white/5 hover:text-foreground"
@@ -195,7 +208,7 @@ export function Sidebar({
                 <Plus className="h-3.5 w-3.5" />
               </button>
             </div>
-            
+
             {/* Add folder input */}
             <AnimatePresence>
               {isAddingFolder && (
@@ -234,7 +247,7 @@ export function Sidebar({
                 </motion.div>
               )}
             </AnimatePresence>
-            
+
             <ul className="space-y-0.5">
               {folders.map((f) => {
                 const isCustomActive = customFolder === f.name;
@@ -244,7 +257,9 @@ export function Sidebar({
                       onClick={() => onSelectCustomFolder?.(isCustomActive ? null : f.name)}
                       className={cn(
                         "group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition hover:bg-white/[0.04] hover:text-foreground",
-                        isCustomActive ? "bg-white/[0.06] text-foreground" : "text-muted-foreground"
+                        isCustomActive
+                          ? "bg-white/[0.06] text-foreground"
+                          : "text-muted-foreground",
                       )}
                     >
                       <Hash className="h-3.5 w-3.5" style={{ color: f.color }} />
@@ -268,7 +283,9 @@ export function Sidebar({
           className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full"
           style={{ background: "linear-gradient(135deg, #4d5560, #232326)" }}
         >
-          <span className="absolute inset-0 flex items-center justify-center text-xs font-medium text-white/90">EN</span>
+          <span className="absolute inset-0 flex items-center justify-center text-xs font-medium text-white/90">
+            EN
+          </span>
         </div>
         {!collapsed && (
           <div className="min-w-0 flex-1 leading-tight">
@@ -276,7 +293,9 @@ export function Sidebar({
             <div className="truncate text-[11px] text-muted-foreground">kryputh@stealth.me</div>
           </div>
         )}
-        {!collapsed && <span className="pulse-dot ml-auto h-1.5 w-1.5 rounded-full bg-[oklch(0.85_0.005_270)]" />}
+        {!collapsed && (
+          <span className="pulse-dot ml-auto h-1.5 w-1.5 rounded-full bg-[oklch(0.85_0.005_270)]" />
+        )}
       </div>
     </motion.aside>
   );
@@ -324,7 +343,9 @@ function FolderButton({
         <>
           <span className="mail-preview-heading relative truncate">{item.label}</span>
           {count !== undefined && count > 0 && (
-            <span className="relative ml-auto text-[11px] tabular-nums text-muted-foreground">{count}</span>
+            <span className="relative ml-auto text-[11px] tabular-nums text-muted-foreground">
+              {count}
+            </span>
           )}
         </>
       )}

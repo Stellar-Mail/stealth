@@ -1,1 +1,8 @@
-{"benchmark":"stealth-commit-spread-v1","sequence":752,"module":"contracts","phase":8,"generated_at":"2026-01-01T12:31:00.0000000+01:00","synthetic":true}
+{
+  "benchmark": "stealth-commit-spread-v1",
+  "sequence": 752,
+  "module": "contracts",
+  "phase": 8,
+  "generated_at": "2026-01-01T12:31:00.0000000+01:00",
+  "synthetic": true
+}

@@ -1,1 +1,8 @@
-{"benchmark":"stealth-commit-spread-v1","sequence":187,"module":"security","phase":2,"generated_at":"2026-01-01T03:06:00.0000000+01:00","synthetic":true}
+{
+  "benchmark": "stealth-commit-spread-v1",
+  "sequence": 187,
+  "module": "security",
+  "phase": 2,
+  "generated_at": "2026-01-01T03:06:00.0000000+01:00",
+  "synthetic": true
+}

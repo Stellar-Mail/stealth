@@ -11,12 +11,12 @@ const emojiCategories = {
 
 type Category = keyof typeof emojiCategories;
 
-export function EmojiPicker({ 
-  open, 
-  onClose, 
-  onSelect 
-}: { 
-  open: boolean; 
+export function EmojiPicker({
+  open,
+  onClose,
+  onSelect,
+}: {
+  open: boolean;
   onClose: () => void;
   onSelect: (emoji: string) => void;
 }) {
@@ -50,14 +50,14 @@ export function EmojiPicker({
                     "flex-1 rounded-t-lg px-2 py-1.5 text-[10px] capitalize transition",
                     activeCategory === cat
                       ? "bg-white/[0.08] text-foreground"
-                      : "text-muted-foreground hover:text-foreground"
+                      : "text-muted-foreground hover:text-foreground",
                   )}
                 >
                   {cat}
                 </button>
               ))}
             </div>
-            
+
             {/* Emoji grid */}
             <div className="grid grid-cols-6 gap-1 p-2">
               {emojiCategories[activeCategory].map((emoji) => (

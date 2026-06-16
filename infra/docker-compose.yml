@@ -1,5 +1,5 @@
 # Docker Compose for local Stellar development environment
-version: '3.8'
+version: "3.8"
 
 services:
   stellar-core:

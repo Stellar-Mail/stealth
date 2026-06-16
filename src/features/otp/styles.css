@@ -22,13 +22,12 @@
 }
 
 .otp-scene::before {
-  background:
-    repeating-linear-gradient(
-      154deg,
-      transparent 0 34px,
-      oklch(1 0 0 / 0.055) 36px 38px,
-      transparent 42px 78px
-    );
+  background: repeating-linear-gradient(
+    154deg,
+    transparent 0 34px,
+    oklch(1 0 0 / 0.055) 36px 38px,
+    transparent 42px 78px
+  );
   filter: blur(1px);
   opacity: 0.78;
   transform: rotate(-7deg) translateY(-10%);
@@ -53,15 +52,15 @@
   box-shadow:
     0 30px 60px -22px oklch(0 0 0 / 0.8),
     0 10px 28px oklch(0 0 0 / 0.5),
-    inset 0 1px 0 oklch(1 0 0 / 0.10),
+    inset 0 1px 0 oklch(1 0 0 / 0.1),
     inset 0 -1px 0 oklch(0 0 0 / 0.5);
 }
 
 .otp-digit {
-  background: linear-gradient(180deg, oklch(0.20 0.005 270), oklch(0.13 0.005 270));
+  background: linear-gradient(180deg, oklch(0.2 0.005 270), oklch(0.13 0.005 270));
   border: 1px solid oklch(1 0 0 / 0.09);
   box-shadow:
-    inset 0 1px 0 oklch(1 0 0 / 0.10),
+    inset 0 1px 0 oklch(1 0 0 / 0.1),
     inset 0 -1px 0 oklch(0 0 0 / 0.55),
     0 4px 10px oklch(0 0 0 / 0.45);
 }
@@ -74,7 +73,10 @@
     inset 0 1px 0 oklch(1 0 0 / 0.7),
     inset 0 -1px 0 oklch(0 0 0 / 0.2),
     0 8px 20px oklch(0 0 0 / 0.45);
-  transition: transform 180ms ease, box-shadow 180ms ease, filter 180ms ease;
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    filter 180ms ease;
 }
 
 .otp-copy-btn:hover {

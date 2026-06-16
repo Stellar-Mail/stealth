@@ -18,6 +18,7 @@ npm run local:setup
 After a successful run you will see a **"Environment ready"** banner and a `client-config.json` file in the project root, which the UI can use to send messages.
 
 Use the matching teardown command when you are done.
+
 ```sh
 npm run local:teardown   # Windows
 npm run local:teardown:unix   # macOS / Linux

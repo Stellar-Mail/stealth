@@ -29,7 +29,9 @@ export function OTPCard({ code }: { code: string }) {
           <PadlockIcon />
         </div>
 
-        <h3 className="text-center text-[15px] font-medium text-foreground">Your verification code</h3>
+        <h3 className="text-center text-[15px] font-medium text-foreground">
+          Your verification code
+        </h3>
         <p className="mx-auto mt-1 max-w-[260px] text-center text-[11.5px] leading-[16px] text-muted-foreground">
           We&rsquo;ve detected a unique passkey in this email. Copy it to use anywhere.
         </p>
@@ -70,7 +72,14 @@ export function OTPCard({ code }: { code: string }) {
 
 function PadlockIcon() {
   return (
-    <svg width="76" height="86" viewBox="0 0 76 86" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <svg
+      width="76"
+      height="86"
+      viewBox="0 0 76 86"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
       <defs>
         <linearGradient id="shackle" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor="#dcdfe3" />
