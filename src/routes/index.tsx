@@ -290,6 +290,9 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
     onCalendarReminderChange: calendar.updateReminder,
     onPreviewAttachment: (attachment: { name: string; size: string; type: string }) =>
       setPreviewAttachment(attachment),
+    getCalendarEvents: () => calendar.events,
+    onDuplicateEvent: calendar.duplicateEvent,
+    onDeleteEvent: calendar.deleteEvent,
   };
 
   const runBulkAction = async (request: BulkActionRequest) => {
@@ -744,6 +747,10 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
         onToggleCalendar={calendar.toggleCalendar}
         onAddCalendar={calendar.addCalendar}
         onShowToast={showToast}
+        onNavigateToEmail={(emailId) => {
+          setSelectedId(emailId);
+          setCalendarOpen(false);
+        }}
       />
 
       <FeedbackViewport items={feedbackItems} onDismiss={dismissFeedback} />
