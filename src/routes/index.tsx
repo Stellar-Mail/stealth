@@ -11,13 +11,14 @@ import { CommandPalette } from "@/components/mail/CommandPalette";
 import { SettingsModal } from "@/components/mail/SettingsModal";
 import {
   defaultMailFilters,
-  emails as initialEmails,
   getEmailsForFolder,
   mailFolders,
+  formatMessageTime,
   type Email,
   type MailFilters,
   type MailFolder,
 } from "@/components/mail/data";
+import { useMailbox, createSeedState } from "@/features/mailbox";
 import { usePreferences } from "@/features/preferences";
 import { CalendarWorkspace, useCalendar } from "@/features/calendar";
 import { FeedbackViewport } from "@/features/design-system/feedback/feedback-viewport";
@@ -48,8 +49,7 @@ export const Route = createFileRoute("/")({
 
 function MailApp() {
   const [folder, setFolder] = useState<MailFolder>("inbox");
-  const [emails, setEmails] = useState<Email[]>(initialEmails);
-  const [selectedId, setSelectedId] = useState<string | null>(initialEmails[0].id);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState(false);
   const [composeOpen, setComposeOpen] = useState(false);
   const [composeInitial, setComposeInitial] = useState<{
@@ -111,6 +111,34 @@ function MailApp() {
   const calendar = useCalendar();
   const { dismiss: dismissFeedback, items: feedbackItems, notify: showToast } = useFeedback();
 
+  // Use the mailbox data layer
+  const mailbox = useMailbox();
+
+  // Initialize with seed data on first load
+  useEffect(() => {
+    if (mailbox.state.messages.length === 0 && mailbox.loadingState === "idle") {
+      const seedState = createSeedState();
+      // Populate initial state with formatted time
+      const emails = seedState.messages.map((msg) => ({
+        ...msg,
+        time: formatMessageTime(msg.timestamp),
+      }));
+      emails.forEach((email) => mailbox.messages.create(email as Email));
+      if (emails.length > 0) setSelectedId(emails[0].id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mailbox.loadingState]);
+
+  // Format messages with time for display
+  const emails = useMemo(
+    () =>
+      mailbox.state.messages.map((msg) => ({
+        ...msg,
+        time: formatMessageTime(msg.timestamp),
+      })) as Email[],
+    [mailbox.state.messages],
+  );
+
   const folderCounts = useMemo(
     () =>
       Object.fromEntries(
@@ -121,8 +149,8 @@ function MailApp() {
   const visibleEmails = useMemo(() => getEmailsForFolder(emails, folder), [emails, folder]);
   const selected = emails.find((e) => e.id === selectedId) ?? null;
 
-  const updateEmail = (id: string, patch: Partial<Email>) => {
-    setEmails((prev) => prev.map((e) => (e.id === id ? { ...e, ...patch } : e)));
+  const updateEmail = async (id: string, patch: Partial<Email>) => {
+    await mailbox.messages.update(id, patch);
   };
 
   const openCompose = (initial: { to?: string; subject?: string; body?: string } = {}) => {
@@ -242,7 +270,8 @@ function MailApp() {
       subject: submission.subject,
       preview: submission.body.slice(0, 120) || "Message ready for delivery",
       body: submission.body,
-      time: submission.scheduled ? "Tomorrow" : "Now",
+      timestamp: Date.now(),
+      time: "just now",
       unread: false,
       starred: false,
       folder: submission.scheduled ? "scheduled" : "sent",
@@ -258,7 +287,7 @@ function MailApp() {
       })),
       avatarColor: "#5b6470",
     };
-    setEmails((current) => [message, ...current]);
+    mailbox.messages.create(message);
   };
 
   // Mark as read on selection

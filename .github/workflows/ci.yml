@@ -2,50 +2,6 @@ name: CI
 
 on:
   push:
-<<<<<<< feature/version-negotiation
-    branches: [main, develop, "feature/**"]
-  pull_request:
-    branches: [main, develop]
-
-jobs:
-  build-test:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        shell: bash
-
-    steps:
-      # 1️⃣ Checkout repository
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      # 2️⃣ Set up Node (use the version defined in `package.json` “engines”, fallback to 20)
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-
-      # 3️⃣ Install dependencies (honors npm config, no script execution restrictions)
-      - name: Install dependencies
-        run: npm ci
-
-      # 4️⃣ Lint the codebase
-      - name: Run ESLint
-        run: npm run lint
-
-      # 5️⃣ Check Prettier formatting
-      - name: Check Prettier format
-        run: npm run format:check || npx prettier --check .
-
-      # 6️⃣ Run unit / integration tests
-      - name: Run tests
-        run: npm test
-
-      # 7️⃣ Build the app (optional but useful for PR checks)
-      - name: Build
-        run: npm run build
-=======
     branches: [main, develop]
   pull_request:
     branches: [main, develop]
@@ -101,9 +57,9 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@nightly
         with:
-          targets: wasm32-unknown-unknown
+          targets: wasm32v1-none
 
       - name: Rust Cache
         uses: Swatinem/rust-cache@v2
@@ -118,14 +74,14 @@ jobs:
       - name: Build Contracts
         run: |
           cd contracts/soroban
-          cargo build --target wasm32-unknown-unknown --release
+          cargo build -Z build-std --target wasm32v1-none --release
 
       - name: Wasm Size
         run: |
           echo "### Wasm Binary Sizes" >> $GITHUB_STEP_SUMMARY
           echo "| Contract | Size |" >> $GITHUB_STEP_SUMMARY
           echo "| :--- | :--- |" >> $GITHUB_STEP_SUMMARY
-          TARGET_DIR="contracts/soroban/target/wasm32-unknown-unknown/release"
+          TARGET_DIR="contracts/soroban/target/wasm32v1-none/release"
           if [ -d "$TARGET_DIR" ]; then
             for wasm in $TARGET_DIR/*.wasm; do
               if [ -f "$wasm" ]; then
@@ -142,7 +98,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: contract-wasm
-          path: contracts/soroban/target/wasm32-unknown-unknown/release/*.wasm
+          path: contracts/soroban/target/wasm32v1-none/release/*.wasm
 
   security:
     name: Security & Dependency Review
@@ -174,7 +130,7 @@ jobs:
           echo "### Release Artifact Hashes" >> $GITHUB_STEP_SUMMARY
           echo "| Artifact | SHA-256 Hash |" >> $GITHUB_STEP_SUMMARY
           echo "| :--- | :--- |" >> $GITHUB_STEP_SUMMARY
-          
+
           # Collect and hash important artifacts
           find . -name "*.wasm" -o -name "index.html" -o -name "*.js" -o -name "*.css" | grep -v "node_modules" | while read file; do
             hash=$(sha256sum "$file" | awk '{print $1}')
@@ -188,4 +144,3 @@ jobs:
         with:
           name: release-hashes
           path: SHA256SUMS
->>>>>>> main

@@ -1,0 +1,188 @@
+import type { Message, Contact, MailboxState } from "./types";
+
+const colors = ["#5b6470", "#7a8290", "#4d5560", "#9098a4", "#3d434d"];
+const c = (i: number) => colors[i % colors.length];
+
+const now = Date.now();
+const oneHourAgo = now - 60 * 60 * 1000;
+const oneDayAgo = now - 24 * 60 * 60 * 1000;
+
+export const seedMessages: Message[] = [
+  {
+    id: "1",
+    from: "Lina Park",
+    email: "lina*vantage.studio",
+    subject: "Q2 brand system - final direction",
+    preview:
+      "Sharing the refined exploration for the new identity. The monochrome system feels strongest...",
+    body: "Hey,\n\nSharing the refined exploration for the new identity. The monochrome system feels strongest across product surfaces. I've attached the latest spec sheet and the motion principles deck.\n\nLet me know your thoughts before Friday's review.\n\nLina",
+    timestamp: oneHourAgo,
+    unread: true,
+    starred: true,
+    folder: "priority",
+    labels: ["Design", "Priority"],
+    attachments: [
+      { name: "vantage-identity-v3.pdf", size: "4.2 MB", type: "pdf" },
+      { name: "motion-principles.key", size: "12.1 MB", type: "key" },
+    ],
+    avatarColor: c(0),
+  },
+  {
+    id: "2",
+    from: "TOKEN2049 Abu Dhabi",
+    email: "events*token2049.global",
+    subject: "TOKEN2049 Abu Dhabi - founder pass ready",
+    preview: "Your event pass, agenda window, and wallet reminder are ready for Abu Dhabi...",
+    body: "Your TOKEN2049 Abu Dhabi founder pass is ready.\n\nDate: April 21, 2026\nTime: 9:00 AM GST\nVenue: Abu Dhabi Global Market\nPass: Founder access\n\nAdd the event to keep side sessions, badge pickup, and wallet reminders in one place.",
+    timestamp: oneHourAgo,
+    unread: true,
+    starred: false,
+    folder: "verified",
+    labels: ["Event", "Verified", "Pass"],
+    avatarColor: c(1),
+  },
+  {
+    id: "3",
+    from: "Relay Node 07",
+    email: "relay07*stealth.network",
+    subject: "Your relay verification code",
+    preview: "Use the one-time passkey below to authorize this relay session...",
+    body: "Hi Eve,\n\nA new relay session is requesting authorization on Node 07. Use the one-time passkey below to confirm it's you.\n\nYour OTP code: 482 015\n\nThis code expires in 10 minutes. If you didn't initiate this, ignore the message and your session will stay locked.\n\n— Relay Node 07",
+    timestamp: oneHourAgo,
+    unread: true,
+    starred: false,
+    folder: "pending",
+    labels: ["Security", "OTP"],
+    avatarColor: c(2),
+  },
+  {
+    id: "4",
+    from: "Uthaimin Lawal",
+    email: "mina*lumos.capital",
+    subject: "Investor update and postage policy",
+    preview: "The paid-inbox model makes sense. Can you send over the sender-tier thresholds...",
+    body: "The paid-inbox model makes sense.\n\nCan you send over the sender-tier thresholds and how postage refunds work for approved contacts? I want to understand what happens when a verified sender is whitelisted.",
+    timestamp: oneHourAgo,
+    unread: false,
+    starred: true,
+    folder: "inbox",
+    labels: ["Investors", "Postage"],
+    avatarColor: c(3),
+  },
+  {
+    id: "5",
+    from: "Unknown Sender",
+    email: "GCKN...N4XQ",
+    subject: "Message request awaiting approval",
+    preview: "This sender paid postage but is not in your trusted contacts yet...",
+    body: "This sender paid postage but is not in your trusted contacts yet.\n\nApprove the request to decrypt future messages automatically, or reject it to keep the address quarantined.",
+    timestamp: oneHourAgo,
+    unread: true,
+    starred: false,
+    folder: "requests",
+    labels: ["Request", "Paid"],
+    avatarColor: c(4),
+  },
+  {
+    id: "6",
+    from: "Nadia Reyes",
+    email: "nadia*atlas.dev",
+    subject: "Encrypted payload test",
+    preview:
+      "The Curve25519 envelope opens cleanly on desktop and mobile with the same account key...",
+    body: "The Curve25519 envelope opens cleanly on desktop and mobile with the same account key.\n\nI attached the test vector and the decoded header output so you can compare against the relay logs.",
+    timestamp: oneDayAgo,
+    unread: false,
+    starred: false,
+    folder: "encrypted",
+    labels: ["Encrypted", "Engineering"],
+    attachments: [{ name: "payload-test-vector.json", size: "18 KB", type: "json" }],
+    avatarColor: c(0),
+  },
+  {
+    id: "7",
+    from: "Receipt Contract",
+    email: "receipts*stealth.network",
+    subject: "Delivery receipt settled",
+    preview: "Soroban receipt confirmed read proof for message 48fb...c29a...",
+    body: "Delivery receipt settled.\n\nMessage: 48fb...c29a\nContract: CCL2...9DME\nEvent: read_proof\nFee: 0.00002 XLM",
+    timestamp: oneDayAgo,
+    unread: false,
+    starred: false,
+    folder: "receipts",
+    labels: ["Receipt", "Soroban"],
+    avatarColor: c(1),
+  },
+  {
+    id: "8",
+    from: "Aria Voss",
+    email: "aria*studio.aria",
+    subject: "Studio visit next Thursday?",
+    preview: "Snoozed until tomorrow. Aria wants to show the new prints in person...",
+    body: "Would love to show you the new prints in person. We're in the Mission until the end of the month.\n\nSnoozing this so it comes back tomorrow morning.",
+    timestamp: oneDayAgo,
+    unread: false,
+    starred: false,
+    folder: "snoozed",
+    labels: ["Event", "Snoozed", "Personal"],
+    avatarColor: c(2),
+  },
+  {
+    id: "9",
+    from: "Marcus Chen",
+    email: "marcus*northwind.io",
+    subject: "Re: Architecture review notes",
+    preview: "Thanks for the deep dive yesterday. A few follow-ups on the edge runtime concerns...",
+    body: "Thanks for the deep dive yesterday. A few follow-ups on the edge runtime concerns we discussed. I think we can resolve most of them with a thin adapter layer.\n\nHappy to pair on it tomorrow.",
+    timestamp: oneDayAgo,
+    unread: false,
+    starred: true,
+    folder: "archive",
+    labels: ["Work", "Engineering"],
+    avatarColor: c(3),
+  },
+];
+
+export const seedContacts: Contact[] = [
+  {
+    address: "lina*vantage.studio",
+    name: "Lina Park",
+    email: "lina*vantage.studio",
+    verified: true,
+    trusted: true,
+  },
+  {
+    address: "marcus*northwind.io",
+    name: "Marcus Chen",
+    email: "marcus*northwind.io",
+    verified: true,
+    trusted: true,
+  },
+  {
+    address: "nadia*atlas.dev",
+    name: "Nadia Reyes",
+    email: "nadia*atlas.dev",
+    verified: true,
+    trusted: true,
+  },
+];
+
+export function createSeedState(): MailboxState {
+  return {
+    version: 1,
+    messages: seedMessages,
+    threads: [],
+    contacts: seedContacts,
+    policy: {
+      allowUnknown: false,
+      minimumPostage: "0",
+      requireVerified: true,
+    },
+    proofs: [],
+    syncCursor: {
+      id: "seed-cursor",
+      timestamp: Date.now(),
+      source: "local",
+    },
+  };
+}

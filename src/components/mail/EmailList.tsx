@@ -43,7 +43,7 @@ export function EmailList({
       )
     : getEmailsForFolder(emails, folder);
 
-  const filtered = applyMailFilters(folderEmails, filters).filter((e) => {
+  const filtered = applyMailFilters(folderEmails, filters).filter((e: Email) => {
     if (activeTab === "unread") return e.unread;
     if (activeTab === "flagged") return e.starred;
     return true;
@@ -85,7 +85,7 @@ export function EmailList({
             No conversations in {folderLabel.toLowerCase()} yet.
           </li>
         )}
-        {filtered.map((e, idx) => {
+        {filtered.map((e: Email, idx: number) => {
           const active = selectedId === e.id;
           return (
             <motion.li
