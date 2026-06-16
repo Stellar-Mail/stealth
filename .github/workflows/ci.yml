@@ -1,0 +1,146 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+permissions:
+  contents: read
+
+jobs:
+  client-checks:
+    name: Client Checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.1.20
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Format Check
+        run: bun x prettier --check .
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Check Generated Artifacts
+        run: |
+          bun x tsr generate
+          git diff --exit-code src/routeTree.gen.ts
+
+      - name: Typecheck
+        run: bun x tsc --noEmit
+
+      - name: Unit Tests
+        run: bun run test
+
+      - name: Build Client
+        run: bun run build
+
+      - name: Upload Client Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: client-dist
+          path: dist/
+
+  contract-checks:
+    name: Contract Checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@1.81.0
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: contracts/soroban
+
+      - name: Test Contracts
+        run: |
+          cd contracts/soroban
+          cargo test --workspace
+
+      - name: Build Contracts
+        run: |
+          cd contracts/soroban
+          cargo build --target wasm32-unknown-unknown --release
+
+      - name: Wasm Size
+        run: |
+          echo "### Wasm Binary Sizes" >> $GITHUB_STEP_SUMMARY
+          echo "| Contract | Size |" >> $GITHUB_STEP_SUMMARY
+          echo "| :--- | :--- |" >> $GITHUB_STEP_SUMMARY
+          TARGET_DIR="contracts/soroban/target/wasm32-unknown-unknown/release"
+          if [ -d "$TARGET_DIR" ]; then
+            for wasm in $TARGET_DIR/*.wasm; do
+              if [ -f "$wasm" ]; then
+                size=$(ls -lh "$wasm" | awk '{print $5}')
+                name=$(basename "$wasm")
+                echo "| $name | $size |" >> $GITHUB_STEP_SUMMARY
+              fi
+            done
+          else
+            echo "Target directory $TARGET_DIR not found." >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload Contract Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: contract-wasm
+          path: contracts/soroban/target/wasm32-unknown-unknown/release/*.wasm
+
+  security:
+    name: Security & Dependency Review
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Dependency Review
+        if: github.event_name == 'pull_request'
+        uses: actions/dependency-review-action@v4
+
+      - name: Secret Scanning
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  provenance:
+    name: Provenance & Hashes
+    needs: [client-checks, contract-checks]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Generate SHA-256 Hashes
+        run: |
+          echo "### Release Artifact Hashes" >> $GITHUB_STEP_SUMMARY
+          echo "| Artifact | SHA-256 Hash |" >> $GITHUB_STEP_SUMMARY
+          echo "| :--- | :--- |" >> $GITHUB_STEP_SUMMARY
+          
+          # Collect and hash important artifacts
+          find . -name "*.wasm" -o -name "index.html" -o -name "*.js" -o -name "*.css" | grep -v "node_modules" | while read file; do
+            hash=$(sha256sum "$file" | awk '{print $1}')
+            name=$(basename "$file")
+            echo "| $name | $hash |" >> $GITHUB_STEP_SUMMARY
+            echo "$hash  $file" >> SHA256SUMS
+          done
+
+      - name: Upload Hashes
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-hashes
+          path: SHA256SUMS
