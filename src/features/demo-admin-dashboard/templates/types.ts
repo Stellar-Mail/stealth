@@ -6,7 +6,13 @@
  * and safe for public repository review.
  */
 
-export type TemplateCategory = "welcome" | "transactional" | "security" | "event" | "newsletter";
+export type TemplateCategory =
+  | "welcome"
+  | "transactional"
+  | "security"
+  | "event"
+  | "newsletter"
+  | "internal";
 
 export interface MessageTemplate {
   /** Stable, unique identifier. */
@@ -32,4 +38,5 @@ export const TEMPLATE_CATEGORY_LABEL: Record<TemplateCategory, string> = {
   security: "Security",
   event: "Event",
   newsletter: "Newsletter",
+  internal: "Internal",
 };

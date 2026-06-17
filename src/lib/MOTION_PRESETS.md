@@ -5,6 +5,7 @@ A centralized, tested animation system for consistent motion across the Stealth 
 ## Overview
 
 The motion presets system provides:
+
 - **Named presets** for 6 animation categories (entrance, exit, promote, remove, confirm, danger)
 - **Reduced-motion support** - automatically responds to system accessibility settings
 - **Framer Motion integration** - spring physics for natural, responsive animations
@@ -20,7 +21,7 @@ import { motion, AnimatePresence } from "framer-motion";
 // Use a preset variant
 <motion.div {...motionPresets.entrance.slideUp()}>
   Content appears with slide-up animation
-</motion.div>
+</motion.div>;
 
 // Check reduced-motion preference
 const preference = motionPresets.getMotionPreference(); // "full" | "reduced"
@@ -29,6 +30,7 @@ const preference = motionPresets.getMotionPreference(); // "full" | "reduced"
 ## Animation Categories
 
 ### Entrance
+
 Animations for elements appearing or entering the viewport.
 
 - **slideUp** - Slide up from bottom with fade. Best for: modals, panels, notifications
@@ -38,13 +40,13 @@ Animations for elements appearing or entering the viewport.
 - **slideRight** - Slide from right with fade. Best for: right panels, drawers
 
 **Example:**
+
 ```tsx
-<motion.div {...motionPresets.entrance.slideUp()}>
-  Notification message
-</motion.div>
+<motion.div {...motionPresets.entrance.slideUp()}>Notification message</motion.div>
 ```
 
 ### Exit
+
 Animations for elements disappearing or leaving the viewport.
 
 - **slideDown** - Slide down with fade (opposite of slideUp)
@@ -54,17 +56,15 @@ Animations for elements disappearing or leaving the viewport.
 - **slideToRight** - Slide to right with fade
 
 **Example:**
+
 ```tsx
 <AnimatePresence>
-  {isVisible && (
-    <motion.div {...motionPresets.exit.slideDown()}>
-      Content disappears
-    </motion.div>
-  )}
+  {isVisible && <motion.div {...motionPresets.exit.slideDown()}>Content disappears</motion.div>}
 </AnimatePresence>
 ```
 
 ### Promote
+
 Animations to draw attention and bring elements to focus. Typically paired with `whileHover`, `whileTap`, or other interaction states.
 
 - **scale** - Subtle scale increase on hover/tap. Best for: buttons, cards, interactive elements
@@ -72,13 +72,13 @@ Animations to draw attention and bring elements to focus. Typically paired with 
 - **glow** - Highlight with opacity increase. Best for: focus states, active items
 
 **Example:**
+
 ```tsx
-<motion.button {...motionPresets.promote.scale(1.04)}>
-  Click me
-</motion.button>
+<motion.button {...motionPresets.promote.scale(1.04)}>Click me</motion.button>
 ```
 
 ### Remove
+
 Animations when removing elements with emphasis. Used for deletion, dismissal, or removal actions.
 
 - **spinOut** - Spin out with fade. Best for: deleting items, closing notifications
@@ -86,13 +86,13 @@ Animations when removing elements with emphasis. Used for deletion, dismissal, o
 - **slideAwayRight** - Slide to right and fade. Best for: dismissible alerts, swipe-to-dismiss
 
 **Example:**
+
 ```tsx
-<motion.div {...motionPresets.remove.collapse()}>
-  Item to be removed
-</motion.div>
+<motion.div {...motionPresets.remove.collapse()}>Item to be removed</motion.div>
 ```
 
 ### Confirm
+
 Animations for positive actions and confirmation feedback.
 
 - **bounce** - Bounce in with success feel. Best for: success messages, confirmations
@@ -100,13 +100,13 @@ Animations for positive actions and confirmation feedback.
 - **checkmark** - Quick scale-in appear. Best for: checkmark icons, validation success
 
 **Example:**
+
 ```tsx
-<motion.div {...motionPresets.confirm.bounce()}>
-  ✓ Success!
-</motion.div>
+<motion.div {...motionPresets.confirm.bounce()}>✓ Success!</motion.div>
 ```
 
 ### Danger
+
 Animations for destructive actions, warnings, and errors.
 
 - **shake** - Shake effect (horizontal oscillation). Best for: errors, invalid input, failed actions
@@ -114,10 +114,9 @@ Animations for destructive actions, warnings, and errors.
 - **spinWarn** - Spin with fade. Best for: error icons, system warnings, loading failures
 
 **Example:**
+
 ```tsx
-<motion.div {...motionPresets.danger.shake()}>
-  Error message
-</motion.div>
+<motion.div {...motionPresets.danger.shake()}>Error message</motion.div>
 ```
 
 ## Transition Presets
@@ -128,21 +127,19 @@ Ready-to-use transition configurations:
 import { motionPresets } from "@/lib/motion-presets";
 
 // Spring-based transitions (recommended for UI)
-motionPresets.transitions.spring        // Standard spring (stiffness: 300, damping: 30)
-motionPresets.transitions.springSmooth  // Slower, more elastic (stiffness: 200, damping: 20)
-motionPresets.transitions.springSnappy  // Faster, tighter (stiffness: 400, damping: 40)
+motionPresets.transitions.spring; // Standard spring (stiffness: 300, damping: 30)
+motionPresets.transitions.springSmooth; // Slower, more elastic (stiffness: 200, damping: 20)
+motionPresets.transitions.springSnappy; // Faster, tighter (stiffness: 400, damping: 40)
 
 // Tween-based transitions (for specific timing)
-motionPresets.transitions.linear        // Linear easing
-motionPresets.transitions.easeInOut     // Natural acceleration/deceleration
+motionPresets.transitions.linear; // Linear easing
+motionPresets.transitions.easeInOut; // Natural acceleration/deceleration
 ```
 
 **Usage:**
+
 ```tsx
-<motion.div
-  animate={{ opacity: 1 }}
-  transition={motionPresets.transitions.springSmooth}
->
+<motion.div animate={{ opacity: 1 }} transition={motionPresets.transitions.springSmooth}>
   Content
 </motion.div>
 ```
@@ -184,6 +181,7 @@ All presets automatically respect the system `prefers-reduced-motion` setting:
 ```
 
 When `prefers-reduced-motion: reduce` is active, animations use:
+
 - Duration: 0.01ms (instant)
 - Spring stiffness/damping: very high (minimizes motion)
 
@@ -325,11 +323,13 @@ export function DismissibleItem({ item, onDismiss }) {
 ### View the Motion Gallery
 
 Open the motion gallery in development mode:
+
 ```
 http://localhost:5173/motion-gallery
 ```
 
 The gallery provides:
+
 - Interactive preview of all animation presets
 - Reduced motion simulation toggle
 - Usage code examples
@@ -344,12 +344,16 @@ To add a new preset to `src/lib/motion-presets.ts`:
 // Add to the appropriate category (entrance, exit, promote, remove, confirm, danger)
 export const entrance = {
   // ... existing presets
-  
+
   myNewAnimation: (customParam?: number): Variants => {
     const config = getConfig();
     return {
-      initial: { /* ... */ },
-      animate: { /* ... */ },
+      initial: {
+        /* ... */
+      },
+      animate: {
+        /* ... */
+      },
       transition: {
         type: "spring",
         stiffness: config.springStiffness,
@@ -362,6 +366,7 @@ export const entrance = {
 ```
 
 Always:
+
 - Use `getConfig()` to respect reduced motion
 - Return `Variants` type for type safety
 - Document the preset with JSDoc comments
@@ -370,11 +375,13 @@ Always:
 ## Performance Tips
 
 1. **Use `will-change` CSS for complex animations**
+
    ```tsx
    <motion.div style={{ willChange: "transform" }} />
    ```
 
 2. **Memoize animated components**
+
    ```tsx
    export const AnimatedButton = React.memo(function AnimatedButton(props) {
      return <motion.button {...motionPresets.promote.scale()} />;
@@ -382,6 +389,7 @@ Always:
    ```
 
 3. **Use `layoutId` for FLIP animations when appropriate**
+
    ```tsx
    <motion.div layoutId="item" />
    ```
@@ -390,7 +398,7 @@ Always:
    ```tsx
    const debouncedAnimate = useCallback(
      debounce(() => setAnimating(true), 100),
-     []
+     [],
    );
    ```
 

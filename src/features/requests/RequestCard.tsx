@@ -5,7 +5,7 @@ import {
   Ban,
   Check,
   Eye,
-  RefreshCcw,
+  RefreshCcw as RefreshCw,
   RotateCcw,
   ShieldAlert,
   ShieldCheck,
@@ -106,7 +106,7 @@ export function RequestCard({
         "focus-within:border-white/20 focus-within:ring-1 focus-within:ring-white/15",
         status.startsWith("success-") && "border-emerald-500/20 bg-emerald-500/[0.02]",
         status === "failure" && "border-rose-500/20 bg-rose-500/[0.02]",
-        status.startsWith("pending-") && "border-white/5 opacity-80"
+        status.startsWith("pending-") && "border-white/5 opacity-80",
       )}
     >
       <AnimatePresence mode="wait">
@@ -157,7 +157,9 @@ export function RequestCard({
 
               {/* Postage Amount info */}
               <div className="text-right">
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Postage Paid</p>
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                  Postage Paid
+                </p>
                 <p className="text-xs font-semibold tabular-nums text-foreground mt-0.5">
                   {formatPostage(email.postageAmount)}
                 </p>

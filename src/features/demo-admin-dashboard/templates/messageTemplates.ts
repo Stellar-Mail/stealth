@@ -68,4 +68,14 @@ export const messageTemplates: MessageTemplate[] = [
     recipients: ["receipts*stealth.demo"],
     tags: ["proof", "receipt", "delivery", "soroban"],
   },
+  {
+    id: "campaign-review-note",
+    name: "Campaign review note",
+    category: "internal",
+    description: "Internal campaign status note for demo admin review and copy readiness.",
+    subject: "Internal campaign copy review note",
+    body: "Status: ready for review\nNext step: confirm the new campaign templates and insert this internal note template into the demo draft dataset.\n\nThis is an internal demo note and not customer-facing content.",
+    recipients: ["campaign-team*stealth.demo"],
+    tags: ["internal", "campaign", "review"],
+  },
 ];

@@ -24,4 +24,14 @@ describe("messageTemplates fixtures", () => {
       }
     }
   });
+
+  it("includes an internal campaign review template for admin note scenarios", () => {
+    const internalTemplate = messageTemplates.find(
+      (template) => template.id === "campaign-review-note",
+    );
+    expect(internalTemplate).toBeDefined();
+    expect(internalTemplate?.category).toBe("internal");
+    expect(internalTemplate?.tags).toContain("campaign");
+    expect(internalTemplate?.subject.toLowerCase()).toContain("internal");
+  });
 });

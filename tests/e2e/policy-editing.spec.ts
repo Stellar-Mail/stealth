@@ -5,7 +5,8 @@ test.describe("policy editing", () => {
     await page.addInitScript(() => {
       localStorage.setItem("stealth-preferences", JSON.stringify({ onboardingCompleted: true }));
     });
-    await page.goto("/");
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    await page.waitForFunction(() => document.documentElement.dataset.stealthHydrated === "true");
   });
 
   async function openSettings(page: Parameters<typeof test>[1]) {
@@ -21,7 +22,7 @@ test.describe("policy editing", () => {
     await page.getByRole("button", { name: "Inbox control" }).click();
 
     // Verify the section heading
-    await expect(page.getByText("Inbox control", { exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Inbox control" })).toBeVisible();
 
     // Select "Verified only" policy
     await page.getByRole("button", { name: "Verified only" }).click();

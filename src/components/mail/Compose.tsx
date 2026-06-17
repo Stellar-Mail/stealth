@@ -28,6 +28,8 @@ import {
   type RecipientReadiness,
 } from "./composeValidation";
 
+const emptyBlockedRecipients: string[] = [];
+
 export function Compose({
   open,
   onClose,
@@ -37,7 +39,7 @@ export function Compose({
   initialBody = "",
   initialPostage = "0.0001",
   mode = "compose",
-  blockedRecipients = [],
+  blockedRecipients = emptyBlockedRecipients,
   onSubmit,
   resolutionContext,
 }: {
@@ -101,12 +103,12 @@ export function Compose({
       setTo("");
       setSubject("");
       setBody("");
-      setAttachments([]);
+      setAttachments((current) => (current.length ? [] : current));
       setEmojiOpen(false);
       setEncrypted(true);
       setReceipt(true);
       setPostage(initialPostage);
-      setResolvedRecipients([]);
+      setResolvedRecipients((current) => (current.length ? [] : current));
     }
   }, [open, initialTo, initialSubject, initialBody, initialPostage]);
 
@@ -114,7 +116,7 @@ export function Compose({
   useEffect(() => {
     const addresses = parseRecipients(to);
     if (!addresses.length) {
-      setResolvedRecipients([]);
+      setResolvedRecipients((current) => (current.length ? [] : current));
       return;
     }
 

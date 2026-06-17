@@ -28,7 +28,7 @@ export function sortData<T>(
   data: T[],
   sortKey: string | null,
   sortDirection: "asc" | "desc",
-  column?: Column<T>
+  column?: Column<T>,
 ): T[] {
   if (!sortKey) return data;
 
@@ -40,9 +40,7 @@ export function sortData<T>(
     if (valB === undefined || valB === null) valB = "";
 
     if (typeof valA === "string" && typeof valB === "string") {
-      return sortDirection === "asc"
-        ? valA.localeCompare(valB)
-        : valB.localeCompare(valA);
+      return sortDirection === "asc" ? valA.localeCompare(valB) : valB.localeCompare(valA);
     }
 
     if (valA < valB) return sortDirection === "asc" ? -1 : 1;
@@ -83,7 +81,12 @@ export function AdminDataTable<T>({
   }, [data, sortKey, sortDirection, columns]);
 
   return (
-    <div className={cn("overflow-hidden rounded-xl border border-white/[0.06] bg-white/[0.01]", className)}>
+    <div
+      className={cn(
+        "overflow-hidden rounded-xl border border-white/[0.06] bg-white/[0.01]",
+        className,
+      )}
+    >
       <table className="w-full text-left text-sm border-collapse">
         <thead>
           <tr className="border-b border-white/[0.06] bg-white/[0.02]">
@@ -95,7 +98,7 @@ export function AdminDataTable<T>({
                   onClick={() => col.sortable && handleSort(col.key)}
                   className={cn(
                     "px-4 py-3 font-medium text-muted-foreground select-none",
-                    col.sortable ? "cursor-pointer hover:text-foreground transition-colors" : ""
+                    col.sortable ? "cursor-pointer hover:text-foreground transition-colors" : "",
                   )}
                 >
                   <div className="flex items-center gap-1">
@@ -135,7 +138,7 @@ export function AdminDataTable<T>({
                   className={cn(
                     "border-b border-white/[0.04] last:border-0 transition-colors",
                     isClickable ? "cursor-pointer hover:bg-white/[0.02]" : "",
-                    isSelected ? "bg-white/[0.04]" : ""
+                    isSelected ? "bg-white/[0.04]" : "",
                   )}
                 >
                   {columns.map((col) => (

@@ -1,16 +1,92 @@
+import { useRef } from "react";
 import { GripVertical } from "lucide-react";
 import { Group, Panel, Separator } from "react-resizable-panels";
 
 import { cn } from "@/lib/utils";
 
-const ResizablePanelGroup = ({ className, ...props }: React.ComponentProps<typeof Group>) => (
+type ResizablePanelGroupProps = Omit<
+  React.ComponentProps<typeof Group>,
+  "orientation" | "onLayoutChange"
+> & {
+  direction?: "horizontal" | "vertical";
+  onLayout?: (sizes: number[]) => void;
+};
+
+type PanelLayoutSize = number | { asPercentage?: number };
+
+const panelSizeToPercent = (size: PanelLayoutSize) =>
+  typeof size === "number" ? size : size.asPercentage;
+
+const ResizablePanelGroup = ({
+  className,
+  direction,
+  onLayout,
+  ...props
+}: ResizablePanelGroupProps) => (
   <Group
     className={cn("flex h-full w-full data-[panel-group-direction=vertical]:flex-col", className)}
+    orientation={direction}
+    onLayoutChange={(layout) => {
+      const sizes = Object.values(layout).map((size) =>
+        panelSizeToPercent(size as PanelLayoutSize),
+      );
+      if (sizes.every((size): size is number => Number.isFinite(size))) {
+        onLayout?.(sizes);
+      }
+    }}
     {...props}
   />
 );
 
-const ResizablePanel = Panel;
+type ResizablePanelProps = React.ComponentProps<typeof Panel> & {
+  onCollapse?: () => void;
+  onExpand?: () => void;
+};
+
+const legacyPercentSize = (size: number | string | undefined) =>
+  typeof size === "number" ? `${size}%` : size;
+
+const ResizablePanel = ({
+  collapsible,
+  collapsedSize = 0,
+  defaultSize,
+  maxSize,
+  minSize,
+  onCollapse,
+  onExpand,
+  onResize,
+  ...props
+}: ResizablePanelProps) => {
+  const collapsedRef = useRef(false);
+
+  return (
+    <Panel
+      collapsible={collapsible}
+      collapsedSize={legacyPercentSize(collapsedSize)}
+      defaultSize={legacyPercentSize(defaultSize)}
+      maxSize={legacyPercentSize(maxSize)}
+      minSize={legacyPercentSize(minSize)}
+      onResize={(size, id, previousSize) => {
+        const collapsedThreshold =
+          typeof collapsedSize === "number" ? collapsedSize : Number.parseFloat(collapsedSize);
+        const isCollapsed = !!collapsible && size.asPercentage <= collapsedThreshold + 0.5;
+
+        if (isCollapsed && !collapsedRef.current) {
+          collapsedRef.current = true;
+          onCollapse?.();
+        }
+
+        if (!isCollapsed && collapsedRef.current) {
+          collapsedRef.current = false;
+          onExpand?.();
+        }
+
+        onResize?.(size, id, previousSize);
+      }}
+      {...props}
+    />
+  );
+};
 
 const ResizableHandle = ({
   withHandle,

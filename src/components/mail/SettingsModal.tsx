@@ -18,11 +18,11 @@ import {
   User,
   X,
 } from "lucide-react";
-import { useState, type CSSProperties } from "react";
+import { useState, useEffect, type CSSProperties } from "react";
 import { Surface } from "@/features/design-system";
 import { cn } from "@/lib/utils";
 import { SHORTCUT_DEFINITIONS } from "@/features/command-palette";
-import type { ReceiptPreference, UiPreferences } from "@/features/preferences";
+import type { ReceiptPreference, UiPreferences, LayoutPreferences } from "@/features/preferences";
 import {
   MAILBOX_POLICY_TEMPLATES,
   buildCustomMailboxPolicyTemplate,
@@ -39,6 +39,7 @@ const tabs = [
   { id: "account", label: "Account", icon: User },
   { id: "appearance", label: "Appearance", icon: Palette },
   { id: "notifications", label: "Notifications", icon: Bell },
+  { id: "layout", label: "Layout", icon: Laptop },
   { id: "inbox", label: "Inbox control", icon: ShieldCheck },
   { id: "receipts", label: "Read receipts", icon: CheckCheck },
   { id: "security", label: "Security", icon: Lock },
@@ -54,6 +55,9 @@ export function SettingsModal({
   onCancel,
   preferences,
   onChange,
+  layout,
+  onLayoutChange,
+  onResetLayout,
   onSave,
 }: {
   open: boolean;
@@ -61,6 +65,9 @@ export function SettingsModal({
   onCancel?: () => void;
   preferences: UiPreferences;
   onChange: (preferences: UiPreferences) => void;
+  layout: LayoutPreferences;
+  onLayoutChange: (layout: LayoutPreferences) => void;
+  onResetLayout: () => void;
   onSave: () => void;
 }) {
   const [activeTab, setActiveTab] = useState<Tab>("account");
@@ -133,6 +140,13 @@ export function SettingsModal({
                 )}
                 {activeTab === "notifications" && (
                   <NotificationSettings preferences={preferences} onChange={onChange} />
+                )}
+                {activeTab === "layout" && (
+                  <LayoutSettings
+                    layout={layout}
+                    onChange={onLayoutChange}
+                    onReset={onResetLayout}
+                  />
                 )}
                 {activeTab === "inbox" && (
                   <InboxSettings open={open} preferences={preferences} onChange={onChange} />
@@ -455,19 +469,24 @@ function InboxSettings({
 
   const liveTemplate = findMailboxPolicyTemplate(currentDraft);
 
+  const selectedTemplate =
+    previewTemplateId === "custom"
+      ? null
+      : (MAILBOX_POLICY_TEMPLATES.find((template) => template.id === previewTemplateId) ?? null);
+
   const selectedPreview =
     previewTemplateId === "custom"
       ? (savedCustomTemplate ??
         buildCustomMailboxPolicyTemplate(currentDraft, liveTemplate?.id ?? null))
-      : (MAILBOX_POLICY_TEMPLATES.find((template) => template.id === previewTemplateId) ?? null);
+      : selectedTemplate;
 
   const selectedPreferences =
     previewTemplateId === "custom"
       ? savedCustomTemplate
         ? savedCustomTemplateToPreferences(savedCustomTemplate)
         : currentDraft
-      : selectedPreview
-        ? templateToPreferences(selectedPreview)
+      : selectedTemplate
+        ? templateToPreferences(selectedTemplate)
         : currentDraft;
 
   const previewMatchesCurrent =
@@ -476,8 +495,8 @@ function InboxSettings({
         ? savedCustomTemplate.policy.unknownSenders === preferences.unknownSenders &&
           savedCustomTemplate.policy.minimumPostage === preferences.minimumPostage
         : true
-      : selectedPreview
-        ? mailboxPolicyTemplateMatchesPreferences(selectedPreview, currentDraft)
+      : selectedTemplate
+        ? mailboxPolicyTemplateMatchesPreferences(selectedTemplate, currentDraft)
         : false;
 
   const applyingWillReplaceCurrent =
@@ -485,13 +504,11 @@ function InboxSettings({
       ? !!savedCustomTemplate && !previewMatchesCurrent
       : !previewMatchesCurrent;
 
-  const handleTemplateChange = (id: MailboxPolicyTemplateId) => {
+  const handleTemplateChange = (id: MailboxPolicyTemplateId | "custom") => {
     setPreviewTemplateId(id);
   };
 
   const handleApply = () => {
-    if (!selectedPreview) return;
-
     if (previewTemplateId === "custom") {
       if (!savedCustomTemplate) {
         setSavedCustomTemplate(
@@ -507,9 +524,11 @@ function InboxSettings({
       return;
     }
 
+    if (!selectedTemplate) return;
+
     onChange({
       ...preferences,
-      ...templateToPreferences(selectedPreview),
+      ...templateToPreferences(selectedTemplate),
     });
   };
 
@@ -1246,6 +1265,53 @@ function SecuritySettings() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+function LayoutSettings({
+  layout,
+  onChange,
+  onReset,
+}: {
+  layout: LayoutPreferences;
+  onChange: (layout: LayoutPreferences) => void;
+  onReset: () => void;
+}) {
+  return (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-sm font-medium text-foreground">Layout</h3>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Customize your mailbox layout and panel sizes.
+        </p>
+      </div>
+
+      <div className="space-y-4">
+        <SettingsToggle
+          label="Compact mode"
+          description="A denser layout for the email list and message views."
+          checked={layout.compactMode}
+          onChange={(checked) => onChange({ ...layout, compactMode: checked })}
+        />
+
+        <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-foreground">Reset layout</p>
+              <p className="text-xs text-muted-foreground">
+                Restore all panel widths and collapse states to default.
+              </p>
+            </div>
+            <button
+              onClick={onReset}
+              className="flex items-center gap-2 rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-foreground transition hover:bg-white/[0.06]"
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+              Reset
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
