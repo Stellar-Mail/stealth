@@ -12,6 +12,11 @@ type ResizablePanelGroupProps = Omit<
   onLayout?: (sizes: number[]) => void;
 };
 
+type PanelLayoutSize = number | { asPercentage?: number };
+
+const panelSizeToPercent = (size: PanelLayoutSize) =>
+  typeof size === "number" ? size : size.asPercentage;
+
 const ResizablePanelGroup = ({
   className,
   direction,
@@ -21,7 +26,14 @@ const ResizablePanelGroup = ({
   <Group
     className={cn("flex h-full w-full data-[panel-group-direction=vertical]:flex-col", className)}
     orientation={direction}
-    onLayoutChange={(layout) => onLayout?.(Object.values(layout))}
+    onLayoutChange={(layout) => {
+      const sizes = Object.values(layout).map((size) =>
+        panelSizeToPercent(size as PanelLayoutSize),
+      );
+      if (sizes.every((size): size is number => Number.isFinite(size))) {
+        onLayout?.(sizes);
+      }
+    }}
     {...props}
   />
 );
@@ -31,9 +43,15 @@ type ResizablePanelProps = React.ComponentProps<typeof Panel> & {
   onExpand?: () => void;
 };
 
+const legacyPercentSize = (size: number | string | undefined) =>
+  typeof size === "number" ? `${size}%` : size;
+
 const ResizablePanel = ({
   collapsible,
   collapsedSize = 0,
+  defaultSize,
+  maxSize,
+  minSize,
   onCollapse,
   onExpand,
   onResize,
@@ -44,7 +62,10 @@ const ResizablePanel = ({
   return (
     <Panel
       collapsible={collapsible}
-      collapsedSize={collapsedSize}
+      collapsedSize={legacyPercentSize(collapsedSize)}
+      defaultSize={legacyPercentSize(defaultSize)}
+      maxSize={legacyPercentSize(maxSize)}
+      minSize={legacyPercentSize(minSize)}
       onResize={(size, id, previousSize) => {
         const collapsedThreshold =
           typeof collapsedSize === "number" ? collapsedSize : Number.parseFloat(collapsedSize);

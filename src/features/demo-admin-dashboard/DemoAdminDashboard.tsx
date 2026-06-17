@@ -10,6 +10,7 @@ import {
   Paperclip,
   PieChart,
   Shield,
+  Tags,
   Users,
   X,
 } from "lucide-react";
@@ -28,11 +29,17 @@ import type {
 } from "./types";
 import { TemplatePicker } from "./templates";
 import { PRESET_SCENARIOS } from "./fixtures/presets";
+import { CampaignSnapshots } from "./components/CampaignSnapshots";
+import { ValidationResultsPanel } from "./ValidationResultsPanel";
+import { validateCampaignDrafts } from "./validation";
+import type { Draft } from "./types/draft";
+import type { ValidationNavigation } from "./validation-types";
 import { AdminDataTable, type Column } from "./components/AdminDataTable";
+import { CampaignTagManager } from "./components/CampaignTagManager";
 
 // ─── Default Deterministic fake data ──────────────────────────────────────────
 
-const NAV_ITEMS: DashboardNavItem[] = [
+export const NAV_ITEMS: DashboardNavItem[] = [
   { id: "overview", label: "Overview", description: "High-level demo system status" },
   { id: "accounts", label: "Accounts", description: "Demo Stellar accounts and balances" },
   { id: "mail", label: "Mail", description: "Demo mail fixtures and delivery states" },
@@ -42,6 +49,7 @@ const NAV_ITEMS: DashboardNavItem[] = [
   { id: "campaigns", label: "Campaigns", description: "Save and restore campaign draft snapshots" },
   { id: "audit", label: "Audit", description: "Demo protocol event log" },
   { id: "analytics", label: "Analytics", description: "Privacy-preserving product analytics" },
+  { id: "tags", label: "Tags", description: "Create, edit, merge, and delete campaign tags" },
 ];
 
 const OVERVIEW_STATS: StatCard[] = [
@@ -170,7 +178,7 @@ const EVENTS_FAKE: PresetEvent[] = [
 
 // ─── Section icon map ─────────────────────────────────────────────────────────
 
-const SECTION_ICON: Record<DashboardSection, React.ElementType> = {
+export const SECTION_ICON: Record<DashboardSection, React.ElementType> = {
   overview: LayoutDashboard,
   accounts: Users,
   mail: Mail,
@@ -180,6 +188,7 @@ const SECTION_ICON: Record<DashboardSection, React.ElementType> = {
   campaigns: History,
   audit: Activity,
   analytics: PieChart,
+  tags: Tags,
 };
 
 // ─── Content region components ────────────────────────────────────────────────
@@ -643,8 +652,72 @@ function AuditContent({ auditEvents }: { auditEvents: PresetAuditEvent[] }) {
   );
 }
 
-function TemplatesContent() {
-  return <TemplatePicker />;
+function TemplatesContent({
+  dataset,
+  onDatasetChange,
+}: {
+  dataset: Draft[];
+  onDatasetChange: (dataset: Draft[]) => void;
+}) {
+  return <TemplatePicker dataset={dataset} onDatasetChange={onDatasetChange} />;
+}
+
+function CampaignsContent({
+  dataset,
+  onDatasetChange,
+  onSelectIssue,
+}: {
+  dataset: Draft[];
+  onDatasetChange: (dataset: Draft[]) => void;
+  onSelectIssue: (nav: ValidationNavigation) => void;
+}) {
+  const issues = validateCampaignDrafts(dataset);
+
+  return (
+    <div className="grid gap-6 lg:grid-cols-[1fr_350px] items-start">
+      <div className="space-y-6">
+        <CampaignSnapshots currentDataset={dataset} onRestoreDataset={onDatasetChange} />
+      </div>
+      <div className="space-y-6 lg:sticky lg:top-4">
+        <ValidationResultsPanel
+          issues={issues}
+          onSelectIssue={onSelectIssue}
+          title="Campaign Validation"
+        />
+      </div>
+    </div>
+  );
+}
+
+function AnalyticsContent() {
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-muted-foreground">
+        Privacy-preserving product analytics dashboard. Aggregate demo metrics will appear here once
+        this section is connected to the analytics pipeline.
+      </p>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        {[
+          { label: "Active Sessions", value: "—", note: "Requires analytics integration" },
+          { label: "Features Used", value: "—", note: "Requires analytics integration" },
+          { label: "Avg. Session", value: "—", note: "Requires analytics integration" },
+        ].map((stat) => (
+          <div
+            key={stat.label}
+            className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4"
+          >
+            <p className="text-xs font-medium text-muted-foreground">{stat.label}</p>
+            <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">{stat.value}</p>
+            <p className="mt-0.5 text-[10px] text-muted-foreground/60">{stat.note}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function TagsContent() {
+  return <CampaignTagManager />;
 }
 
 // ─── Dashboard Shell ──────────────────────────────────────────────────────────
@@ -654,6 +727,7 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
   const [activePresetId, setActivePresetId] = useState<PresetId>("none");
   const [selectedAccountAddress, setSelectedAccountAddress] = useState<string | null>(null);
   const [selectedMailSubject, setSelectedMailSubject] = useState<string | null>(null);
+  const [draftDataset, setDraftDataset] = useState<Draft[]>([]);
 
   const activePreset = PRESET_SCENARIOS.find((p) => p.id === activePresetId);
 
@@ -789,9 +863,23 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
 
           {activeSection === "events" && <EventsContent events={events} />}
 
-          {activeSection === "templates" && <TemplatesContent />}
+          {activeSection === "templates" && (
+            <TemplatesContent dataset={draftDataset} onDatasetChange={setDraftDataset} />
+          )}
+
+          {activeSection === "campaigns" && (
+            <CampaignsContent
+              dataset={draftDataset}
+              onDatasetChange={setDraftDataset}
+              onSelectIssue={() => handleSectionChange("templates")}
+            />
+          )}
 
           {activeSection === "audit" && <AuditContent auditEvents={auditEvents} />}
+
+          {activeSection === "analytics" && <AnalyticsContent />}
+
+          {activeSection === "tags" && <TagsContent />}
         </div>
       </div>
 

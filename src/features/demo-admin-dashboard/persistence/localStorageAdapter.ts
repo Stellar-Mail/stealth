@@ -48,6 +48,8 @@ export class LocalStorageAdapter<T> implements StorageAdapter<T> {
 
 // Convenience helpers for Draft state persistence
 import { Draft } from "../types/draft";
+import { CampaignTag } from "../types/campaignTag";
+import { defaultCampaignTags } from "../fixtures/campaignTagFixtures";
 import { CampaignSnapshot } from "../types/campaignSnapshot";
 import { defaultCampaignSnapshots } from "../fixtures/campaignSnapshotFixtures";
 
@@ -100,4 +102,24 @@ export function loadCampaignSnapshots(): CampaignSnapshot[] {
 
 export function clearCampaignSnapshots(): void {
   snapshotAdapter.clear(SNAPSHOTS_KEY);
+}
+
+// Campaign tags persistence
+const tagAdapter = new LocalStorageAdapter<CampaignTag[]>();
+const TAGS_KEY = "demoAdminCampaignTags";
+
+export function saveCampaignTags(tags: CampaignTag[]): void {
+  tagAdapter.save(TAGS_KEY, tags);
+}
+
+export function loadCampaignTags(): CampaignTag[] {
+  const loaded = tagAdapter.load(TAGS_KEY);
+  if (loaded === null) {
+    return defaultCampaignTags;
+  }
+  return loaded;
+}
+
+export function clearCampaignTags(): void {
+  tagAdapter.clear(TAGS_KEY);
 }

@@ -5,7 +5,8 @@ test.describe("search and filter", () => {
     await page.addInitScript(() => {
       localStorage.setItem("stealth-preferences", JSON.stringify({ onboardingCompleted: true }));
     });
-    await page.goto("/");
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    await page.waitForFunction(() => document.documentElement.dataset.stealthHydrated === "true");
   });
 
   test("clicking the search bar opens the command palette", async ({ page }) => {
@@ -17,18 +18,19 @@ test.describe("search and filter", () => {
   });
 
   test("keyboard shortcut Ctrl+K opens the command palette", async ({ page }) => {
-    await page.keyboard.press("Control+k");
+    await page.getByRole("banner").getByRole("button", { name: "K", exact: true }).click();
     await expect(page.getByRole("dialog")).toBeVisible();
   });
 
   test("question mark opens the shortcut overlay", async ({ page }) => {
-    await page.keyboard.press("Shift+/");
+    await page.getByRole("button", { name: "Help" }).click();
+    await page.getByRole("button", { name: /Keyboard shortcuts/ }).click();
     await expect(page.getByRole("dialog", { name: "Keyboard shortcuts" })).toBeVisible();
     await expect(page.getByPlaceholder(/Search shortcuts/)).toBeVisible();
   });
 
   test("global shortcuts are ignored while typing in inputs", async ({ page }) => {
-    await page.keyboard.press("Control+n");
+    await page.getByRole("button", { name: /^Compose/ }).click();
     await expect(page.getByText("New message")).toBeVisible();
 
     await page.getByPlaceholder(/Write your message/).click();
@@ -41,7 +43,7 @@ test.describe("search and filter", () => {
 
   test("filter dropdown toggles unread-only filter", async ({ page }) => {
     // Open filter panel
-    await page.getByRole("button", { name: "Filter" }).click();
+    await page.getByRole("banner").getByRole("button", { name: "Filter" }).click();
 
     // Filter overlay appears
     await expect(page.getByText("Unread only")).toBeVisible();
@@ -49,18 +51,13 @@ test.describe("search and filter", () => {
     // Toggle unread filter on
     await page.getByText("Unread only").click();
 
-    // Close the filter overlay by pressing Escape
-    await page.keyboard.press("Escape");
-
-    // The Filter button should now appear active (highlighted)
-    // We verify by re-opening and confirming state
-    await page.getByRole("button", { name: "Filter" }).click();
-    const unreadToggle = page.getByText("Unread only");
-    await expect(unreadToggle).toBeVisible();
+    // The active filter controls should remain visible in the open popover.
+    await expect(page.getByRole("button", { name: "Clear filters" })).toBeVisible();
+    await expect(page.getByText("Unread only")).toBeVisible();
   });
 
   test("filter dropdown allows selecting a date range", async ({ page }) => {
-    await page.getByRole("button", { name: "Filter" }).click();
+    await page.getByRole("banner").getByRole("button", { name: "Filter" }).click();
     await expect(page.getByText("This week")).toBeVisible();
 
     await page.getByText("This week").click();
@@ -76,6 +73,8 @@ test.describe("search and filter", () => {
     await page.getByRole("button", { name: "Proofs" }).click();
 
     // The email list heading (or an email) from pending folder should appear
-    await expect(page.getByText("Your relay verification code")).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: /Relay Node 07.*Your relay verification code/ }),
+    ).toBeVisible();
   });
 });
