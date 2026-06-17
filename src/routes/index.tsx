@@ -23,6 +23,7 @@ import { CalendarWorkspace, useCalendar } from "@/features/calendar";
 import { FeedbackViewport } from "@/features/design-system/feedback/feedback-viewport";
 import { useFeedback } from "@/features/design-system/feedback/use-feedback";
 import { OnboardingModal, draftToMailboxPolicy, type OnboardingDraft } from "@/features/onboarding";
+import { RoadmapModal } from "@/features/roadmap";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -52,6 +53,7 @@ function MailApp() {
   }>({});
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [roadmapOpen, setRoadmapOpen] = useState(false);
   const [customFolder, setCustomFolder] = useState<string | null>(null);
   const [filters, setFilters] = useState<MailFilters>(defaultMailFilters);
   const [calendarOpen, setCalendarOpen] = useState(false);
@@ -306,6 +308,15 @@ function MailApp() {
             onFiltersChange={setFilters}
             onQuickAction={(action) => {
               setCustomFolder(null);
+              if (action === "mail") {
+                setFolder("inbox");
+                setFilters(defaultMailFilters);
+                setSelectedId(
+                  initialEmails.find((email) => email.folder === "inbox")?.id ??
+                    initialEmails[0].id,
+                );
+              }
+              if (action === "roadmap") setRoadmapOpen(true);
               if (action === "proofs") setFolder("pending");
               if (action === "later") setFolder("snoozed");
               if (action === "files") {
@@ -418,6 +429,22 @@ function MailApp() {
       <FeedbackViewport items={feedbackItems} onDismiss={dismissFeedback} />
 
       <OnboardingModal open={showOnboarding} onComplete={handleOnboardingComplete} />
+      <RoadmapModal
+        open={roadmapOpen}
+        onClose={() => setRoadmapOpen(false)}
+        onNavigate={(action) => {
+          if (action === "mail") {
+            setFolder("inbox");
+            setFilters(defaultMailFilters);
+            setSelectedId(
+              initialEmails.find((email) => email.folder === "inbox")?.id ?? initialEmails[0].id,
+            );
+          }
+          if (action === "compose") openCompose();
+          if (action === "settings") setSettingsOpen(true);
+          if (action === "calendar") setCalendarOpen(true);
+        }}
+      />
     </div>
   );
 }
