@@ -31,3 +31,4 @@ target/
 *.njsproj
 *.sln
 *.sw?
+test_snapshots/

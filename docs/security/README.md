@@ -109,7 +109,7 @@ R1 is closed. The pre-alpha/not-audited status in README.md should
 explicitly name this as a blocking item for public beta, matching the
 issue's acceptance criteria.
 
-Owner: relay/API maintainers (untracked - needs an assignee).
+Owner: needs maintainer assignment (tracked via #81 follow-up; this row blocks public beta).
 
 Residual risk: High until closed. This is the root cause behind most
 of the issue's named abuse paths (account takeover, spam, phishing all
@@ -147,7 +147,7 @@ duplicate-message check happen on-chain) or independently verify the
 referenced payment via Horizon/RPC and reject submissions that don't match.
 paymentHash should be checked, not merely shape-validated.
 
-Owner: relay/API maintainers (untracked).
+Owner: relay/API maintainers — needs maintainer assignment (tracked via #81 follow-up).
 
 Residual risk: High. Combined with R1, a caller can self-report
 arbitrary postage for arbitrary identities with zero on-chain cost,
@@ -182,7 +182,7 @@ signature over each FederationMessage before acting on it; back
 seenMessageIds with the same durable store referenced in
 infra/docker-compose.yml (Redis) rather than an in-process Set.
 
-Owner: relay/federation maintainers (untracked).
+Owner: relay/federation maintainers — needs maintainer assignment (tracked via #81 follow-up).
 
 Residual risk: High for federated/multi-relay deployments; lower for a
 single-relay pilot deployment where this code path isn't yet exercised
@@ -219,7 +219,7 @@ ApiRepository and use it in any deployment that isn't a single
 ephemeral dev instance; this is consistent with what docker-compose.yml
 already assumes.
 
-Owner: relay/infra maintainers (untracked).
+Owner: relay/infra maintainers — needs maintainer assignment (tracked via #81 follow-up).
 
 Residual risk: Medium-high for any production or multi-instance
 deployment; low for local single-process development, which is this
@@ -263,7 +263,7 @@ directly (closing the gap by construction) or bring the off-chain schemas
 and checks up to parity with the contract's invariants, particularly the
 receipt commitment check.
 
-Owner: relay/API maintainers (untracked).
+Owner: relay/API maintainers — needs maintainer assignment (tracked via #81 follow-up).
 
 Residual risk: Medium today (since evaluateMailboxPolicy isn't live);
 will become high if these routes go live without closing the gap first.
@@ -297,7 +297,7 @@ mitigation-register item, until the implementation exists. Listed here so
 it isn't silently assumed to be done because the README describes the
 target architecture.
 
-Owner: unassigned - needs a tracked issue distinct from #81.
+Owner: needs maintainer assignment and a tracked issue distinct from #81.
 
 Residual risk: N/A pending implementation; the project's own
 README.md already states "Pre-alpha. Not audited. Not ready for
@@ -364,30 +364,46 @@ Abuse paths covered: contract bugs.
 
 Trust boundary: Relay/deployer to Soroban contract.
 
-Current behavior: initialize in
-contracts/soroban/postage/src/lib.rs checks that the contract has not
-already been configured (Error::AlreadyInitialized) and validates the
-minimum/fee_bps/expiry_seconds parameters, but never calls
-require_auth() on any address. On a public network, whoever submits the
-first successful initialize call sets asset, treasury, and fee_bps
-for the entire contract instance - there is no check that the caller is
-the intended deployer/admin.
+Status: Fixed in this PR.
 
-Mitigation (code): Add an admin: Address parameter and call
-admin.require_auth() before writing EscrowConfig, consistent with the
-auth pattern already used elsewhere in this contract (submit, dispute,
-reclaim, and resolve all call require_auth() on the relevant party).
+Previous behavior: initialize in
+contracts/soroban/postage/src/lib.rs checked that the contract had not
+already been configured (Error::AlreadyInitialized) and validated the
+minimum/fee_bps/expiry_seconds parameters, but never called
+require_auth() on any address. On a public network, whoever submitted
+the first successful initialize call could set asset, treasury, and
+fee_bps for the entire contract instance - there was no check that the
+caller was the intended deployer/admin.
 
-Owner: contracts maintainers (untracked).
+Current behavior: initialize now takes an admin: Address parameter and
+calls admin.require_auth() immediately after the already-initialized
+check, before any of the validation or the EscrowConfig write. A call
+without the admin's authorization panics with Error(Auth,
+InvalidAction), confirmed by the initialize_without_admin_auth_fails
+test.
 
-Residual risk: Medium - exploitable only in the window between
-deployment and the first legitimate initialize call, but front-runnable
-on a public network with no defense today.
+Mitigation (code): Implemented - admin: Address added as a parameter
+and admin.require_auth() is called immediately after the
+already-initialized check, before any validation or the EscrowConfig
+write, consistent with the auth pattern already used elsewhere in this
+contract (submit, dispute, reclaim, and resolve all call
+require_auth() on the relevant party). All three test-suite call sites
+were updated to pass an admin address; trusted_sender_has_zero_quote
+additionally needed env.mock_all_auths() added, since it previously ran
+without it.
 
-Validation plan: Add a contract test asserting initialize fails
-without the admin's authorization, mirroring the existing
-scoped_delegate_authorization_is_enforced test style already used in
-policies/src/lib.rs.
+Owner: karanjadavi (fixed in this PR; see contracts/soroban/postage/src/lib.rs).
+
+Residual risk: Low - require_auth() is now enforced and covered by a
+dedicated test (initialize_without_admin_auth_fails). Residual exposure
+is limited to whoever controls the admin key at deployment time, which
+is an operational concern, not a code gap.
+
+Validation plan: Implemented - initialize_without_admin_auth_fails
+(contracts/soroban/postage/src/lib.rs) asserts initialize panics with
+Error(Auth, InvalidAction) when called without admin authorization,
+mirroring the existing scoped_delegate_authorization_is_enforced test
+style used in policies/src/lib.rs.
 
 ---
 
@@ -395,14 +411,14 @@ policies/src/lib.rs.
 
 | ID | Risk | Abuse paths (issue criteria) | Mitigation type | Owner | Residual risk |
 | --- | --- | --- | --- | --- | --- |
-| R1 | Self-asserted identity, no signature check | Account takeover, spam, phishing | Code (signed session/SEP-10) | Unassigned | High |
-| R2 | Postage not verified on-chain | Spam | Code (contract or Horizon verification) | Unassigned | High |
-| R3 | No relay-to-relay message auth; in-memory dedup | Malicious relays, replay | Code (signature + durable store) | Unassigned | High (federated) |
-| R4 | Abuse state is in-memory only | Spam | Code (Redis-backed repository) | Unassigned | Medium-high (multi-instance) |
-| R5 | Off-chain mirrors weaker than contracts | Contract bugs, metadata, account takeover | Code (parity tests/route through contracts) | Unassigned | Medium |
-| R6 | No encryption/key/storage implementation | Metadata | Build item (not yet a control) | Unassigned | N/A pending build |
-| R7 | Trust badges trust unverified metadata | Phishing, metadata, bridge downgrade | Code (invariant enforcement) | Unassigned | Low today, high once bridge ships |
-| R8 | initialize lacks admin auth | Contract bugs | Code (one-line require_auth) | Unassigned | Medium |
+| R1 | Self-asserted identity, no signature check | Account takeover, spam, phishing | Code (signed session/SEP-10) | Needs assignment | High |
+| R2 | Postage not verified on-chain | Spam | Code (contract or Horizon verification) | Needs assignment | High |
+| R3 | No relay-to-relay message auth; in-memory dedup | Malicious relays, replay | Code (signature + durable store) | Needs assignment | High (federated) |
+| R4 | Abuse state is in-memory only | Spam | Code (Redis-backed repository) | Needs assignment | Medium-high (multi-instance) |
+| R5 | Off-chain mirrors weaker than contracts | Contract bugs, metadata, account takeover | Code (parity tests/route through contracts) | Needs assignment | Medium |
+| R6 | No encryption/key/storage implementation | Metadata | Build item (not yet a control) | Needs assignment | N/A pending build |
+| R7 | Trust badges trust unverified metadata | Phishing, metadata, bridge downgrade | Code (invariant enforcement) | Needs assignment | Low today, high once bridge ships |
+| R8 | initialize lacks admin auth | Contract bugs | Code (require_auth added, fixed in this PR) | karanjadavi | Low |
 
 ### Open items for review before public beta
 
