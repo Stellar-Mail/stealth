@@ -34,10 +34,12 @@ export async function getDevicesWithSessions(
       .filter((s) => s.deviceId === device.id)
       .map((s) => ({ ...s, isCurrent: s.isCurrent && isCurrent }));
 
-    const lastActive = deviceSessions.length > 0
-      ? deviceSessions.sort((a, b) => new Date(b.lastActiveAt).getTime() - new Date(a.lastActiveAt).getTime())[0]
-          .lastActiveAt
-      : device.lastActive;
+    const lastActive =
+      deviceSessions.length > 0
+        ? deviceSessions.sort(
+            (a, b) => new Date(b.lastActiveAt).getTime() - new Date(a.lastActiveAt).getTime(),
+          )[0].lastActiveAt
+        : device.lastActive;
 
     return {
       ...device,
@@ -212,10 +214,12 @@ export async function getRecoveryStatus(
   ]);
   return {
     enabled: methods.length > 0,
-    lastUpdated: methods.length > 0
-      ? methods.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
-          .createdAt
-      : null,
+    lastUpdated:
+      methods.length > 0
+        ? methods.sort(
+            (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+          )[0].createdAt
+        : null,
     devicesCount: devices.length,
     trustedCount: devices.filter((d) => d.trusted).length,
     recoveryMethods: methods,

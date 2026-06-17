@@ -99,7 +99,12 @@ export const sessionRevokeSchema = z.object({
   deviceId: z.string(),
 });
 
-export const recoveryMethodTypeSchema = z.enum(["trusted_contact", "hardware_key", "paper_key", "encrypted_backup"]);
+export const recoveryMethodTypeSchema = z.enum([
+  "trusted_contact",
+  "hardware_key",
+  "paper_key",
+  "encrypted_backup",
+]);
 
 export const recoveryMethodSchema = z.object({
   id: z.string(),

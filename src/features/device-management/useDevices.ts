@@ -3,10 +3,7 @@ import type { Device, RecoveryStatus } from "./types";
 
 const API_BASE = "/api/v1";
 
-async function apiFetch<T>(
-  path: string,
-  options: RequestInit = {},
-): Promise<T> {
+async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   const address = localStorage.getItem("stealth-address") ?? "GDQ4...X4KJ";
   const fingerprint = localStorage.getItem("stealth-fingerprint") ?? "";
 
@@ -83,43 +80,33 @@ export function useDevices() {
     [loadDevices],
   );
 
-  const renameDevice = useCallback(
-    async (deviceId: string, name: string) => {
-      try {
-        setError(null);
-        await apiFetch(`/devices/${deviceId}/name`, {
-          method: "PUT",
-          body: JSON.stringify({ name }),
-        });
-        setDevices((prev) =>
-          prev.map((d) => (d.id === deviceId ? { ...d, name } : d)),
-        );
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to rename device");
-        throw err;
-      }
-    },
-    [],
-  );
+  const renameDevice = useCallback(async (deviceId: string, name: string) => {
+    try {
+      setError(null);
+      await apiFetch(`/devices/${deviceId}/name`, {
+        method: "PUT",
+        body: JSON.stringify({ name }),
+      });
+      setDevices((prev) => prev.map((d) => (d.id === deviceId ? { ...d, name } : d)));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to rename device");
+      throw err;
+    }
+  }, []);
 
-  const toggleTrust = useCallback(
-    async (deviceId: string, trusted: boolean) => {
-      try {
-        setError(null);
-        await apiFetch(`/devices/${deviceId}/trust`, {
-          method: "POST",
-          body: JSON.stringify({ trusted }),
-        });
-        setDevices((prev) =>
-          prev.map((d) => (d.id === deviceId ? { ...d, trusted } : d)),
-        );
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to update trust");
-        throw err;
-      }
-    },
-    [],
-  );
+  const toggleTrust = useCallback(async (deviceId: string, trusted: boolean) => {
+    try {
+      setError(null);
+      await apiFetch(`/devices/${deviceId}/trust`, {
+        method: "POST",
+        body: JSON.stringify({ trusted }),
+      });
+      setDevices((prev) => prev.map((d) => (d.id === deviceId ? { ...d, trusted } : d)));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update trust");
+      throw err;
+    }
+  }, []);
 
   const revokeDevice = useCallback(
     async (deviceId: string) => {
@@ -185,26 +172,23 @@ export function useDevices() {
     [loadDevices],
   );
 
-  const rotateKeys = useCallback(
-    async (deviceIds: string[], newPublicKey: string) => {
-      try {
-        setError(null);
-        const result = await apiFetch<{ devices: Device[] }>("/devices/rotate-keys", {
-          method: "POST",
-          body: JSON.stringify({ deviceIds, newPublicKey }),
-        });
-        setDevices((prev) => {
-          const kept = prev.filter((d) => !deviceIds.includes(d.id));
-          return [...kept, ...result.devices];
-        });
-        return result.devices;
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to rotate keys");
-        throw err;
-      }
-    },
-    [],
-  );
+  const rotateKeys = useCallback(async (deviceIds: string[], newPublicKey: string) => {
+    try {
+      setError(null);
+      const result = await apiFetch<{ devices: Device[] }>("/devices/rotate-keys", {
+        method: "POST",
+        body: JSON.stringify({ deviceIds, newPublicKey }),
+      });
+      setDevices((prev) => {
+        const kept = prev.filter((d) => !deviceIds.includes(d.id));
+        return [...kept, ...result.devices];
+      });
+      return result.devices;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to rotate keys");
+      throw err;
+    }
+  }, []);
 
   const addRecoveryMethod = useCallback(
     async (type: string, label: string, value: string) => {

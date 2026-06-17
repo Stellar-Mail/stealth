@@ -1083,27 +1083,45 @@ type ConfirmDialogState = {
 
 function RecoveryMethodIcon({ type }: { type: RecoveryMethod["type"] }) {
   switch (type) {
-    case "trusted_contact": return <Contact className="h-3.5 w-3.5" />;
-    case "hardware_key": return <HardDrive className="h-3.5 w-3.5" />;
-    case "paper_key": return <Fingerprint className="h-3.5 w-3.5" />;
-    case "encrypted_backup": return <Download className="h-3.5 w-3.5" />;
+    case "trusted_contact":
+      return <Contact className="h-3.5 w-3.5" />;
+    case "hardware_key":
+      return <HardDrive className="h-3.5 w-3.5" />;
+    case "paper_key":
+      return <Fingerprint className="h-3.5 w-3.5" />;
+    case "encrypted_backup":
+      return <Download className="h-3.5 w-3.5" />;
   }
 }
 
 function RecoveryMethodLabel({ type }: { type: RecoveryMethod["type"] }) {
   switch (type) {
-    case "trusted_contact": return "Trusted contact";
-    case "hardware_key": return "Hardware key";
-    case "paper_key": return "Paper key";
-    case "encrypted_backup": return "Encrypted backup";
+    case "trusted_contact":
+      return "Trusted contact";
+    case "hardware_key":
+      return "Hardware key";
+    case "paper_key":
+      return "Paper key";
+    case "encrypted_backup":
+      return "Encrypted backup";
   }
 }
 
 function SecuritySettings() {
   const {
-    devices, loading, error, recoveryStatus, dismissError,
-    renameDevice, toggleTrust, revokeDevice, flagCompromised,
-    rotateKeys, addRecoveryMethod, removeRecoveryMethod, registerDevice,
+    devices,
+    loading,
+    error,
+    recoveryStatus,
+    dismissError,
+    renameDevice,
+    toggleTrust,
+    revokeDevice,
+    flagCompromised,
+    rotateKeys,
+    addRecoveryMethod,
+    removeRecoveryMethod,
+    registerDevice,
   } = useDevices();
 
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState | null>(null);
@@ -1119,8 +1137,9 @@ function SecuritySettings() {
   const [recoveryValue, setRecoveryValue] = useState("");
 
   const handleCopyKey = useCallback(() => {
-    const key = devices.find((d) => d.isCurrent)?.publicKey
-      ?? "GDQJMSGKJGQ2X576L33OY4JFDZ7NJG5OJ3LJ44V33PUPU7D5Q5X4KJ";
+    const key =
+      devices.find((d) => d.isCurrent)?.publicKey ??
+      "GDQJMSGKJGQ2X576L33OY4JFDZ7NJG5OJ3LJ44V33PUPU7D5Q5X4KJ";
     navigator.clipboard.writeText(key).then(() => {
       setCopiedKey(true);
       toast.success("Public key copied");
@@ -1128,21 +1147,18 @@ function SecuritySettings() {
     });
   }, [devices]);
 
-  const withConfirm = useCallback(
-    (action: () => Promise<void>, successMsg: string) => {
-      setConfirming(true);
-      action()
-        .then(() => {
-          toast.success(successMsg);
-          setConfirmDialog(null);
-        })
-        .catch((err: Error) => {
-          toast.error(err.message ?? "Action failed");
-        })
-        .finally(() => setConfirming(false));
-    },
-    [],
-  );
+  const withConfirm = useCallback((action: () => Promise<void>, successMsg: string) => {
+    setConfirming(true);
+    action()
+      .then(() => {
+        toast.success(successMsg);
+        setConfirmDialog(null);
+      })
+      .catch((err: Error) => {
+        toast.error(err.message ?? "Action failed");
+      })
+      .finally(() => setConfirming(false));
+  }, []);
 
   const handleSaveDeviceName = useCallback(
     async (deviceId: string) => {
@@ -1163,14 +1179,12 @@ function SecuritySettings() {
     (device: Device) => {
       setConfirmDialog({
         title: `Revoke "${device.name}"?`,
-        description: device.keyStatus === "compromised"
-          ? "This device is flagged as compromised. All encryption keys will be permanently invalidated. The device will lose all access immediately. This cannot be undone."
-          : "All sessions will be terminated and the device will lose access immediately. The device will need to re-authenticate to regain access. This cannot be undone.",
+        description:
+          device.keyStatus === "compromised"
+            ? "This device is flagged as compromised. All encryption keys will be permanently invalidated. The device will lose all access immediately. This cannot be undone."
+            : "All sessions will be terminated and the device will lose access immediately. The device will need to re-authenticate to regain access. This cannot be undone.",
         type: "danger",
-        onConfirm: () => withConfirm(
-          () => revokeDevice(device.id),
-          `"${device.name}" revoked`,
-        ),
+        onConfirm: () => withConfirm(() => revokeDevice(device.id), `"${device.name}" revoked`),
       });
     },
     [revokeDevice, withConfirm],
@@ -1183,10 +1197,8 @@ function SecuritySettings() {
         description:
           "All sessions will be immediately revoked and encryption keys invalidated. Future messages will not be decryptable by this device. We strongly recommend rotating all account keys after this action. This cannot be undone.",
         type: "danger",
-        onConfirm: () => withConfirm(
-          () => flagCompromised(device.id),
-          `"${device.name}" flagged as compromised`,
-        ),
+        onConfirm: () =>
+          withConfirm(() => flagCompromised(device.id), `"${device.name}" flagged as compromised`),
       });
     },
     [flagCompromised, withConfirm],
@@ -1202,9 +1214,7 @@ function SecuritySettings() {
   );
 
   const handleRotateKeys = useCallback(() => {
-    const activeDevices = devices.filter(
-      (d) => d.keyStatus === "active" && d.isCurrent,
-    );
+    const activeDevices = devices.filter((d) => d.keyStatus === "active" && d.isCurrent);
     if (activeDevices.length === 0) {
       toast.error("No active devices to rotate keys for");
       return;
@@ -1212,35 +1222,32 @@ function SecuritySettings() {
     setConfirmDialog({
       title: "Rotate encryption keys?",
       description:
-        "This generates a new key pair for this device. Old keys are marked as rotated. "
-        + "Existing encrypted messages remain accessible with old keys until they expire. "
-        + "You will need to update recovery information after rotation. This action is logged in your audit history.",
+        "This generates a new key pair for this device. Old keys are marked as rotated. " +
+        "Existing encrypted messages remain accessible with old keys until they expire. " +
+        "You will need to update recovery information after rotation. This action is logged in your audit history.",
       type: "warning",
-      onConfirm: () => withConfirm(
-        async () => {
-          const newKey = `GD${Array.from({ length: 54 }, () =>
-            "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"[Math.floor(Math.random() * 32)],
+      onConfirm: () =>
+        withConfirm(async () => {
+          const newKey = `GD${Array.from(
+            { length: 54 },
+            () => "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"[Math.floor(Math.random() * 32)],
           ).join("")}`;
           await rotateKeys(
             activeDevices.map((d) => d.id),
             newKey,
           );
-        },
-        "Keys rotated successfully",
-      ),
+        }, "Keys rotated successfully"),
     });
   }, [devices, rotateKeys, withConfirm]);
 
   const handleRegisterDevice = useCallback(() => {
-    withConfirm(
-      async () => {
-        const newKey = `GD${Array.from({ length: 54 }, () =>
-          "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"[Math.floor(Math.random() * 32)],
-        ).join("")}`;
-        await registerDevice(newKey);
-      },
-      "Device registered",
-    );
+    withConfirm(async () => {
+      const newKey = `GD${Array.from(
+        { length: 54 },
+        () => "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"[Math.floor(Math.random() * 32)],
+      ).join("")}`;
+      await registerDevice(newKey);
+    }, "Device registered");
   }, [registerDevice, withConfirm]);
 
   const handleAddRecoveryMethod = useCallback(async () => {
@@ -1263,12 +1270,11 @@ function SecuritySettings() {
     (method: RecoveryMethod) => {
       setConfirmDialog({
         title: `Remove "${method.label}"?`,
-        description: "You will lose this recovery method. Ensure you have at least one other recovery method configured before removing this one.",
+        description:
+          "You will lose this recovery method. Ensure you have at least one other recovery method configured before removing this one.",
         type: "warning",
-        onConfirm: () => withConfirm(
-          () => removeRecoveryMethod(method.id),
-          "Recovery method removed",
-        ),
+        onConfirm: () =>
+          withConfirm(() => removeRecoveryMethod(method.id), "Recovery method removed"),
       });
     },
     [removeRecoveryMethod, withConfirm],
@@ -1315,10 +1321,7 @@ function SecuritySettings() {
             <AlertCircle className="h-3.5 w-3.5 shrink-0" />
             <span>{error}</span>
           </div>
-          <button
-            onClick={dismissError}
-            className="rounded p-1 text-red-400 hover:bg-red-500/10"
-          >
+          <button onClick={dismissError} className="rounded p-1 text-red-400 hover:bg-red-500/10">
             <X className="h-3 w-3" />
           </button>
         </div>
@@ -1334,8 +1337,8 @@ function SecuritySettings() {
           <p className="text-xs text-red-300/80">
             {compromisedDevices.length === 1
               ? `${compromisedDevices[0].name} has been flagged as compromised.`
-              : `${compromisedDevices.length} devices have been flagged as compromised.`}
-            {" "}Access revoked and encryption keys invalidated.{" "}
+              : `${compromisedDevices.length} devices have been flagged as compromised.`}{" "}
+            Access revoked and encryption keys invalidated.{" "}
             <button
               onClick={handleRotateKeys}
               className="underline text-red-300 hover:text-red-200"
@@ -1372,7 +1375,8 @@ function SecuritySettings() {
                 </span>
               </div>
               <p className="text-xs text-emerald-300/70 mt-0.5">
-                {currentDevice.lastLocation} &bull; Last active {formatRelativeTime(currentDevice.lastActive)}
+                {currentDevice.lastLocation} &bull; Last active{" "}
+                {formatRelativeTime(currentDevice.lastActive)}
               </p>
             </div>
           </div>
@@ -1527,12 +1531,11 @@ function SecuritySettings() {
                           </div>
                         )}
                         <p className="text-xs text-muted-foreground">
-                          {device.lastLocation} &bull;{" "}
-                          {formatRelativeTime(device.lastActive)}
+                          {device.lastLocation} &bull; {formatRelativeTime(device.lastActive)}
                           {device.trusted && !isDisabled && (
                             <>
-                              {" "}&bull;{" "}
-                              <span className="text-emerald-400/70">Trusted</span>
+                              {" "}
+                              &bull; <span className="text-emerald-400/70">Trusted</span>
                             </>
                           )}
                         </p>
@@ -1588,9 +1591,7 @@ function SecuritySettings() {
                       <span className="truncate font-mono max-w-[120px]">
                         {device.publicKey.slice(0, 20)}...
                       </span>
-                      <span>
-                        Registered {formatRelativeTime(device.createdAt)}
-                      </span>
+                      <span>Registered {formatRelativeTime(device.createdAt)}</span>
                       {device.sessions.length > 0 && (
                         <span>
                           {device.sessions.filter((s) => !s.revokedAt).length} active session(s)
@@ -1628,7 +1629,9 @@ function SecuritySettings() {
         </button>
         {showRevocationInfo && (
           <div className="mt-2 rounded-lg border border-white/5 bg-white/[0.02] p-4 space-y-2">
-            <p className="text-xs font-medium text-foreground">What happens when you revoke a device?</p>
+            <p className="text-xs font-medium text-foreground">
+              What happens when you revoke a device?
+            </p>
             <ul className="space-y-1.5 text-[11px] text-muted-foreground">
               <li className="flex items-start gap-2">
                 <div className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-muted-foreground/40" />
@@ -1636,11 +1639,16 @@ function SecuritySettings() {
               </li>
               <li className="flex items-start gap-2">
                 <div className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-muted-foreground/40" />
-                <span>The device&apos;s encryption key is invalidated &mdash; it can no longer decrypt new messages</span>
+                <span>
+                  The device&apos;s encryption key is invalidated &mdash; it can no longer decrypt
+                  new messages
+                </span>
               </li>
               <li className="flex items-start gap-2">
                 <div className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-muted-foreground/40" />
-                <span>Existing encrypted messages already on the device remain accessible locally</span>
+                <span>
+                  Existing encrypted messages already on the device remain accessible locally
+                </span>
               </li>
               <li className="flex items-start gap-2">
                 <div className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-muted-foreground/40" />
@@ -1648,7 +1656,10 @@ function SecuritySettings() {
               </li>
               <li className="flex items-start gap-2">
                 <div className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-muted-foreground/40" />
-                <span>If the device is compromised, flagging it triggers a security alert and invalidates all associated keys</span>
+                <span>
+                  If the device is compromised, flagging it triggers a security alert and
+                  invalidates all associated keys
+                </span>
               </li>
               <li className="flex items-start gap-2">
                 <div className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-muted-foreground/40" />
@@ -1737,7 +1748,9 @@ function SecuritySettings() {
               <div className="space-y-2">
                 <label className="text-[11px] text-muted-foreground">Recovery type</label>
                 <div className="flex gap-2">
-                  {(["trusted_contact", "hardware_key", "paper_key", "encrypted_backup"] as const).map((t) => (
+                  {(
+                    ["trusted_contact", "hardware_key", "paper_key", "encrypted_backup"] as const
+                  ).map((t) => (
                     <button
                       key={t}
                       onClick={() => setRecoveryType(t)}

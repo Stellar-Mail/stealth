@@ -20,11 +20,7 @@ export const Route = createFileRoute("/api/v1/devices/recovery-methods")({
         handleApiRequest(request, async () => {
           const address = requireActor(request);
           const data = await parseJsonBody(request, recoveryMethodCreateSchema);
-          const method = await createRecoveryMethod(
-            getApiContext().repository,
-            address,
-            data,
-          );
+          const method = await createRecoveryMethod(getApiContext().repository, address, data);
           return apiSuccess(request, { method });
         }),
     },

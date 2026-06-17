@@ -110,9 +110,9 @@ describe("device-service", () => {
     });
 
     it("throws on non-existent device", async () => {
-      await expect(
-        renameDevice(repo, "non_existent", TEST_ADDRESS, "Name"),
-      ).rejects.toThrow("device_not_found");
+      await expect(renameDevice(repo, "non_existent", TEST_ADDRESS, "Name")).rejects.toThrow(
+        "device_not_found",
+      );
     });
 
     it("throws on address mismatch", async () => {
@@ -123,9 +123,9 @@ describe("device-service", () => {
         "PUBLIC_KEY",
       );
 
-      await expect(
-        renameDevice(repo, device.id, "GOTHER...ADDR", "Name"),
-      ).rejects.toThrow("forbidden");
+      await expect(renameDevice(repo, device.id, "GOTHER...ADDR", "Name")).rejects.toThrow(
+        "forbidden",
+      );
     });
   });
 
@@ -245,12 +245,7 @@ describe("device-service", () => {
       );
       await flagDeviceCompromised(repo, device.id, TEST_ADDRESS);
 
-      const result = await checkSuspiciousLogin(
-        repo,
-        TEST_ADDRESS,
-        device.fingerprint,
-        "10.0.0.1",
-      );
+      const result = await checkSuspiciousLogin(repo, TEST_ADDRESS, device.fingerprint, "10.0.0.1");
       expect(result.suspicious).toBe(true);
       expect(result.reason).toBe("device_compromised");
     });
@@ -300,9 +295,9 @@ describe("device-service", () => {
         value: "PUBKEY_ABC",
       });
 
-      await expect(
-        deleteRecoveryMethod(repo, method.id, "GOTHER...ADDR"),
-      ).rejects.toThrow("forbidden");
+      await expect(deleteRecoveryMethod(repo, method.id, "GOTHER...ADDR")).rejects.toThrow(
+        "forbidden",
+      );
     });
   });
 });

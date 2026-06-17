@@ -47,7 +47,9 @@ export function ShortcutOverlay({ open, onClose }: Props) {
                   <Keyboard className="h-4.5 w-4.5 text-foreground/85" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <h2 className="text-sm font-semibold text-foreground" id="shortcuts-title">Keyboard shortcuts</h2>
+                  <h2 className="text-sm font-semibold text-foreground" id="shortcuts-title">
+                    Keyboard shortcuts
+                  </h2>
                   <p id="shortcuts-description" className="mt-1 text-xs text-muted-foreground">
                     Search every shortcut in one place. Shortcuts pause automatically while typing
                     in inputs, editors, and custom text fields.

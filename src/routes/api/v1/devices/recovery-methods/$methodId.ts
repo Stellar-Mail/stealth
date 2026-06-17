@@ -11,11 +11,7 @@ export const Route = createFileRoute("/api/v1/devices/recovery-methods/$methodId
       DELETE: ({ request, params }) =>
         handleApiRequest(request, async () => {
           const address = requireActor(request);
-          await deleteRecoveryMethod(
-            getApiContext().repository,
-            params.methodId,
-            address,
-          );
+          await deleteRecoveryMethod(getApiContext().repository, params.methodId, address);
           return apiSuccess(request, { success: true });
         }),
     },

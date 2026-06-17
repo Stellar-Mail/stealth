@@ -1,4 +1,15 @@
-import type { Device, DeviceCreate, DeviceUpdate, MailboxPolicy, Postage, Receipt, RecoveryMethod, RecoveryMethodCreate, SenderRule, Session } from "./domain";
+import type {
+  Device,
+  DeviceCreate,
+  DeviceUpdate,
+  MailboxPolicy,
+  Postage,
+  Receipt,
+  RecoveryMethod,
+  RecoveryMethodCreate,
+  SenderRule,
+  Session,
+} from "./domain";
 
 export interface ApiRepository {
   getPolicy(owner: string): Promise<MailboxPolicy | null>;

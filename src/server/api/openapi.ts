@@ -43,7 +43,21 @@ export const openApiDocument = {
       },
       Device: {
         type: "object",
-        required: ["id", "address", "name", "type", "fingerprint", "publicKey", "keyStatus", "trusted", "lastActive", "lastIp", "lastLocation", "createdAt", "isCurrent"],
+        required: [
+          "id",
+          "address",
+          "name",
+          "type",
+          "fingerprint",
+          "publicKey",
+          "keyStatus",
+          "trusted",
+          "lastActive",
+          "lastIp",
+          "lastLocation",
+          "createdAt",
+          "isCurrent",
+        ],
         properties: {
           id: { type: "string" },
           address: { $ref: "#/components/schemas/StellarAddress" },
@@ -62,10 +76,22 @@ export const openApiDocument = {
       },
       RecoveryMethod: {
         type: "object",
-        required: ["id", "address", "type", "label", "value", "createdAt", "lastTestedAt", "disabled"],
+        required: [
+          "id",
+          "address",
+          "type",
+          "label",
+          "value",
+          "createdAt",
+          "lastTestedAt",
+          "disabled",
+        ],
         properties: {
           id: { type: "string" },
-          type: { type: "string", enum: ["trusted_contact", "hardware_key", "paper_key", "encrypted_backup"] },
+          type: {
+            type: "string",
+            enum: ["trusted_contact", "hardware_key", "paper_key", "encrypted_backup"],
+          },
           label: { type: "string" },
           value: { type: "string" },
           createdAt: { type: "string", format: "date-time" },

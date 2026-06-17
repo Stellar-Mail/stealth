@@ -1,4 +1,15 @@
-import type { Device, DeviceCreate, DeviceUpdate, MailboxPolicy, Postage, Receipt, RecoveryMethod, RecoveryMethodCreate, SenderRule, Session } from "./domain";
+import type {
+  Device,
+  DeviceCreate,
+  DeviceUpdate,
+  MailboxPolicy,
+  Postage,
+  Receipt,
+  RecoveryMethod,
+  RecoveryMethodCreate,
+  SenderRule,
+  Session,
+} from "./domain";
 import type { ApiRepository } from "./repository";
 
 function key(owner: string, sender: string) {

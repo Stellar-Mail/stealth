@@ -21,9 +21,10 @@ export const Route = createFileRoute("/api/v1/devices/register")({
         handleApiRequest(request, async () => {
           const address = requireActor(request);
           const body = await parseJsonBody(request, registerSchema);
-          const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
-            ?? request.headers.get("x-real-ip")
-            ?? "unknown";
+          const ip =
+            request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+            request.headers.get("x-real-ip") ??
+            "unknown";
           const device = await registerDevice(
             getApiContext().repository,
             address,
