@@ -17,6 +17,7 @@ import { format, isSameDay, parseISO } from "date-fns";
 import { getAppToday, type CalendarDefinition, type CalendarEvent } from "@/features/calendar";
 import { ConvertSenderButton, SenderBadge } from "@/features/sender-conversion";
 import { ProvenancePanel } from "./ProvenancePanel";
+import { EmailTrustBadges } from "./EmailTrustBadges";
 import type { Email } from "./data";
 
 export type ContextAction = "snooze" | "translate" | "schedule" | "summarize";
@@ -175,7 +176,7 @@ export function RightPanel({
                 onClick={() => onPreviewAttachment?.(attachment)}
                 className={cn(
                   "flex items-center gap-2 rounded-lg px-2 py-1.5 transition duration-150",
-                  onPreviewAttachment && "cursor-pointer hover:bg-white/[0.06]"
+                  onPreviewAttachment && "cursor-pointer hover:bg-white/[0.06]",
                 )}
               >
                 <div className="grid h-7 w-7 place-items-center rounded-md bg-white/[0.05] text-[9px] font-bold uppercase text-muted-foreground">
@@ -218,6 +219,7 @@ export function RightPanel({
               <div className="flex items-center gap-1.5">
                 <span className="truncate text-sm text-foreground">{email.from}</span>
                 <SenderBadge policy={email.senderPolicy} />
+                <EmailTrustBadges email={email} max={3} size="sm" className="ml-1" />
               </div>
               <div className="truncate text-[11px] text-muted-foreground">{email.email}</div>
             </div>

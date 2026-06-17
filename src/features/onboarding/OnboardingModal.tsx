@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, type Variants } from "framer-motion";
 import { useOnboarding } from "./useOnboarding";
 import { useFreighter } from "./useFreighter";
 import { IdentityStep } from "./steps/IdentityStep";
@@ -16,13 +16,13 @@ type Props = {
 };
 
 // Step transition: slides in from the direction of travel, exits opposite
-const stepVariants = {
+const stepVariants: Variants = {
   enter: (direction: number) => ({ x: direction * 28, opacity: 0 }),
-  center: { x: 0, opacity: 1, transition: { duration: 0.22, ease: "easeOut" } },
+  center: { x: 0, opacity: 1, transition: { duration: 0.22, ease: [0, 0, 0.2, 1] } },
   exit: (direction: number) => ({
     x: direction * -28,
     opacity: 0,
-    transition: { duration: 0.18, ease: "easeIn" },
+    transition: { duration: 0.18, ease: [0.4, 0, 1, 1] },
   }),
 };
 

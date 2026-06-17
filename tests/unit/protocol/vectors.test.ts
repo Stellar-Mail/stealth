@@ -10,21 +10,19 @@
  */
 import { describe, expect, it } from "vitest";
 
-import { stellarAddressSchema, hash32Schema, stroopAmountSchema } from "../../../src/server/api/domain";
+import {
+  stellarAddressSchema,
+  hash32Schema,
+  stroopAmountSchema,
+} from "../../../src/server/api/domain";
 import { MemoryApiRepository } from "../../../src/server/api/memory-repository";
 import {
   evaluateMailboxPolicy,
   setMailboxPolicy,
   setSenderRule,
 } from "../../../src/server/api/policy-service";
-import {
-  submitPostage,
-  resolvePostage,
-} from "../../../src/server/api/postage-service";
-import {
-  createDeliveryReceipt,
-  markReceiptRead,
-} from "../../../src/server/api/receipt-service";
+import { submitPostage, resolvePostage } from "../../../src/server/api/postage-service";
+import { createDeliveryReceipt, markReceiptRead } from "../../../src/server/api/receipt-service";
 import { ApiError } from "../../../src/server/api/errors";
 import type { MailboxPolicy, SenderRule } from "../../../src/server/api/domain";
 
@@ -34,10 +32,7 @@ import vectors from "../../../protocol/vectors/vectors.json";
 // Helpers
 // ---------------------------------------------------------------------------
 
-function assertApiError(
-  err: unknown,
-  expected: { code: string; status: number; message: string },
-) {
+function assertApiError(err: unknown, expected: { code: string; status: number; message: string }) {
   expect(err).toBeInstanceOf(ApiError);
   const apiErr = err as ApiError;
   expect(apiErr.code, "error code").toBe(expected.code);
@@ -144,7 +139,9 @@ describe("postage_states", () => {
       const f = c.fixture;
 
       // Apply preconditions (sender rules, mailbox policy)
-      for (const pre of (c as { preconditions?: Array<{ op: string; rule?: string; policy?: MailboxPolicy }> }).preconditions ?? []) {
+      for (const pre of (
+        c as { preconditions?: Array<{ op: string; rule?: string; policy?: MailboxPolicy }> }
+      ).preconditions ?? []) {
         if (pre.op === "setSenderRule" && pre.rule) {
           await setSenderRule(repo, f.recipient, f.sender, pre.rule as SenderRule);
         }

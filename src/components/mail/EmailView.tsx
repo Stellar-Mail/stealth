@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { useMediaQuery } from "@/lib/use-media-query";
 import {
   Archive,
   BadgeCheck,
@@ -29,7 +30,10 @@ import { cn } from "@/lib/utils";
 import { EventMailCard, type CalendarEvent, type CalendarResponse } from "@/features/calendar";
 import { OTPCard, detectOtp } from "@/features/otp";
 import { ConvertSenderButton, SenderBadge } from "@/features/sender-conversion";
+import { SnoozeBanner } from "@/features/snooze";
 import { ProvenancePanel } from "./ProvenancePanel";
+import { EmailTrustBadges } from "./EmailTrustBadges";
+import { EncryptedPayloadBanner } from "./EncryptedPayloadBanner";
 import type { Email } from "./data";
 import {
   getRecipientReadiness,
@@ -51,6 +55,7 @@ export type EmailViewActions = {
   onConvertSender?: (email: Email) => void;
   onSnooze?: (email: Email) => void;
   onUnsnooze?: (email: Email) => void;
+  onSendReadReceipt?: (email: Email) => void;
   onShowToast?: (message: string) => void;
   onAddEvent?: (email: Email) => CalendarEvent | void;
   getCalendarEvent?: (email: Email) => CalendarEvent | null;
@@ -58,6 +63,10 @@ export type EmailViewActions = {
   onCalendarResponseChange?: (eventId: string, response: CalendarResponse) => void;
   onCalendarReminderChange?: (eventId: string, reminder: string) => void;
   onPreviewAttachment?: (attachment: { name: string; size: string; type: string }) => void;
+  /** Attempt to load the decryption key and unlock the payload. */
+  onUnlockPayload?: (email: Email) => void;
+  /** Retry a failed decryption attempt. */
+  onRetryDecrypt?: (email: Email) => void;
 };
 
 export function EmailView({
@@ -69,6 +78,7 @@ export function EmailView({
 }) {
   const [replyMenuOpen, setReplyMenuOpen] = useState(false);
   const [inlineMode, setInlineMode] = useState<ComposeMode | null>(null);
+  const reducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
 
   useEffect(() => {
     setReplyMenuOpen(false);
@@ -304,7 +314,31 @@ export function EmailView({
                   return otp ? <OTPCard code={otp} /> : null;
                 })()}
 
-                <ReaderBody body={email.body} />
+                {email.encryptedPayload && (
+                  <EncryptedPayloadBanner
+                    payload={email.encryptedPayload}
+                    reducedMotion={reducedMotion}
+                    actions={{
+                      onUnlock: actions.onUnlockPayload
+                        ? () => actions.onUnlockPayload!(email)
+                        : undefined,
+                      onRetry: actions.onRetryDecrypt
+                        ? () => actions.onRetryDecrypt!(email)
+                        : undefined,
+                      onCopyDiagnosticId: async (id) => {
+                        await navigator.clipboard?.writeText(id);
+                        actions.onShowToast?.(`Diagnostic ID ${id} copied`);
+                      },
+                      onReportCorruption: (id) => {
+                        actions.onShowToast?.(`Corruption report submitted for ${id}`);
+                      },
+                    }}
+                  />
+                )}
+
+                {(!email.encryptedPayload || email.encryptedPayload.status === "decrypted") && (
+                  <ReaderBody body={email.body} />
+                )}
 
                 {email.attachments?.length ? (
                   <div className="mt-7 max-w-[500px]">
@@ -321,7 +355,8 @@ export function EmailView({
                           whileTap={{ scale: 0.98 }}
                           className={cn(
                             "glass-tile flex min-w-0 items-center gap-2 rounded-md px-2 py-1.5 transition-all duration-150",
-                            actions.onPreviewAttachment && "cursor-pointer hover:bg-white/[0.08] hover:border-white/15"
+                            actions.onPreviewAttachment &&
+                              "cursor-pointer hover:bg-white/[0.08] hover:border-white/15",
                           )}
                         >
                           <AttachmentIcon type={attachment.type} />
@@ -467,14 +502,15 @@ function InlineReplyComposer({
                 title={recipient.message}
                 className={cn(
                   "rounded-full border px-2 py-1 text-[10px]",
-                  recipient.policy === "blocked"
+                  recipient.policyType === "block"
                     ? "border-red-300/20 bg-red-300/[0.06] text-red-200"
                     : recipient.postage === "ready"
                       ? "border-emerald-200/20 bg-emerald-200/[0.06] text-emerald-100"
                       : "border-amber-200/20 bg-amber-200/[0.06] text-amber-100",
                 )}
               >
-                {recipient.address} · {recipient.policy} · postage {recipient.postage}
+                {recipient.address} · {recipient.policyType ?? "default"} · postage{" "}
+                {recipient.postage}
               </span>
             ))}
           </div>
@@ -756,6 +792,7 @@ function SenderIdentity({ email, compact = false }: { email: Email; compact?: bo
             {email.from}
           </span>
           <SenderBadge policy={email.senderPolicy} />
+          <EmailTrustBadges email={email} max={3} size="sm" className="ml-1" />
         </div>
         <div className="mail-reader-meta truncate text-[9.5px] leading-3 text-muted-foreground/80">
           {email.email}
