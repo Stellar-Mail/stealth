@@ -1,6 +1,33 @@
 
 export type AdminDashboardBreakpoint = "tablet" | "laptop" | "desktop";
 
+// src/features/demo-admin-dashboard/types.ts
+export interface AdminDashboardProps {
+  title: string;
+  children: React.ReactNode;
+  toolbar?: React.ReactNode;
+}
+
+export interface AdminPanelProps {
+  title?: string;
+  description?: string;
+  children: React.ReactNode;
+  className?: string;
+  footer?: React.ReactNode;
+}
+
+export interface AdminToolbarProps {
+  children: React.ReactNode;
+  actions?: React.ReactNode;
+}
+
+export interface AdminSectionProps {
+  title: string;
+  children: React.ReactNode;
+  collapsible?: boolean;
+  defaultOpen?: boolean;
+}
+
 export type AdminDashboardPanel = {
   id: string;
   title: string;
