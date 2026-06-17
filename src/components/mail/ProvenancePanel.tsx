@@ -14,7 +14,13 @@ import {
   Coins,
   Receipt,
   Check,
+  Clock,
+  XCircle,
+  AlertCircle,
+  ExternalLink,
+  type LucideIcon,
 } from "lucide-react";
+import { getExplorerUrl } from "../../config/network";
 import {
   getEmailProvenance,
   type ProvenanceDetails,
@@ -59,6 +65,20 @@ export function ProvenancePanel({
 
   const isVerified = provenance.senderIdentity.isVerified;
 
+  // Map internal status to user‑facing label
+  const mapStatus = (status: string) => {
+    switch (status) {
+      case "complete":
+        return "verified";
+      case "pending":
+        return "pending";
+      case "skipped":
+        return "unavailable";
+      default:
+        return "failed";
+    }
+  };
+
   // Render a single field row inside the detailed panel
   const FieldRow = ({
     fieldKey,
@@ -79,6 +99,33 @@ export function ProvenancePanel({
   }) => {
     const isCopied = copiedKey === fieldKey;
 
+    const timelineKeyMap: Record<string, string> = {
+      sender: "senderIdentity",
+      relay: "relaySource",
+      msgHash: "messageHash",
+      commitment: "payloadCommitment",
+      postage: "postageRecord",
+      receipt: "receiptRecord",
+    };
+    const timelineItem = provenance.timeline.find(
+      (i) => i.key === timelineKeyMap[fieldKey]
+    );
+    const status = mapStatus(timelineItem?.status ?? "skipped");
+    const statusIcon = (() => {
+      switch (status) {
+        case "verified":
+          return <Check className="h-3 w-3 text-emerald-400" />;
+        case "pending":
+          return <Clock className="h-3 w-3 text-amber-300" />;
+        case "unavailable":
+          return <AlertCircle className="h-3 w-3 text-muted-foreground" />;
+        case "failed":
+          return <XCircle className="h-3 w-3 text-red-400" />;
+        default:
+          return null;
+      }
+    })();
+
     return (
       <div className="flex flex-col gap-1 rounded-lg border border-white/[0.04] bg-white/[0.02] p-2.5 transition hover:bg-white/[0.04]">
         <div className="flex items-center gap-2">
@@ -86,6 +133,7 @@ export function ProvenancePanel({
           <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
             {label}
           </span>
+          {statusIcon && <span className="ml-1">{statusIcon}</span>}
           <div className="ml-auto flex items-center gap-1.5">
             <button
               onClick={() => handleCopy(fieldKey, rawValue, label)}
@@ -105,6 +153,18 @@ export function ProvenancePanel({
             >
               <Search className="h-3 w-3" />
             </button>
+            {/* Explorer link for transaction hashes */}
+            {(fieldKey === "postage" || fieldKey === "receipt") && (
+              <a
+                href={getExplorerUrl(rawValue, "mainnet")}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="ml-1 p-1 text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground flex items-center justify-center"
+                title="View on Explorer"
+              >
+                <ExternalLink className="h-3 w-3" />
+              </a>
+            )}
           </div>
         </div>
 
