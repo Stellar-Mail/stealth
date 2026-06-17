@@ -43,3 +43,14 @@ export function usePreferences() {
 
   return { preferences, setPreferences, hydrated };
 }
+
+export function setActorAddress(address: string | null): void {
+  if (typeof window === "undefined") return;
+  try {
+    const stored = window.localStorage.getItem(storageKey);
+    const current = stored ? JSON.parse(stored) : {};
+    window.localStorage.setItem(storageKey, JSON.stringify({ ...current, actorAddress: address }));
+  } catch {
+    // Ignore storage errors
+  }
+}

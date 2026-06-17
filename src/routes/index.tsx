@@ -30,6 +30,7 @@ import {
   type SenderConversionTarget,
   type SenderPolicyChoice,
 } from "@/features/sender-conversion";
+import { useWallet } from "@/features/wallet";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -66,6 +67,7 @@ function MailApp() {
   const [calendarCreateRequest, setCalendarCreateRequest] = useState(0);
   const { preferences, setPreferences, hydrated } = usePreferences();
   const senderConversion = useSenderConversion();
+  const wallet = useWallet({ actorAddress: preferences.actorAddress });
 
   // Gate: show onboarding only after localStorage has been read (hydrated) and only
   // when it has not been completed in a previous session.
@@ -339,6 +341,7 @@ function MailApp() {
               setFolder("inbox");
               setFilters({ ...defaultMailFilters, unreadOnly: true });
             }}
+            wallet={wallet}
           />
           <div className="flex min-w-0 flex-1">
             <EmailList

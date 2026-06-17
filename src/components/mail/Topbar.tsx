@@ -19,7 +19,9 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NotificationsPanel } from "./NotificationsPanel";
+import { WalletStatusPill } from "@/features/wallet";
 import type { MailFilters } from "./data";
+import type { WalletHook } from "@/features/wallet";
 
 type TopbarProps = {
   onOpenPalette: () => void;
@@ -29,18 +31,8 @@ type TopbarProps = {
   onFiltersChange: (filters: MailFilters) => void;
   onQuickAction: (action: "proofs" | "later" | "files") => void;
   onViewNotifications: () => void;
+  wallet?: WalletHook;
 };
-
-const quickActions: {
-  label: string;
-  value: string;
-  action: "proofs" | "later" | "files";
-  icon: LucideIcon;
-}[] = [
-  { label: "Proofs", value: "2", action: "proofs", icon: ShieldCheck },
-  { label: "Later", value: "5", action: "later", icon: Clock3 },
-  { label: "Files", value: "9", action: "files", icon: Paperclip },
-];
 
 export function Topbar({
   onOpenPalette,
@@ -50,6 +42,7 @@ export function Topbar({
   onFiltersChange,
   onQuickAction,
   onViewNotifications,
+  wallet,
 }: TopbarProps) {
   const [focused, setFocused] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
@@ -116,7 +109,7 @@ export function Topbar({
         </button>
       </motion.div>
 
-      <div className="hidden items-center gap-1.5 lg:flex">
+      {/* <div className="hidden items-center gap-1.5 lg:flex">
         {quickActions.map((action) => (
           <QuickAction
             key={action.label}
@@ -124,7 +117,7 @@ export function Topbar({
             onClick={() => onQuickAction(action.action)}
           />
         ))}
-      </div>
+      </div> */}
 
       <div className="glass-tile ml-auto flex items-center gap-1 rounded-[8px] px-1">
         {/* Filter dropdown */}
@@ -266,6 +259,19 @@ export function Topbar({
         <IconBtn label="Settings" onClick={onOpenSettings}>
           <Settings className="h-4 w-4" />
         </IconBtn>
+
+        <div className="mx-1 h-6 w-px bg-white/10" />
+
+        {/* Wallet status */}
+        {wallet && (
+          <WalletStatusPill
+            wallet={wallet}
+            onViewAccount={(address) => {
+              onShowToast(`Viewing account ${address.slice(0, 6)}…${address.slice(-4)}`);
+            }}
+            onShowToast={onShowToast}
+          />
+        )}
 
         <div className="mx-1 h-6 w-px bg-white/10" />
 

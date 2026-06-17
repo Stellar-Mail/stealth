@@ -1,5 +1,6 @@
 export type ThemePreference = "dark" | "light" | "system";
 export type UnknownSenderPolicy = "request" | "verified" | "block";
+export type StellarNetwork = "mainnet" | "testnet";
 
 export type UiPreferences = {
   theme: ThemePreference;
@@ -12,6 +13,8 @@ export type UiPreferences = {
   minimumPostage: string;
   onboardingCompleted: boolean;
   receiptOnDelivery: boolean;
+  // Actor address derived from wallet connection, null when disconnected
+  actorAddress: string | null;
 };
 
 export const defaultPreferences: UiPreferences = {
@@ -25,4 +28,5 @@ export const defaultPreferences: UiPreferences = {
   minimumPostage: "0.0001",
   onboardingCompleted: false,
   receiptOnDelivery: false,
+  actorAddress: null,
 };
