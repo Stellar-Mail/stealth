@@ -11,6 +11,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useFocusTrap } from "@/hooks/use-focus-trap";
 import type { Email, MailFolder } from "@/components/mail/data";
 import { buildPaletteModel, selectableRows, type PaletteRow, type PaletteSection } from "./search";
 import type { CommandContext, CommandId, ResolvedCommand } from "./types";
@@ -40,6 +41,7 @@ export function CommandPalette({
   const [q, setQ] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
   const [confirming, setConfirming] = useState<ResolvedCommand | null>(null);
+  const containerRef = useFocusTrap(open, onClose);
 
   const sections = useMemo(() => buildPaletteModel(context, q, emails), [context, q, emails]);
   const selectable = useMemo(() => selectableRows(sections), [sections]);
@@ -139,6 +141,7 @@ export function CommandPalette({
             className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
           />
           <motion.div
+            ref={containerRef}
             role="dialog"
             aria-modal="true"
             aria-label="Command palette"

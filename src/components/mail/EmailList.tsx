@@ -221,8 +221,7 @@ export function EmailList({
 
       <ul
         ref={listRef}
-        role="listbox"
-        aria-multiselectable="true"
+        role="list"
         tabIndex={0}
         className={cn(
           "scrollbar-thin relative z-10 flex-1 overflow-y-auto",

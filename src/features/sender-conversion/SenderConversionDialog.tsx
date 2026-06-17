@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, Check, FolderInput, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useFocusTrap } from "@/hooks/use-focus-trap";
 import { getFolderLabel } from "@/components/mail/data";
 import { SenderBadge } from "./SenderBadge";
 import {
@@ -38,6 +39,8 @@ export function SenderConversionDialog({ target, onConfirm, onClose }: Props) {
   const [choice, setChoice] = useState<SenderPolicyChoice | null>(null);
   const [phase, setPhase] = useState<Phase>("choose");
 
+  const containerRef = useFocusTrap(!!target, onClose);
+
   // Reset whenever a different sender (or a fresh open) drives the dialog so a
   // previous selection never leaks into the next conversion.
   useEffect(() => {
@@ -46,16 +49,6 @@ export function SenderConversionDialog({ target, onConfirm, onClose }: Props) {
       setPhase("choose");
     }
   }, [target?.emailId, target]);
-
-  // Esc cancels — same no-op semantics as the Cancel button.
-  useEffect(() => {
-    if (!target) return;
-    const handler = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [target, onClose]);
 
   const handleConfirm = () => {
     if (!target || !choice) return;
@@ -79,6 +72,7 @@ export function SenderConversionDialog({ target, onConfirm, onClose }: Props) {
           />
 
           <motion.div
+            ref={containerRef}
             key="sender-conversion-panel"
             role="dialog"
             aria-modal="true"

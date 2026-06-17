@@ -64,6 +64,8 @@ function RootShell({ children }: { children: React.ReactNode }) {
       </head>
       <body>
         {children}
+        <div aria-live="polite" aria-atomic="true" className="sr-only" role="status" />
+        <div aria-live="assertive" aria-atomic="true" className="sr-only" role="alert" />
         <Scripts />
       </body>
     </html>

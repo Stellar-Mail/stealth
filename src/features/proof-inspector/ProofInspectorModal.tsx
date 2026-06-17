@@ -17,6 +17,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useFocusTrap } from "@/hooks/use-focus-trap";
 import type { Email } from "@/components/mail/data";
 import { motionPresets } from "@/lib/motion-presets";
 
@@ -60,6 +61,7 @@ export function ProofInspectorModal({
     text: string;
     type: "success" | "warning" | "error" | null;
   }>({ text: "", type: null });
+  const containerRef = useFocusTrap(open, onClose);
 
   // Reset state when opening/closing
   useEffect(() => {
@@ -206,10 +208,12 @@ export function ProofInspectorModal({
 
           {/* Modal Container */}
           <motion.div
+            ref={containerRef}
             {...motionPresets.patterns.modal.content}
             role="dialog"
             aria-modal="true"
             aria-label="Cryptographic proof inspector"
+            aria-describedby="proof-inspector-description"
             className="glass-strong fixed left-1/2 top-1/2 z-[101] w-[min(640px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl border border-white/10"
           >
             {/* Header */}
@@ -217,8 +221,8 @@ export function ProofInspectorModal({
               <div className="flex items-center gap-2">
                 <Database className="h-4 w-4 text-[oklch(0.85_0.005_270)]" />
                 <div>
-                  <h3 className="text-sm font-bold text-foreground">Stealth Proof Inspector</h3>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                  <h3 className="text-sm font-bold text-foreground" id="proof-inspector-title">Stealth Proof Inspector</h3>
+                  <p id="proof-inspector-description" className="text-[11px] text-muted-foreground mt-0.5">
                     Search and audit smart contract ledger proofs and payment preimages.
                   </p>
                 </div>
@@ -327,6 +331,7 @@ export function ProofInspectorModal({
               )}
 
               {/* Search Result display */}
+              <div aria-live="polite" aria-atomic="true">
               {hasSearched && (
                 <AnimatePresence mode="wait">
                   {searchResults.length === 0 ? (
@@ -600,6 +605,7 @@ export function ProofInspectorModal({
                   )}
                 </AnimatePresence>
               )}
+            </div>
             </div>
 
             {/* Modal Footer CTAs */}

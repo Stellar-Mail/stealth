@@ -21,6 +21,7 @@ import {
 import { useState, useEffect, type CSSProperties } from "react";
 import { Surface } from "@/features/design-system";
 import { cn } from "@/lib/utils";
+import { useFocusTrap } from "@/hooks/use-focus-trap";
 import { SHORTCUT_DEFINITIONS } from "@/features/command-palette";
 import type { ReceiptPreference, UiPreferences, LayoutPreferences } from "@/features/preferences";
 import {
@@ -71,6 +72,7 @@ export function SettingsModal({
   onSave: () => void;
 }) {
   const [activeTab, setActiveTab] = useState<Tab>("account");
+  const containerRef = useFocusTrap(open, onCancel ?? onClose);
 
   return (
     <AnimatePresence>
@@ -84,6 +86,10 @@ export function SettingsModal({
             className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
           />
           <motion.div
+            ref={containerRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Settings"
             initial={{ opacity: 0, scale: 0.96, y: 8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 8 }}
@@ -1244,12 +1250,18 @@ function SecuritySettings() {
 
       {/* Confirmation Dialog */}
       {confirmDialog && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm">
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-label={confirmDialog.title}
+        >
           <div className="glass-strong w-full max-w-sm rounded-2xl p-5 space-y-4">
             <h4 className="text-sm font-medium text-foreground">{confirmDialog.title}</h4>
             <p className="text-xs text-muted-foreground">{confirmDialog.description}</p>
             <div className="flex gap-2 pt-2">
               <button
+                autoFocus
                 onClick={() => setConfirmDialog(null)}
                 className="flex-1 rounded-lg border border-white/10 px-4 py-2 text-xs text-foreground hover:bg-white/[0.06] transition"
               >

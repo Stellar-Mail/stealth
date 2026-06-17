@@ -16,6 +16,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { EmojiPicker } from "./EmojiPicker";
 import { TrustBadge, type TrustState } from "@/features/design-system";
 import { cn } from "@/lib/utils";
+import { useFocusTrap } from "@/hooks/use-focus-trap";
 import { resolveRecipients } from "@/features/compose/recipientResolver";
 
 import {
@@ -66,6 +67,7 @@ export function Compose({
   const [postage, setPostage] = useState(initialPostage);
   const [resolvedRecipients, setResolvedRecipients] = useState<RecipientReadiness[]>([]);
 
+  const containerRef = useFocusTrap(open, onClose);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -251,6 +253,10 @@ export function Compose({
             className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
           />
           <motion.div
+            ref={containerRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label={mode === "compose" ? "New message" : "Compose"}
             initial={{ opacity: 0, y: 24, scale: 0.96, filter: "blur(8px)" }}
             animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
             exit={{ opacity: 0, y: 24, scale: 0.97, filter: "blur(6px)" }}
@@ -565,10 +571,14 @@ function Field({
 }) {
   return (
     <div className="flex items-center gap-3 border-b border-white/5 py-2">
-      <span className="w-16 shrink-0 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-        {label}
-      </span>
+                <span
+          id={`compose-field-${label}`}
+          className="w-16 shrink-0 text-[11px] uppercase tracking-[0.18em] text-muted-foreground"
+        >
+          {label}
+        </span>
       <input
+        aria-labelledby={`compose-field-${label}`}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
