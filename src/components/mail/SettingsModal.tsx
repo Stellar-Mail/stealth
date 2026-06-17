@@ -1746,7 +1746,9 @@ function SecuritySettings() {
           {showAddRecovery ? (
             <div className="space-y-3 rounded-lg border border-white/10 bg-white/[0.03] p-3">
               <div className="space-y-2">
-                <label className="text-[11px] text-muted-foreground">Recovery type</label>
+                <span className="text-[11px] text-muted-foreground" id="recovery-type-label">
+                  Recovery type
+                </span>
                 <div className="flex gap-2">
                   {(
                     ["trusted_contact", "hardware_key", "paper_key", "encrypted_backup"] as const

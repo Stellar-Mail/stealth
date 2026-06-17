@@ -61,21 +61,17 @@ export function useDevices() {
 
   const registerDevice = useCallback(
     async (publicKey: string) => {
-      try {
-        setError(null);
-        await apiFetch("/devices/register", {
-          method: "POST",
-          body: JSON.stringify({
-            publicKey,
-            userAgent: navigator.userAgent,
-            acceptLanguage: navigator.language,
-            acceptEncoding: "gzip, deflate, br",
-          }),
-        });
-        await loadDevices();
-      } catch (err) {
-        throw err;
-      }
+      setError(null);
+      await apiFetch("/devices/register", {
+        method: "POST",
+        body: JSON.stringify({
+          publicKey,
+          userAgent: navigator.userAgent,
+          acceptLanguage: navigator.language,
+          acceptEncoding: "gzip, deflate, br",
+        }),
+      });
+      await loadDevices();
     },
     [loadDevices],
   );

@@ -170,24 +170,39 @@ export function RightPanel({
         <Card>
           <SectionHeader icon={Paperclip} title="Attachments" />
           <ul className="mt-3 space-y-1.5">
-            {email.attachments.map((attachment) => (
-              <li
-                key={attachment.name}
-                onClick={() => onPreviewAttachment?.(attachment)}
-                className={cn(
-                  "flex items-center gap-2 rounded-lg px-2 py-1.5 transition duration-150",
-                  onPreviewAttachment && "cursor-pointer hover:bg-white/[0.06]",
-                )}
-              >
-                <div className="grid h-7 w-7 place-items-center rounded-md bg-white/[0.05] text-[9px] font-bold uppercase text-muted-foreground">
-                  {attachment.type}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-xs text-foreground">{attachment.name}</div>
-                  <div className="text-[10px] text-muted-foreground">{attachment.size}</div>
-                </div>
-              </li>
-            ))}
+            {email.attachments.map((attachment) => {
+              const content = (
+                <>
+                  <div className="grid h-7 w-7 place-items-center rounded-md bg-white/[0.05] text-[9px] font-bold uppercase text-muted-foreground">
+                    {attachment.type}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-xs text-foreground">{attachment.name}</div>
+                    <div className="text-[10px] text-muted-foreground">{attachment.size}</div>
+                  </div>
+                </>
+              );
+              return onPreviewAttachment ? (
+                <li key={attachment.name}>
+                  <button
+                    onClick={() => onPreviewAttachment(attachment)}
+                    className={cn(
+                      "flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left transition duration-150 hover:bg-white/[0.06]",
+                    )}
+                    type="button"
+                  >
+                    {content}
+                  </button>
+                </li>
+              ) : (
+                <li
+                  key={attachment.name}
+                  className="flex items-center gap-2 rounded-lg px-2 py-1.5"
+                >
+                  {content}
+                </li>
+              );
+            })}
           </ul>
         </Card>
       ) : null}
