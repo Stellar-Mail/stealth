@@ -1,4 +1,6 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+
+
 import { motion } from "framer-motion";
 import {
   Archive,
@@ -11,6 +13,16 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
+
+
+// ... existing imports remain
+
+
+
+
+
+
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,6 +35,7 @@ import { SNOOZE_PRESETS, type SnoozeChoice } from "@/features/snooze";
 import {
   canApplyBulkActionToEmail,
   getBulkActionIdsForContext,
+  getBulkActionConfirmation,
   MOVE_FOLDERS,
   type BulkActionId,
   type BulkActionRequest,
@@ -81,134 +94,197 @@ export function BulkActionBar({
     ? Math.round((bulkProgress.completed / Math.max(bulkProgress.total, 1)) * 100)
     : 0;
 
+    const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmation, setConfirmation] = useState(null as any);
+  const [pendingAction, setPendingAction] = useState<"allow" | "block" | "settle" | "refund" | null>(null);
+
+  const handleConfirmableAction = (action: "allow" | "block" | "settle" | "refund") => {
+    const request = { action } as BulkActionRequest;
+    const conf = getBulkActionConfirmation(request, selectedEmails);
+    setConfirmation(conf);
+    setPendingAction(action);
+    setConfirmOpen(true);
+  };
+
+  const confirmAndExecute = () => {
+    if (!pendingAction) return;
+    setConfirmOpen(false);
+    // Build request type based on action
+    const request: BulkActionRequest = { action: pendingAction as any };
+    onAction(request);
+    setPendingAction(null);
+  };
+
   if (selectedEmails.length === 0) return null;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: -8 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -8 }}
-      className="relative z-20 mx-3 rounded-t-[8px] border-x border-t border-white/10 bg-white/[0.045] p-2 backdrop-blur-md"
-    >
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="rounded-md border border-white/10 bg-black/20 px-2 py-1 text-[11px] font-medium text-foreground">
-          {selectedEmails.length} selected
-        </span>
+    <>
+      <motion.div
+        initial={{ opacity: 0, y: -8 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -8 }}
+        className="relative z-20 mx-3 rounded-t-[8px] border-x border-t border-white/10 bg-white/[0.045] p-2 backdrop-blur-md"
+      >
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="rounded-md border border-white/10 bg-black/20 px-2 py-1 text-[11px] font-medium text-foreground">
+            {selectedEmails.length} selected
+          </span>
 
-        {actions.includes("archive") && (
-          <ActionButton
-            icon={Archive}
-            label="Archive"
-            onClick={() => onAction({ action: "archive" })}
+          {actions.includes("archive") && (
+            <ActionButton
+              icon={Archive}
+              label="Archive"
+              onClick={() => onAction({ action: "archive" })}
+              disabled={!!bulkProgress}
+            />
+          )}
+
+          {actions.includes("star") && (
+            <ActionButton
+              icon={Star}
+              label={starValue ? "Star" : "Unstar"}
+              onClick={() => onAction({ action: "star", value: starValue })}
+              disabled={!!bulkProgress}
+            />
+          )}
+
+          {actions.includes("mark-read") && (
+            <ActionButton
+              icon={CheckCheck}
+              label="Mark read"
+              onClick={() => onAction({ action: "mark-read" })}
+              disabled={!!bulkProgress}
+            />
+          )}
+
+          {snoozeChoices.length > 0 && (
+            <ActionDropdown
+              icon={Clock3}
+              label="Snooze"
+              disabled={!!bulkProgress}
+              items={snoozeChoices.map((preset) => ({
+                id: preset.id as BulkSnoozeChoice,
+                label: preset.label,
+                onClick: () =>
+                  onAction({ action: "snooze", snoozeChoice: preset.id as BulkSnoozeChoice }),
+              }))}
+            />
+          )}
+
+          {actions.includes("approve") && (
+            <ActionButton
+              icon={BadgeCheck}
+              label="Approve"
+              onClick={() => onAction({ action: "approve" })}
+              disabled={!!bulkProgress}
+            />
+          )}
+
+          {actions.includes("block") && (
+            <ActionButton
+              icon={Ban}
+              label="Block"
+              tone="danger"
+              onClick={() => handleConfirmableAction("block")}
+              disabled={!!bulkProgress}
+            />
+          )}
+
+          {/* Allow action with confirmation */}
+          {actions.includes("allow") && (
+            <ActionButton
+              icon={CheckCheck}
+              label="Allow"
+              onClick={() => handleConfirmableAction("allow")}
+              disabled={!!bulkProgress}
+            />
+          )}
+
+          {/* Settle and Refund actions – treat as confirmable */}
+          {actions.includes("settle") && (
+            <ActionButton
+              icon={CheckCheck}
+              label="Settle"
+              onClick={() => handleConfirmableAction("settle")}
+              disabled={!!bulkProgress}
+            />
+          )}
+          {actions.includes("refund") && (
+            <ActionButton
+              icon={Ban}
+              label="Refund"
+              tone="danger"
+              onClick={() => handleConfirmableAction("refund")}
+              disabled={!!bulkProgress}
+            />
+          )}
+
+          {actions.includes("move") && (
+            <ActionDropdown
+              icon={FolderInput}
+              label="Move"
+              disabled={!!bulkProgress}
+              items={moveTargets.map((target) => ({
+                id: target,
+                label: getFolderLabel(target),
+                onClick: () => onAction({ action: "move", folder: target }),
+              }))}
+            />
+          )}
+
+          <button
+            type="button"
+            onClick={onClearSelection}
             disabled={!!bulkProgress}
-          />
-        )}
+            className="ml-auto inline-flex h-8 items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.035] px-2.5 text-[11px] font-medium text-muted-foreground transition hover:bg-white/[0.08] hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <X className="h-3.5 w-3.5" />
+            Clear
+          </button>
+        </div>
 
-        {actions.includes("star") && (
-          <ActionButton
-            icon={Star}
-            label={starValue ? "Star" : "Unstar"}
-            onClick={() => onAction({ action: "star", value: starValue })}
-            disabled={!!bulkProgress}
-          />
-        )}
-
-        {actions.includes("mark-read") && (
-          <ActionButton
-            icon={CheckCheck}
-            label="Mark read"
-            onClick={() => onAction({ action: "mark-read" })}
-            disabled={!!bulkProgress}
-          />
-        )}
-
-        {snoozeChoices.length > 0 && (
-          <ActionDropdown
-            icon={Clock3}
-            label="Snooze"
-            disabled={!!bulkProgress}
-            items={snoozeChoices.map((preset) => ({
-              id: preset.id as BulkSnoozeChoice,
-              label: preset.label,
-              onClick: () =>
-                onAction({ action: "snooze", snoozeChoice: preset.id as BulkSnoozeChoice }),
-            }))}
-          />
-        )}
-
-        {actions.includes("approve") && (
-          <ActionButton
-            icon={BadgeCheck}
-            label="Approve"
-            onClick={() => onAction({ action: "approve" })}
-            disabled={!!bulkProgress}
-          />
-        )}
-
-        {actions.includes("block") && (
-          <ActionButton
-            icon={Ban}
-            label="Block"
-            tone="danger"
-            onClick={() => onAction({ action: "block" })}
-            disabled={!!bulkProgress}
-          />
-        )}
-
-        {actions.includes("move") && (
-          <ActionDropdown
-            icon={FolderInput}
-            label="Move"
-            disabled={!!bulkProgress}
-            items={moveTargets.map((target) => ({
-              id: target,
-              label: getFolderLabel(target),
-              onClick: () => onAction({ action: "move", folder: target }),
-            }))}
-          />
-        )}
-
-        <button
-          type="button"
-          onClick={onClearSelection}
-          disabled={!!bulkProgress}
-          className="ml-auto inline-flex h-8 items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.035] px-2.5 text-[11px] font-medium text-muted-foreground transition hover:bg-white/[0.08] hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          <X className="h-3.5 w-3.5" />
-          Clear
-        </button>
-      </div>
-
-      {bulkProgress && (
-        <div className="mt-2 space-y-1.5">
-          <div className="flex items-center justify-between gap-3 text-[10px] text-muted-foreground">
-            <span className="truncate">{bulkProgress.label}</span>
-            <span className="shrink-0 tabular-nums">
-              {bulkProgress.completed}/{bulkProgress.total}
-            </span>
+        {bulkProgress && (
+          <div className="mt-2 space-y-1.5">
+            <div className="flex items-center justify-between gap-3 text-[10px] text-muted-foreground">
+              <span className="truncate">{bulkProgress.label}</span>
+              <span className="shrink-0 tabular-nums">
+                {bulkProgress.completed}/{bulkProgress.total}
+              </span>
+            </div>
+            <Progress value={progressValue} className="h-1.5" />
           </div>
-          <Progress value={progressValue} className="h-1.5" />
-        </div>
-      )}
+        )}
 
-      {bulkFailures.length > 0 && (
-        <div className="mt-2 rounded-lg border border-red-300/20 bg-red-300/[0.06] p-2 text-[11px] text-red-100">
-          <p className="font-medium">
-            {bulkFailures.length} message{bulkFailures.length === 1 ? "" : "s"} skipped
-          </p>
-          <ul className="mt-1 space-y-0.5 text-red-100/75">
-            {bulkFailures.slice(0, 3).map((failure) => (
-              <li key={failure.id} className="truncate">
-                {failure.subject}: {failure.reason}
-              </li>
-            ))}
-            {bulkFailures.length > 3 && (
-              <li className="text-muted-foreground">+{bulkFailures.length - 3} more</li>
-            )}
-          </ul>
-        </div>
-      )}
-    </motion.div>
+        {bulkFailures.length > 0 && (
+          <div className="mt-2 rounded-lg border border-red-300/20 bg-red-300/[0.06] p-2 text-[11px] text-red-100">
+            <p className="font-medium">
+              {bulkFailures.length} message{bulkFailures.length === 1 ? "" : "s"} skipped
+            </p>
+            <ul className="mt-1 space-y-0.5 text-red-100/75">
+              {bulkFailures.slice(0, 3).map((failure) => (
+                <li key={failure.id} className="truncate">
+                  {failure.subject}: {failure.reason}
+                </li>
+              ))}
+              {bulkFailures.length > 3 && (
+                <li className="text-muted-foreground">+{bulkFailures.length - 3} more</li>
+              )}
+            </ul>
+          </div>
+        )}
+      </motion.div>
+
+       {/* Confirmation Dialog */}
+        <BulkConfirmDialog
+          confirmation={confirmation}
+          onCancel={() => {
+            setConfirmOpen(false);
+            setPendingAction(null);
+            setConfirmation(null);
+          }}
+          onConfirm={confirmAndExecute}
+        />
+    </>
   );
 }
 
