@@ -4,6 +4,29 @@ import { MailQuestion } from "lucide-react";
 import { ActionButton, EmptyState, Surface } from "@/features/design-system";
 import appCss from "../styles.css?url";
 
+import { MobileNavigation } from '@/components/mail/MobileNavigation';
+import { Topbar } from '@/components/mail/Topbar';
+
+function RootComponent() {
+  return (
+    <div className="flex h-screen flex-col overflow-hidden">
+      {/* Desktop Topbar + Mobile Nav */}
+      <Topbar />
+      <MobileNavigation />
+
+      <div className="flex flex-1 overflow-hidden">
+        {/* Desktop Sidebar (hidden on mobile) */}
+        <div className="hidden md:block w-64 border-r">
+          <Sidebar />
+        </div>
+
+        {/* Main Content Area */}
+        <Outlet />
+      </div>
+    </div>
+  );
+}
+
 function NotFoundComponent() {
   return (
     <div className="ambient-bg flex min-h-screen items-center justify-center overflow-hidden px-4 py-10">
