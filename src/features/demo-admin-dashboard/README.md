@@ -44,6 +44,26 @@ Primary goals:
 
 ---
 
+**Usage Example:**
+
+```tsx
+
+import { AdminPage, AdminPanel, AdminSection, demoStats } from '@/features/demo-admin-dashboard';
+
+export default function DemoAdmin() {
+  return (
+    <AdminPage title="Stealth Demo Dashboard">
+      <AdminPanel title="Statistics" description="Fake deterministic data">
+        <div>Total Users: {demoStats.totalUsers}</div>
+      </AdminPanel>
+
+      <AdminSection title="Users" collapsible>
+        {/* ... */}
+      </AdminSection>
+    </AdminPage>
+  );
+}
+
 ## Integration
 
 The `DemoAdminDashboard` component is exported from `./index.ts`. It is a self-contained shell that manages its own tab state and renders deterministic fake data.
