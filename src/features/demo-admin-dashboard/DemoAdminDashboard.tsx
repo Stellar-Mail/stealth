@@ -75,7 +75,7 @@ const MAIL_FIXTURES: PresetMail[] = [
     folder: "inbox",
     from: "Stealth Team",
     email: "welcome*stealth.demo",
-    body: "Hi there,\n\nYour Stealth mailbox is set up. You decide who can reach you: trusted contacts arrive instantly, everyone else follows the policy you choose.\n\nReply any time to start a conversation.\n\n— The Stealth demo team",
+    body: "Hi there,\n\nYour Stealth mailbox is set up. You decide who can reach you: trusted contacts arrive instantly, everyone else follows the policy you choose.\n\nReply any time to start a c[...]",
     time: "9:42 AM",
     unread: true,
     starred: true,
@@ -178,7 +178,7 @@ const EVENTS_FAKE: PresetEvent[] = [
   },
 ];
 
-// ─── Section icon map ─────────────────────────────────────────────────────────
+// ─── Section icon map ───────────────────────────────────────────────────────
 
 export const SECTION_ICON: Record<DashboardSection, React.ElementType> = {
   overview: LayoutDashboard,
@@ -192,19 +192,6 @@ export const SECTION_ICON: Record<DashboardSection, React.ElementType> = {
   analytics: PieChart,
   tags: Tags,
 };
-
-// Keyboard navigation handler for the tablist
-function handleNavKeyDown(event: React.KeyboardEvent) {
-  const tabs = NAV_ITEMS.map((item) => item.id);
-  const currentIndex = tabs.indexOf(activeSection);
-  if (event.key === "ArrowRight") {
-    const nextIndex = (currentIndex + 1) % tabs.length;
-    setActiveSection(tabs[nextIndex]);
-  } else if (event.key === "ArrowLeft") {
-    const prevIndex = (currentIndex - 1 + tabs.length) % tabs.length;
-    setActiveSection(tabs[prevIndex]);
-  }
-}
 
 // ─── Content region components ────────────────────────────────────────────────
 
@@ -735,7 +722,7 @@ function TagsContent() {
   return <CampaignTagManager />;
 }
 
-// ─── Dashboard Shell ──────────────────────────────────────────────────────────
+// ─── Dashboard Shell ───────────────────────────────────────────────────────
 
 export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
   const [activeSection, setActiveSection] = useState<DashboardSection>("overview");
@@ -743,6 +730,9 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
   const [selectedAccountAddress, setSelectedAccountAddress] = useState<string | null>(null);
   const [selectedMailSubject, setSelectedMailSubject] = useState<string | null>(null);
   const [draftDataset, setDraftDataset] = useState<Draft[]>([]);
+  const [showAccessibility, setShowAccessibility] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   const activePreset = PRESET_SCENARIOS.find((p) => p.id === activePresetId);
 
@@ -760,6 +750,19 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
     setActiveSection(section);
     setSelectedAccountAddress(null);
     setSelectedMailSubject(null);
+  };
+
+  // Keyboard navigation handler for the tablist
+  const handleNavKeyDown = (event: React.KeyboardEvent) => {
+    const tabs = NAV_ITEMS.map((item) => item.id);
+    const currentIndex = tabs.indexOf(activeSection);
+    if (event.key === "ArrowRight") {
+      const nextIndex = (currentIndex + 1) % tabs.length;
+      setActiveSection(tabs[nextIndex]);
+    } else if (event.key === "ArrowLeft") {
+      const prevIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+      setActiveSection(tabs[prevIndex]);
+    }
   };
 
   const Icon = SECTION_ICON[activeSection];
@@ -815,7 +818,7 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
               aria-label={item.description}
               onClick={() => handleSectionChange(item.id)}
               className={cn(
-                "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500",
+                "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500/50",
                 isActive
                   ? "bg-white/[0.08] text-foreground"
                   : "text-muted-foreground hover:bg-white/[0.04] hover:text-foreground",
