@@ -1,0 +1,93 @@
+{
+  "tool": "team-payment-approval",
+  "version": 1,
+  "sourceRecords": [
+    {
+      "id": "record-vendor-001",
+      "type": "email",
+      "from": "ops@example.test",
+      "subject": "Approve vendor reimbursement",
+      "receivedAt": "2026-06-15T08:30:00Z",
+      "body": "Please approve 240 USD for the courier reimbursement. Receipt is attached.",
+      "hasSupportingDocument": true
+    },
+    {
+      "id": "record-high-value-002",
+      "type": "email",
+      "from": "procurement@example.test",
+      "subject": "Large vendor invoice approval",
+      "receivedAt": "2026-06-15T12:20:00Z",
+      "body": "The Atlas vendor invoice is 7200 USD and needs finance approval before payout.",
+      "hasSupportingDocument": true
+    },
+    {
+      "id": "record-missing-doc-003",
+      "type": "email",
+      "from": "sales@example.test",
+      "subject": "Customer event reimbursement",
+      "receivedAt": "2026-06-16T10:45:00Z",
+      "body": "Please reimburse 380 USD for the customer event. I will send the receipt later.",
+      "hasSupportingDocument": false
+    },
+    {
+      "id": "record-contractor-004",
+      "type": "internal-request",
+      "from": "engineering@example.test",
+      "subject": "Contractor milestone payment approved",
+      "receivedAt": "2026-06-16T15:05:00Z",
+      "body": "Engineering lead approved the 1500 USD contractor milestone payment.",
+      "hasSupportingDocument": true
+    }
+  ],
+  "expectedApprovals": [
+    {
+      "id": "approval-vendor-001",
+      "vendor": "Courier Vendor",
+      "amount": 240,
+      "currency": "USD",
+      "requester": "Ops",
+      "status": "submitted",
+      "requiredApprovers": ["team-lead"],
+      "sourceRecordId": "record-vendor-001",
+      "reviewRequired": false
+    },
+    {
+      "id": "approval-high-value-002",
+      "vendor": "Atlas Vendor",
+      "amount": 7200,
+      "currency": "USD",
+      "requester": "Procurement",
+      "status": "needs-review",
+      "requiredApprovers": ["finance", "team-lead"],
+      "sourceRecordId": "record-high-value-002",
+      "reviewRequired": true
+    },
+    {
+      "id": "approval-missing-doc-003",
+      "vendor": "Customer Event Reimbursement",
+      "amount": 380,
+      "currency": "USD",
+      "requester": "Sales",
+      "status": "blocked",
+      "requiredApprovers": ["team-lead"],
+      "sourceRecordId": "record-missing-doc-003",
+      "reviewRequired": true
+    },
+    {
+      "id": "approval-contractor-004",
+      "vendor": "Contractor Milestone",
+      "amount": 1500,
+      "currency": "USD",
+      "requester": "Engineering",
+      "status": "approved",
+      "requiredApprovers": ["engineering-lead"],
+      "sourceRecordId": "record-contractor-004",
+      "reviewRequired": false
+    }
+  ],
+  "reviewNotes": [
+    "The fixture uses synthetic example.test records only.",
+    "The high-value threshold is local to this fixture and should be configurable later.",
+    "Payment execution must remain blocked until a future security issue defines live constraints."
+  ]
+}
