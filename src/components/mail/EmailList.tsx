@@ -219,68 +219,135 @@ export function EmailList({
         bulkFailures={bulkFailures}
       />
 
-      <ul
+      <div
         ref={listRef}
-        role="list"
+        role="listbox"
+        aria-multiselectable="true"
         tabIndex={0}
         className={cn(
-          "scrollbar-thin relative z-10 flex-1 overflow-y-auto",
-          useMobile ? "space-y-2 p-2" : "space-y-2 p-2.5 outline-none",
+          "scrollbar-thin relative z-10 flex-1 overflow-y-auto outline-none",
+          useMobile ? "space-y-2 p-2" : "space-y-2 p-2.5",
         )}
+        onKeyDown={(e) => {
+          const items = Array.from(
+            (e.currentTarget as HTMLElement).querySelectorAll('[role="option"]'),
+          );
+          const currentIdx = items.findIndex((el) => el === document.activeElement);
+          if (e.key === "ArrowDown") {
+            e.preventDefault();
+            const next = items[currentIdx + 1] ?? items[0];
+            (next as HTMLElement)?.focus();
+          } else if (e.key === "ArrowUp") {
+            e.preventDefault();
+            const prev = items[currentIdx - 1] ?? items[items.length - 1];
+            (prev as HTMLElement)?.focus();
+          }
+        }}
       >
-        {filtered.length === 0 && (
-          <li className="px-3 py-10 text-center text-xs text-muted-foreground">
-            No conversations in {folderLabel.toLowerCase()} yet.
-          </li>
-        )}
-        {filtered.length > 0 && (
-          <li className="sticky top-0 z-10 -mx-1 px-1 py-1">
-            <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.035] px-2 py-1.5 text-[11px] text-muted-foreground">
-              <Checkbox
-                checked={allSelected}
-                aria-label={
-                  allSelected ? "Clear all visible messages" : "Select all visible messages"
-                }
-                onCheckedChange={toggleAllSelection}
-              />
-              <button
-                type="button"
-                onClick={toggleAllSelection}
-                className="flex-1 truncate text-left text-foreground/88 transition hover:text-foreground"
-              >
-                {allSelected ? "Clear all" : "Select all"}
-              </button>
-              <span className="shrink-0 tabular-nums">
-                {someSelected
-                  ? `${selectedVisibleIds.length} selected`
-                  : `${filtered.length} conversations`}
-              </span>
-              <span className="hidden xl:inline text-[10px] text-muted-foreground/70">
-                Ctrl/⌘+A · Esc
-              </span>
-            </div>
-          </li>
-        )}
-        {filtered.map((e, idx) => {
-          const active = selectedId === e.id || selectedIds.includes(e.id);
-          const selected = selectedIds.includes(e.id);
-          const selectMessage = (shiftKey = false) => {
-            if (shiftKey && lastAnchorId) {
-              selectRange(e.id);
-            } else {
-              onSelect(e.id);
-            }
-          };
+        <ul className="scrollbar-thin space-y-2 p-2 outline-none">
+          {filtered.length === 0 && (
+            <li className="px-3 py-10 text-center text-xs text-muted-foreground">
+              No conversations in {folderLabel.toLowerCase()} yet.
+            </li>
+          )}
+          {filtered.length > 0 && (
+            <li className="sticky top-0 z-10 -mx-1 px-1 py-1">
+              <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.035] px-2 py-1.5 text-[11px] text-muted-foreground">
+                <Checkbox
+                  checked={allSelected}
+                  aria-label={
+                    allSelected ? "Clear all visible messages" : "Select all visible messages"
+                  }
+                  onCheckedChange={toggleAllSelection}
+                />
+                <button
+                  type="button"
+                  onClick={toggleAllSelection}
+                  className="flex-1 truncate text-left text-foreground/88 transition hover:text-foreground"
+                >
+                  {allSelected ? "Clear all" : "Select all"}
+                </button>
+                <span className="shrink-0 tabular-nums">
+                  {someSelected
+                    ? `${selectedVisibleIds.length} selected`
+                    : `${filtered.length} conversations`}
+                </span>
+                <span className="hidden xl:inline text-[10px] text-muted-foreground/70">
+                  Ctrl/⌘+A · Esc
+                </span>
+              </div>
+            </li>
+          )}
+          {filtered.map((e, idx) => {
+            const active = selectedId === e.id || selectedIds.includes(e.id);
+            const selected = selectedIds.includes(e.id);
+            const selectMessage = (shiftKey = false) => {
+              if (shiftKey && lastAnchorId) {
+                selectRange(e.id);
+              } else {
+                onSelect(e.id);
+              }
+            };
 
-          if (useMobile) {
+            if (useMobile) {
+              return (
+                <motion.li
+                  key={e.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.03, duration: 0.25, ease: [0.2, 0.8, 0.2, 1] }}
+                >
+                  <div className="flex items-start gap-2 px-1">
+                    <Checkbox
+                      checked={selected}
+                      aria-label={`Select ${e.from}: ${e.subject}`}
+                      onClick={(event) => event.stopPropagation()}
+                      onPointerDown={(event) => event.stopPropagation()}
+                      onKeyDown={(event) => event.stopPropagation()}
+                      onCheckedChange={() => toggleSelection(e.id)}
+                      className="mt-3 border-white/15 bg-white/[0.035] data-[state=checked]:border-white/30"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <MobileMailCard
+                        email={e}
+                        selected={active}
+                        onSelect={() => onSelect(e.id)}
+                        onArchive={() => onArchive?.(e)}
+                        onStar={() => onStar?.(e)}
+                        onSnooze={() => onSnooze?.(e)}
+                      />
+                    </div>
+                  </div>
+                  {e.folder === "requests" && (
+                    <div className="mt-1 flex justify-end px-2">
+                      <ConvertSenderButton
+                        variant="subtle"
+                        label="Review sender"
+                        onClick={() => onConvertSender(e)}
+                      />
+                    </div>
+                  )}
+                </motion.li>
+              );
+            }
+
             return (
               <motion.li
                 key={e.id}
-                initial={{ opacity: 0, y: 10 }}
+                initial={false}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.03, duration: 0.25, ease: [0.2, 0.8, 0.2, 1] }}
+                transition={{ delay: idx * 0.02, duration: 0.25, ease: [0.2, 0.8, 0.2, 1] }}
               >
-                <div className="flex items-start gap-2 px-1">
+                <div
+                  className="flex items-start gap-2"
+                  onPointerDown={(event) => {
+                    const target = event.target as HTMLElement | null;
+                    if (target?.closest('[role="checkbox"], input, button[aria-label^="Select"]')) {
+                      return;
+                    }
+                    selectMessage(event.shiftKey);
+                  }}
+                >
                   <Checkbox
                     checked={selected}
                     aria-label={`Select ${e.from}: ${e.subject}`}
@@ -288,18 +355,85 @@ export function EmailList({
                     onPointerDown={(event) => event.stopPropagation()}
                     onKeyDown={(event) => event.stopPropagation()}
                     onCheckedChange={() => toggleSelection(e.id)}
-                    className="mt-3 border-white/15 bg-white/[0.035] data-[state=checked]:border-white/30"
+                    className="mt-2.5 border-white/15 bg-white/[0.035] data-[state=checked]:border-white/30"
                   />
-                  <div className="min-w-0 flex-1">
-                    <MobileMailCard
-                      email={e}
-                      selected={active}
-                      onSelect={() => onSelect(e.id)}
-                      onArchive={() => onArchive?.(e)}
-                      onStar={() => onStar?.(e)}
-                      onSnooze={() => onSnooze?.(e)}
-                    />
-                  </div>
+                  <motion.button
+                    data-email-id={e.id}
+                    onClick={(event) => selectMessage(event.shiftKey)}
+                    whileTap={{ scale: 0.975 }}
+                    transition={{ type: "spring", stiffness: 520, damping: 30 }}
+                    aria-selected={active}
+                    className={cn(
+                      "mail-preview-card group relative flex w-full items-start gap-3 px-3 text-left transition-[background,border-color,box-shadow,transform] duration-300",
+                      active
+                        ? "-translate-y-px border-white/15 bg-[oklch(0.38_0.007_270/0.55)] py-2 shadow-[0_18px_42px_oklch(0_0_0/0.35),0_0_0_1px_oklch(1_0_0/0.07),inset_0_1px_0_oklch(1_0_0/0.14)]"
+                        : compact
+                          ? "py-2"
+                          : "py-2.5",
+                    )}
+                  >
+                    {active && (
+                      <motion.span
+                        layoutId="email-active"
+                        className="pointer-events-none absolute inset-0 rounded-[14px] ring-1 ring-white/12"
+                        style={{
+                          background:
+                            "radial-gradient(circle at 18% 22%, oklch(1 0 0 / 0.12), transparent 36%), linear-gradient(135deg, oklch(1 0 0 / 0.08), oklch(1 0 0 / 0.025) 44%, oklch(1 0 0 / 0.01))",
+                        }}
+                        transition={{ type: "spring", stiffness: 400, damping: 32 }}
+                      />
+                    )}
+                    {showAvatars && (
+                      <div
+                        className={cn(
+                          "relative shrink-0 overflow-hidden rounded-full ring-1 ring-white/15 shadow-[0_8px_18px_-12px_rgba(0,0,0,0.9)]",
+                          active ? "h-[30px] w-[30px]" : "h-7 w-7",
+                        )}
+                      >
+                        <img
+                          src={`https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(e.from)}&backgroundColor=1a1a1d`}
+                          alt={e.from}
+                          loading="lazy"
+                          className="h-full w-full object-cover"
+                        />
+                        {e.unread && (
+                          <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-[oklch(0.9_0.005_270)] ring-2 ring-[oklch(0.18_0.005_270)]" />
+                        )}
+                      </div>
+                    )}
+                    <div className="relative min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex min-w-0 items-center gap-1.5">
+                          <span
+                            className={cn(
+                              "mail-preview-heading truncate text-[13.5px] font-semibold leading-5 text-foreground/88",
+                              e.unread && "text-foreground/94",
+                            )}
+                          >
+                            {e.from}
+                          </span>
+                          <EmailTrustBadges
+                            email={e}
+                            max={1}
+                            size="sm"
+                            showLabels={false}
+                            className="shrink-0"
+                          />
+                        </div>
+                        <span className="shrink-0 pt-0.5 text-[10.5px] font-medium leading-4 tabular-nums text-muted-foreground/85">
+                          {e.time}
+                        </span>
+                      </div>
+                      <div
+                        className={cn(
+                          "mail-preview-subheading mt-0.5 truncate text-[12.25px] font-semibold leading-4 text-foreground/68",
+                          e.unread && "text-foreground/78",
+                        )}
+                      >
+                        {e.subject}
+                      </div>
+                    </div>
+                  </motion.button>
                 </div>
                 {e.folder === "requests" && (
                   <div className="mt-1 flex justify-end px-2">
@@ -312,125 +446,9 @@ export function EmailList({
                 )}
               </motion.li>
             );
-          }
-
-          return (
-            <motion.li
-              key={e.id}
-              initial={false}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: idx * 0.02, duration: 0.25, ease: [0.2, 0.8, 0.2, 1] }}
-            >
-              <div
-                className="flex items-start gap-2"
-                onPointerDown={(event) => {
-                  const target = event.target as HTMLElement | null;
-                  if (target?.closest('[role="checkbox"], input, button[aria-label^="Select"]')) {
-                    return;
-                  }
-                  selectMessage(event.shiftKey);
-                }}
-              >
-                <Checkbox
-                  checked={selected}
-                  aria-label={`Select ${e.from}: ${e.subject}`}
-                  onClick={(event) => event.stopPropagation()}
-                  onPointerDown={(event) => event.stopPropagation()}
-                  onKeyDown={(event) => event.stopPropagation()}
-                  onCheckedChange={() => toggleSelection(e.id)}
-                  className="mt-2.5 border-white/15 bg-white/[0.035] data-[state=checked]:border-white/30"
-                />
-                <motion.button
-                  data-email-id={e.id}
-                  onClick={(event) => selectMessage(event.shiftKey)}
-                  whileTap={{ scale: 0.975 }}
-                  transition={{ type: "spring", stiffness: 520, damping: 30 }}
-                  aria-selected={active}
-                  className={cn(
-                    "mail-preview-card group relative flex w-full items-start gap-3 px-3 text-left transition-[background,border-color,box-shadow,transform] duration-300",
-                    active
-                      ? "-translate-y-px border-white/15 bg-[oklch(0.38_0.007_270/0.55)] py-2 shadow-[0_18px_42px_oklch(0_0_0/0.35),0_0_0_1px_oklch(1_0_0/0.07),inset_0_1px_0_oklch(1_0_0/0.14)]"
-                      : compact
-                        ? "py-2"
-                        : "py-2.5",
-                  )}
-                >
-                  {active && (
-                    <motion.span
-                      layoutId="email-active"
-                      className="pointer-events-none absolute inset-0 rounded-[14px] ring-1 ring-white/12"
-                      style={{
-                        background:
-                          "radial-gradient(circle at 18% 22%, oklch(1 0 0 / 0.12), transparent 36%), linear-gradient(135deg, oklch(1 0 0 / 0.08), oklch(1 0 0 / 0.025) 44%, oklch(1 0 0 / 0.01))",
-                      }}
-                      transition={{ type: "spring", stiffness: 400, damping: 32 }}
-                    />
-                  )}
-                  {showAvatars && (
-                    <div
-                      className={cn(
-                        "relative shrink-0 overflow-hidden rounded-full ring-1 ring-white/15 shadow-[0_8px_18px_-12px_rgba(0,0,0,0.9)]",
-                        active ? "h-[30px] w-[30px]" : "h-7 w-7",
-                      )}
-                    >
-                      <img
-                        src={`https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(e.from)}&backgroundColor=1a1a1d`}
-                        alt={e.from}
-                        loading="lazy"
-                        className="h-full w-full object-cover"
-                      />
-                      {e.unread && (
-                        <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-[oklch(0.9_0.005_270)] ring-2 ring-[oklch(0.18_0.005_270)]" />
-                      )}
-                    </div>
-                  )}
-                  <div className="relative min-w-0 flex-1">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex min-w-0 items-center gap-1.5">
-                        <span
-                          className={cn(
-                            "mail-preview-heading truncate text-[13.5px] font-semibold leading-5 text-foreground/88",
-                            e.unread && "text-foreground/94",
-                          )}
-                        >
-                          {e.from}
-                        </span>
-                        <EmailTrustBadges
-                          email={e}
-                          max={1}
-                          size="sm"
-                          showLabels={false}
-                          className="shrink-0"
-                        />
-                      </div>
-                      <span className="shrink-0 pt-0.5 text-[10.5px] font-medium leading-4 tabular-nums text-muted-foreground/85">
-                        {e.time}
-                      </span>
-                    </div>
-                    <div
-                      className={cn(
-                        "mail-preview-subheading mt-0.5 truncate text-[12.25px] font-semibold leading-4 text-foreground/68",
-                        e.unread && "text-foreground/78",
-                      )}
-                    >
-                      {e.subject}
-                    </div>
-                  </div>
-                </motion.button>
-              </div>
-              {e.folder === "requests" && (
-                <div className="mt-1 flex justify-end px-2">
-                  <ConvertSenderButton
-                    variant="subtle"
-                    label="Review sender"
-                    onClick={() => onConvertSender(e)}
-                  />
-                </div>
-              )}
-            </motion.li>
-          );
-        })}
-      </ul>
+          })}
+        </ul>
+      </div>
     </section>
   );
 }

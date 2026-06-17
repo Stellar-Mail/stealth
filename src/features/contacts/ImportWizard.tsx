@@ -154,6 +154,14 @@ function InputStep({ onNext }: { onNext: (contacts: ImportedContact[]) => void }
             onDragOver={(e) => e.preventDefault()}
             onDrop={handleDrop}
             onClick={() => fileRef.current?.click()}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                fileRef.current?.click();
+              }
+            }}
+            role="button"
+            tabIndex={0}
             className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-white/10 bg-white/[0.02] px-4 py-6 transition hover:bg-white/[0.04]"
           >
             <Upload className="h-5 w-5 text-muted-foreground" />
