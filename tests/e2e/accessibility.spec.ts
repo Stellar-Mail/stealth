@@ -7,9 +7,7 @@ test("main mail view has no critical or serious axe violations", async ({ page }
 
   await expect(page.getByRole("heading", { name: /inbox/i })).toBeVisible();
 
-  const results = await new AxeBuilder({ page })
-    .disableRules(["color-contrast"])
-    .analyze();
+  const results = await new AxeBuilder({ page }).disableRules(["color-contrast"]).analyze();
 
   const violations = results.violations.filter(
     (v) => v.impact === "critical" || v.impact === "serious",
@@ -25,9 +23,7 @@ test("compose dialog has no critical or serious axe violations", async ({ page }
   await page.keyboard.press("Control+n");
   await page.waitForTimeout(300);
 
-  const results = await new AxeBuilder({ page })
-    .disableRules(["color-contrast"])
-    .analyze();
+  const results = await new AxeBuilder({ page }).disableRules(["color-contrast"]).analyze();
 
   const violations = results.violations.filter(
     (v) => v.impact === "critical" || v.impact === "serious",
@@ -43,9 +39,7 @@ test("settings modal has no critical or serious axe violations", async ({ page }
   await page.keyboard.press(",");
   await page.waitForTimeout(300);
 
-  const results = await new AxeBuilder({ page })
-    .disableRules(["color-contrast"])
-    .analyze();
+  const results = await new AxeBuilder({ page }).disableRules(["color-contrast"]).analyze();
 
   const violations = results.violations.filter(
     (v) => v.impact === "critical" || v.impact === "serious",
@@ -61,9 +55,7 @@ test("keyboard shortcuts modal has no critical or serious axe violations", async
   await page.keyboard.press("?");
   await page.waitForTimeout(300);
 
-  const results = await new AxeBuilder({ page })
-    .disableRules(["color-contrast"])
-    .analyze();
+  const results = await new AxeBuilder({ page }).disableRules(["color-contrast"]).analyze();
 
   const violations = results.violations.filter(
     (v) => v.impact === "critical" || v.impact === "serious",

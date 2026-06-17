@@ -571,12 +571,12 @@ function Field({
 }) {
   return (
     <div className="flex items-center gap-3 border-b border-white/5 py-2">
-                <span
-          id={`compose-field-${label}`}
-          className="w-16 shrink-0 text-[11px] uppercase tracking-[0.18em] text-muted-foreground"
-        >
-          {label}
-        </span>
+      <span
+        id={`compose-field-${label}`}
+        className="w-16 shrink-0 text-[11px] uppercase tracking-[0.18em] text-muted-foreground"
+      >
+        {label}
+      </span>
       <input
         aria-labelledby={`compose-field-${label}`}
         value={value}
