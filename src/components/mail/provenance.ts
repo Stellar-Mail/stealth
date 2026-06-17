@@ -109,7 +109,7 @@ export function getEmailProvenance(email: Email): ProvenanceDetails {
 
   // 1. Sender Identity
   let resolvedKey = "";
-  let rawIdentity = email.email || "unknown@stealth.network";
+  const rawIdentity = email.email || "unknown@stealth.network";
 
   // Check if raw identity looks like a public key already
   if (/^G[A-Z2-7]{55}$/.test(rawIdentity)) {
