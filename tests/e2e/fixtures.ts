@@ -1,4 +1,4 @@
-import { test as base, type Page } from "@playwright/test";
+import { expect, test as base, type Page } from "@playwright/test";
 
 // ---------------------------------------------------------------------------
 // Deterministic Stellar addresses used across all tests
@@ -91,6 +91,56 @@ export class ApiHelper {
       data: { status: "refunded" },
     });
   }
+}
+
+const demoUiPreferences = {
+  theme: "dark",
+  compactMode: false,
+  density: "comfortable",
+  glassIntensity: "medium",
+  readerTypography: "sans",
+  lowerMotion: false,
+  showAvatars: true,
+  receiptOnDelivery: false,
+  emailNotifications: true,
+  desktopNotifications: true,
+  sound: false,
+  unknownSenders: "request",
+  minimumPostage: "0.0001",
+  onboardingCompleted: true,
+  receipts: {
+    trusted: "auto",
+    unknown: "manual",
+    paid: "manual",
+    organizations: "auto",
+  },
+};
+
+const demoLayoutPreferences = {
+  sidebarWidth: 15,
+  sidebarCollapsed: false,
+  listWidth: 30,
+  readerWidth: 35,
+  compactMode: false,
+  rightPanelCollapsed: false,
+};
+
+export async function openDemoMailbox(page: Page) {
+  await page.addInitScript(
+    ({ layout, preferences }) => {
+      localStorage.setItem("stealth-preferences", JSON.stringify({ onboardingCompleted: true }));
+      localStorage.setItem("stealth-ui-preferences", JSON.stringify(preferences));
+      localStorage.setItem("stealth-layout-preferences", JSON.stringify(layout));
+    },
+    {
+      layout: demoLayoutPreferences,
+      preferences: demoUiPreferences,
+    },
+  );
+
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: /Inbox/i })).toBeVisible();
+  await page.waitForFunction(() => Boolean(document.documentElement.dataset.theme));
 }
 
 // ---------------------------------------------------------------------------
