@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import React, { useState } from "react";
 import {
   Activity,
   BarChart3,
@@ -15,6 +15,8 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { AccessibilityInfo } from "./components/AccessibilityInfo";
+
 import type {
   DashboardNavItem,
   DashboardSection,
@@ -73,7 +75,7 @@ const MAIL_FIXTURES: PresetMail[] = [
     folder: "inbox",
     from: "Stealth Team",
     email: "welcome*stealth.demo",
-    body: "Hi there,\n\nYour Stealth mailbox is set up. You decide who can reach you: trusted contacts arrive instantly, everyone else follows the policy you choose.\n\nReply any time to start a conversation.\n\n— The Stealth demo team",
+    body: "Hi there,\n\nYour Stealth mailbox is set up. You decide who can reach you: trusted contacts arrive instantly, everyone else follows the policy you choose.\n\nReply any time to start a c[...]",
     time: "9:42 AM",
     unread: true,
     starred: true,
@@ -176,7 +178,7 @@ const EVENTS_FAKE: PresetEvent[] = [
   },
 ];
 
-// ─── Section icon map ─────────────────────────────────────────────────────────
+// ─── Section icon map ───────────────────────────────────────────────────────
 
 export const SECTION_ICON: Record<DashboardSection, React.ElementType> = {
   overview: LayoutDashboard,
@@ -205,7 +207,7 @@ function OverviewContent({
   return (
     <div className="space-y-6">
       <p className="text-sm text-muted-foreground">
-        Summary of the demo environment. All data is synthetic and resets on each page load.
+        Summary of the demo environment. All data is synthetic and updates dynamically on imports.
       </p>
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {stats.map((stat) => (
@@ -720,7 +722,7 @@ function TagsContent() {
   return <CampaignTagManager />;
 }
 
-// ─── Dashboard Shell ──────────────────────────────────────────────────────────
+// ─── Dashboard Shell ───────────────────────────────────────────────────────
 
 export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
   const [activeSection, setActiveSection] = useState<DashboardSection>("overview");
@@ -728,6 +730,9 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
   const [selectedAccountAddress, setSelectedAccountAddress] = useState<string | null>(null);
   const [selectedMailSubject, setSelectedMailSubject] = useState<string | null>(null);
   const [draftDataset, setDraftDataset] = useState<Draft[]>([]);
+  const [showAccessibility, setShowAccessibility] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   const activePreset = PRESET_SCENARIOS.find((p) => p.id === activePresetId);
 
@@ -745,6 +750,19 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
     setActiveSection(section);
     setSelectedAccountAddress(null);
     setSelectedMailSubject(null);
+  };
+
+  // Keyboard navigation handler for the tablist
+  const handleNavKeyDown = (event: React.KeyboardEvent) => {
+    const tabs = NAV_ITEMS.map((item) => item.id);
+    const currentIndex = tabs.indexOf(activeSection);
+    if (event.key === "ArrowRight") {
+      const nextIndex = (currentIndex + 1) % tabs.length;
+      setActiveSection(tabs[nextIndex]);
+    } else if (event.key === "ArrowLeft") {
+      const prevIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+      setActiveSection(tabs[prevIndex]);
+    }
   };
 
   const Icon = SECTION_ICON[activeSection];
@@ -786,6 +804,7 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
         className="flex gap-1 border-b border-white/[0.06] px-4 py-2"
         role="tablist"
         aria-label="Admin dashboard sections"
+        onKeyDown={handleNavKeyDown}
       >
         {NAV_ITEMS.map((item) => {
           const NavIcon = SECTION_ICON[item.id];
@@ -793,12 +812,13 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
           return (
             <button
               key={item.id}
+              id={`tab-${item.id}`}
               role="tab"
               aria-selected={isActive}
               aria-label={item.description}
               onClick={() => handleSectionChange(item.id)}
               className={cn(
-                "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition",
+                "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500/50",
                 isActive
                   ? "bg-white/[0.08] text-foreground"
                   : "text-muted-foreground hover:bg-white/[0.04] hover:text-foreground",
@@ -810,6 +830,7 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
           );
         })}
       </nav>
+      {showAccessibility && <AccessibilityInfo />}
 
       {/* ── Content region ── */}
       <div
@@ -818,6 +839,38 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
         aria-label={`${activeSection} section`}
       >
         <div className="mx-auto max-w-4xl">
+          {/* Error and Success Alert Banners */}
+          {errorMsg && (
+            <div
+              role="alert"
+              aria-live="assertive"
+              className="mb-6 rounded-lg border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-400 flex items-center justify-between"
+            >
+              <span>{errorMsg}</span>
+              <button
+                onClick={() => setErrorMsg(null)}
+                className="text-red-400 hover:text-red-300 font-bold ml-2 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+          {successMsg && (
+            <div
+              role="status"
+              aria-live="polite"
+              className="mb-6 rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm text-emerald-400 flex items-center justify-between animate-fade-in"
+            >
+              <span>{successMsg}</span>
+              <button
+                onClick={() => setSuccessMsg(null)}
+                className="text-emerald-400 hover:text-emerald-300 font-bold ml-2 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+
           {/* Section header */}
           <div className="mb-6 flex items-center justify-between">
             <div className="flex items-center gap-2">
