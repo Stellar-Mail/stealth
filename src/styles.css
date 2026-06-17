@@ -39,6 +39,11 @@
   --font-sans: var(--font-interface);
 }
 
+@media (max-width: 768px) {
+  .three-pane { flex-direction: column; }
+  .reader-pane { position: fixed; inset: 0; z-index: 50; }
+}
+
 @layer base {
   * {
     border-color: var(--color-border);
