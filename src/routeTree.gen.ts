@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SendRouteImport } from './routes/send'
 import { Route as MotionGalleryRouteImport } from './routes/motion-gallery'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiV1ProtocolRouteImport } from './routes/api/v1/protocol'
@@ -29,6 +30,11 @@ import { Route as ApiV1PoliciesOwnerSendersSenderRouteImport } from './routes/ap
 const MotionGalleryRoute = MotionGalleryRouteImport.update({
   id: '/motion-gallery',
   path: '/motion-gallery',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SendRoute = SendRouteImport.update({
+  id: '/send',
+  path: '/send',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -114,6 +120,7 @@ const ApiV1PoliciesOwnerSendersSenderRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/motion-gallery': typeof MotionGalleryRoute
+  '/send': typeof SendRoute
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
   '/api/v1/protocol': typeof ApiV1ProtocolRoute
@@ -132,6 +139,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/motion-gallery': typeof MotionGalleryRoute
+  '/send': typeof SendRoute
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
   '/api/v1/protocol': typeof ApiV1ProtocolRoute
@@ -151,6 +159,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/motion-gallery': typeof MotionGalleryRoute
+  '/send': typeof SendRoute
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
   '/api/v1/protocol': typeof ApiV1ProtocolRoute
@@ -171,6 +180,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/motion-gallery'
+    | '/send'
     | '/api/v1/health'
     | '/api/v1/openapi.json'
     | '/api/v1/protocol'
@@ -189,6 +199,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/motion-gallery'
+    | '/send'
     | '/api/v1/health'
     | '/api/v1/openapi.json'
     | '/api/v1/protocol'
@@ -207,6 +218,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/motion-gallery'
+    | '/send'
     | '/api/v1/health'
     | '/api/v1/openapi.json'
     | '/api/v1/protocol'
@@ -226,6 +238,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   MotionGalleryRoute: typeof MotionGalleryRoute
+  SendRoute: typeof SendRoute
   ApiV1HealthRoute: typeof ApiV1HealthRoute
   ApiV1OpenapiDotjsonRoute: typeof ApiV1OpenapiDotjsonRoute
   ApiV1ProtocolRoute: typeof ApiV1ProtocolRoute
@@ -245,6 +258,13 @@ declare module '@tanstack/react-router' {
       path: '/motion-gallery'
       fullPath: '/motion-gallery'
       preLoaderRoute: typeof MotionGalleryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/send': {
+      id: '/send'
+      path: '/send'
+      fullPath: '/send'
+      preLoaderRoute: typeof SendRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -398,6 +418,7 @@ const ApiV1ReceiptsMessageIdRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   MotionGalleryRoute: MotionGalleryRoute,
+  SendRoute: SendRoute,
   ApiV1HealthRoute: ApiV1HealthRoute,
   ApiV1OpenapiDotjsonRoute: ApiV1OpenapiDotjsonRoute,
   ApiV1ProtocolRoute: ApiV1ProtocolRoute,
