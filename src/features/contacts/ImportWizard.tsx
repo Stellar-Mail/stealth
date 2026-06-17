@@ -28,7 +28,11 @@ type Props = {
 const variants = {
   enter: (d: number) => ({ x: d * 28, opacity: 0 }),
   center: { x: 0, opacity: 1, transition: { duration: 0.2, ease: "easeOut" as const } },
-  exit: (d: number) => ({ x: d * -28, opacity: 0, transition: { duration: 0.16, ease: "easeIn" as const } }),
+  exit: (d: number) => ({
+    x: d * -28,
+    opacity: 0,
+    transition: { duration: 0.16, ease: "easeIn" as const },
+  }),
 };
 
 const STEPS: Step[] = ["input", "preview", "trust"];
@@ -77,11 +81,7 @@ function TrustBadge({
 
 // ─── steps ────────────────────────────────────────────────────────────────────
 
-function InputStep({
-  onNext,
-}: {
-  onNext: (contacts: ImportedContact[]) => void;
-}) {
+function InputStep({ onNext }: { onNext: (contacts: ImportedContact[]) => void }) {
   const [csv, setCsv] = useState("");
   const [mode, setMode] = useState<"paste" | "manual">("paste");
   const [parseError, setParseError] = useState<string | null>(null);
@@ -192,8 +192,7 @@ function InputStep({
           </div>
 
           <p className="text-[11px] text-muted-foreground">
-            Columns:{" "}
-            <code className="rounded bg-white/[0.06] px-1">name,address</code> or just{" "}
+            Columns: <code className="rounded bg-white/[0.06] px-1">name,address</code> or just{" "}
             <code className="rounded bg-white/[0.06] px-1">address</code>
           </p>
         </div>
@@ -400,9 +399,7 @@ function TrustStep({
   async function handleSave() {
     setSaving(true);
     // Apply bulk default to any contact still on "default"
-    const result = valid.map((c) =>
-      c.trust === "default" ? { ...c, trust: bulkTrust } : c,
-    );
+    const result = valid.map((c) => (c.trust === "default" ? { ...c, trust: bulkTrust } : c));
     // Deduplicate: last entry wins per address
     const seen = new Map<string, ImportedContact>();
     for (const c of result) seen.set(c.address.trim().toLowerCase(), c);

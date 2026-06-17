@@ -17,9 +17,9 @@ test.describe("compose flow", () => {
     await expect(page.getByText("New message")).toBeVisible();
 
     // Fill recipient, subject, and body
-    await page.getByPlaceholder("recipients@…").fill("alice*stellar.org");
+    await page.getByPlaceholder(/recipients@/).fill("alice*stellar.org");
     await page.getByPlaceholder("Subject").fill("E2E test subject");
-    await page.getByPlaceholder("Write your message…").fill("Hello from E2E test");
+    await page.getByPlaceholder(/Write your message/).fill("Hello from E2E test");
 
     // Send
     await page.getByRole("button", { name: "Send" }).click();
@@ -44,9 +44,9 @@ test.describe("compose flow", () => {
   test("schedules message instead of immediate send", async ({ page }) => {
     await page.keyboard.press("Control+n");
 
-    await page.getByPlaceholder("recipients@…").fill("bob*stellar.org");
+    await page.getByPlaceholder(/recipients@/).fill("bob*stellar.org");
     await page.getByPlaceholder("Subject").fill("Scheduled message");
-    await page.getByPlaceholder("Write your message…").fill("Sent later");
+    await page.getByPlaceholder(/Write your message/).fill("Sent later");
 
     await page.getByRole("button", { name: "Schedule" }).click();
 

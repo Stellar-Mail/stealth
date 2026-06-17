@@ -8,10 +8,16 @@ test.describe("calendar linking", () => {
     await page.goto("/");
   });
 
+  async function openToken2049EventMail(page: Parameters<typeof test>[1]) {
+    await page
+      .getByRole("button", {
+        name: /TOKEN2049 Abu Dhabi.*TOKEN2049 Abu Dhabi - founder pass ready/,
+      })
+      .click();
+  }
+
   test("adds a calendar event from a mail with an event attachment", async ({ page }) => {
-    // The TOKEN2049 email (id=2) has an event – it lives in the 'verified' folder
-    await page.getByRole("button", { name: "Verified" }).click();
-    await page.getByText("TOKEN2049 Abu Dhabi - founder pass ready").click();
+    await openToken2049EventMail(page);
 
     // The EventMailCard should render with the event title
     await expect(page.getByText("TOKEN2049 Abu Dhabi")).toBeVisible();
@@ -26,8 +32,7 @@ test.describe("calendar linking", () => {
   test("opens the calendar workspace from the sidebar calendar button", async ({ page }) => {
     // The right panel has an "Open calendar" or calendar section
     // Alternatively open via the event mail card's "Open calendar" action
-    await page.getByRole("button", { name: "Verified" }).click();
-    await page.getByText("TOKEN2049 Abu Dhabi - founder pass ready").click();
+    await openToken2049EventMail(page);
 
     // Add event first so it exists in calendar state
     await page.getByRole("button", { name: /Add to calendar/i }).click();
@@ -41,8 +46,7 @@ test.describe("calendar linking", () => {
 
   test("calendar workspace closes on close button click", async ({ page }) => {
     // Open via right panel create event button – requires an email selected first
-    await page.getByRole("button", { name: "Verified" }).click();
-    await page.getByText("TOKEN2049 Abu Dhabi - founder pass ready").click();
+    await openToken2049EventMail(page);
     await page.getByRole("button", { name: /Add to calendar/i }).click();
     await page.getByRole("button", { name: /Open calendar/i }).click();
 

@@ -48,7 +48,9 @@ describe("Requests triage board unit helpers", () => {
 });
 
 describe("Proof Inspector Query Validation & Payload Safety", () => {
-  const validateQuery = (query: string): "address" | "hash" | "uuid" | "keyword" | "invalid-length" => {
+  const validateQuery = (
+    query: string,
+  ): "address" | "hash" | "uuid" | "keyword" | "invalid-length" => {
     const trimmed = query.trim();
     if (!trimmed) return "keyword";
 
@@ -61,8 +63,13 @@ describe("Proof Inspector Query Validation & Payload Safety", () => {
     if (uuidRegex.test(trimmed)) return "uuid";
 
     if (
-      (trimmed.length > 5 && (trimmed.startsWith("G") || trimmed.startsWith("C")) && trimmed.length !== 56) ||
-      (trimmed.length > 10 && trimmed.match(/^[0-9a-f]+$/i) && trimmed.length !== 64 && !trimmed.startsWith("0x"))
+      (trimmed.length > 5 &&
+        (trimmed.startsWith("G") || trimmed.startsWith("C")) &&
+        trimmed.length !== 56) ||
+      (trimmed.length > 10 &&
+        trimmed.match(/^[0-9a-f]+$/i) &&
+        trimmed.length !== 64 &&
+        !trimmed.startsWith("0x"))
     ) {
       return "invalid-length";
     }
@@ -83,8 +90,10 @@ describe("Proof Inspector Query Validation & Payload Safety", () => {
   });
 
   it("identifies valid 32-byte hexadecimal hashes", () => {
-    const validHashWithoutPrefix = "a1b2c3d4e5f601020304050607080900112233445566778899aabbccddeeff00";
-    const validHashWithPrefix = "0xa1b2c3d4e5f601020304050607080900112233445566778899aabbccddeeff00";
+    const validHashWithoutPrefix =
+      "a1b2c3d4e5f601020304050607080900112233445566778899aabbccddeeff00";
+    const validHashWithPrefix =
+      "0xa1b2c3d4e5f601020304050607080900112233445566778899aabbccddeeff00";
     expect(validateQuery(validHashWithoutPrefix)).toBe("hash");
     expect(validateQuery(validHashWithPrefix)).toBe("hash");
   });

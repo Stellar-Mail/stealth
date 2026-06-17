@@ -94,11 +94,22 @@ export function ProofInspectorModal({
         relayNode: "relay-us-east-1.stealth.network",
         latency: `${20 + (email.from.length % 5) * 6}ms`,
         signature: `Ed25519 [0x${email.id.repeat(8).padEnd(32, "7")}f31b]`,
-        deliveredAt: email.time.includes("AM") || email.time.includes("PM") ? "Today, " + email.time : email.time,
+        deliveredAt:
+          email.time.includes("AM") || email.time.includes("PM")
+            ? "Today, " + email.time
+            : email.time,
         readAt: email.unread ? null : "Delivered + Read",
         postageAmount: email.postageAmount ?? "10000000",
-        postageStatus: email.folder === "requests" ? "pending" : email.folder === "spam" ? "refunded" : "settled",
-        senderRule: email.senderPolicy ?? "default",
+        postageStatus:
+          email.folder === "requests"
+            ? "pending"
+            : email.folder === "spam"
+              ? "refunded"
+              : "settled",
+        senderRule:
+          email.senderPolicy === "allow" || email.senderPolicy === "block"
+            ? email.senderPolicy
+            : "default",
         email,
       };
     });
@@ -125,12 +136,21 @@ export function ProofInspectorModal({
       setValidationMsg({ text: "✓ Valid 32-byte hash format", type: "success" });
     } else if (uuidRegex.test(trimmed)) {
       setValidationMsg({ text: "✓ Valid Relay diagnostic ID format", type: "success" });
-    } else if (trimmed.length > 5 && (trimmed.startsWith("G") || trimmed.startsWith("C")) && trimmed.length !== 56) {
+    } else if (
+      trimmed.length > 5 &&
+      (trimmed.startsWith("G") || trimmed.startsWith("C")) &&
+      trimmed.length !== 56
+    ) {
       setValidationMsg({
         text: `✗ Invalid address length (${trimmed.length}/56 characters)`,
         type: "error",
       });
-    } else if (trimmed.length > 10 && trimmed.match(/^[0-9a-f]+$/i) && trimmed.length !== 64 && !trimmed.startsWith("0x")) {
+    } else if (
+      trimmed.length > 10 &&
+      trimmed.match(/^[0-9a-f]+$/i) &&
+      trimmed.length !== 64 &&
+      !trimmed.startsWith("0x")
+    ) {
       setValidationMsg({
         text: `✗ Invalid hash length (${trimmed.length}/64 hex characters)`,
         type: "error",
@@ -236,7 +256,7 @@ export function ProofInspectorModal({
                         "glow-ring h-10 w-full min-w-0 rounded-xl border pl-9 pr-10 text-xs text-foreground bg-black/40",
                         validationMsg.type === "error"
                           ? "border-red-500/40 focus:border-red-500/60"
-                          : "border-white/10 focus:border-white/20"
+                          : "border-white/10 focus:border-white/20",
                       )}
                     />
                     {query && (
@@ -250,7 +270,7 @@ export function ProofInspectorModal({
                       >
                         <X className="h-3.5 w-3.5" />
                       </button>
-                    ) as any}
+                    )}
                   </div>
                   <button
                     type="submit"
@@ -267,7 +287,7 @@ export function ProofInspectorModal({
                       "text-[10px] font-medium leading-none px-1",
                       validationMsg.type === "success" && "text-emerald-400",
                       validationMsg.type === "warning" && "text-amber-400",
-                      validationMsg.type === "error" && "text-red-400"
+                      validationMsg.type === "error" && "text-red-400",
                     )}
                   >
                     {validationMsg.text}
@@ -325,7 +345,8 @@ export function ProofInspectorModal({
                             Proof Record Not Found
                           </h4>
                           <p className="text-[11px] text-muted-foreground mt-0.5">
-                            No local cryptographic delivery or payment proofs match your search query.
+                            No local cryptographic delivery or payment proofs match your search
+                            query.
                           </p>
                         </div>
                       </div>
@@ -337,9 +358,13 @@ export function ProofInspectorModal({
                         </h5>
                         <ul className="space-y-2 text-xs">
                           <li className="flex items-start gap-2">
-                            <span className="text-[10px] font-semibold text-muted-foreground mt-0.5">1.</span>
+                            <span className="text-[10px] font-semibold text-muted-foreground mt-0.5">
+                              1.
+                            </span>
                             <p className="text-muted-foreground leading-normal">
-                              <strong className="text-foreground/90 block">Verify on Stellar Explorer</strong>
+                              <strong className="text-foreground/90 block">
+                                Verify on Stellar Explorer
+                              </strong>
                               Search the transaction hash on{" "}
                               <a
                                 href="https://stellar.expert"
@@ -354,17 +379,28 @@ export function ProofInspectorModal({
                             </p>
                           </li>
                           <li className="flex items-start gap-2">
-                            <span className="text-[10px] font-semibold text-muted-foreground mt-0.5">2.</span>
+                            <span className="text-[10px] font-semibold text-muted-foreground mt-0.5">
+                              2.
+                            </span>
                             <p className="text-muted-foreground leading-normal">
-                              <strong className="text-foreground/90 block">Check Postage Preimage Settle State</strong>
-                              Ensure the recipient's mailbox contract has settled the postage preimage. Unsettled postages automatically return to the sender after 7 days.
+                              <strong className="text-foreground/90 block">
+                                Check Postage Preimage Settle State
+                              </strong>
+                              Ensure the recipient's mailbox contract has settled the postage
+                              preimage. Unsettled postages automatically return to the sender after
+                              7 days.
                             </p>
                           </li>
                           <li className="flex items-start gap-2">
-                            <span className="text-[10px] font-semibold text-muted-foreground mt-0.5">3.</span>
+                            <span className="text-[10px] font-semibold text-muted-foreground mt-0.5">
+                              3.
+                            </span>
                             <p className="text-muted-foreground leading-normal">
-                              <strong className="text-foreground/90 block">Inspect Relay Node Diagnostics</strong>
-                              Ping the relay server node (`relay-us-east-1.stealth.network`) to check routing logs.
+                              <strong className="text-foreground/90 block">
+                                Inspect Relay Node Diagnostics
+                              </strong>
+                              Ping the relay server node (`relay-us-east-1.stealth.network`) to
+                              check routing logs.
                             </p>
                           </li>
                         </ul>
@@ -382,7 +418,9 @@ export function ProofInspectorModal({
                         <Info className="h-3.5 w-3.5 text-[oklch(0.85_0.005_270)] shrink-0 mt-0.5" />
                         <p>
                           <span className="font-semibold text-foreground/80">Diagnostic Mode:</span>{" "}
-                          Plaintext payload body and sensitive email attachments are omitted for privacy. Use the "Open Message" button to view and decrypt the message content securely.
+                          Plaintext payload body and sensitive email attachments are omitted for
+                          privacy. Use the "Open Message" button to view and decrypt the message
+                          content securely.
                         </p>
                       </div>
 
@@ -392,7 +430,7 @@ export function ProofInspectorModal({
                           <span className="text-muted-foreground">Subject (Omitted preview)</span>
                           <span className="font-semibold text-foreground block mt-0.5">
                             {selectedRecord.email.subject.replace(/./g, (c, i) =>
-                              i > 4 && i < 20 ? "•" : c
+                              i > 4 && i < 20 ? "•" : c,
                             )}
                           </span>
                         </div>
@@ -452,7 +490,7 @@ export function ProofInspectorModal({
                                   selectedRecord.postageStatus === "pending" &&
                                     "bg-amber-500/10 text-amber-400 border border-amber-500/20",
                                   selectedRecord.postageStatus === "refunded" &&
-                                    "bg-red-500/10 text-red-400 border border-red-500/20"
+                                    "bg-red-500/10 text-red-400 border border-red-500/20",
                                 )}
                               >
                                 {selectedRecord.postageStatus}
@@ -548,9 +586,9 @@ export function ProofInspectorModal({
                                 email: undefined, // exclude sensitive email object
                               },
                               null,
-                              2
+                              2,
                             ),
-                            "Proof diagnostic report"
+                            "Proof diagnostic report",
                           )
                         }
                         className="w-full inline-flex items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.02] py-2 text-xs font-semibold text-foreground transition hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-white/10"

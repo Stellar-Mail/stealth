@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import type { Email } from "./data";
 import { isVerified, mailFolders } from "./data";
+import { EmailTrustBadges } from "./EmailTrustBadges";
 
 type MobileMailCardProps = {
   email: Email;
@@ -76,14 +77,23 @@ export function MobileMailCard({
           {/* Sender and time */}
           <div className="min-w-0 flex-1">
             <div className="flex items-start justify-between gap-2">
-              <span
-                className={cn(
-                  "truncate text-[13px] font-semibold leading-tight text-foreground/88",
-                  email.unread && "text-foreground/94",
-                )}
-              >
-                {email.from}
-              </span>
+              <div className="flex min-w-0 items-center gap-1.5">
+                <span
+                  className={cn(
+                    "truncate text-[13px] font-semibold leading-tight text-foreground/88",
+                    email.unread && "text-foreground/94",
+                  )}
+                >
+                  {email.from}
+                </span>
+                <EmailTrustBadges
+                  email={email}
+                  max={1}
+                  size="sm"
+                  showLabels={false}
+                  className="shrink-0"
+                />
+              </div>
               <span className="shrink-0 text-[10.5px] font-medium leading-none tabular-nums text-muted-foreground/85">
                 {email.time}
               </span>
@@ -109,11 +119,7 @@ export function MobileMailCard({
                   </Badge>
                 )}
                 {email.labels?.slice(0, 2).map((label) => (
-                  <Badge
-                    key={label}
-                    variant="secondary"
-                    className="h-4.5 px-1.5 text-[9px]"
-                  >
+                  <Badge key={label} variant="secondary" className="h-4.5 px-1.5 text-[9px]">
                     {label}
                   </Badge>
                 ))}
@@ -181,9 +187,7 @@ export function MobileMailCard({
               email.starred && "fill-amber-400 text-amber-400",
             )}
           />
-          <span className="text-[11px] font-medium">
-            {email.starred ? "Starred" : "Star"}
-          </span>
+          <span className="text-[11px] font-medium">{email.starred ? "Starred" : "Star"}</span>
         </motion.button>
 
         <motion.button

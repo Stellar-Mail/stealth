@@ -17,21 +17,14 @@ const barStyles: Record<StatusCardProps["status"], string> = {
 
 export function StatusCard({ label, value, unit, status }: StatusCardProps) {
   return (
-    <Card
-      className={cn(
-        "border-[#1e2430] bg-[#13161b] shadow-none",
-        "overflow-hidden rounded-xl",
-      )}
-    >
+    <Card className={cn("border-[#1e2430] bg-[#13161b] shadow-none", "overflow-hidden rounded-xl")}>
       <div className="flex h-full flex-col gap-4 p-5">
         <div className="space-y-2">
           <div className="text-xs uppercase tracking-[0.24em] text-slate-500">{label}</div>
           <div className="flex min-w-0 items-baseline gap-2 text-2xl font-semibold leading-none text-slate-100">
             <span className="min-w-0 flex-1 truncate font-mono">{value}</span>
             {unit ? (
-              <span className="ml-2 align-baseline text-sm font-normal text-slate-500">
-                {unit}
-              </span>
+              <span className="ml-2 align-baseline text-sm font-normal text-slate-500">{unit}</span>
             ) : null}
           </div>
         </div>

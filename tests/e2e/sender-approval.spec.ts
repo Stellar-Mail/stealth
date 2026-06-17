@@ -8,12 +8,17 @@ test.describe("sender approval", () => {
     await page.goto("/");
   });
 
-  test("approves an unknown sender from the requests folder", async ({ page }) => {
-    // Navigate to Requests folder in sidebar
-    await page.getByRole("button", { name: "Requests" }).click();
+  async function openUnknownSenderRequest(page: Parameters<typeof test>[1]) {
+    await page.getByRole("button", { name: /^Requests\b/ }).click();
+    await page
+      .getByRole("button", {
+        name: /Unknown Sender.*Message request awaiting approval/,
+      })
+      .click();
+  }
 
-    // Select the 'Message request awaiting approval' email (id=5 in seed data)
-    await page.getByText("Message request awaiting approval").click();
+  test("approves an unknown sender from the requests folder", async ({ page }) => {
+    await openUnknownSenderRequest(page);
 
     // The SenderRequest widget should be visible
     await expect(page.getByText("Decide who can mail you")).toBeVisible();
@@ -26,8 +31,7 @@ test.describe("sender approval", () => {
   });
 
   test("blocks an unknown sender and queues postage refund", async ({ page }) => {
-    await page.getByRole("button", { name: "Requests" }).click();
-    await page.getByText("Message request awaiting approval").click();
+    await openUnknownSenderRequest(page);
 
     await expect(page.getByText("Decide who can mail you")).toBeVisible();
 
