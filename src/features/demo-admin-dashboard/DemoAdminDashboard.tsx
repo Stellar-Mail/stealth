@@ -16,7 +16,6 @@ import {
 import { cn } from "@/lib/utils";
 import { AccessibilityInfo } from "./components/AccessibilityInfo";
 
-
 import type {
   DashboardNavItem,
   DashboardSection,
@@ -173,6 +172,8 @@ const EVENTS_FAKE: PresetEvent[] = [
 
 // ─── Section icon map ─────────────────────────────────────────────────────────
 
+// ─── Section icon map ─────────────────────────────────────────────────────────
+
 const SECTION_ICON: Record<DashboardSection, React.ElementType> = {
   overview: LayoutDashboard,
   accounts: Users,
@@ -184,6 +185,19 @@ const SECTION_ICON: Record<DashboardSection, React.ElementType> = {
   audit: Activity,
   analytics: PieChart,
 };
+
+// Keyboard navigation handler for the tablist
+function handleNavKeyDown(event: React.KeyboardEvent) {
+  const tabs = NAV_ITEMS.map((item) => item.id);
+  const currentIndex = tabs.indexOf(activeSection);
+  if (event.key === "ArrowRight") {
+    const nextIndex = (currentIndex + 1) % tabs.length;
+    setActiveSection(tabs[nextIndex]);
+  } else if (event.key === "ArrowLeft") {
+    const prevIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+    setActiveSection(tabs[prevIndex]);
+  }
+}
 
 // ─── Content region components ────────────────────────────────────────────────
 
@@ -715,6 +729,7 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
         className="flex gap-1 border-b border-white/[0.06] px-4 py-2"
         role="tablist"
         aria-label="Admin dashboard sections"
+        onKeyDown={handleNavKeyDown}
       >
         {NAV_ITEMS.map((item) => {
           const NavIcon = SECTION_ICON[item.id];
@@ -722,6 +737,7 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
           return (
             <button
               key={item.id}
+              id={`tab-${item.id}`}
               role="tab"
               aria-selected={isActive}
               aria-label={item.description}
@@ -730,7 +746,7 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
                 "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500",
                 isActive
                   ? "bg-white/[0.08] text-foreground"
-                  : "text-muted-foreground hover:bg-white/[0.04] hover:text-foreground"
+                  : "text-muted-foreground hover:bg-white/[0.04] hover:text-foreground",
               )}
             >
               <NavIcon className="h-3.5 w-3.5" />
@@ -750,7 +766,11 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
         <div className="mx-auto max-w-4xl">
           {/* Error and Success Alert Banners */}
           {errorMsg && (
-            <div role="alert" aria-live="assertive" className="mb-6 rounded-lg border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-400 flex items-center justify-between">
+            <div
+              role="alert"
+              aria-live="assertive"
+              className="mb-6 rounded-lg border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-400 flex items-center justify-between"
+            >
               <span>{errorMsg}</span>
               <button
                 onClick={() => setErrorMsg(null)}
@@ -761,7 +781,11 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
             </div>
           )}
           {successMsg && (
-            <div role="status" aria-live="polite" className="mb-6 rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm text-emerald-400 flex items-center justify-between animate-fade-in">
+            <div
+              role="status"
+              aria-live="polite"
+              className="mb-6 rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm text-emerald-400 flex items-center justify-between animate-fade-in"
+            >
               <span>{successMsg}</span>
               <button
                 onClick={() => setSuccessMsg(null)}
@@ -989,4 +1013,3 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
     </div>
   );
 }
-

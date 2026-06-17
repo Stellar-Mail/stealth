@@ -31,8 +31,15 @@ export function validateAndNormalizeDemoData(jsonStr: string): DemoDashboardData
         throw new Error("Validation error: Each account must be an object");
       }
       const { name, address, balance, type } = item;
-      if (name === undefined || address === undefined || balance === undefined || type === undefined) {
-        throw new Error("Validation error: Account is missing required field(s) (name, address, balance, type)");
+      if (
+        name === undefined ||
+        address === undefined ||
+        balance === undefined ||
+        type === undefined
+      ) {
+        throw new Error(
+          "Validation error: Account is missing required field(s) (name, address, balance, type)",
+        );
       }
       if (
         typeof name !== "string" ||
@@ -40,7 +47,9 @@ export function validateAndNormalizeDemoData(jsonStr: string): DemoDashboardData
         typeof balance !== "string" ||
         typeof type !== "string"
       ) {
-        throw new Error("Validation error: Account fields (name, address, balance, type) must be strings");
+        throw new Error(
+          "Validation error: Account fields (name, address, balance, type) must be strings",
+        );
       }
 
       const trimmedName = name.trim();
@@ -85,7 +94,9 @@ export function validateAndNormalizeDemoData(jsonStr: string): DemoDashboardData
       }
       const { subject, status, folder } = item;
       if (subject === undefined || status === undefined || folder === undefined) {
-        throw new Error("Validation error: Mail item is missing required field(s) (subject, status, folder)");
+        throw new Error(
+          "Validation error: Mail item is missing required field(s) (subject, status, folder)",
+        );
       }
       if (typeof subject !== "string" || typeof status !== "string" || typeof folder !== "string") {
         throw new Error("Validation error: Mail fields (subject, status, folder) must be strings");
@@ -98,7 +109,11 @@ export function validateAndNormalizeDemoData(jsonStr: string): DemoDashboardData
       if (!trimmedSubject) {
         throw new Error("Validation error: Mail subject cannot be empty");
       }
-      if (trimmedStatus !== "delivered" && trimmedStatus !== "pending" && trimmedStatus !== "held") {
+      if (
+        trimmedStatus !== "delivered" &&
+        trimmedStatus !== "pending" &&
+        trimmedStatus !== "held"
+      ) {
         throw new Error("Validation error: Mail status must be 'delivered', 'pending', or 'held'");
       }
       if (!trimmedFolder) {
@@ -125,10 +140,18 @@ export function validateAndNormalizeDemoData(jsonStr: string): DemoDashboardData
       }
       const { action, actor, timestamp } = item;
       if (action === undefined || actor === undefined || timestamp === undefined) {
-        throw new Error("Validation error: Audit event is missing required field(s) (action, actor, timestamp)");
+        throw new Error(
+          "Validation error: Audit event is missing required field(s) (action, actor, timestamp)",
+        );
       }
-      if (typeof action !== "string" || typeof actor !== "string" || typeof timestamp !== "string") {
-        throw new Error("Validation error: Audit event fields (action, actor, timestamp) must be strings");
+      if (
+        typeof action !== "string" ||
+        typeof actor !== "string" ||
+        typeof timestamp !== "string"
+      ) {
+        throw new Error(
+          "Validation error: Audit event fields (action, actor, timestamp) must be strings",
+        );
       }
 
       const trimmedAction = action.trim();
@@ -147,7 +170,9 @@ export function validateAndNormalizeDemoData(jsonStr: string): DemoDashboardData
 
       const parsedDate = new Date(trimmedTimestamp);
       if (isNaN(parsedDate.getTime())) {
-        throw new Error(`Validation error: Audit event timestamp '${trimmedTimestamp}' is not a valid date`);
+        throw new Error(
+          `Validation error: Audit event timestamp '${trimmedTimestamp}' is not a valid date`,
+        );
       }
 
       normalizedAudit.push({

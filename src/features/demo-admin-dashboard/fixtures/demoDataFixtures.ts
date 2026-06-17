@@ -15,8 +15,20 @@ export const defaultDemoDashboardData: DemoDashboardData = {
   ],
   audit: [
     { action: "Session started", actor: "demo-user-1", timestamp: "2026-06-16T09:00:00Z" },
-    { action: "Policy default changed to request", actor: "demo-user-1", timestamp: "2026-06-16T09:05:00Z" },
-    { action: "Sender approved: alice*stealth.xyz", actor: "demo-user-1", timestamp: "2026-06-16T09:10:00Z" },
-    { action: "Postage refunded for msg_abc123", actor: "system", timestamp: "2026-06-16T09:12:00Z" },
+    {
+      action: "Policy default changed to request",
+      actor: "demo-user-1",
+      timestamp: "2026-06-16T09:05:00Z",
+    },
+    {
+      action: "Sender approved: alice*stealth.xyz",
+      actor: "demo-user-1",
+      timestamp: "2026-06-16T09:10:00Z",
+    },
+    {
+      action: "Postage refunded for msg_abc123",
+      actor: "system",
+      timestamp: "2026-06-16T09:12:00Z",
+    },
   ],
 };

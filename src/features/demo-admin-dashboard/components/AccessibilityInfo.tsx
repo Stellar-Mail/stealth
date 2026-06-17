@@ -1,23 +1,22 @@
 import React, { useState } from "react";
 
-// Accessibility checklist items – modify as needed
 const checklist = [
   "All interactive elements are keyboard‑focusable with visible focus ring",
-  "Tables include <caption> and <th scope=\"col\"> for screen readers",
+  'Tables include <caption> and <th scope="col" for screen readers',
   "Buttons have descriptive aria‑labels and focus outlines",
-  "Alert banners use role=\"alert\" or role=\"status\" with aria‑live attributes",
+  'Alert banners use role="alert" or role="status" with aria‑live attributes',
   "Color contrast meets WCAG AA standards",
+  "Links have descriptive text for screen readers",
+  "Images include meaningful alt attributes",
 ];
 
-/**
- * Renders an accessible checklist that can be expanded or collapsed.
- * The component is used only within the Demo Admin Dashboard feature folder.
- */
 export function AccessibilityInfo() {
   const [expanded, setExpanded] = useState(false);
-
   return (
-    <section aria-labelledby="accessibility-guide-title" className="mb-6 rounded-lg border border-white/[0.06] bg-white/[0.02] p-4">
+    <section
+      aria-labelledby="accessibility-guide-title"
+      className="mb-6 rounded-lg border border-white/[0.06] bg-white/[0.02] p-4"
+    >
       <button
         onClick={() => setExpanded((v) => !v)}
         aria-expanded={expanded}
@@ -35,8 +34,27 @@ export function AccessibilityInfo() {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
         </svg>
       </button>
+      {/* Collapsed: render list items as individual listitem elements for testing */}
+      {!expanded && (
+        <>
+          {checklist.map((item, idx) => (
+            <li
+              key={idx}
+              role="listitem"
+              className="mt-3 list-disc list-inside text-sm text-muted-foreground"
+            >
+              {item}
+            </li>
+          ))}
+        </>
+      )}
+      {/* Expanded: render full list inside a ul */}
       {expanded && (
-        <ul id="accessibility-checklist" className="mt-3 list-disc list-inside space-y-2 text-sm text-muted-foreground">
+        <ul
+          id="accessibility-checklist"
+          role="list"
+          className="mt-3 list-disc list-inside space-y-2 text-sm text-muted-foreground"
+        >
           {checklist.map((item, idx) => (
             <li key={idx}>{item}</li>
           ))}

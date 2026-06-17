@@ -32,9 +32,17 @@ describe("demoDataIo", () => {
 
     it("trims whitespace from input strings", () => {
       const whitespaceData = {
-        accounts: [{ name: "  Alice Demo  ", address: " GABCD ", balance: " 10 XLM ", type: " User " }],
+        accounts: [
+          { name: "  Alice Demo  ", address: " GABCD ", balance: " 10 XLM ", type: " User " },
+        ],
         mail: [{ subject: "  Welcome  ", status: "  delivered  ", folder: "  inbox  " }],
-        audit: [{ action: "  Session started  ", actor: "  demo-user  ", timestamp: "  2026-06-16T09:00:00Z  " }],
+        audit: [
+          {
+            action: "  Session started  ",
+            actor: "  demo-user  ",
+            timestamp: "  2026-06-16T09:00:00Z  ",
+          },
+        ],
       };
       const result = validateAndNormalizeDemoData(JSON.stringify(whitespaceData));
 
@@ -64,26 +72,26 @@ describe("demoDataIo", () => {
     });
 
     it("throws error when sections are not arrays", () => {
-      expect(() => validateAndNormalizeDemoData(JSON.stringify({ accounts: "not-an-array" }))).toThrow(
-        /'accounts' must be an array/
-      );
+      expect(() =>
+        validateAndNormalizeDemoData(JSON.stringify({ accounts: "not-an-array" })),
+      ).toThrow(/'accounts' must be an array/);
       expect(() => validateAndNormalizeDemoData(JSON.stringify({ mail: {} }))).toThrow(
-        /'mail' must be an array/
+        /'mail' must be an array/,
       );
     });
 
     describe("Accounts validation", () => {
       it("throws error when account item is not an object", () => {
         expect(() =>
-          validateAndNormalizeDemoData(JSON.stringify({ accounts: ["string-item"] }))
+          validateAndNormalizeDemoData(JSON.stringify({ accounts: ["string-item"] })),
         ).toThrow(/Each account must be an object/);
       });
 
       it("throws error when account is missing required fields", () => {
         expect(() =>
           validateAndNormalizeDemoData(
-            JSON.stringify({ accounts: [{ name: "Alice", address: "GABCD" }] })
-          )
+            JSON.stringify({ accounts: [{ name: "Alice", address: "GABCD" }] }),
+          ),
         ).toThrow(/Account is missing required field/);
       });
 
@@ -92,8 +100,8 @@ describe("demoDataIo", () => {
           validateAndNormalizeDemoData(
             JSON.stringify({
               accounts: [{ name: "Alice", address: "GABCD", balance: 500, type: "User" }],
-            })
-          )
+            }),
+          ),
         ).toThrow(/Account fields.*must be strings/);
       });
 
@@ -102,8 +110,8 @@ describe("demoDataIo", () => {
           validateAndNormalizeDemoData(
             JSON.stringify({
               accounts: [{ name: "Alice", address: "ABCD", balance: "500 XLM", type: "User" }],
-            })
-          )
+            }),
+          ),
         ).toThrow(/Account address must start with 'G'/);
       });
 
@@ -112,8 +120,8 @@ describe("demoDataIo", () => {
           validateAndNormalizeDemoData(
             JSON.stringify({
               accounts: [{ name: " ", address: "GABCD", balance: "500 XLM", type: "User" }],
-            })
-          )
+            }),
+          ),
         ).toThrow(/Account name cannot be empty/);
       });
     });
@@ -121,23 +129,23 @@ describe("demoDataIo", () => {
     describe("Mail validation", () => {
       it("throws error when mail item is missing required fields", () => {
         expect(() =>
-          validateAndNormalizeDemoData(JSON.stringify({ mail: [{ subject: "Welcome" }] }))
+          validateAndNormalizeDemoData(JSON.stringify({ mail: [{ subject: "Welcome" }] })),
         ).toThrow(/Mail item is missing required field/);
       });
 
       it("throws error when mail status is invalid", () => {
         expect(() =>
           validateAndNormalizeDemoData(
-            JSON.stringify({ mail: [{ subject: "Welcome", status: "draft", folder: "inbox" }] })
-          )
+            JSON.stringify({ mail: [{ subject: "Welcome", status: "draft", folder: "inbox" }] }),
+          ),
         ).toThrow(/Mail status must be 'delivered', 'pending', or 'held'/);
       });
 
       it("throws error when mail fields are empty", () => {
         expect(() =>
           validateAndNormalizeDemoData(
-            JSON.stringify({ mail: [{ subject: "Welcome", status: "delivered", folder: " " }] })
-          )
+            JSON.stringify({ mail: [{ subject: "Welcome", status: "delivered", folder: " " }] }),
+          ),
         ).toThrow(/Mail folder cannot be empty/);
       });
     });
@@ -145,7 +153,7 @@ describe("demoDataIo", () => {
     describe("Audit events validation", () => {
       it("throws error when audit event is missing required fields", () => {
         expect(() =>
-          validateAndNormalizeDemoData(JSON.stringify({ audit: [{ action: "started" }] }))
+          validateAndNormalizeDemoData(JSON.stringify({ audit: [{ action: "started" }] })),
         ).toThrow(/Audit event is missing required field/);
       });
 
@@ -154,8 +162,8 @@ describe("demoDataIo", () => {
           validateAndNormalizeDemoData(
             JSON.stringify({
               audit: [{ action: "started", actor: "user", timestamp: "not-a-date" }],
-            })
-          )
+            }),
+          ),
         ).toThrow(/is not a valid date/);
       });
     });
