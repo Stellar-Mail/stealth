@@ -4,9 +4,9 @@ Track response speed.
 
 ## Scope
 
-- Release tier: $(System.Collections.Hashtable.Tier.ToUpperInvariant())
-- Audience: $(System.Collections.Hashtable.Audience)
-- Folder ownership: $dir/
+- Release tier: V2
+- Audience: team
+- Folder ownership: tools/v2/team/response-time-tracker/
 
 This is a self-contained tooling workspace. Do not wire this tool into the main app, routing, inbox architecture, wallet core, Stellar core, or design system unless a future integration issue explicitly allows it.
 
@@ -15,21 +15,34 @@ Recommended internal structure:
 - components/
 - services/
 - hooks/
-- 	ests/
+- tests/
 - docs/
-"@ | Set-Content -Path "tools/v2/team/response-time-tracker/README.md"
-  @"
-# Response Time Tracker Specs
 
-## Purpose
+## Core feature engine
 
-Track response speed.
+The core service pairs inbound team messages with the next outbound reply in
+the same conversation, then reports aggregate and per-conversation response-time
+metrics.
 
-## Contributor boundary
+## Inputs
 
-All work for this tool should stay in:
+- Folder-local `ResponseTimeEvent` arrays.
+- Deterministic ISO timestamps.
+- Optional local SLA threshold in minutes.
 
-$dir/
+## Outputs
+
+- Loading state helper for future UI work.
+- Ready state with totals, per-conversation response pairs, pending inbound
+  messages, and SLA breach counts.
+- Error state wrapper for malformed inputs.
+
+## Non-goals
+
+- No live network calls.
+- No production email data.
+- No secrets.
+- No main app routing or shared design-system changes.
 
 ## Required issue categories
 
