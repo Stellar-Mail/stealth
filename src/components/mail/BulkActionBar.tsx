@@ -1,5 +1,6 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
+import { BulkConfirmDialog } from "./BulkConfirmDialog";
 import {
   Archive,
   BadgeCheck,
@@ -55,6 +56,21 @@ export function BulkActionBar({
     () => getBulkActionIdsForContext(selectedEmails, folder, customFolder),
     [selectedEmails, folder, customFolder],
   );
+
+  // Confirmation state for actions requiring user approval
+  const [confirmation, setConfirmation] = useState(null as any);
+  const [pendingAction, setPendingAction] = useState(null as any);
+
+  // Helper to handle actions that may need a confirmation dialog
+  const handleAction = (request: any) => {
+    const conf = getBulkActionConfirmation(request, selectedEmails);
+    if (conf) {
+      setConfirmation(conf);
+      setPendingAction(request);
+    } else {
+      onAction(request);
+    }
+  };
   const starValue = selectedEmails.some((email) => !email.starred);
   const moveTargets = useMemo(
     () =>
@@ -83,7 +99,7 @@ export function BulkActionBar({
 
   if (selectedEmails.length === 0) return null;
 
-  return (
+  return (<>
     <motion.div
       initial={{ opacity: 0, y: -8 }}
       animate={{ opacity: 1, y: 0 }}
@@ -137,35 +153,35 @@ export function BulkActionBar({
         )}
 
         {actions.includes("approve") && (
-          <ActionButton
-            icon={BadgeCheck}
-            label="Approve"
-            onClick={() => onAction({ action: "approve" })}
-            disabled={!!bulkProgress}
-          />
+            <ActionButton
+              icon={BadgeCheck}
+              label="Approve"
+              onClick={() => handleAction({ action: "approve" })}
+              disabled={!!bulkProgress}
+            />
         )}
 
         {actions.includes("block") && (
-          <ActionButton
-            icon={Ban}
-            label="Block"
-            tone="danger"
-            onClick={() => onAction({ action: "block" })}
-            disabled={!!bulkProgress}
-          />
+            <ActionButton
+              icon={Ban}
+              label="Block"
+              tone="danger"
+              onClick={() => handleAction({ action: "block" })}
+              disabled={!!bulkProgress}
+            />
         )}
 
         {actions.includes("move") && (
-          <ActionDropdown
-            icon={FolderInput}
-            label="Move"
-            disabled={!!bulkProgress}
-            items={moveTargets.map((target) => ({
-              id: target,
-              label: getFolderLabel(target),
-              onClick: () => onAction({ action: "move", folder: target }),
-            }))}
-          />
+            <ActionDropdown
+              icon={FolderInput}
+              label="Move"
+              disabled={!!bulkProgress}
+              items={moveTargets.map((target) => ({
+                id: target,
+                label: getFolderLabel(target),
+                onClick: () => handleAction({ action: "move", folder: target }),
+              }))}
+            />
         )}
 
         <button
@@ -209,7 +225,20 @@ export function BulkActionBar({
         </div>
       )}
     </motion.div>
-  );
+    <BulkConfirmDialog
+      confirmation={confirmation}
+      onCancel={() => {
+        setConfirmation(null);
+        setPendingAction(null);
+      }}
+      onConfirm={() => {
+        if (pendingAction) onAction(pendingAction);
+        setConfirmation(null);
+        setPendingAction(null);
+      }}
+    />
+  </>
+);
 }
 
 function ActionButton({
