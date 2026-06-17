@@ -410,11 +410,16 @@ export function EmailList({
                     </div>
                     <div
                       className={cn(
-                        "mail-preview-subheading mt-0.5 truncate text-[12.25px] font-semibold leading-4 text-foreground/68",
+                        "mail-preview-subheading mt-0.5 flex items-center gap-2 truncate text-[12.25px] font-semibold leading-4 text-foreground/68",
                         e.unread && "text-foreground/78",
                       )}
                     >
-                      {e.subject}
+                      <span className="truncate">{e.subject}</span>
+                      {e.queued && (
+                        <span className="shrink-0 rounded-full bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-medium text-amber-300 ring-1 ring-inset ring-amber-500/20">
+                          Queued
+                        </span>
+                      )}
                     </div>
                   </div>
                 </motion.button>
