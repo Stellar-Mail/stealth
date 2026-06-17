@@ -80,27 +80,52 @@ pub enum Error {
 }
 
 #[contractimpl]
-impl PoliciesContract {
+impl PoliciesContract { 
+    // Upgrade authority wrappers (delegating to upgrade module)
+    pub fn set_authority(env: Env, owners: Vec<Address>, threshold: u32) -> Result<(), ()> {
+        crate::upgrade::set_authority(env, owners, threshold)
+    }
+    pub fn get_authority(env: Env) -> (Vec<Address>, u32) {
+        crate::upgrade::get_authority(env)
+    }
+    pub fn set_freeze(env: Env, flag: bool) -> Result<(), ()> {
+        crate::upgrade::set_freeze(env, flag)
+    }
+    pub fn is_frozen(env: Env) -> bool {
+        crate::upgrade::is_frozen(env)
+    }
+    pub fn propose_upgrade(env: Env, wasm_hash: Bytes) -> Result<(), ()> {
+        crate::upgrade::propose_upgrade(env, wasm_hash)
+    }
+    pub fn execute_upgrade(env: Env) -> Result<(), ()> {
+        crate::upgrade::execute_upgrade(env)
+    }
+    pub fn get_version(env: Env) -> u32 {
+        crate::upgrade::get_version(env)
+    }
+    pub fn get_timelock(env: Env) -> Option<u64> {
+        crate::upgrade::get_timelock(env)
+    }
+    pub fn get_current_hash(env: Env) -> Option<Bytes> {
+        crate::upgrade::get_current_hash(env)
+    }
+    pub fn get_pending_hash(env: Env) -> Option<Bytes> {
+        crate::upgrade::get_pending_hash(env)
+    }
+    pub fn rollback(env: Env) -> Result<(), ()> {
+        crate::upgrade::rollback(env)
+    }
     pub fn set_policy(env: Env, owner: Address, policy: MailboxPolicy) -> Result<(), Error> {
         Self::set_policy_as(env, owner.clone(), owner, policy)
     }
 
-    pub fn set_policy_as(
-        env: Env,
-        owner: Address,
-        actor: Address,
-        policy: MailboxPolicy,
-    ) -> Result<(), Error> {
+    pub fn set_policy_as(env: Env, owner: Address, actor: Address, policy: MailboxPolicy) -> Result<(), Error> {
+        if Self::is_frozen(env.clone()) { return Err(Error::UnauthorizedDelegate); }
         Self::authorize_policy_mutation(&env, &owner, &actor)?;
         Self::validate_policy(policy)?;
         let version = Self::bump_version(&env, &owner);
-        env.storage()
-            .persistent()
-            .set(&DataKey::Policy(owner.clone()), &policy);
-        env.events().publish(
-            (symbol_short!("policy"), owner),
-            VersionedMailboxPolicy { policy, version },
-        );
+        env.storage().persistent().set(&DataKey::Policy(owner.clone()), &policy);
+        env.events().publish((symbol_short!("policy"), owner), VersionedMailboxPolicy { policy, version });
         Ok(())
     }
 
@@ -383,6 +408,203 @@ impl PoliciesContract {
     }
 }
 
+mod upgrade;
+pub use upgrade::*;
+// ---------------------------------------------------------------------------
+// Canonical interoperability vector tests
+//
+// Reads the language-neutral fixture at protocol/vectors/vectors.json and
+
+
+    pub fn set_sender_tier_as(
+        env: Env,
+        owner: Address,
+        actor: Address,
+        sender: Address,
+        minimum_postage: i128,
+    ) -> Result<(), Error> {
+        Self::authorize_sender_mutation(&env, &owner, &actor)?;
+        if minimum_postage < 0 {
+            return Err(Error::InvalidPostage);
+        }
+        env.storage().persistent().set(
+            &DataKey::Tier(owner.clone(), sender.clone()),
+            &minimum_postage,
+        );
+        env.storage().persistent().set(
+            &DataKey::Rule(owner.clone(), sender.clone()),
+            &SenderRule::Default,
+        );
+        let version = Self::bump_version(&env, &owner);
+        env.events().publish(
+            (symbol_short!("tier"), owner, sender),
+            (minimum_postage, version),
+        );
+        Ok(())
+    }
+
+    pub fn sender_rule(env: Env, owner: Address, sender: Address) -> SenderRule {
+        env.storage()
+            .persistent()
+            .get(&DataKey::Rule(owner, sender))
+            .unwrap_or(SenderRule::Default)
+    }
+
+    pub fn sender_tier(env: Env, owner: Address, sender: Address) -> Option<i128> {
+        env.storage()
+            .persistent()
+            .get(&DataKey::Tier(owner, sender))
+    }
+
+    pub fn can_mail(
+        env: Env,
+        owner: Address,
+        sender: Address,
+        verified: bool,
+        postage: i128,
+        receipt: bool,
+    ) -> bool {
+        Self::evaluate(env, owner, sender, verified, postage, receipt).allowed
+    }
+
+    pub fn evaluate(
+        env: Env,
+        owner: Address,
+        sender: Address,
+        verified: bool,
+        postage: i128,
+        receipt: bool,
+    ) -> PolicyDecision {
+        let versioned = Self::get_versioned_policy(env.clone(), owner.clone());
+        let rule = Self::sender_rule(env.clone(), owner.clone(), sender.clone());
+        let tier = Self::sender_tier(env, owner, sender);
+
+        if rule == SenderRule::Block {
+            return PolicyDecision {
+                allowed: false,
+                reason: PolicyReason::SenderBlocked,
+                required_postage: versioned.policy.minimum_postage,
+                rule,
+                version: versioned.version,
+            };
+        }
+        if rule == SenderRule::Allow {
+            return PolicyDecision {
+                allowed: true,
+                reason: PolicyReason::SenderAllowed,
+                required_postage: 0,
+                rule,
+                version: versioned.version,
+            };
+        }
+
+        let required_postage = tier.unwrap_or(versioned.policy.minimum_postage);
+        if versioned.policy.require_verified && !verified {
+            return PolicyDecision {
+                allowed: false,
+                reason: PolicyReason::VerificationRequired,
+                required_postage,
+                rule,
+                version: versioned.version,
+            };
+        }
+        if versioned.policy.require_receipt && !receipt {
+            return PolicyDecision {
+                allowed: false,
+                reason: PolicyReason::ReceiptRequired,
+                required_postage,
+                rule,
+                version: versioned.version,
+            };
+        }
+        if let Some(required_postage) = tier {
+            return PolicyDecision {
+                allowed: postage >= required_postage,
+                reason: if postage >= required_postage {
+                    PolicyReason::TierSatisfied
+                } else {
+                    PolicyReason::InsufficientPostage
+                },
+                required_postage,
+                rule,
+                version: versioned.version,
+            };
+        }
+        if !versioned.policy.allow_unknown {
+            return PolicyDecision {
+                allowed: false,
+                reason: PolicyReason::UnknownSendersDisabled,
+                required_postage,
+                rule,
+                version: versioned.version,
+            };
+        }
+        PolicyDecision {
+            allowed: postage >= required_postage,
+            reason: if postage >= required_postage {
+                PolicyReason::PolicySatisfied
+            } else {
+                PolicyReason::InsufficientPostage
+            },
+            required_postage,
+            rule,
+            version: versioned.version,
+        }
+    }
+
+    fn default_policy() -> MailboxPolicy {
+        MailboxPolicy {
+            allow_unknown: false,
+            require_verified: true,
+            require_receipt: false,
+            minimum_postage: 0,
+        }
+    }
+
+    fn validate_policy(policy: MailboxPolicy) -> Result<(), Error> {
+        if policy.minimum_postage < 0 {
+            return Err(Error::InvalidPostage);
+        }
+        Ok(())
+    }
+
+    fn authorize_policy_mutation(env: &Env, owner: &Address, actor: &Address) -> Result<(), Error> {
+        if actor == owner {
+            owner.require_auth();
+            return Ok(());
+        }
+        actor.require_auth();
+        if Self::delegate_scope(env.clone(), owner.clone(), actor.clone()).can_set_policy {
+            Ok(())
+        } else {
+            Err(Error::UnauthorizedDelegate)
+        }
+    }
+
+    fn authorize_sender_mutation(env: &Env, owner: &Address, actor: &Address) -> Result<(), Error> {
+        if actor == owner {
+            owner.require_auth();
+            return Ok(());
+        }
+        actor.require_auth();
+        if Self::delegate_scope(env.clone(), owner.clone(), actor.clone()).can_set_senders {
+            Ok(())
+        } else {
+            Err(Error::UnauthorizedDelegate)
+        }
+    }
+
+    fn bump_version(env: &Env, owner: &Address) -> u32 {
+        let version = Self::policy_version(env.clone(), owner.clone()) + 1;
+        env.storage()
+            .persistent()
+            .set(&DataKey::PolicyVersion(owner.clone()), &version);
+        version
+    }
+
+
+mod upgrade;
+pub use upgrade::*;
 // ---------------------------------------------------------------------------
 // Canonical interoperability vector tests
 //
@@ -399,6 +621,7 @@ mod vectors {
 
     use serde_json::Value;
     use soroban_sdk::testutils::Address as _;
+// Closing brace moved later
 
     use super::*;
 
@@ -787,5 +1010,54 @@ mod test {
                 },
             )
             .is_ok());
+    }
+}
+
+#[cfg(test)]
+mod upgrade_tests {
+    use super::*;
+    use soroban_sdk::{Env, Bytes, Address, Vec};
+    use soroban_sdk::testutils::Address as _;
+    use crate::upgrade::TIMELOCK_KEY;
+
+    #[test]
+    fn authority_and_freeze_work() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let mut owners = Vec::new(&env);
+        owners.push_back(&Address::generate(&env));
+        owners.push_back(&Address::generate(&env));
+        let threshold = 2u32;
+        PoliciesContract::set_authority(env.clone(), owners.clone(), threshold).unwrap();
+        let (a, t) = PoliciesContract::get_authority(env.clone());
+        assert_eq!(a, owners);
+        assert_eq!(t, threshold);
+        PoliciesContract::set_freeze(env.clone(), true).unwrap();
+        assert!(PoliciesContract::is_frozen(env));
+    }
+
+    #[test]
+    fn upgrade_lifecycle() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let hash1 = Bytes::from_slice(&env, &[1u8, 2, 3]);
+        let hash2 = Bytes::from_slice(&env, &[4u8, 5, 6]);
+        // propose first upgrade
+        PoliciesContract::propose_upgrade(env.clone(), hash1.clone()).unwrap();
+        // bypass timelock for test
+        env.storage().persistent().set(&TIMELOCK_KEY, &0u64);
+        PoliciesContract::execute_upgrade(env.clone()).unwrap();
+        assert_eq!(PoliciesContract::get_current_hash(env.clone()), Some(hash1.clone()));
+        assert_eq!(PoliciesContract::get_version(env.clone()), 1);
+        // propose second upgrade
+        PoliciesContract::propose_upgrade(env.clone(), hash2.clone()).unwrap();
+        env.storage().persistent().set(&TIMELOCK_KEY, &0u64);
+        PoliciesContract::execute_upgrade(env.clone()).unwrap();
+        assert_eq!(PoliciesContract::get_current_hash(env.clone()), Some(hash2.clone()));
+        assert_eq!(PoliciesContract::get_version(env.clone()), 2);
+        // rollback to previous (hash1)
+        PoliciesContract::rollback(env.clone()).unwrap();
+        assert_eq!(PoliciesContract::get_current_hash(env.clone()), Some(hash1));
+        assert_eq!(PoliciesContract::get_version(env.clone()), 3);
     }
 }
