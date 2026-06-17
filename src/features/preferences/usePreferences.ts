@@ -13,7 +13,18 @@ export function usePreferences() {
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    const stored = window.localStorage.getItem(storageKey);
+    let stored = window.localStorage.getItem(storageKey);
+    if (!stored) {
+      const legacyStored = window.localStorage.getItem("stealth-preferences");
+      if (legacyStored) {
+        try {
+          const parsed = JSON.parse(legacyStored);
+          stored = JSON.stringify({ ...defaultPreferences, ...parsed });
+        } catch {
+          // ignore
+        }
+      }
+    }
     if (stored) {
       try {
         setPreferences({ ...defaultPreferences, ...JSON.parse(stored) });
@@ -28,9 +39,11 @@ export function usePreferences() {
     if (!hydrated) return;
     const apply = () => {
       document.documentElement.dataset.theme = resolveTheme(preferences.theme);
-      document.documentElement.dataset.density = preferences.compactMode
-        ? "compact"
-        : "comfortable";
+      const density = preferences.density ?? (preferences.compactMode ? "compact" : "comfortable");
+      document.documentElement.dataset.density = density;
+      document.documentElement.dataset.glass = preferences.glassIntensity ?? "medium";
+      document.documentElement.dataset.reader = preferences.readerTypography ?? "sans";
+      document.documentElement.dataset.motion = preferences.lowerMotion ? "lower" : "full";
     };
 
     apply();
