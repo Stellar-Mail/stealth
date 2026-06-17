@@ -8,3 +8,5 @@ try {
 } catch (e) {
   console.log("Failed to resolve vitest:", e.message);
 }
+// End of file
+
