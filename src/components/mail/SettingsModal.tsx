@@ -14,9 +14,18 @@ import {
   Palette,
   RefreshCw,
   ShieldCheck,
+  Smartphone,
+  Table,
   Trash2,
   User,
   X,
+  ShieldAlert,
+  AlertCircle,
+  RotateCw,
+  Info,
+  LogOut,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { useState, useEffect, type CSSProperties } from "react";
 import { Surface } from "@/features/design-system";
@@ -35,6 +44,8 @@ import {
   type SavedMailboxPolicyTemplate,
 } from "@/features/settings/mailbox-policy-templates";
 import { AuditLog } from "@/features/audit-log";
+import { useDevices } from "@/features/device-management/useDevices";
+import type { Device, KeyStatus } from "@/features/device-management/types";
 
 const tabs = [
   { id: "account", label: "Account", icon: User },
@@ -1015,37 +1026,66 @@ function SettingsField({ label, value }: { label: string; value: string }) {
   );
 }
 
+function DeviceIcon({ type }: { type: Device["type"] }) {
+  if (type === "mobile") return <Smartphone className="h-4 w-4 text-muted-foreground" />;
+  return <Laptop className="h-4 w-4 text-muted-foreground" />;
+}
+
+function KeyStatusBadge({ status }: { status: KeyStatus }) {
+  const config: Record<KeyStatus, { label: string; className: string }> = {
+    active: {
+      label: "Active",
+      className: "bg-emerald-500/10 text-emerald-400",
+    },
+    compromised: {
+      label: "Compromised",
+      className: "bg-red-500/10 text-red-400",
+    },
+    revoked: {
+      label: "Revoked",
+      className: "bg-amber-500/10 text-amber-400",
+    },
+    rotated: {
+      label: "Rotated",
+      className: "bg-blue-500/10 text-blue-400",
+    },
+  };
+  const c = config[status];
+  return (
+    <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-medium", c.className)}>
+      {c.label}
+    </span>
+  );
+}
+
+function formatRelativeTime(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const seconds = Math.floor(diff / 1000);
+  if (seconds < 60) return "Just now";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days}d ago`;
+  return new Date(iso).toLocaleDateString();
+}
+
+type ConfirmDialogState = {
+  title: string;
+  description: string;
+  type?: "danger" | "warning" | "info";
+  onConfirm: () => void;
+};
+
 function SecuritySettings() {
-  const [confirmDialog, setConfirmDialog] = useState<{
-    title: string;
-    description: string;
-    onConfirm: () => void;
-  } | null>(null);
+  const { devices, loading, recoveryStatus, renameDevice, revokeDevice, flagCompromised } =
+    useDevices();
+  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState | null>(null);
   const [copiedKey, setCopiedKey] = useState(false);
   const [editingDevice, setEditingDevice] = useState<string | null>(null);
   const [deviceName, setDeviceName] = useState("");
-
-  const sessions = [
-    {
-      id: "1",
-      device: "Current session - MacBook Air",
-      location: "San Francisco, CA",
-      lastActive: "Just now",
-      isCurrent: true,
-    },
-    {
-      id: "2",
-      device: "iPhone 15 Pro",
-      location: "San Francisco, CA",
-      lastActive: "2 hours ago",
-      isCurrent: false,
-    },
-  ];
-
-  const devices = [
-    { id: "1", name: "MacBook Air", type: "Desktop", lastActive: "Just now", trusted: true },
-    { id: "2", name: "iPhone 15 Pro", type: "Mobile", lastActive: "2 hours ago", trusted: true },
-  ];
+  const [showRevocationInfo, setShowRevocationInfo] = useState(false);
 
   const handleCopyKey = () => {
     navigator.clipboard.writeText("GDQJMSGKJGQ2X576L33OY4JFDZ7NJG5OJ3LJ44V33PUPU7D5Q5X4KJ");
@@ -1053,12 +1093,123 @@ function SecuritySettings() {
     setTimeout(() => setCopiedKey(false), 2000);
   };
 
+  const pendingDeviceName = deviceName;
+
+  const handleSaveDeviceName = async (deviceId: string) => {
+    if (pendingDeviceName.trim()) {
+      await renameDevice(deviceId, pendingDeviceName.trim());
+    }
+    setEditingDevice(null);
+  };
+
+  const handleRevokeDevice = (device: Device) => {
+    setConfirmDialog({
+      title: `Revoke "${device.name}"?`,
+      description: `This device will lose access to your account immediately. ${
+        device.keyStatus === "compromised"
+          ? "All encryption keys associated with this device will be invalidated."
+          : "Sessions will be terminated and the device will need to re-authenticate."
+      } This action cannot be undone.`,
+      type: "danger",
+      onConfirm: async () => {
+        await revokeDevice(device.id);
+        setConfirmDialog(null);
+      },
+    });
+  };
+
+  const handleFlagCompromised = (device: Device) => {
+    setConfirmDialog({
+      title: `Flag "${device.name}" as compromised?`,
+      description:
+        "All sessions for this device will be immediately revoked. Any encryption keys tied to this device will be invalidated, preventing decryption of future messages. We recommend rotating your account keys after this action. This cannot be undone.",
+      type: "danger",
+      onConfirm: async () => {
+        await flagCompromised(device.id);
+        setConfirmDialog(null);
+      },
+    });
+  };
+
+  const handleRotateKeys = () => {
+    setConfirmDialog({
+      title: "Rotate encryption keys?",
+      description:
+        "This will generate a new key pair for all trusted devices. Existing encrypted messages will remain accessible with your old keys until they expire. You'll need to update your recovery information after rotation.",
+      type: "warning",
+      onConfirm: () => {
+        setConfirmDialog(null);
+      },
+    });
+  };
+
+  const currentDevice = devices.find((d) => d.isCurrent);
+  const activeSessions = devices.flatMap((d) =>
+    d.sessions.filter((s) => !s.revokedAt && d.keyStatus !== "revoked" && d.keyStatus !== "compromised"),
+  );
+  const compromisedDevices = devices.filter(
+    (d) => d.keyStatus === "compromised",
+  );
+
+  if (loading) {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h3 className="text-sm font-medium text-foreground">Security</h3>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Manage devices, sessions, keys, and recovery
+          </p>
+        </div>
+        <div className="flex items-center justify-center py-12">
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/20 border-t-white/60" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       <div>
         <h3 className="text-sm font-medium text-foreground">Security</h3>
-        <p className="mt-1 text-xs text-muted-foreground">Manage sessions, devices, and recovery</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Manage devices, sessions, keys, and recovery
+        </p>
       </div>
+
+      {/* Suspicious login warning */}
+      {compromisedDevices.length > 0 && (
+        <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-4 space-y-2">
+          <div className="flex items-center gap-2">
+            <ShieldAlert className="h-4 w-4 text-red-400" />
+            <p className="text-sm font-medium text-red-400">Security alert</p>
+          </div>
+          <p className="text-xs text-red-300/80">
+            {compromisedDevices.length === 1
+              ? `1 device has been flagged as compromised: ${compromisedDevices[0].name}.`
+              : `${compromisedDevices.length} devices have been flagged as compromised.`}{" "}
+            Access has been revoked and encryption keys invalidated. Consider rotating your account
+            keys below.
+          </p>
+        </div>
+      )}
+
+      {/* Current device banner */}
+      {currentDevice && (
+        <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-4">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="h-4 w-4 text-emerald-400" />
+            <div>
+              <p className="text-sm font-medium text-emerald-400">Current device</p>
+              <p className="text-xs text-emerald-300/70">
+                {currentDevice.name} &bull; {currentDevice.lastLocation}
+              </p>
+            </div>
+            <span className="ml-auto rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-400">
+              This device
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Active Sessions */}
       <div className="space-y-3">
@@ -1069,106 +1220,229 @@ function SecuritySettings() {
               Sessions currently signed in to your account
             </p>
           </div>
+          {activeSessions.length > 0 && (
+            <span className="text-[11px] text-muted-foreground">
+              {activeSessions.length} active
+            </span>
+          )}
         </div>
         <div className="space-y-2">
-          {sessions.map((session) => (
-            <div
-              key={session.id}
-              className="flex items-center justify-between rounded-lg border border-white/5 bg-white/[0.02] p-3"
-            >
-              <div className="flex items-center gap-3">
-                <Laptop className="h-4 w-4 text-muted-foreground" />
-                <div>
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm text-foreground">{session.device}</p>
-                    {session.isCurrent && (
-                      <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-400">
-                        Current
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {session.location} • {session.lastActive}
-                  </p>
-                </div>
-              </div>
-              {!session.isCurrent && (
-                <button
-                  onClick={() =>
-                    setConfirmDialog({
-                      title: "Revoke session?",
-                      description: "This will sign out this device from your account.",
-                      onConfirm: () => setConfirmDialog(null),
-                    })
-                  }
-                  className="rounded-lg px-3 py-1.5 text-xs text-red-400 hover:bg-red-500/10 transition"
-                >
-                  Revoke
-                </button>
-              )}
+          {activeSessions.length === 0 ? (
+            <div className="rounded-lg border border-white/5 bg-white/[0.02] p-4 text-center">
+              <p className="text-xs text-muted-foreground">No active sessions</p>
             </div>
-          ))}
+          ) : (
+            activeSessions.map((session) => {
+              const device = devices.find((d) => d.id === session.deviceId);
+              return (
+                <div
+                  key={session.id}
+                  className="flex items-center justify-between rounded-lg border border-white/5 bg-white/[0.02] p-3"
+                >
+                  <div className="flex items-center gap-3">
+                    <DeviceIcon type={device?.type ?? "unknown"} />
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm text-foreground">{device?.name ?? "Unknown device"}</p>
+                        {session.isCurrent && (
+                          <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-400">
+                            Current
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {session.location} &bull; {formatRelativeTime(session.lastActiveAt)}
+                      </p>
+                    </div>
+                  </div>
+                  {!session.isCurrent && (
+                    <button
+                      onClick={() => {
+                        const dev = devices.find((d) => d.id === session.deviceId);
+                        if (dev) handleRevokeDevice(dev);
+                      }}
+                      className="rounded-lg px-3 py-1.5 text-xs text-red-400 hover:bg-red-500/10 transition"
+                    >
+                      Revoke
+                    </button>
+                  )}
+                </div>
+              );
+            })
+          )}
         </div>
       </div>
 
-      {/* Trusted Devices */}
+      {/* Devices */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-foreground">Trusted devices</p>
+            <p className="text-sm font-medium text-foreground">Devices</p>
             <p className="text-xs text-muted-foreground">
-              Devices that can access your account without extra verification
+              Trusted devices with access to your account
             </p>
           </div>
         </div>
         <div className="space-y-2">
-          {devices.map((device) => (
-            <div
-              key={device.id}
-              className="flex items-center justify-between rounded-lg border border-white/5 bg-white/[0.02] p-3"
-            >
-              <div className="flex items-center gap-3">
-                <Laptop className="h-4 w-4 text-muted-foreground" />
-                {editingDevice === device.id ? (
-                  <div className="flex items-center gap-2">
-                    <input
-                      value={deviceName}
-                      onChange={(e) => setDeviceName(e.target.value)}
-                      className="rounded border border-white/10 bg-white/[0.04] px-2 py-1 text-sm text-foreground outline-none focus:border-white/20"
-                    />
-                    <button
-                      onClick={() => setEditingDevice(null)}
-                      className="rounded p-1 text-emerald-400 hover:bg-emerald-500/10"
-                    >
-                      <Check className="h-3 w-3" />
-                    </button>
-                  </div>
-                ) : (
-                  <div>
-                    <p className="text-sm text-foreground">{device.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {device.type} • {device.lastActive}
-                    </p>
-                  </div>
-                )}
-              </div>
-              {!editingDevice && (
-                <button
-                  onClick={() => {
-                    setDeviceName(device.name);
-                    setEditingDevice(device.id);
-                  }}
-                  className="rounded-lg p-1.5 text-muted-foreground hover:bg-white/[0.06] hover:text-foreground transition"
-                >
-                  <Edit className="h-3.5 w-3.5" />
-                </button>
-              )}
+          {devices.length === 0 ? (
+            <div className="rounded-lg border border-white/5 bg-white/[0.02] p-4 text-center">
+              <p className="text-xs text-muted-foreground">No devices registered</p>
             </div>
-          ))}
+          ) : (
+            devices.map((device) => {
+              const isCurrent = device.isCurrent;
+              const isDisabled =
+                device.keyStatus === "revoked" || device.keyStatus === "compromised";
+              return (
+                <div
+                  key={device.id}
+                  className={cn(
+                    "rounded-lg border p-3 space-y-2 transition",
+                    isCurrent
+                      ? "border-emerald-500/20 bg-emerald-500/[0.03]"
+                      : isDisabled
+                        ? "border-white/[0.04] bg-white/[0.01] opacity-60"
+                        : "border-white/5 bg-white/[0.02]",
+                  )}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <DeviceIcon type={device.type} />
+                      <div className="min-w-0 flex-1">
+                        {editingDevice === device.id ? (
+                          <div className="flex items-center gap-2">
+                            <input
+                              value={deviceName}
+                              onChange={(e) => setDeviceName(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") handleSaveDeviceName(device.id);
+                                if (e.key === "Escape") setEditingDevice(null);
+                              }}
+                              className="rounded border border-white/10 bg-white/[0.04] px-2 py-1 text-sm text-foreground outline-none focus:border-white/20 w-40"
+                              autoFocus
+                            />
+                            <button
+                              onClick={() => handleSaveDeviceName(device.id)}
+                              className="rounded p-1 text-emerald-400 hover:bg-emerald-500/10"
+                            >
+                              <Check className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm text-foreground truncate">{device.name}</p>
+                            {isCurrent && (
+                              <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-400 shrink-0">
+                                Current
+                              </span>
+                            )}
+                            <KeyStatusBadge status={device.keyStatus} />
+                          </div>
+                        )}
+                        <p className="text-xs text-muted-foreground">
+                          {device.lastLocation} &bull;{" "}
+                          {formatRelativeTime(device.lastActive)}
+                          {device.trusted && !isDisabled && (
+                            <>
+                              {" "}
+                              &bull;{" "}
+                              <span className="text-emerald-400/70">Trusted</span>
+                            </>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      {!isDisabled && !editingDevice && (
+                        <>
+                          <button
+                            onClick={() => {
+                              setDeviceName(device.name);
+                              setEditingDevice(device.id);
+                            }}
+                            className="rounded-lg p-1.5 text-muted-foreground hover:bg-white/[0.06] hover:text-foreground transition"
+                            title="Rename device"
+                          >
+                            <Edit className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleRevokeDevice(device)}
+                            className="rounded-lg p-1.5 text-amber-400 hover:bg-amber-500/10 transition"
+                            title="Revoke device access"
+                          >
+                            <LogOut className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleFlagCompromised(device)}
+                            className="rounded-lg p-1.5 text-red-400 hover:bg-red-500/10 transition"
+                            title="Flag as compromised"
+                          >
+                            <ShieldAlert className="h-3.5 w-3.5" />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Device info sub-row */}
+                  {!isDisabled && !editingDevice && (
+                    <div className="flex items-center gap-3 text-[10px] text-muted-foreground/60">
+                      <span className="truncate font-mono">{device.publicKey.slice(0, 16)}...</span>
+                      <span>
+                        Registered{" "}
+                        {formatRelativeTime(device.createdAt)}
+                      </span>
+                      {device.sessions.length > 0 && (
+                        <span>{device.sessions.filter((s) => !s.revokedAt).length} session(s)</span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          )}
         </div>
       </div>
 
-      {/* Recovery */}
+      {/* Revocation consequences info */}
+      <div>
+        <button
+          onClick={() => setShowRevocationInfo(!showRevocationInfo)}
+          className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition"
+        >
+          <Info className="h-3.5 w-3.5" />
+          {showRevocationInfo ? "Hide" : "Show"} revocation details
+        </button>
+        {showRevocationInfo && (
+          <div className="mt-2 rounded-lg border border-white/5 bg-white/[0.02] p-4 space-y-2">
+            <p className="text-xs font-medium text-foreground">What happens when you revoke a device?</p>
+            <ul className="space-y-1.5 text-[11px] text-muted-foreground">
+              <li className="flex items-start gap-2">
+                <div className="mt-1 h-1 w-1 shrink-0 rounded-full bg-muted-foreground/40" />
+                <span>All active sessions on that device are immediately terminated</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <div className="mt-1 h-1 w-1 shrink-0 rounded-full bg-muted-foreground/40" />
+                <span>The device&apos;s encryption key is invalidated — it can no longer decrypt new messages</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <div className="mt-1 h-1 w-1 shrink-0 rounded-full bg-muted-foreground/40" />
+                <span>Existing encrypted messages already on the device remain accessible locally</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <div className="mt-1 h-1 w-1 shrink-0 rounded-full bg-muted-foreground/40" />
+                <span>The device must re-authenticate and re-register to regain access</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <div className="mt-1 h-1 w-1 shrink-0 rounded-full bg-muted-foreground/40" />
+                <span>If the device is compromised, flagging it also triggers an alert and recommends key rotation</span>
+              </li>
+            </ul>
+          </div>
+        )}
+      </div>
+
+      {/* Account Recovery */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <div>
@@ -1181,14 +1455,45 @@ function SecuritySettings() {
         <div className="rounded-lg border border-white/5 bg-white/[0.02] p-4 space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="h-2 w-2 rounded-full bg-emerald-400" />
-              <p className="text-xs font-medium text-foreground">Recovery enabled</p>
+              <div
+                className={cn(
+                  "h-2 w-2 rounded-full",
+                  recoveryStatus.enabled ? "bg-emerald-400" : "bg-amber-400",
+                )}
+              />
+              <p className="text-xs font-medium text-foreground">
+                {recoveryStatus.enabled ? "Recovery enabled" : "Recovery not configured"}
+              </p>
             </div>
-            <span className="text-xs text-muted-foreground">Last updated 3 days ago</span>
+            {recoveryStatus.lastUpdated && (
+              <span className="text-xs text-muted-foreground">
+                Last updated {formatRelativeTime(recoveryStatus.lastUpdated)}
+              </span>
+            )}
           </div>
-          <button className="w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-foreground hover:bg-white/[0.06] transition">
-            Export recovery checklist
-          </button>
+          <div className="flex items-center gap-4 text-[11px] text-muted-foreground">
+            <span>{recoveryStatus.devicesCount} device(s) registered</span>
+            <span>{recoveryStatus.trustedCount} trusted</span>
+          </div>
+          <div className="flex gap-2">
+            <button className="flex-1 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-foreground hover:bg-white/[0.06] transition">
+              Export recovery checklist
+            </button>
+            <button
+              onClick={() =>
+                setConfirmDialog({
+                  title: "Add recovery method?",
+                  description:
+                    "You can add a trusted contact or hardware key as a recovery method. This allows account access restoration if all devices are lost.",
+                  type: "info",
+                  onConfirm: () => setConfirmDialog(null),
+                })
+              }
+              className="rounded-lg border border-white/10 px-3 py-2 text-xs text-foreground hover:bg-white/[0.06] transition"
+            >
+              Add method
+            </button>
+          </div>
         </div>
       </div>
 
@@ -1196,41 +1501,45 @@ function SecuritySettings() {
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-foreground">Signing keys</p>
-            <p className="text-xs text-muted-foreground">Your public key for verifying messages</p>
+            <p className="text-sm font-medium text-foreground">Encryption keys</p>
+            <p className="text-xs text-muted-foreground">
+              Your public key for encrypted message delivery
+            </p>
           </div>
         </div>
         <div className="rounded-lg border border-white/5 bg-white/[0.02] p-4 space-y-3">
           <div className="flex items-center justify-between rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2">
-            <code className="text-[10px] text-muted-foreground truncate">
-              GDQJMSGKJGQ2X576L33OY4JFDZ7NJG5OJ3LJ44V33PUPU7D5Q5X4KJ
-            </code>
+            <div className="min-w-0 flex-1">
+              <code className="text-[10px] text-muted-foreground truncate block">
+                {currentDevice?.publicKey ??
+                  "GDQJMSGKJGQ2X576L33OY4JFDZ7NJG5OJ3LJ44V33PUPU7D5Q5X4KJ"}
+              </code>
+            </div>
             <button
               onClick={handleCopyKey}
-              className="ml-2 flex items-center gap-1 rounded px-2 py-1 text-[10px] text-muted-foreground hover:bg-white/[0.06] transition"
+              className="ml-2 flex items-center gap-1 rounded px-2 py-1 text-[10px] text-muted-foreground hover:bg-white/[0.06] transition shrink-0"
             >
               {copiedKey ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
               {copiedKey ? "Copied" : "Copy"}
             </button>
           </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] text-emerald-400/70 flex items-center gap-1">
+              <div className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              Key active
+            </span>
+          </div>
           <button
-            onClick={() =>
-              setConfirmDialog({
-                title: "Rotate keys?",
-                description:
-                  "This will generate a new key pair. You'll need to update your recovery info.",
-                onConfirm: () => setConfirmDialog(null),
-              })
-            }
+            onClick={handleRotateKeys}
             className="flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-xs text-amber-400 hover:bg-amber-500/10 transition"
           >
-            <RefreshCw className="h-3.5 w-3.5" />
-            Rotate keys (roadmap)
+            <RotateCw className="h-3.5 w-3.5" />
+            Rotate keys
           </button>
         </div>
       </div>
 
-      {/* High-risk actions (roadmap) */}
+      {/* High-risk actions */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <div>
@@ -1240,10 +1549,19 @@ function SecuritySettings() {
             </p>
           </div>
         </div>
-        <div className="rounded-lg border border-white/10 bg-white/[0.02] p-4 opacity-50 pointer-events-none">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <AlertTriangle className="h-3.5 w-3.5" />
-            <span>Coming soon</span>
+        <div className="rounded-lg border border-white/10 bg-white/[0.02] p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <AlertTriangle className="h-3.5 w-3.5 text-amber-400" />
+              <span>Device revocation and key rotation require confirmation</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 text-[11px] text-muted-foreground/60">
+            <AlertCircle className="h-3 w-3" />
+            <span>
+              All sensitive actions (revocation, compromise flags, key rotation) are logged in your
+              audit history. Message body content is never recorded.
+            </span>
           </div>
         </div>
       </div>
@@ -1269,7 +1587,14 @@ function SecuritySettings() {
               </button>
               <button
                 onClick={confirmDialog.onConfirm}
-                className="flex-1 rounded-lg bg-red-500 px-4 py-2 text-xs font-medium text-white hover:bg-red-600 transition"
+                className={cn(
+                  "flex-1 rounded-lg px-4 py-2 text-xs font-medium text-white transition",
+                  confirmDialog.type === "danger"
+                    ? "bg-red-500 hover:bg-red-600"
+                    : confirmDialog.type === "warning"
+                      ? "bg-amber-500 hover:bg-amber-600"
+                      : "bg-foreground text-background hover:opacity-90",
+                )}
               >
                 Confirm
               </button>

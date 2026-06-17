@@ -1,4 +1,4 @@
-import type { MailboxPolicy, Postage, Receipt, SenderRule } from "./domain";
+import type { Device, DeviceCreate, DeviceUpdate, MailboxPolicy, Postage, Receipt, SenderRule, Session } from "./domain";
 import type { ApiRepository } from "./repository";
 
 function key(owner: string, sender: string) {
@@ -11,6 +11,8 @@ export class MemoryApiRepository implements ApiRepository {
   private readonly receipts = new Map<string, Receipt>();
   private readonly senderRules = new Map<string, SenderRule>();
   private readonly counters = new Map<string, number[]>();
+  private readonly devices = new Map<string, Device>();
+  private readonly sessions = new Map<string, Session>();
 
   async getPolicy(owner: string) {
     return structuredClone(this.policies.get(owner) ?? null);
@@ -73,6 +75,96 @@ export class MemoryApiRepository implements ApiRepository {
     return this.counters.get(key)?.length ?? 0;
   }
 
+  async listDevices(address: string) {
+    return Array.from(this.devices.values())
+      .filter((d) => d.address === address)
+      .sort((a, b) => new Date(b.lastActive).getTime() - new Date(a.lastActive).getTime());
+  }
+
+  async getDevice(deviceId: string) {
+    return structuredClone(this.devices.get(deviceId) ?? null);
+  }
+
+  async createDevice(address: string, data: DeviceCreate) {
+    const device: Device = {
+      id: crypto.randomUUID(),
+      address,
+      name: data.name,
+      type: data.type,
+      fingerprint: data.fingerprint,
+      publicKey: data.publicKey,
+      keyStatus: "active",
+      trusted: false,
+      lastActive: new Date().toISOString(),
+      lastIp: data.lastIp,
+      lastLocation: data.lastLocation,
+      createdAt: new Date().toISOString(),
+      isCurrent: false,
+    };
+    this.devices.set(device.id, device);
+    return structuredClone(device);
+  }
+
+  async updateDevice(deviceId: string, data: DeviceUpdate) {
+    const device = this.devices.get(deviceId);
+    if (!device) throw new Error("device_not_found");
+    const updated: Device = {
+      ...device,
+      ...(data.name !== undefined ? { name: data.name } : {}),
+      ...(data.trusted !== undefined ? { trusted: data.trusted } : {}),
+    };
+    this.devices.set(deviceId, updated);
+    return structuredClone(updated);
+  }
+
+  async updateDeviceKeyStatus(deviceId: string, keyStatus: Device["keyStatus"]) {
+    const device = this.devices.get(deviceId);
+    if (!device) throw new Error("device_not_found");
+    device.keyStatus = keyStatus;
+    return structuredClone(device);
+  }
+
+  async deleteDevice(deviceId: string) {
+    this.devices.delete(deviceId);
+  }
+
+  async listSessions(address: string) {
+    return Array.from(this.sessions.values())
+      .filter((s) => s.address === address)
+      .sort((a, b) => new Date(b.lastActiveAt).getTime() - new Date(a.lastActiveAt).getTime());
+  }
+
+  async getSession(sessionId: string) {
+    return structuredClone(this.sessions.get(sessionId) ?? null);
+  }
+
+  async createSession(session: Session) {
+    this.sessions.set(session.id, session);
+    return structuredClone(session);
+  }
+
+  async revokeSession(sessionId: string) {
+    const session = this.sessions.get(sessionId);
+    if (!session) throw new Error("session_not_found");
+    session.revokedAt = new Date().toISOString();
+    return structuredClone(session);
+  }
+
+  async revokeAllSessionsForDevice(deviceId: string) {
+    for (const [id, session] of this.sessions) {
+      if (session.deviceId === deviceId && !session.revokedAt) {
+        session.revokedAt = new Date().toISOString();
+      }
+    }
+  }
+
+  async getDeviceByFingerprint(address: string, fingerprint: string) {
+    const device = Array.from(this.devices.values()).find(
+      (d) => d.address === address && d.fingerprint === fingerprint,
+    );
+    return structuredClone(device ?? null);
+  }
+
   async incrementCounter(key: string, windowSeconds: number) {
     const now = Date.now();
     const windowMilliseconds = windowSeconds * 1000;
@@ -90,5 +182,7 @@ export class MemoryApiRepository implements ApiRepository {
     this.receipts.clear();
     this.senderRules.clear();
     this.counters.clear();
+    this.devices.clear();
+    this.sessions.clear();
   }
 }

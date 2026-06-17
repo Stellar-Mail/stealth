@@ -1,4 +1,4 @@
-import type { MailboxPolicy, Postage, Receipt, SenderRule } from "./domain";
+import type { Device, DeviceCreate, DeviceUpdate, MailboxPolicy, Postage, Receipt, SenderRule, Session } from "./domain";
 
 export interface ApiRepository {
   getPolicy(owner: string): Promise<MailboxPolicy | null>;
@@ -17,6 +17,21 @@ export interface ApiRepository {
   getRelayDeadLetterCount(relayId: string): Promise<number>;
   getCounter(key: string): Promise<number>;
   incrementCounter(key: string, windowSeconds: number): Promise<number>;
+
+  listDevices(address: string): Promise<Device[]>;
+  getDevice(deviceId: string): Promise<Device | null>;
+  createDevice(address: string, data: DeviceCreate): Promise<Device>;
+  updateDevice(deviceId: string, data: DeviceUpdate): Promise<Device>;
+  updateDeviceKeyStatus(deviceId: string, keyStatus: Device["keyStatus"]): Promise<Device>;
+  deleteDevice(deviceId: string): Promise<void>;
+
+  listSessions(address: string): Promise<Session[]>;
+  getSession(sessionId: string): Promise<Session | null>;
+  createSession(session: Session): Promise<Session>;
+  revokeSession(sessionId: string): Promise<Session>;
+  revokeAllSessionsForDevice(deviceId: string): Promise<void>;
+
+  getDeviceByFingerprint(address: string, fingerprint: string): Promise<Device | null>;
 }
 
 export const defaultMailboxPolicy: MailboxPolicy = {
