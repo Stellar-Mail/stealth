@@ -93,6 +93,11 @@ function RootShell({ children }: { children: React.ReactNode }) {
   );
 }
 
+test('mobile folder drawer opens', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 667 });
+  // test drawer, back, compose flow
+});
+
 function RootComponent() {
   return <Outlet />;
 }
