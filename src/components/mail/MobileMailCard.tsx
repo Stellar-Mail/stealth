@@ -138,11 +138,16 @@ export function MobileMailCard({
           <div className="min-w-0 flex-1">
             <div
               className={cn(
-                "truncate text-[12px] font-medium leading-snug text-foreground/68",
+                "flex items-center gap-2 truncate text-[12px] font-medium leading-snug text-foreground/68",
                 email.unread && "text-foreground/78",
               )}
             >
-              {email.subject}
+              <span className="truncate">{email.subject}</span>
+              {email.queued && (
+                <span className="shrink-0 rounded-full bg-amber-500/10 px-1.5 py-0.5 text-[8px] font-medium text-amber-300 ring-1 ring-inset ring-amber-500/20">
+                  Queued
+                </span>
+              )}
             </div>
             {/* Preview text */}
             <div className="mt-0.5 line-clamp-2 text-[11px] leading-snug text-muted-foreground/70">
