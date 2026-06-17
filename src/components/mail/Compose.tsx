@@ -1,3 +1,9 @@
+// src/components/mail/Compose.tsx
+'use client';
+
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { useMobileNavigation } from '@/hooks/useMobileNavigation';
+import { useComposeStore } from '@/stores/composeStore'; // Assume you have a draft store
 import { motion, AnimatePresence } from "framer-motion";
 import {
   CalendarClock,
@@ -29,6 +35,43 @@ import {
 } from "./composeValidation";
 
 const emptyBlockedRecipients: string[] = [];
+
+export function Compose({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+  const { isMobile } = useMobileNavigation();
+  const { draft, saveDraft, resetDraft } = useComposeStore();
+
+  const handleClose = () => {
+    saveDraft();           // Preserve draft
+    resetDraft();
+    onClose();
+  };
+
+  return (
+    <Sheet open={isOpen} onOpenChange={(open) => !open && handleClose()}>
+      <SheetContent
+        side={isMobile ? "bottom" : "right"}
+        className={`
+          ${isMobile 
+            ? 'h-[95dvh] w-full rounded-t-2xl' 
+            : 'w-[620px]'
+          }
+        `}
+      >
+        <SheetHeader>
+          <SheetTitle>New Message</SheetTitle>
+        </SheetHeader>
+
+        {/* Existing compose form fields */}
+        {/* ... recipient resolution, subject, body, attachments ... */}
+
+        <div className="flex justify-end gap-3 mt-6">
+          <Button variant="outline" onClick={handleClose}>Save Draft</Button>
+          <Button onClick={sendMessage}>Send</Button>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
 
 export function Compose({
   open,
