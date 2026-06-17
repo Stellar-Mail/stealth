@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { useMediaQuery } from "@/lib/use-media-query";
 import {
   Archive,
   BadgeCheck,
@@ -25,6 +26,7 @@ import { AttachmentPanel, deriveAttachmentInfoList } from "@/features/attachment
 import { SnoozeBanner } from "@/features/snooze";
 import { ProvenancePanel } from "./ProvenancePanel";
 import { EmailTrustBadges } from "./EmailTrustBadges";
+import { EncryptedPayloadBanner } from "./EncryptedPayloadBanner";
 import type { Email } from "./data";
 import {
   getRecipientReadiness,
@@ -66,6 +68,7 @@ export function EmailView({
 }) {
   const [replyMenuOpen, setReplyMenuOpen] = useState(false);
   const [inlineMode, setInlineMode] = useState<ComposeMode | null>(null);
+  const reducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
 
   useEffect(() => {
     setReplyMenuOpen(false);
@@ -301,7 +304,31 @@ export function EmailView({
                   return otp ? <OTPCard code={otp} /> : null;
                 })()}
 
-                <ReaderBody body={email.body} />
+                {email.encryptedPayload && (
+                  <EncryptedPayloadBanner
+                    payload={email.encryptedPayload}
+                    reducedMotion={reducedMotion}
+                    actions={{
+                      onUnlock: actions.onUnlockPayload
+                        ? () => actions.onUnlockPayload!(email)
+                        : undefined,
+                      onRetry: actions.onRetryDecrypt
+                        ? () => actions.onRetryDecrypt!(email)
+                        : undefined,
+                      onCopyDiagnosticId: async (id) => {
+                        await navigator.clipboard?.writeText(id);
+                        actions.onShowToast?.(`Diagnostic ID ${id} copied`);
+                      },
+                      onReportCorruption: (id) => {
+                        actions.onShowToast?.(`Corruption report submitted for ${id}`);
+                      },
+                    }}
+                  />
+                )}
+
+                {(!email.encryptedPayload || email.encryptedPayload.status === "decrypted") && (
+                  <ReaderBody body={email.body} />
+                )}
 
                 {email.attachments?.length ? (
                   <AttachmentPanel
