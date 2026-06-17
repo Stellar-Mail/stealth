@@ -43,17 +43,7 @@ const SECTION_ICON: Record<DashboardSection, React.ElementType> = {
 };
 
 // Keyboard navigation handler for the tablist
-function handleNavKeyDown(event: React.KeyboardEvent) {
-  const tabs = NAV_ITEMS.map((item) => item.id);
-  const currentIndex = tabs.indexOf(activeSection);
-  if (event.key === "ArrowRight") {
-    const nextIndex = (currentIndex + 1) % tabs.length;
-    setActiveSection(tabs[nextIndex]);
-  } else if (event.key === "ArrowLeft") {
-    const prevIndex = (currentIndex - 1 + tabs.length) % tabs.length;
-    setActiveSection(tabs[prevIndex]);
-  }
-}
+
 
 // ─── Content region components ────────────────────────────────────────────────
 
@@ -233,6 +223,19 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [showAccessibility, setShowAccessibility] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  // Keyboard navigation handler for the tablist
+  function handleNavKeyDown(event: React.KeyboardEvent) {
+    const tabs = NAV_ITEMS.map((item) => item.id);
+    const currentIndex = tabs.indexOf(activeSection);
+    if (event.key === "ArrowRight") {
+      const nextIndex = (currentIndex + 1) % tabs.length;
+      setActiveSection(tabs[nextIndex]);
+    } else if (event.key === "ArrowLeft") {
+      const prevIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+      setActiveSection(tabs[prevIndex]);
+    }
+  }
 
   const Icon = SECTION_ICON[activeSection];
 
