@@ -92,6 +92,7 @@ export type Email = {
   postageAmount?: string;
   verifiedSender?: boolean;
   encryptedPayload?: EncryptedPayload;
+  queued?: boolean;
 };
 
 export type MailFilters = {
