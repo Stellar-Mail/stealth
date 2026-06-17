@@ -20,6 +20,7 @@ import { addDays, addMonths, format, isSameDay, parseISO, subMonths } from "date
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { calendarColors } from "../data";
+import { getAppToday } from "../dateUtils";
 import type {
   CalendarDefinition,
   CalendarEvent,
@@ -60,8 +61,8 @@ export function CalendarWorkspace({
   onAddCalendar,
   onShowToast,
 }: CalendarWorkspaceProps) {
-  const [month, setMonth] = useState(new Date(2026, 5, 1));
-  const [selectedDate, setSelectedDate] = useState(new Date(2026, 5, 13));
+  const [month, setMonth] = useState(getAppToday());
+  const [selectedDate, setSelectedDate] = useState(getAppToday());
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [view, setView] = useState<"agenda" | "month">("agenda");
   const [editorEvent, setEditorEvent] = useState<CalendarEvent | null | undefined>(undefined);
@@ -170,7 +171,7 @@ export function CalendarWorkspace({
               <div className="ml-auto flex items-center gap-2">
                 <button
                   onClick={() => {
-                    const today = new Date(2026, 5, 13);
+                    const today = getAppToday();
                     setSelectedDate(today);
                     setMonth(today);
                   }}

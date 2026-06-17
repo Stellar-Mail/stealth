@@ -1,0 +1,542 @@
+{
+  "$schema": "stealth-protocol-vectors@1",
+  "description": "Canonical interoperability test vectors for the Stealth protocol. No production secrets are included — all addresses and hashes are placeholder values.",
+  "version": "1",
+  "notes": {
+    "addresses": "Placeholder Stellar G-addresses use repeated characters (GAAA…, GBBB…, GCCC…). They satisfy the format regex G[A-Z2-7]{55} but are not derived from real keys.",
+    "hashes": "Placeholder 32-byte hashes use repeated hex digits (aaa…, bbb…, ccc…). They satisfy the format regex [a-f0-9]{64}.",
+    "amounts": "All amounts are Soroban i128 values serialised as decimal strings. The maximum valid value is 2^127-1 = 170141183460469231731687303715884105727.",
+    "hash_normalisation": "hash32 inputs are lowercased before validation. ABCDEF… and abcdef… refer to the same hash. Implementations must normalise to lowercase before storage and comparison."
+  },
+  "categories": {
+    "primitives": {
+      "address": {
+        "description": "Stellar G-address format validation. Pattern: G followed by exactly 55 characters from the base32 alphabet A-Z and 2-7.",
+        "cases": [
+          {
+            "id": "primitives/address/valid/all-A",
+            "description": "Minimum base32 character (A = 0). 56 characters total.",
+            "input": "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "expected": { "valid": true }
+          },
+          {
+            "id": "primitives/address/valid/all-Z",
+            "description": "Maximum base32 character (Z = 25). 56 characters total.",
+            "input": "GZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ",
+            "expected": { "valid": true }
+          },
+          {
+            "id": "primitives/address/valid/mixed-base32",
+            "description": "Mix of letters and digits 2-7 — all valid base32 characters.",
+            "input": "GABCDEFG2345672ABCDEFG2345672ABCDEFG2345672ABCDEFG234567",
+            "expected": { "valid": true }
+          },
+          {
+            "id": "primitives/address/invalid/too-short",
+            "description": "55 characters total — one character short of the required 56.",
+            "input": "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "expected": { "valid": false, "error": "Expected a Stellar G-address" }
+          },
+          {
+            "id": "primitives/address/invalid/too-long",
+            "description": "57 characters total — one character over the required 56.",
+            "input": "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "expected": { "valid": false, "error": "Expected a Stellar G-address" }
+          },
+          {
+            "id": "primitives/address/invalid/wrong-prefix",
+            "description": "Starts with X instead of G.",
+            "input": "XAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "expected": { "valid": false, "error": "Expected a Stellar G-address" }
+          },
+          {
+            "id": "primitives/address/invalid/digit-zero",
+            "description": "Contains digit 0, which is not in the base32 alphabet (valid digits are 2-7).",
+            "input": "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA0",
+            "expected": { "valid": false, "error": "Expected a Stellar G-address" }
+          },
+          {
+            "id": "primitives/address/invalid/digit-one",
+            "description": "Contains digit 1, which is not in the base32 alphabet (valid digits are 2-7).",
+            "input": "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA1",
+            "expected": { "valid": false, "error": "Expected a Stellar G-address" }
+          },
+          {
+            "id": "primitives/address/invalid/lowercase",
+            "description": "Lowercase g is not accepted — the prefix must be uppercase G.",
+            "input": "gaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "expected": { "valid": false, "error": "Expected a Stellar G-address" }
+          },
+          {
+            "id": "primitives/address/invalid/empty",
+            "description": "Empty string.",
+            "input": "",
+            "expected": { "valid": false, "error": "Expected a Stellar G-address" }
+          }
+        ]
+      },
+      "hash": {
+        "description": "32-byte hash encoded as 64 lowercase hexadecimal characters. Implementations must normalise input to lowercase before validation and storage.",
+        "cases": [
+          {
+            "id": "primitives/hash/valid/all-zeros",
+            "description": "All-zero hash — the minimum representable 32-byte value.",
+            "input": "0000000000000000000000000000000000000000000000000000000000000000",
+            "expected": {
+              "valid": true,
+              "normalized": "0000000000000000000000000000000000000000000000000000000000000000"
+            }
+          },
+          {
+            "id": "primitives/hash/valid/all-f",
+            "description": "All-0xff hash — the maximum representable 32-byte value.",
+            "input": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            "expected": {
+              "valid": true,
+              "normalized": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+            }
+          },
+          {
+            "id": "primitives/hash/valid/mixed",
+            "description": "Mixed lowercase hex characters — typical SHA-256 output pattern.",
+            "input": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+            "expected": {
+              "valid": true,
+              "normalized": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789"
+            }
+          },
+          {
+            "id": "primitives/hash/valid/uppercase-normalised",
+            "description": "Uppercase hex characters are normalised to lowercase. Implementations must store the normalised form.",
+            "input": "ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789",
+            "expected": {
+              "valid": true,
+              "normalized": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789"
+            }
+          },
+          {
+            "id": "primitives/hash/invalid/too-short",
+            "description": "63 hex characters — one short of the required 64.",
+            "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "expected": { "valid": false, "error": "Expected a 32-byte lowercase hexadecimal hash" }
+          },
+          {
+            "id": "primitives/hash/invalid/too-long",
+            "description": "65 hex characters — one over the required 64.",
+            "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0",
+            "expected": { "valid": false, "error": "Expected a 32-byte lowercase hexadecimal hash" }
+          },
+          {
+            "id": "primitives/hash/invalid/non-hex-char",
+            "description": "64 characters but the last is 'g', which is outside the hex alphabet [a-f0-9].",
+            "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaag",
+            "expected": { "valid": false, "error": "Expected a 32-byte lowercase hexadecimal hash" }
+          },
+          {
+            "id": "primitives/hash/invalid/empty",
+            "description": "Empty string.",
+            "input": "",
+            "expected": { "valid": false, "error": "Expected a 32-byte lowercase hexadecimal hash" }
+          }
+        ]
+      },
+      "amount": {
+        "description": "Soroban i128 amount encoded as a non-negative decimal integer string. No leading zeros (except the literal '0'). Range: 0 to 2^127-1.",
+        "cases": [
+          {
+            "id": "primitives/amount/valid/zero",
+            "description": "Zero — the minimum valid amount.",
+            "input": "0",
+            "expected": { "valid": true }
+          },
+          {
+            "id": "primitives/amount/valid/one-xlm-in-stroops",
+            "description": "10 000 000 stroops = 1 XLM.",
+            "input": "10000000",
+            "expected": { "valid": true }
+          },
+          {
+            "id": "primitives/amount/valid/arbitrary",
+            "description": "Arbitrary mid-range value.",
+            "input": "1000",
+            "expected": { "valid": true }
+          },
+          {
+            "id": "primitives/amount/valid/max-i128",
+            "description": "Maximum Soroban i128 value: 2^127 - 1.",
+            "input": "170141183460469231731687303715884105727",
+            "expected": { "valid": true }
+          },
+          {
+            "id": "primitives/amount/invalid/negative",
+            "description": "Negative amount — stroops cannot be negative.",
+            "input": "-1",
+            "expected": { "valid": false, "error": "Expected a non-negative integer string" }
+          },
+          {
+            "id": "primitives/amount/invalid/decimal",
+            "description": "Decimal value — amounts must be integers.",
+            "input": "1.5",
+            "expected": { "valid": false, "error": "Expected a non-negative integer string" }
+          },
+          {
+            "id": "primitives/amount/invalid/leading-zero",
+            "description": "Leading zero — not a canonical integer representation.",
+            "input": "01",
+            "expected": { "valid": false, "error": "Expected a non-negative integer string" }
+          },
+          {
+            "id": "primitives/amount/invalid/non-numeric",
+            "description": "Non-numeric string.",
+            "input": "abc",
+            "expected": { "valid": false, "error": "Expected a non-negative integer string" }
+          },
+          {
+            "id": "primitives/amount/invalid/empty",
+            "description": "Empty string.",
+            "input": "",
+            "expected": { "valid": false, "error": "Expected a non-negative integer string" }
+          },
+          {
+            "id": "primitives/amount/invalid/overflow",
+            "description": "2^127 — one over the maximum Soroban i128 value.",
+            "input": "170141183460469231731687303715884105728",
+            "expected": { "valid": false, "error": "Amount exceeds Soroban i128" }
+          }
+        ]
+      }
+    },
+    "policy_decisions": {
+      "description": "Decision tree for can_mail (Rust contract) and evaluateMailboxPolicy (TypeScript service). All 6 branches are covered. Addresses used: owner=GAAA…, sender=GBBB….",
+      "owner": "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "sender": "GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+      "cases": [
+        {
+          "id": "policy/explicit-allow",
+          "description": "Explicit allow rule bypasses all policy checks regardless of postage or verification.",
+          "setup": { "senderRule": "allow", "policy": null },
+          "input": { "postage": "0", "verified": false },
+          "expected": { "allowed": true, "reason": "sender_allowed" }
+        },
+        {
+          "id": "policy/explicit-block",
+          "description": "Explicit block rule rejects the sender regardless of postage or verification.",
+          "setup": { "senderRule": "block", "policy": null },
+          "input": { "postage": "1000", "verified": true },
+          "expected": { "allowed": false, "reason": "sender_blocked" }
+        },
+        {
+          "id": "policy/unknown-senders-disabled",
+          "description": "No explicit rule; mailbox policy has allowUnknown=false — all unknown senders are rejected.",
+          "setup": {
+            "senderRule": "default",
+            "policy": { "allowUnknown": false, "requireVerified": false, "minimumPostage": "0" }
+          },
+          "input": { "postage": "1000", "verified": true },
+          "expected": { "allowed": false, "reason": "unknown_senders_disabled" }
+        },
+        {
+          "id": "policy/verification-required",
+          "description": "No explicit rule; mailbox requires verified senders; sender is unverified.",
+          "setup": {
+            "senderRule": "default",
+            "policy": { "allowUnknown": true, "requireVerified": true, "minimumPostage": "0" }
+          },
+          "input": { "postage": "1000", "verified": false },
+          "expected": { "allowed": false, "reason": "verification_required" }
+        },
+        {
+          "id": "policy/insufficient-postage",
+          "description": "No explicit rule; mailbox minimum is 500 stroops; sender attaches only 499.",
+          "setup": {
+            "senderRule": "default",
+            "policy": { "allowUnknown": true, "requireVerified": false, "minimumPostage": "500" }
+          },
+          "input": { "postage": "499", "verified": false },
+          "expected": { "allowed": false, "reason": "insufficient_postage" }
+        },
+        {
+          "id": "policy/satisfied",
+          "description": "No explicit rule; all policy conditions are met — sender is allowed.",
+          "setup": {
+            "senderRule": "default",
+            "policy": { "allowUnknown": true, "requireVerified": false, "minimumPostage": "0" }
+          },
+          "input": { "postage": "0", "verified": false },
+          "expected": { "allowed": true, "reason": "policy_satisfied" }
+        },
+        {
+          "id": "policy/default-policy",
+          "description": "No sender rule and no configured policy. The protocol default is allowUnknown=false, requireVerified=true, minimumPostage=0 — so unknown senders are rejected.",
+          "setup": { "senderRule": "default", "policy": null },
+          "input": { "postage": "0", "verified": true },
+          "expected": { "allowed": false, "reason": "unknown_senders_disabled" }
+        }
+      ]
+    },
+    "postage_states": {
+      "description": "Postage lifecycle state machine. Each case describes a sequence of operations and the expected terminal state or error. Shared fixture fields are listed per case.",
+      "cases": [
+        {
+          "id": "postage/submit-pending",
+          "description": "Submitting postage creates a record with status 'pending'.",
+          "fixture": {
+            "sender": "GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+            "recipient": "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+            "messageId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "paymentHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "amount": "1000",
+            "submitAt": "2026-01-01T00:00:00.000Z"
+          },
+          "operations": ["submit"],
+          "expected": {
+            "status": "pending",
+            "createdAt": "2026-01-01T00:00:00.000Z"
+          }
+        },
+        {
+          "id": "postage/submit-and-settle",
+          "description": "Postage transitions from pending to settled on recipient action.",
+          "fixture": {
+            "sender": "GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+            "recipient": "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+            "messageId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "paymentHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "amount": "1000",
+            "submitAt": "2026-01-01T00:00:00.000Z"
+          },
+          "operations": ["submit", "settle"],
+          "expected": { "status": "settled" }
+        },
+        {
+          "id": "postage/submit-and-refund",
+          "description": "Postage transitions from pending to refunded on recipient action.",
+          "fixture": {
+            "sender": "GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+            "recipient": "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+            "messageId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "paymentHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "amount": "1000",
+            "submitAt": "2026-01-01T00:00:00.000Z"
+          },
+          "operations": ["submit", "refund"],
+          "expected": { "status": "refunded" }
+        },
+        {
+          "id": "postage/duplicate-submit",
+          "description": "Submitting postage for the same messageId twice is rejected.",
+          "fixture": {
+            "sender": "GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+            "recipient": "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+            "messageId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "paymentHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "amount": "1000",
+            "submitAt": "2026-01-01T00:00:00.000Z"
+          },
+          "operations": ["submit", "submit"],
+          "expected": {
+            "error": {
+              "code": "conflict",
+              "status": 409,
+              "message": "Postage already exists for this message"
+            }
+          }
+        },
+        {
+          "id": "postage/resolve-already-resolved",
+          "description": "Attempting to settle already-settled postage is rejected.",
+          "fixture": {
+            "sender": "GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+            "recipient": "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+            "messageId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "paymentHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "amount": "1000",
+            "submitAt": "2026-01-01T00:00:00.000Z"
+          },
+          "operations": ["submit", "settle", "settle"],
+          "expected": {
+            "error": {
+              "code": "conflict",
+              "status": 409,
+              "message": "Postage has already been resolved"
+            }
+          }
+        },
+        {
+          "id": "postage/blocked-sender",
+          "description": "A sender the recipient has blocked cannot submit postage.",
+          "fixture": {
+            "sender": "GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+            "recipient": "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+            "messageId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "paymentHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "amount": "1000",
+            "submitAt": "2026-01-01T00:00:00.000Z"
+          },
+          "preconditions": [{ "op": "setSenderRule", "rule": "block" }],
+          "operations": ["submit"],
+          "expected": {
+            "error": {
+              "code": "forbidden",
+              "status": 403,
+              "message": "The recipient has blocked this sender"
+            }
+          }
+        },
+        {
+          "id": "postage/below-minimum",
+          "description": "Amount below the mailbox minimum postage is rejected.",
+          "fixture": {
+            "sender": "GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+            "recipient": "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+            "messageId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "paymentHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "amount": "999",
+            "submitAt": "2026-01-01T00:00:00.000Z"
+          },
+          "preconditions": [
+            {
+              "op": "setPolicy",
+              "policy": { "allowUnknown": true, "requireVerified": false, "minimumPostage": "1000" }
+            }
+          ],
+          "operations": ["submit"],
+          "expected": {
+            "error": {
+              "code": "validation_error",
+              "status": 422,
+              "message": "Postage is below the mailbox minimum"
+            }
+          }
+        }
+      ]
+    },
+    "receipts": {
+      "description": "Delivery and read receipt lifecycle. Each case describes a sequence of operations on a single messageId.",
+      "cases": [
+        {
+          "id": "receipts/deliver",
+          "description": "Creating a delivery receipt sets deliveredAt and leaves readAt null.",
+          "fixture": {
+            "sender": "GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+            "recipient": "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+            "messageId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "deliverAt": "2026-01-01T00:00:00.000Z"
+          },
+          "operations": ["deliver"],
+          "expected": {
+            "readAt": null,
+            "deliveredAt": "2026-01-01T00:00:00.000Z"
+          }
+        },
+        {
+          "id": "receipts/deliver-and-read",
+          "description": "Marking a delivered receipt as read sets readAt to a non-null timestamp.",
+          "fixture": {
+            "sender": "GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+            "recipient": "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+            "messageId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "deliverAt": "2026-01-01T00:00:00.000Z",
+            "readAt": "2026-01-02T00:00:00.000Z"
+          },
+          "operations": ["deliver", "read"],
+          "expected": {
+            "readAt": "2026-01-02T00:00:00.000Z",
+            "deliveredAt": "2026-01-01T00:00:00.000Z"
+          }
+        },
+        {
+          "id": "receipts/duplicate-deliver",
+          "description": "Creating a second delivery receipt for the same messageId is rejected.",
+          "fixture": {
+            "sender": "GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+            "recipient": "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+            "messageId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "deliverAt": "2026-01-01T00:00:00.000Z"
+          },
+          "operations": ["deliver", "deliver"],
+          "expected": {
+            "error": {
+              "code": "conflict",
+              "status": 409,
+              "message": "A delivery receipt already exists for this message"
+            }
+          }
+        },
+        {
+          "id": "receipts/read-already-read",
+          "description": "Marking an already-read receipt as read again is rejected.",
+          "fixture": {
+            "sender": "GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+            "recipient": "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+            "messageId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "deliverAt": "2026-01-01T00:00:00.000Z",
+            "readAt": "2026-01-02T00:00:00.000Z"
+          },
+          "operations": ["deliver", "read", "read"],
+          "expected": {
+            "error": {
+              "code": "conflict",
+              "status": 409,
+              "message": "The receipt has already been marked as read"
+            }
+          }
+        }
+      ]
+    },
+    "tampered": {
+      "description": "Cases where field values have been corrupted or forged. Each case specifies the schema being validated and the exact error the implementation must return.",
+      "cases": [
+        {
+          "id": "tampered/address/wrong-prefix",
+          "description": "Address starts with X instead of G.",
+          "schema": "stellarAddress",
+          "input": "XAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+          "expected": { "valid": false, "error": "Expected a Stellar G-address" }
+        },
+        {
+          "id": "tampered/address/digit-eight",
+          "description": "Address contains 8 which is outside the base32 alphabet (valid digits are 2-7).",
+          "schema": "stellarAddress",
+          "input": "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA8",
+          "expected": { "valid": false, "error": "Expected a Stellar G-address" }
+        },
+        {
+          "id": "tampered/hash/truncated",
+          "description": "Hash is only 32 hex characters — half the required 64.",
+          "schema": "hash32",
+          "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "expected": { "valid": false, "error": "Expected a 32-byte lowercase hexadecimal hash" }
+        },
+        {
+          "id": "tampered/hash/non-hex",
+          "description": "Hash contains 'z', which is outside the hex alphabet.",
+          "schema": "hash32",
+          "input": "zaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "expected": { "valid": false, "error": "Expected a 32-byte lowercase hexadecimal hash" }
+        },
+        {
+          "id": "tampered/amount/negative",
+          "description": "Negative stroop amount — rejected by pattern before i128 range check.",
+          "schema": "stroopAmount",
+          "input": "-1",
+          "expected": { "valid": false, "error": "Expected a non-negative integer string" }
+        },
+        {
+          "id": "tampered/amount/overflow",
+          "description": "Amount is 2^127 — one above the Soroban i128 maximum.",
+          "schema": "stroopAmount",
+          "input": "170141183460469231731687303715884105728",
+          "expected": { "valid": false, "error": "Amount exceeds Soroban i128" }
+        },
+        {
+          "id": "tampered/amount/floating-point",
+          "description": "Floating-point string is not a canonical integer — rejected even if representable.",
+          "schema": "stroopAmount",
+          "input": "100.0",
+          "expected": { "valid": false, "error": "Expected a non-negative integer string" }
+        }
+      ]
+    }
+  }
+}

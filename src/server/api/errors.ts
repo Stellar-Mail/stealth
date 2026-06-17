@@ -8,7 +8,8 @@ export type ApiErrorCode =
   | "method_not_allowed"
   | "not_found"
   | "unauthorized"
-  | "validation_error";
+  | "validation_error"
+  | "too_many_requests";
 
 export class ApiError extends Error {
   readonly code: ApiErrorCode;

@@ -31,8 +31,8 @@ export function AddressStep({ walletAddress, onAdvance, onRetreat }: Props) {
       <div className="space-y-1">
         <h2 className="text-base font-semibold text-foreground">Your mailbox address</h2>
         <p className="text-sm text-muted-foreground">
-          Your Stealth address is your Stellar public key. Share it with senders so they can
-          deliver mail to you on-chain.
+          Your Stealth address is your Stellar public key. Share it with senders so they can deliver
+          mail to you on-chain.
         </p>
       </div>
 

@@ -66,3 +66,36 @@
   --mail-list-gap: 0.5rem;
   --mail-list-padding: 0.625rem;
 }
+
+:root[data-glass="subtle"] {
+  --glass: oklch(0.22 0.006 270 / 0.22);
+  --glass-strong: oklch(0.18 0.005 270 / 0.42);
+  --gradient-glass: linear-gradient(135deg, oklch(1 0 0 / 0.035), oklch(1 0 0 / 0.012));
+}
+
+:root[data-glass="strong"] {
+  --glass: oklch(0.22 0.006 270 / 0.46);
+  --glass-strong: oklch(0.18 0.005 270 / 0.72);
+  --gradient-glass: linear-gradient(135deg, oklch(1 0 0 / 0.09), oklch(1 0 0 / 0.035));
+}
+
+:root[data-theme="light"][data-glass="subtle"] {
+  --glass: oklch(1 0 0 / 0.42);
+  --glass-strong: oklch(1 0 0 / 0.68);
+}
+
+:root[data-theme="light"][data-glass="strong"] {
+  --glass: oklch(1 0 0 / 0.74);
+  --glass-strong: oklch(1 0 0 / 0.92);
+}
+
+:root[data-reader="serif"] .mail-reader-atmosphere article,
+:root[data-reader="serif"] .mail-reader-atmosphere .reader-copy {
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+:root[data-reader="large"] .mail-reader-atmosphere article,
+:root[data-reader="large"] .mail-reader-atmosphere .reader-copy {
+  font-size: 1.0625rem;
+  line-height: 1.8;
+}

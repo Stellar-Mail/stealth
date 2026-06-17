@@ -2,14 +2,32 @@
 
 Gives each mailbox owner explicit control over who can mail them.
 
-Owners can allow or block individual senders, decide whether unknown senders
-are accepted, require sender verification, and set minimum postage. Explicit
-sender rules always take precedence over the mailbox default.
+Owners can allow or block individual senders, assign sender-specific postage
+tiers, decide whether unknown senders are accepted, require sender
+verification, require receipts, and set minimum postage. Explicit precedence is
+deterministic: block, allow, tier, then mailbox default.
 
 ## Interface
 
-- `set_policy(owner, policy)` writes mailbox defaults.
+- `set_policy(owner, policy)` writes mailbox defaults as the owner.
+- `set_policy_as(owner, actor, policy)` lets owner or a policy-scoped delegate write defaults.
 - `get_policy(owner)` reads mailbox defaults.
-- `set_sender_rule(owner, sender, rule)` allows, blocks, or resets a sender.
+- `get_versioned_policy(owner)` reads mailbox defaults with version.
+- `policy_version(owner)` reads the current version.
+- `set_delegate(owner, delegate, scope)` grants or revokes scoped mutation authority.
+- `delegate_scope(owner, delegate)` reads delegate scope.
+- `set_sender_rule(owner, sender, rule)` allows, blocks, or resets a sender as the owner.
+- `set_sender_rule_as(owner, actor, sender, rule)` lets owner or sender-scoped delegate mutate sender rules.
+- `set_sender_tier(owner, sender, minimum_postage)` assigns sender-specific pricing as owner.
+- `set_sender_tier_as(owner, actor, sender, minimum_postage)` assigns sender-specific pricing as owner or delegate.
 - `sender_rule(owner, sender)` reads the current sender override.
-- `can_mail(...)` evaluates the complete policy.
+- `sender_tier(owner, sender)` reads sender-specific pricing.
+- `evaluate(...)` returns the complete decision, reason, required postage, sender rule, and policy version.
+- `can_mail(...)` returns the boolean result of `evaluate`.
+
+## Precedence
+
+1. Block always denies, regardless of price or mailbox defaults.
+2. Allow always admits the sender.
+3. Tier applies sender-specific postage after verification and receipt requirements.
+4. Mailbox default applies to unknown/default senders.

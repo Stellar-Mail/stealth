@@ -71,3 +71,12 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+:root[data-motion="lower"] *,
+:root[data-motion="lower"] *::before,
+:root[data-motion="lower"] *::after {
+  animation-duration: 80ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 80ms !important;
+  scroll-behavior: auto !important;
+}

@@ -1,0 +1,1 @@
+export { ProofInspectorModal } from "./ProofInspectorModal";
