@@ -129,6 +129,13 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
   const [proofInspectorOpen, setProofInspectorOpen] = useState(false);
   const [proofInspectorQuery, setProofInspectorQuery] = useState("");
 
+  useEffect(() => {
+    document.documentElement.dataset.stealthHydrated = "true";
+    return () => {
+      delete document.documentElement.dataset.stealthHydrated;
+    };
+  }, []);
+
   const handleOpenMessageFromInspector = useCallback((email: Email) => {
     setCustomFolder(null);
     setFilters(defaultMailFilters);

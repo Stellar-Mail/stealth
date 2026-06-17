@@ -51,6 +51,7 @@ export type DashboardSection =
   | "templates"
   | "campaigns"
   | "analytics"
+  | "tags"
   | "audit";
 
 export interface Persona {

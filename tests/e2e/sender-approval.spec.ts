@@ -1,42 +1,36 @@
 import { test, expect } from "./fixtures";
+import type { Page } from "@playwright/test";
 
 test.describe("sender approval", () => {
   test.beforeEach(async ({ page }) => {
     await page.addInitScript(() => {
       localStorage.setItem("stealth-preferences", JSON.stringify({ onboardingCompleted: true }));
     });
-    await page.goto("/");
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    await page.waitForFunction(() => document.documentElement.dataset.stealthHydrated === "true");
   });
 
-  async function openUnknownSenderRequest(page: Parameters<typeof test>[1]) {
+  async function openRequestsBoard(page: Page) {
     await page.getByRole("button", { name: /^Requests\b/ }).click();
-    await page
-      .getByRole("button", {
-        name: /Unknown Sender.*Message request awaiting approval/,
-      })
-      .click();
+    await expect(page.getByRole("heading", { name: "Request Triage Board" })).toBeVisible();
+    await expect(page.getByText("Unknown Sender")).toBeVisible();
   }
 
   test("approves an unknown sender from the requests folder", async ({ page }) => {
-    await openUnknownSenderRequest(page);
-
-    // The SenderRequest widget should be visible
-    await expect(page.getByText("Decide who can mail you")).toBeVisible();
+    await openRequestsBoard(page);
 
     // Approve the sender
-    await page.getByRole("button", { name: "Allow sender" }).click();
+    await page.getByRole("button", { name: "Approve" }).first().click();
 
-    // Toast confirms approval
-    await expect(page.getByText(/can now mail you/i)).toBeVisible();
+    // Optimistic state confirms approval
+    await expect(page.getByText("Sender Approved")).toBeVisible();
   });
 
-  test("blocks an unknown sender and queues postage refund", async ({ page }) => {
-    await openUnknownSenderRequest(page);
+  test("refunds postage for an unknown paid sender", async ({ page }) => {
+    await openRequestsBoard(page);
 
-    await expect(page.getByText("Decide who can mail you")).toBeVisible();
+    await page.getByRole("button", { name: "Refund" }).first().click();
 
-    await page.getByRole("button", { name: "Block and refund" }).click();
-
-    await expect(page.getByText(/blocked and postage marked for refund/i)).toBeVisible();
+    await expect(page.getByText("Postage Refunded")).toBeVisible();
   });
 });

@@ -6,6 +6,7 @@ import {
   isDatasetValid,
   sortIssues,
   summarizeValidation,
+  validateCampaignDrafts,
 } from "./validation";
 import type { ValidationIssue } from "./validation-types";
 
@@ -105,5 +106,78 @@ describe("isDatasetValid", () => {
 
   it("is true with only warnings and info", () => {
     expect(isDatasetValid(issues.filter((issue) => issue.severity !== "error"))).toBe(true);
+  });
+});
+
+describe("validateCampaignDrafts", () => {
+  it("returns an info issue if drafts list is empty", () => {
+    const results = validateCampaignDrafts([]);
+    expect(results).toHaveLength(1);
+    expect(results[0].severity).toBe("info");
+    expect(results[0].fieldPath).toBe("drafts");
+    expect(results[0].message).toContain("no message drafts");
+  });
+
+  it("detects empty subject, empty body, and empty recipients", () => {
+    const results = validateCampaignDrafts([
+      {
+        id: "draft-bad",
+        subject: "",
+        body: "   ",
+        recipients: [],
+      },
+    ]);
+
+    expect(results).toHaveLength(3);
+    expect(results.filter((i) => i.severity === "error")).toHaveLength(3);
+    expect(results[0].fieldPath).toBe("drafts[0].subject");
+    expect(results[1].fieldPath).toBe("drafts[0].body");
+    expect(results[2].fieldPath).toBe("drafts[0].recipients");
+  });
+
+  it("detects invalid recipient formatting (no @ and no *)", () => {
+    const results = validateCampaignDrafts([
+      {
+        id: "draft-bad-recipient",
+        subject: "Sub",
+        body: "Body",
+        recipients: ["invalidformat"],
+      },
+    ]);
+
+    expect(results).toHaveLength(1);
+    expect(results[0].severity).toBe("error");
+    expect(results[0].fieldPath).toBe("drafts[0].recipients[0]");
+    expect(results[0].message).toContain("format is invalid");
+  });
+
+  it("warns about unsafe/external domains", () => {
+    const results = validateCampaignDrafts([
+      {
+        id: "draft-unsafe-recipient",
+        subject: "Sub",
+        body: "Body",
+        recipients: ["user@untrusted.com", "user*untrusted.com"],
+      },
+    ]);
+
+    expect(results).toHaveLength(2);
+    expect(results.every((i) => i.severity === "warning")).toBe(true);
+    expect(results[0].fieldPath).toBe("drafts[0].recipients[0]");
+    expect(results[1].fieldPath).toBe("drafts[0].recipients[1]");
+    expect(results[0].message).toContain("external or unverified domain");
+  });
+
+  it("passes with correct example domains and federation handles", () => {
+    const results = validateCampaignDrafts([
+      {
+        id: "draft-good",
+        subject: "Sub",
+        body: "Body",
+        recipients: ["alice@example.com", "bob@example.org", "new.user*stealth.demo"],
+      },
+    ]);
+
+    expect(results).toHaveLength(0);
   });
 });

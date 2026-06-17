@@ -31,3 +31,6 @@ target/
 *.njsproj
 *.sln
 *.sw?
+
+CLAUDE.md
+plan.md
