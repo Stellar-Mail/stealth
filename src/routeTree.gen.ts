@@ -23,12 +23,17 @@ import { Route as ApiV1PostageQuoteRouteImport } from './routes/api/v1/postage/q
 import { Route as ApiV1PostageMessageIdRouteImport } from './routes/api/v1/postage/$messageId'
 import { Route as ApiV1PoliciesEvaluateRouteImport } from './routes/api/v1/policies/evaluate'
 import { Route as ApiV1PoliciesOwnerRouteImport } from './routes/api/v1/policies/$owner'
+import { Route as ApiV1DevicesRotateKeysRouteImport } from './routes/api/v1/devices/rotate-keys'
+import { Route as ApiV1DevicesRegisterRouteImport } from './routes/api/v1/devices/register'
+import { Route as ApiV1DevicesRecoveryMethodsRouteImport } from './routes/api/v1/devices/recovery-methods'
 import { Route as ApiV1DevicesRecoveryRouteImport } from './routes/api/v1/devices/recovery'
 import { Route as ApiV1DevicesDeviceIdRouteImport } from './routes/api/v1/devices/$deviceId'
 import { Route as ApiV1SessionsSessionIdRevokeRouteImport } from './routes/api/v1/sessions/$sessionId/revoke'
 import { Route as ApiV1ReceiptsMessageIdReadRouteImport } from './routes/api/v1/receipts/$messageId/read'
 import { Route as ApiV1PostageMessageIdSettleRouteImport } from './routes/api/v1/postage/$messageId/settle'
 import { Route as ApiV1PostageMessageIdRefundRouteImport } from './routes/api/v1/postage/$messageId/refund'
+import { Route as ApiV1DevicesRecoveryMethodsMethodIdRouteImport } from './routes/api/v1/devices/recovery-methods/$methodId'
+import { Route as ApiV1DevicesDeviceIdTrustRouteImport } from './routes/api/v1/devices/$deviceId/trust'
 import { Route as ApiV1DevicesDeviceIdRevokeRouteImport } from './routes/api/v1/devices/$deviceId/revoke'
 import { Route as ApiV1DevicesDeviceIdNameRouteImport } from './routes/api/v1/devices/$deviceId/name'
 import { Route as ApiV1DevicesDeviceIdCompromisedRouteImport } from './routes/api/v1/devices/$deviceId/compromised'
@@ -104,6 +109,22 @@ const ApiV1PoliciesOwnerRoute = ApiV1PoliciesOwnerRouteImport.update({
   path: '/api/v1/policies/$owner',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1DevicesRotateKeysRoute = ApiV1DevicesRotateKeysRouteImport.update({
+  id: '/api/v1/devices/rotate-keys',
+  path: '/api/v1/devices/rotate-keys',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1DevicesRegisterRoute = ApiV1DevicesRegisterRouteImport.update({
+  id: '/api/v1/devices/register',
+  path: '/api/v1/devices/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1DevicesRecoveryMethodsRoute =
+  ApiV1DevicesRecoveryMethodsRouteImport.update({
+    id: '/api/v1/devices/recovery-methods',
+    path: '/api/v1/devices/recovery-methods',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiV1DevicesRecoveryRoute = ApiV1DevicesRecoveryRouteImport.update({
   id: '/api/v1/devices/recovery',
   path: '/api/v1/devices/recovery',
@@ -138,6 +159,18 @@ const ApiV1PostageMessageIdRefundRoute =
     path: '/refund',
     getParentRoute: () => ApiV1PostageMessageIdRoute,
   } as any)
+const ApiV1DevicesRecoveryMethodsMethodIdRoute =
+  ApiV1DevicesRecoveryMethodsMethodIdRouteImport.update({
+    id: '/$methodId',
+    path: '/$methodId',
+    getParentRoute: () => ApiV1DevicesRecoveryMethodsRoute,
+  } as any)
+const ApiV1DevicesDeviceIdTrustRoute =
+  ApiV1DevicesDeviceIdTrustRouteImport.update({
+    id: '/trust',
+    path: '/trust',
+    getParentRoute: () => ApiV1DevicesDeviceIdRoute,
+  } as any)
 const ApiV1DevicesDeviceIdRevokeRoute =
   ApiV1DevicesDeviceIdRevokeRouteImport.update({
     id: '/revoke',
@@ -171,6 +204,9 @@ export interface FileRoutesByFullPath {
   '/api/v1/protocol': typeof ApiV1ProtocolRoute
   '/api/v1/devices/$deviceId': typeof ApiV1DevicesDeviceIdRouteWithChildren
   '/api/v1/devices/recovery': typeof ApiV1DevicesRecoveryRoute
+  '/api/v1/devices/recovery-methods': typeof ApiV1DevicesRecoveryMethodsRouteWithChildren
+  '/api/v1/devices/register': typeof ApiV1DevicesRegisterRoute
+  '/api/v1/devices/rotate-keys': typeof ApiV1DevicesRotateKeysRoute
   '/api/v1/policies/$owner': typeof ApiV1PoliciesOwnerRouteWithChildren
   '/api/v1/policies/evaluate': typeof ApiV1PoliciesEvaluateRoute
   '/api/v1/postage/$messageId': typeof ApiV1PostageMessageIdRouteWithChildren
@@ -183,6 +219,8 @@ export interface FileRoutesByFullPath {
   '/api/v1/devices/$deviceId/compromised': typeof ApiV1DevicesDeviceIdCompromisedRoute
   '/api/v1/devices/$deviceId/name': typeof ApiV1DevicesDeviceIdNameRoute
   '/api/v1/devices/$deviceId/revoke': typeof ApiV1DevicesDeviceIdRevokeRoute
+  '/api/v1/devices/$deviceId/trust': typeof ApiV1DevicesDeviceIdTrustRoute
+  '/api/v1/devices/recovery-methods/$methodId': typeof ApiV1DevicesRecoveryMethodsMethodIdRoute
   '/api/v1/postage/$messageId/refund': typeof ApiV1PostageMessageIdRefundRoute
   '/api/v1/postage/$messageId/settle': typeof ApiV1PostageMessageIdSettleRoute
   '/api/v1/receipts/$messageId/read': typeof ApiV1ReceiptsMessageIdReadRoute
@@ -197,6 +235,9 @@ export interface FileRoutesByTo {
   '/api/v1/protocol': typeof ApiV1ProtocolRoute
   '/api/v1/devices/$deviceId': typeof ApiV1DevicesDeviceIdRouteWithChildren
   '/api/v1/devices/recovery': typeof ApiV1DevicesRecoveryRoute
+  '/api/v1/devices/recovery-methods': typeof ApiV1DevicesRecoveryMethodsRouteWithChildren
+  '/api/v1/devices/register': typeof ApiV1DevicesRegisterRoute
+  '/api/v1/devices/rotate-keys': typeof ApiV1DevicesRotateKeysRoute
   '/api/v1/policies/$owner': typeof ApiV1PoliciesOwnerRouteWithChildren
   '/api/v1/policies/evaluate': typeof ApiV1PoliciesEvaluateRoute
   '/api/v1/postage/$messageId': typeof ApiV1PostageMessageIdRouteWithChildren
@@ -209,6 +250,8 @@ export interface FileRoutesByTo {
   '/api/v1/devices/$deviceId/compromised': typeof ApiV1DevicesDeviceIdCompromisedRoute
   '/api/v1/devices/$deviceId/name': typeof ApiV1DevicesDeviceIdNameRoute
   '/api/v1/devices/$deviceId/revoke': typeof ApiV1DevicesDeviceIdRevokeRoute
+  '/api/v1/devices/$deviceId/trust': typeof ApiV1DevicesDeviceIdTrustRoute
+  '/api/v1/devices/recovery-methods/$methodId': typeof ApiV1DevicesRecoveryMethodsMethodIdRoute
   '/api/v1/postage/$messageId/refund': typeof ApiV1PostageMessageIdRefundRoute
   '/api/v1/postage/$messageId/settle': typeof ApiV1PostageMessageIdSettleRoute
   '/api/v1/receipts/$messageId/read': typeof ApiV1ReceiptsMessageIdReadRoute
@@ -224,6 +267,9 @@ export interface FileRoutesById {
   '/api/v1/protocol': typeof ApiV1ProtocolRoute
   '/api/v1/devices/$deviceId': typeof ApiV1DevicesDeviceIdRouteWithChildren
   '/api/v1/devices/recovery': typeof ApiV1DevicesRecoveryRoute
+  '/api/v1/devices/recovery-methods': typeof ApiV1DevicesRecoveryMethodsRouteWithChildren
+  '/api/v1/devices/register': typeof ApiV1DevicesRegisterRoute
+  '/api/v1/devices/rotate-keys': typeof ApiV1DevicesRotateKeysRoute
   '/api/v1/policies/$owner': typeof ApiV1PoliciesOwnerRouteWithChildren
   '/api/v1/policies/evaluate': typeof ApiV1PoliciesEvaluateRoute
   '/api/v1/postage/$messageId': typeof ApiV1PostageMessageIdRouteWithChildren
@@ -236,6 +282,8 @@ export interface FileRoutesById {
   '/api/v1/devices/$deviceId/compromised': typeof ApiV1DevicesDeviceIdCompromisedRoute
   '/api/v1/devices/$deviceId/name': typeof ApiV1DevicesDeviceIdNameRoute
   '/api/v1/devices/$deviceId/revoke': typeof ApiV1DevicesDeviceIdRevokeRoute
+  '/api/v1/devices/$deviceId/trust': typeof ApiV1DevicesDeviceIdTrustRoute
+  '/api/v1/devices/recovery-methods/$methodId': typeof ApiV1DevicesRecoveryMethodsMethodIdRoute
   '/api/v1/postage/$messageId/refund': typeof ApiV1PostageMessageIdRefundRoute
   '/api/v1/postage/$messageId/settle': typeof ApiV1PostageMessageIdSettleRoute
   '/api/v1/receipts/$messageId/read': typeof ApiV1ReceiptsMessageIdReadRoute
@@ -252,6 +300,9 @@ export interface FileRouteTypes {
     | '/api/v1/protocol'
     | '/api/v1/devices/$deviceId'
     | '/api/v1/devices/recovery'
+    | '/api/v1/devices/recovery-methods'
+    | '/api/v1/devices/register'
+    | '/api/v1/devices/rotate-keys'
     | '/api/v1/policies/$owner'
     | '/api/v1/policies/evaluate'
     | '/api/v1/postage/$messageId'
@@ -264,6 +315,8 @@ export interface FileRouteTypes {
     | '/api/v1/devices/$deviceId/compromised'
     | '/api/v1/devices/$deviceId/name'
     | '/api/v1/devices/$deviceId/revoke'
+    | '/api/v1/devices/$deviceId/trust'
+    | '/api/v1/devices/recovery-methods/$methodId'
     | '/api/v1/postage/$messageId/refund'
     | '/api/v1/postage/$messageId/settle'
     | '/api/v1/receipts/$messageId/read'
@@ -278,6 +331,9 @@ export interface FileRouteTypes {
     | '/api/v1/protocol'
     | '/api/v1/devices/$deviceId'
     | '/api/v1/devices/recovery'
+    | '/api/v1/devices/recovery-methods'
+    | '/api/v1/devices/register'
+    | '/api/v1/devices/rotate-keys'
     | '/api/v1/policies/$owner'
     | '/api/v1/policies/evaluate'
     | '/api/v1/postage/$messageId'
@@ -290,6 +346,8 @@ export interface FileRouteTypes {
     | '/api/v1/devices/$deviceId/compromised'
     | '/api/v1/devices/$deviceId/name'
     | '/api/v1/devices/$deviceId/revoke'
+    | '/api/v1/devices/$deviceId/trust'
+    | '/api/v1/devices/recovery-methods/$methodId'
     | '/api/v1/postage/$messageId/refund'
     | '/api/v1/postage/$messageId/settle'
     | '/api/v1/receipts/$messageId/read'
@@ -304,6 +362,9 @@ export interface FileRouteTypes {
     | '/api/v1/protocol'
     | '/api/v1/devices/$deviceId'
     | '/api/v1/devices/recovery'
+    | '/api/v1/devices/recovery-methods'
+    | '/api/v1/devices/register'
+    | '/api/v1/devices/rotate-keys'
     | '/api/v1/policies/$owner'
     | '/api/v1/policies/evaluate'
     | '/api/v1/postage/$messageId'
@@ -316,6 +377,8 @@ export interface FileRouteTypes {
     | '/api/v1/devices/$deviceId/compromised'
     | '/api/v1/devices/$deviceId/name'
     | '/api/v1/devices/$deviceId/revoke'
+    | '/api/v1/devices/$deviceId/trust'
+    | '/api/v1/devices/recovery-methods/$methodId'
     | '/api/v1/postage/$messageId/refund'
     | '/api/v1/postage/$messageId/settle'
     | '/api/v1/receipts/$messageId/read'
@@ -331,6 +394,9 @@ export interface RootRouteChildren {
   ApiV1ProtocolRoute: typeof ApiV1ProtocolRoute
   ApiV1DevicesDeviceIdRoute: typeof ApiV1DevicesDeviceIdRouteWithChildren
   ApiV1DevicesRecoveryRoute: typeof ApiV1DevicesRecoveryRoute
+  ApiV1DevicesRecoveryMethodsRoute: typeof ApiV1DevicesRecoveryMethodsRouteWithChildren
+  ApiV1DevicesRegisterRoute: typeof ApiV1DevicesRegisterRoute
+  ApiV1DevicesRotateKeysRoute: typeof ApiV1DevicesRotateKeysRoute
   ApiV1PoliciesOwnerRoute: typeof ApiV1PoliciesOwnerRouteWithChildren
   ApiV1PoliciesEvaluateRoute: typeof ApiV1PoliciesEvaluateRoute
   ApiV1PostageMessageIdRoute: typeof ApiV1PostageMessageIdRouteWithChildren
@@ -442,6 +508,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1PoliciesOwnerRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/devices/rotate-keys': {
+      id: '/api/v1/devices/rotate-keys'
+      path: '/api/v1/devices/rotate-keys'
+      fullPath: '/api/v1/devices/rotate-keys'
+      preLoaderRoute: typeof ApiV1DevicesRotateKeysRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/devices/register': {
+      id: '/api/v1/devices/register'
+      path: '/api/v1/devices/register'
+      fullPath: '/api/v1/devices/register'
+      preLoaderRoute: typeof ApiV1DevicesRegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/devices/recovery-methods': {
+      id: '/api/v1/devices/recovery-methods'
+      path: '/api/v1/devices/recovery-methods'
+      fullPath: '/api/v1/devices/recovery-methods'
+      preLoaderRoute: typeof ApiV1DevicesRecoveryMethodsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/devices/recovery': {
       id: '/api/v1/devices/recovery'
       path: '/api/v1/devices/recovery'
@@ -484,6 +571,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1PostageMessageIdRefundRouteImport
       parentRoute: typeof ApiV1PostageMessageIdRoute
     }
+    '/api/v1/devices/recovery-methods/$methodId': {
+      id: '/api/v1/devices/recovery-methods/$methodId'
+      path: '/$methodId'
+      fullPath: '/api/v1/devices/recovery-methods/$methodId'
+      preLoaderRoute: typeof ApiV1DevicesRecoveryMethodsMethodIdRouteImport
+      parentRoute: typeof ApiV1DevicesRecoveryMethodsRoute
+    }
+    '/api/v1/devices/$deviceId/trust': {
+      id: '/api/v1/devices/$deviceId/trust'
+      path: '/trust'
+      fullPath: '/api/v1/devices/$deviceId/trust'
+      preLoaderRoute: typeof ApiV1DevicesDeviceIdTrustRouteImport
+      parentRoute: typeof ApiV1DevicesDeviceIdRoute
+    }
     '/api/v1/devices/$deviceId/revoke': {
       id: '/api/v1/devices/$deviceId/revoke'
       path: '/revoke'
@@ -519,16 +620,33 @@ interface ApiV1DevicesDeviceIdRouteChildren {
   ApiV1DevicesDeviceIdCompromisedRoute: typeof ApiV1DevicesDeviceIdCompromisedRoute
   ApiV1DevicesDeviceIdNameRoute: typeof ApiV1DevicesDeviceIdNameRoute
   ApiV1DevicesDeviceIdRevokeRoute: typeof ApiV1DevicesDeviceIdRevokeRoute
+  ApiV1DevicesDeviceIdTrustRoute: typeof ApiV1DevicesDeviceIdTrustRoute
 }
 
 const ApiV1DevicesDeviceIdRouteChildren: ApiV1DevicesDeviceIdRouteChildren = {
   ApiV1DevicesDeviceIdCompromisedRoute: ApiV1DevicesDeviceIdCompromisedRoute,
   ApiV1DevicesDeviceIdNameRoute: ApiV1DevicesDeviceIdNameRoute,
   ApiV1DevicesDeviceIdRevokeRoute: ApiV1DevicesDeviceIdRevokeRoute,
+  ApiV1DevicesDeviceIdTrustRoute: ApiV1DevicesDeviceIdTrustRoute,
 }
 
 const ApiV1DevicesDeviceIdRouteWithChildren =
   ApiV1DevicesDeviceIdRoute._addFileChildren(ApiV1DevicesDeviceIdRouteChildren)
+
+interface ApiV1DevicesRecoveryMethodsRouteChildren {
+  ApiV1DevicesRecoveryMethodsMethodIdRoute: typeof ApiV1DevicesRecoveryMethodsMethodIdRoute
+}
+
+const ApiV1DevicesRecoveryMethodsRouteChildren: ApiV1DevicesRecoveryMethodsRouteChildren =
+  {
+    ApiV1DevicesRecoveryMethodsMethodIdRoute:
+      ApiV1DevicesRecoveryMethodsMethodIdRoute,
+  }
+
+const ApiV1DevicesRecoveryMethodsRouteWithChildren =
+  ApiV1DevicesRecoveryMethodsRoute._addFileChildren(
+    ApiV1DevicesRecoveryMethodsRouteChildren,
+  )
 
 interface ApiV1PoliciesOwnerRouteChildren {
   ApiV1PoliciesOwnerSendersSenderRoute: typeof ApiV1PoliciesOwnerSendersSenderRoute
@@ -592,6 +710,10 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1ProtocolRoute: ApiV1ProtocolRoute,
   ApiV1DevicesDeviceIdRoute: ApiV1DevicesDeviceIdRouteWithChildren,
   ApiV1DevicesRecoveryRoute: ApiV1DevicesRecoveryRoute,
+  ApiV1DevicesRecoveryMethodsRoute:
+    ApiV1DevicesRecoveryMethodsRouteWithChildren,
+  ApiV1DevicesRegisterRoute: ApiV1DevicesRegisterRoute,
+  ApiV1DevicesRotateKeysRoute: ApiV1DevicesRotateKeysRoute,
   ApiV1PoliciesOwnerRoute: ApiV1PoliciesOwnerRouteWithChildren,
   ApiV1PoliciesEvaluateRoute: ApiV1PoliciesEvaluateRoute,
   ApiV1PostageMessageIdRoute: ApiV1PostageMessageIdRouteWithChildren,

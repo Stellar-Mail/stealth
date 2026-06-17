@@ -99,6 +99,30 @@ export const sessionRevokeSchema = z.object({
   deviceId: z.string(),
 });
 
+export const recoveryMethodTypeSchema = z.enum(["trusted_contact", "hardware_key", "paper_key", "encrypted_backup"]);
+
+export const recoveryMethodSchema = z.object({
+  id: z.string(),
+  address: stellarAddressSchema,
+  type: recoveryMethodTypeSchema,
+  label: z.string().min(1).max(64),
+  value: z.string(), // contact address, key fingerprint, or encrypted blob ref
+  createdAt: z.string().datetime(),
+  lastTestedAt: z.string().datetime().nullable(),
+  disabled: z.boolean(),
+});
+
+export const recoveryMethodCreateSchema = z.object({
+  type: recoveryMethodTypeSchema,
+  label: z.string().min(1).max(64),
+  value: z.string().min(1),
+});
+
+export const keyRotationSchema = z.object({
+  deviceIds: z.array(z.string()).min(1),
+  newPublicKey: z.string(),
+});
+
 export type MailboxPolicy = z.infer<typeof mailboxPolicySchema>;
 export type Postage = z.infer<typeof postageSchema>;
 export type PostageStatus = z.infer<typeof postageStatusSchema>;
@@ -110,3 +134,6 @@ export type KeyStatus = z.infer<typeof keyStatusSchema>;
 export type Session = z.infer<typeof sessionSchema>;
 export type DeviceCreate = z.infer<typeof deviceCreateSchema>;
 export type DeviceUpdate = z.infer<typeof deviceUpdateSchema>;
+export type RecoveryMethod = z.infer<typeof recoveryMethodSchema>;
+export type RecoveryMethodType = z.infer<typeof recoveryMethodTypeSchema>;
+export type RecoveryMethodCreate = z.infer<typeof recoveryMethodCreateSchema>;

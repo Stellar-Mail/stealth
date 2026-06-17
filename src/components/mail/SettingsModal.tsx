@@ -15,7 +15,6 @@ import {
   RefreshCw,
   ShieldCheck,
   Smartphone,
-  Table,
   Trash2,
   User,
   X,
@@ -24,10 +23,14 @@ import {
   RotateCw,
   Info,
   LogOut,
-  Eye,
-  EyeOff,
+  Plus,
+  Fingerprint,
+  Contact,
+  HardDrive,
+  Download,
 } from "lucide-react";
-import { useState, useEffect, type CSSProperties } from "react";
+import { useState, useEffect, useCallback, type CSSProperties } from "react";
+import { toast } from "sonner";
 import { Surface } from "@/features/design-system";
 import { cn } from "@/lib/utils";
 import { useFocusTrap } from "@/hooks/use-focus-trap";
@@ -45,7 +48,7 @@ import {
 } from "@/features/settings/mailbox-policy-templates";
 import { AuditLog } from "@/features/audit-log";
 import { useDevices } from "@/features/device-management/useDevices";
-import type { Device, KeyStatus } from "@/features/device-management/types";
+import type { Device, KeyStatus, RecoveryMethod } from "@/features/device-management/types";
 
 const tabs = [
   { id: "account", label: "Account", icon: User },
@@ -1078,78 +1081,207 @@ type ConfirmDialogState = {
   onConfirm: () => void;
 };
 
+function RecoveryMethodIcon({ type }: { type: RecoveryMethod["type"] }) {
+  switch (type) {
+    case "trusted_contact": return <Contact className="h-3.5 w-3.5" />;
+    case "hardware_key": return <HardDrive className="h-3.5 w-3.5" />;
+    case "paper_key": return <Fingerprint className="h-3.5 w-3.5" />;
+    case "encrypted_backup": return <Download className="h-3.5 w-3.5" />;
+  }
+}
+
+function RecoveryMethodLabel({ type }: { type: RecoveryMethod["type"] }) {
+  switch (type) {
+    case "trusted_contact": return "Trusted contact";
+    case "hardware_key": return "Hardware key";
+    case "paper_key": return "Paper key";
+    case "encrypted_backup": return "Encrypted backup";
+  }
+}
+
 function SecuritySettings() {
-  const { devices, loading, recoveryStatus, renameDevice, revokeDevice, flagCompromised } =
-    useDevices();
+  const {
+    devices, loading, error, recoveryStatus, dismissError,
+    renameDevice, toggleTrust, revokeDevice, flagCompromised,
+    rotateKeys, addRecoveryMethod, removeRecoveryMethod, registerDevice,
+  } = useDevices();
+
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState | null>(null);
+  const [confirming, setConfirming] = useState(false);
   const [copiedKey, setCopiedKey] = useState(false);
   const [editingDevice, setEditingDevice] = useState<string | null>(null);
   const [deviceName, setDeviceName] = useState("");
   const [showRevocationInfo, setShowRevocationInfo] = useState(false);
 
-  const handleCopyKey = () => {
-    navigator.clipboard.writeText("GDQJMSGKJGQ2X576L33OY4JFDZ7NJG5OJ3LJ44V33PUPU7D5Q5X4KJ");
-    setCopiedKey(true);
-    setTimeout(() => setCopiedKey(false), 2000);
-  };
+  const [showAddRecovery, setShowAddRecovery] = useState(false);
+  const [recoveryType, setRecoveryType] = useState<RecoveryMethod["type"]>("trusted_contact");
+  const [recoveryLabel, setRecoveryLabel] = useState("");
+  const [recoveryValue, setRecoveryValue] = useState("");
 
-  const pendingDeviceName = deviceName;
+  const handleCopyKey = useCallback(() => {
+    const key = devices.find((d) => d.isCurrent)?.publicKey
+      ?? "GDQJMSGKJGQ2X576L33OY4JFDZ7NJG5OJ3LJ44V33PUPU7D5Q5X4KJ";
+    navigator.clipboard.writeText(key).then(() => {
+      setCopiedKey(true);
+      toast.success("Public key copied");
+      setTimeout(() => setCopiedKey(false), 2000);
+    });
+  }, [devices]);
 
-  const handleSaveDeviceName = async (deviceId: string) => {
-    if (pendingDeviceName.trim()) {
-      await renameDevice(deviceId, pendingDeviceName.trim());
+  const withConfirm = useCallback(
+    (action: () => Promise<void>, successMsg: string) => {
+      setConfirming(true);
+      action()
+        .then(() => {
+          toast.success(successMsg);
+          setConfirmDialog(null);
+        })
+        .catch((err: Error) => {
+          toast.error(err.message ?? "Action failed");
+        })
+        .finally(() => setConfirming(false));
+    },
+    [],
+  );
+
+  const handleSaveDeviceName = useCallback(
+    async (deviceId: string) => {
+      if (deviceName.trim()) {
+        try {
+          await renameDevice(deviceId, deviceName.trim());
+          toast.success("Device renamed");
+          setEditingDevice(null);
+        } catch (err) {
+          toast.error(err instanceof Error ? err.message : "Failed to rename");
+        }
+      }
+    },
+    [deviceName, renameDevice],
+  );
+
+  const handleRevokeDevice = useCallback(
+    (device: Device) => {
+      setConfirmDialog({
+        title: `Revoke "${device.name}"?`,
+        description: device.keyStatus === "compromised"
+          ? "This device is flagged as compromised. All encryption keys will be permanently invalidated. The device will lose all access immediately. This cannot be undone."
+          : "All sessions will be terminated and the device will lose access immediately. The device will need to re-authenticate to regain access. This cannot be undone.",
+        type: "danger",
+        onConfirm: () => withConfirm(
+          () => revokeDevice(device.id),
+          `"${device.name}" revoked`,
+        ),
+      });
+    },
+    [revokeDevice, withConfirm],
+  );
+
+  const handleFlagCompromised = useCallback(
+    (device: Device) => {
+      setConfirmDialog({
+        title: `Flag "${device.name}" as compromised?`,
+        description:
+          "All sessions will be immediately revoked and encryption keys invalidated. Future messages will not be decryptable by this device. We strongly recommend rotating all account keys after this action. This cannot be undone.",
+        type: "danger",
+        onConfirm: () => withConfirm(
+          () => flagCompromised(device.id),
+          `"${device.name}" flagged as compromised`,
+        ),
+      });
+    },
+    [flagCompromised, withConfirm],
+  );
+
+  const handleToggleTrust = useCallback(
+    (device: Device) => {
+      toggleTrust(device.id, !device.trusted)
+        .then(() => toast.success(device.trusted ? "Trust removed" : "Device trusted"))
+        .catch((err) => toast.error(err instanceof Error ? err.message : "Failed to update trust"));
+    },
+    [toggleTrust],
+  );
+
+  const handleRotateKeys = useCallback(() => {
+    const activeDevices = devices.filter(
+      (d) => d.keyStatus === "active" && d.isCurrent,
+    );
+    if (activeDevices.length === 0) {
+      toast.error("No active devices to rotate keys for");
+      return;
     }
-    setEditingDevice(null);
-  };
-
-  const handleRevokeDevice = (device: Device) => {
-    setConfirmDialog({
-      title: `Revoke "${device.name}"?`,
-      description: `This device will lose access to your account immediately. ${
-        device.keyStatus === "compromised"
-          ? "All encryption keys associated with this device will be invalidated."
-          : "Sessions will be terminated and the device will need to re-authenticate."
-      } This action cannot be undone.`,
-      type: "danger",
-      onConfirm: async () => {
-        await revokeDevice(device.id);
-        setConfirmDialog(null);
-      },
-    });
-  };
-
-  const handleFlagCompromised = (device: Device) => {
-    setConfirmDialog({
-      title: `Flag "${device.name}" as compromised?`,
-      description:
-        "All sessions for this device will be immediately revoked. Any encryption keys tied to this device will be invalidated, preventing decryption of future messages. We recommend rotating your account keys after this action. This cannot be undone.",
-      type: "danger",
-      onConfirm: async () => {
-        await flagCompromised(device.id);
-        setConfirmDialog(null);
-      },
-    });
-  };
-
-  const handleRotateKeys = () => {
     setConfirmDialog({
       title: "Rotate encryption keys?",
       description:
-        "This will generate a new key pair for all trusted devices. Existing encrypted messages will remain accessible with your old keys until they expire. You'll need to update your recovery information after rotation.",
+        "This generates a new key pair for this device. Old keys are marked as rotated. "
+        + "Existing encrypted messages remain accessible with old keys until they expire. "
+        + "You will need to update recovery information after rotation. This action is logged in your audit history.",
       type: "warning",
-      onConfirm: () => {
-        setConfirmDialog(null);
-      },
+      onConfirm: () => withConfirm(
+        async () => {
+          const newKey = `GD${Array.from({ length: 54 }, () =>
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"[Math.floor(Math.random() * 32)],
+          ).join("")}`;
+          await rotateKeys(
+            activeDevices.map((d) => d.id),
+            newKey,
+          );
+        },
+        "Keys rotated successfully",
+      ),
     });
-  };
+  }, [devices, rotateKeys, withConfirm]);
+
+  const handleRegisterDevice = useCallback(() => {
+    withConfirm(
+      async () => {
+        const newKey = `GD${Array.from({ length: 54 }, () =>
+          "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"[Math.floor(Math.random() * 32)],
+        ).join("")}`;
+        await registerDevice(newKey);
+      },
+      "Device registered",
+    );
+  }, [registerDevice, withConfirm]);
+
+  const handleAddRecoveryMethod = useCallback(async () => {
+    if (!recoveryLabel.trim() || !recoveryValue.trim()) {
+      toast.error("Label and value are required");
+      return;
+    }
+    try {
+      await addRecoveryMethod(recoveryType, recoveryLabel.trim(), recoveryValue.trim());
+      toast.success("Recovery method added");
+      setShowAddRecovery(false);
+      setRecoveryLabel("");
+      setRecoveryValue("");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to add recovery method");
+    }
+  }, [addRecoveryMethod, recoveryType, recoveryLabel, recoveryValue]);
+
+  const handleRemoveRecoveryMethod = useCallback(
+    (method: RecoveryMethod) => {
+      setConfirmDialog({
+        title: `Remove "${method.label}"?`,
+        description: "You will lose this recovery method. Ensure you have at least one other recovery method configured before removing this one.",
+        type: "warning",
+        onConfirm: () => withConfirm(
+          () => removeRecoveryMethod(method.id),
+          "Recovery method removed",
+        ),
+      });
+    },
+    [removeRecoveryMethod, withConfirm],
+  );
 
   const currentDevice = devices.find((d) => d.isCurrent);
   const activeSessions = devices.flatMap((d) =>
-    d.sessions.filter((s) => !s.revokedAt && d.keyStatus !== "revoked" && d.keyStatus !== "compromised"),
+    d.sessions.filter(
+      (s) => !s.revokedAt && d.keyStatus !== "revoked" && d.keyStatus !== "compromised",
+    ),
   );
-  const compromisedDevices = devices.filter(
-    (d) => d.keyStatus === "compromised",
-  );
+  const compromisedDevices = devices.filter((d) => d.keyStatus === "compromised");
+  const hasRevokedDevices = devices.some((d) => d.keyStatus === "revoked");
 
   if (loading) {
     return (
@@ -1176,19 +1308,51 @@ function SecuritySettings() {
         </p>
       </div>
 
-      {/* Suspicious login warning */}
+      {/* Error banner */}
+      {error && (
+        <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-3 flex items-center justify-between">
+          <div className="flex items-center gap-2 text-xs text-red-400">
+            <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+            <span>{error}</span>
+          </div>
+          <button
+            onClick={dismissError}
+            className="rounded p-1 text-red-400 hover:bg-red-500/10"
+          >
+            <X className="h-3 w-3" />
+          </button>
+        </div>
+      )}
+
+      {/* Security alert for compromised devices */}
       {compromisedDevices.length > 0 && (
-        <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-4 space-y-2">
+        <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-4 space-y-3">
           <div className="flex items-center gap-2">
-            <ShieldAlert className="h-4 w-4 text-red-400" />
+            <ShieldAlert className="h-4 w-4 text-red-400 animate-pulse" />
             <p className="text-sm font-medium text-red-400">Security alert</p>
           </div>
           <p className="text-xs text-red-300/80">
             {compromisedDevices.length === 1
-              ? `1 device has been flagged as compromised: ${compromisedDevices[0].name}.`
-              : `${compromisedDevices.length} devices have been flagged as compromised.`}{" "}
-            Access has been revoked and encryption keys invalidated. Consider rotating your account
-            keys below.
+              ? `${compromisedDevices[0].name} has been flagged as compromised.`
+              : `${compromisedDevices.length} devices have been flagged as compromised.`}
+            {" "}Access revoked and encryption keys invalidated.{" "}
+            <button
+              onClick={handleRotateKeys}
+              className="underline text-red-300 hover:text-red-200"
+            >
+              Rotate your account keys
+            </button>{" "}
+            to secure your account.
+          </p>
+        </div>
+      )}
+
+      {/* Warning for revoked devices */}
+      {hasRevokedDevices && compromisedDevices.length === 0 && (
+        <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 flex items-center gap-2">
+          <AlertTriangle className="h-3.5 w-3.5 text-amber-400 shrink-0" />
+          <p className="text-xs text-amber-300/80">
+            Some devices have been revoked. Review your devices below.
           </p>
         </div>
       )}
@@ -1196,100 +1360,123 @@ function SecuritySettings() {
       {/* Current device banner */}
       {currentDevice && (
         <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-4">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="h-4 w-4 text-emerald-400" />
-            <div>
-              <p className="text-sm font-medium text-emerald-400">Current device</p>
-              <p className="text-xs text-emerald-300/70">
-                {currentDevice.name} &bull; {currentDevice.lastLocation}
+          <div className="flex items-center gap-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10">
+              <ShieldCheck className="h-4 w-4 text-emerald-400" />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-medium text-emerald-400">{currentDevice.name}</p>
+                <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-400">
+                  This device
+                </span>
+              </div>
+              <p className="text-xs text-emerald-300/70 mt-0.5">
+                {currentDevice.lastLocation} &bull; Last active {formatRelativeTime(currentDevice.lastActive)}
               </p>
             </div>
-            <span className="ml-auto rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-400">
-              This device
-            </span>
           </div>
         </div>
       )}
 
-      {/* Active Sessions */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
+      {/* No devices - registration prompt */}
+      {devices.length === 0 && (
+        <div className="rounded-lg border border-white/5 bg-white/[0.02] p-6 text-center space-y-3">
+          <Laptop className="h-8 w-8 text-muted-foreground/40 mx-auto" />
           <div>
-            <p className="text-sm font-medium text-foreground">Active sessions</p>
-            <p className="text-xs text-muted-foreground">
-              Sessions currently signed in to your account
+            <p className="text-sm font-medium text-foreground">No devices registered</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Register this device to enable encrypted message delivery and manage access.
             </p>
           </div>
-          {activeSessions.length > 0 && (
-            <span className="text-[11px] text-muted-foreground">
-              {activeSessions.length} active
-            </span>
-          )}
+          <button
+            onClick={handleRegisterDevice}
+            className="rounded-lg bg-foreground px-4 py-2 text-xs font-medium text-background hover:opacity-90 transition"
+          >
+            Register this device
+          </button>
         </div>
-        <div className="space-y-2">
-          {activeSessions.length === 0 ? (
-            <div className="rounded-lg border border-white/5 bg-white/[0.02] p-4 text-center">
-              <p className="text-xs text-muted-foreground">No active sessions</p>
-            </div>
-          ) : (
-            activeSessions.map((session) => {
-              const device = devices.find((d) => d.id === session.deviceId);
-              return (
-                <div
-                  key={session.id}
-                  className="flex items-center justify-between rounded-lg border border-white/5 bg-white/[0.02] p-3"
-                >
-                  <div className="flex items-center gap-3">
-                    <DeviceIcon type={device?.type ?? "unknown"} />
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm text-foreground">{device?.name ?? "Unknown device"}</p>
-                        {session.isCurrent && (
-                          <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-400">
-                            Current
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        {session.location} &bull; {formatRelativeTime(session.lastActiveAt)}
-                      </p>
-                    </div>
-                  </div>
-                  {!session.isCurrent && (
-                    <button
-                      onClick={() => {
-                        const dev = devices.find((d) => d.id === session.deviceId);
-                        if (dev) handleRevokeDevice(dev);
-                      }}
-                      className="rounded-lg px-3 py-1.5 text-xs text-red-400 hover:bg-red-500/10 transition"
-                    >
-                      Revoke
-                    </button>
-                  )}
-                </div>
-              );
-            })
-          )}
-        </div>
-      </div>
+      )}
 
-      {/* Devices */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-foreground">Devices</p>
-            <p className="text-xs text-muted-foreground">
-              Trusted devices with access to your account
-            </p>
+      {/* Active Sessions */}
+      {devices.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-foreground">Active sessions</p>
+              <p className="text-xs text-muted-foreground">
+                Sessions currently signed in to your account
+              </p>
+            </div>
+            {activeSessions.length > 0 && (
+              <span className="rounded-full bg-white/[0.06] px-2.5 py-1 text-[11px] text-muted-foreground">
+                {activeSessions.length} active
+              </span>
+            )}
+          </div>
+          <div className="space-y-2">
+            {activeSessions.length === 0 ? (
+              <div className="rounded-lg border border-white/5 bg-white/[0.02] p-4 text-center">
+                <p className="text-xs text-muted-foreground">No active sessions</p>
+              </div>
+            ) : (
+              activeSessions.map((session) => {
+                const device = devices.find((d) => d.id === session.deviceId);
+                return (
+                  <div
+                    key={session.id}
+                    className="flex items-center justify-between rounded-lg border border-white/5 bg-white/[0.02] p-3"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <DeviceIcon type={device?.type ?? "unknown"} />
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm text-foreground truncate">
+                            {device?.name ?? "Unknown device"}
+                          </p>
+                          {session.isCurrent && (
+                            <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-400 shrink-0">
+                              Current
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {session.location} &bull; {formatRelativeTime(session.lastActiveAt)}
+                        </p>
+                      </div>
+                    </div>
+                    {!session.isCurrent && (
+                      <button
+                        onClick={() => {
+                          const dev = devices.find((d) => d.id === session.deviceId);
+                          if (dev) handleRevokeDevice(dev);
+                        }}
+                        className="rounded-lg px-3 py-1.5 text-xs text-red-400 hover:bg-red-500/10 transition shrink-0"
+                      >
+                        Revoke
+                      </button>
+                    )}
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
-        <div className="space-y-2">
-          {devices.length === 0 ? (
-            <div className="rounded-lg border border-white/5 bg-white/[0.02] p-4 text-center">
-              <p className="text-xs text-muted-foreground">No devices registered</p>
+      )}
+
+      {/* Devices list */}
+      {devices.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-foreground">Devices</p>
+              <p className="text-xs text-muted-foreground">
+                Registered devices and their encryption key status
+              </p>
             </div>
-          ) : (
-            devices.map((device) => {
+          </div>
+          <div className="space-y-2">
+            {devices.map((device) => {
               const isCurrent = device.isCurrent;
               const isDisabled =
                 device.keyStatus === "revoked" || device.keyStatus === "compromised";
@@ -1344,8 +1531,7 @@ function SecuritySettings() {
                           {formatRelativeTime(device.lastActive)}
                           {device.trusted && !isDisabled && (
                             <>
-                              {" "}
-                              &bull;{" "}
+                              {" "}&bull;{" "}
                               <span className="text-emerald-400/70">Trusted</span>
                             </>
                           )}
@@ -1364,6 +1550,18 @@ function SecuritySettings() {
                             title="Rename device"
                           >
                             <Edit className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleToggleTrust(device)}
+                            className={cn(
+                              "rounded-lg p-1.5 transition",
+                              device.trusted
+                                ? "text-emerald-400 hover:bg-emerald-500/10"
+                                : "text-muted-foreground hover:bg-white/[0.06] hover:text-foreground",
+                            )}
+                            title={device.trusted ? "Remove trust" : "Mark as trusted"}
+                          >
+                            <ShieldCheck className="h-3.5 w-3.5" />
                           </button>
                           <button
                             onClick={() => handleRevokeDevice(device)}
@@ -1387,22 +1585,37 @@ function SecuritySettings() {
                   {/* Device info sub-row */}
                   {!isDisabled && !editingDevice && (
                     <div className="flex items-center gap-3 text-[10px] text-muted-foreground/60">
-                      <span className="truncate font-mono">{device.publicKey.slice(0, 16)}...</span>
+                      <span className="truncate font-mono max-w-[120px]">
+                        {device.publicKey.slice(0, 20)}...
+                      </span>
                       <span>
-                        Registered{" "}
-                        {formatRelativeTime(device.createdAt)}
+                        Registered {formatRelativeTime(device.createdAt)}
                       </span>
                       {device.sessions.length > 0 && (
-                        <span>{device.sessions.filter((s) => !s.revokedAt).length} session(s)</span>
+                        <span>
+                          {device.sessions.filter((s) => !s.revokedAt).length} active session(s)
+                        </span>
                       )}
+                    </div>
+                  )}
+
+                  {/* Revoked/compromised info */}
+                  {isDisabled && (
+                    <div className="flex items-center gap-2 text-[10px] text-muted-foreground/60">
+                      <Info className="h-3 w-3" />
+                      <span>
+                        {device.keyStatus === "compromised"
+                          ? "Flagged as compromised. Encryption keys invalidated."
+                          : "Access revoked. Device must re-register to regain access."}
+                      </span>
                     </div>
                   )}
                 </div>
               );
-            })
-          )}
+            })}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Revocation consequences info */}
       <div>
@@ -1418,37 +1631,41 @@ function SecuritySettings() {
             <p className="text-xs font-medium text-foreground">What happens when you revoke a device?</p>
             <ul className="space-y-1.5 text-[11px] text-muted-foreground">
               <li className="flex items-start gap-2">
-                <div className="mt-1 h-1 w-1 shrink-0 rounded-full bg-muted-foreground/40" />
+                <div className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-muted-foreground/40" />
                 <span>All active sessions on that device are immediately terminated</span>
               </li>
               <li className="flex items-start gap-2">
-                <div className="mt-1 h-1 w-1 shrink-0 rounded-full bg-muted-foreground/40" />
-                <span>The device&apos;s encryption key is invalidated — it can no longer decrypt new messages</span>
+                <div className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-muted-foreground/40" />
+                <span>The device&apos;s encryption key is invalidated &mdash; it can no longer decrypt new messages</span>
               </li>
               <li className="flex items-start gap-2">
-                <div className="mt-1 h-1 w-1 shrink-0 rounded-full bg-muted-foreground/40" />
+                <div className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-muted-foreground/40" />
                 <span>Existing encrypted messages already on the device remain accessible locally</span>
               </li>
               <li className="flex items-start gap-2">
-                <div className="mt-1 h-1 w-1 shrink-0 rounded-full bg-muted-foreground/40" />
+                <div className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-muted-foreground/40" />
                 <span>The device must re-authenticate and re-register to regain access</span>
               </li>
               <li className="flex items-start gap-2">
-                <div className="mt-1 h-1 w-1 shrink-0 rounded-full bg-muted-foreground/40" />
-                <span>If the device is compromised, flagging it also triggers an alert and recommends key rotation</span>
+                <div className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-muted-foreground/40" />
+                <span>If the device is compromised, flagging it triggers a security alert and invalidates all associated keys</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <div className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-muted-foreground/40" />
+                <span>All revocation and compromise events are recorded in the audit history</span>
               </li>
             </ul>
           </div>
         )}
       </div>
 
-      {/* Account Recovery */}
+      {/* Recovery methods */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-foreground">Account recovery</p>
             <p className="text-xs text-muted-foreground">
-              Backup access to your account if you lose your keys
+              Methods to restore access if all devices are lost
             </p>
           </div>
         </div>
@@ -1462,7 +1679,7 @@ function SecuritySettings() {
                 )}
               />
               <p className="text-xs font-medium text-foreground">
-                {recoveryStatus.enabled ? "Recovery enabled" : "Recovery not configured"}
+                {recoveryStatus.enabled ? "Recovery configured" : "No recovery methods"}
               </p>
             </div>
             {recoveryStatus.lastUpdated && (
@@ -1471,29 +1688,121 @@ function SecuritySettings() {
               </span>
             )}
           </div>
+
+          {/* Recovery methods list */}
+          {recoveryStatus.recoveryMethods && recoveryStatus.recoveryMethods.length > 0 && (
+            <div className="space-y-2">
+              {recoveryStatus.recoveryMethods.map((method) => (
+                <div
+                  key={method.id}
+                  className="flex items-center justify-between rounded-lg border border-white/5 bg-white/[0.03] px-3 py-2"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-md bg-white/[0.04]">
+                      <RecoveryMethodIcon type={method.type} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs text-foreground truncate">{method.label}</p>
+                      <p className="text-[10px] text-muted-foreground">
+                        <RecoveryMethodLabel type={method.type} />
+                        {method.lastTestedAt && (
+                          <> &bull; Last tested {formatRelativeTime(method.lastTestedAt)}</>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleRemoveRecoveryMethod(method)}
+                    className="rounded-lg p-1.5 text-muted-foreground hover:bg-red-500/10 hover:text-red-400 transition shrink-0"
+                    title="Remove recovery method"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
           <div className="flex items-center gap-4 text-[11px] text-muted-foreground">
             <span>{recoveryStatus.devicesCount} device(s) registered</span>
             <span>{recoveryStatus.trustedCount} trusted</span>
+            {recoveryStatus.recoveryMethods && (
+              <span>{recoveryStatus.recoveryMethods.length} recovery method(s)</span>
+            )}
           </div>
-          <div className="flex gap-2">
-            <button className="flex-1 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-foreground hover:bg-white/[0.06] transition">
-              Export recovery checklist
-            </button>
-            <button
-              onClick={() =>
-                setConfirmDialog({
-                  title: "Add recovery method?",
-                  description:
-                    "You can add a trusted contact or hardware key as a recovery method. This allows account access restoration if all devices are lost.",
-                  type: "info",
-                  onConfirm: () => setConfirmDialog(null),
-                })
-              }
-              className="rounded-lg border border-white/10 px-3 py-2 text-xs text-foreground hover:bg-white/[0.06] transition"
-            >
-              Add method
-            </button>
-          </div>
+
+          {/* Add recovery method form */}
+          {showAddRecovery ? (
+            <div className="space-y-3 rounded-lg border border-white/10 bg-white/[0.03] p-3">
+              <div className="space-y-2">
+                <label className="text-[11px] text-muted-foreground">Recovery type</label>
+                <div className="flex gap-2">
+                  {(["trusted_contact", "hardware_key", "paper_key", "encrypted_backup"] as const).map((t) => (
+                    <button
+                      key={t}
+                      onClick={() => setRecoveryType(t)}
+                      className={cn(
+                        "flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] transition",
+                        recoveryType === t
+                          ? "bg-white/[0.1] text-foreground"
+                          : "text-muted-foreground hover:bg-white/[0.04]",
+                      )}
+                    >
+                      <RecoveryMethodIcon type={t} />
+                      <RecoveryMethodLabel type={t} />
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <input
+                value={recoveryLabel}
+                onChange={(e) => setRecoveryLabel(e.target.value)}
+                placeholder="Label (e.g., My Hardware Key)"
+                className="w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/60 focus:border-white/20 focus:outline-none"
+              />
+              <input
+                value={recoveryValue}
+                onChange={(e) => setRecoveryValue(e.target.value)}
+                placeholder={
+                  recoveryType === "trusted_contact"
+                    ? "Contact Stellar address"
+                    : recoveryType === "hardware_key"
+                      ? "Hardware key fingerprint"
+                      : recoveryType === "paper_key"
+                        ? "Paper key public key"
+                        : "Encrypted backup reference"
+                }
+                className="w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/60 focus:border-white/20 focus:outline-none"
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={handleAddRecoveryMethod}
+                  className="flex-1 rounded-lg bg-foreground px-3 py-2 text-xs font-medium text-background hover:opacity-90 transition"
+                >
+                  Add method
+                </button>
+                <button
+                  onClick={() => setShowAddRecovery(false)}
+                  className="rounded-lg border border-white/10 px-3 py-2 text-xs text-muted-foreground hover:bg-white/[0.06] transition"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowAddRecovery(true)}
+                className="flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-2 text-xs text-foreground hover:bg-white/[0.06] transition"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Add recovery method
+              </button>
+              <button className="rounded-lg border border-white/10 px-3 py-2 text-xs text-foreground hover:bg-white/[0.06] transition">
+                Export checklist
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -1503,7 +1812,7 @@ function SecuritySettings() {
           <div>
             <p className="text-sm font-medium text-foreground">Encryption keys</p>
             <p className="text-xs text-muted-foreground">
-              Your public key for encrypted message delivery
+              Current device public key for encrypted message delivery
             </p>
           </div>
         </div>
@@ -1523,10 +1832,15 @@ function SecuritySettings() {
               {copiedKey ? "Copied" : "Copy"}
             </button>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] text-emerald-400/70 flex items-center gap-1">
-              <div className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-              Key active
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] text-emerald-400/70 flex items-center gap-1">
+                <div className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                Key active
+              </span>
+            </div>
+            <span className="text-[10px] text-muted-foreground/60">
+              Devices using this key: {devices.filter((d) => d.keyStatus === "active").length}
             </span>
           </div>
           <button
@@ -1545,22 +1859,20 @@ function SecuritySettings() {
           <div>
             <p className="text-sm font-medium text-foreground">High-risk actions</p>
             <p className="text-xs text-muted-foreground">
-              Extra confirmation for sensitive operations
+              Sensitive operations with extra confirmation
             </p>
           </div>
         </div>
         <div className="rounded-lg border border-white/10 bg-white/[0.02] p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <AlertTriangle className="h-3.5 w-3.5 text-amber-400" />
-              <span>Device revocation and key rotation require confirmation</span>
-            </div>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <AlertTriangle className="h-3.5 w-3.5 text-amber-400 shrink-0" />
+            <span>Device revocation, compromise flags, and key rotation require confirmation</span>
           </div>
           <div className="flex items-center gap-2 text-[11px] text-muted-foreground/60">
-            <AlertCircle className="h-3 w-3" />
+            <AlertCircle className="h-3 w-3 shrink-0" />
             <span>
-              All sensitive actions (revocation, compromise flags, key rotation) are logged in your
-              audit history. Message body content is never recorded.
+              All sensitive actions are recorded in your audit history. Message body content is
+              never included in audit events.
             </span>
           </div>
         </div>
@@ -1580,15 +1892,17 @@ function SecuritySettings() {
             <div className="flex gap-2 pt-2">
               <button
                 autoFocus
+                disabled={confirming}
                 onClick={() => setConfirmDialog(null)}
-                className="flex-1 rounded-lg border border-white/10 px-4 py-2 text-xs text-foreground hover:bg-white/[0.06] transition"
+                className="flex-1 rounded-lg border border-white/10 px-4 py-2 text-xs text-foreground hover:bg-white/[0.06] transition disabled:opacity-40"
               >
                 Cancel
               </button>
               <button
+                disabled={confirming}
                 onClick={confirmDialog.onConfirm}
                 className={cn(
-                  "flex-1 rounded-lg px-4 py-2 text-xs font-medium text-white transition",
+                  "flex-1 rounded-lg px-4 py-2 text-xs font-medium text-white transition flex items-center justify-center gap-2 disabled:opacity-60",
                   confirmDialog.type === "danger"
                     ? "bg-red-500 hover:bg-red-600"
                     : confirmDialog.type === "warning"
@@ -1596,7 +1910,10 @@ function SecuritySettings() {
                       : "bg-foreground text-background hover:opacity-90",
                 )}
               >
-                Confirm
+                {confirming && (
+                  <div className="h-3 w-3 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                )}
+                {confirming ? "Processing..." : "Confirm"}
               </button>
             </div>
           </div>

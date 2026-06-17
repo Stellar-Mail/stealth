@@ -30,9 +30,21 @@ export interface Session {
   revokedAt: string | null;
 }
 
+export interface RecoveryMethod {
+  id: string;
+  address: string;
+  type: "trusted_contact" | "hardware_key" | "paper_key" | "encrypted_backup";
+  label: string;
+  value: string;
+  createdAt: string;
+  lastTestedAt: string | null;
+  disabled: boolean;
+}
+
 export interface RecoveryStatus {
   enabled: boolean;
   lastUpdated: string | null;
   devicesCount: number;
   trustedCount: number;
+  recoveryMethods: RecoveryMethod[];
 }

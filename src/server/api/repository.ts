@@ -1,4 +1,4 @@
-import type { Device, DeviceCreate, DeviceUpdate, MailboxPolicy, Postage, Receipt, SenderRule, Session } from "./domain";
+import type { Device, DeviceCreate, DeviceUpdate, MailboxPolicy, Postage, Receipt, RecoveryMethod, RecoveryMethodCreate, SenderRule, Session } from "./domain";
 
 export interface ApiRepository {
   getPolicy(owner: string): Promise<MailboxPolicy | null>;
@@ -32,6 +32,12 @@ export interface ApiRepository {
   revokeAllSessionsForDevice(deviceId: string): Promise<void>;
 
   getDeviceByFingerprint(address: string, fingerprint: string): Promise<Device | null>;
+
+  listRecoveryMethods(address: string): Promise<RecoveryMethod[]>;
+  getRecoveryMethod(methodId: string): Promise<RecoveryMethod | null>;
+  createRecoveryMethod(address: string, data: RecoveryMethodCreate): Promise<RecoveryMethod>;
+  deleteRecoveryMethod(methodId: string): Promise<void>;
+  testRecoveryMethod(methodId: string): Promise<RecoveryMethod>;
 }
 
 export const defaultMailboxPolicy: MailboxPolicy = {

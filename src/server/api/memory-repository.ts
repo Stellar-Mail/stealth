@@ -1,4 +1,4 @@
-import type { Device, DeviceCreate, DeviceUpdate, MailboxPolicy, Postage, Receipt, SenderRule, Session } from "./domain";
+import type { Device, DeviceCreate, DeviceUpdate, MailboxPolicy, Postage, Receipt, RecoveryMethod, RecoveryMethodCreate, SenderRule, Session } from "./domain";
 import type { ApiRepository } from "./repository";
 
 function key(owner: string, sender: string) {
@@ -13,6 +13,7 @@ export class MemoryApiRepository implements ApiRepository {
   private readonly counters = new Map<string, number[]>();
   private readonly devices = new Map<string, Device>();
   private readonly sessions = new Map<string, Session>();
+  private readonly recoveryMethods = new Map<string, RecoveryMethod>();
 
   async getPolicy(owner: string) {
     return structuredClone(this.policies.get(owner) ?? null);
@@ -165,6 +166,42 @@ export class MemoryApiRepository implements ApiRepository {
     return structuredClone(device ?? null);
   }
 
+  async listRecoveryMethods(address: string) {
+    return Array.from(this.recoveryMethods.values())
+      .filter((m) => m.address === address)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+
+  async getRecoveryMethod(methodId: string) {
+    return structuredClone(this.recoveryMethods.get(methodId) ?? null);
+  }
+
+  async createRecoveryMethod(address: string, data: RecoveryMethodCreate) {
+    const method: RecoveryMethod = {
+      id: crypto.randomUUID(),
+      address,
+      type: data.type,
+      label: data.label,
+      value: data.value,
+      createdAt: new Date().toISOString(),
+      lastTestedAt: null,
+      disabled: false,
+    };
+    this.recoveryMethods.set(method.id, method);
+    return structuredClone(method);
+  }
+
+  async deleteRecoveryMethod(methodId: string) {
+    this.recoveryMethods.delete(methodId);
+  }
+
+  async testRecoveryMethod(methodId: string) {
+    const method = this.recoveryMethods.get(methodId);
+    if (!method) throw new Error("recovery_method_not_found");
+    method.lastTestedAt = new Date().toISOString();
+    return structuredClone(method);
+  }
+
   async incrementCounter(key: string, windowSeconds: number) {
     const now = Date.now();
     const windowMilliseconds = windowSeconds * 1000;
@@ -184,5 +221,6 @@ export class MemoryApiRepository implements ApiRepository {
     this.counters.clear();
     this.devices.clear();
     this.sessions.clear();
+    this.recoveryMethods.clear();
   }
 }
