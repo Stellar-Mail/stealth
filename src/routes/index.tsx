@@ -65,6 +65,9 @@ import type { SnoozeState } from "@/components/mail/data";
 import { useIsMobile } from "@/lib/use-media-query";
 import { RequestsTriageBoard } from "@/features/requests";
 import { ProofInspectorModal } from "@/features/proof-inspector";
+import { useNetworkStatus } from "@/hooks/use-network-status";
+import { useActionQueue, type ActionType } from "@/hooks/use-action-queue";
+import { OfflineBanner } from "@/components/mail/OfflineBanner";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -120,6 +123,8 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
   const senderConversion = useSenderConversion();
   const snooze = useSnooze();
   const isMobile = useIsMobile();
+  const { isOnline } = useNetworkStatus();
+  const { queue, enqueue, dequeue } = useActionQueue();
   const [previewAttachment, setPreviewAttachment] = useState<{
     name: string;
     size: string;
@@ -135,6 +140,45 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
       delete document.documentElement.dataset.stealthHydrated;
     };
   }, []);
+
+  // Process offline queue when coming back online
+  useEffect(() => {
+    if (isOnline && queue.length > 0) {
+      const processQueue = async () => {
+        for (const action of queue) {
+          try {
+            // In a real app, this would involve API calls.
+            // Here we simulate successful processing.
+            await delay(500);
+
+            if (action.type === "compose") {
+              // Mark corresponding message as not queued
+              const payload = action.payload as Email;
+              setEmails((current) =>
+                current.map((e) => (e.id === payload.id ? { ...e, queued: false } : e)),
+              );
+              showToast(`Message "${payload.subject}" delivered`);
+            } else if (action.type === "approve") {
+              const { emailId, choice } = action.payload;
+              const email = emails.find((e) => e.id === emailId);
+              if (email) {
+                const result = resolveSenderConversion(email, choice);
+                updateEmail(emailId, result.patch);
+              }
+              showToast(`Sender approval processed`);
+            } else if (action.type === "save-settings") {
+              setPreferences(action.payload);
+              showToast(`Offline settings synced`);
+            }
+            dequeue(action.id);
+          } catch (error) {
+            console.error("Failed to process queued action", error);
+          }
+        }
+      };
+      void processQueue();
+    }
+  }, [isOnline, queue, dequeue, emails, setPreferences]);
 
   const handleOpenMessageFromInspector = useCallback((email: Email) => {
     setCustomFolder(null);
@@ -208,6 +252,13 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
   const handleConvertSender = (target: SenderConversionTarget, choice: SenderPolicyChoice) => {
     const email = emails.find((item) => item.id === target.emailId);
     if (!email) return;
+
+    if (!isOnline) {
+      enqueue("approve", { emailId: email.id, choice });
+      showToast("Approve action queued for reconnect", { tone: "warning" });
+      return;
+    }
+
     const result = resolveSenderConversion(email, choice);
     updateEmail(email.id, result.patch);
     showToast(result.toast.message, { tone: result.toast.tone });
@@ -434,7 +485,14 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
         type: attachment.type,
       })),
       avatarColor: "#5b6470",
+      queued: !isOnline,
     };
+
+    if (!isOnline) {
+      enqueue("compose", message);
+      showToast("Message queued for reconnect", { tone: "warning" });
+    }
+
     setEmails((current) => [message, ...current]);
   };
 
@@ -613,6 +671,7 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
   return (
     <div className="relative min-h-screen text-foreground">
       <AmbientBackground />
+      <OfflineBanner isOffline={!isOnline} queuedCount={queue.length} />
       {isDemoMode && (
         <div className="absolute top-0 inset-x-0 z-50 bg-primary/20 backdrop-blur-md border-b border-primary/30 py-1 text-center text-xs font-medium text-primary shadow-sm pointer-events-none">
           Demo Mode: Showing placeholder data.
@@ -829,8 +888,13 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
         onLayoutChange={setLayout}
         onResetLayout={resetLayout}
         onSave={() => {
+          if (!isOnline) {
+            enqueue("save-settings", preferences);
+            showToast("Settings change queued for reconnect", { tone: "warning" });
+          } else {
+            showToast("Settings saved");
+          }
           setSettingsSnapshot(null);
-          showToast("Settings saved");
         }}
       />
       <CommandPalette
