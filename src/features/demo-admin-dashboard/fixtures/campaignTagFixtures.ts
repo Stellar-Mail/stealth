@@ -1,6 +1,7 @@
 import type { CampaignTag } from "../types/campaignTag";
+import { normalizeCampaignTags } from "../utils/tagNormalization";
 
-export const defaultCampaignTags: CampaignTag[] = [
+export const defaultCampaignTags: CampaignTag[] = normalizeCampaignTags([
   { id: "tag-onboarding", name: "onboarding", color: "onboarding" },
   { id: "tag-welcome", name: "welcome", color: "welcome" },
   { id: "tag-stellar", name: "stellar", color: "stellar" },
@@ -9,4 +10,4 @@ export const defaultCampaignTags: CampaignTag[] = [
   { id: "tag-newsletter", name: "newsletter", color: "newsletter" },
   { id: "tag-marketing", name: "marketing", color: "marketing" },
   { id: "tag-announcement", name: "announcement", color: "announcement" },
-];
+]);

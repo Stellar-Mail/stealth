@@ -1,4 +1,4 @@
-import type { Campaign, Persona } from "./types";
+import type { AdminDemoRecord, Campaign, Persona } from "./types";
 
 export const fakePersonas: Persona[] = [
   {
@@ -48,3 +48,65 @@ export const fakeCampaigns: Campaign[] = [
     lastEditor: fakePersonas[1],
   },
 ];
+
+/** Deterministic, fake demo data — safe for public review. No real users. */
+export const demoAdminRecords: AdminDemoRecord[] = [
+  {
+    id: "rec_001",
+    name: "Ada Lovelace",
+    address: "ada@demo.stealth",
+    role: "Owner",
+    status: "active",
+  },
+  {
+    id: "rec_002",
+    name: "Bashir Khan",
+    address: "bashir@demo.stealth",
+    role: "Admin",
+    status: "active",
+  },
+  {
+    id: "rec_003",
+    name: "Chen Wei",
+    address: "chen@demo.stealth",
+    role: "Editor",
+    status: "invited",
+  },
+  {
+    id: "rec_004",
+    name: "Diego Santos",
+    address: "diego@demo.stealth",
+    role: "Viewer",
+    status: "active",
+  },
+  {
+    id: "rec_005",
+    name: "Esi Mensah",
+    address: "esi@demo.stealth",
+    role: "Editor",
+    status: "suspended",
+  },
+  {
+    id: "rec_006",
+    name: "Farah Aziz",
+    address: "farah@demo.stealth",
+    role: "Viewer",
+    status: "invited",
+  },
+  {
+    id: "rec_007",
+    name: "Grace Okoro",
+    address: "grace@demo.stealth",
+    role: "Admin",
+    status: "active",
+  },
+  {
+    id: "rec_008",
+    name: "Hiro Tanaka",
+    address: "hiro@demo.stealth",
+    role: "Viewer",
+    status: "active",
+  },
+];
+
+export const adminSearchFields = ["name", "address", "role", "status"] as const;
