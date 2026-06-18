@@ -32,13 +32,7 @@ function ReviewRow({ label, value }: { label: string; value: string }) {
  * PUT /api/v1/policies/$owner transaction to activate the mailbox.
  * Errors are surfaced inline so the user can retry without losing context.
  */
-export function PolicyReviewStep({
-  draft,
-  isSubmitting,
-  submitError,
-  onSubmit,
-  onRetreat,
-}: Props) {
+export function PolicyReviewStep({ draft, isSubmitting, submitError, onSubmit, onRetreat }: Props) {
   const address = draft.walletAddress ?? "";
   const short = address ? `${address.slice(0, 8)}…${address.slice(-6)}` : "—";
   const postageDisplay = draft.minimumPostage === "0" ? "None" : `${draft.minimumPostage} XLM`;
@@ -57,10 +51,7 @@ export function PolicyReviewStep({
         <ReviewRow label="Wallet address" value={short} />
         <ReviewRow label="Unknown senders" value={RULE_LABELS[draft.unknownSenderRule] ?? "—"} />
         <ReviewRow label="Minimum postage" value={postageDisplay} />
-        <ReviewRow
-          label="Read receipts"
-          value={draft.receiptOnDelivery ? "Enabled" : "Disabled"}
-        />
+        <ReviewRow label="Read receipts" value={draft.receiptOnDelivery ? "Enabled" : "Disabled"} />
       </div>
 
       {submitError && (

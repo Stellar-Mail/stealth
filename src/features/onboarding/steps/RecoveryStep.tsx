@@ -40,8 +40,8 @@ export function RecoveryStep({ onAdvance, onRetreat }: Props) {
       <div className="flex items-start gap-3 rounded-xl border border-amber-400/20 bg-amber-400/[0.06] p-4">
         <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" />
         <p className="text-xs text-amber-200">
-          Stealth has no account recovery system. If you lose your seed phrase, your mailbox
-          address and all associated mail history become permanently inaccessible.
+          Stealth has no account recovery system. If you lose your seed phrase, your mailbox address
+          and all associated mail history become permanently inaccessible.
         </p>
       </div>
 

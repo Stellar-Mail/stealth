@@ -1,11 +1,6 @@
 import { useState } from "react";
 
-export type FreighterStatus =
-  | "idle"
-  | "connecting"
-  | "connected"
-  | "unavailable"
-  | "error";
+export type FreighterStatus = "idle" | "connecting" | "connected" | "unavailable" | "error";
 
 export type FreighterState =
   | { status: "idle" }

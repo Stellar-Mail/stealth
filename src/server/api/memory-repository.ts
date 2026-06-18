@@ -10,6 +10,7 @@ export class MemoryApiRepository implements ApiRepository {
   private readonly postage = new Map<string, Postage>();
   private readonly receipts = new Map<string, Receipt>();
   private readonly senderRules = new Map<string, SenderRule>();
+  private readonly counters = new Map<string, number[]>();
 
   async getPolicy(owner: string) {
     return structuredClone(this.policies.get(owner) ?? null);
@@ -49,10 +50,45 @@ export class MemoryApiRepository implements ApiRepository {
     return structuredClone(receipt);
   }
 
+  async getRelayQueueDepth(_relayId: string) {
+    return 0;
+  }
+
+  async getRelayRetryCount(_relayId: string) {
+    return 0;
+  }
+
+  async getRelayLastSuccessfulDelivery(_relayId: string) {
+    return null;
+  }
+
+  async getRelayLastFailedDelivery(_relayId: string) {
+    return null;
+  }
+
+  async getRelayDeadLetterCount(_relayId: string) {
+    return 0;
+  }
+  async getCounter(key: string) {
+    return this.counters.get(key)?.length ?? 0;
+  }
+
+  async incrementCounter(key: string, windowSeconds: number) {
+    const now = Date.now();
+    const windowMilliseconds = windowSeconds * 1000;
+    const timestamps = this.counters.get(key) ?? [];
+    const filtered = [...timestamps, now].filter(
+      (timestamp) => now - timestamp <= windowMilliseconds,
+    );
+    this.counters.set(key, filtered);
+    return filtered.length;
+  }
+
   reset() {
     this.policies.clear();
     this.postage.clear();
     this.receipts.clear();
     this.senderRules.clear();
+    this.counters.clear();
   }
 }

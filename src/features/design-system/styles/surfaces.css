@@ -46,6 +46,8 @@
     backdrop-filter: blur(28px) saturate(150%);
     -webkit-backdrop-filter: blur(28px) saturate(150%);
     border: 1px solid oklch(1 0 0 / 0.07);
+    contain: paint;
+    overflow: hidden;
     box-shadow:
       0 24px 70px -42px oklch(0 0 0 / 0.55),
       inset 0 1px 0 oklch(1 0 0 / 0.06);
@@ -62,7 +64,7 @@
   }
 
   .mail-list-atmosphere::before {
-    left: -46px;
+    left: 0;
     top: 58px;
     width: 150px;
     height: 190px;
@@ -70,7 +72,7 @@
   }
 
   .mail-list-atmosphere::after {
-    right: -58px;
+    right: 0;
     bottom: 64px;
     width: 170px;
     height: 210px;

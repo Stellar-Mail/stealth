@@ -12,26 +12,25 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { EmojiPicker } from "./EmojiPicker";
+import { TrustBadge, type TrustState } from "@/features/design-system";
 import { cn } from "@/lib/utils";
+import { resolveRecipients } from "@/features/compose/recipientResolver";
 
-type Attachment = {
-  name: string;
-  size: string;
-  type: "file" | "image";
-};
+import {
+  getRecipientReadiness,
+  parseRecipients,
+  validateComposeDraft,
+  type Attachment,
+  type ComposeMode,
+  type ComposeSubmission,
+  type RecipientReadiness,
+} from "./composeValidation";
+import { DeliveryEstimator, type RelayStatus } from "./DeliveryEstimator";
 
-export type ComposeSubmission = {
-  to: string;
-  subject: string;
-  body: string;
-  attachments: Attachment[];
-  encrypted: boolean;
-  receipt: boolean;
-  postage: string;
-  scheduled: boolean;
-};
+const EMPTY_BLOCKED: string[] = [];
+const EMPTY_RESOLVED: RecipientReadiness[] = [];
 
 export function Compose({
   open,
@@ -41,7 +40,10 @@ export function Compose({
   initialSubject = "",
   initialBody = "",
   initialPostage = "0.0001",
+  mode = "compose",
+  blockedRecipients = EMPTY_BLOCKED,
   onSubmit,
+  resolutionContext,
 }: {
   open: boolean;
   onClose: () => void;
@@ -50,7 +52,10 @@ export function Compose({
   initialSubject?: string;
   initialBody?: string;
   initialPostage?: string;
+  mode?: ComposeMode;
+  blockedRecipients?: string[];
   onSubmit?: (submission: ComposeSubmission) => void;
+  resolutionContext?: Parameters<typeof resolveRecipients>[2];
 }) {
   const [to, setTo] = useState(initialTo);
   const [subject, setSubject] = useState(initialSubject);
@@ -61,6 +66,8 @@ export function Compose({
   const [encrypted, setEncrypted] = useState(true);
   const [receipt, setReceipt] = useState(true);
   const [postage, setPostage] = useState(initialPostage);
+  const [resolvedRecipients, setResolvedRecipients] = useState<RecipientReadiness[]>([]);
+  const [relayStatus, setRelayStatus] = useState<RelayStatus>("unknown");
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -68,6 +75,25 @@ export function Compose({
 
   const aiSuggestion =
     "Confirming Friday's review at 10am — let me know if that still works for you.";
+
+  const insertAtCursor = useCallback(
+    (text: string) => {
+      const textarea = textareaRef.current;
+      if (!textarea) return;
+
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const newValue = body.slice(0, start) + text + body.slice(end);
+      setBody(newValue);
+
+      // Set cursor position after inserted text
+      setTimeout(() => {
+        textarea.selectionStart = textarea.selectionEnd = start + text.length;
+        textarea.focus();
+      }, 0);
+    },
+    [body],
+  );
 
   // Hydrate / reset form when opening or closing
   useEffect(() => {
@@ -85,9 +111,56 @@ export function Compose({
       setEncrypted(true);
       setReceipt(true);
       setPostage(initialPostage);
+      setResolvedRecipients(EMPTY_RESOLVED);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initialTo, initialSubject, initialBody, initialPostage]);
+
+  // Fetch relay status when compose opens
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    fetch("/relays/default/diagnostics")
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((data: { status: RelayStatus }) => {
+        if (!cancelled) setRelayStatus(data.status ?? "unknown");
+      })
+      .catch(() => {
+        if (!cancelled) setRelayStatus("unknown");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
+
+  // Resolve recipients when `to` field changes
+  useEffect(() => {
+    const addresses = parseRecipients(to);
+    if (!addresses.length) {
+      if (resolvedRecipients.length > 0) {
+        setResolvedRecipients(EMPTY_RESOLVED);
+      }
+      return;
+    }
+
+    // Show initial "resolving" state immediately
+    setResolvedRecipients(getRecipientReadiness(to, postage, blockedRecipients));
+
+    // Debounce resolution to avoid excessive API calls
+    const timer = setTimeout(async () => {
+      const resolved = await resolveRecipients(addresses, blockedRecipients, resolutionContext);
+
+      // Update postage state based on current postage value
+      const postageReady = Number.parseFloat(postage) > 0;
+      const withPostage = resolved.map((r) => ({
+        ...r,
+        postage: postageReady ? ("ready" as const) : ("required" as const),
+      }));
+
+      setResolvedRecipients(withPostage);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [to, blockedRecipients, postage, resolutionContext, resolvedRecipients.length]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -106,23 +179,7 @@ export function Compose({
     };
     if (open) window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [open, onClose, emojiOpen]);
-
-  const insertAtCursor = (text: string) => {
-    const textarea = textareaRef.current;
-    if (!textarea) return;
-
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const newValue = body.slice(0, start) + text + body.slice(end);
-    setBody(newValue);
-
-    // Set cursor position after inserted text
-    setTimeout(() => {
-      textarea.selectionStart = textarea.selectionEnd = start + text.length;
-      textarea.focus();
-    }, 0);
-  };
+  }, [open, onClose, emojiOpen, insertAtCursor]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>, type: "file" | "image") => {
     const files = e.target.files;
@@ -143,12 +200,34 @@ export function Compose({
   };
 
   const handleSend = async (scheduled = false) => {
-    if (!to.trim()) {
-      onShowToast?.("Please enter a recipient");
+    // Prevent sending if recipients not fully resolved
+    if (resolvedRecipients.length === 0) {
+      onShowToast?.("Please add at least one recipient");
       return;
     }
+
+    if (resolvedRecipients.some((r) => r.state === "resolving" || r.state === "invalid")) {
+      onShowToast?.("All recipients must be verified before sending");
+      return;
+    }
+
+    if (resolvedRecipients.some((r) => r.state === "blocked")) {
+      onShowToast?.("Remove blocked recipients before sending");
+      return;
+    }
+
+    if (resolvedRecipients.some((r) => r.postage === "required")) {
+      onShowToast?.("Add postage before sending");
+      return;
+    }
+
     if (!subject.trim()) {
       onShowToast?.("Please enter a subject");
+      return;
+    }
+
+    if (!body.trim()) {
+      onShowToast?.("Please enter a message");
       return;
     }
 
@@ -166,6 +245,7 @@ export function Compose({
       receipt,
       postage,
       scheduled,
+      mode: scheduled ? "schedule" : mode,
     });
     setIsSending(false);
     onClose();
@@ -201,7 +281,11 @@ export function Compose({
           >
             <div className="flex items-center justify-between border-b border-white/5 px-4 py-3">
               <div className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                New message
+                {mode === "compose"
+                  ? "New message"
+                  : mode === "schedule"
+                    ? "Schedule send"
+                    : mode.replace("-", " ")}
               </div>
               <button
                 onClick={onClose}
@@ -212,6 +296,19 @@ export function Compose({
             </div>
             <div className="space-y-0 px-4">
               <Field label="To" placeholder="recipients@…" value={to} onChange={setTo} />
+              <RecipientReadinessChips recipients={resolvedRecipients} />
+              <DeliveryEstimator
+                recipients={resolvedRecipients}
+                encrypted={encrypted}
+                postage={postage}
+                relayStatus={relayStatus}
+                onAddPostage={() => {
+                  const el = document.querySelector<HTMLInputElement>(
+                    '[aria-label="Postage amount"]',
+                  );
+                  el?.focus();
+                }}
+              />
               <Field label="Subject" placeholder="Subject" value={subject} onChange={setSubject} />
             </div>
             <div className="px-4 pb-2">
@@ -388,6 +485,70 @@ export function Compose({
         </>
       )}
     </AnimatePresence>
+  );
+}
+
+function recipientTrustState(state: RecipientReadiness["state"]): TrustState {
+  if (state === "blocked") return "blocked";
+  if (state === "verified") return "verified";
+  if (state === "unknown") return "unknown";
+  if (state === "invalid") return "blocked"; // invalid is treated like blocked visually
+  return "unknown"; // resolving
+}
+
+function getRecipientChipColor(state: RecipientReadiness["state"]) {
+  switch (state) {
+    case "verified":
+      return "border-emerald-300/25 bg-emerald-300/10 text-emerald-100";
+    case "blocked":
+      return "border-red-300/25 bg-red-300/10 text-red-100";
+    case "invalid":
+      return "border-red-300/25 bg-red-300/10 text-red-100";
+    case "unknown":
+      return "border-amber-300/25 bg-amber-300/10 text-amber-100";
+    case "resolving":
+      return "border-blue-300/25 bg-blue-300/10 text-blue-100 animate-pulse";
+    default:
+      return "border-zinc-300/25 bg-zinc-300/10 text-zinc-100";
+  }
+}
+
+function RecipientReadinessChips({ recipients }: { recipients: RecipientReadiness[] }) {
+  if (!recipients.length) return null;
+
+  return (
+    <div className="flex flex-wrap gap-1.5 border-b border-white/5 py-2 pl-[76px]">
+      {recipients.map((recipient) => (
+        <div
+          key={recipient.address}
+          title={recipient.message}
+          className={cn(
+            "rounded-full border px-3 py-1.5 text-[10px] flex items-center gap-2",
+            getRecipientChipColor(recipient.state),
+          )}
+        >
+          <TrustBadge
+            state={recipientTrustState(recipient.state)}
+            showLabel={false}
+            size="sm"
+            className="shrink-0"
+          />
+          <span className="truncate">{recipient.address}</span>
+
+          {/* Show account details if resolved */}
+          {recipient.resolvedAccount && (
+            <span className="shrink-0 text-[9px] opacity-75">
+              → {recipient.resolvedAccount.slice(0, 8)}…
+            </span>
+          )}
+
+          {/* Show encryption key availability */}
+          {recipient.encryptionKey && (
+            <span className="shrink-0 inline-block w-2 h-2 rounded-full bg-current opacity-50" />
+          )}
+        </div>
+      ))}
+    </div>
   );
 }
 
