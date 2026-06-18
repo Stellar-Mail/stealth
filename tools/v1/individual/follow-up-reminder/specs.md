@@ -15,10 +15,11 @@ Recommended internal structure:
 - components/
 - services/
 - hooks/
-- 	ests/
+-     ests/
 - docs/
-"@ | Set-Content -Path "tools/v1/individual/follow-up-reminder/README.md"
+  "@ | Set-Content -Path "tools/v1/individual/follow-up-reminder/README.md"
   @"
+
 # Follow-up Reminder Specs
 
 ## Purpose

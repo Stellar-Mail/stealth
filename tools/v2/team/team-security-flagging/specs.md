@@ -15,10 +15,11 @@ Recommended internal structure:
 - components/
 - services/
 - hooks/
-- 	ests/
+-     ests/
 - docs/
-"@ | Set-Content -Path "tools/v2/team/team-security-flagging/README.md"
+  "@ | Set-Content -Path "tools/v2/team/team-security-flagging/README.md"
   @"
+
 # Team Security Flagging Specs
 
 ## Purpose

@@ -74,7 +74,10 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     title: "Stellar SEP-0010 auth integration",
     description:
       "Authentication tokens are now issued via SEP-0010, tying session credentials to your Stellar keypair.",
-    link: { label: "SEP-0010 spec", href: "https://github.com/stellar/stellar-protocol/blob/master/ecosystem/sep-0010.md" },
+    link: {
+      label: "SEP-0010 spec",
+      href: "https://github.com/stellar/stellar-protocol/blob/master/ecosystem/sep-0010.md",
+    },
   },
 ];
 

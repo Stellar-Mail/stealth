@@ -15,10 +15,11 @@ Recommended internal structure:
 - components/
 - services/
 - hooks/
-- 	ests/
+-     ests/
 - docs/
-"@ | Set-Content -Path "tools/v2/team/meeting-assignment-tool/README.md"
+  "@ | Set-Content -Path "tools/v2/team/meeting-assignment-tool/README.md"
   @"
+
 # Meeting Assignment Tool Specs
 
 ## Purpose

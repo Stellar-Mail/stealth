@@ -82,25 +82,37 @@
             "id": "primitives/hash/valid/all-zeros",
             "description": "All-zero hash — the minimum representable 32-byte value.",
             "input": "0000000000000000000000000000000000000000000000000000000000000000",
-            "expected": { "valid": true, "normalized": "0000000000000000000000000000000000000000000000000000000000000000" }
+            "expected": {
+              "valid": true,
+              "normalized": "0000000000000000000000000000000000000000000000000000000000000000"
+            }
           },
           {
             "id": "primitives/hash/valid/all-f",
             "description": "All-0xff hash — the maximum representable 32-byte value.",
             "input": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-            "expected": { "valid": true, "normalized": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff" }
+            "expected": {
+              "valid": true,
+              "normalized": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+            }
           },
           {
             "id": "primitives/hash/valid/mixed",
             "description": "Mixed lowercase hex characters — typical SHA-256 output pattern.",
             "input": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
-            "expected": { "valid": true, "normalized": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789" }
+            "expected": {
+              "valid": true,
+              "normalized": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789"
+            }
           },
           {
             "id": "primitives/hash/valid/uppercase-normalised",
             "description": "Uppercase hex characters are normalised to lowercase. Implementations must store the normalised form.",
             "input": "ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789",
-            "expected": { "valid": true, "normalized": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789" }
+            "expected": {
+              "valid": true,
+              "normalized": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789"
+            }
           },
           {
             "id": "primitives/hash/invalid/too-short",
@@ -361,9 +373,7 @@
             "amount": "1000",
             "submitAt": "2026-01-01T00:00:00.000Z"
           },
-          "preconditions": [
-            { "op": "setSenderRule", "rule": "block" }
-          ],
+          "preconditions": [{ "op": "setSenderRule", "rule": "block" }],
           "operations": ["submit"],
           "expected": {
             "error": {

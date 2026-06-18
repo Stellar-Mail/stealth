@@ -15,10 +15,11 @@ Recommended internal structure:
 - components/
 - services/
 - hooks/
-- 	ests/
+-     ests/
 - docs/
-"@ | Set-Content -Path "tools/v2/individual/job-application-email-helper/README.md"
+  "@ | Set-Content -Path "tools/v2/individual/job-application-email-helper/README.md"
   @"
+
 # Job Application Email Helper Specs
 
 ## Purpose

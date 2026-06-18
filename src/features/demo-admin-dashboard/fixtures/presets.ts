@@ -4,7 +4,8 @@ export const PRESET_SCENARIOS: PresetScenario[] = [
   {
     id: "relay-verification",
     name: "Relay Verification",
-    description: "Simulates registration, OTP generation, and identity verification for a new message routing relay.",
+    description:
+      "Simulates registration, OTP generation, and identity verification for a new message routing relay.",
     stats: [
       { label: "Active Accounts", value: "13", delta: "+3" },
       { label: "Messages Sent", value: "847", delta: "+12%" },
@@ -90,15 +91,28 @@ export const PRESET_SCENARIOS: PresetScenario[] = [
       },
     ],
     auditEvents: [
-      { action: "Relay Node 07 registration initiated", actor: "relay07*stealth.demo", timestamp: "2026-06-16T12:00:00Z" },
-      { action: "Authorization OTP generated and dispatched", actor: "system", timestamp: "2026-06-16T12:01:00Z" },
-      { action: "Relay verification check pending for GCRLY...N007", actor: "system", timestamp: "2026-06-16T12:02:00Z" },
+      {
+        action: "Relay Node 07 registration initiated",
+        actor: "relay07*stealth.demo",
+        timestamp: "2026-06-16T12:00:00Z",
+      },
+      {
+        action: "Authorization OTP generated and dispatched",
+        actor: "system",
+        timestamp: "2026-06-16T12:01:00Z",
+      },
+      {
+        action: "Relay verification check pending for GCRLY...N007",
+        actor: "system",
+        timestamp: "2026-06-16T12:02:00Z",
+      },
     ],
   },
   {
     id: "proof-pending",
     name: "Proof Pending",
-    description: "Simulates an incoming message bridge event holding for cryptographic proof generation on the Stellar ledger.",
+    description:
+      "Simulates an incoming message bridge event holding for cryptographic proof generation on the Stellar ledger.",
     stats: [
       { label: "Active Accounts", value: "13", delta: "+3" },
       { label: "Messages Sent", value: "847", delta: "+12%" },
@@ -203,15 +217,28 @@ export const PRESET_SCENARIOS: PresetScenario[] = [
       },
     ],
     auditEvents: [
-      { action: "Incoming bridge message captured", actor: "bridge*stealth.demo", timestamp: "2026-06-16T12:10:00Z" },
-      { action: "Postage preimage submitted to escrow contract", actor: "bridge*stealth.demo", timestamp: "2026-06-16T12:11:00Z" },
-      { action: "On-chain Soroban ledger proof check scheduled", actor: "system", timestamp: "2026-06-16T12:12:00Z" },
+      {
+        action: "Incoming bridge message captured",
+        actor: "bridge*stealth.demo",
+        timestamp: "2026-06-16T12:10:00Z",
+      },
+      {
+        action: "Postage preimage submitted to escrow contract",
+        actor: "bridge*stealth.demo",
+        timestamp: "2026-06-16T12:11:00Z",
+      },
+      {
+        action: "On-chain Soroban ledger proof check scheduled",
+        actor: "system",
+        timestamp: "2026-06-16T12:12:00Z",
+      },
     ],
   },
   {
     id: "receipt-settlement",
     name: "Receipt Settlement",
-    description: "Simulates the successful settlement of postage fees and read confirmation receipts on the Soroban smart contract ledger.",
+    description:
+      "Simulates the successful settlement of postage fees and read confirmation receipts on the Soroban smart contract ledger.",
     stats: [
       { label: "Active Accounts", value: "12", delta: "0" },
       { label: "Messages Sent", value: "849", delta: "+15%" },
@@ -300,9 +327,21 @@ export const PRESET_SCENARIOS: PresetScenario[] = [
       },
     ],
     auditEvents: [
-      { action: "Soroban delivery receipt contract invoked: CCLC7...RECP", actor: "system", timestamp: "2026-06-16T11:00:00Z" },
-      { action: "Cryptographic read proof signature verified on-chain", actor: "system", timestamp: "2026-06-16T11:02:00Z" },
-      { action: "Postage fee of 0.0001 XLM released to Relay East", actor: "system", timestamp: "2026-06-16T11:05:00Z" },
+      {
+        action: "Soroban delivery receipt contract invoked: CCLC7...RECP",
+        actor: "system",
+        timestamp: "2026-06-16T11:00:00Z",
+      },
+      {
+        action: "Cryptographic read proof signature verified on-chain",
+        actor: "system",
+        timestamp: "2026-06-16T11:02:00Z",
+      },
+      {
+        action: "Postage fee of 0.0001 XLM released to Relay East",
+        actor: "system",
+        timestamp: "2026-06-16T11:05:00Z",
+      },
     ],
   },
 ];

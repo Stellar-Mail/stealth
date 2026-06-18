@@ -15,10 +15,11 @@ Recommended internal structure:
 - components/
 - services/
 - hooks/
-- 	ests/
+-     ests/
 - docs/
-"@ | Set-Content -Path "tools/v1/team/assign-email-to-teammate/README.md"
+  "@ | Set-Content -Path "tools/v1/team/assign-email-to-teammate/README.md"
   @"
+
 # Assign Email to Teammate Specs
 
 ## Purpose

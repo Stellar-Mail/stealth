@@ -221,15 +221,32 @@ function OverviewContent({
             Protocol Scenario Presets
           </h4>
           <p className="text-xs text-muted-foreground mt-1">
-            Select a preset to populate the dashboard tables with simulated ledger states, relay nodes, and pending proof mail flows.
+            Select a preset to populate the dashboard tables with simulated ledger states, relay
+            nodes, and pending proof mail flows.
           </p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {[
-            { id: "none" as const, name: "Default System", desc: "Standard demo system stats and static fixtures." },
-            { id: "relay-verification" as const, name: "Relay Verification", desc: "Simulates registering and verifying a new relay node." },
-            { id: "proof-pending" as const, name: "Proof Pending", desc: "Simulates an on-chain cryptographic proof generation delay." },
-            { id: "receipt-settlement" as const, name: "Receipt Settlement", desc: "Simulates postage fees and read receipts confirming on-chain." },
+            {
+              id: "none" as const,
+              name: "Default System",
+              desc: "Standard demo system stats and static fixtures.",
+            },
+            {
+              id: "relay-verification" as const,
+              name: "Relay Verification",
+              desc: "Simulates registering and verifying a new relay node.",
+            },
+            {
+              id: "proof-pending" as const,
+              name: "Proof Pending",
+              desc: "Simulates an on-chain cryptographic proof generation delay.",
+            },
+            {
+              id: "receipt-settlement" as const,
+              name: "Receipt Settlement",
+              desc: "Simulates postage fees and read receipts confirming on-chain.",
+            },
           ].map((preset) => {
             const active = activePresetId === preset.id;
             return (
@@ -243,7 +260,7 @@ function OverviewContent({
                   "rounded-xl border p-4 text-left transition flex flex-col justify-between h-36 w-full",
                   active
                     ? "border-amber-500/50 bg-amber-500/5 ring-1 ring-amber-500/20"
-                    : "border-white/[0.06] bg-white/[0.02] hover:border-white/10 hover:bg-white/[0.04]"
+                    : "border-white/[0.06] bg-white/[0.02] hover:border-white/10 hover:bg-white/[0.04]",
                 )}
               >
                 <div>
@@ -252,12 +269,12 @@ function OverviewContent({
                     {preset.desc}
                   </p>
                 </div>
-                <span className={cn(
-                  "mt-2 text-[10px] font-medium self-start px-2 py-0.5 rounded-full",
-                  active
-                    ? "bg-amber-500/20 text-amber-400"
-                    : "bg-white/5 text-muted-foreground"
-                )}>
+                <span
+                  className={cn(
+                    "mt-2 text-[10px] font-medium self-start px-2 py-0.5 rounded-full",
+                    active ? "bg-amber-500/20 text-amber-400" : "bg-white/5 text-muted-foreground",
+                  )}
+                >
                   {active ? "Active" : "Activate"}
                 </span>
               </button>
@@ -298,7 +315,9 @@ function AccountsContent({
       key: "address",
       header: "Address",
       sortable: true,
-      render: (acct) => <span className="font-mono text-xs text-muted-foreground">{acct.address}</span>,
+      render: (acct) => (
+        <span className="font-mono text-xs text-muted-foreground">{acct.address}</span>
+      ),
     },
     {
       key: "balance",
@@ -312,12 +331,14 @@ function AccountsContent({
       header: "Type",
       sortable: true,
       render: (acct) => (
-        <span className={cn(
-          "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium",
-          acct.type.includes("Relay") && "bg-indigo-500/10 text-indigo-400",
-          acct.type.includes("Contract") && "bg-purple-500/10 text-purple-400",
-          acct.type === "User" && "bg-white/5 text-muted-foreground"
-        )}>
+        <span
+          className={cn(
+            "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium",
+            acct.type.includes("Relay") && "bg-indigo-500/10 text-indigo-400",
+            acct.type.includes("Contract") && "bg-purple-500/10 text-purple-400",
+            acct.type === "User" && "bg-white/5 text-muted-foreground",
+          )}
+        >
           {acct.type}
         </span>
       ),
@@ -331,12 +352,14 @@ function AccountsContent({
         const status = acct.relayMetadata?.status;
         if (!status) return <span className="text-muted-foreground text-xs">—</span>;
         return (
-          <span className={cn(
-            "inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium uppercase text-[9px] border",
-            status === "verified" && "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-            status === "pending" && "bg-amber-500/10 text-amber-400 border-amber-500/20",
-            status === "failed" && "bg-rose-500/10 text-rose-400 border-rose-500/20"
-          )}>
+          <span
+            className={cn(
+              "inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium uppercase text-[9px] border",
+              status === "verified" && "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+              status === "pending" && "bg-amber-500/10 text-amber-400 border-amber-500/20",
+              status === "failed" && "bg-rose-500/10 text-rose-400 border-rose-500/20",
+            )}
+          >
             {status}
           </span>
         );
@@ -347,14 +370,17 @@ function AccountsContent({
   return (
     <div className="space-y-6">
       <p className="text-sm text-muted-foreground">
-        Demo Stellar accounts used for populating the inbox UI. Rows with metadata can be clicked to inspect details.
+        Demo Stellar accounts used for populating the inbox UI. Rows with metadata can be clicked to
+        inspect details.
       </p>
       <AdminDataTable
         data={accounts}
         columns={columns}
         onRowClick={(acct) => {
           if (acct.relayMetadata) {
-            setSelectedAccountAddress(selectedAccountAddress === acct.address ? null : acct.address);
+            setSelectedAccountAddress(
+              selectedAccountAddress === acct.address ? null : acct.address,
+            );
           }
         }}
         selectedRowKey={(acct) => selectedAccountAddress === acct.address}
@@ -402,9 +428,10 @@ function MailContent({
         <span
           className={cn(
             "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium border",
-            item.status === "delivered" && "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+            item.status === "delivered" &&
+              "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
             item.status === "pending" && "bg-amber-500/10 text-amber-400 border-amber-500/20",
-            item.status === "held" && "bg-rose-500/10 text-rose-400 border-rose-500/20"
+            item.status === "held" && "bg-rose-500/10 text-rose-400 border-rose-500/20",
           )}
         >
           {item.status}
@@ -427,7 +454,8 @@ function MailContent({
   return (
     <div className="space-y-6">
       <p className="text-sm text-muted-foreground">
-        Mail fixtures available for populating the demo inbox. Rows with cryptographic proofs can be clicked to inspect ledger details.
+        Mail fixtures available for populating the demo inbox. Rows with cryptographic proofs can be
+        clicked to inspect ledger details.
       </p>
       <AdminDataTable
         data={mail}
@@ -445,11 +473,7 @@ function MailContent({
   );
 }
 
-function AttachmentsContent({
-  attachments,
-}: {
-  attachments: PresetAttachment[];
-}) {
+function AttachmentsContent({ attachments }: { attachments: PresetAttachment[] }) {
   const columns: Column<PresetAttachment>[] = [
     {
       key: "fileName",
@@ -487,7 +511,9 @@ function AttachmentsContent({
       key: "sender",
       header: "Sender",
       sortable: true,
-      render: (att) => <span className="font-mono text-xs text-muted-foreground">{att.sender}</span>,
+      render: (att) => (
+        <span className="font-mono text-xs text-muted-foreground">{att.sender}</span>
+      ),
     },
   ];
 
@@ -496,20 +522,12 @@ function AttachmentsContent({
       <p className="text-sm text-muted-foreground">
         Deterministic file attachments mock list, extracted from active mail fixtures.
       </p>
-      <AdminDataTable
-        data={attachments}
-        columns={columns}
-        defaultSortKey="fileName"
-      />
+      <AdminDataTable data={attachments} columns={columns} defaultSortKey="fileName" />
     </div>
   );
 }
 
-function EventsContent({
-  events,
-}: {
-  events: PresetEvent[];
-}) {
+function EventsContent({ events }: { events: PresetEvent[] }) {
   const columns: Column<PresetEvent>[] = [
     {
       key: "title",
@@ -526,8 +544,13 @@ function EventsContent({
       key: "date",
       header: "Scheduled Time",
       sortable: true,
-      sortValue: (evt) => new Date(`${evt.date}T${evt.time.replace(" PM", "").replace(" AM", "")}`).getTime(),
-      render: (evt) => <span className="tabular-nums">{evt.date} · {evt.time}</span>,
+      sortValue: (evt) =>
+        new Date(`${evt.date}T${evt.time.replace(" PM", "").replace(" AM", "")}`).getTime(),
+      render: (evt) => (
+        <span className="tabular-nums">
+          {evt.date} · {evt.time}
+        </span>
+      ),
     },
     {
       key: "location",
@@ -539,19 +562,24 @@ function EventsContent({
       key: "organizer",
       header: "Organizer",
       sortable: true,
-      render: (evt) => <span className="font-mono text-xs text-muted-foreground">{evt.organizer}</span>,
+      render: (evt) => (
+        <span className="font-mono text-xs text-muted-foreground">{evt.organizer}</span>
+      ),
     },
     {
       key: "status",
       header: "Status",
       sortable: true,
       render: (evt) => (
-        <span className={cn(
-          "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium uppercase text-[9px] border",
-          evt.status === "confirmed" && "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-          evt.status === "tentative" && "bg-amber-500/10 text-amber-400 border-amber-500/20",
-          evt.status === "cancelled" && "bg-rose-500/10 text-rose-400 border-rose-500/20"
-        )}>
+        <span
+          className={cn(
+            "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium uppercase text-[9px] border",
+            evt.status === "confirmed" &&
+              "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+            evt.status === "tentative" && "bg-amber-500/10 text-amber-400 border-amber-500/20",
+            evt.status === "cancelled" && "bg-rose-500/10 text-rose-400 border-rose-500/20",
+          )}
+        >
           {evt.status}
         </span>
       ),
@@ -563,20 +591,12 @@ function EventsContent({
       <p className="text-sm text-muted-foreground">
         Stellar node registration and verification events.
       </p>
-      <AdminDataTable
-        data={events}
-        columns={columns}
-        defaultSortKey="date"
-      />
+      <AdminDataTable data={events} columns={columns} defaultSortKey="date" />
     </div>
   );
 }
 
-function AuditContent({
-  auditEvents,
-}: {
-  auditEvents: PresetAuditEvent[];
-}) {
+function AuditContent({ auditEvents }: { auditEvents: PresetAuditEvent[] }) {
   const columns: Column<PresetAuditEvent>[] = [
     {
       key: "action",
@@ -765,13 +785,9 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
             />
           )}
 
-          {activeSection === "attachments" && (
-            <AttachmentsContent attachments={attachments} />
-          )}
+          {activeSection === "attachments" && <AttachmentsContent attachments={attachments} />}
 
-          {activeSection === "events" && (
-            <EventsContent events={events} />
-          )}
+          {activeSection === "events" && <EventsContent events={events} />}
 
           {activeSection === "templates" && <TemplatesContent />}
 
@@ -804,31 +820,45 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
               <div className="space-y-3 rounded-lg border border-white/[0.04] bg-white/[0.01] p-3 text-xs leading-normal">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Node Address:</span>
-                  <span className="font-mono text-foreground">{selectedAccount.relayMetadata.nodeUri}</span>
+                  <span className="font-mono text-foreground">
+                    {selectedAccount.relayMetadata.nodeUri}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Stellar Account:</span>
-                  <span className="font-mono text-foreground text-[10px]">{selectedAccount.address}</span>
+                  <span className="font-mono text-foreground text-[10px]">
+                    {selectedAccount.address}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Routing Latency:</span>
-                  <span className="text-foreground font-medium">{selectedAccount.relayMetadata.latency}</span>
+                  <span className="text-foreground font-medium">
+                    {selectedAccount.relayMetadata.latency}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Signature Scheme:</span>
-                  <span className="text-foreground font-medium">{selectedAccount.relayMetadata.signatureScheme}</span>
+                  <span className="text-foreground font-medium">
+                    {selectedAccount.relayMetadata.signatureScheme}
+                  </span>
                 </div>
                 <div>
                   <span className="text-muted-foreground block text-[10px]">Owner Account:</span>
-                  <span className="font-mono text-foreground break-all text-[10px] block mt-0.5">{selectedAccount.relayMetadata.owner}</span>
+                  <span className="font-mono text-foreground break-all text-[10px] block mt-0.5">
+                    {selectedAccount.relayMetadata.owner}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Verification Status:</span>
-                  <span className={cn(
-                    "font-semibold uppercase text-[9px] px-1.5 py-0.5 rounded",
-                    selectedAccount.relayMetadata.status === "verified" && "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
-                    selectedAccount.relayMetadata.status === "pending" && "bg-amber-500/10 text-amber-400 border border-amber-500/20",
-                  )}>
+                  <span
+                    className={cn(
+                      "font-semibold uppercase text-[9px] px-1.5 py-0.5 rounded",
+                      selectedAccount.relayMetadata.status === "verified" &&
+                        "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
+                      selectedAccount.relayMetadata.status === "pending" &&
+                        "bg-amber-500/10 text-amber-400 border border-amber-500/20",
+                    )}
+                  >
                     {selectedAccount.relayMetadata.status}
                   </span>
                 </div>
@@ -870,31 +900,49 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
               <div className="space-y-3 rounded-lg border border-white/[0.04] bg-white/[0.01] p-3 text-xs leading-normal">
                 <div>
                   <span className="text-muted-foreground block text-[10px]">Message Hash:</span>
-                  <span className="font-mono text-foreground break-all text-[10px] block mt-0.5">{selectedMail.proofMetadata.messageHash}</span>
+                  <span className="font-mono text-foreground break-all text-[10px] block mt-0.5">
+                    {selectedMail.proofMetadata.messageHash}
+                  </span>
                 </div>
                 <div>
-                  <span className="text-muted-foreground block text-[10px]">Payment Preimage Hash:</span>
-                  <span className="font-mono text-foreground break-all text-[10px] block mt-0.5">{selectedMail.proofMetadata.paymentHash}</span>
+                  <span className="text-muted-foreground block text-[10px]">
+                    Payment Preimage Hash:
+                  </span>
+                  <span className="font-mono text-foreground break-all text-[10px] block mt-0.5">
+                    {selectedMail.proofMetadata.paymentHash}
+                  </span>
                 </div>
                 <div>
                   <span className="text-muted-foreground block text-[10px]">Soroban Contract:</span>
-                  <span className="font-mono text-foreground break-all text-[10px] block mt-0.5">{selectedMail.proofMetadata.contractAddress}</span>
+                  <span className="font-mono text-foreground break-all text-[10px] block mt-0.5">
+                    {selectedMail.proofMetadata.contractAddress}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Relay Latency:</span>
-                  <span className="text-foreground font-medium">{selectedMail.proofMetadata.latency}</span>
+                  <span className="text-foreground font-medium">
+                    {selectedMail.proofMetadata.latency}
+                  </span>
                 </div>
                 <div>
-                  <span className="text-muted-foreground block text-[10px]">Cryptographic Signature:</span>
-                  <span className="font-mono text-foreground break-all text-[10px] block mt-0.5">{selectedMail.proofMetadata.signature}</span>
+                  <span className="text-muted-foreground block text-[10px]">
+                    Cryptographic Signature:
+                  </span>
+                  <span className="font-mono text-foreground break-all text-[10px] block mt-0.5">
+                    {selectedMail.proofMetadata.signature}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Postage State:</span>
-                  <span className={cn(
-                    "font-semibold uppercase text-[9px] px-1.5 py-0.5 rounded",
-                    selectedMail.proofMetadata.postageStatus === "settled" && "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
-                    selectedMail.proofMetadata.postageStatus === "pending" && "bg-amber-500/10 text-amber-400 border border-amber-500/20",
-                  )}>
+                  <span
+                    className={cn(
+                      "font-semibold uppercase text-[9px] px-1.5 py-0.5 rounded",
+                      selectedMail.proofMetadata.postageStatus === "settled" &&
+                        "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
+                      selectedMail.proofMetadata.postageStatus === "pending" &&
+                        "bg-amber-500/10 text-amber-400 border border-amber-500/20",
+                    )}
+                  >
                     {selectedMail.proofMetadata.postageStatus}
                   </span>
                 </div>

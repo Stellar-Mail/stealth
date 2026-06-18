@@ -15,10 +15,11 @@ Recommended internal structure:
 - components/
 - services/
 - hooks/
-- 	ests/
+-     ests/
 - docs/
-"@ | Set-Content -Path "tools/v1/individual/important-email-pinning/README.md"
+  "@ | Set-Content -Path "tools/v1/individual/important-email-pinning/README.md"
   @"
+
 # Important Email Pinning Specs
 
 ## Purpose

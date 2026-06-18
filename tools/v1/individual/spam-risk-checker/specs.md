@@ -15,10 +15,11 @@ Recommended internal structure:
 - components/
 - services/
 - hooks/
-- 	ests/
+-     ests/
 - docs/
-"@ | Set-Content -Path "tools/v1/individual/spam-risk-checker/README.md"
+  "@ | Set-Content -Path "tools/v1/individual/spam-risk-checker/README.md"
   @"
+
 # Spam Risk Checker Specs
 
 ## Purpose

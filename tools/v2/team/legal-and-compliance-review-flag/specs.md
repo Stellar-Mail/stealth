@@ -15,10 +15,11 @@ Recommended internal structure:
 - components/
 - services/
 - hooks/
-- 	ests/
+-     ests/
 - docs/
-"@ | Set-Content -Path "tools/v2/team/legal-and-compliance-review-flag/README.md"
+  "@ | Set-Content -Path "tools/v2/team/legal-and-compliance-review-flag/README.md"
   @"
+
 # Legal and Compliance Review Flag Specs
 
 ## Purpose

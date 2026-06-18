@@ -1,15 +1,12 @@
-export type EventCategory = 
-  | 'onboarding'
-  | 'policy'
-  | 'send_outcome'
-  | 'request'
-  | 'proof_failure'
-  | 'retention';
+export type EventCategory =
+  | "onboarding"
+  | "policy"
+  | "send_outcome"
+  | "request"
+  | "proof_failure"
+  | "retention";
 
-export type EventPurpose = 
-  | 'activation_measurement'
-  | 'reliability_monitoring'
-  | 'abuse_prevention';
+export type EventPurpose = "activation_measurement" | "reliability_monitoring" | "abuse_prevention";
 
 export interface AnalyticsEvent {
   id: string;
@@ -54,27 +51,27 @@ export class PrivacyAnalytics {
   public enforceRetention() {
     const now = Date.now();
     const dayMs = 24 * 60 * 60 * 1000;
-    this.events = this.events.filter(event => {
+    this.events = this.events.filter((event) => {
       const ageDays = (now - event.timestamp) / dayMs;
       return ageDays <= event.retentionDays;
     });
   }
 
-  public track(event: Omit<AnalyticsEvent, 'id' | 'timestamp'>) {
+  public track(event: Omit<AnalyticsEvent, "id" | "timestamp">) {
     if (!this.config.enabled) {
       return;
     }
 
     // Verify no forbidden fields exist in payload
-    const forbiddenKeys = ['body', 'subject', 'key', 'correspondent', 'email', 'plaintext'];
+    const forbiddenKeys = ["body", "subject", "key", "correspondent", "email", "plaintext"];
     for (const key of Object.keys(event.payload)) {
-      if (forbiddenKeys.some(forbidden => key.toLowerCase().includes(forbidden))) {
+      if (forbiddenKeys.some((forbidden) => key.toLowerCase().includes(forbidden))) {
         throw new Error(`Analytics event payload contains forbidden key: ${key}`);
       }
     }
 
     if (this.currentBudget + event.privacyBudget > this.config.maxPrivacyBudget) {
-      console.warn('Privacy budget exceeded, dropping event');
+      console.warn("Privacy budget exceeded, dropping event");
       return;
     }
 

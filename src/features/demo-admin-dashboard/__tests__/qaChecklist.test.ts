@@ -15,7 +15,7 @@ describe("campaign demo data QA checklist", () => {
       for (const recipient of draftSample.recipients) {
         expect(
           recipient,
-          `Recipient "${recipient}" must use example.com, example.org, or *.stealth.demo`
+          `Recipient "${recipient}" must use example.com, example.org, or *.stealth.demo`,
         ).toMatch(SAFE_DOMAIN_PATTERN);
       }
     });
@@ -62,7 +62,7 @@ describe("campaign demo data QA checklist", () => {
         }
         expect(["stacked", "rail", "expanded"]).toContain(note.sidebarMode);
         expect(note.note).toBeTruthy();
-      }
+      },
     );
   });
 
@@ -78,7 +78,7 @@ describe("campaign demo data QA checklist", () => {
         expect(check.label).toBeTruthy();
         expect(["tablet", "laptop", "desktop"]).toContain(check.breakpoint);
         expect(check.expected).toBeTruthy();
-      }
+      },
     );
   });
 

@@ -15,10 +15,11 @@ Recommended internal structure:
 - components/
 - services/
 - hooks/
-- 	ests/
+-     ests/
 - docs/
-"@ | Set-Content -Path "tools/v2/team/escalation-tool/README.md"
+  "@ | Set-Content -Path "tools/v2/team/escalation-tool/README.md"
   @"
+
 # Escalation Tool Specs
 
 ## Purpose

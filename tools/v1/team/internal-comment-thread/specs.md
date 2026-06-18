@@ -15,10 +15,11 @@ Recommended internal structure:
 - components/
 - services/
 - hooks/
-- 	ests/
+-     ests/
 - docs/
-"@ | Set-Content -Path "tools/v1/team/internal-comment-thread/README.md"
+  "@ | Set-Content -Path "tools/v1/team/internal-comment-thread/README.md"
   @"
+
 # Internal Comment Thread Specs
 
 ## Purpose

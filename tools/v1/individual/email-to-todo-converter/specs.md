@@ -15,10 +15,11 @@ Recommended internal structure:
 - components/
 - services/
 - hooks/
-- 	ests/
+-     ests/
 - docs/
-"@ | Set-Content -Path "tools/v1/individual/email-to-todo-converter/README.md"
+  "@ | Set-Content -Path "tools/v1/individual/email-to-todo-converter/README.md"
   @"
+
 # Email-to-Todo Converter Specs
 
 ## Purpose

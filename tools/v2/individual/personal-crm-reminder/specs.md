@@ -15,10 +15,11 @@ Recommended internal structure:
 - components/
 - services/
 - hooks/
-- 	ests/
+-     ests/
 - docs/
-"@ | Set-Content -Path "tools/v2/individual/personal-crm-reminder/README.md"
+  "@ | Set-Content -Path "tools/v2/individual/personal-crm-reminder/README.md"
   @"
+
 # Personal CRM Reminder Specs
 
 ## Purpose

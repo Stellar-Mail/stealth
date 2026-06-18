@@ -15,10 +15,11 @@ Recommended internal structure:
 - components/
 - services/
 - hooks/
-- 	ests/
+-     ests/
 - docs/
-"@ | Set-Content -Path "tools/v2/team/suspicious-sender-watchlist/README.md"
+  "@ | Set-Content -Path "tools/v2/team/suspicious-sender-watchlist/README.md"
   @"
+
 # Suspicious Sender Watchlist Specs
 
 ## Purpose

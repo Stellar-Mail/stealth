@@ -49,9 +49,7 @@ export function ChangelogPanel() {
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-semibold text-foreground">v{version}</span>
-                  {hasUnreadInGroup && (
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                  )}
+                  {hasUnreadInGroup && <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />}
                 </div>
                 <span className="text-[11px] text-muted-foreground">
                   {new Date(date).toLocaleDateString("en-US", {
@@ -79,7 +77,8 @@ export function ChangelogPanel() {
                           <span
                             className={cn(
                               "rounded-full px-2 py-0.5 text-[10px] font-medium",
-                              CATEGORY_COLORS[entry.category] ?? "bg-white/10 text-muted-foreground",
+                              CATEGORY_COLORS[entry.category] ??
+                                "bg-white/10 text-muted-foreground",
                             )}
                           >
                             {CATEGORY_LABELS[entry.category] ?? entry.category}

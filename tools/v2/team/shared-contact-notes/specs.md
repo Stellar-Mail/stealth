@@ -15,10 +15,11 @@ Recommended internal structure:
 - components/
 - services/
 - hooks/
-- 	ests/
+-     ests/
 - docs/
-"@ | Set-Content -Path "tools/v2/team/shared-contact-notes/README.md"
+  "@ | Set-Content -Path "tools/v2/team/shared-contact-notes/README.md"
   @"
+
 # Shared Contact Notes Specs
 
 ## Purpose

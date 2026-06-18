@@ -24,7 +24,9 @@ test.describe("search and filter", () => {
   test("question mark opens the shortcut overlay", async ({ page }) => {
     await page.keyboard.press("Shift+/");
     await expect(page.getByRole("dialog", { name: "Keyboard shortcuts" })).toBeVisible();
-    await expect(page.getByPlaceholder("Search shortcuts, commands, or conflict notes…")).toBeVisible();
+    await expect(
+      page.getByPlaceholder("Search shortcuts, commands, or conflict notes…"),
+    ).toBeVisible();
   });
 
   test("global shortcuts are ignored while typing in inputs", async ({ page }) => {

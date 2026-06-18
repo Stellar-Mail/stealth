@@ -15,10 +15,11 @@ Recommended internal structure:
 - components/
 - services/
 - hooks/
-- 	ests/
+-     ests/
 - docs/
-"@ | Set-Content -Path "tools/v2/individual/confidential-mode-suggestion/README.md"
+  "@ | Set-Content -Path "tools/v2/individual/confidential-mode-suggestion/README.md"
   @"
+
 # Confidential Mode Suggestion Specs
 
 ## Purpose

@@ -15,10 +15,11 @@ Recommended internal structure:
 - components/
 - services/
 - hooks/
-- 	ests/
+-     ests/
 - docs/
-"@ | Set-Content -Path "tools/v2/individual/private-note-on-email/README.md"
+  "@ | Set-Content -Path "tools/v2/individual/private-note-on-email/README.md"
   @"
+
 # Private Note on Email Specs
 
 ## Purpose

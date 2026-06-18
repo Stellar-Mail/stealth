@@ -15,10 +15,11 @@ Recommended internal structure:
 - components/
 - services/
 - hooks/
-- 	ests/
+-     ests/
 - docs/
-"@ | Set-Content -Path "tools/v2/individual/task-extractor/README.md"
+  "@ | Set-Content -Path "tools/v2/individual/task-extractor/README.md"
   @"
+
 # Task Extractor Specs
 
 ## Purpose

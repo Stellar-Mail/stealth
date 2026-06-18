@@ -93,7 +93,9 @@ describe("demo admin dashboard presets", () => {
     expect(pendingRelay?.relayMetadata?.status).toBe("pending");
     expect(pendingRelay?.relayMetadata?.nodeUri).toBe("relay07*stealth.demo");
 
-    const verificationMail = relayVerification?.mail.find((m) => m.subject === "Your relay verification code");
+    const verificationMail = relayVerification?.mail.find(
+      (m) => m.subject === "Your relay verification code",
+    );
     expect(verificationMail).toBeDefined();
     expect(verificationMail?.status).toBe("pending");
     expect(verificationMail?.folder).toBe("pending");
@@ -104,7 +106,9 @@ describe("demo admin dashboard presets", () => {
     const proofPending = PRESET_SCENARIOS.find((p) => p.id === "proof-pending");
     expect(proofPending).toBeDefined();
 
-    const pendingMail = proofPending?.mail.find((m) => m.subject === "Soroban proof generation pending");
+    const pendingMail = proofPending?.mail.find(
+      (m) => m.subject === "Soroban proof generation pending",
+    );
     expect(pendingMail).toBeDefined();
     expect(pendingMail?.status).toBe("pending");
     expect(pendingMail?.folder).toBe("pending");
@@ -116,7 +120,9 @@ describe("demo admin dashboard presets", () => {
     const receiptSettlement = PRESET_SCENARIOS.find((p) => p.id === "receipt-settlement");
     expect(receiptSettlement).toBeDefined();
 
-    const deliveryReceiptMail = receiptSettlement?.mail.find((m) => m.subject === "Delivery receipt settled");
+    const deliveryReceiptMail = receiptSettlement?.mail.find(
+      (m) => m.subject === "Delivery receipt settled",
+    );
     expect(deliveryReceiptMail).toBeDefined();
     expect(deliveryReceiptMail?.status).toBe("delivered");
     expect(deliveryReceiptMail?.folder).toBe("receipts");

@@ -98,9 +98,6 @@ describe("Migration Runner", () => {
     expect(result.data.emails[0].event.endTime).toBe("16:30");
     expect(result.data.emails[0].event.date).toBe("2026-06-13");
     expect(result.data.emails[0].event.calendar).toBe("personal");
-    expect(result.stepsApplied).toEqual([
-      "Migrated V1 to V2",
-      "Migrated V2 to V3",
-    ]);
+    expect(result.stepsApplied).toEqual(["Migrated V1 to V2", "Migrated V2 to V3"]);
   });
 });

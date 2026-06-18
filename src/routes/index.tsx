@@ -32,11 +32,7 @@ import {
   type MailFolder,
 } from "@/components/mail/data";
 import { usePreferences, useLayoutPreferences } from "@/features/preferences";
-import {
-  ResizableHandle,
-  ResizablePanel,
-  ResizablePanelGroup,
-} from "@/components/ui/resizable";
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { CalendarWorkspace, useCalendar } from "@/features/calendar";
 import { FeedbackViewport } from "@/features/design-system/feedback/feedback-viewport";
 import { useFeedback } from "@/features/design-system/feedback/use-feedback";
@@ -636,7 +632,9 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
               collapsible
               onCollapse={() => setLayout({ sidebarCollapsed: true })}
               onExpand={() => setLayout({ sidebarCollapsed: false })}
-              className={cn(layout.sidebarCollapsed && "min-w-[50px] transition-all duration-300 ease-in-out")}
+              className={cn(
+                layout.sidebarCollapsed && "min-w-[50px] transition-all duration-300 ease-in-out",
+              )}
             >
               <Sidebar
                 active={folder}
@@ -848,10 +846,7 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
         }}
         onOpenSettings={openSettings}
       />
-      <ShortcutOverlay
-        open={shortcutOverlayOpen}
-        onClose={() => setShortcutOverlayOpen(false)}
-      />
+      <ShortcutOverlay open={shortcutOverlayOpen} onClose={() => setShortcutOverlayOpen(false)} />
       <ProofInspectorModal
         open={proofInspectorOpen}
         onClose={() => setProofInspectorOpen(false)}

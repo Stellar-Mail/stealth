@@ -15,10 +15,11 @@ Recommended internal structure:
 - components/
 - services/
 - hooks/
-- 	ests/
+-     ests/
 - docs/
-"@ | Set-Content -Path "tools/v2/team/multi-agent-assignment/README.md"
+  "@ | Set-Content -Path "tools/v2/team/multi-agent-assignment/README.md"
   @"
+
 # Multi-Agent Assignment Specs
 
 ## Purpose

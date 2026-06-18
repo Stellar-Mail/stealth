@@ -15,10 +15,11 @@ Recommended internal structure:
 - components/
 - services/
 - hooks/
-- 	ests/
+-     ests/
 - docs/
-"@ | Set-Content -Path "tools/v2/team/deal-lead-mail-tracker/README.md"
+  "@ | Set-Content -Path "tools/v2/team/deal-lead-mail-tracker/README.md"
   @"
+
 # Deal/Lead Mail Tracker Specs
 
 ## Purpose

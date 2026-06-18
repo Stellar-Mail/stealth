@@ -6,9 +6,9 @@ This folder is the isolated workspace for the Deal/Lead Mail Tracker tool.
 
 All work for this tool must stay inside:
 
-``text
+`text
 .\tools\v2\team\deal-lead-mail-tracker\
-``
+`
 
 Do not wire this tool into the main app, routing, inbox architecture, wallet core, Stellar core, database schema, or existing design system unless a future integration issue explicitly allows it.
 

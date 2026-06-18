@@ -236,9 +236,7 @@ function AnimationPreview({
             transition={variant.transition}
             className="w-full h-32 rounded-lg bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center"
           >
-            <div className="text-center text-sm font-medium text-foreground">
-              Animation preview
-            </div>
+            <div className="text-center text-sm font-medium text-foreground">Animation preview</div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -260,9 +258,7 @@ export function MotionGalleryRoute() {
     categoryIndex: 0,
     presetIndex: 0,
   });
-  const [isReducedMotion, setIsReducedMotion] = useState(
-    getMotionPreference() === "reduced"
-  );
+  const [isReducedMotion, setIsReducedMotion] = useState(getMotionPreference() === "reduced");
   const [resetKey, setResetKey] = useState(0);
 
   useEffect(() => {
@@ -280,9 +276,7 @@ export function MotionGalleryRoute() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background px-4">
         <div className="max-w-md text-center">
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            Motion Gallery
-          </h1>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Motion Gallery</h1>
           <p className="mt-2 text-sm text-muted-foreground">
             This route is only available in development mode.
           </p>
@@ -356,21 +350,18 @@ const preference = motionPresets.getMotionPreference();`}
         {/* Animation Categories */}
         <div className="space-y-4">
           {presetCategories.map((category, categoryIndex) => (
-            <div
-              key={category.title}
-              className="overflow-hidden rounded-lg border border-border"
-            >
+            <div key={category.title} className="overflow-hidden rounded-lg border border-border">
               {/* Category Header */}
               <button
-                onClick={() => setExpandedCategory(expandedCategory === categoryIndex ? -1 : categoryIndex)}
+                onClick={() =>
+                  setExpandedCategory(expandedCategory === categoryIndex ? -1 : categoryIndex)
+                }
                 className="w-full bg-card px-6 py-4 text-left transition hover:bg-accent/50"
               >
                 <div className="flex items-start justify-between">
                   <div>
                     <h2 className="font-semibold text-foreground">{category.title}</h2>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {category.description}
-                    </p>
+                    <p className="mt-1 text-sm text-muted-foreground">{category.description}</p>
                   </div>
                   <motion.div
                     animate={{
@@ -416,16 +407,14 @@ const preference = motionPresets.getMotionPreference();`}
                                   expandedPreset?.categoryIndex === categoryIndex &&
                                     expandedPreset?.presetIndex === presetIndex
                                     ? null
-                                    : { categoryIndex, presetIndex }
+                                    : { categoryIndex, presetIndex },
                                 )
                               }
                               className="w-full text-left transition hover:opacity-70"
                             >
                               <div className="flex items-start justify-between">
                                 <div>
-                                  <h3 className="font-medium text-foreground">
-                                    {preset.name}
-                                  </h3>
+                                  <h3 className="font-medium text-foreground">{preset.name}</h3>
                                   <p className="mt-1 text-xs text-muted-foreground">
                                     {preset.description}
                                   </p>
@@ -490,8 +479,8 @@ const preference = motionPresets.getMotionPreference();`}
                   hover/focus states
                 </li>
                 <li>
-                  <strong className="text-foreground">Remove</strong> - Item deletion or
-                  dismissal with emphasis
+                  <strong className="text-foreground">Remove</strong> - Item deletion or dismissal
+                  with emphasis
                 </li>
                 <li>
                   <strong className="text-foreground">Confirm</strong> - Positive feedback and
