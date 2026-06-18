@@ -23,6 +23,54 @@ type VirtualMailFolder = "all" | "starred";
 
 export type MailLocation = Exclude<MailFolder, VirtualMailFolder>;
 
+/**
+ * Per-sender policy applied through the sender-conversion flow.
+ * `undefined` means the sender has never been converted (still "unknown").
+ * See src/features/sender-conversion.
+ */
+export type SenderPolicy = "allow" | "verify" | "block";
+
+export type ReceiptState = "none" | "pending" | "sent";
+
+/**
+ * Encrypted payload status for messages in the encrypted folder.
+ * - `locked`     : payload present but key not yet loaded — body must not render.
+ * - `verifying`  : decryption key found, integrity check in progress.
+ * - `decrypted`  : payload verified and unlocked, body can render.
+ * - `failed`     : decryption or integrity check failed; body must not render.
+ */
+export type PayloadStatus = "locked" | "verifying" | "decrypted" | "failed";
+
+/**
+ * Failure reason discriminator for the `failed` status.
+ * Used to present specific error copy and targeted retry / report CTAs.
+ */
+export type PayloadFailureReason = "key" | "payload" | "relay" | "integrity";
+
+export type EncryptedPayload = {
+  /** Current verification/unlock state for this payload. */
+  status: PayloadStatus;
+  /** Short opaque ID shown in the diagnostic copy and clipboard button. */
+  diagnosticId: string;
+  /** Only set when status === "failed". */
+  failureReason?: PayloadFailureReason;
+};
+/**
+ * Reminder metadata attached when a message is snoozed. Persisted on the email
+ * so the snoozed folder can show when it returns and offer edit/undo.
+ * See src/features/snooze.
+ */
+export type SnoozeState = {
+  /** ISO datetime the message should return to the inbox. */
+  remindAt: string;
+  /** Which option produced this reminder. */
+  choice: "later-today" | "tomorrow" | "next-week" | "custom";
+  /** Human label captured at set-time, e.g. "Tomorrow". */
+  label: string;
+  /** ISO datetime the snooze was created. */
+  createdAt: string;
+};
+
 export type Email = {
   id: string;
   from: string;
@@ -38,6 +86,12 @@ export type Email = {
   attachments?: { name: string; size: string; type: string }[];
   avatarColor: string;
   event?: MailEvent;
+  senderPolicy?: SenderPolicy;
+  receiptState?: ReceiptState;
+  snooze?: SnoozeState;
+  postageAmount?: string;
+  verifiedSender?: boolean;
+  encryptedPayload?: EncryptedPayload;
 };
 
 export type MailFilters = {
@@ -109,6 +163,22 @@ export function getFolderLabel(folder: MailFolder) {
   return mailFolders.find((item) => item.key === folder)?.label ?? folder;
 }
 
+/** Folders whose messages carry a verified Stellar identity proof. */
+const verifiedLocations = new Set<MailLocation>(["verified", "priority", "encrypted", "receipts"]);
+
+/** Whether a message's sender identity is considered verified. */
+export function isVerified(email: Email) {
+  return verifiedLocations.has(email.folder);
+}
+
+/**
+ * Deterministic mock proof hash for a message. Shared by the reader's protocol
+ * badge and the command palette so "inspect proof" and the badge agree.
+ */
+export function deriveProof(email: Email) {
+  return `${email.id.padStart(2, "0")}c7...${email.from.length.toString(16)}a9`;
+}
+
 export function getEmailsForFolder(allEmails: Email[], folder: MailFolder) {
   if (folder === "all")
     return allEmails.filter((email) => email.folder !== "spam" && email.folder !== "trash");
@@ -136,9 +206,12 @@ export const emails: Email[] = [
     labels: ["Design", "Priority"],
     attachments: [
       { name: "vantage-identity-v3.pdf", size: "4.2 MB", type: "pdf" },
+      { name: "brand-moodboard.png", size: "1.8 MB", type: "png" },
+      { name: "release-notes.txt", size: "1.2 KB", type: "txt" },
       { name: "motion-principles.key", size: "12.1 MB", type: "key" },
     ],
     avatarColor: c(0),
+    receiptState: "sent",
   },
   {
     id: "2",
@@ -205,6 +278,7 @@ export const emails: Email[] = [
     folder: "inbox",
     labels: ["Investors", "Postage"],
     avatarColor: c(3),
+    receiptState: "pending",
   },
   {
     id: "5",
@@ -219,6 +293,40 @@ export const emails: Email[] = [
     folder: "requests",
     labels: ["Request", "Paid"],
     avatarColor: c(4),
+    postageAmount: "10000000",
+    verifiedSender: false,
+  },
+  {
+    id: "5-b",
+    from: "Stellar Fund",
+    email: "GD7K...J4W2",
+    subject: "Grant application review",
+    preview: "We've completed the initial screening of your GrantFox application...",
+    body: "We've completed the initial screening of your GrantFox application and would like to proceed with the technical review.\n\nPlease approve this request so we can schedule the dev walkthrough and share the assessment criteria.",
+    time: "Yesterday",
+    unread: true,
+    starred: false,
+    folder: "requests",
+    labels: ["Request", "Grant", "Verified"],
+    avatarColor: c(1),
+    postageAmount: "50000000",
+    verifiedSender: true,
+  },
+  {
+    id: "5-c",
+    from: "Anonymous Trader",
+    email: "GB3S...P9A2",
+    subject: "OTC offer for STEALTH tokens",
+    preview: "I'm looking to buy 50k STEALTH tokens at $0.15...",
+    body: "I'm looking to buy 50k STEALTH tokens at $0.15. Can settle immediately via smart contract. Let me know if you have liquidity available.",
+    time: "Yesterday",
+    unread: true,
+    starred: false,
+    folder: "requests",
+    labels: ["Request", "Paid"],
+    avatarColor: c(3),
+    postageAmount: "15000000",
+    verifiedSender: false,
   },
   {
     id: "6",
@@ -233,8 +341,71 @@ export const emails: Email[] = [
     starred: false,
     folder: "encrypted",
     labels: ["Encrypted", "Engineering"],
-    attachments: [{ name: "payload-test-vector.json", size: "18 KB", type: "json" }],
+    attachments: [
+      { name: "payload-test-vector.json", size: "18 KB", type: "json" },
+      { name: "encrypted-data.pgp", size: "1.4 KB", type: "pgp" },
+      { name: "stealth-payload.bin", size: "256 B", type: "bin" },
+    ],
     avatarColor: c(0),
+    encryptedPayload: {
+      status: "decrypted",
+      diagnosticId: "dec-7a3f-c18e",
+    },
+  },
+  {
+    id: "6-b",
+    from: "Kael Ortega",
+    email: "kael*nexus.io",
+    subject: "Sealed proposal — open to verify",
+    preview: "Unlock the encrypted envelope to read the funding proposal…",
+    body: "Unlock the encrypted envelope to read the funding proposal. The payload is sealed with your registered public key.",
+    time: "Yesterday",
+    unread: true,
+    starred: false,
+    folder: "encrypted",
+    labels: ["Encrypted", "Proposal"],
+    avatarColor: c(1),
+    encryptedPayload: {
+      status: "locked",
+      diagnosticId: "lck-4b2a-9d01",
+    },
+  },
+  {
+    id: "6-c",
+    from: "Cipher Relay",
+    email: "relay*cipher.network",
+    subject: "Verifying message integrity…",
+    preview: "Integrity check is running. Stand by for the decrypted payload.",
+    body: "Integrity check is running. Stand by for the decrypted payload.",
+    time: "Today",
+    unread: true,
+    starred: false,
+    folder: "encrypted",
+    labels: ["Encrypted", "Verifying"],
+    avatarColor: c(2),
+    encryptedPayload: {
+      status: "verifying",
+      diagnosticId: "vfy-8c5d-2e47",
+    },
+  },
+  {
+    id: "6-d",
+    from: "Vault Node",
+    email: "vault*stealth.network",
+    subject: "Decryption failed — payload corrupted",
+    preview: "The payload failed integrity verification. Possible relay tampering detected.",
+    body: "The payload failed integrity verification. Possible relay tampering detected.",
+    time: "2 days ago",
+    unread: false,
+    starred: false,
+    folder: "encrypted",
+    labels: ["Encrypted", "Failed"],
+    avatarColor: c(3),
+    encryptedPayload: {
+      status: "failed",
+      diagnosticId: "flt-1e9b-5f62",
+      failureReason: "integrity",
+    },
   },
   {
     id: "7",
@@ -263,6 +434,12 @@ export const emails: Email[] = [
     folder: "snoozed",
     labels: ["Event", "Snoozed", "Personal"],
     avatarColor: c(2),
+    snooze: {
+      remindAt: "2026-06-14T10:30:00",
+      choice: "tomorrow",
+      label: "Tomorrow",
+      createdAt: "2026-06-13T09:41:00",
+    },
     event: {
       id: "mail-studio-visit",
       title: "Studio visit",

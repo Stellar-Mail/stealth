@@ -17,3 +17,37 @@ redeclaring their values.
 
 Feature-specific layouts stay in their feature folders. A primitive belongs here only when it has a
 stable API and is useful in more than one workflow.
+
+## Motion System
+
+The motion presets system (`@/lib/motion-presets`) provides centralized, accessible animations for consistent motion across the application.
+
+### Quick Start
+
+```tsx
+import { motionPresets } from "@/lib/motion-presets";
+import { motion, AnimatePresence } from "framer-motion";
+
+<motion.div {...motionPresets.entrance.slideUp()}>Content with entrance animation</motion.div>;
+```
+
+### Categories
+
+- **entrance** - Elements appearing (slideUp, fadeIn, scaleIn, slideLeft, slideRight)
+- **exit** - Elements disappearing (slideDown, fadeOut, scaleOut, slideToLeft, slideToRight)
+- **promote** - Drawing attention (scale, lift, glow) - use with hover/tap states
+- **remove** - Removal emphasis (spinOut, collapse, slideAwayRight)
+- **confirm** - Success feedback (bounce, pulse, checkmark)
+- **danger** - Error/warning (shake, pulse, spinWarn)
+
+### Accessibility
+
+All presets automatically respect `prefers-reduced-motion`. See the development gallery for testing and examples:
+
+```
+http://localhost:5173/motion-gallery (dev mode only)
+```
+
+### Documentation
+
+Full documentation is available in [`src/lib/MOTION_PRESETS.md`](../../lib/MOTION_PRESETS.md).

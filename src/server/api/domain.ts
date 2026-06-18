@@ -15,7 +15,13 @@ export const stroopAmountSchema = z
   .string()
   .trim()
   .regex(/^(0|[1-9]\d*)$/, "Expected a non-negative integer string")
-  .refine((value) => BigInt(value) <= 2n ** 127n - 1n, "Amount exceeds Soroban i128");
+  .refine((value) => {
+    try {
+      return BigInt(value) <= 2n ** 127n - 1n;
+    } catch {
+      return false;
+    }
+  }, "Amount exceeds Soroban i128");
 
 export const senderRuleSchema = z.enum(["default", "allow", "block"]);
 export const postageStatusSchema = z.enum(["pending", "settled", "refunded"]);

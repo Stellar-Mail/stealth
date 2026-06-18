@@ -24,6 +24,10 @@ tests/visual/__results__/
 .wrangler/
 .dev.vars
 
+# Playwright
+playwright-report/
+test-results/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -34,3 +38,7 @@ tests/visual/__results__/
 *.njsproj
 *.sln
 *.sw?
+
+CLAUDE.md
+plan.md
+ASSUMPTIONS.md

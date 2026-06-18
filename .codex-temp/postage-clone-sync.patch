@@ -1,0 +1,70 @@
+﻿diff --git "a/C:\\tmp\\stealth-snapshots-clone\\tests\\e2e\\postage.spec.ts" "b/C:\\Users\\USER\\Desktop\\GFox\\stealth\\tests\\e2e\\postage.spec.ts"
+index 3033918..9d15fab 100644
+--- "a/C:\\tmp\\stealth-snapshots-clone\\tests\\e2e\\postage.spec.ts"
++++ "b/C:\\Users\\USER\\Desktop\\GFox\\stealth\\tests\\e2e\\postage.spec.ts"
+@@ -5,8 +5,8 @@ import { test, expect, ACTOR, SENDER } from "./fixtures";
+ 
+ test.describe("postage API", () => {
+   test("quotes zero postage for an explicitly allowed sender", async ({ api }) => {
+-    const actor = `${ACTOR.slice(0, -2)}01`;
+-    const sender = `${SENDER.slice(0, -2)}01`;
++    const actor = `${ACTOR.slice(0, -2)}A2`;
++    const sender = `${SENDER.slice(0, -2)}A2`;
+ 
+     // Allow the sender first
+     await api.putPolicy(actor, {
+@@ -26,8 +26,8 @@ test.describe("postage API", () => {
+   });
+ 
+   test("quote marks blocked sender as ineligible", async ({ api }) => {
+-    const actor = `${ACTOR.slice(0, -2)}02`;
+-    const sender = `${SENDER.slice(0, -2)}02`;
++    const actor = `${ACTOR.slice(0, -2)}A3`;
++    const sender = `${SENDER.slice(0, -2)}A3`;
+ 
+     await api.setSenderRule(actor, sender, "block");
+ 
+@@ -40,8 +40,8 @@ test.describe("postage API", () => {
+   });
+ 
+   test("submits postage and then settles it", async ({ page, api }) => {
+-    const actor = `${ACTOR.slice(0, -2)}03`;
+-    const sender = `${SENDER.slice(0, -2)}03`;
++    const actor = `${ACTOR.slice(0, -2)}A4`;
++    const sender = `${SENDER.slice(0, -2)}A4`;
+     const msgId = "3".repeat(64);
+     const payHash = "3".repeat(64);
+ 
+@@ -81,8 +81,8 @@ test.describe("postage API", () => {
+   });
+ 
+   test("submits postage and then refunds it", async ({ page, api }) => {
+-    const actor = `${ACTOR.slice(0, -2)}04`;
+-    const sender = `${SENDER.slice(0, -2)}04`;
++    const actor = `${ACTOR.slice(0, -2)}A5`;
++    const sender = `${SENDER.slice(0, -2)}A5`;
+     const msgId = "c".repeat(64);
+     const payHash = "d".repeat(64);
+ 
+@@ -109,8 +109,8 @@ test.describe("postage API", () => {
+   });
+ 
+   test("rejects duplicate postage submission with 409", async ({ page, api }) => {
+-    const actor = `${ACTOR.slice(0, -2)}05`;
+-    const sender = `${SENDER.slice(0, -2)}05`;
++    const actor = `${ACTOR.slice(0, -2)}A6`;
++    const sender = `${SENDER.slice(0, -2)}A6`;
+     const msgId = "e".repeat(64);
+     const payHash = "f".repeat(64);
+ 
+@@ -136,8 +136,8 @@ test.describe("postage API", () => {
+   });
+ 
+   test("rejects postage below mailbox minimum with 422", async ({ page, api }) => {
+-    const actor = `${ACTOR.slice(0, -2)}06`;
+-    const sender = `${SENDER.slice(0, -2)}06`;
++    const actor = `${ACTOR.slice(0, -2)}A7`;
++    const sender = `${SENDER.slice(0, -2)}A7`;
+     const msgId = "9".repeat(64);
+     const payHash = "8".repeat(64);
+ 

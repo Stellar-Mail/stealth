@@ -1,6 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { MemoryApiRepository } from "../../../src/server/api/memory-repository";
+import * as metrics from "../../../src/server/api/metrics";
 import {
   assertPostageParticipant,
   getPostage,
@@ -80,6 +81,99 @@ describe("postage service", () => {
         sender,
       }),
     ).rejects.toMatchObject({ status: 422 });
+  });
+
+  it("emits a metric when the account limit is exceeded", async () => {
+    const repository = new MemoryApiRepository();
+    await repository.setPolicy(recipient, {
+      allowUnknown: true,
+      minimumPostage: "100",
+      requireVerified: false,
+    });
+    const spy = vi.spyOn(metrics, "incrementCounter");
+    try {
+      for (let i = 0; i < 50; i++) {
+        await repository.incrementCounter(`abuse:account:${sender}`, 3600);
+      }
+
+      await expect(
+        submitPostage(repository, {
+          amount: "125",
+          messageId: "g".repeat(64),
+          paymentHash: "h".repeat(64),
+          recipient,
+          sender,
+        }),
+      ).rejects.toMatchObject({ status: 429 });
+      expect(spy).toHaveBeenCalledWith(
+        "postage_limit_rejected",
+        expect.objectContaining({ limit: "account" }),
+      );
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it("emits a metric when the ip limit is exceeded", async () => {
+    const repository = new MemoryApiRepository();
+    await repository.setPolicy(recipient, {
+      allowUnknown: true,
+      minimumPostage: "100",
+      requireVerified: false,
+    });
+    const spy = vi.spyOn(metrics, "incrementCounter");
+    try {
+      for (let i = 0; i < 100; i++) {
+        await repository.incrementCounter("abuse:ip:1.2.3.4", 3600);
+      }
+
+      await expect(
+        submitPostage(
+          repository,
+          {
+            amount: "125",
+            messageId: "i".repeat(64),
+            paymentHash: "j".repeat(64),
+            recipient,
+            sender,
+          },
+          new Date(),
+          { ip: "1.2.3.4" },
+        ),
+      ).rejects.toMatchObject({ status: 429 });
+      expect(spy).toHaveBeenCalledWith(
+        "postage_limit_rejected",
+        expect.objectContaining({ limit: "ip" }),
+      );
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it("rate limits missing relay ids through the unknown relay bucket", async () => {
+    const repository = new MemoryApiRepository();
+    await repository.setPolicy(recipient, {
+      allowUnknown: true,
+      minimumPostage: "100",
+      requireVerified: false,
+    });
+    for (let i = 0; i < 500; i++) {
+      await repository.incrementCounter("abuse:relay:unknown", 3600);
+    }
+
+    await expect(
+      submitPostage(repository, {
+        amount: "125",
+        messageId: "e".repeat(64),
+        paymentHash: "f".repeat(64),
+        recipient,
+        sender,
+      }),
+    ).rejects.toMatchObject({
+      status: 429,
+      code: "too_many_requests",
+      message: "Relay limit exceeded",
+    });
   });
 
   it("limits postage reads to message participants", async () => {
