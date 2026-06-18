@@ -4,9 +4,9 @@ Quick extraction of attachments.
 
 ## Scope
 
-- Release tier: $(System.Collections.Hashtable.Tier.ToUpperInvariant())
-- Audience: $(System.Collections.Hashtable.Audience)
-- Folder ownership: $dir/
+- Release tier: V1
+- Audience: Individual
+- Folder ownership: tools/v1/individual/attachment-extractor/
 
 This is a self-contained tooling workspace. Do not wire this tool into the main app, routing, inbox architecture, wallet core, Stellar core, or design system unless a future integration issue explicitly allows it.
 
@@ -15,12 +15,8 @@ Recommended internal structure:
 - components/
 - services/
 - hooks/
--     ests/
+- tests/
 - docs/
-  "@ | Set-Content -Path "tools/v1/individual/attachment-extractor/README.md"
-  @"
-
-# Attachment Extractor Specs
 
 ## Purpose
 
@@ -30,7 +26,7 @@ Quick extraction of attachments.
 
 All work for this tool should stay in:
 
-$dir/
+tools/v1/individual/attachment-extractor/
 
 ## Required issue categories
 

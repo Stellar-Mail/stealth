@@ -1,4 +1,3 @@
-/* eslint-disable */
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { defaultCampaignSnapshots } from "../fixtures/campaignSnapshotFixtures";
 import { CampaignSnapshot } from "../types/campaignSnapshot";

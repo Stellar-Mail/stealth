@@ -825,4 +825,129 @@ mod test {
             Err(Ok(Error::AlreadyResolved))
         );
     }
+
+    #[test]
+    #[should_panic(expected = "Error(Auth")]
+    fn submit_requires_sender_auth() {
+        let setup = setup(0);
+        let client = PostageContractClient::new(&setup.env, &setup.contract_id);
+        let wrong_address = Address::generate(&setup.env);
+
+        setup.env.mock_auths(&[soroban_sdk::testutils::MockAuth {
+            address: &wrong_address,
+            invoke: &soroban_sdk::testutils::MockAuthInvoke {
+                contract: &setup.contract_id,
+                fn_name: "submit",
+                args: (
+                    id(&setup.env, 1),
+                    setup.sender.clone(),
+                    setup.recipient.clone(),
+                    125_i128,
+                )
+                    .into_val(&setup.env),
+                sub_invokes: &[],
+            },
+        }]);
+
+        client.submit(&id(&setup.env, 1), &setup.sender, &setup.recipient, &125);
+    }
+
+    #[test]
+    #[should_panic(expected = "Error(Auth")]
+    fn dispute_requires_recipient_auth() {
+        let setup = setup(0);
+        let client = PostageContractClient::new(&setup.env, &setup.contract_id);
+        client.submit(&id(&setup.env, 1), &setup.sender, &setup.recipient, &125);
+        setup.env.ledger().set_timestamp(86_442);
+
+        let wrong_address = Address::generate(&setup.env);
+        setup.env.mock_auths(&[soroban_sdk::testutils::MockAuth {
+            address: &wrong_address,
+            invoke: &soroban_sdk::testutils::MockAuthInvoke {
+                contract: &setup.contract_id,
+                fn_name: "dispute",
+                args: (id(&setup.env, 1),).into_val(&setup.env),
+                sub_invokes: &[],
+            },
+        }]);
+
+        client.dispute(&id(&setup.env, 1));
+    }
+
+    #[test]
+    #[should_panic(expected = "Error(Auth")]
+    fn settle_requires_recipient_auth() {
+        let setup = setup(0);
+        let client = PostageContractClient::new(&setup.env, &setup.contract_id);
+        client.submit(&id(&setup.env, 1), &setup.sender, &setup.recipient, &125);
+
+        let wrong_address = Address::generate(&setup.env);
+        setup.env.mock_auths(&[soroban_sdk::testutils::MockAuth {
+            address: &wrong_address,
+            invoke: &soroban_sdk::testutils::MockAuthInvoke {
+                contract: &setup.contract_id,
+                fn_name: "settle",
+                args: (id(&setup.env, 1),).into_val(&setup.env),
+                sub_invokes: &[],
+            },
+        }]);
+
+        client.settle(&id(&setup.env, 1));
+    }
+
+    #[test]
+    #[should_panic(expected = "Error(Auth")]
+    fn refund_requires_recipient_auth() {
+        let setup = setup(0);
+        let client = PostageContractClient::new(&setup.env, &setup.contract_id);
+        client.submit(&id(&setup.env, 1), &setup.sender, &setup.recipient, &125);
+
+        let wrong_address = Address::generate(&setup.env);
+        setup.env.mock_auths(&[soroban_sdk::testutils::MockAuth {
+            address: &wrong_address,
+            invoke: &soroban_sdk::testutils::MockAuthInvoke {
+                contract: &setup.contract_id,
+                fn_name: "refund",
+                args: (id(&setup.env, 1),).into_val(&setup.env),
+                sub_invokes: &[],
+            },
+        }]);
+
+        client.refund(&id(&setup.env, 1));
+    }
+
+    #[test]
+    #[should_panic(expected = "Error(Auth")]
+    fn reclaim_requires_sender_auth() {
+        let setup = setup(0);
+        let client = PostageContractClient::new(&setup.env, &setup.contract_id);
+        client.submit(&id(&setup.env, 1), &setup.sender, &setup.recipient, &125);
+        setup.env.ledger().set_timestamp(90_042);
+
+        let wrong_address = Address::generate(&setup.env);
+        setup.env.mock_auths(&[soroban_sdk::testutils::MockAuth {
+            address: &wrong_address,
+            invoke: &soroban_sdk::testutils::MockAuthInvoke {
+                contract: &setup.contract_id,
+                fn_name: "reclaim",
+                args: (id(&setup.env, 1),).into_val(&setup.env),
+                sub_invokes: &[],
+            },
+        }]);
+
+        client.reclaim(&id(&setup.env, 1));
+    }
+
+    #[test]
+    fn expire_has_no_auth_requirement() {
+        let setup = setup(0);
+        let client = PostageContractClient::new(&setup.env, &setup.contract_id);
+        client.submit(&id(&setup.env, 1), &setup.sender, &setup.recipient, &125);
+        setup.env.ledger().set_timestamp(86_442);
+
+        setup.env.mock_auths(&[]);
+
+        let expired = client.expire(&id(&setup.env, 1));
+        assert_eq!(expired.status, PostageStatus::Expired);
+    }
 }
