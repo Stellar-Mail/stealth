@@ -24,6 +24,7 @@ interface AdminDataTableProps<T> {
 /**
  * Pure helper function to sort data based on a key and direction.
  */
+/* eslint-disable-next-line react-refresh/only-export-components */
 export function sortData<T>(
   data: T[],
   sortKey: string | null,
@@ -33,7 +34,9 @@ export function sortData<T>(
   if (!sortKey) return data;
 
   return [...data].sort((a, b) => {
+    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
     let valA: any = column?.sortValue ? column.sortValue(a) : (a as any)[sortKey];
+    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
     let valB: any = column?.sortValue ? column.sortValue(b) : (b as any)[sortKey];
 
     if (valA === undefined || valA === null) valA = "";
@@ -143,6 +146,7 @@ export function AdminDataTable<T>({
                 >
                   {columns.map((col) => (
                     <td key={col.key} className="px-4 py-3 text-foreground align-middle">
+                      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                       {col.render ? col.render(row) : String((row as any)[col.key] ?? "")}
                     </td>
                   ))}

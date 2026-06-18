@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import type { Draft } from "../types/draft";
 import type { CampaignSnapshot } from "../types/campaignSnapshot";
 import { saveCampaignSnapshots, loadCampaignSnapshots } from "../persistence/localStorageAdapter";
+import { deterministicSnapshotId, normalizeLabels } from "../utils/normalizeDemoData";
 import {
   CAMPAIGN_STATUS_TOKENS,
   getTagToken,
@@ -70,13 +71,11 @@ export function CampaignSnapshots({
       return;
     }
 
-    const newTags = tagsInput
-      .split(",")
-      .map((t) => t.trim())
-      .filter((t) => t.length > 0);
+    const newTags = normalizeLabels(tagsInput.split(","));
+    const existingIds = new Set(snapshots.map((s) => s.id));
 
     const newSnapshot: CampaignSnapshot = {
-      id: `snap-${Date.now()}`,
+      id: deterministicSnapshotId("snap", name.trim(), existingIds),
       name: name.trim(),
       description: description.trim(),
       targetAudience: targetAudience.trim(),

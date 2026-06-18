@@ -1,0 +1,112 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "StealthEnvelope",
+  "description": "Cryptographic signature envelope for Stealth messages",
+  "type": "object",
+  "required": ["payload", "signature"],
+  "additionalProperties": false,
+  "properties": {
+    "payload": {
+      "type": "object",
+      "required": [
+        "version",
+        "sender",
+        "recipient",
+        "timestamp",
+        "encryption_metadata",
+        "content_commitment",
+        "attachments"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "version": {
+          "type": "string",
+          "pattern": "^v[0-9]+$"
+        },
+        "sender": {
+          "type": "string",
+          "pattern": "^G[A-Z2-7]{55}$"
+        },
+        "recipient": {
+          "type": "string",
+          "pattern": "^G[A-Z2-7]{55}$"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "encryption_metadata": {
+          "type": "object",
+          "required": ["algorithm", "ephemeral_public_key", "nonce", "mac"],
+          "additionalProperties": false,
+          "properties": {
+            "algorithm": {
+              "type": "string"
+            },
+            "ephemeral_public_key": {
+              "type": "string",
+              "pattern": "^G[A-Z2-7]{55}$"
+            },
+            "nonce": {
+              "type": "string",
+              "pattern": "^[a-f0-9]+$"
+            },
+            "mac": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          }
+        },
+        "content_commitment": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "attachments": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["filename", "content_type", "size_bytes", "content_hash"],
+            "additionalProperties": false,
+            "properties": {
+              "filename": {
+                "type": "string"
+              },
+              "content_type": {
+                "type": "string"
+              },
+              "size_bytes": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "content_hash": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            }
+          }
+        },
+        "critical": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "signature": {
+      "type": "object",
+      "required": ["scheme", "value"],
+      "additionalProperties": false,
+      "properties": {
+        "scheme": {
+          "type": "string",
+          "enum": ["Ed25519"]
+        },
+        "value": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{128}$"
+        }
+      }
+    }
+  }
+}
