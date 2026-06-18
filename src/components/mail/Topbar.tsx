@@ -35,6 +35,7 @@ type TopbarProps = {
   onQuickAction: (action: "proofs" | "later" | "files") => void;
   onViewNotifications: () => void;
   onSignOut?: () => void;
+  onOpenSearch: () => void;
 };
 
 const quickActions: {
@@ -60,6 +61,7 @@ export function Topbar({
   onQuickAction,
   onViewNotifications,
   onSignOut,
+  onOpenSearch,
 }: TopbarProps) {
   const [focused, setFocused] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
@@ -117,12 +119,12 @@ export function Topbar({
         <input
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
-          onClick={onOpenPalette}
+          onClick={onOpenSearch}
           placeholder="Search messages, people, proofs, attachments..."
           className="glow-ring h-9 w-full min-w-0 rounded-md border border-white/[0.07] bg-white/[0.035] pl-9 pr-14 text-[13px] text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.045)] placeholder:text-muted-foreground/70 transition focus:bg-white/[0.06]"
         />
         <button
-          onClick={onOpenPalette}
+          onClick={onOpenSearch}
           className="absolute right-1.5 flex items-center gap-1 rounded border border-white/10 bg-black/30 px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground"
         >
           <Command className="h-3 w-3" /> K

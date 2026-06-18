@@ -61,6 +61,14 @@ import {
   useSnooze,
   type SnoozeTarget,
 } from "@/features/snooze";
+import { SearchOverlay } from "@/features/search/SearchOverlay";
+import {
+  loadIndexFromDB,
+  searchEmails,
+  reindexAll,
+  indexMessage,
+  updateIndex,
+} from "@/services/storage/search-index";
 import type { SnoozeState } from "@/components/mail/data";
 import { useIsMobile } from "@/lib/use-media-query";
 import { RequestsTriageBoard } from "@/features/requests";
@@ -108,8 +116,25 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
     body?: string;
   }>({});
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+
+  // Initialize search index on startup
+  useEffect(() => {
+    async function initSearchIndex() {
+      try {
+        await loadIndexFromDB();
+        const matches = await searchEmails("");
+        if (matches.length === 0 && initialEmails.length > 0) {
+          await reindexAll(initialEmails);
+        }
+      } catch (err) {
+        console.error("Search index initialization failed", err);
+      }
+    }
+    initSearchIndex();
+  }, []);
   const [customFolder, setCustomFolder] = useState<string | null>(null);
   const [filters, setFilters] = useState<MailFilters>(defaultMailFilters);
   const [calendarOpen, setCalendarOpen] = useState(false);
@@ -172,7 +197,14 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
   const selectedSnoozeState = snoozeEmail?.folder === "snoozed" ? snoozeEmail.snooze : undefined;
 
   const updateEmail = (id: string, patch: Partial<Email>) => {
-    setEmails((prev) => prev.map((e: Email) => (e.id === id ? { ...e, ...patch } : e)));
+    setEmails((prev) => {
+      const next = prev.map((e: Email) => (e.id === id ? { ...e, ...patch } : e));
+      const updated = next.find((e) => e.id === id);
+      if (updated) {
+        updateIndex(updated).catch(console.error);
+      }
+      return next;
+    });
   };
 
   const openCompose = (initial: { to?: string; subject?: string; body?: string } = {}) => {
@@ -435,6 +467,7 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
       })),
       avatarColor: "#5b6470",
     };
+    indexMessage(message).catch(console.error);
     setEmails((current) => [message, ...current]);
   };
 
@@ -550,7 +583,7 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
     (action: ShortcutActionId) => {
       switch (action) {
         case "open-palette":
-          setPaletteOpen((open) => !open);
+          setSearchOpen((open) => !open);
           return;
         case "open-shortcuts":
           setShortcutOverlayOpen(true);
@@ -686,6 +719,7 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
               onShowToast={showToast}
               filters={filters}
               onFiltersChange={setFilters}
+              onOpenSearch={() => setSearchOpen(true)}
               onQuickAction={(action) => {
                 setCustomFolder(null);
                 if (action === "proofs") setFolder("pending");
@@ -851,6 +885,17 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
           setSelectedIds([]);
         }}
         onOpenSettings={openSettings}
+      />
+      <SearchOverlay
+        open={searchOpen}
+        onClose={() => setSearchOpen(false)}
+        onSelectEmail={(email) => {
+          setCustomFolder(null);
+          setFilters(defaultMailFilters);
+          setFolder(email.folder);
+          setSelectedId(email.id);
+          setSelectedIds([]);
+        }}
       />
       <ShortcutOverlay open={shortcutOverlayOpen} onClose={() => setShortcutOverlayOpen(false)} />
       <ProofInspectorModal
