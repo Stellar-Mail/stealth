@@ -1,0 +1,63 @@
+{
+  "tool": "contact-extractor",
+  "version": 1,
+  "sourceRequests": [
+    {
+      "id": "vendor-renewal",
+      "sourceLabel": "Vendor renewal thread",
+      "subject": "Renewal terms for Atlas Search",
+      "from": "Maya Chen <maya.chen@atlas.example>",
+      "body": "Please coordinate the renewal with Jordan Patel at Atlas Systems. Jordan can be reached at jordan.patel@atlas.example or 415-555-0198.",
+      "expectedContacts": [
+        {
+          "displayName": "Maya Chen",
+          "email": "maya.chen@atlas.example",
+          "organization": "Atlas"
+        },
+        {
+          "displayName": "Jordan Patel",
+          "email": "jordan.patel@atlas.example",
+          "phone": "415-555-0198",
+          "organization": "Atlas Systems"
+        }
+      ]
+    },
+    {
+      "id": "event-follow-up",
+      "sourceLabel": "Conference intro",
+      "subject": "Intro after the Stellar Builder Breakfast",
+      "from": "Priya Shah <priya@northstar.example>",
+      "body": "Best, Priya Shah Northstar Labs priya@northstar.example (212) 555-0144",
+      "expectedContacts": [
+        {
+          "displayName": "Priya Shah",
+          "email": "priya@northstar.example",
+          "phone": "(212) 555-0144",
+          "organization": "Northstar"
+        }
+      ]
+    },
+    {
+      "id": "missing-contact-details",
+      "sourceLabel": "No contact details",
+      "subject": "Weekly update",
+      "from": "updates@example.test",
+      "body": "The weekly update is ready for review.",
+      "expectedError": "No contact details were found in the supplied email text."
+    }
+  ],
+  "uiStates": ["empty", "loading", "error", "success"],
+  "accessibilityChecks": [
+    "visible-label-for-email-text",
+    "aria-live-status-region",
+    "role-alert-for-errors",
+    "labelled-contact-checkboxes",
+    "visible-focus-styles",
+    "keyboard-accessible-buttons"
+  ],
+  "reviewNotes": [
+    "All fixture people, organizations, and domains are synthetic.",
+    "The tool only prepares review data and does not save contacts.",
+    "Future persistence must add consent, dedupe, and audit behavior first."
+  ]
+}
