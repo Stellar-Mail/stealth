@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { MailFolder } from "./data";
+import { DROP_TARGET_FOLDERS } from "./useDragDrop";
 
 type SidebarItem = { key: MailFolder; label: string; icon: LucideIcon };
 
@@ -89,6 +90,7 @@ export function Sidebar({
   onCompose,
   customFolder,
   onSelectCustomFolder,
+  onDrop,
 }: {
   active: MailFolder;
   counts: Partial<Record<MailFolder, number>>;
@@ -98,6 +100,7 @@ export function Sidebar({
   onCompose: () => void;
   customFolder?: string | null;
   onSelectCustomFolder?: (name: string | null) => void;
+  onDrop?: (emailIds: string[], target: MailFolder) => void;
 }) {
   const [folders, setFolders] = useState(defaultFolders);
   const [isAddingFolder, setIsAddingFolder] = useState(false);
@@ -189,6 +192,11 @@ export function Sidebar({
                     active={active === it.key}
                     collapsed={collapsed}
                     onSelect={() => onSelect(it.key)}
+                    onDrop={
+                      DROP_TARGET_FOLDERS.includes(it.key as import("./data").MailLocation)
+                        ? (ids) => onDrop?.(ids, it.key)
+                        : undefined
+                    }
                   />
                 </li>
               ))}
@@ -308,14 +316,17 @@ function FolderButton({
   active,
   collapsed,
   onSelect,
+  onDrop,
 }: {
   item: SidebarItem;
   count?: number;
   active: boolean;
   collapsed: boolean;
   onSelect: () => void;
+  onDrop?: (emailIds: string[]) => void;
 }) {
   const Icon = item.icon;
+  const [isOver, setIsOver] = useState(false);
 
   return (
     <motion.button
@@ -328,6 +339,7 @@ function FolderButton({
         "text-muted-foreground hover:bg-white/[0.04] hover:text-foreground",
         active && "text-foreground",
         collapsed && "justify-center px-2",
+        isOver && "bg-white/[0.08] ring-1 ring-white/20 text-foreground",
       )}
     >
       {active && (

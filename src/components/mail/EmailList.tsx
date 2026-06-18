@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { GripVertical, FolderInput } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   applyMailFilters,
@@ -8,6 +9,7 @@ import {
   type Email,
   type MailFilters,
   type MailFolder,
+  type MailLocation,
 } from "./data";
 import { cn } from "@/lib/utils";
 import { ConvertSenderButton } from "@/features/sender-conversion";
@@ -15,6 +17,7 @@ import { MobileMailCard } from "./MobileMailCard";
 import { EmailTrustBadges } from "./EmailTrustBadges";
 import { BulkActionBar } from "./BulkActionBar";
 import type { BulkActionRequest, BulkFailure, BulkProgressState } from "./bulk-actions";
+import { canDragEmail, DROP_TARGET_FOLDERS, getDropRejectionReason } from "./useDragDrop";
 
 type FilterTab = "all" | "unread" | "flagged";
 
@@ -37,6 +40,7 @@ export function EmailList({
   onArchive,
   onStar,
   onSnooze,
+  onMove,
 }: {
   emails: Email[];
   selectedId: string | null;
@@ -56,9 +60,11 @@ export function EmailList({
   onArchive?: (email: Email) => void;
   onStar?: (email: Email) => void;
   onSnooze?: (email: Email) => void;
+  onMove?: (emailIds: string[], target: MailLocation) => void;
 }) {
   const [activeTab, setActiveTab] = useState<FilterTab>("all");
   const folderLabel = customFolder ?? getFolderLabel(folder);
+  const [movePicker, setMovePicker] = useState<{ emailIds: string[] } | null>(null);
 
   const folderEmails = customFolder
     ? emails.filter((email) =>
@@ -111,7 +117,19 @@ export function EmailList({
       }
       if (event.key === "Escape") {
         event.preventDefault();
+        if (movePicker) {
+          setMovePicker(null);
+          return;
+        }
         onSelectionChangeRef.current([]);
+      }
+      if (event.key === "m" || event.key === "M") {
+        const focused = document.activeElement;
+        if (focused && ["INPUT", "TEXTAREA", "SELECT"].includes((focused as HTMLElement).tagName))
+          return;
+        event.preventDefault();
+        const ids = selectedIds.length > 0 ? selectedIds : selectedId ? [selectedId] : [];
+        if (ids.length > 0) setMovePicker({ emailIds: ids });
       }
     };
 

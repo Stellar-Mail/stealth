@@ -121,6 +121,24 @@ export function clearCampaignTags(): void {
   tagAdapter.clear(TAGS_KEY);
 }
 
+// Segment editor state persistence
+import { SegmentEditorState } from "../types/segmentEditorState";
+
+const segmentEditorAdapter = new LocalStorageAdapter<SegmentEditorState>();
+const SEGMENT_EDITOR_KEY = "stealth-demo-segment-editor";
+
+export function saveSegmentEditorState(state: SegmentEditorState): void {
+  segmentEditorAdapter.save(SEGMENT_EDITOR_KEY, state);
+}
+
+export function loadSegmentEditorState(): SegmentEditorState | null {
+  return segmentEditorAdapter.load(SEGMENT_EDITOR_KEY);
+}
+
+export function clearSegmentEditorState(): void {
+  segmentEditorAdapter.clear(SEGMENT_EDITOR_KEY);
+}
+
 // Campaign message assignment persistence
 import { AssignmentState } from "../types/assignment";
 

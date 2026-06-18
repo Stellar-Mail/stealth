@@ -1,4 +1,4 @@
-import type { MailboxPolicy, Postage, Receipt, SenderRule } from "./domain";
+import type { IdempotencyRecord, MailboxPolicy, Postage, Receipt, SenderRule } from "./domain";
 
 export interface ApiRepository {
   getPolicy(owner: string): Promise<MailboxPolicy | null>;
@@ -9,6 +9,8 @@ export interface ApiRepository {
   setPostage(postage: Postage): Promise<Postage>;
   getReceipt(messageId: string): Promise<Receipt | null>;
   setReceipt(receipt: Receipt): Promise<Receipt>;
+  getIdempotencyRecord(key: string): Promise<IdempotencyRecord | null>;
+  setIdempotencyRecord(key: string, record: IdempotencyRecord): Promise<void>;
 
   getRelayQueueDepth(relayId: string): Promise<number>;
   getRelayRetryCount(relayId: string): Promise<number>;

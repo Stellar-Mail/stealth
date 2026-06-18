@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as MotionGalleryRouteImport } from './routes/motion-gallery'
+import { Route as PolicyEditorRouteRouteImport } from './routes/policy-editor/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiV1ProtocolRouteImport } from './routes/api/v1/protocol'
 import { Route as ApiV1OpenapiDotjsonRouteImport } from './routes/api/v1/openapi[.]json'
@@ -25,17 +26,15 @@ import { Route as ApiV1ReceiptsMessageIdReadRouteImport } from './routes/api/v1/
 import { Route as ApiV1PostageMessageIdSettleRouteImport } from './routes/api/v1/postage/$messageId/settle'
 import { Route as ApiV1PostageMessageIdRefundRouteImport } from './routes/api/v1/postage/$messageId/refund'
 import { Route as ApiV1PoliciesOwnerSendersSenderRouteImport } from './routes/api/v1/policies/$owner/senders/$sender'
-import { Route as PolicyEditorRouteImport } from './routes/policy-editor/route'
-
-const PolicyEditorRoute = PolicyEditorRouteImport.update({
-  id: '/policy-editor',
-  path: '/policy-editor',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 const MotionGalleryRoute = MotionGalleryRouteImport.update({
   id: '/motion-gallery',
   path: '/motion-gallery',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PolicyEditorRouteRoute = PolicyEditorRouteRouteImport.update({
+  id: '/policy-editor',
+  path: '/policy-editor',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -120,8 +119,8 @@ const ApiV1PoliciesOwnerSendersSenderRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/policy-editor': typeof PolicyEditorRouteRoute
   '/motion-gallery': typeof MotionGalleryRoute
-  '/policy-editor': typeof PolicyEditorRoute
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
   '/api/v1/protocol': typeof ApiV1ProtocolRoute
@@ -139,8 +138,8 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/policy-editor': typeof PolicyEditorRouteRoute
   '/motion-gallery': typeof MotionGalleryRoute
-  '/policy-editor': typeof PolicyEditorRoute
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
   '/api/v1/protocol': typeof ApiV1ProtocolRoute
@@ -159,8 +158,8 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/policy-editor': typeof PolicyEditorRouteRoute
   '/motion-gallery': typeof MotionGalleryRoute
-  '/policy-editor': typeof PolicyEditorRoute
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
   '/api/v1/protocol': typeof ApiV1ProtocolRoute
@@ -180,8 +179,8 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/motion-gallery'
     | '/policy-editor'
+    | '/motion-gallery'
     | '/api/v1/health'
     | '/api/v1/openapi.json'
     | '/api/v1/protocol'
@@ -199,8 +198,8 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/motion-gallery'
     | '/policy-editor'
+    | '/motion-gallery'
     | '/api/v1/health'
     | '/api/v1/openapi.json'
     | '/api/v1/protocol'
@@ -218,8 +217,8 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
-    | '/motion-gallery'
     | '/policy-editor'
+    | '/motion-gallery'
     | '/api/v1/health'
     | '/api/v1/openapi.json'
     | '/api/v1/protocol'
@@ -238,8 +237,8 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  PolicyEditorRouteRoute: typeof PolicyEditorRouteRoute
   MotionGalleryRoute: typeof MotionGalleryRoute
-  PolicyEditorRoute: typeof PolicyEditorRoute
   ApiV1HealthRoute: typeof ApiV1HealthRoute
   ApiV1OpenapiDotjsonRoute: typeof ApiV1OpenapiDotjsonRoute
   ApiV1ProtocolRoute: typeof ApiV1ProtocolRoute
@@ -265,7 +264,7 @@ declare module '@tanstack/react-router' {
       id: '/policy-editor'
       path: '/policy-editor'
       fullPath: '/policy-editor'
-      preLoaderRoute: typeof PolicyEditorRouteImport
+      preLoaderRoute: typeof PolicyEditorRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -418,8 +417,8 @@ const ApiV1ReceiptsMessageIdRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  PolicyEditorRouteRoute: PolicyEditorRouteRoute,
   MotionGalleryRoute: MotionGalleryRoute,
-  PolicyEditorRoute: PolicyEditorRoute,
   ApiV1HealthRoute: ApiV1HealthRoute,
   ApiV1OpenapiDotjsonRoute: ApiV1OpenapiDotjsonRoute,
   ApiV1ProtocolRoute: ApiV1ProtocolRoute,

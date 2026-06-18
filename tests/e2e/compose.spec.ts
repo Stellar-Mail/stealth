@@ -1,7 +1,41 @@
 import { test, expect, openDemoMailbox } from "./fixtures";
 
+// Deterministic Stellar address for the injected demo wallet.
+const DEMO_SIGNER = `G${"C".repeat(55)}`;
+
 test.describe("compose flow", () => {
+  // E2E runs in a headless browser with no Freighter extension and no live
+  // relay. Install a deterministic wallet stub (read by the wallet seam in
+  // src/services/stellar/wallet.ts) and stub relay discovery so the full send
+  // pipeline can complete end to end.
   test.beforeEach(async ({ page }) => {
+    await page.addInitScript((signer) => {
+      Object.defineProperty(window, "__freighterApi", {
+        configurable: true,
+        value: {
+          isConnected: () => Promise.resolve({ isConnected: true }),
+          requestAccess: () => Promise.resolve({ address: signer }),
+          signMessage: () =>
+            Promise.resolve({
+              signedMessage: "e2e-mock-signature",
+              signerAddress: signer,
+            }),
+        },
+      });
+    }, DEMO_SIGNER);
+
+    await page.route("**/relays/*/diagnostics", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          status: "healthy",
+          endpoint: "/relays/mock/messages",
+          publicKey: DEMO_SIGNER,
+        }),
+      }),
+    );
+
     await openDemoMailbox(page);
   });
 
