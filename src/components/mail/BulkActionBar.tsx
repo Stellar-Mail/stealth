@@ -87,7 +87,9 @@ export function BulkActionBar({
 
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmation, setConfirmation] = useState(null as any);
-  const [pendingAction, setPendingAction] = useState<"allow" | "block" | "settle" | "refund" | null>(null);
+  const [pendingAction, setPendingAction] = useState<
+    "allow" | "block" | "settle" | "refund" | null
+  >(null);
 
   const handleConfirmableAction = (action: "allow" | "block" | "settle" | "refund") => {
     const request = { action } as BulkActionRequest;
@@ -265,16 +267,16 @@ export function BulkActionBar({
         )}
       </motion.div>
 
-       {/* Confirmation Dialog */}
-        <BulkConfirmDialog
-          confirmation={confirmation}
-          onCancel={() => {
-            setConfirmOpen(false);
-            setPendingAction(null);
-            setConfirmation(null);
-          }}
-          onConfirm={confirmAndExecute}
-        />
+      {/* Confirmation Dialog */}
+      <BulkConfirmDialog
+        confirmation={confirmation}
+        onCancel={() => {
+          setConfirmOpen(false);
+          setPendingAction(null);
+          setConfirmation(null);
+        }}
+        onConfirm={confirmAndExecute}
+      />
     </>
   );
 }
