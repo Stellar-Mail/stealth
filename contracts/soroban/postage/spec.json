@@ -1,0 +1,122 @@
+{
+  "structs": [
+    {
+      "name": "Postage",
+      "fields": [
+        { "name": "sender", "type": "address" },
+        { "name": "recipient", "type": "address" },
+        { "name": "amount", "type": "i128" },
+        { "name": "fee", "type": "i128" },
+        { "name": "created_at", "type": "u64" },
+        { "name": "expires_at", "type": "u64" },
+        { "name": "dispute_until", "type": "u64" },
+        { "name": "status", "type": "udt:PostageStatus" }
+      ]
+    },
+    {
+      "name": "EscrowConfig",
+      "fields": [
+        { "name": "asset", "type": "address" },
+        { "name": "minimum", "type": "i128" },
+        { "name": "treasury", "type": "address" },
+        { "name": "fee_bps", "type": "u32" },
+        { "name": "expiry_seconds", "type": "u64" },
+        { "name": "dispute_seconds", "type": "u64" }
+      ]
+    }
+  ],
+  "enums": [
+    {
+      "name": "PostageStatus",
+      "cases": [
+        { "name": "Pending", "value": 0 },
+        { "name": "Expired", "value": 1 },
+        { "name": "Disputed", "value": 2 },
+        { "name": "Settled", "value": 3 },
+        { "name": "Refunded", "value": 4 },
+        { "name": "Reclaimed", "value": 5 }
+      ]
+    }
+  ],
+  "errors": [
+    { "name": "AlreadyInitialized", "value": 1 },
+    { "name": "NotInitialized", "value": 2 },
+    { "name": "InvalidAmount", "value": 3 },
+    { "name": "DuplicateMessage", "value": 4 },
+    { "name": "PostageNotFound", "value": 5 },
+    { "name": "AlreadyResolved", "value": 6 },
+    { "name": "InvalidFee", "value": 7 },
+    { "name": "InvalidWindow", "value": 8 },
+    { "name": "NotExpired", "value": 9 },
+    { "name": "DisputeUnavailable", "value": 10 }
+  ],
+  "functions": [
+    {
+      "name": "initialize",
+      "inputs": [
+        { "name": "asset", "type": "address" },
+        { "name": "treasury", "type": "address" },
+        { "name": "minimum", "type": "i128" },
+        { "name": "fee_bps", "type": "u32" },
+        { "name": "expiry_seconds", "type": "u64" },
+        { "name": "dispute_seconds", "type": "u64" }
+      ],
+      "output": "result:void:Error"
+    },
+    {
+      "name": "config",
+      "inputs": [],
+      "output": "result:udt:EscrowConfig:Error"
+    },
+    {
+      "name": "minimum",
+      "inputs": [],
+      "output": "result:i128:Error"
+    },
+    {
+      "name": "quote",
+      "inputs": [{ "name": "sender_trusted", "type": "bool" }],
+      "output": "result:i128:Error"
+    },
+    {
+      "name": "submit",
+      "inputs": [
+        { "name": "message_id", "type": "bytes32" },
+        { "name": "sender", "type": "address" },
+        { "name": "recipient", "type": "address" },
+        { "name": "amount", "type": "i128" }
+      ],
+      "output": "result:udt:Postage:Error"
+    },
+    {
+      "name": "settle",
+      "inputs": [{ "name": "message_id", "type": "bytes32" }],
+      "output": "result:udt:Postage:Error"
+    },
+    {
+      "name": "refund",
+      "inputs": [{ "name": "message_id", "type": "bytes32" }],
+      "output": "result:udt:Postage:Error"
+    },
+    {
+      "name": "dispute",
+      "inputs": [{ "name": "message_id", "type": "bytes32" }],
+      "output": "result:udt:Postage:Error"
+    },
+    {
+      "name": "expire",
+      "inputs": [{ "name": "message_id", "type": "bytes32" }],
+      "output": "result:udt:Postage:Error"
+    },
+    {
+      "name": "reclaim",
+      "inputs": [{ "name": "message_id", "type": "bytes32" }],
+      "output": "result:udt:Postage:Error"
+    },
+    {
+      "name": "get",
+      "inputs": [{ "name": "message_id", "type": "bytes32" }],
+      "output": "result:udt:Postage:Error"
+    }
+  ]
+}

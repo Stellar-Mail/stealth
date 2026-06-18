@@ -1,0 +1,73 @@
+{
+  "tool": "team-analytics-dashboard",
+  "version": 1,
+  "period": {
+    "start": "2026-06-09",
+    "end": "2026-06-15",
+    "label": "Week of June 9"
+  },
+  "teamId": "team-ops-001",
+  "members": [
+    {
+      "memberId": "member-001",
+      "name": "Aisha Mensah",
+      "emailsReceived": 42,
+      "emailsHandled": 39,
+      "avgResponseTimeHours": 1.8,
+      "openThreads": 3,
+      "resolvedThreads": 36,
+      "slaBreaches": 0,
+      "status": "active"
+    },
+    {
+      "memberId": "member-002",
+      "name": "Ben Torres",
+      "emailsReceived": 74,
+      "emailsHandled": 58,
+      "avgResponseTimeHours": 5.4,
+      "openThreads": 16,
+      "resolvedThreads": 42,
+      "slaBreaches": 3,
+      "status": "overloaded"
+    },
+    {
+      "memberId": "member-003",
+      "name": "Clara Osei",
+      "emailsReceived": 18,
+      "emailsHandled": 18,
+      "avgResponseTimeHours": 0.9,
+      "openThreads": 0,
+      "resolvedThreads": 18,
+      "slaBreaches": 0,
+      "status": "underutilized"
+    },
+    {
+      "memberId": "member-004",
+      "name": "David Yun",
+      "emailsReceived": 0,
+      "emailsHandled": 0,
+      "avgResponseTimeHours": null,
+      "openThreads": 0,
+      "resolvedThreads": 0,
+      "slaBreaches": 0,
+      "status": "away"
+    }
+  ],
+  "summary": {
+    "totalEmailVolume": 134,
+    "totalHandled": 115,
+    "totalOpen": 19,
+    "teamAvgResponseTimeHours": 2.7,
+    "totalSlaBreaches": 3,
+    "topPerformerId": "member-001",
+    "bottleneckMemberId": "member-002",
+    "reviewRequiredMemberIds": ["member-002"]
+  },
+  "reviewNotes": [
+    "Fixture uses example member names; no real employee data.",
+    "avgResponseTimeHours is null for away members — UI should display N/A.",
+    "SLA threshold for this team is 4 hours; breaches trigger reviewRequired.",
+    "overloaded status applies when openThreads exceeds 10 or slaBreaches > 2.",
+    "topPerformer is the active member with the lowest avgResponseTimeHours and zero slaBreaches."
+  ]
+}

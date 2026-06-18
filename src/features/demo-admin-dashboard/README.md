@@ -109,6 +109,38 @@ parent can observe drafts as they accumulate.
 
 ### Follow-up integration (out of scope here)
 
-Connecting the produced active `Draft[]` to the live demo inbox (e.g. dispatching `loadDraft` into the shared `draftReducer`, or seeding `src/components/mail/data.ts`) is a deliberate follow-up.
+This issue keeps everything inside the feature folder. Connecting the produced `Draft[]` to
+the live demo inbox (e.g. dispatching `loadDraft` into the shared `draftReducer`, or seeding
+`src/components/mail/data.ts`) is a deliberate follow-up so that no files outside
+`src/features/demo-admin-dashboard/` change here.
 
-Refer to the **[Campaign Integration Handoff Guide](./docs/integration_handoff.md)** for detailed integration steps, code locations, and safety/risk notes.
+---
+
+## Snooze metadata (`./snooze`)
+
+Admin controls for the reminder metadata on demo messages that appear in the snoozed
+folder. `SnoozeMetadataEditor` lets a maintainer pick a preset or a custom date/time and
+preview when each message returns.
+
+- `snooze/referenceNow.ts` — a fixed demo clock (`2026-06-16T09:00`, local) so presets,
+  previews, and tests are deterministic regardless of the real date.
+- `snooze/snoozePresets.ts` — `SNOOZE_PRESETS` (later today / tomorrow / this weekend / next
+  week) with pure `resolve(now)` functions.
+- `snooze/snoozeValidation.ts` — custom date/time validation (rejects missing, malformed, and
+  past-or-now values), relative-day labels, a `formatRemindAt` summary, and
+  `metadataFromPreset` / `metadataFromCustom` builders. Reminder times are stored as local
+  `yyyy-MM-ddTHH:mm` stamps so they round-trip without timezone drift.
+- `snooze/snoozeFixtures.ts` — deterministic, fake snoozed messages (senders restricted to
+  `*stealth.demo`); a test enforces address safety and that every `remindAt` is a valid,
+  future, round-tripping stamp.
+- `snooze/SnoozeMetadataEditor.tsx` — message list + preset buttons + custom date/time inputs,
+  a live preview / validation panel, and an **Apply reminder** action. Accepts an optional
+  `onChange(messageId, message)` callback.
+
+### Follow-up integration (out of scope here)
+
+`SnoozeMetadataEditor` and the snooze API are exported from `./index.ts` but not yet mounted
+in the dashboard shell. Surfacing a **Snoozed** section (add a `DashboardSection` member plus
+a nav/icon/content branch in `DemoAdminDashboard.tsx`, mirroring the Templates section) and
+feeding the edited metadata into the demo inbox are deliberate follow-ups, kept separate so
+this issue stays small and conflict-free against the actively evolving shell.
