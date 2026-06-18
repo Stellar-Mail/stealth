@@ -28,12 +28,14 @@ Account keys are the long-lived cryptographic identity of a Stealth user, tied t
 ### Key Types
 
 **Signing Key** (`account:sign`)
+
 - Purpose: Sign account-level operations, key rotation notices, revocation announcements
 - Lifetime: Account lifetime (typically permanent)
 - Rotation: Rare; requires explicit owner action
 - Derivation: Derived from account seed or key manager
 
 **Encryption Key** (`account:encrypt`)
+
 - Purpose: Fallback encryption when device keys are unavailable
 - Lifetime: Account lifetime (typically permanent)
 - Rotation: Rare; typically rotated with signing key
@@ -142,6 +144,7 @@ Or via on-chain data if integration with Stellar smart contracts is preferred.
 **Scenario**: User rotates their account encryption key (e.g., annual security audit)
 
 **Process**:
+
 1. User initiates rotation through Stealth UI
 2. New account signing/encryption key pair generated
 3. Rotation announcement signed by **old** account signing key, containing **new** public key
@@ -151,6 +154,7 @@ Or via on-chain data if integration with Stellar smart contracts is preferred.
 7. After grace period, old key marked as `deprecated`
 
 **Constraints**:
+
 - Old account signing key signature MUST accompany any rotation announcement
 - Clients MUST verify rotation signature using old key before accepting new key
 - Rotation propagation time MUST be documented and bounded
@@ -160,6 +164,7 @@ Or via on-chain data if integration with Stellar smart contracts is preferred.
 **Scenario**: User's device generates a fresh encryption key
 
 **Process**:
+
 1. Device generates new key pair
 2. New device key published to account key catalog
 3. Previous device key status changed from `active` to `rotated`
@@ -167,6 +172,7 @@ Or via on-chain data if integration with Stellar smart contracts is preferred.
 5. Old device key retained for decrypting in-transit messages
 
 **Rotation Trigger**:
+
 - Automatic: After 30 days of use
 - Manual: User requests rotation for security
 - Forced: System detects potential compromise
@@ -317,16 +323,19 @@ User accesses archived mail encrypted with a device key that was rotated months 
 ### Compromise Scenarios
 
 **Scenario 1: Device Key Compromised**
+
 - Impact: Attacker receives new messages sent to that device
 - Mitigation: User revokes device key within 1 hour
 - Recovery: Within revocation propagation window, attacker is locked out
 
 **Scenario 2: Account Signing Key Compromised**
+
 - Impact: Attacker can forge key rotations and revocations
 - Mitigation: Emergency account freeze (requires out-of-band recovery)
 - Recovery: User rotates account key with proof of ownership
 
 **Scenario 3: Key Catalog Compromised**
+
 - Impact: Attacker publishes fraudulent keys
 - Mitigation: Signature verification catches fraudulent catalog entries
 - Recovery: DNSSEC/TLS pinning prevents man-in-the-middle attacks
@@ -357,6 +366,7 @@ User accesses archived mail encrypted with a device key that was rotated months 
 **A revoked device cannot receive new mail after the documented 60-minute propagation window.**
 
 Implementation verification:
+
 1. Create test device and publish key to catalog
 2. Revoke device key
 3. After 60 minutes, send mail to account
