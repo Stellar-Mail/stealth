@@ -537,6 +537,154 @@
           "expected": { "valid": false, "error": "Expected a non-negative integer string" }
         }
       ]
+    },
+    "envelope": {
+      "description": "Cryptographic envelope validation, canonical serialization (JCS), and fail-closed critical field test cases.",
+      "cases": [
+        {
+          "id": "envelope/valid/basic",
+          "description": "A fully valid message envelope with valid payload and signature.",
+          "input": {
+            "payload": {
+              "version": "v1",
+              "sender": "GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+              "recipient": "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+              "timestamp": "2026-06-17T22:00:00.000Z",
+              "encryption_metadata": {
+                "algorithm": "X25519-XSalsa20-Poly1305",
+                "ephemeral_public_key": "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                "nonce": "aabbccddeeff00112233445566778899",
+                "mac": "0000000000000000000000000000000000000000000000000000000000000000"
+              },
+              "content_commitment": "1111111111111111111111111111111111111111111111111111111111111111",
+              "attachments": []
+            },
+            "signature": {
+              "scheme": "Ed25519",
+              "value": "22222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222"
+            }
+          },
+          "expected": {
+            "valid": true,
+            "canonical": "{\"attachments\":[],\"content_commitment\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"encryption_metadata\":{\"algorithm\":\"X25519-XSalsa20-Poly1305\",\"ephemeral_public_key\":\"GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\",\"mac\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"nonce\":\"aabbccddeeff00112233445566778899\"},\"recipient\":\"GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC\",\"sender\":\"GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB\",\"timestamp\":\"2026-06-17T22:00:00.000Z\",\"version\":\"v1\"}"
+          }
+        },
+        {
+          "id": "envelope/valid/extensibility",
+          "description": "An envelope with unknown optional fields that are NOT listed in critical. It should pass.",
+          "input": {
+            "payload": {
+              "version": "v1",
+              "sender": "GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+              "recipient": "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+              "timestamp": "2026-06-17T22:00:00.000Z",
+              "encryption_metadata": {
+                "algorithm": "X25519-XSalsa20-Poly1305",
+                "ephemeral_public_key": "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                "nonce": "aabbccddeeff00112233445566778899",
+                "mac": "0000000000000000000000000000000000000000000000000000000000000000"
+              },
+              "content_commitment": "1111111111111111111111111111111111111111111111111111111111111111",
+              "attachments": [],
+              "unknown_optional_field": "some_value"
+            },
+            "signature": {
+              "scheme": "Ed25519",
+              "value": "22222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222"
+            }
+          },
+          "expected": {
+            "valid": true,
+            "canonical": "{\"attachments\":[],\"content_commitment\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"encryption_metadata\":{\"algorithm\":\"X25519-XSalsa20-Poly1305\",\"ephemeral_public_key\":\"GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\",\"mac\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"nonce\":\"aabbccddeeff00112233445566778899\"},\"recipient\":\"GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC\",\"sender\":\"GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB\",\"timestamp\":\"2026-06-17T22:00:00.000Z\",\"unknown_optional_field\":\"some_value\",\"version\":\"v1\"}"
+          }
+        },
+        {
+          "id": "envelope/invalid/unknown-mandatory",
+          "description": "An envelope containing an unknown field listed in critical. It must fail closed.",
+          "input": {
+            "payload": {
+              "version": "v1",
+              "sender": "GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+              "recipient": "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+              "timestamp": "2026-06-17T22:00:00.000Z",
+              "encryption_metadata": {
+                "algorithm": "X25519-XSalsa20-Poly1305",
+                "ephemeral_public_key": "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                "nonce": "aabbccddeeff00112233445566778899",
+                "mac": "0000000000000000000000000000000000000000000000000000000000000000"
+              },
+              "content_commitment": "1111111111111111111111111111111111111111111111111111111111111111",
+              "attachments": [],
+              "unknown_mandatory_field": "critical_value",
+              "critical": ["unknown_mandatory_field"]
+            },
+            "signature": {
+              "scheme": "Ed25519",
+              "value": "22222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222"
+            }
+          },
+          "expected": {
+            "valid": false,
+            "error": "Unknown mandatory field: unknown_mandatory_field"
+          }
+        },
+        {
+          "id": "envelope/valid/known-mandatory-critical",
+          "description": "An envelope listing a known mandatory field (e.g. version) in the critical list. It should pass.",
+          "input": {
+            "payload": {
+              "version": "v1",
+              "sender": "GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+              "recipient": "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+              "timestamp": "2026-06-17T22:00:00.000Z",
+              "encryption_metadata": {
+                "algorithm": "X25519-XSalsa20-Poly1305",
+                "ephemeral_public_key": "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                "nonce": "aabbccddeeff00112233445566778899",
+                "mac": "0000000000000000000000000000000000000000000000000000000000000000"
+              },
+              "content_commitment": "1111111111111111111111111111111111111111111111111111111111111111",
+              "attachments": [],
+              "critical": ["version"]
+            },
+            "signature": {
+              "scheme": "Ed25519",
+              "value": "22222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222"
+            }
+          },
+          "expected": {
+            "valid": true,
+            "canonical": "{\"attachments\":[],\"content_commitment\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"critical\":[\"version\"],\"encryption_metadata\":{\"algorithm\":\"X25519-XSalsa20-Poly1305\",\"ephemeral_public_key\":\"GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\",\"mac\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"nonce\":\"aabbccddeeff00112233445566778899\"},\"recipient\":\"GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC\",\"sender\":\"GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB\",\"timestamp\":\"2026-06-17T22:00:00.000Z\",\"version\":\"v1\"}"
+          }
+        },
+        {
+          "id": "envelope/invalid/missing-sender",
+          "description": "An envelope missing the sender field in payload. It must fail validation.",
+          "input": {
+            "payload": {
+              "version": "v1",
+              "recipient": "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+              "timestamp": "2026-06-17T22:00:00.000Z",
+              "encryption_metadata": {
+                "algorithm": "X25519-XSalsa20-Poly1305",
+                "ephemeral_public_key": "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                "nonce": "aabbccddeeff00112233445566778899",
+                "mac": "0000000000000000000000000000000000000000000000000000000000000000"
+              },
+              "content_commitment": "1111111111111111111111111111111111111111111111111111111111111111",
+              "attachments": []
+            },
+            "signature": {
+              "scheme": "Ed25519",
+              "value": "22222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222"
+            }
+          },
+          "expected": {
+            "valid": false,
+            "error": "Required"
+          }
+        }
+      ]
     }
   }
 }

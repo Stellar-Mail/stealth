@@ -27,6 +27,7 @@ import {
   type ComposeSubmission,
   type RecipientReadiness,
 } from "./composeValidation";
+import { DeliveryEstimator, type RelayStatus } from "./DeliveryEstimator";
 
 const EMPTY_BLOCKED: string[] = [];
 const EMPTY_RESOLVED: RecipientReadiness[] = [];
@@ -65,8 +66,8 @@ export function Compose({
   const [encrypted, setEncrypted] = useState(true);
   const [receipt, setReceipt] = useState(true);
   const [postage, setPostage] = useState(initialPostage);
-  const [resolvedRecipients, setResolvedRecipients] =
-    useState<RecipientReadiness[]>(EMPTY_RESOLVED);
+  const [resolvedRecipients, setResolvedRecipients] = useState<RecipientReadiness[]>([]);
+  const [relayStatus, setRelayStatus] = useState<RelayStatus>("unknown");
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -113,6 +114,23 @@ export function Compose({
       setResolvedRecipients(EMPTY_RESOLVED);
     }
   }, [open, initialTo, initialSubject, initialBody, initialPostage]);
+
+  // Fetch relay status when compose opens
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    fetch("/relays/default/diagnostics")
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((data: { status: RelayStatus }) => {
+        if (!cancelled) setRelayStatus(data.status ?? "unknown");
+      })
+      .catch(() => {
+        if (!cancelled) setRelayStatus("unknown");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
 
   // Resolve recipients when `to` field changes
   useEffect(() => {
@@ -279,6 +297,18 @@ export function Compose({
             <div className="space-y-0 px-4">
               <Field label="To" placeholder="recipients@…" value={to} onChange={setTo} />
               <RecipientReadinessChips recipients={resolvedRecipients} />
+              <DeliveryEstimator
+                recipients={resolvedRecipients}
+                encrypted={encrypted}
+                postage={postage}
+                relayStatus={relayStatus}
+                onAddPostage={() => {
+                  const el = document.querySelector<HTMLInputElement>(
+                    '[aria-label="Postage amount"]',
+                  );
+                  el?.focus();
+                }}
+              />
               <Field label="Subject" placeholder="Subject" value={subject} onChange={setSubject} />
             </div>
             <div className="px-4 pb-2">

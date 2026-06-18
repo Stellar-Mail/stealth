@@ -18,3 +18,20 @@ export type {
   TrustBadgeProps,
   TrustBadgeSize,
 } from "./components/trust-badge";
+
+// Skeleton primitives & screens
+export { SkeletonBlock, SkeletonText, SkeletonAvatar, SkeletonButton } from "./components/skeleton";
+export type {
+  SkeletonBlockProps,
+  SkeletonTextProps,
+  SkeletonAvatarProps,
+  SkeletonButtonProps,
+} from "./components/skeleton";
+
+export {
+  MailListSkeleton,
+  MailReaderSkeleton,
+  CalendarSkeleton,
+  SettingsSkeleton,
+  RightPanelSkeleton,
+} from "./components/skeleton-screens";
