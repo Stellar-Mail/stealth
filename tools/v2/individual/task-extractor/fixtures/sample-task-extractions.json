@@ -1,0 +1,112 @@
+{
+  "tool": "task-extractor",
+  "sourceEmails": [
+    {
+      "id": "email-001",
+      "from": "manager@example.test",
+      "subject": "Project updates and action items",
+      "timestamp": "2026-06-18T10:00:00Z",
+      "body": "Hey team, here are the action items from today's meeting:\n1. John needs to review API docs by Friday\n2. Sarah should schedule a sync with the client\n3. Please update the deployment checklist\n4. I'll follow up with legal about the contract terms\nLet me know if you have questions."
+    },
+    {
+      "id": "email-002",
+      "from": "client@example.test",
+      "subject": "RE: Feature implementation timeline",
+      "timestamp": "2026-06-18T11:30:00Z",
+      "body": "Thanks for the update. Here's what we need:\n- Add dark mode support to the application\n- Improve mobile responsiveness for better UX\n- Fix the payment processing bug (HIGH PRIORITY)\n- Create API documentation for developers\nCan you start with the bug fix next week?"
+    },
+    {
+      "id": "email-003",
+      "from": "colleague@example.test",
+      "subject": "Quick question about the schema",
+      "timestamp": "2026-06-18T14:15:00Z",
+      "body": "Hi, I was wondering if we should consider renaming the tables for clarity? Also, do we need to add more indexes to the database?"
+    }
+  ],
+  "expectedExtractions": [
+    {
+      "taskId": "task-001",
+      "sourceEmailId": "email-001",
+      "extractedTask": "Review API docs by Friday",
+      "priority": "medium",
+      "assignee": "John",
+      "dueDate": "2026-06-20T23:59:59Z",
+      "status": "pending",
+      "context": "Project updates and action items meeting"
+    },
+    {
+      "taskId": "task-002",
+      "sourceEmailId": "email-001",
+      "extractedTask": "Schedule a sync with the client",
+      "priority": "medium",
+      "assignee": "Sarah",
+      "dueDate": null,
+      "status": "pending",
+      "context": "Project updates and action items meeting"
+    },
+    {
+      "taskId": "task-003",
+      "sourceEmailId": "email-001",
+      "extractedTask": "Update the deployment checklist",
+      "priority": "low",
+      "assignee": null,
+      "dueDate": null,
+      "status": "pending",
+      "context": "Project updates and action items meeting"
+    },
+    {
+      "taskId": "task-004",
+      "sourceEmailId": "email-002",
+      "extractedTask": "Fix the payment processing bug",
+      "priority": "high",
+      "assignee": null,
+      "dueDate": null,
+      "status": "pending",
+      "context": "Feature implementation timeline - HIGH PRIORITY"
+    },
+    {
+      "taskId": "task-005",
+      "sourceEmailId": "email-002",
+      "extractedTask": "Add dark mode support to the application",
+      "priority": "medium",
+      "assignee": null,
+      "dueDate": null,
+      "status": "pending",
+      "context": "Feature implementation timeline"
+    },
+    {
+      "taskId": "task-006",
+      "sourceEmailId": "email-002",
+      "extractedTask": "Improve mobile responsiveness for better UX",
+      "priority": "medium",
+      "assignee": null,
+      "dueDate": null,
+      "status": "pending",
+      "context": "Feature implementation timeline"
+    },
+    {
+      "taskId": "task-007",
+      "sourceEmailId": "email-002",
+      "extractedTask": "Create API documentation for developers",
+      "priority": "medium",
+      "assignee": null,
+      "dueDate": null,
+      "status": "pending",
+      "context": "Feature implementation timeline"
+    },
+    {
+      "taskId": "task-008",
+      "sourceEmailId": "email-003",
+      "extractedTask": "Consider renaming the tables for clarity",
+      "priority": "low",
+      "assignee": null,
+      "dueDate": null,
+      "status": "pending",
+      "context": "Schema design discussion"
+    }
+  ],
+  "extractionRules": {
+    "priorities": ["high", "medium", "low"],
+    "statuses": ["pending", "completed", "blocked"]
+  }
+}
