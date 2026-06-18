@@ -92,6 +92,39 @@ export const TAG_COLOR_TOKENS: Record<string, DisplayToken> = {
   },
 };
 
+export const AUDIENCE_SEGMENT_TOKENS: Record<string, DisplayToken> = {
+  investors: {
+    bg: "bg-violet-500/10",
+    text: "text-violet-400",
+    border: "border-violet-500/20",
+    label: "Investors",
+  },
+  founders: {
+    bg: "bg-orange-500/10",
+    text: "text-orange-400",
+    border: "border-orange-500/20",
+    label: "Founders",
+  },
+  events: {
+    bg: "bg-cyan-500/10",
+    text: "text-cyan-400",
+    border: "border-cyan-500/20",
+    label: "Event Attendees",
+  },
+  "relay-operators": {
+    bg: "bg-green-500/10",
+    text: "text-green-400",
+    border: "border-green-500/20",
+    label: "Relay Operators",
+  },
+  "unknown-senders": {
+    bg: "bg-slate-500/10",
+    text: "text-slate-400",
+    border: "border-slate-500/20",
+    label: "Unknown Senders",
+  },
+};
+
 export const AUDIENCE_BADGE_TOKENS: Record<string, DisplayToken> = {
   "New Signups": {
     bg: "bg-sky-500/10",
@@ -111,6 +144,7 @@ export const AUDIENCE_BADGE_TOKENS: Record<string, DisplayToken> = {
     border: "border-emerald-500/20",
     label: "Newsletter Subscribers",
   },
+  ...AUDIENCE_SEGMENT_TOKENS,
   default: {
     bg: "bg-purple-500/10",
     text: "text-purple-400",

@@ -20,6 +20,8 @@ export interface ApiRepository {
   setPostage(postage: Postage): Promise<Postage>;
   getReceipt(messageId: string): Promise<Receipt | null>;
   setReceipt(receipt: Receipt): Promise<Receipt>;
+  getIdempotencyRecord(key: string): Promise<IdempotencyRecord | null>;
+  setIdempotencyRecord(key: string, record: IdempotencyRecord): Promise<void>;
 
   getRelayQueueDepth(relayId: string): Promise<number>;
   getRelayRetryCount(relayId: string): Promise<number>;

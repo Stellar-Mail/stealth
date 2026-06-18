@@ -53,6 +53,7 @@ about the expected behavior without running the main app.
 
 ## Documentation Map
 
+- `docs/architecture.md` defines the internal module boundaries, data ownership, and integration constraints.
 - `specs.md` defines the local product contract and boundaries.
 - `docs/test-plan.md` lists manual and automated review steps.
 - `docs/review-notes.md` explains what was validated and what remains out of

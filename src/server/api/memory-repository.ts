@@ -224,6 +224,14 @@ export class MemoryApiRepository implements ApiRepository {
     return filtered.length;
   }
 
+  async getIdempotencyRecord(key: string) {
+    return structuredClone(this.idempotency.get(key) ?? null);
+  }
+
+  async setIdempotencyRecord(key: string, record: IdempotencyRecord) {
+    this.idempotency.set(key, structuredClone(record));
+  }
+
   reset() {
     this.policies.clear();
     this.postage.clear();

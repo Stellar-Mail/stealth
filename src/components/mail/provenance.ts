@@ -7,7 +7,16 @@ export interface ProvenanceItemDetails {
   rawJson: string;
 }
 
+export type ProvenanceTimelineItem = {
+  key: string;
+  title: string;
+  description: string;
+  status: "complete" | "pending" | "skipped";
+  timestamp: string;
+};
+
 export interface ProvenanceDetails {
+  timeline: ProvenanceTimelineItem[];
   senderIdentity: {
     raw: string;
     resolved: string;
@@ -365,7 +374,63 @@ export function getEmailProvenance(email: Email): ProvenanceDetails {
     ),
   };
 
+  const receiptTimestamp = isSmtpBridge ? "Not requested" : "2026-06-16 14:58:22 UTC";
+  const postageTimestamp = isSmtpBridge ? "Not requested" : "2026-06-16 14:34:18 UTC";
+
+  const timelineItems: ProvenanceTimelineItem[] = [
+    {
+      key: "senderIdentity",
+      title: "Sender identity resolved",
+      description: isVerified
+        ? "Verified sender identity through Stellar federation and signature validation."
+        : "Sender domain was bridged via SMTP without an on-chain cryptographic signature.",
+      status: "complete",
+      timestamp: relayTimestamp,
+    },
+    {
+      key: "messageHash",
+      title: "Message integrity hashed",
+      description:
+        "A deterministic integrity hash was generated for the message body to prevent tampering.",
+      status: "complete",
+      timestamp: relayTimestamp,
+    },
+    {
+      key: "payloadCommitment",
+      title: "Payload envelope committed",
+      description:
+        "A cryptographic commitment for the encrypted payload was prepared for ledger anchoring.",
+      status: "complete",
+      timestamp: relayTimestamp,
+    },
+    {
+      key: "postageRecord",
+      title: "Postage payment recorded",
+      description: isSmtpBridge
+        ? "Bridged messages skip on-chain postage settlement."
+        : "Postage was settled on the Stellar ledger to secure delivery priority.",
+      status: isSmtpBridge ? "skipped" : "complete",
+      timestamp: postageTimestamp,
+    },
+    {
+      key: "receiptRecord",
+      title: "Delivery proof recorded",
+      description: isSmtpBridge
+        ? "No receipt proof is available for bridged delivery."
+        : receiptStatus === "Confirmed / Proof Written"
+          ? "A Soroban delivery receipt was written when the recipient read the message."
+          : "Receipt proof is pending until delivery is confirmed.",
+      status: isSmtpBridge
+        ? "skipped"
+        : receiptStatus === "Confirmed / Proof Written"
+          ? "complete"
+          : "pending",
+      timestamp: receiptTimestamp,
+    },
+  ];
+
   return {
+    timeline: timelineItems,
     senderIdentity: {
       raw: rawIdentity,
       resolved: resolvedKey,

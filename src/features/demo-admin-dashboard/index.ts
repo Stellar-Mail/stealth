@@ -32,6 +32,15 @@ export type {
 export type { CampaignSnapshot } from "./types/campaignSnapshot";
 export type { CampaignTag, TagColorKey } from "./types/campaignTag";
 
+export type {
+  DemoAttachment,
+  DemoCalendarEvent,
+  DemoDataset,
+  DemoMessage,
+  DemoProofRecord,
+  DemoSender,
+} from "./types/dataset";
+
 export {
   CAMPAIGN_STATUS_TOKENS,
   TAG_COLOR_TOKENS,
@@ -104,6 +113,50 @@ export {
   mockSignature,
 } from "./mockHashHelpers";
 export {
+  saveAssignments,
+  loadAssignments,
+  clearAssignments,
+} from "./persistence/localStorageAdapter";
+
+export { messagePool, defaultAssignmentState } from "./fixtures/assignmentFixtures";
+
+export type { AudienceSegment, AudienceSegmentId } from "./types/audienceSegment";
+export {
+  defaultAudienceSegments,
+  AUDIENCE_SEGMENTS_BY_ID,
+  audienceSegmentSnapshots,
+} from "./fixtures/audienceSegmentFixtures";
+export { getSegmentById, resolveSegmentLabel, getSegmentToken } from "./utils/segmentHelpers";
+export { AUDIENCE_SEGMENT_TOKENS } from "./constants/displayTokens";
+export {
+  SnoozeMetadataEditor,
+  snoozedDemoMessages,
+  SNOOZE_PRESETS,
+  getSnoozePreset,
+  resolvePreset,
+  toLocalStamp,
+  validateCustomSnooze,
+  relativeDayLabel,
+  formatRemindAt,
+  metadataFromPreset,
+  metadataFromCustom,
+  DEMO_REFERENCE_NOW,
+  getDemoNow,
+  type SnoozePreset,
+  type CustomSnoozeValidation,
+  type SnoozeChoice,
+  type SnoozeMetadata,
+  type SnoozePresetId,
+  type SnoozedDemoMessage,
+} from "./snooze";
+
+export type { SenderPolicy, SenderPersona } from "./senderPersonas/types";
+export { defaultSenderPersonas } from "./senderPersonas/senderPersonaFixtures";
+export { SenderPersonaSelector } from "./senderPersonas/SenderPersonaSelector";
+export { SenderPersonaEditor } from "./senderPersonas/SenderPersonaEditor";
+export { validateSenderPersona } from "./senderPersonas/validation";
+
+export {
   POSTAGE_STATUS_LABEL,
   truncateHash,
   formatLatency,
@@ -114,3 +167,18 @@ export {
   validateProofRecord,
 } from "./proofFormatting";
 export { demoProofRecords } from "./fixtures/proofRecordFixtures";
+
+// Draft dataset admin store (issue #172): reducer, selectors, hook, types, fixture.
+export { draftDatasetReducer, initialDraftDatasetState } from "./reducers/draftDatasetReducer";
+export {
+  selectAllDrafts,
+  selectDraftById,
+  selectDraftCount,
+  selectFilteredDrafts,
+  selectIsEmpty,
+  selectSelectedDraft,
+} from "./selectors/draftDatasetSelectors";
+export { useDraftDataset } from "./hooks/useDraftDataset";
+export type { UseDraftDatasetResult } from "./hooks/useDraftDataset";
+export type { DraftDatasetAction, DraftDatasetState } from "./types/draftDataset";
+export { draftDatasetSample } from "./fixtures/draftDatasetFixtures";

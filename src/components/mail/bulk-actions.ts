@@ -295,7 +295,7 @@ function canSnoozeEmail(email: Email) {
   return !NON_SNOOZABLE_FOLDERS.has(email.folder) && !PROTOCOL_FOLDERS.has(email.folder);
 }
 
-function canMoveEmail(email: Email) {
+export function canMoveEmail(email: Email) {
   return !NON_MOVABLE_FOLDERS.has(email.folder) && !PROTOCOL_FOLDERS.has(email.folder);
 }
 

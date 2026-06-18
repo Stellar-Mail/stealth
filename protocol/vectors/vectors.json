@@ -685,6 +685,99 @@
           }
         }
       ]
+    },
+    "relay_submission": {
+      "description": "Relay submission auth, idempotency, and policy denial vectors",
+      "cases": [
+        {
+          "id": "relay/auth/missing-header",
+          "description": "Missing x-stealth-address header returns 401 unauthorized",
+          "headers": {},
+          "input": {
+            "amount": "1000",
+            "messageId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "paymentHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "recipient": "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+            "sender": "GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
+          },
+          "expected": {
+            "status": 401,
+            "code": "unauthorized"
+          }
+        },
+        {
+          "id": "relay/auth/actor-mismatch",
+          "description": "x-stealth-address header mismatch with sender returns 403 forbidden",
+          "headers": {
+            "x-stealth-address": "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+          },
+          "input": {
+            "amount": "1000",
+            "messageId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "paymentHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "recipient": "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+            "sender": "GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
+          },
+          "expected": {
+            "status": 403,
+            "code": "forbidden"
+          }
+        },
+        {
+          "id": "relay/auth/invalid-address",
+          "description": "x-stealth-address header with invalid Stellar G-address format returns 401 unauthorized",
+          "headers": {
+            "x-stealth-address": "invalid-address"
+          },
+          "input": {
+            "amount": "1000",
+            "messageId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "paymentHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "recipient": "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+            "sender": "GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
+          },
+          "expected": {
+            "status": 401,
+            "code": "unauthorized"
+          }
+        },
+        {
+          "id": "relay/idempotency/duplicate-key-returns-original",
+          "description": "Re-submitting with same x-idempotency-key returns original 201 success",
+          "headers": {
+            "x-stealth-address": "GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+            "x-idempotency-key": "idempotency-test-key-123"
+          },
+          "input": {
+            "amount": "1000",
+            "messageId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "paymentHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "recipient": "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+            "sender": "GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
+          },
+          "expected": {
+            "status": 201
+          }
+        },
+        {
+          "id": "relay/policy/blocked-no-mailbox-leak",
+          "description": "Policy denial due to blocked sender returns 403 forbidden without leaking metadata",
+          "headers": {
+            "x-stealth-address": "GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
+          },
+          "input": {
+            "amount": "1000",
+            "messageId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "paymentHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "recipient": "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+            "sender": "GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
+          },
+          "expected": {
+            "status": 403,
+            "code": "forbidden"
+          }
+        }
+      ]
     }
   }
 }
