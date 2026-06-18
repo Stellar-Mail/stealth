@@ -1,58 +1,10 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Mail, AtSign, Bell, Check } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
-
-type Notification = {
-  id: string;
-  type: "email" | "mention" | "system";
-  title: string;
-  message: string;
-  time: string;
-  read: boolean;
-};
-
-const initialNotifications: Notification[] = [
-  {
-    id: "1",
-    type: "email",
-    title: "New message from Lina Park",
-    message: "Q2 brand system — final direction",
-    time: "2 min ago",
-    read: false,
-  },
-  {
-    id: "2",
-    type: "mention",
-    title: "Marcus mentioned you",
-    message: "in Architecture review notes",
-    time: "1 hour ago",
-    read: false,
-  },
-  {
-    id: "3",
-    type: "system",
-    title: "Sync complete",
-    message: "All messages synced to the blockchain",
-    time: "3 hours ago",
-    read: true,
-  },
-  {
-    id: "4",
-    type: "email",
-    title: "New message from Stripe",
-    message: "Your monthly invoice is ready",
-    time: "Yesterday",
-    read: true,
-  },
-];
-
-const icons = {
-  email: Mail,
-  mention: AtSign,
-  system: Bell,
-};
+import { useNotifications } from "@/hooks/useNotifications";
+import type { Notification } from "@/features/notifications/types";
 
 export function NotificationsPanel({
   open,
@@ -65,21 +17,14 @@ export function NotificationsPanel({
   anchorRect: DOMRect | null;
   onViewAll: () => void;
 }) {
-  const [notifications, setNotifications] = useState(initialNotifications);
+  const { notifications, markAllRead, markAsRead, handleCTA } = useNotifications();
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
-  const markAllRead = () => {
-    setNotifications(notifications.map((n) => ({ ...n, read: true })));
-  };
-
-  const markAsRead = (id: string) => {
-    setNotifications(notifications.map((n) => (n.id === id ? { ...n, read: true } : n)));
-  };
+  const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
 
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
@@ -144,16 +89,19 @@ export function NotificationsPanel({
                 return (
                   <li key={n.id}>
                     <button
-                      onClick={() => markAsRead(n.id)}
+                      onClick={() => {
+                        markAsRead(n.id);
+                        if (n.cta) handleCTA(n);
+                      }}
                       className={cn(
                         "flex w-full items-start gap-3 px-4 py-3 text-left transition hover:bg-white/[0.04]",
-                        !n.read && "bg-white/[0.02]",
+                        !n.read && "bg-white/[0.02]"
                       )}
                     >
                       <div
                         className={cn(
                           "flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
-                          !n.read ? "bg-white/10" : "bg-white/5",
+                          !n.read ? "bg-white/10" : "bg-white/5"
                         )}
                       >
                         <Icon className="h-4 w-4 text-muted-foreground" />
@@ -163,7 +111,7 @@ export function NotificationsPanel({
                           <p
                             className={cn(
                               "truncate text-sm",
-                              !n.read ? "font-medium text-foreground" : "text-foreground/80",
+                              !n.read ? "font-medium text-foreground" : "text-foreground/80"
                             )}
                           >
                             {n.title}
@@ -174,6 +122,19 @@ export function NotificationsPanel({
                         </div>
                         <p className="truncate text-xs text-muted-foreground">{n.message}</p>
                         <p className="mt-1 text-[10px] text-muted-foreground/70">{n.time}</p>
+                        {n.cta && (
+                          <div className="mt-2 flex gap-2">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleCTA({ ...n, cta: n.cta });
+                              }}
+                              className="rounded-full bg-white/10 px-2 py-0.5 text-xs text-foreground hover:bg-white/20"
+                            >
+                              {n.cta.type}
+                            </button>
+                          </div>
+                        )}
                       </div>
                       {n.read && <Check className="h-4 w-4 shrink-0 text-muted-foreground/50" />}
                     </button>
