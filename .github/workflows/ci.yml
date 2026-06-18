@@ -115,9 +115,38 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  screenshot-tests:
+    name: Screenshot Tests
+    runs-on: ubuntu-latest
+    needs: client-checks
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.1.20
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: bunx playwright install chromium --with-deps
+
+      - name: Run screenshot tests
+        run: bunx playwright test --project=desktop
+
+      - name: Upload failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshot-failures
+          path: tests/visual/__results__/
+          retention-days: 7
+
   provenance:
     name: Provenance & Hashes
-    needs: [client-checks, contract-checks]
+    needs: [client-checks, contract-checks, screenshot-tests]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
