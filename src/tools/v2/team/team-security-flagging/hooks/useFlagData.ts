@@ -223,6 +223,9 @@ export function useFlagData(options: UseFlagDataOptions = {}): UseFlagDataReturn
           ...flags[flagIndex],
           ...data,
           updatedAt: new Date(),
+          assignedTo: typeof data.assignedTo === "object" && data.assignedTo !== null
+            ? data.assignedTo
+            : undefined,
         };
 
         setFlags((prev) => {

@@ -153,9 +153,9 @@ export function FlagFilters({
           <Separator />
 
           {/* Severity filter */}
-          <FilterSection
+          <FilterSection<FlagSeverity, typeof SEVERITY_META[FlagSeverity]>
             title="Severity"
-            items={Object.entries(SEVERITY_META)}
+            items={Object.entries(SEVERITY_META) as [FlagSeverity, typeof SEVERITY_META[FlagSeverity]][]}
             selectedItems={filters.severity || []}
             onToggle={toggleSeverity}
             renderLabel={(meta) => meta.label}
@@ -164,9 +164,9 @@ export function FlagFilters({
           <Separator />
 
           {/* Status filter */}
-          <FilterSection
+          <FilterSection<FlagStatus, typeof STATUS_META[FlagStatus]>
             title="Status"
-            items={Object.entries(STATUS_META)}
+            items={Object.entries(STATUS_META) as [FlagStatus, typeof STATUS_META[FlagStatus]][]}
             selectedItems={filters.status || []}
             onToggle={toggleStatus}
             renderLabel={(meta) => meta.label}
@@ -175,9 +175,9 @@ export function FlagFilters({
           <Separator />
 
           {/* Category filter */}
-          <FilterSection
+          <FilterSection<FlagCategory, typeof CATEGORY_META[FlagCategory]>
             title="Category"
-            items={Object.entries(CATEGORY_META)}
+            items={Object.entries(CATEGORY_META) as [FlagCategory, typeof CATEGORY_META[FlagCategory]][]}
             selectedItems={filters.category || []}
             onToggle={toggleCategory}
             renderLabel={(meta) => meta.label}
@@ -219,21 +219,21 @@ export function FlagFilters({
 /**
  * Filter section component
  */
-interface FilterSectionProps<T> {
+interface FilterSectionProps<K extends string, T> {
   title: string;
-  items: [string, T][];
-  selectedItems: string[];
-  onToggle: (key: string) => void;
+  items: [K, T][];
+  selectedItems: K[];
+  onToggle: (key: K) => void;
   renderLabel: (meta: T) => string;
 }
 
-function FilterSection<T>({
+function FilterSection<K extends string, T>({
   title,
   items,
   selectedItems,
   onToggle,
   renderLabel,
-}: FilterSectionProps<T>) {
+}: FilterSectionProps<K, T>) {
   return (
     <fieldset className="space-y-3">
       <legend className="text-sm font-medium text-foreground">{title}</legend>
