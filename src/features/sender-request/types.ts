@@ -6,20 +6,20 @@
  */
 
 export type SenderRequestStep =
-  | "address-lookup"   // Enter recipient Stealth address; resolve to G-address + policy
-  | "policy-quote"     // Show price/terms before any commitment
-  | "identity-proof"   // Connect wallet (Freighter or paste G-address)
-  | "postage-payment"  // Pay / sign postage; show refund terms
-  | "delivery-status"  // Awaiting delivery confirmation
-  | "refund-outcome";  // Refund received or dispute path
+  | "address-lookup" // Enter recipient Stealth address; resolve to G-address + policy
+  | "policy-quote" // Show price/terms before any commitment
+  | "identity-proof" // Connect wallet (Freighter or paste G-address)
+  | "postage-payment" // Pay / sign postage; show refund terms
+  | "delivery-status" // Awaiting delivery confirmation
+  | "refund-outcome"; // Refund received or dispute path
 
 /** Direction for step-transition animations. */
 export type StepDirection = 1 | -1;
 
 /** The outcome of resolving a recipient address. */
 export type AddressResolution = {
-  recipientAddress: string;   // G-address
-  displayHandle: string;      // Human-readable input as entered
+  recipientAddress: string; // G-address
+  displayHandle: string; // Human-readable input as entered
 };
 
 /** Quote returned from the postage API. */

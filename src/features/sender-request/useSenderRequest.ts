@@ -197,17 +197,14 @@ export function useSenderRequest() {
   );
 
   /** Step 5: poll/set delivery outcome. */
-  const resolveDelivery = useCallback(
-    async (outcome: DeliveryOutcome) => {
-      setState((s) => ({
-        ...s,
-        outcome,
-        step: outcome.state !== "pending" ? nextStep(s.step) : s.step,
-        direction: 1,
-      }));
-    },
-    [],
-  );
+  const resolveDelivery = useCallback(async (outcome: DeliveryOutcome) => {
+    setState((s) => ({
+      ...s,
+      outcome,
+      step: outcome.state !== "pending" ? nextStep(s.step) : s.step,
+      direction: 1,
+    }));
+  }, []);
 
   const reset = useCallback(() => setState(INITIAL_STATE), []);
 

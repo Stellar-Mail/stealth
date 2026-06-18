@@ -34,13 +34,21 @@ const stepVariants: Variants = {
 
 function ProgressBar({ current, total }: { current: number; total: number }) {
   return (
-    <div className="flex items-center gap-3 pb-2" role="progressbar" aria-valuenow={current + 1} aria-valuemin={1} aria-valuemax={total}>
+    <div
+      className="flex items-center gap-3 pb-2"
+      role="progressbar"
+      aria-valuenow={current + 1}
+      aria-valuemin={1}
+      aria-valuemax={total}
+    >
       <div className="flex flex-1 gap-1">
         {Array.from({ length: total }).map((_, i) => (
           <div
             key={i}
             className="h-0.5 flex-1 rounded-full transition-all duration-300"
-            style={{ background: i <= current ? "rgba(255,255,255,0.65)" : "rgba(255,255,255,0.1)" }}
+            style={{
+              background: i <= current ? "rgba(255,255,255,0.65)" : "rgba(255,255,255,0.1)",
+            }}
           />
         ))}
       </div>
@@ -53,11 +61,17 @@ function ProgressBar({ current, total }: { current: number; total: number }) {
 
 function ErrorBanner({ message, onRetry }: { message: string; onRetry?: () => void }) {
   return (
-    <div role="alert" className="flex items-start gap-2.5 rounded-lg border border-rose-500/20 bg-rose-500/[0.06] px-3 py-2.5 text-xs text-rose-400">
+    <div
+      role="alert"
+      className="flex items-start gap-2.5 rounded-lg border border-rose-500/20 bg-rose-500/[0.06] px-3 py-2.5 text-xs text-rose-400"
+    >
       <AlertCircle className="mt-0.5 size-3.5 shrink-0" aria-hidden />
       <span className="flex-1 leading-relaxed">{message}</span>
       {onRetry && (
-        <button onClick={onRetry} className="shrink-0 font-medium underline underline-offset-2 hover:no-underline">
+        <button
+          onClick={onRetry}
+          className="shrink-0 font-medium underline underline-offset-2 hover:no-underline"
+        >
           Retry
         </button>
       )}
@@ -121,7 +135,10 @@ function AddressLookupStep({
 
   return (
     <form
-      onSubmit={(e) => { e.preventDefault(); if (valid) onSubmit(value.trim()); }}
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (valid) onSubmit(value.trim());
+      }}
       className="flex flex-col gap-4"
     >
       <div>
@@ -192,16 +209,20 @@ function PolicyQuoteStep({
       <dl className="rounded-xl border border-white/10 bg-white/[0.03] p-4 space-y-3 text-xs">
         <div className="flex items-center justify-between gap-2">
           <dt className="text-muted-foreground">Recipient</dt>
-          <dd className="max-w-[60%] truncate text-right font-mono text-foreground/80">{displayHandle}</dd>
+          <dd className="max-w-[60%] truncate text-right font-mono text-foreground/80">
+            {displayHandle}
+          </dd>
         </div>
         <div className="flex items-center justify-between gap-2">
           <dt className="text-muted-foreground">Postage required</dt>
-          <dd className={cn(
-            "font-semibold",
-            isFree && "text-emerald-400",
-            isBlocked && "text-rose-400",
-            !isFree && !isBlocked && "text-foreground",
-          )}>
+          <dd
+            className={cn(
+              "font-semibold",
+              isFree && "text-emerald-400",
+              isBlocked && "text-rose-400",
+              !isFree && !isBlocked && "text-foreground",
+            )}
+          >
             {isBlocked ? "Blocked" : isFree ? "Free" : `${quote.amountXlm} XLM`}
           </dd>
         </div>
@@ -260,7 +281,10 @@ function IdentityProofStep({
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const freighter = (window as any).freighter;
-      if (!freighter) { setShowManual(true); return; }
+      if (!freighter) {
+        setShowManual(true);
+        return;
+      }
       await freighter.setAllowed();
       const address: string = await freighter.getPublicKey();
       onConnect({ address, method: "freighter" });
@@ -288,7 +312,9 @@ function IdentityProofStep({
           >
             <Wallet className="size-4 shrink-0 text-blue-400" aria-hidden />
             <span className="flex-1 text-left">Connect Freighter wallet</span>
-            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Recommended</span>
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+              Recommended
+            </span>
           </button>
 
           <button
@@ -300,7 +326,15 @@ function IdentityProofStep({
           </button>
 
           <p className="text-[10px] text-center text-muted-foreground/60">
-            No Stellar account? <a href="https://stellar.org/learn/intro-to-stellar" target="_blank" rel="noopener noreferrer" className="underline hover:text-muted-foreground">Learn how to get one free.</a>
+            No Stellar account?{" "}
+            <a
+              href="https://stellar.org/learn/intro-to-stellar"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-muted-foreground"
+            >
+              Learn how to get one free.
+            </a>
           </p>
         </div>
       ) : (
@@ -321,7 +355,9 @@ function IdentityProofStep({
               className="w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-xs text-foreground placeholder:text-muted-foreground/50 outline-none focus:border-white/20 focus:ring-1 focus:ring-white/15"
             />
             {manualAddress.length > 0 && !manualValid && (
-              <p className="text-[10px] text-rose-400">Must be a valid Stellar G-address (starts with G, 56 characters)</p>
+              <p className="text-[10px] text-rose-400">
+                Must be a valid Stellar G-address (starts with G, 56 characters)
+              </p>
             )}
           </div>
           <PrimaryButton
@@ -371,7 +407,9 @@ function PostagePaymentStep({
   const handleSubmit = () => {
     // Generate a deterministic message ID from timestamp + random bytes
     const raw = crypto.getRandomValues(new Uint8Array(32));
-    const messageId = Array.from(raw).map((b) => b.toString(16).padStart(2, "0")).join("");
+    const messageId = Array.from(raw)
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
     onSubmit({
       messageId,
       paymentHash: isFree ? "0".repeat(64) : txHash.trim().toLowerCase(),
@@ -428,7 +466,8 @@ function PostagePaymentStep({
             className="w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-xs text-foreground placeholder:text-muted-foreground/40 outline-none focus:border-white/20 focus:ring-1 focus:ring-white/15"
           />
           <p className="text-[10px] text-muted-foreground">
-            Copy from your Stellar wallet after sending. Postage is non-custodial — the relay verifies but never holds your funds.
+            Copy from your Stellar wallet after sending. Postage is non-custodial — the relay
+            verifies but never holds your funds.
           </p>
         </div>
       )}
@@ -494,7 +533,9 @@ function DeliveryStatusStep({
                 Simulate delivered
               </button>
               <button
-                onClick={() => onSimulateOutcome({ state: "refunded", reason: "Sender blocked by recipient" })}
+                onClick={() =>
+                  onSimulateOutcome({ state: "refunded", reason: "Sender blocked by recipient" })
+                }
                 className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-1.5 text-xs font-medium text-amber-400 hover:bg-amber-500/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30"
               >
                 Simulate refund
@@ -536,8 +577,8 @@ function DeliveryStatusStep({
             <BadgeCheck className="size-8 text-blue-400" aria-hidden />
             <p className="text-sm font-medium text-foreground/80">Postage refunded</p>
             <p className="text-xs text-muted-foreground max-w-[280px]">
-              {(outcome as { state: "refunded"; reason: string }).reason}.{" "}
-              Your postage has been returned to your Stellar wallet.
+              {(outcome as { state: "refunded"; reason: string }).reason}. Your postage has been
+              returned to your Stellar wallet.
             </p>
             <button
               onClick={onReset}
@@ -620,11 +661,7 @@ export function SenderRequestFlow() {
           exit="exit"
         >
           {step === "address-lookup" && (
-            <AddressLookupStep
-              loading={loading}
-              error={error}
-              onSubmit={resolveAddress}
-            />
+            <AddressLookupStep loading={loading} error={error} onSubmit={resolveAddress} />
           )}
 
           {step === "policy-quote" && quote && resolution && (
