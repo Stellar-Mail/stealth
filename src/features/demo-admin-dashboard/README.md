@@ -37,21 +37,13 @@ Run the unit tests:
 npm run test
 ```
 
-The fixture data in `fixtures/demoData.ts` is deterministic, fake, and safe for public repository review.
+The fixture data in `fixtures/demoData.ts` and `fixtures/campaignSnapshotFixtures.ts` is deterministic, fake, and safe for public repository review.
 
-This folder is the implementation boundary for the admin dashboard used to populate and manage demo data in the Stealth demo inbox UI.
-
-Contributors working on demo-admin issues should keep new dashboard code, local state helpers, fixtures, validators, UI components, test utilities, and documentation inside:
-
-`src/features/demo-admin-dashboard/`
-
-The rest of the app should only import stable entry points from this folder once the feature is ready to connect to the demo inbox. Avoid changing existing inbox, mail reader, calendar, sender-conversion, or protocol modules unless an issue explicitly asks for a minimal integration shim.
+To run only the demo-admin tests:
 
 ```bash
 npx vitest run src/features/demo-admin-dashboard/__tests__/
 ```
-
-The fixture data in `fixtures/demoData.ts` and `fixtures/campaignSnapshotFixtures.ts` is deterministic, fake, and safe for public repository review.
 
 ---
 
@@ -78,14 +70,17 @@ import { DemoAdminDashboard } from "@/features/demo-admin-dashboard";
 
 The dashboard exposes these tabbed sections:
 
-| Section   | Description                                                    |
-| --------- | -------------------------------------------------------------- |
-| Overview  | Summary stats cards (accounts, messages, etc.)                 |
-| Accounts  | Table of demo Stellar accounts                                 |
-| Mail      | Table of demo mail fixtures                                    |
-| Templates | Pick a message template and insert it into the active drafts   |
-| Campaigns | Save current drafts as a snapshot or restore previous campaign |
-| Audit     | Timeline of demo protocol events                               |
+| Section     | Description                                                    | Data source                     | Status      |
+| ----------- | -------------------------------------------------------------- | ------------------------------- | ----------- |
+| Overview    | Summary stats cards, protocol scenario preset selector         | `presets.ts`, `demoData.ts`     | Implemented |
+| Accounts    | Table of demo Stellar accounts and relay nodes                 | `presets.ts`                    | Implemented |
+| Mail        | Table of demo inbox/request/spam mail fixtures                 | `presets.ts`                    | Implemented |
+| Attachments | Table of file attachment fixtures linked to mail items         | `presets.ts`                    | Implemented |
+| Events      | Table of calendar and protocol events                          | `presets.ts`                    | Implemented |
+| Templates   | Pick a message template and insert it into the active drafts   | `templates/messageTemplates.ts` | Implemented |
+| Campaigns   | Save/restore draft dataset snapshots and manage campaigns      | `campaignSnapshotFixtures.ts`   | Placeholder |
+| Audit       | Timeline of demo protocol events (sessions, policies, postage) | `presets.ts`                    | Implemented |
+| Analytics   | Privacy-preserving aggregate product analytics (future)        | TBD                             | Placeholder |
 
 ---
 

@@ -24,25 +24,26 @@ interface AdminDataTableProps<T> {
 /**
  * Pure helper function to sort data based on a key and direction.
  */
+/* eslint-disable-next-line react-refresh/only-export-components */
 export function sortData<T>(
   data: T[],
   sortKey: string | null,
   sortDirection: "asc" | "desc",
-  column?: Column<T>
+  column?: Column<T>,
 ): T[] {
   if (!sortKey) return data;
 
   return [...data].sort((a, b) => {
+    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
     let valA: any = column?.sortValue ? column.sortValue(a) : (a as any)[sortKey];
+    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
     let valB: any = column?.sortValue ? column.sortValue(b) : (b as any)[sortKey];
 
     if (valA === undefined || valA === null) valA = "";
     if (valB === undefined || valB === null) valB = "";
 
     if (typeof valA === "string" && typeof valB === "string") {
-      return sortDirection === "asc"
-        ? valA.localeCompare(valB)
-        : valB.localeCompare(valA);
+      return sortDirection === "asc" ? valA.localeCompare(valB) : valB.localeCompare(valA);
     }
 
     if (valA < valB) return sortDirection === "asc" ? -1 : 1;
@@ -83,7 +84,12 @@ export function AdminDataTable<T>({
   }, [data, sortKey, sortDirection, columns]);
 
   return (
-    <div className={cn("overflow-hidden rounded-xl border border-white/[0.06] bg-white/[0.01]", className)}>
+    <div
+      className={cn(
+        "overflow-hidden rounded-xl border border-white/[0.06] bg-white/[0.01]",
+        className,
+      )}
+    >
       <table className="w-full text-left text-sm border-collapse">
         <thead>
           <tr className="border-b border-white/[0.06] bg-white/[0.02]">
@@ -95,7 +101,7 @@ export function AdminDataTable<T>({
                   onClick={() => col.sortable && handleSort(col.key)}
                   className={cn(
                     "px-4 py-3 font-medium text-muted-foreground select-none",
-                    col.sortable ? "cursor-pointer hover:text-foreground transition-colors" : ""
+                    col.sortable ? "cursor-pointer hover:text-foreground transition-colors" : "",
                   )}
                 >
                   <div className="flex items-center gap-1">
@@ -135,11 +141,12 @@ export function AdminDataTable<T>({
                   className={cn(
                     "border-b border-white/[0.04] last:border-0 transition-colors",
                     isClickable ? "cursor-pointer hover:bg-white/[0.02]" : "",
-                    isSelected ? "bg-white/[0.04]" : ""
+                    isSelected ? "bg-white/[0.04]" : "",
                   )}
                 >
                   {columns.map((col) => (
                     <td key={col.key} className="px-4 py-3 text-foreground align-middle">
+                      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                       {col.render ? col.render(row) : String((row as any)[col.key] ?? "")}
                     </td>
                   ))}

@@ -15,10 +15,11 @@ Recommended internal structure:
 - components/
 - services/
 - hooks/
-- 	ests/
+-     ests/
 - docs/
-"@ | Set-Content -Path "tools/v1/team/customer-support-macro-tool/README.md"
+  "@ | Set-Content -Path "tools/v1/team/customer-support-macro-tool/README.md"
   @"
+
 # Customer Support Macro Tool Specs
 
 ## Purpose

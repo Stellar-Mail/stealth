@@ -15,10 +15,11 @@ Recommended internal structure:
 - components/
 - services/
 - hooks/
-- 	ests/
+-     ests/
 - docs/
-"@ | Set-Content -Path "tools/v2/team/approval-chain-builder/README.md"
+  "@ | Set-Content -Path "tools/v2/team/approval-chain-builder/README.md"
   @"
+
 # Approval Chain Builder Specs
 
 ## Purpose

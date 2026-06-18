@@ -15,10 +15,11 @@ Recommended internal structure:
 - components/
 - services/
 - hooks/
-- 	ests/
+-     ests/
 - docs/
-"@ | Set-Content -Path "tools/v1/individual/phishing-link-scanner/README.md"
+  "@ | Set-Content -Path "tools/v1/individual/phishing-link-scanner/README.md"
   @"
+
 # Phishing Link Scanner Specs
 
 ## Purpose

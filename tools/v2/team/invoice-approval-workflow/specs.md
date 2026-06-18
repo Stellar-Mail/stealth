@@ -15,10 +15,11 @@ Recommended internal structure:
 - components/
 - services/
 - hooks/
-- 	ests/
+-     ests/
 - docs/
-"@ | Set-Content -Path "tools/v2/team/invoice-approval-workflow/README.md"
+  "@ | Set-Content -Path "tools/v2/team/invoice-approval-workflow/README.md"
   @"
+
 # Invoice Approval Workflow Specs
 
 ## Purpose

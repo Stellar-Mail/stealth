@@ -14,6 +14,7 @@ export {
 } from "./fixtures/demoData";
 
 export { defaultCampaignSnapshots } from "./fixtures/campaignSnapshotFixtures";
+export { defaultCampaignTags } from "./fixtures/campaignTagFixtures";
 
 export type {
   AdminDashboardBreakpoint,
@@ -29,6 +30,7 @@ export type {
 } from "./types";
 
 export type { CampaignSnapshot } from "./types/campaignSnapshot";
+export type { CampaignTag, TagColorKey } from "./types/campaignTag";
 
 export {
   CAMPAIGN_STATUS_TOKENS,
@@ -37,6 +39,33 @@ export {
   getTagToken,
   getAudienceToken,
 } from "./constants/displayTokens";
+
+export { CampaignTagManager } from "./components/CampaignTagManager";
+
+export {
+  createTag,
+  renameTag,
+  updateTagColor,
+  mergeTag,
+  deleteTag,
+  getTagUsageCount,
+} from "./utils/tagOperations";
+
+export {
+  normalizeTagName,
+  toTagSlug,
+  resolveTagSlug,
+  normalizeTagColor,
+  assignTagOrders,
+  normalizeCampaignTag,
+  normalizeCampaignTags,
+} from "./utils/tagNormalization";
+
+export {
+  saveCampaignTags,
+  loadCampaignTags,
+  clearCampaignTags,
+} from "./persistence/localStorageAdapter";
 
 export {
   TemplatePicker,
@@ -51,6 +80,7 @@ export {
   type MessageTemplate,
   type TemplateCategory,
 } from "./templates";
+
 export * from "./validation-types";
 export * from "./validation";
 export * from "./validationFixtures";

@@ -8,39 +8,39 @@ Use this checklist before merging any PR that adds or modifies demo data under
 ## 1. Data safety
 
 - [ ] All email addresses use `example.com`, `example.org`, or the reserved
-  `*.stealth.demo` handle — no real addresses present.
+      `*.stealth.demo` handle — no real addresses present.
 - [ ] No private keys, secrets, tokens, mnemonics, or Stellar account seeds in
-  any fixture or constant.
+      any fixture or constant.
 - [ ] No real user names, real organisation names, or PII in any demo record.
 - [ ] Fixture values are hardcoded constants — no `Math.random()`, `Date.now()`,
-  or other non-deterministic calls.
+      or other non-deterministic calls.
 
 ## 2. Scope isolation
 
 - [ ] All new or changed files live under `src/features/demo-admin-dashboard/`.
 - [ ] No files outside that folder were modified (check the diff).
 - [ ] No imports from production mail, inbox, calendar, sender-conversion,
-  protocol, routing, or app-shell modules were added.
+      protocol, routing, or app-shell modules were added.
 - [ ] If an integration point became necessary, it is documented as a follow-up
-  issue rather than implemented here.
+      issue rather than implemented here.
 
 ## 3. Demo data correctness
 
 - [ ] `adminDashboardPanels` — each panel has a non-empty `id`, `title`,
-  `description`, a valid `status` (`"ready" | "needs-review" | "draft"`), and a
-  positive integer `demoRecords`.
+      `description`, a valid `status` (`"ready" | "needs-review" | "draft"`), and a
+      positive integer `demoRecords`.
 - [ ] `adminDashboardWidthNotes` — entries cover all three breakpoints (`tablet`,
-  `laptop`, `desktop`) with non-overlapping width ranges and consistent
-  `sidebarMode` values.
+      `laptop`, `desktop`) with non-overlapping width ranges and consistent
+      `sidebarMode` values.
 - [ ] `adminDashboardLayoutChecks` — each check references a known breakpoint and
-  has a non-empty `expected` description.
+      has a non-empty `expected` description.
 - [ ] Draft fixtures (if present) use the `Draft` type from `types/draft.ts` and
-  contain at least `id`, `subject`, `body`, and `recipients`.
+      contain at least `id`, `subject`, `body`, and `recipients`.
 
 ## 4. Test coverage
 
 - [ ] At least one unit test exercises the new or changed data (fixture shape,
-  helper output, or component render).
+      helper output, or component render).
 - [ ] `npx vitest run src/features/demo-admin-dashboard` exits green locally.
 - [ ] No test uses `any` casts to bypass type checks on fixture data.
 - [ ] Campaign copy rules and internal note templates are documented in

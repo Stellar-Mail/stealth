@@ -15,10 +15,11 @@ Recommended internal structure:
 - components/
 - services/
 - hooks/
-- 	ests/
+-     ests/
 - docs/
-"@ | Set-Content -Path "tools/v1/individual/attachment-extractor/README.md"
+  "@ | Set-Content -Path "tools/v1/individual/attachment-extractor/README.md"
   @"
+
 # Attachment Extractor Specs
 
 ## Purpose

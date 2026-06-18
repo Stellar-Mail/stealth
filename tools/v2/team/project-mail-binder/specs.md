@@ -15,10 +15,11 @@ Recommended internal structure:
 - components/
 - services/
 - hooks/
-- 	ests/
+-     ests/
 - docs/
-"@ | Set-Content -Path "tools/v2/team/project-mail-binder/README.md"
+  "@ | Set-Content -Path "tools/v2/team/project-mail-binder/README.md"
   @"
+
 # Project Mail Binder Specs
 
 ## Purpose

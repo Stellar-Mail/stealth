@@ -15,10 +15,11 @@ Recommended internal structure:
 - components/
 - services/
 - hooks/
-- 	ests/
+-     ests/
 - docs/
-"@ | Set-Content -Path "tools/v1/team/team-template-library/README.md"
+  "@ | Set-Content -Path "tools/v1/team/team-template-library/README.md"
   @"
+
 # Team Template Library Specs
 
 ## Purpose

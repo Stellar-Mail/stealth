@@ -15,10 +15,11 @@ Recommended internal structure:
 - components/
 - services/
 - hooks/
-- 	ests/
+-     ests/
 - docs/
-"@ | Set-Content -Path "tools/v2/individual/follow-up-sequence-builder/README.md"
+  "@ | Set-Content -Path "tools/v2/individual/follow-up-sequence-builder/README.md"
   @"
+
 # Follow-up Sequence Builder Specs
 
 ## Purpose

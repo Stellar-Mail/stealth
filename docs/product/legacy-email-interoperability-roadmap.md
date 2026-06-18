@@ -5,6 +5,7 @@
 This roadmap defines a gradual interoperability path for Stealth to communicate with ordinary email while preserving native security guarantees and making bridged mail clearly distinguishable.
 
 Stealth must not require a full network migration at once. The roadmap covers:
+
 - inbound SMTP bridging
 - outbound replies
 - forwarding and aliases
@@ -162,15 +163,16 @@ Stealth must not require a full network migration at once. The roadmap covers:
 ## Adoption and reliability gates
 
 Each milestone must satisfy both:
+
 - Adoption gate: an actual design partner or pilot customer is using the workflow.
 - Reliability gate: objective operational metrics and incident limits.
 
-| Milestone | Adoption gate | Reliability gate |
-| --- | --- | --- |
-| Inbound SMTP bridge | Pilot with one partner | <= 1 loop incident/month, >= 99.5% delivery | 
-| Outbound replies | Partner sends replies through bridge | <= 1% bridge-related failures | 
-| Forwarding / aliases | Alias forwarding in active use | No loop incidents, >= 99.5% alias delivery | 
-| Domain verification / native upgrade | Verified domain in production | >= 99.9% native routing accuracy |
+| Milestone                            | Adoption gate                        | Reliability gate                            |
+| ------------------------------------ | ------------------------------------ | ------------------------------------------- |
+| Inbound SMTP bridge                  | Pilot with one partner               | <= 1 loop incident/month, >= 99.5% delivery |
+| Outbound replies                     | Partner sends replies through bridge | <= 1% bridge-related failures               |
+| Forwarding / aliases                 | Alias forwarding in active use       | No loop incidents, >= 99.5% alias delivery  |
+| Domain verification / native upgrade | Verified domain in production        | >= 99.9% native routing accuracy            |
 
 ## Success signal
 

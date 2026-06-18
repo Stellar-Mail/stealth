@@ -15,10 +15,11 @@ Recommended internal structure:
 - components/
 - services/
 - hooks/
-- 	ests/
+-     ests/
 - docs/
-"@ | Set-Content -Path "tools/v1/team/sla-deadline-tracker/README.md"
+  "@ | Set-Content -Path "tools/v1/team/sla-deadline-tracker/README.md"
   @"
+
 # SLA Deadline Tracker Specs
 
 ## Purpose

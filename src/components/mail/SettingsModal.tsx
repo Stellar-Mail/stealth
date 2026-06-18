@@ -31,6 +31,7 @@ import {
   savedCustomTemplateToPreferences,
   templateToPreferences,
   type MailboxPolicyTemplateId,
+  type MailboxPolicyTemplate,
   type SavedMailboxPolicyTemplate,
 } from "@/features/settings/mailbox-policy-templates";
 import { AuditLog } from "@/features/audit-log";
@@ -55,6 +56,9 @@ export function SettingsModal({
   onCancel,
   preferences,
   onChange,
+  layout,
+  onLayoutChange,
+  onResetLayout,
   onSave,
 }: {
   open: boolean;
@@ -478,7 +482,7 @@ function InboxSettings({
         ? savedCustomTemplateToPreferences(savedCustomTemplate)
         : currentDraft
       : selectedPreview
-        ? templateToPreferences(selectedPreview)
+        ? templateToPreferences(selectedPreview as MailboxPolicyTemplate)
         : currentDraft;
 
   const previewMatchesCurrent =
@@ -488,7 +492,10 @@ function InboxSettings({
           savedCustomTemplate.policy.minimumPostage === preferences.minimumPostage
         : true
       : selectedPreview
-        ? mailboxPolicyTemplateMatchesPreferences(selectedPreview, currentDraft)
+        ? mailboxPolicyTemplateMatchesPreferences(
+            selectedPreview as MailboxPolicyTemplate,
+            currentDraft,
+          )
         : false;
 
   const applyingWillReplaceCurrent =
@@ -496,7 +503,7 @@ function InboxSettings({
       ? !!savedCustomTemplate && !previewMatchesCurrent
       : !previewMatchesCurrent;
 
-  const handleTemplateChange = (id: MailboxPolicyTemplateId) => {
+  const handleTemplateChange = (id: MailboxPolicyTemplateId | "custom") => {
     setPreviewTemplateId(id);
   };
 
@@ -520,7 +527,7 @@ function InboxSettings({
 
     onChange({
       ...preferences,
-      ...templateToPreferences(selectedPreview),
+      ...templateToPreferences(selectedPreview as MailboxPolicyTemplate),
     });
   };
 
@@ -1307,7 +1314,6 @@ function LayoutSettings({
     </div>
   );
 }
-
 
 function SettingsToggle({
   label,

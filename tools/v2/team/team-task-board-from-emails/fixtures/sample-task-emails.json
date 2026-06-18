@@ -1,0 +1,93 @@
+{
+  "tool": "team-task-board-from-emails",
+  "version": 1,
+  "emails": [
+    {
+      "id": "email-onboarding-001",
+      "threadId": "thread-onboarding",
+      "from": "people@example.test",
+      "to": ["ops-team@example.test"],
+      "subject": "New contractor setup needed by Friday",
+      "receivedAt": "2026-06-15T09:15:00Z",
+      "body": "Please create access for Mira before Friday. This should be handled by Ops.",
+      "signals": ["create access", "before Friday", "handled by Ops"]
+    },
+    {
+      "id": "email-invoice-002",
+      "threadId": "thread-invoice",
+      "from": "finance@example.test",
+      "to": ["ops-team@example.test"],
+      "subject": "Invoice needs approval",
+      "receivedAt": "2026-06-15T11:30:00Z",
+      "body": "Can someone confirm who owns the June vendor invoice approval? It is due 2026-06-20.",
+      "signals": ["confirm owner", "invoice approval", "due 2026-06-20"]
+    },
+    {
+      "id": "email-vendor-003",
+      "threadId": "thread-vendor-contract",
+      "from": "legal@example.test",
+      "to": ["ops-team@example.test"],
+      "subject": "Vendor contract blocked on security review",
+      "receivedAt": "2026-06-16T14:05:00Z",
+      "body": "Do not send the contract yet. Security needs to finish review first.",
+      "signals": ["blocked", "security review", "do not send"]
+    },
+    {
+      "id": "email-followup-004",
+      "threadId": "thread-followup",
+      "from": "support@example.test",
+      "to": ["ops-team@example.test"],
+      "subject": "Follow-up sent to ACME",
+      "receivedAt": "2026-06-16T16:40:00Z",
+      "body": "The customer follow-up was sent and the action item is complete.",
+      "signals": ["sent", "complete"]
+    }
+  ],
+  "expectedCards": [
+    {
+      "id": "task-onboarding-001",
+      "title": "Create contractor access for Mira",
+      "owner": "Ops",
+      "dueDate": "2026-06-19",
+      "priority": "medium",
+      "status": "new",
+      "sourceEmailId": "email-onboarding-001",
+      "reviewRequired": false
+    },
+    {
+      "id": "task-invoice-002",
+      "title": "Confirm owner for June vendor invoice approval",
+      "owner": "unassigned",
+      "dueDate": "2026-06-20",
+      "priority": "high",
+      "status": "triage",
+      "sourceEmailId": "email-invoice-002",
+      "reviewRequired": true
+    },
+    {
+      "id": "task-vendor-003",
+      "title": "Wait for security review before sending vendor contract",
+      "owner": "Legal",
+      "dueDate": null,
+      "priority": "high",
+      "status": "blocked",
+      "sourceEmailId": "email-vendor-003",
+      "reviewRequired": true
+    },
+    {
+      "id": "task-followup-004",
+      "title": "Customer follow-up sent to ACME",
+      "owner": "Support",
+      "dueDate": null,
+      "priority": "low",
+      "status": "done",
+      "sourceEmailId": "email-followup-004",
+      "reviewRequired": false
+    }
+  ],
+  "reviewNotes": [
+    "The fixture uses example.test addresses to avoid real customer data.",
+    "Relative dates should be normalized before implementation code ships.",
+    "Blocked tasks must preserve the blocking reason in future UI work."
+  ]
+}

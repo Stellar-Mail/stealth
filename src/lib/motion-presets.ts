@@ -15,8 +15,7 @@
 
 // Check if user prefers reduced motion
 const prefersReducedMotion =
-  typeof window !== "undefined" &&
-  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 // Base animation configuration
 const baseConfig = {
@@ -36,7 +35,7 @@ const reducedConfig = {
 
 const getConfig = () => (prefersReducedMotion ? reducedConfig : baseConfig);
 
-type AnimationPreset = {
+export type AnimationPreset = {
   initial: Record<string, any>;
   animate: Record<string, any>;
   exit?: Record<string, any>;
@@ -627,4 +626,3 @@ export const motionPresets = {
 } as const;
 
 export type MotionPreset = typeof motionPresets;
-

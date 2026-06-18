@@ -15,10 +15,11 @@ Recommended internal structure:
 - components/
 - services/
 - hooks/
-- 	ests/
+-     ests/
 - docs/
-"@ | Set-Content -Path "tools/v1/individual/inbox-daily-digest/README.md"
+  "@ | Set-Content -Path "tools/v1/individual/inbox-daily-digest/README.md"
   @"
+
 # Inbox Daily Digest Specs
 
 ## Purpose

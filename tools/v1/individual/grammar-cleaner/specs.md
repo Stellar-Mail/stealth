@@ -15,10 +15,11 @@ Recommended internal structure:
 - components/
 - services/
 - hooks/
-- 	ests/
+-     ests/
 - docs/
-"@ | Set-Content -Path "tools/v1/individual/grammar-cleaner/README.md"
+  "@ | Set-Content -Path "tools/v1/individual/grammar-cleaner/README.md"
   @"
+
 # Grammar Cleaner Specs
 
 ## Purpose

@@ -15,10 +15,11 @@ Recommended internal structure:
 - components/
 - services/
 - hooks/
-- 	ests/
+-     ests/
 - docs/
-"@ | Set-Content -Path "tools/v1/individual/stellar-payment-proof-viewer/README.md"
+  "@ | Set-Content -Path "tools/v1/individual/stellar-payment-proof-viewer/README.md"
   @"
+
 # Stellar Payment Proof Viewer Specs
 
 ## Purpose

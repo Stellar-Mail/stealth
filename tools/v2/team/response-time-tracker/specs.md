@@ -15,10 +15,11 @@ Recommended internal structure:
 - components/
 - services/
 - hooks/
-- 	ests/
+-     ests/
 - docs/
-"@ | Set-Content -Path "tools/v2/team/response-time-tracker/README.md"
+  "@ | Set-Content -Path "tools/v2/team/response-time-tracker/README.md"
   @"
+
 # Response Time Tracker Specs
 
 ## Purpose

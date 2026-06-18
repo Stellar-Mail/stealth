@@ -15,7 +15,11 @@ import {
   Receipt,
   Check,
 } from "lucide-react";
-import { getEmailProvenance, type ProvenanceDetails, type ProvenanceItemDetails } from "./provenance";
+import {
+  getEmailProvenance,
+  type ProvenanceDetails,
+  type ProvenanceItemDetails,
+} from "./provenance";
 import { ProvenanceInspector } from "./ProvenanceInspector";
 import type { Email } from "./data";
 
@@ -138,16 +142,16 @@ export function ProvenancePanel({
               {isVerified
                 ? "Secure On-Chain Route"
                 : email.folder === "spam"
-                ? "SMTP Bridged (Unverified)"
-                : "Awaiting Envelope Proof"}
+                  ? "SMTP Bridged (Unverified)"
+                  : "Awaiting Envelope Proof"}
             </span>
           </div>
           <p className="mt-1 text-[10.5px] leading-relaxed text-muted-foreground/90">
             {isVerified
               ? `Delivered via ${provenance.relaySource.nodeId} with a verified postage record.`
               : email.folder === "spam"
-              ? "Bridged message without Stellar cryptographic signatures."
-              : "Message processed but security verification is currently in progress."}
+                ? "Bridged message without Stellar cryptographic signatures."
+                : "Message processed but security verification is currently in progress."}
           </p>
         </div>
       </div>
@@ -159,10 +163,7 @@ export function ProvenancePanel({
           className="flex w-full items-center justify-between py-2 text-[10.5px] font-semibold uppercase tracking-[0.14em] text-muted-foreground transition hover:text-foreground"
         >
           <span>Technical Provenance</span>
-          <motion.div
-            animate={{ rotate: expanded ? 180 : 0 }}
-            transition={{ duration: 0.2 }}
-          >
+          <motion.div animate={{ rotate: expanded ? 180 : 0 }} transition={{ duration: 0.2 }}>
             <ChevronDown className="h-3.5 w-3.5" />
           </motion.div>
         </button>

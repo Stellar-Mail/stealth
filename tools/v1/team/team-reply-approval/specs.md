@@ -15,10 +15,11 @@ Recommended internal structure:
 - components/
 - services/
 - hooks/
-- 	ests/
+-     ests/
 - docs/
-"@ | Set-Content -Path "tools/v1/team/team-reply-approval/README.md"
+  "@ | Set-Content -Path "tools/v1/team/team-reply-approval/README.md"
   @"
+
 # Team Reply Approval Specs
 
 ## Purpose

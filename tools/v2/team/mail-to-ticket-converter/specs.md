@@ -15,10 +15,11 @@ Recommended internal structure:
 - components/
 - services/
 - hooks/
-- 	ests/
+-     ests/
 - docs/
-"@ | Set-Content -Path "tools/v2/team/mail-to-ticket-converter/README.md"
+  "@ | Set-Content -Path "tools/v2/team/mail-to-ticket-converter/README.md"
   @"
+
 # Mail-to-Ticket Converter Specs
 
 ## Purpose

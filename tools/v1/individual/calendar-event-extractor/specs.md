@@ -15,10 +15,11 @@ Recommended internal structure:
 - components/
 - services/
 - hooks/
-- 	ests/
+-     ests/
 - docs/
-"@ | Set-Content -Path "tools/v1/individual/calendar-event-extractor/README.md"
+  "@ | Set-Content -Path "tools/v1/individual/calendar-event-extractor/README.md"
   @"
+
 # Calendar Event Extractor Specs
 
 ## Purpose

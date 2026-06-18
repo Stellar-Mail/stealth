@@ -15,10 +15,11 @@ Recommended internal structure:
 - components/
 - services/
 - hooks/
-- 	ests/
+-     ests/
 - docs/
-"@ | Set-Content -Path "tools/v2/team/audit-log-viewer/README.md"
+  "@ | Set-Content -Path "tools/v2/team/audit-log-viewer/README.md"
   @"
+
 # Audit Log Viewer Specs
 
 ## Purpose

@@ -15,10 +15,11 @@ Recommended internal structure:
 - components/
 - services/
 - hooks/
-- 	ests/
+-     ests/
 - docs/
-"@ | Set-Content -Path "tools/v2/individual/meeting-notes-extractor/README.md"
+  "@ | Set-Content -Path "tools/v2/individual/meeting-notes-extractor/README.md"
   @"
+
 # Meeting Notes Extractor Specs
 
 ## Purpose
