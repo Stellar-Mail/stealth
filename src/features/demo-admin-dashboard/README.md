@@ -37,21 +37,13 @@ Run the unit tests:
 npm run test
 ```
 
-The fixture data in `fixtures/demoData.ts` is deterministic, fake, and safe for public repository review.
+The fixture data in `fixtures/demoData.ts` and `fixtures/campaignSnapshotFixtures.ts` is deterministic, fake, and safe for public repository review.
 
-This folder is the implementation boundary for the admin dashboard used to populate and manage demo data in the Stealth demo inbox UI.
-
-Contributors working on demo-admin issues should keep new dashboard code, local state helpers, fixtures, validators, UI components, test utilities, and documentation inside:
-
-`src/features/demo-admin-dashboard/`
-
-The rest of the app should only import stable entry points from this folder once the feature is ready to connect to the demo inbox. Avoid changing existing inbox, mail reader, calendar, sender-conversion, or protocol modules unless an issue explicitly asks for a minimal integration shim.
+To run only the demo-admin tests:
 
 ```bash
 npx vitest run src/features/demo-admin-dashboard/__tests__/
 ```
-
-The fixture data in `fixtures/demoData.ts` and `fixtures/campaignSnapshotFixtures.ts` is deterministic, fake, and safe for public repository review.
 
 ---
 
@@ -78,14 +70,17 @@ import { DemoAdminDashboard } from "@/features/demo-admin-dashboard";
 
 The dashboard exposes these tabbed sections:
 
-| Section   | Description                                                    |
-| --------- | -------------------------------------------------------------- |
-| Overview  | Summary stats cards (accounts, messages, etc.)                 |
-| Accounts  | Table of demo Stellar accounts                                 |
-| Mail      | Table of demo mail fixtures                                    |
-| Templates | Pick a message template and insert it into the active drafts   |
-| Campaigns | Save current drafts as a snapshot or restore previous campaign |
-| Audit     | Timeline of demo protocol events                               |
+| Section     | Description                                                    | Data source                     | Status      |
+| ----------- | -------------------------------------------------------------- | ------------------------------- | ----------- |
+| Overview    | Summary stats cards, protocol scenario preset selector         | `presets.ts`, `demoData.ts`     | Implemented |
+| Accounts    | Table of demo Stellar accounts and relay nodes                 | `presets.ts`                    | Implemented |
+| Mail        | Table of demo inbox/request/spam mail fixtures                 | `presets.ts`                    | Implemented |
+| Attachments | Table of file attachment fixtures linked to mail items         | `presets.ts`                    | Implemented |
+| Events      | Table of calendar and protocol events                          | `presets.ts`                    | Implemented |
+| Templates   | Pick a message template and insert it into the active drafts   | `templates/messageTemplates.ts` | Implemented |
+| Campaigns   | Save/restore draft dataset snapshots and manage campaigns      | `campaignSnapshotFixtures.ts`   | Placeholder |
+| Audit       | Timeline of demo protocol events (sessions, policies, postage) | `presets.ts`                    | Implemented |
+| Analytics   | Privacy-preserving aggregate product analytics (future)        | TBD                             | Placeholder |
 
 ---
 
@@ -114,4 +109,38 @@ parent can observe drafts as they accumulate.
 
 ### Follow-up integration (out of scope here)
 
-Connecting the produced active `Draft[]` to the live demo inbox (e.g. dispatching `loadDraft` into the shared `draftReducer`, or seeding `src/components/mail/data.ts`) is a deliberate follow-up so that no files outside `src/features/demo-admin-dashboard/` change here.
+This issue keeps everything inside the feature folder. Connecting the produced `Draft[]` to
+the live demo inbox (e.g. dispatching `loadDraft` into the shared `draftReducer`, or seeding
+`src/components/mail/data.ts`) is a deliberate follow-up so that no files outside
+`src/features/demo-admin-dashboard/` change here.
+
+---
+
+## Snooze metadata (`./snooze`)
+
+Admin controls for the reminder metadata on demo messages that appear in the snoozed
+folder. `SnoozeMetadataEditor` lets a maintainer pick a preset or a custom date/time and
+preview when each message returns.
+
+- `snooze/referenceNow.ts` — a fixed demo clock (`2026-06-16T09:00`, local) so presets,
+  previews, and tests are deterministic regardless of the real date.
+- `snooze/snoozePresets.ts` — `SNOOZE_PRESETS` (later today / tomorrow / this weekend / next
+  week) with pure `resolve(now)` functions.
+- `snooze/snoozeValidation.ts` — custom date/time validation (rejects missing, malformed, and
+  past-or-now values), relative-day labels, a `formatRemindAt` summary, and
+  `metadataFromPreset` / `metadataFromCustom` builders. Reminder times are stored as local
+  `yyyy-MM-ddTHH:mm` stamps so they round-trip without timezone drift.
+- `snooze/snoozeFixtures.ts` — deterministic, fake snoozed messages (senders restricted to
+  `*stealth.demo`); a test enforces address safety and that every `remindAt` is a valid,
+  future, round-tripping stamp.
+- `snooze/SnoozeMetadataEditor.tsx` — message list + preset buttons + custom date/time inputs,
+  a live preview / validation panel, and an **Apply reminder** action. Accepts an optional
+  `onChange(messageId, message)` callback.
+
+### Follow-up integration (out of scope here)
+
+`SnoozeMetadataEditor` and the snooze API are exported from `./index.ts` but not yet mounted
+in the dashboard shell. Surfacing a **Snoozed** section (add a `DashboardSection` member plus
+a nav/icon/content branch in `DemoAdminDashboard.tsx`, mirroring the Templates section) and
+feeding the edited metadata into the demo inbox are deliberate follow-ups, kept separate so
+this issue stays small and conflict-free against the actively evolving shell.

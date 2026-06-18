@@ -8,3 +8,4 @@ routeTree.gen.ts
 playwright-report
 test-results
 test-fixtures/commit-spread
+contracts/soroban/**/test_snapshots

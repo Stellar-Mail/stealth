@@ -10,10 +10,12 @@ import {
   Paperclip,
   PieChart,
   Shield,
+  Target,
   Users,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { CAMPAIGN_TEMPLATES } from "./fixtures/campaignFixtures";
 import type {
   DashboardNavItem,
   DashboardSection,
@@ -29,6 +31,7 @@ import type {
 import { TemplatePicker } from "./templates";
 import { PRESET_SCENARIOS } from "./fixtures/presets";
 import { AdminDataTable, type Column } from "./components/AdminDataTable";
+import { CampaignMessageAssignmentPanel } from "./components/CampaignMessageAssignmentPanel";
 
 // ─── Default Deterministic fake data ──────────────────────────────────────────
 
@@ -790,6 +793,8 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
           {activeSection === "events" && <EventsContent events={events} />}
 
           {activeSection === "templates" && <TemplatesContent />}
+
+          {activeSection === "campaigns" && <CampaignMessageAssignmentPanel />}
 
           {activeSection === "audit" && <AuditContent auditEvents={auditEvents} />}
         </div>

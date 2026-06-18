@@ -13,6 +13,7 @@ import {
   Lock,
   Palette,
   RefreshCw,
+  ScrollText,
   ShieldCheck,
   Trash2,
   User,
@@ -31,9 +32,11 @@ import {
   savedCustomTemplateToPreferences,
   templateToPreferences,
   type MailboxPolicyTemplateId,
+  type MailboxPolicyTemplate,
   type SavedMailboxPolicyTemplate,
 } from "@/features/settings/mailbox-policy-templates";
 import { AuditLog } from "@/features/audit-log";
+import { ChangelogPanel, useChangelog } from "@/features/changelog";
 
 const tabs = [
   { id: "account", label: "Account", icon: User },
@@ -45,6 +48,7 @@ const tabs = [
   { id: "security", label: "Security", icon: Lock },
   { id: "shortcuts", label: "Shortcuts", icon: Keyboard },
   { id: "audit", label: "Audit log", icon: ClipboardList },
+  { id: "changelog", label: "What's new", icon: ScrollText },
 ] as const;
 
 type Tab = (typeof tabs)[number]["id"];
@@ -71,6 +75,7 @@ export function SettingsModal({
   onSave: () => void;
 }) {
   const [activeTab, setActiveTab] = useState<Tab>("account");
+  const { hasUnread } = useChangelog();
 
   return (
     <AnimatePresence>
@@ -90,7 +95,7 @@ export function SettingsModal({
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
             className={cn(
               "glass-strong fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl transition-all",
-              activeTab === "audit"
+              activeTab === "audit" || activeTab === "changelog"
                 ? "w-[min(800px,calc(100vw-2rem))]"
                 : "w-[min(680px,calc(100vw-2rem))]",
             )}
@@ -106,7 +111,12 @@ export function SettingsModal({
               </button>
             </div>
 
-            <div className={cn("flex", activeTab === "audit" ? "h-[520px]" : "min-h-[400px]")}>
+            <div
+              className={cn(
+                "flex",
+                activeTab === "audit" || activeTab === "changelog" ? "h-[520px]" : "min-h-[400px]",
+              )}
+            >
               {/* Sidebar tabs */}
               <div className="w-48 border-r border-white/5 p-3">
                 <nav className="space-y-1">
@@ -125,7 +135,10 @@ export function SettingsModal({
                         )}
                       >
                         <Icon className="h-4 w-4" />
-                        {tab.label}
+                        <span className="flex-1 text-left">{tab.label}</span>
+                        {tab.id === "changelog" && hasUnread && (
+                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                        )}
                       </button>
                     );
                   })}
@@ -157,6 +170,7 @@ export function SettingsModal({
                 {activeTab === "security" && <SecuritySettings />}
                 {activeTab === "shortcuts" && <ShortcutSettings />}
                 {activeTab === "audit" && <AuditLog />}
+                {activeTab === "changelog" && <ChangelogPanel />}
               </div>
             </div>
             <div className="flex items-center justify-between border-t border-white/5 px-5 py-3">
@@ -469,24 +483,19 @@ function InboxSettings({
 
   const liveTemplate = findMailboxPolicyTemplate(currentDraft);
 
-  const selectedTemplate =
-    previewTemplateId === "custom"
-      ? null
-      : (MAILBOX_POLICY_TEMPLATES.find((template) => template.id === previewTemplateId) ?? null);
-
   const selectedPreview =
     previewTemplateId === "custom"
       ? (savedCustomTemplate ??
         buildCustomMailboxPolicyTemplate(currentDraft, liveTemplate?.id ?? null))
-      : selectedTemplate;
+      : (MAILBOX_POLICY_TEMPLATES.find((template) => template.id === previewTemplateId) ?? null);
 
   const selectedPreferences =
     previewTemplateId === "custom"
       ? savedCustomTemplate
         ? savedCustomTemplateToPreferences(savedCustomTemplate)
         : currentDraft
-      : selectedTemplate
-        ? templateToPreferences(selectedTemplate)
+      : selectedPreview
+        ? templateToPreferences(selectedPreview as MailboxPolicyTemplate)
         : currentDraft;
 
   const previewMatchesCurrent =
@@ -495,8 +504,11 @@ function InboxSettings({
         ? savedCustomTemplate.policy.unknownSenders === preferences.unknownSenders &&
           savedCustomTemplate.policy.minimumPostage === preferences.minimumPostage
         : true
-      : selectedTemplate
-        ? mailboxPolicyTemplateMatchesPreferences(selectedTemplate, currentDraft)
+      : selectedPreview
+        ? mailboxPolicyTemplateMatchesPreferences(
+            selectedPreview as MailboxPolicyTemplate,
+            currentDraft,
+          )
         : false;
 
   const applyingWillReplaceCurrent =
@@ -509,6 +521,8 @@ function InboxSettings({
   };
 
   const handleApply = () => {
+    if (!selectedPreview) return;
+
     if (previewTemplateId === "custom") {
       if (!savedCustomTemplate) {
         setSavedCustomTemplate(
@@ -524,11 +538,9 @@ function InboxSettings({
       return;
     }
 
-    if (!selectedTemplate) return;
-
     onChange({
       ...preferences,
-      ...templateToPreferences(selectedTemplate),
+      ...templateToPreferences(selectedPreview as MailboxPolicyTemplate),
     });
   };
 
