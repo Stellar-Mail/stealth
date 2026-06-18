@@ -11,12 +11,12 @@ type NavItem = {
 };
 
 const navItems: NavItem[] = [
-  { id: "inbox",    label: "Inbox",    icon: Inbox,       folder: "inbox"   },
-  { id: "search",   label: "Search",   icon: Search                         },
-  { id: "compose",  label: "Compose",  icon: Pencil                         },
-  { id: "proofs",   label: "Proofs",   icon: ShieldCheck, folder: "verified"},
-  { id: "calendar", label: "Calendar", icon: Calendar                       },
-  { id: "settings", label: "Settings", icon: Settings                       },
+  { id: "inbox", label: "Inbox", icon: Inbox, folder: "inbox" },
+  { id: "search", label: "Search", icon: Search },
+  { id: "compose", label: "Compose", icon: Pencil },
+  { id: "proofs", label: "Proofs", icon: ShieldCheck, folder: "verified" },
+  { id: "calendar", label: "Calendar", icon: Calendar },
+  { id: "settings", label: "Settings", icon: Settings },
 ];
 
 export interface BottomNavProps {
@@ -37,10 +37,22 @@ export function BottomNav({
   onSelectFolder,
 }: BottomNavProps) {
   function handlePress(item: NavItem) {
-    if (item.id === "compose")  { onCompose();      return; }
-    if (item.id === "search")   { onOpenPalette();  return; }
-    if (item.id === "calendar") { onOpenCalendar(); return; }
-    if (item.id === "settings") { onOpenSettings(); return; }
+    if (item.id === "compose") {
+      onCompose();
+      return;
+    }
+    if (item.id === "search") {
+      onOpenPalette();
+      return;
+    }
+    if (item.id === "calendar") {
+      onOpenCalendar();
+      return;
+    }
+    if (item.id === "settings") {
+      onOpenSettings();
+      return;
+    }
     if (item.folder) onSelectFolder(item.folder);
   }
 
