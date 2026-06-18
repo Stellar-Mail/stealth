@@ -36,11 +36,8 @@ type TopbarProps = {
   onFiltersChange: (filters: MailFilters) => void;
   onQuickAction: (action: "proofs" | "later" | "files") => void;
   onViewNotifications: () => void;
-<<<<<<< feat/add-wallet-network-ctas
   wallet?: WalletHook;
-=======
   onSignOut?: () => void;
->>>>>>> main
 };
 
 export function Topbar({
@@ -54,11 +51,8 @@ export function Topbar({
   onFiltersChange,
   onQuickAction,
   onViewNotifications,
-<<<<<<< feat/add-wallet-network-ctas
   wallet,
-=======
   onSignOut,
->>>>>>> main
 }: TopbarProps) {
   const [focused, setFocused] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
