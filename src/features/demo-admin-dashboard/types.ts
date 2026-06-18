@@ -67,7 +67,12 @@ export interface StatCard {
   delta?: string;
 }
 
-export type PresetId = "none" | "relay-verification" | "proof-pending" | "receipt-settlement";
+export type PresetId =
+  | "none"
+  | "relay-verification"
+  | "proof-pending"
+  | "receipt-settlement"
+  | "relay-operator-campaign";
 
 export interface PresetAccount {
   name: string;
@@ -134,10 +139,43 @@ export interface PresetEvent {
   status: "confirmed" | "tentative" | "cancelled";
 }
 
+export interface PresetOperatorPersona {
+  id: string;
+  name: string;
+  role: string;
+  email: string;
+  handle: string;
+  shift: string;
+  permissions: string[];
+}
+
+export interface PresetProofAssignment {
+  id: string;
+  title: string;
+  operatorPersonaId: string;
+  messageSubject: string;
+  stage: "diagnostics" | "verification-update" | "proof-settlement";
+  status: "queued" | "in-review" | "ready" | "settled";
+  dueAt: string;
+  summary: string;
+}
+
+export interface PresetCampaignMetadata {
+  issueNumber: 269;
+  initiative: "Demo Admin Dashboard";
+  campaignIssue: "18 of 50";
+  tags: string[];
+  scenarioBehavior: string[];
+  operatorPersonas: PresetOperatorPersona[];
+  proofAssignments: PresetProofAssignment[];
+  previewChecklist: string[];
+}
+
 export interface PresetScenario {
   id: PresetId;
   name: string;
   description: string;
+  campaignMetadata?: PresetCampaignMetadata;
   stats: StatCard[];
   accounts: PresetAccount[];
   mail: PresetMail[];

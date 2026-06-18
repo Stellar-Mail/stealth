@@ -225,28 +225,18 @@ function OverviewContent({
             nodes, and pending proof mail flows.
           </p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
           {[
             {
               id: "none" as const,
               name: "Default System",
               desc: "Standard demo system stats and static fixtures.",
             },
-            {
-              id: "relay-verification" as const,
-              name: "Relay Verification",
-              desc: "Simulates registering and verifying a new relay node.",
-            },
-            {
-              id: "proof-pending" as const,
-              name: "Proof Pending",
-              desc: "Simulates an on-chain cryptographic proof generation delay.",
-            },
-            {
-              id: "receipt-settlement" as const,
-              name: "Receipt Settlement",
-              desc: "Simulates postage fees and read receipts confirming on-chain.",
-            },
+            ...PRESET_SCENARIOS.map((scenario) => ({
+              id: scenario.id,
+              name: scenario.name,
+              desc: scenario.description,
+            })),
           ].map((preset) => {
             const active = activePresetId === preset.id;
             return (

@@ -7,7 +7,7 @@ describe("demo admin dashboard presets", () => {
     expect(ids).toContain("relay-verification");
     expect(ids).toContain("proof-pending");
     expect(ids).toContain("receipt-settlement");
-    expect(ids).toContain("paid-sender-request");
+    expect(ids).toContain("relay-operator-campaign");
     expect(PRESET_SCENARIOS.length).toBe(4);
   });
 
@@ -81,6 +81,10 @@ describe("demo admin dashboard presets", () => {
           expect(item.organizer).toMatch(/(\*stealth\.demo|@example\.(com|org))$/);
         }
       }
+      for (const item of scenario.campaignMetadata?.operatorPersonas ?? []) {
+        expect(item.email).toMatch(/@example\.(com|org)$/);
+        expect(item.handle).toMatch(/\*stealth\.demo$/);
+      }
     }
   });
 
@@ -129,5 +133,52 @@ describe("demo admin dashboard presets", () => {
     expect(deliveryReceiptMail?.folder).toBe("receipts");
     expect(deliveryReceiptMail?.proofMetadata).toBeDefined();
     expect(deliveryReceiptMail?.proofMetadata?.postageStatus).toBe("settled");
+  });
+
+  it("defines relay operator campaign metadata, personas, and proof assignments", () => {
+    const relayOperatorCampaign = PRESET_SCENARIOS.find(
+      (p) => p.id === "relay-operator-campaign",
+    );
+    expect(relayOperatorCampaign).toBeDefined();
+    expect(relayOperatorCampaign?.campaignMetadata).toBeDefined();
+    expect(relayOperatorCampaign?.campaignMetadata?.issueNumber).toBe(269);
+    expect(relayOperatorCampaign?.campaignMetadata?.initiative).toBe("Demo Admin Dashboard");
+    expect(relayOperatorCampaign?.campaignMetadata?.campaignIssue).toBe("18 of 50");
+    expect(relayOperatorCampaign?.campaignMetadata?.tags).toEqual(
+      expect.arrayContaining(["demo-admin-dashboard", "demo-data", "Campaign"]),
+    );
+
+    const personas = relayOperatorCampaign?.campaignMetadata?.operatorPersonas ?? [];
+    const assignments = relayOperatorCampaign?.campaignMetadata?.proofAssignments ?? [];
+    expect(personas).toHaveLength(3);
+    expect(assignments).toHaveLength(3);
+    expect(assignments.map((assignment) => assignment.stage)).toEqual([
+      "diagnostics",
+      "verification-update",
+      "proof-settlement",
+    ]);
+
+    const personaIds = new Set(personas.map((persona) => persona.id));
+    for (const assignment of assignments) {
+      expect(personaIds.has(assignment.operatorPersonaId)).toBe(true);
+      expect(
+        relayOperatorCampaign?.mail.some((mail) => mail.subject === assignment.messageSubject),
+      ).toBe(true);
+    }
+  });
+
+  it("represents relay diagnostics, verification updates, and proof settlement behavior", () => {
+    const relayOperatorCampaign = PRESET_SCENARIOS.find(
+      (p) => p.id === "relay-operator-campaign",
+    );
+    const behavior = relayOperatorCampaign?.campaignMetadata?.scenarioBehavior.join(" ");
+    expect(behavior).toContain("diagnostics");
+    expect(behavior).toContain("Verification updates");
+    expect(behavior).toContain("Proof settlement");
+
+    const proofStates = relayOperatorCampaign?.mail
+      .map((mail) => mail.proofMetadata?.postageStatus)
+      .filter(Boolean);
+    expect(proofStates).toEqual(["pending", "pending", "settled"]);
   });
 });

@@ -39,6 +39,9 @@ npm run test
 
 The fixture data in `fixtures/demoData.ts` and `fixtures/campaignSnapshotFixtures.ts` is deterministic, fake, and safe for public repository review.
 
+Relay operator campaign preset details for issue #269 live in
+[`docs/RELAY_OPERATOR_CAMPAIGN_PRESET.md`](./docs/RELAY_OPERATOR_CAMPAIGN_PRESET.md).
+
 To run only the demo-admin tests:
 
 ```bash
