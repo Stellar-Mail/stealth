@@ -21,7 +21,20 @@ import {
   type ProvenanceItemDetails,
 } from "./provenance";
 import { ProvenanceInspector } from "./ProvenanceInspector";
+import { PostageDisputePanel, type PostageDisputeStatus } from "./PostageDisputePanel";
 import type { Email } from "./data";
+
+/** Map provenance status strings to the contract PostageStatus enum values. */
+function deriveDisputeStatus(status: string): PostageDisputeStatus {
+  const s = status.toLowerCase();
+  if (s.includes("escrow") || s.includes("pending")) return "pending";
+  if (s.includes("settled")) return "settled";
+  if (s.includes("refund")) return "refunded";
+  if (s.includes("reclaim")) return "reclaimed";
+  if (s.includes("disput")) return "disputed";
+  if (s.includes("expire")) return "expired";
+  return "pending";
+}
 
 export function ProvenancePanel({
   email,
@@ -222,6 +235,10 @@ export function ProvenancePanel({
                   rawValue={provenance.postageRecord.txHash}
                   details={provenance.postageRecord.status}
                   inspectorData={provenance.postageRecord.inspector}
+                />
+                <PostageDisputePanel
+                  postageStatus={deriveDisputeStatus(provenance.postageRecord.status)}
+                  amountXlm={provenance.postageRecord.amount.replace(/[^0-9.]/g, "") || undefined}
                 />
                 <FieldRow
                   fieldKey="receipt"

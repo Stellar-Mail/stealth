@@ -27,8 +27,10 @@ import {
   type ComposeSubmission,
   type RecipientReadiness,
 } from "./composeValidation";
+import { DeliveryEstimator, type RelayStatus } from "./DeliveryEstimator";
 
-const emptyBlockedRecipients: string[] = [];
+const EMPTY_BLOCKED: string[] = [];
+const EMPTY_RESOLVED: RecipientReadiness[] = [];
 
 export function Compose({
   open,
@@ -39,7 +41,7 @@ export function Compose({
   initialBody = "",
   initialPostage = "0.0001",
   mode = "compose",
-  blockedRecipients = emptyBlockedRecipients,
+  blockedRecipients = EMPTY_BLOCKED,
   onSubmit,
   resolutionContext,
 }: {
@@ -65,6 +67,7 @@ export function Compose({
   const [receipt, setReceipt] = useState(true);
   const [postage, setPostage] = useState(initialPostage);
   const [resolvedRecipients, setResolvedRecipients] = useState<RecipientReadiness[]>([]);
+  const [relayStatus, setRelayStatus] = useState<RelayStatus>("unknown");
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -103,20 +106,39 @@ export function Compose({
       setTo("");
       setSubject("");
       setBody("");
-      setAttachments((current) => (current.length ? [] : current));
+      setAttachments([]);
       setEmojiOpen(false);
       setEncrypted(true);
       setReceipt(true);
       setPostage(initialPostage);
-      setResolvedRecipients((current) => (current.length ? [] : current));
+      setResolvedRecipients(EMPTY_RESOLVED);
     }
   }, [open, initialTo, initialSubject, initialBody, initialPostage]);
+
+  // Fetch relay status when compose opens
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    fetch("/relays/default/diagnostics")
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((data: { status: RelayStatus }) => {
+        if (!cancelled) setRelayStatus(data.status ?? "unknown");
+      })
+      .catch(() => {
+        if (!cancelled) setRelayStatus("unknown");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
 
   // Resolve recipients when `to` field changes
   useEffect(() => {
     const addresses = parseRecipients(to);
     if (!addresses.length) {
-      setResolvedRecipients((current) => (current.length ? [] : current));
+      if (resolvedRecipients.length > 0) {
+        setResolvedRecipients(EMPTY_RESOLVED);
+      }
       return;
     }
 
@@ -138,7 +160,7 @@ export function Compose({
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [to, blockedRecipients, postage, resolutionContext]);
+  }, [to, blockedRecipients, postage, resolutionContext, resolvedRecipients.length]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -275,6 +297,18 @@ export function Compose({
             <div className="space-y-0 px-4">
               <Field label="To" placeholder="recipients@…" value={to} onChange={setTo} />
               <RecipientReadinessChips recipients={resolvedRecipients} />
+              <DeliveryEstimator
+                recipients={resolvedRecipients}
+                encrypted={encrypted}
+                postage={postage}
+                relayStatus={relayStatus}
+                onAddPostage={() => {
+                  const el = document.querySelector<HTMLInputElement>(
+                    '[aria-label="Postage amount"]',
+                  );
+                  el?.focus();
+                }}
+              />
               <Field label="Subject" placeholder="Subject" value={subject} onChange={setSubject} />
             </div>
             <div className="px-4 pb-2">

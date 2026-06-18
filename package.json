@@ -19,6 +19,9 @@
     "local:setup:unix": "bash scripts/setup-local-env/setup.sh",
     "local:teardown:unix": "bash scripts/setup-local-env/teardown.sh"
   },
+  "overrides": {
+    "ws": "8.21.0"
+  },
   "dependencies": {
     "@cloudflare/vite-plugin": "^1.25.5",
     "@hookform/resolvers": "^5.2.2",

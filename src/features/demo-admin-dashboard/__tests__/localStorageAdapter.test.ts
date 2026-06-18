@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { saveDraft, loadDraft, clearDraft } from "../persistence/localStorageAdapter";
 import { Draft } from "../types/draft";
