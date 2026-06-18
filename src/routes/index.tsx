@@ -99,9 +99,7 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
   const [calendarCreateRequest, setCalendarCreateRequest] = useState(0);
   const [settingsSnapshot, setSettingsSnapshot] = useState<typeof preferences | null>(null);
   const senderConversion = useSenderConversion();
-<<<<<<< feat/add-wallet-network-ctas
   const wallet = useWallet({ actorAddress: preferences.actorAddress });
-=======
   const snooze = useSnooze();
   const isMobile = useIsMobile();
   const [previewAttachment, setPreviewAttachment] = useState<{
@@ -112,7 +110,6 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
   const [shortcutOverlayOpen, setShortcutOverlayOpen] = useState(false);
   const [proofInspectorOpen, setProofInspectorOpen] = useState(false);
   const [proofInspectorQuery, setProofInspectorQuery] = useState("");
->>>>>>> main
 
   const handleOpenMessageFromInspector = useCallback((email: Email) => {
     setCustomFolder(null);
