@@ -56,3 +56,6 @@ export * from "./validation";
 export * from "./validationFixtures";
 export { ValidationResultsPanel } from "./ValidationResultsPanel";
 export type { ValidationResultsPanelProps } from "./ValidationResultsPanel";
+
+export { toInboxPreviewData, toInboxPreviewItem } from "./inboxPreviewAdapter";
+export type { InboxPreviewItem } from "./types/inboxPreview";
