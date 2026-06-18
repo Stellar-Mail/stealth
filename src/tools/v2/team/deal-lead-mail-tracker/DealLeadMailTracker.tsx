@@ -101,10 +101,7 @@ export const DealLeadMailTracker: React.FC = () => {
             </div>
 
             <ul className="space-y-2" aria-label="Tracked Deals and Leads">
-              <li
-                className="p-4 border rounded-lg bg-white shadow-sm hover:bg-gray-50 focus-within:ring-2 focus-within:ring-blue-500 outline-none"
-                tabIndex={0}
-              >
+              <li className="p-4 border rounded-lg bg-white shadow-sm hover:bg-gray-50 focus-within:ring-2 focus-within:ring-blue-500 outline-none">
                 <div className="flex justify-between items-center">
                   <span className="font-semibold text-gray-900">Acme Corp</span>
                   <span className="px-2 py-1 bg-purple-100 text-purple-800 text-xs font-medium rounded-full">
@@ -115,10 +112,7 @@ export const DealLeadMailTracker: React.FC = () => {
                   Negotiation phase. Last contacted 2 days ago.
                 </p>
               </li>
-              <li
-                className="p-4 border rounded-lg bg-white shadow-sm hover:bg-gray-50 focus-within:ring-2 focus-within:ring-blue-500 outline-none"
-                tabIndex={0}
-              >
+              <li className="p-4 border rounded-lg bg-white shadow-sm hover:bg-gray-50 focus-within:ring-2 focus-within:ring-blue-500 outline-none">
                 <div className="flex justify-between items-center">
                   <span className="font-semibold text-gray-900">Globex</span>
                   <span className="px-2 py-1 bg-teal-100 text-teal-800 text-xs font-medium rounded-full">
