@@ -31,6 +31,7 @@ import {
   savedCustomTemplateToPreferences,
   templateToPreferences,
   type MailboxPolicyTemplateId,
+  type MailboxPolicyTemplate,
   type SavedMailboxPolicyTemplate,
 } from "@/features/settings/mailbox-policy-templates";
 import { AuditLog } from "@/features/audit-log";
@@ -469,24 +470,19 @@ function InboxSettings({
 
   const liveTemplate = findMailboxPolicyTemplate(currentDraft);
 
-  const selectedTemplate =
-    previewTemplateId === "custom"
-      ? null
-      : (MAILBOX_POLICY_TEMPLATES.find((template) => template.id === previewTemplateId) ?? null);
-
   const selectedPreview =
     previewTemplateId === "custom"
       ? (savedCustomTemplate ??
         buildCustomMailboxPolicyTemplate(currentDraft, liveTemplate?.id ?? null))
-      : selectedTemplate;
+      : (MAILBOX_POLICY_TEMPLATES.find((template) => template.id === previewTemplateId) ?? null);
 
   const selectedPreferences =
     previewTemplateId === "custom"
       ? savedCustomTemplate
         ? savedCustomTemplateToPreferences(savedCustomTemplate)
         : currentDraft
-      : selectedTemplate
-        ? templateToPreferences(selectedTemplate)
+      : selectedPreview
+        ? templateToPreferences(selectedPreview as MailboxPolicyTemplate)
         : currentDraft;
 
   const previewMatchesCurrent =
@@ -495,8 +491,11 @@ function InboxSettings({
         ? savedCustomTemplate.policy.unknownSenders === preferences.unknownSenders &&
           savedCustomTemplate.policy.minimumPostage === preferences.minimumPostage
         : true
-      : selectedTemplate
-        ? mailboxPolicyTemplateMatchesPreferences(selectedTemplate, currentDraft)
+      : selectedPreview
+        ? mailboxPolicyTemplateMatchesPreferences(
+            selectedPreview as MailboxPolicyTemplate,
+            currentDraft,
+          )
         : false;
 
   const applyingWillReplaceCurrent =
@@ -509,6 +508,8 @@ function InboxSettings({
   };
 
   const handleApply = () => {
+    if (!selectedPreview) return;
+
     if (previewTemplateId === "custom") {
       if (!savedCustomTemplate) {
         setSavedCustomTemplate(
@@ -524,11 +525,9 @@ function InboxSettings({
       return;
     }
 
-    if (!selectedTemplate) return;
-
     onChange({
       ...preferences,
-      ...templateToPreferences(selectedTemplate),
+      ...templateToPreferences(selectedPreview as MailboxPolicyTemplate),
     });
   };
 

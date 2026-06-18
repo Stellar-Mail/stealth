@@ -13,4 +13,6 @@ export interface CampaignTag {
   id: string;
   name: string;
   color: TagColorKey;
+  slug?: string;
+  order?: number;
 }

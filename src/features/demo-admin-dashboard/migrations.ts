@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 export interface Migration {
   fromVersion: number;
   toVersion: number;
