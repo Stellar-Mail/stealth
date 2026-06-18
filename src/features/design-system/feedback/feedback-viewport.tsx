@@ -29,7 +29,10 @@ export function FeedbackViewport({ items, onDismiss }: FeedbackViewportProps) {
     <div
       aria-atomic="true"
       aria-live="polite"
-      className="pointer-events-none fixed inset-x-4 bottom-5 z-[200] flex flex-col items-center gap-2"
+      className="pointer-events-none fixed inset-x-4 z-[200] flex flex-col items-center gap-2"
+      style={{
+        bottom: "calc(env(safe-area-inset-bottom, 0px) + var(--bottom-nav-offset, 1.25rem))",
+      }}
     >
       <AnimatePresence initial={false}>
         {items.map((item) => {

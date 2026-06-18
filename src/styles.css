@@ -53,3 +53,13 @@
     color: var(--foreground);
   }
 }
+
+/* Bottom nav offset for toast positioning */
+:root {
+  --bottom-nav-offset: 1.25rem; /* 20px — default (desktop) */
+}
+@media (max-width: 767px) {
+  :root {
+    --bottom-nav-offset: 4.5rem; /* ~72px — clears the bottom nav on mobile */
+  }
+}
