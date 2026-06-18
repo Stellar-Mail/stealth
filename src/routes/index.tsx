@@ -865,7 +865,6 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
           onShowToast={showToast}
         />
 
-<<<<<<< feat/add-wallet-network-ctas
         <div className="flex min-w-0 flex-1 flex-col">
           <Topbar
             onOpenPalette={() => setPaletteOpen(true)}
@@ -930,9 +929,7 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
           </div>
         </div>
       </div>
-=======
         <FeedbackViewport items={feedbackItems} onDismiss={dismissFeedback} />
->>>>>>> main
 
         <ImportWizard
           open={importOpen}
