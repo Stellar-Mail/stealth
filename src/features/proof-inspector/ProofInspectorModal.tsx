@@ -108,10 +108,7 @@ export function ProofInspectorModal({
             : email.folder === "spam"
               ? "refunded"
               : "settled",
-        senderRule:
-          email.senderPolicy === "allow" || email.senderPolicy === "block"
-            ? email.senderPolicy
-            : "default",
+        senderRule: email.senderPolicy === "verify" ? "default" : (email.senderPolicy ?? "default"),
         email,
       };
     });

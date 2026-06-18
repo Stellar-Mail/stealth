@@ -17,7 +17,11 @@
     "local:setup": "powershell -ExecutionPolicy Bypass -File scripts/setup-local-env/setup.ps1",
     "local:teardown": "powershell -ExecutionPolicy Bypass -File scripts/setup-local-env/teardown.ps1",
     "local:setup:unix": "bash scripts/setup-local-env/setup.sh",
-    "local:teardown:unix": "bash scripts/setup-local-env/teardown.sh"
+    "local:teardown:unix": "bash scripts/setup-local-env/teardown.sh",
+    "generate:bindings": "node scripts/generate-contract-bindings.mjs"
+  },
+  "overrides": {
+    "ws": "8.21.0"
   },
   "dependencies": {
     "@cloudflare/vite-plugin": "^1.25.5",
@@ -49,6 +53,7 @@
     "@radix-ui/react-toggle-group": "^1.1.11",
     "@radix-ui/react-tooltip": "^1.2.8",
     "@stellar/freighter-api": "^6.0.1",
+    "@stellar/stellar-sdk": "^16.0.0",
     "@tailwindcss/vite": "^4.2.1",
     "@tanstack/react-query": "^5.83.0",
     "@tanstack/react-router": "^1.168.0",
