@@ -613,6 +613,7 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
         data-hydrated={layoutHydrated && prefHydrated}
         className="relative h-screen overflow-hidden text-foreground"
       >
+        <ResizablePanelGroup direction="horizontal" className="h-full w-full">
         {!isMobile && (
           <>
             <ResizablePanel
@@ -763,6 +764,7 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
             </div>
           </div>
         </ResizablePanel>
+        </ResizablePanelGroup>
 
         <BulkConfirmDialog
           confirmation={bulkConfirmation?.confirmation ?? null}
