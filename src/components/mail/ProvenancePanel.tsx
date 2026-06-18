@@ -25,9 +25,30 @@ import {
   getEmailProvenance,
   type ProvenanceDetails,
   type ProvenanceItemDetails,
+  type ProvenanceTimelineItem,
 } from "./provenance";
 import { ProvenanceInspector } from "./ProvenanceInspector";
 import type { Email } from "./data";
+
+// Helper to get icon based on timeline step
+const getTimelineIcon = (step: ProvenanceTimelineItem["key"]) => {
+  switch (step) {
+    case "senderIdentity":
+      return Fingerprint;
+    case "relaySource":
+      return Server;
+    case "messageHash":
+      return Database;
+    case "payloadCommitment":
+      return Lock;
+    case "postageRecord":
+      return Coins;
+    case "receiptRecord":
+      return Receipt;
+    default:
+      return Shield;
+  }
+};
 
 export function ProvenancePanel({
   email,
@@ -107,9 +128,7 @@ export function ProvenancePanel({
       postage: "postageRecord",
       receipt: "receiptRecord",
     };
-    const timelineItem = provenance.timeline.find(
-      (i) => i.key === timelineKeyMap[fieldKey]
-    );
+    const timelineItem = provenance.timeline.find((i) => i.key === timelineKeyMap[fieldKey]);
     const status = mapStatus(timelineItem?.status ?? "skipped");
     const statusIcon = (() => {
       switch (status) {
