@@ -17,6 +17,9 @@ target/
 .nitro
 *.local
 
+# Visual test failure artifacts (diffs, actuals) — baselines in __snapshots__ are committed
+tests/visual/__results__/
+
 # Wrangler / Cloudflare
 .wrangler/
 .dev.vars
