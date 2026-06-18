@@ -10,3 +10,11 @@ export type { EmptyStateProps } from "./components/empty-state";
 export type { SurfacePadding, SurfaceProps, SurfaceVariant } from "./components/surface";
 export type { FeedbackViewportProps } from "./feedback/feedback-viewport";
 export type { FeedbackItem, FeedbackTone, NotifyOptions } from "./feedback/use-feedback";
+
+export { TrustBadge, TRUST_STATE_META } from "./components/trust-badge";
+export type {
+  TrustState,
+  TrustStateMeta,
+  TrustBadgeProps,
+  TrustBadgeSize,
+} from "./components/trust-badge";

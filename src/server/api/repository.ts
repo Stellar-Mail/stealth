@@ -9,6 +9,14 @@ export interface ApiRepository {
   setPostage(postage: Postage): Promise<Postage>;
   getReceipt(messageId: string): Promise<Receipt | null>;
   setReceipt(receipt: Receipt): Promise<Receipt>;
+
+  getRelayQueueDepth(relayId: string): Promise<number>;
+  getRelayRetryCount(relayId: string): Promise<number>;
+  getRelayLastSuccessfulDelivery(relayId: string): Promise<string | null>;
+  getRelayLastFailedDelivery(relayId: string): Promise<string | null>;
+  getRelayDeadLetterCount(relayId: string): Promise<number>;
+  getCounter(key: string): Promise<number>;
+  incrementCounter(key: string, windowSeconds: number): Promise<number>;
 }
 
 export const defaultMailboxPolicy: MailboxPolicy = {

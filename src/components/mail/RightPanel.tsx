@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
 import {
   ArrowUpRight,
   Calendar,
@@ -9,10 +10,14 @@ import {
   Send,
   Sparkles,
   User,
+  Shield,
   type LucideIcon,
 } from "lucide-react";
 import { format, isSameDay, parseISO } from "date-fns";
-import type { CalendarDefinition, CalendarEvent } from "@/features/calendar";
+import { getAppToday, type CalendarDefinition, type CalendarEvent } from "@/features/calendar";
+import { ConvertSenderButton, SenderBadge } from "@/features/sender-conversion";
+import { ProvenancePanel } from "./ProvenancePanel";
+import { EmailTrustBadges } from "./EmailTrustBadges";
 import type { Email } from "./data";
 
 export type ContextAction = "snooze" | "translate" | "schedule" | "summarize";
@@ -21,24 +26,37 @@ export function RightPanel({
   email,
   onAction,
   onDraftReply,
+  onConvertSender,
+  onSnooze,
   calendarEvents,
   calendars,
+  onShowToast,
   onOpenCalendar,
   onCreateEvent,
+  onPreviewAttachment,
 }: {
   email: Email | null;
   onAction: (action: ContextAction, email: Email) => void;
   onDraftReply: (email: Email, prompt: string) => void;
+  onConvertSender: (email: Email) => void;
+  onSnooze: (email: Email) => void;
   calendarEvents: CalendarEvent[];
   calendars: CalendarDefinition[];
+  onShowToast?: (message: string) => void;
   onOpenCalendar: (eventId?: string) => void;
   onCreateEvent: () => void;
+  onPreviewAttachment?: (attachment: { name: string; size: string; type: string }) => void;
 }) {
   const [prompt, setPrompt] = useState("");
   const [summary, setSummary] = useState<string | null>(null);
 
   const runAction = (action: ContextAction) => {
     if (!email) return;
+    if (action === "snooze") {
+      // Snooze opens the guided dialog instead of an instant folder move.
+      onSnooze(email);
+      return;
+    }
     if (action === "summarize") {
       setSummary(
         `${email.from} is writing about ${email.subject.toLowerCase()}. The next step is to respond or review the attached context.`,
@@ -113,7 +131,7 @@ export function RightPanel({
         </div>
         <ul className="mt-3 space-y-2">
           {calendarEvents
-            .filter((event) => isSameDay(parseISO(event.date), new Date(2026, 5, 13)))
+            .filter((event) => isSameDay(parseISO(event.date), getAppToday()))
             .slice(0, 4)
             .map((event) => {
               const calendar = calendars.find((item) => item.id === event.calendarId);
@@ -143,7 +161,7 @@ export function RightPanel({
           onClick={() => onOpenCalendar()}
           className="mt-3 flex w-full items-center justify-between rounded-lg border border-white/8 bg-white/[0.025] px-3 py-2 text-[10px] text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground"
         >
-          <span>{format(new Date(2026, 5, 13), "MMMM d")} schedule</span>
+          <span>{format(getAppToday(), "MMMM d")} schedule</span>
           <span>Open calendar</span>
         </button>
       </Card>
@@ -155,7 +173,11 @@ export function RightPanel({
             {email.attachments.map((attachment) => (
               <li
                 key={attachment.name}
-                className="flex items-center gap-2 rounded-lg px-2 py-1.5 transition hover:bg-white/[0.04]"
+                onClick={() => onPreviewAttachment?.(attachment)}
+                className={cn(
+                  "flex items-center gap-2 rounded-lg px-2 py-1.5 transition duration-150",
+                  onPreviewAttachment && "cursor-pointer hover:bg-white/[0.06]",
+                )}
               >
                 <div className="grid h-7 w-7 place-items-center rounded-md bg-white/[0.05] text-[9px] font-bold uppercase text-muted-foreground">
                   {attachment.type}
@@ -172,6 +194,15 @@ export function RightPanel({
 
       {email && (
         <Card>
+          <SectionHeader icon={Shield} title="Provenance" />
+          <div className="mt-3">
+            <ProvenancePanel email={email} onShowToast={onShowToast} />
+          </div>
+        </Card>
+      )}
+
+      {email && (
+        <Card>
           <SectionHeader icon={User} title="Contact" />
           <div className="mt-3 flex items-center gap-3">
             <div
@@ -184,11 +215,21 @@ export function RightPanel({
                 .slice(0, 2)
                 .join("")}
             </div>
-            <div className="min-w-0">
-              <div className="truncate text-sm text-foreground">{email.from}</div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5">
+                <span className="truncate text-sm text-foreground">{email.from}</span>
+                <SenderBadge policy={email.senderPolicy} />
+                <EmailTrustBadges email={email} max={3} size="sm" className="ml-1" />
+              </div>
               <div className="truncate text-[11px] text-muted-foreground">{email.email}</div>
             </div>
           </div>
+          <ConvertSenderButton
+            variant="subtle"
+            label={email.senderPolicy ? "Update sender policy" : "Convert to contact"}
+            onClick={() => onConvertSender(email)}
+            className="mt-3 w-full justify-center"
+          />
         </Card>
       )}
     </aside>
