@@ -87,8 +87,30 @@ export * from "./validationFixtures";
 export { ValidationResultsPanel } from "./ValidationResultsPanel";
 export type { ValidationResultsPanelProps } from "./ValidationResultsPanel";
 
-export { AdminSearchBar } from "./AdminSearchBar";
-export type { AdminSearchBarProps } from "./AdminSearchBar";
-export { filterRows, normalize, resultCountLabel, searchAdminRecords } from "./searchRows";
-export { demoAdminRecords, adminSearchFields } from "./fixtures";
-export type { AdminDemoRecord, AdminRecordStatus } from "./types";
+// Proof record editor, helpers, and formatting
+export { ProofRecordEditor } from "./ProofRecordEditor";
+export type { ProofRecordEditorProps } from "./ProofRecordEditor";
+export type {
+  ProofPostageStatus,
+  ProofRecord,
+  ProofRecordDraft,
+  ProofRecordFieldError,
+  ProofRecordValidationResult,
+} from "./types/proofRecord";
+export {
+  mockMessageHash,
+  mockPaymentHash,
+  mockDiagnosticId,
+  mockSignature,
+} from "./mockHashHelpers";
+export {
+  POSTAGE_STATUS_LABEL,
+  truncateHash,
+  formatLatency,
+  formatPostageStatus,
+  isValidMockHash,
+  isValidDiagnosticId,
+  formatProofSummary,
+  validateProofRecord,
+} from "./proofFormatting";
+export { demoProofRecords } from "./fixtures/proofRecordFixtures";

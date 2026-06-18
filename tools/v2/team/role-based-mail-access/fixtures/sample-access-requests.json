@@ -1,0 +1,120 @@
+{
+  "tool": "role-based-mail-access",
+  "version": 1,
+  "policy": {
+    "admin": ["read", "write", "assign", "delete", "manage"],
+    "manager": ["read", "write", "assign"],
+    "agent": ["read", "write"],
+    "viewer": ["read"],
+    "guest": []
+  },
+  "validRequests": [
+    {
+      "id": "req-001",
+      "requesterEmail": "alice@example.test",
+      "role": "manager",
+      "accessLevel": "assign",
+      "threadId": "thread-support-001",
+      "expectGranted": true
+    },
+    {
+      "id": "req-002",
+      "requesterEmail": "bob@example.test",
+      "role": "agent",
+      "accessLevel": "read",
+      "threadId": "thread-billing-042",
+      "expectGranted": true
+    },
+    {
+      "id": "req-003",
+      "requesterEmail": "carol@example.test",
+      "role": "viewer",
+      "accessLevel": "write",
+      "threadId": "thread-legal-007",
+      "expectGranted": false
+    },
+    {
+      "id": "req-004",
+      "requesterEmail": "dave@example.test",
+      "role": "guest",
+      "accessLevel": "read",
+      "threadId": "thread-onboarding-003",
+      "expectGranted": false
+    },
+    {
+      "id": "req-005",
+      "requesterEmail": "eve@example.test",
+      "role": "admin",
+      "accessLevel": "delete",
+      "threadId": "thread-archive-019",
+      "expectGranted": true
+    }
+  ],
+  "hostileInputs": [
+    { "field": "role", "value": null, "reason": "null role" },
+    { "field": "role", "value": "", "reason": "empty string role" },
+    { "field": "role", "value": "ADMIN", "reason": "uppercase bypass attempt" },
+    {
+      "field": "role",
+      "value": "admin trailing-space ",
+      "reason": "whitespace-padded role not in allowlist"
+    },
+    { "field": "role", "value": "admin; DROP TABLE roles--", "reason": "SQL-style injection" },
+    {
+      "field": "role",
+      "value": "аdmin",
+      "reason": "homoglyph attack — Cyrillic U+0430 replacing Latin a"
+    },
+    { "field": "role", "value": "superadmin", "reason": "non-existent role escalation attempt" },
+    {
+      "field": "role",
+      "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "reason": "oversized role string (65 chars)"
+    },
+    { "field": "accessLevel", "value": "superwrite", "reason": "non-existent access level" },
+    { "field": "accessLevel", "value": "*", "reason": "wildcard escalation attempt" },
+    {
+      "field": "email",
+      "value": "user@evil.test\r\nBcc: victim@example.test",
+      "reason": "CRLF header injection"
+    },
+    {
+      "field": "email",
+      "value": "user@evil.test\nX-Injected: yes",
+      "reason": "LF-only header injection"
+    },
+    { "field": "email", "value": "@missinglocal.test", "reason": "missing local part" },
+    { "field": "email", "value": "user@", "reason": "missing domain after @" },
+    { "field": "email", "value": "nodomain", "reason": "missing @ and domain entirely" },
+    {
+      "field": "threadId",
+      "value": "../../../other-team/secret",
+      "reason": "path traversal attempt"
+    },
+    { "field": "threadId", "value": "thread 001", "reason": "space in threadId" },
+    {
+      "field": "threadId",
+      "value": "<script>alert(1)</script>",
+      "reason": "XSS payload in threadId"
+    },
+    {
+      "field": "threadId",
+      "value": "thread/001",
+      "reason": "slash separator — path traversal precursor"
+    }
+  ],
+  "performanceLimits": {
+    "maxTeamSize": 500,
+    "maxAttachmentCount": 100,
+    "maxRoleLength": 64,
+    "maxThreadIdLength": 128,
+    "maxEmailLength": 254
+  },
+  "reviewNotes": [
+    "All email addresses use example.test to avoid real user data.",
+    "hostileInputs represent known attack vectors; the guard module must reject every entry.",
+    "Null-byte injection (\\u0000) is tested directly in the test suite, not in this fixture, because JSON encodes it as a unicode escape that is safe to parse.",
+    "validRequests cover all five roles and mix granted/denied outcomes to prevent over-permitting.",
+    "The policy object is the source of truth for access level grants in tests."
+  ]
+}

@@ -13,7 +13,18 @@ export function usePreferences() {
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    const stored = window.localStorage.getItem(storageKey);
+    let stored = window.localStorage.getItem(storageKey);
+    if (!stored) {
+      const legacyStored = window.localStorage.getItem("stealth-preferences");
+      if (legacyStored) {
+        try {
+          const parsed = JSON.parse(legacyStored);
+          stored = JSON.stringify({ ...defaultPreferences, ...parsed });
+        } catch {
+          // ignore
+        }
+      }
+    }
     if (stored) {
       try {
         setPreferences({ ...defaultPreferences, ...JSON.parse(stored) });

@@ -16,7 +16,6 @@ export class LocalStorageAdapter<T> implements StorageAdapter<T> {
   save(key: string, value: T): void {
     try {
       const serialized = JSON.stringify(value);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (globalThis as any).localStorage.setItem(key, serialized);
     } catch (e) {
       // In a demo context we simply log – production code would surface the error.
@@ -26,7 +25,6 @@ export class LocalStorageAdapter<T> implements StorageAdapter<T> {
 
   load(key: string): T | null {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const raw = (globalThis as any).localStorage.getItem(key) as string | null;
       if (raw === null) return null;
       return JSON.parse(raw) as T;
@@ -38,7 +36,6 @@ export class LocalStorageAdapter<T> implements StorageAdapter<T> {
 
   clear(key: string): void {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (globalThis as any).localStorage.removeItem(key);
     } catch (e) {
       console.error("LocalStorageAdapter.clear error", e);
@@ -122,4 +119,22 @@ export function loadCampaignTags(): CampaignTag[] {
 
 export function clearCampaignTags(): void {
   tagAdapter.clear(TAGS_KEY);
+}
+
+// Campaign message assignment persistence
+import { AssignmentState } from "../types/assignment";
+
+const assignmentsAdapter = new LocalStorageAdapter<AssignmentState>();
+const ASSIGNMENTS_KEY = "stealth-demo-assignments";
+
+export function saveAssignments(state: AssignmentState): void {
+  assignmentsAdapter.save(ASSIGNMENTS_KEY, state);
+}
+
+export function loadAssignments(): AssignmentState | null {
+  return assignmentsAdapter.load(ASSIGNMENTS_KEY);
+}
+
+export function clearAssignments(): void {
+  assignmentsAdapter.clear(ASSIGNMENTS_KEY);
 }
