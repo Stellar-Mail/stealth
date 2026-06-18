@@ -119,11 +119,10 @@ export function PaymentApprovalList({
         <thead>
           <tr className="border-b border-border bg-muted/50">
             <th className="px-4 py-3 text-left font-semibold">Recipient</th>
-            <th className="px-4 py-3 text-left font-semibold">
+            <th className="px-4 py-3 text-left font-semibold" aria-sort={getSortAriaSort("amount")}>
               <button
                 onClick={() => handleSortClick("amount")}
                 className="flex items-center gap-2 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded px-1"
-                aria-sort={getSortAriaSort("amount")}
               >
                 Amount
                 <span aria-hidden="true" className="text-xs">
@@ -131,11 +130,13 @@ export function PaymentApprovalList({
                 </span>
               </button>
             </th>
-            <th className="px-4 py-3 text-left font-semibold">
+            <th
+              className="px-4 py-3 text-left font-semibold"
+              aria-sort={getSortAriaSort("priority")}
+            >
               <button
                 onClick={() => handleSortClick("priority")}
                 className="flex items-center gap-2 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded px-1"
-                aria-sort={getSortAriaSort("priority")}
               >
                 Priority
                 <span aria-hidden="true" className="text-xs">
@@ -144,11 +145,10 @@ export function PaymentApprovalList({
               </button>
             </th>
             <th className="px-4 py-3 text-left font-semibold">Requested By</th>
-            <th className="px-4 py-3 text-left font-semibold">
+            <th className="px-4 py-3 text-left font-semibold" aria-sort={getSortAriaSort("date")}>
               <button
                 onClick={() => handleSortClick("date")}
                 className="flex items-center gap-2 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded px-1"
-                aria-sort={getSortAriaSort("date")}
               >
                 Date
                 <span aria-hidden="true" className="text-xs">

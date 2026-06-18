@@ -39,12 +39,14 @@ export function PersonaPicker({ pool, segment, onToggle, onClose }: PersonaPicke
   const filtered = filterPersonas(pool, query);
 
   return (
+    // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
     <div
       role="dialog"
       aria-modal="true"
       aria-label="Pick personas to assign"
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
       onClick={(e) => e.target === e.currentTarget && onClose()}
+      onKeyDown={(e) => e.key === "Escape" && onClose()}
     >
       <div className="relative flex w-full max-w-lg flex-col rounded-2xl border border-white/[0.10] bg-black/90 shadow-2xl backdrop-blur-xl overflow-hidden max-h-[80vh]">
         {/* Header */}

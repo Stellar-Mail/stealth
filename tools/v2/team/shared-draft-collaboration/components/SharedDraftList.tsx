@@ -50,9 +50,9 @@ export const SharedDraftList: React.FC<SharedDraftListProps> = ({
         </Button>
       </div>
 
-      <ul className="space-y-3" role="list" aria-label="Shared email drafts">
+      <ul className="space-y-3" aria-label="Shared email drafts">
         {drafts.map((draft) => (
-          <li key={draft.id} role="listitem">
+          <li key={draft.id}>
             <SharedDraftEntry {...draft} onEdit={onEdit} />
           </li>
         ))}
