@@ -7,7 +7,7 @@ This guide demonstrates how to use the Team Security Flagging tool components in
 ### Full Tool Integration
 
 ```tsx
-import { TeamSecurityFlagging } from '@/tools/v2/team/team-security-flagging';
+import { TeamSecurityFlagging } from "@/tools/v2/team/team-security-flagging";
 
 export function SecurityPage() {
   return <TeamSecurityFlagging />;
@@ -25,21 +25,15 @@ import {
   FlagForm,
   FlagFilters,
   useFlagData,
-} from '@/tools/v2/team/team-security-flagging';
+} from "@/tools/v2/team/team-security-flagging";
 
 export function CustomFlagView() {
   const { flags, selectedFlag, selectFlag, createFlag } = useFlagData();
 
   return (
     <div className="flex gap-4">
-      <FlagList
-        flags={flags}
-        selectedId={selectedFlag?.id}
-        onSelect={selectFlag}
-      />
-      {selectedFlag && (
-        <FlagDetail flag={selectedFlag} />
-      )}
+      <FlagList flags={flags} selectedId={selectedFlag?.id} onSelect={selectFlag} />
+      {selectedFlag && <FlagDetail flag={selectedFlag} />}
     </div>
   );
 }
@@ -48,21 +42,18 @@ export function CustomFlagView() {
 ### Compact Flag List for Sidebar
 
 ```tsx
-import { CompactFlagList, useFlagData } from '@/tools/v2/team/team-security-flagging';
+import { CompactFlagList, useFlagData } from "@/tools/v2/team/team-security-flagging";
 
 export function SecuritySidebar() {
   const { flags, selectFlag } = useFlagData({
-    filters: { status: ['pending'] },
+    filters: { status: ["pending"] },
     pageSize: 10,
   });
 
   return (
     <aside className="w-64">
       <h3 className="font-semibold mb-3">Pending Flags</h3>
-      <CompactFlagList
-        flags={flags}
-        onSelect={selectFlag}
-      />
+      <CompactFlagList flags={flags} onSelect={selectFlag} />
     </aside>
   );
 }
@@ -73,35 +64,30 @@ export function SecuritySidebar() {
 ### Empty State
 
 ```tsx
-import { EmptyState } from '@/tools/v2/team/team-security-flagging';
+import { EmptyState } from "@/tools/v2/team/team-security-flagging";
 
 export function NoFlags() {
-  return (
-    <EmptyState
-      variant="no-flags"
-      onCreateFlag={() => console.log('Create clicked')}
-    />
-  );
+  return <EmptyState variant="no-flags" onCreateFlag={() => console.log("Create clicked")} />;
 }
 ```
 
 ### Loading State
 
 ```tsx
-import { LoadingState, Spinner } from '@/tools/v2/team/team-security-flagging';
+import { LoadingState, Spinner } from "@/tools/v2/team/team-security-flagging";
 
 export function LoadingFlags() {
   return (
     <div>
       {/* Full list skeleton */}
       <LoadingState variant="list" count={5} />
-      
+
       {/* Detail skeleton */}
       <LoadingState variant="detail" />
-      
+
       {/* Minimal spinner */}
       <LoadingState variant="minimal" />
-      
+
       {/* Standalone spinner */}
       <Spinner size="lg" />
     </div>
@@ -112,7 +98,7 @@ export function LoadingFlags() {
 ### Error State
 
 ```tsx
-import { ErrorState } from '@/tools/v2/team/team-security-flagging';
+import { ErrorState } from "@/tools/v2/team/team-security-flagging";
 
 export function FlagError({ error }: { error: Error }) {
   const handleRetry = () => {
@@ -120,12 +106,7 @@ export function FlagError({ error }: { error: Error }) {
   };
 
   return (
-    <ErrorState
-      error={error}
-      title="Failed to load flags"
-      onRetry={handleRetry}
-      variant="page"
-    />
+    <ErrorState error={error} title="Failed to load flags" onRetry={handleRetry} variant="page" />
   );
 }
 ```
@@ -133,7 +114,7 @@ export function FlagError({ error }: { error: Error }) {
 ### Success State
 
 ```tsx
-import { SuccessState, SuccessBanner } from '@/tools/v2/team/team-security-flagging';
+import { SuccessState, SuccessBanner } from "@/tools/v2/team/team-security-flagging";
 
 export function FlagSuccess() {
   return (
@@ -143,16 +124,13 @@ export function FlagSuccess() {
         title="Flag Created"
         message="Your security flag has been submitted for review."
         action={{
-          label: 'View Flag',
-          onClick: () => console.log('View'),
+          label: "View Flag",
+          onClick: () => console.log("View"),
         }}
       />
-      
+
       {/* Banner notification */}
-      <SuccessBanner
-        message="Flag updated successfully"
-        onClose={() => console.log('Close')}
-      />
+      <SuccessBanner message="Flag updated successfully" onClose={() => console.log("Close")} />
     </>
   );
 }
@@ -163,34 +141,26 @@ export function FlagSuccess() {
 ### useFlagData Hook
 
 ```tsx
-import { useFlagData } from '@/tools/v2/team/team-security-flagging';
-import type { FlagFilters } from '@/tools/v2/team/team-security-flagging';
+import { useFlagData } from "@/tools/v2/team/team-security-flagging";
+import type { FlagFilters } from "@/tools/v2/team/team-security-flagging";
 
 export function CustomFlagManager() {
   const [filters, setFilters] = useState<FlagFilters>({
-    severity: ['high', 'critical'],
-    status: ['pending'],
+    severity: ["high", "critical"],
+    status: ["pending"],
   });
 
-  const {
-    flags,
-    isLoading,
-    error,
-    createFlag,
-    updateFlag,
-    deleteFlag,
-    refresh,
-  } = useFlagData({
+  const { flags, isLoading, error, createFlag, updateFlag, deleteFlag, refresh } = useFlagData({
     filters,
     autoLoad: true,
   });
 
   const handleCreate = async () => {
     await createFlag({
-      title: 'New Security Flag',
-      description: 'Detailed description',
-      category: 'phishing',
-      severity: 'high',
+      title: "New Security Flag",
+      description: "Detailed description",
+      category: "phishing",
+      severity: "high",
     });
   };
 
@@ -198,7 +168,7 @@ export function CustomFlagManager() {
     <div>
       {isLoading && <p>Loading...</p>}
       {error && <p>Error: {error.message}</p>}
-      {flags.map(flag => (
+      {flags.map((flag) => (
         <div key={flag.id}>{flag.title}</div>
       ))}
       <button onClick={handleCreate}>Create Flag</button>
@@ -211,7 +181,7 @@ export function CustomFlagManager() {
 ### useKeyboard Hook
 
 ```tsx
-import { useKeyboard } from '@/tools/v2/team/team-security-flagging';
+import { useKeyboard } from "@/tools/v2/team/team-security-flagging";
 
 export function KeyboardEnabledView() {
   const [showDialog, setShowDialog] = useState(false);
@@ -219,7 +189,7 @@ export function KeyboardEnabledView() {
   useKeyboard({
     enabled: true,
     onNewFlag: () => setShowDialog(true),
-    onRefresh: () => console.log('Refresh'),
+    onRefresh: () => console.log("Refresh"),
     onCloseDialog: () => setShowDialog(false),
   });
 
@@ -238,29 +208,27 @@ export function KeyboardEnabledView() {
 ### Custom Filtering
 
 ```tsx
-import { useState } from 'react';
+import { useState } from "react";
 import {
   FlagFilters,
   FilterBadge,
   useFlagData,
   type FlagFilters as FlagFiltersType,
-} from '@/tools/v2/team/team-security-flagging';
+} from "@/tools/v2/team/team-security-flagging";
 
 export function AdvancedFiltering() {
   const [filters, setFilters] = useState<FlagFiltersType>({});
   const { flags } = useFlagData({ filters });
 
   const activeFilters = [
-    ...(filters.severity || []).map(s => ({ type: 'severity', value: s })),
-    ...(filters.status || []).map(s => ({ type: 'status', value: s })),
+    ...(filters.severity || []).map((s) => ({ type: "severity", value: s })),
+    ...(filters.status || []).map((s) => ({ type: "status", value: s })),
   ];
 
   const removeFilter = (type: string, value: string) => {
-    setFilters(prev => ({
+    setFilters((prev) => ({
       ...prev,
-      [type]: (prev[type as keyof FlagFiltersType] as string[])?.filter(
-        v => v !== value
-      ),
+      [type]: (prev[type as keyof FlagFiltersType] as string[])?.filter((v) => v !== value),
     }));
   };
 
@@ -268,7 +236,7 @@ export function AdvancedFiltering() {
     <div>
       {/* Filter badges */}
       <div className="flex gap-2 mb-4">
-        {activeFilters.map(filter => (
+        {activeFilters.map((filter) => (
           <FilterBadge
             key={`${filter.type}-${filter.value}`}
             label={`${filter.type}: ${filter.value}`}
@@ -278,11 +246,7 @@ export function AdvancedFiltering() {
       </div>
 
       {/* Filter panel */}
-      <FlagFilters
-        filters={filters}
-        onFiltersChange={setFilters}
-        resultCount={flags.length}
-      />
+      <FlagFilters filters={filters} onFiltersChange={setFilters} resultCount={flags.length} />
     </div>
   );
 }
@@ -291,39 +255,34 @@ export function AdvancedFiltering() {
 ### Dialog Integration
 
 ```tsx
-import { useState } from 'react';
+import { useState } from "react";
 import {
   FlagForm,
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from '@/tools/v2/team/team-security-flagging';
+} from "@/tools/v2/team/team-security-flagging";
 
 export function CreateFlagDialog() {
   const [open, setOpen] = useState(false);
 
   const handleSubmit = async (data: any) => {
     // Submit logic
-    console.log('Creating flag:', data);
+    console.log("Creating flag:", data);
     setOpen(false);
   };
 
   return (
     <>
-      <button onClick={() => setOpen(true)}>
-        Create Flag
-      </button>
+      <button onClick={() => setOpen(true)}>Create Flag</button>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Create Security Flag</DialogTitle>
           </DialogHeader>
-          <FlagForm
-            onSubmit={handleSubmit}
-            onCancel={() => setOpen(false)}
-          />
+          <FlagForm onSubmit={handleSubmit} onCancel={() => setOpen(false)} />
         </DialogContent>
       </Dialog>
     </>
@@ -339,22 +298,22 @@ import {
   trapFocus,
   createFocusManager,
   formatDateForSR,
-} from '@/tools/v2/team/team-security-flagging/utils/accessibility';
+} from "@/tools/v2/team/team-security-flagging/utils/accessibility";
 
 export function AccessibleComponent() {
   const handleAction = () => {
     // Announce to screen readers
-    announce('Action completed successfully');
+    announce("Action completed successfully");
   };
 
   const handleDelete = () => {
     // Assertive announcement for important actions
-    announce('Flag has been deleted', 'assertive');
+    announce("Flag has been deleted", "assertive");
   };
 
   // Focus management
   const focusManager = createFocusManager();
-  
+
   const openModal = () => {
     focusManager.capture();
     // Open modal logic
@@ -374,9 +333,7 @@ export function AccessibleComponent() {
       <button onClick={handleAction}>Complete Action</button>
       <button onClick={handleDelete}>Delete Flag</button>
       <p>
-        <span aria-label={srText}>
-          {date.toLocaleDateString()}
-        </span>
+        <span aria-label={srText}>{date.toLocaleDateString()}</span>
       </p>
     </div>
   );
@@ -395,26 +352,26 @@ import type {
   FlagCategory,
   CreateFlagFormData,
   UpdateFlagFormData,
-} from '@/tools/v2/team/team-security-flagging';
+} from "@/tools/v2/team/team-security-flagging";
 
 // Type-safe flag creation
 const newFlag: CreateFlagFormData = {
-  title: 'Security Concern',
-  description: 'Detailed description',
-  category: 'phishing' as FlagCategory,
-  severity: 'high' as FlagSeverity,
-  tags: ['urgent', 'email'],
+  title: "Security Concern",
+  description: "Detailed description",
+  category: "phishing" as FlagCategory,
+  severity: "high" as FlagSeverity,
+  tags: ["urgent", "email"],
 };
 
 // Type-safe flag update
 const updateData: UpdateFlagFormData = {
-  status: 'resolved' as FlagStatus,
-  assignedTo: 'user-123',
+  status: "resolved" as FlagStatus,
+  assignedTo: "user-123",
 };
 
 // Type guard example
 function isCritical(flag: SecurityFlag): boolean {
-  return flag.severity === 'critical';
+  return flag.severity === "critical";
 }
 ```
 
@@ -428,7 +385,7 @@ import {
   KEYBOARD_SHORTCUTS,
   ARIA_LABELS,
   SR_ANNOUNCEMENTS,
-} from '@/tools/v2/team/team-security-flagging';
+} from "@/tools/v2/team/team-security-flagging";
 
 export function FlagMetadata({ flag }: { flag: SecurityFlag }) {
   const severityInfo = SEVERITY_META[flag.severity];
@@ -437,20 +394,14 @@ export function FlagMetadata({ flag }: { flag: SecurityFlag }) {
 
   return (
     <div>
-      <span className={severityInfo.color}>
-        {severityInfo.label}
-      </span>
+      <span className={severityInfo.color}>{severityInfo.label}</span>
       <p>{severityInfo.description}</p>
-      
+
       {/* ARIA labels */}
-      <button aria-label={ARIA_LABELS.createButton}>
-        Create
-      </button>
-      
+      <button aria-label={ARIA_LABELS.createButton}>Create</button>
+
       {/* Screen reader announcement */}
-      <div role="status">
-        {SR_ANNOUNCEMENTS.flagCreated(flag.title)}
-      </div>
+      <div role="status">{SR_ANNOUNCEMENTS.flagCreated(flag.title)}</div>
     </div>
   );
 }
@@ -461,13 +412,13 @@ export function FlagMetadata({ flag }: { flag: SecurityFlag }) {
 ### With React Query
 
 ```tsx
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { FlagList, FlagDetail } from '@/tools/v2/team/team-security-flagging';
-import type { SecurityFlag } from '@/tools/v2/team/team-security-flagging';
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { FlagList, FlagDetail } from "@/tools/v2/team/team-security-flagging";
+import type { SecurityFlag } from "@/tools/v2/team/team-security-flagging";
 
 export function QueryIntegration() {
   const { data: flags, isLoading } = useQuery({
-    queryKey: ['security-flags'],
+    queryKey: ["security-flags"],
     queryFn: fetchFlags,
   });
 
@@ -483,10 +434,7 @@ export function QueryIntegration() {
       {isLoading ? (
         <LoadingState variant="list" />
       ) : (
-        <FlagList
-          flags={flags || []}
-          onSelect={(flag) => console.log(flag)}
-        />
+        <FlagList flags={flags || []} onSelect={(flag) => console.log(flag)} />
       )}
     </div>
   );
@@ -496,8 +444,8 @@ export function QueryIntegration() {
 ### With State Management (Zustand)
 
 ```tsx
-import { create } from 'zustand';
-import type { SecurityFlag, FlagFilters } from '@/tools/v2/team/team-security-flagging';
+import { create } from "zustand";
+import type { SecurityFlag, FlagFilters } from "@/tools/v2/team/team-security-flagging";
 
 interface FlagStore {
   flags: SecurityFlag[];
@@ -520,13 +468,7 @@ const useFlagStore = create<FlagStore>((set) => ({
 export function StoreIntegration() {
   const { flags, selectedFlag, selectFlag } = useFlagStore();
 
-  return (
-    <FlagList
-      flags={flags}
-      selectedId={selectedFlag?.id}
-      onSelect={selectFlag}
-    />
-  );
+  return <FlagList flags={flags} selectedId={selectedFlag?.id} onSelect={selectFlag} />;
 }
 ```
 
@@ -535,42 +477,34 @@ export function StoreIntegration() {
 ### Unit Testing
 
 ```tsx
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import { FlagList } from '@/tools/v2/team/team-security-flagging';
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { FlagList } from "@/tools/v2/team/team-security-flagging";
 
-describe('FlagList', () => {
-  it('renders flags correctly', () => {
+describe("FlagList", () => {
+  it("renders flags correctly", () => {
     const flags = [
       {
-        id: '1',
-        title: 'Test Flag',
+        id: "1",
+        title: "Test Flag",
         // ... other properties
       },
     ];
 
-    render(
-      <FlagList
-        flags={flags}
-        onSelect={jest.fn()}
-      />
-    );
+    render(<FlagList flags={flags} onSelect={jest.fn()} />);
 
-    expect(screen.getByText('Test Flag')).toBeInTheDocument();
+    expect(screen.getByText("Test Flag")).toBeInTheDocument();
   });
 
-  it('calls onSelect when flag is clicked', async () => {
+  it("calls onSelect when flag is clicked", async () => {
     const onSelect = jest.fn();
-    const flags = [/* ... */];
+    const flags = [
+      /* ... */
+    ];
 
-    render(
-      <FlagList
-        flags={flags}
-        onSelect={onSelect}
-      />
-    );
+    render(<FlagList flags={flags} onSelect={onSelect} />);
 
-    await userEvent.click(screen.getByText('Test Flag'));
+    await userEvent.click(screen.getByText("Test Flag"));
     expect(onSelect).toHaveBeenCalledWith(flags[0]);
   });
 });

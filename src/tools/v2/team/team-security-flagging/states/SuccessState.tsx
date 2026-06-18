@@ -1,13 +1,13 @@
 /**
  * Team Security Flagging Tool - Success State Component
- * 
+ *
  * Displays success feedback for completed actions
  */
 
-import { CheckCircle2, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
-import { useEffect } from 'react';
+import { CheckCircle2, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { useEffect } from "react";
 
 interface SuccessStateProps {
   title: string;
@@ -17,7 +17,7 @@ interface SuccessStateProps {
     onClick: () => void;
   };
   onClose?: () => void;
-  variant?: 'toast' | 'page' | 'inline';
+  variant?: "toast" | "page" | "inline";
   autoClose?: boolean;
   autoCloseDelay?: number;
   className?: string;
@@ -28,7 +28,7 @@ export function SuccessState({
   message,
   action,
   onClose,
-  variant = 'toast',
+  variant = "toast",
   autoClose = false,
   autoCloseDelay = 5000,
   className,
@@ -44,29 +44,20 @@ export function SuccessState({
     }
   }, [autoClose, autoCloseDelay, onClose]);
 
-  if (variant === 'toast') {
+  if (variant === "toast") {
     return (
       <div
         className={cn(
-          'flex items-start gap-3 rounded-lg border border-green-200 bg-green-50 p-4 shadow-lg',
-          className
+          "flex items-start gap-3 rounded-lg border border-green-200 bg-green-50 p-4 shadow-lg",
+          className,
         )}
         role="status"
         aria-live="polite"
       >
-        <CheckCircle2
-          className="size-5 text-green-600 shrink-0 mt-0.5"
-          aria-hidden="true"
-        />
+        <CheckCircle2 className="size-5 text-green-600 shrink-0 mt-0.5" aria-hidden="true" />
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-green-900">
-            {title}
-          </p>
-          {message && (
-            <p className="mt-1 text-sm text-green-700">
-              {message}
-            </p>
-          )}
+          <p className="text-sm font-medium text-green-900">{title}</p>
+          {message && <p className="mt-1 text-sm text-green-700">{message}</p>}
           {action && (
             <Button
               variant="link"
@@ -93,37 +84,20 @@ export function SuccessState({
     );
   }
 
-  if (variant === 'inline') {
+  if (variant === "inline") {
     return (
       <div
-        className={cn(
-          'rounded-lg border border-green-200 bg-green-50 p-4',
-          className
-        )}
+        className={cn("rounded-lg border border-green-200 bg-green-50 p-4", className)}
         role="status"
         aria-live="polite"
       >
         <div className="flex items-start gap-3">
-          <CheckCircle2
-            className="size-5 text-green-600 shrink-0 mt-0.5"
-            aria-hidden="true"
-          />
+          <CheckCircle2 className="size-5 text-green-600 shrink-0 mt-0.5" aria-hidden="true" />
           <div className="flex-1">
-            <p className="text-sm font-medium text-green-900">
-              {title}
-            </p>
-            {message && (
-              <p className="mt-1 text-sm text-green-700">
-                {message}
-              </p>
-            )}
+            <p className="text-sm font-medium text-green-900">{title}</p>
+            {message && <p className="mt-1 text-sm text-green-700">{message}</p>}
             {action && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={action.onClick}
-                className="mt-3"
-              >
+              <Button variant="outline" size="sm" onClick={action.onClick} className="mt-3">
                 {action.label}
               </Button>
             )}
@@ -136,10 +110,7 @@ export function SuccessState({
   // Page variant
   return (
     <div
-      className={cn(
-        'mx-auto flex max-w-md flex-col items-center text-center py-12',
-        className
-      )}
+      className={cn("mx-auto flex max-w-md flex-col items-center text-center py-12", className)}
       role="status"
       aria-live="polite"
     >
@@ -157,23 +128,15 @@ export function SuccessState({
       </p>
 
       {/* Title */}
-      <h2 className="mt-2 text-2xl font-semibold text-foreground">
-        {title}
-      </h2>
+      <h2 className="mt-2 text-2xl font-semibold text-foreground">{title}</h2>
 
       {/* Message */}
-      {message && (
-        <p className="mt-3 text-sm leading-6 text-muted-foreground">
-          {message}
-        </p>
-      )}
+      {message && <p className="mt-3 text-sm leading-6 text-muted-foreground">{message}</p>}
 
       {/* Action */}
       {action && (
         <div className="mt-7">
-          <Button onClick={action.onClick}>
-            {action.label}
-          </Button>
+          <Button onClick={action.onClick}>{action.label}</Button>
         </div>
       )}
     </div>
@@ -195,17 +158,15 @@ export function SuccessBanner({
   return (
     <div
       className={cn(
-        'flex items-center justify-between gap-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3',
-        className
+        "flex items-center justify-between gap-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3",
+        className,
       )}
       role="status"
       aria-live="polite"
     >
       <div className="flex items-center gap-3">
         <CheckCircle2 className="size-5 text-green-600" aria-hidden="true" />
-        <p className="text-sm font-medium text-green-900">
-          {message}
-        </p>
+        <p className="text-sm font-medium text-green-900">{message}</p>
       </div>
       {onClose && (
         <Button

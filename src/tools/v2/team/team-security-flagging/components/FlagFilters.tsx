@@ -1,20 +1,20 @@
 /**
  * Team Security Flagging Tool - Filters Component
- * 
+ *
  * Filter controls for security flags
  */
 
-import { useState, useId } from 'react';
-import { Filter, X, Search } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Separator } from '@/components/ui/separator';
-import { cn } from '@/lib/utils';
-import type { FlagFilters, FlagSeverity, FlagStatus, FlagCategory } from '../types';
-import { SEVERITY_META, STATUS_META, CATEGORY_META, ARIA_LABELS } from '../constants';
-import { announce } from '../utils/accessibility';
+import { useState, useId } from "react";
+import { Filter, X, Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
+import type { FlagFilters, FlagSeverity, FlagStatus, FlagCategory } from "../types";
+import { SEVERITY_META, STATUS_META, CATEGORY_META, ARIA_LABELS } from "../constants";
+import { announce } from "../utils/accessibility";
 
 interface FlagFiltersProps {
   filters: FlagFilters;
@@ -34,7 +34,7 @@ export function FlagFilters({
   className,
 }: FlagFiltersProps) {
   const searchId = useId();
-  const hasActiveFilters = 
+  const hasActiveFilters =
     (filters.severity && filters.severity.length > 0) ||
     (filters.status && filters.status.length > 0) ||
     (filters.category && filters.category.length > 0) ||
@@ -42,7 +42,7 @@ export function FlagFilters({
 
   const clearFilters = () => {
     onFiltersChange({});
-    announce('All filters cleared');
+    announce("All filters cleared");
   };
 
   const updateSearch = (query: string) => {
@@ -57,12 +57,12 @@ export function FlagFilters({
     const updated = current.includes(severity)
       ? current.filter((s) => s !== severity)
       : [...current, severity];
-    
+
     onFiltersChange({ ...filters, severity: updated });
     announce(
       current.includes(severity)
         ? `${SEVERITY_META[severity].label} severity filter removed`
-        : `${SEVERITY_META[severity].label} severity filter added`
+        : `${SEVERITY_META[severity].label} severity filter added`,
     );
   };
 
@@ -71,12 +71,12 @@ export function FlagFilters({
     const updated = current.includes(status)
       ? current.filter((s) => s !== status)
       : [...current, status];
-    
+
     onFiltersChange({ ...filters, status: updated });
     announce(
       current.includes(status)
         ? `${STATUS_META[status].label} status filter removed`
-        : `${STATUS_META[status].label} status filter added`
+        : `${STATUS_META[status].label} status filter added`,
     );
   };
 
@@ -85,24 +85,22 @@ export function FlagFilters({
     const updated = current.includes(category)
       ? current.filter((c) => c !== category)
       : [...current, category];
-    
+
     onFiltersChange({ ...filters, category: updated });
     announce(
       current.includes(category)
         ? `${CATEGORY_META[category].label} category filter removed`
-        : `${CATEGORY_META[category].label} category filter added`
+        : `${CATEGORY_META[category].label} category filter added`,
     );
   };
 
   return (
-    <div className={cn('space-y-4', className)} role="search" aria-label={ARIA_LABELS.filters}>
+    <div className={cn("space-y-4", className)} role="search" aria-label={ARIA_LABELS.filters}>
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Filter className="size-4 text-muted-foreground" aria-hidden="true" />
-          <h2 className="text-sm font-semibold text-foreground">
-            Filters
-          </h2>
+          <h2 className="text-sm font-semibold text-foreground">Filters</h2>
           {hasActiveFilters && (
             <span className="inline-flex items-center justify-center size-5 rounded-full bg-primary text-primary-foreground text-xs font-medium">
               {[
@@ -114,16 +112,16 @@ export function FlagFilters({
             </span>
           )}
         </div>
-        
+
         {onToggle && (
           <Button
             variant="ghost"
             size="sm"
             onClick={onToggle}
-            aria-label={isOpen ? 'Collapse filters' : 'Expand filters'}
+            aria-label={isOpen ? "Collapse filters" : "Expand filters"}
             aria-expanded={isOpen}
           >
-            {isOpen ? 'Collapse' : 'Expand'}
+            {isOpen ? "Collapse" : "Expand"}
           </Button>
         )}
       </div>
@@ -144,7 +142,7 @@ export function FlagFilters({
                 id={searchId}
                 type="search"
                 placeholder="Search flags..."
-                value={filters.searchQuery || ''}
+                value={filters.searchQuery || ""}
                 onChange={(e) => updateSearch(e.target.value)}
                 className="pl-9"
                 aria-label={ARIA_LABELS.searchInput}
@@ -204,8 +202,12 @@ export function FlagFilters({
 
           {/* Result count */}
           {resultCount !== undefined && (
-            <div className="text-xs text-muted-foreground text-center" role="status" aria-live="polite">
-              {resultCount} flag{resultCount !== 1 ? 's' : ''} found
+            <div
+              className="text-xs text-muted-foreground text-center"
+              role="status"
+              aria-live="polite"
+            >
+              {resultCount} flag{resultCount !== 1 ? "s" : ""} found
             </div>
           )}
         </>
@@ -277,8 +279,8 @@ export function FilterBadge({
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs bg-primary/10 text-primary border border-primary/20',
-        className
+        "inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs bg-primary/10 text-primary border border-primary/20",
+        className,
       )}
     >
       {label}

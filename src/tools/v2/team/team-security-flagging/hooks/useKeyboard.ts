@@ -1,13 +1,13 @@
 /**
  * Team Security Flagging Tool - Keyboard Navigation Hook
- * 
+ *
  * Custom hook for managing keyboard shortcuts and navigation
  */
 
-import { useEffect, useCallback, useRef } from 'react';
-import type { KeyboardShortcut } from '../types';
-import { KEYBOARD_SHORTCUTS } from '../constants';
-import { announce } from '../utils/accessibility';
+import { useEffect, useCallback, useRef } from "react";
+import type { KeyboardShortcut } from "../types";
+import { KEYBOARD_SHORTCUTS } from "../constants";
+import { announce } from "../utils/accessibility";
 
 interface UseKeyboardOptions {
   enabled?: boolean;
@@ -43,7 +43,7 @@ export function useKeyboard(options: UseKeyboardOptions = {}) {
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
     // Don't handle shortcuts when typing in inputs (except for Escape)
     if (
-      event.key !== 'Escape' &&
+      event.key !== "Escape" &&
       (event.target instanceof HTMLInputElement ||
         event.target instanceof HTMLTextAreaElement ||
         event.target instanceof HTMLSelectElement)
@@ -57,47 +57,47 @@ export function useKeyboard(options: UseKeyboardOptions = {}) {
     if (event.key === KEYBOARD_SHORTCUTS.SEARCH && !event.ctrlKey && !event.metaKey) {
       event.preventDefault();
       opts.onSearch?.();
-      announce('Search focused');
+      announce("Search focused");
     }
 
     // New flag (N or n)
     if (
-      (event.key === KEYBOARD_SHORTCUTS.NEW_FLAG || event.key === 'N') &&
+      (event.key === KEYBOARD_SHORTCUTS.NEW_FLAG || event.key === "N") &&
       !event.ctrlKey &&
       !event.metaKey
     ) {
       event.preventDefault();
       opts.onNewFlag?.();
-      announce('Create new flag dialog opened');
+      announce("Create new flag dialog opened");
     }
 
     // Refresh (R or r)
     if (
-      (event.key === KEYBOARD_SHORTCUTS.REFRESH || event.key === 'R') &&
+      (event.key === KEYBOARD_SHORTCUTS.REFRESH || event.key === "R") &&
       !event.ctrlKey &&
       !event.metaKey
     ) {
       event.preventDefault();
       opts.onRefresh?.();
-      announce('Refreshing flags');
+      announce("Refreshing flags");
     }
 
     // Toggle filters (F or f)
     if (
-      (event.key === KEYBOARD_SHORTCUTS.TOGGLE_FILTERS || event.key === 'F') &&
+      (event.key === KEYBOARD_SHORTCUTS.TOGGLE_FILTERS || event.key === "F") &&
       !event.ctrlKey &&
       !event.metaKey
     ) {
       event.preventDefault();
       opts.onToggleFilters?.();
-      announce('Filters toggled');
+      announce("Filters toggled");
     }
 
     // Navigate next (J or j or ArrowDown)
     if (
       (event.key === KEYBOARD_SHORTCUTS.NAVIGATE_NEXT ||
-        event.key === 'J' ||
-        event.key === 'ArrowDown') &&
+        event.key === "J" ||
+        event.key === "ArrowDown") &&
       !event.ctrlKey &&
       !event.metaKey
     ) {
@@ -108,8 +108,8 @@ export function useKeyboard(options: UseKeyboardOptions = {}) {
     // Navigate previous (K or k or ArrowUp)
     if (
       (event.key === KEYBOARD_SHORTCUTS.NAVIGATE_PREV ||
-        event.key === 'K' ||
-        event.key === 'ArrowUp') &&
+        event.key === "K" ||
+        event.key === "ArrowUp") &&
       !event.ctrlKey &&
       !event.metaKey
     ) {
@@ -130,7 +130,7 @@ export function useKeyboard(options: UseKeyboardOptions = {}) {
     }
 
     // Help (?)
-    if (event.key === '?' && !event.ctrlKey && !event.metaKey) {
+    if (event.key === "?" && !event.ctrlKey && !event.metaKey) {
       event.preventDefault();
       announceKeyboardShortcuts();
     }
@@ -139,10 +139,10 @@ export function useKeyboard(options: UseKeyboardOptions = {}) {
   useEffect(() => {
     if (!enabled) return;
 
-    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
 
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener("keydown", handleKeyDown);
     };
   }, [enabled, handleKeyDown]);
 
@@ -156,17 +156,17 @@ export function useKeyboard(options: UseKeyboardOptions = {}) {
  */
 function announceKeyboardShortcuts() {
   const shortcuts = [
-    'Press slash to search',
-    'Press N to create a new flag',
-    'Press R to refresh',
-    'Press F to toggle filters',
-    'Press J or down arrow to navigate to next item',
-    'Press K or up arrow to navigate to previous item',
-    'Press Enter to open selected item',
-    'Press Escape to close dialogs',
+    "Press slash to search",
+    "Press N to create a new flag",
+    "Press R to refresh",
+    "Press F to toggle filters",
+    "Press J or down arrow to navigate to next item",
+    "Press K or up arrow to navigate to previous item",
+    "Press Enter to open selected item",
+    "Press Escape to close dialogs",
   ];
 
-  announce(`Available keyboard shortcuts: ${shortcuts.join('. ')}`);
+  announce(`Available keyboard shortcuts: ${shortcuts.join(". ")}`);
 }
 
 /**
@@ -192,7 +192,7 @@ export function useListNavigation<T>(items: T[], onSelect?: (item: T) => void) {
       // Announce to screen reader
       announce(`Item ${index + 1} of ${items.length}`);
     },
-    [items.length]
+    [items.length],
   );
 
   const navigateNext = useCallback(() => {
@@ -209,7 +209,7 @@ export function useListNavigation<T>(items: T[], onSelect?: (item: T) => void) {
     if (focusedIndex >= 0 && focusedIndex < items.length) {
       const item = items[focusedIndex];
       onSelect?.(item);
-      announce('Item selected');
+      announce("Item selected");
     }
   }, [focusedIndex, items, onSelect]);
 
@@ -238,7 +238,7 @@ export function useDialogFocus(isOpen: boolean) {
       // Focus dialog
       if (dialogRef.current) {
         const firstFocusable = dialogRef.current.querySelector<HTMLElement>(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
         );
         firstFocusable?.focus();
       }
@@ -252,4 +252,4 @@ export function useDialogFocus(isOpen: boolean) {
 }
 
 // Import useState for useListNavigation
-import { useState } from 'react';
+import { useState } from "react";

@@ -1,25 +1,25 @@
 /**
  * Team Security Flagging Tool - Accessibility Utilities
- * 
+ *
  * Helper functions for managing accessibility features
  */
 
-import type { A11yAnnouncement } from '../types';
+import type { A11yAnnouncement } from "../types";
 
 /**
  * Create or get the live region for screen reader announcements
  */
-function getLiveRegion(priority: 'polite' | 'assertive' = 'polite'): HTMLElement {
+function getLiveRegion(priority: "polite" | "assertive" = "polite"): HTMLElement {
   const id = `sr-live-region-${priority}`;
   let region = document.getElementById(id);
 
   if (!region) {
-    region = document.createElement('div');
+    region = document.createElement("div");
     region.id = id;
-    region.setAttribute('role', 'status');
-    region.setAttribute('aria-live', priority);
-    region.setAttribute('aria-atomic', 'true');
-    region.className = 'sr-only absolute -left-[10000px] h-[1px] w-[1px] overflow-hidden';
+    region.setAttribute("role", "status");
+    region.setAttribute("aria-live", priority);
+    region.setAttribute("aria-atomic", "true");
+    region.className = "sr-only absolute -left-[10000px] h-[1px] w-[1px] overflow-hidden";
     document.body.appendChild(region);
   }
 
@@ -29,11 +29,11 @@ function getLiveRegion(priority: 'polite' | 'assertive' = 'polite'): HTMLElement
 /**
  * Announce a message to screen readers
  */
-export function announce(message: string, priority: 'polite' | 'assertive' = 'polite'): void {
+export function announce(message: string, priority: "polite" | "assertive" = "polite"): void {
   const region = getLiveRegion(priority);
-  
+
   // Clear and set message with a small delay to ensure it's announced
-  region.textContent = '';
+  region.textContent = "";
   setTimeout(() => {
     region.textContent = message;
   }, 100);
@@ -51,23 +51,21 @@ export function generateA11yId(prefix: string): string {
  */
 export function trapFocus(container: HTMLElement): () => void {
   const focusableSelectors = [
-    'a[href]',
-    'button:not([disabled])',
-    'textarea:not([disabled])',
-    'input:not([disabled])',
-    'select:not([disabled])',
+    "a[href]",
+    "button:not([disabled])",
+    "textarea:not([disabled])",
+    "input:not([disabled])",
+    "select:not([disabled])",
     '[tabindex]:not([tabindex="-1"])',
-  ].join(', ');
+  ].join(", ");
 
-  const focusableElements = Array.from(
-    container.querySelectorAll<HTMLElement>(focusableSelectors)
-  );
+  const focusableElements = Array.from(container.querySelectorAll<HTMLElement>(focusableSelectors));
 
   const firstFocusable = focusableElements[0];
   const lastFocusable = focusableElements[focusableElements.length - 1];
 
   function handleKeyDown(e: KeyboardEvent) {
-    if (e.key !== 'Tab') return;
+    if (e.key !== "Tab") return;
 
     if (e.shiftKey) {
       // Shift + Tab
@@ -84,11 +82,11 @@ export function trapFocus(container: HTMLElement): () => void {
     }
   }
 
-  container.addEventListener('keydown', handleKeyDown);
+  container.addEventListener("keydown", handleKeyDown);
 
   // Return cleanup function
   return () => {
-    container.removeEventListener('keydown', handleKeyDown);
+    container.removeEventListener("keydown", handleKeyDown);
   };
 }
 
@@ -103,7 +101,7 @@ export function createFocusManager() {
       previouslyFocusedElement = document.activeElement as HTMLElement;
     },
     restore() {
-      if (previouslyFocusedElement && typeof previouslyFocusedElement.focus === 'function') {
+      if (previouslyFocusedElement && typeof previouslyFocusedElement.focus === "function") {
         previouslyFocusedElement.focus();
       }
     },
@@ -114,11 +112,7 @@ export function createFocusManager() {
  * Check if an element is currently visible
  */
 export function isElementVisible(element: HTMLElement): boolean {
-  return !!(
-    element.offsetWidth ||
-    element.offsetHeight ||
-    element.getClientRects().length
-  );
+  return !!(element.offsetWidth || element.offsetHeight || element.getClientRects().length);
 }
 
 /**
@@ -126,24 +120,24 @@ export function isElementVisible(element: HTMLElement): boolean {
  */
 export function getAccessibleName(element: HTMLElement): string {
   // Check aria-label
-  const ariaLabel = element.getAttribute('aria-label');
+  const ariaLabel = element.getAttribute("aria-label");
   if (ariaLabel) return ariaLabel;
 
   // Check aria-labelledby
-  const labelledBy = element.getAttribute('aria-labelledby');
+  const labelledBy = element.getAttribute("aria-labelledby");
   if (labelledBy) {
     const labelElement = document.getElementById(labelledBy);
-    if (labelElement) return labelElement.textContent || '';
+    if (labelElement) return labelElement.textContent || "";
   }
 
   // Check associated label
   if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
     const label = document.querySelector(`label[for="${element.id}"]`);
-    if (label) return label.textContent || '';
+    if (label) return label.textContent || "";
   }
 
   // Fallback to text content
-  return element.textContent || '';
+  return element.textContent || "";
 }
 
 /**
@@ -157,7 +151,7 @@ export function createKeyHandler(
     alt?: boolean;
     shift?: boolean;
     meta?: boolean;
-  }
+  },
 ) {
   return (event: KeyboardEvent) => {
     const matchesKey = event.key === key || event.code === key;
@@ -176,7 +170,7 @@ export function createKeyHandler(
  * Check if reduced motion is preferred
  */
 export function prefersReducedMotion(): boolean {
-  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
 /**
@@ -193,8 +187,8 @@ export function getContrastRatio(foreground: string, background: string): number
  * Format number for screen readers
  */
 export function formatNumberForSR(num: number): string {
-  if (num === 0) return 'zero';
-  if (num === 1) return 'one';
+  if (num === 0) return "zero";
+  if (num === 1) return "one";
   return num.toString();
 }
 
@@ -206,28 +200,28 @@ export function formatDateForSR(date: Date): string {
   const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
   if (diffInSeconds < 60) {
-    return 'just now';
+    return "just now";
   }
 
   if (diffInSeconds < 3600) {
     const minutes = Math.floor(diffInSeconds / 60);
-    return `${minutes} minute${minutes !== 1 ? 's' : ''} ago`;
+    return `${minutes} minute${minutes !== 1 ? "s" : ""} ago`;
   }
 
   if (diffInSeconds < 86400) {
     const hours = Math.floor(diffInSeconds / 3600);
-    return `${hours} hour${hours !== 1 ? 's' : ''} ago`;
+    return `${hours} hour${hours !== 1 ? "s" : ""} ago`;
   }
 
   const days = Math.floor(diffInSeconds / 86400);
   if (days < 7) {
-    return `${days} day${days !== 1 ? 's' : ''} ago`;
+    return `${days} day${days !== 1 ? "s" : ""} ago`;
   }
 
-  return date.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
+  return date.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
   });
 }
 
@@ -237,11 +231,11 @@ export function formatDateForSR(date: Date): string {
 export function createDescribedBy(elementId: string, descriptionId: string): void {
   const element = document.getElementById(elementId);
   if (element) {
-    const existingDescribedBy = element.getAttribute('aria-describedby');
+    const existingDescribedBy = element.getAttribute("aria-describedby");
     if (existingDescribedBy) {
-      element.setAttribute('aria-describedby', `${existingDescribedBy} ${descriptionId}`);
+      element.setAttribute("aria-describedby", `${existingDescribedBy} ${descriptionId}`);
     } else {
-      element.setAttribute('aria-describedby', descriptionId);
+      element.setAttribute("aria-describedby", descriptionId);
     }
   }
 }
@@ -252,14 +246,14 @@ export function createDescribedBy(elementId: string, descriptionId: string): voi
 export function announceBatchResult(
   operation: string,
   successCount: number,
-  totalCount: number
+  totalCount: number,
 ): void {
   if (successCount === totalCount) {
     announce(`${operation} completed successfully for all ${totalCount} items`);
   } else {
     announce(
       `${operation} completed: ${successCount} of ${totalCount} items successful`,
-      'assertive'
+      "assertive",
     );
   }
 }

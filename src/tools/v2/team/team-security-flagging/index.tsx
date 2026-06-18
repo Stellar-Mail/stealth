@@ -1,37 +1,37 @@
 /**
  * Team Security Flagging Tool - Main Entry Point
- * 
+ *
  * Self-contained security flagging tool with full accessibility support
  */
 
-import { useState } from 'react';
-import { Plus, RefreshCw } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { cn } from '@/lib/utils';
+import { useState } from "react";
+import { Plus, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
 
 // Components
-import { FlagList } from './components/FlagList';
-import { FlagDetail } from './components/FlagDetail';
-import { FlagForm } from './components/FlagForm';
-import { FlagFilters } from './components/FlagFilters';
+import { FlagList } from "./components/FlagList";
+import { FlagDetail } from "./components/FlagDetail";
+import { FlagForm } from "./components/FlagForm";
+import { FlagFilters } from "./components/FlagFilters";
 
 // States
-import { EmptyState } from './states/EmptyState';
-import { LoadingState } from './states/LoadingState';
-import { ErrorState } from './states/ErrorState';
-import { SuccessState, SuccessBanner } from './states/SuccessState';
+import { EmptyState } from "./states/EmptyState";
+import { LoadingState } from "./states/LoadingState";
+import { ErrorState } from "./states/ErrorState";
+import { SuccessState, SuccessBanner } from "./states/SuccessState";
 
 // Hooks
-import { useFlagData } from './hooks/useFlagData';
-import { useKeyboard } from './hooks/useKeyboard';
+import { useFlagData } from "./hooks/useFlagData";
+import { useKeyboard } from "./hooks/useKeyboard";
 
 // Types
-import type { SecurityFlag, FlagFilters as FlagFiltersType } from './types';
+import type { SecurityFlag, FlagFilters as FlagFiltersType } from "./types";
 
 // Utils
-import { announce } from './utils/accessibility';
-import { ARIA_LABELS } from './constants';
+import { announce } from "./utils/accessibility";
+import { ARIA_LABELS } from "./constants";
 
 interface TeamSecurityFlaggingProps {
   className?: string;
@@ -79,7 +79,7 @@ export function TeamSecurityFlagging({ className }: TeamSecurityFlaggingProps) {
       const newFlag = await createFlag(data);
       setIsCreateDialogOpen(false);
       selectFlag(newFlag);
-      setSuccessMessage('Flag created successfully');
+      setSuccessMessage("Flag created successfully");
       setTimeout(() => setSuccessMessage(null), 5000);
     } catch (err) {
       // Error handling is done in the hook
@@ -94,7 +94,7 @@ export function TeamSecurityFlagging({ className }: TeamSecurityFlaggingProps) {
       setIsEditDialogOpen(false);
       setEditingFlag(null);
       selectFlag(updated);
-      setSuccessMessage('Flag updated successfully');
+      setSuccessMessage("Flag updated successfully");
       setTimeout(() => setSuccessMessage(null), 5000);
     } catch (err) {
       // Error handling is done in the hook
@@ -113,7 +113,7 @@ export function TeamSecurityFlagging({ className }: TeamSecurityFlaggingProps) {
 
     try {
       await deleteFlag(flag.id);
-      setSuccessMessage('Flag deleted successfully');
+      setSuccessMessage("Flag deleted successfully");
       setTimeout(() => setSuccessMessage(null), 5000);
     } catch (err) {
       // Error handling is done in the hook
@@ -122,8 +122,8 @@ export function TeamSecurityFlagging({ className }: TeamSecurityFlaggingProps) {
 
   const handleResolveFlag = async (flag: SecurityFlag) => {
     try {
-      await updateFlag(flag.id, { status: 'resolved' });
-      setSuccessMessage('Flag resolved successfully');
+      await updateFlag(flag.id, { status: "resolved" });
+      setSuccessMessage("Flag resolved successfully");
       setTimeout(() => setSuccessMessage(null), 5000);
     } catch (err) {
       // Error handling is done in the hook
@@ -132,8 +132,8 @@ export function TeamSecurityFlagging({ className }: TeamSecurityFlaggingProps) {
 
   const handleDismissFlag = async (flag: SecurityFlag) => {
     try {
-      await updateFlag(flag.id, { status: 'dismissed' });
-      setSuccessMessage('Flag dismissed successfully');
+      await updateFlag(flag.id, { status: "dismissed" });
+      setSuccessMessage("Flag dismissed successfully");
       setTimeout(() => setSuccessMessage(null), 5000);
     } catch (err) {
       // Error handling is done in the hook
@@ -142,7 +142,7 @@ export function TeamSecurityFlagging({ className }: TeamSecurityFlaggingProps) {
 
   return (
     <div
-      className={cn('flex h-screen flex-col bg-background', className)}
+      className={cn("flex h-screen flex-col bg-background", className)}
       role="main"
       aria-label="Team Security Flagging Tool"
     >
@@ -150,9 +150,7 @@ export function TeamSecurityFlagging({ className }: TeamSecurityFlaggingProps) {
       <header className="border-b border-border bg-card px-6 py-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-foreground">
-              Security Flags
-            </h1>
+            <h1 className="text-2xl font-semibold text-foreground">Security Flags</h1>
             <p className="text-sm text-muted-foreground mt-1">
               Manage team security concerns and potential threats
             </p>
@@ -165,7 +163,10 @@ export function TeamSecurityFlagging({ className }: TeamSecurityFlaggingProps) {
               disabled={isLoading}
               aria-label={ARIA_LABELS.createButton}
             >
-              <RefreshCw className={cn('size-4 mr-2', isLoading && 'animate-spin')} aria-hidden="true" />
+              <RefreshCw
+                className={cn("size-4 mr-2", isLoading && "animate-spin")}
+                aria-hidden="true"
+              />
               Refresh
             </Button>
             <Button
@@ -182,10 +183,7 @@ export function TeamSecurityFlagging({ className }: TeamSecurityFlaggingProps) {
       {/* Success banner */}
       {successMessage && (
         <div className="px-6 pt-4">
-          <SuccessBanner
-            message={successMessage}
-            onClose={() => setSuccessMessage(null)}
-          />
+          <SuccessBanner message={successMessage} onClose={() => setSuccessMessage(null)} />
         </div>
       )}
 
@@ -196,35 +194,23 @@ export function TeamSecurityFlagging({ className }: TeamSecurityFlaggingProps) {
           className="w-64 border-r border-border bg-card p-6 overflow-y-auto"
           aria-label="Filters sidebar"
         >
-          <FlagFilters
-            filters={filters}
-            onFiltersChange={setFilters}
-            resultCount={flags.length}
-          />
+          <FlagFilters filters={filters} onFiltersChange={setFilters} resultCount={flags.length} />
         </aside>
 
         {/* Middle - Flag List */}
         <div className="flex-1 overflow-y-auto p-6">
           {error ? (
-            <ErrorState
-              error={error}
-              onRetry={refresh}
-              variant="page"
-            />
+            <ErrorState error={error} onRetry={refresh} variant="page" />
           ) : isLoading && flags.length === 0 ? (
             <LoadingState variant="list" />
           ) : flags.length === 0 ? (
             <EmptyState
-              variant={Object.keys(filters).length > 0 ? 'no-results' : 'no-flags'}
+              variant={Object.keys(filters).length > 0 ? "no-results" : "no-flags"}
               onCreateFlag={() => setIsCreateDialogOpen(true)}
               onClearFilters={() => setFilters({})}
             />
           ) : (
-            <FlagList
-              flags={flags}
-              selectedId={selectedFlag?.id}
-              onSelect={selectFlag}
-            />
+            <FlagList flags={flags} selectedId={selectedFlag?.id} onSelect={selectFlag} />
           )}
         </div>
 
@@ -235,9 +221,7 @@ export function TeamSecurityFlagging({ className }: TeamSecurityFlaggingProps) {
             aria-label="Flag details panel"
           >
             <div className="sticky top-0 bg-card/95 backdrop-blur-sm border-b border-border px-6 py-4 z-10">
-              <h2 className="text-lg font-semibold text-foreground">
-                Flag Details
-              </h2>
+              <h2 className="text-lg font-semibold text-foreground">Flag Details</h2>
             </div>
             <div className="p-6">
               <FlagDetail
@@ -254,7 +238,10 @@ export function TeamSecurityFlagging({ className }: TeamSecurityFlaggingProps) {
 
       {/* Create Flag Dialog */}
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" aria-describedby="create-dialog-description">
+        <DialogContent
+          className="max-w-2xl max-h-[90vh] overflow-y-auto"
+          aria-describedby="create-dialog-description"
+        >
           <DialogHeader>
             <DialogTitle>Create Security Flag</DialogTitle>
           </DialogHeader>
@@ -271,7 +258,10 @@ export function TeamSecurityFlagging({ className }: TeamSecurityFlaggingProps) {
 
       {/* Edit Flag Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" aria-describedby="edit-dialog-description">
+        <DialogContent
+          className="max-w-2xl max-h-[90vh] overflow-y-auto"
+          aria-describedby="edit-dialog-description"
+        >
           <DialogHeader>
             <DialogTitle>Edit Security Flag</DialogTitle>
           </DialogHeader>
@@ -296,15 +286,15 @@ export function TeamSecurityFlagging({ className }: TeamSecurityFlaggingProps) {
 }
 
 // Export all components for flexible usage
-export { FlagList, CompactFlagList } from './components/FlagList';
-export { FlagDetail } from './components/FlagDetail';
-export { FlagForm } from './components/FlagForm';
-export { FlagFilters, FilterBadge } from './components/FlagFilters';
-export { EmptyState } from './states/EmptyState';
-export { LoadingState, Spinner } from './states/LoadingState';
-export { ErrorState } from './states/ErrorState';
-export { SuccessState, SuccessBanner } from './states/SuccessState';
-export { useFlagData } from './hooks/useFlagData';
-export { useKeyboard } from './hooks/useKeyboard';
-export * from './types';
-export * from './constants';
+export { FlagList, CompactFlagList } from "./components/FlagList";
+export { FlagDetail } from "./components/FlagDetail";
+export { FlagForm } from "./components/FlagForm";
+export { FlagFilters, FilterBadge } from "./components/FlagFilters";
+export { EmptyState } from "./states/EmptyState";
+export { LoadingState, Spinner } from "./states/LoadingState";
+export { ErrorState } from "./states/ErrorState";
+export { SuccessState, SuccessBanner } from "./states/SuccessState";
+export { useFlagData } from "./hooks/useFlagData";
+export { useKeyboard } from "./hooks/useKeyboard";
+export * from "./types";
+export * from "./constants";

@@ -5,7 +5,7 @@
 ### Import the Tool
 
 ```tsx
-import { TeamSecurityFlagging } from '@/tools/v2/team/team-security-flagging';
+import { TeamSecurityFlagging } from "@/tools/v2/team/team-security-flagging";
 
 function App() {
   return <TeamSecurityFlagging />;
@@ -17,10 +17,13 @@ That's it! The tool is fully self-contained and ready to use.
 ## 📦 What's Included
 
 ### Main Component
+
 ```tsx
 <TeamSecurityFlagging />
 ```
+
 The complete tool with:
+
 - Flag list view
 - Detail panel
 - Create/edit forms
@@ -29,56 +32,58 @@ The complete tool with:
 - Full accessibility
 
 ### Individual Components
+
 ```tsx
 import {
   FlagList,
   FlagDetail,
   FlagForm,
   FlagFilters,
-} from '@/tools/v2/team/team-security-flagging';
+} from "@/tools/v2/team/team-security-flagging";
 ```
 
 ### Custom Hooks
+
 ```tsx
-import {
-  useFlagData,
-  useKeyboard,
-} from '@/tools/v2/team/team-security-flagging';
+import { useFlagData, useKeyboard } from "@/tools/v2/team/team-security-flagging";
 ```
 
 ### Types
+
 ```tsx
 import type {
   SecurityFlag,
   FlagSeverity,
   FlagStatus,
   FlagCategory,
-} from '@/tools/v2/team/team-security-flagging';
+} from "@/tools/v2/team/team-security-flagging";
 ```
 
 ## ⌨️ Keyboard Shortcuts
 
-| Key | Action |
-|-----|--------|
-| `/` | Focus search |
-| `n` | Create new flag |
-| `r` | Refresh list |
-| `f` | Toggle filters |
-| `j` or `↓` | Next item |
-| `k` or `↑` | Previous item |
-| `Enter` | Open selected |
-| `Esc` | Close dialog |
-| `?` | Show shortcuts |
+| Key        | Action          |
+| ---------- | --------------- |
+| `/`        | Focus search    |
+| `n`        | Create new flag |
+| `r`        | Refresh list    |
+| `f`        | Toggle filters  |
+| `j` or `↓` | Next item       |
+| `k` or `↑` | Previous item   |
+| `Enter`    | Open selected   |
+| `Esc`      | Close dialog    |
+| `?`        | Show shortcuts  |
 
 ## 🎨 Key Features
 
 ### Filtering
+
 - Search by keyword
 - Filter by severity (low, medium, high, critical)
 - Filter by status (pending, reviewing, resolved, dismissed)
 - Filter by category (phishing, malware, spam, etc.)
 
 ### Operations
+
 - Create security flags
 - Edit existing flags
 - Delete flags
@@ -86,6 +91,7 @@ import type {
 - Dismiss flags
 
 ### States
+
 - Empty states (no flags, no results)
 - Loading states (skeleton loaders)
 - Error states (with retry)
@@ -103,30 +109,25 @@ import type {
 ### Using Individual Components
 
 ```tsx
-import { FlagList, useFlagData } from '@/tools/v2/team/team-security-flagging';
+import { FlagList, useFlagData } from "@/tools/v2/team/team-security-flagging";
 
 function MyCustomView() {
   const { flags, selectFlag } = useFlagData();
 
-  return (
-    <FlagList
-      flags={flags}
-      onSelect={selectFlag}
-    />
-  );
+  return <FlagList flags={flags} onSelect={selectFlag} />;
 }
 ```
 
 ### Custom Filtering
 
 ```tsx
-import { useFlagData } from '@/tools/v2/team/team-security-flagging';
+import { useFlagData } from "@/tools/v2/team/team-security-flagging";
 
 function CriticalFlags() {
   const { flags } = useFlagData({
     filters: {
-      severity: ['critical'],
-      status: ['pending'],
+      severity: ["critical"],
+      status: ["pending"],
     },
   });
 
@@ -137,6 +138,7 @@ function CriticalFlags() {
 ## ♿ Accessibility
 
 This tool is fully accessible:
+
 - ✅ WCAG 2.1 AA compliant
 - ✅ Full keyboard navigation
 - ✅ Screen reader support
@@ -145,6 +147,7 @@ This tool is fully accessible:
 - ✅ ARIA labels throughout
 
 Test with:
+
 - Keyboard only (no mouse)
 - Screen reader (NVDA, JAWS, VoiceOver)
 - High contrast mode
@@ -155,11 +158,13 @@ Test with:
 ### TypeScript Errors
 
 **Issue**: Import errors
+
 ```
 Cannot find module '@/tools/v2/team/team-security-flagging'
 ```
 
 **Solution**: Ensure the path alias `@` is configured in `tsconfig.json`:
+
 ```json
 {
   "compilerOptions": {
@@ -194,6 +199,7 @@ const { flags } = useFlagData({
 ```
 
 Mock data includes:
+
 - 10-20 sample flags
 - Various severities and statuses
 - Realistic metadata
@@ -202,9 +208,10 @@ Mock data includes:
 ## 🎯 Next Steps
 
 1. **Try It Out**
+
    ```tsx
-   import { TeamSecurityFlagging } from '@/tools/v2/team/team-security-flagging';
-   
+   import { TeamSecurityFlagging } from "@/tools/v2/team/team-security-flagging";
+
    function TestPage() {
      return <TeamSecurityFlagging />;
    }
@@ -253,9 +260,9 @@ The tool is production-ready for UI/UX testing. Backend integration and routing 
 
 ```tsx
 // That's all you need!
-import { TeamSecurityFlagging } from '@/tools/v2/team/team-security-flagging';
+import { TeamSecurityFlagging } from "@/tools/v2/team/team-security-flagging";
 
-<TeamSecurityFlagging />
+<TeamSecurityFlagging />;
 ```
 
 Happy coding! 🚀

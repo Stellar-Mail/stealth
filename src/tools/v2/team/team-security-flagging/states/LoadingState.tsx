@@ -1,23 +1,26 @@
 /**
  * Team Security Flagging Tool - Loading State Component
- * 
+ *
  * Skeleton loader for flag list and details
  */
 
-import { cn } from '@/lib/utils';
+import { cn } from "@/lib/utils";
 
 interface LoadingStateProps {
-  variant?: 'list' | 'detail' | 'minimal';
+  variant?: "list" | "detail" | "minimal";
   count?: number;
   className?: string;
 }
 
-export function LoadingState({ variant = 'list', count = 5, className }: LoadingStateProps) {
-  if (variant === 'minimal') {
+export function LoadingState({ variant = "list", count = 5, className }: LoadingStateProps) {
+  if (variant === "minimal") {
     return (
-      <div className={cn('flex items-center justify-center py-12', className)} role="status">
+      <div className={cn("flex items-center justify-center py-12", className)} role="status">
         <div className="flex flex-col items-center gap-3">
-          <div className="size-8 animate-spin rounded-full border-4 border-muted border-t-primary" aria-hidden="true" />
+          <div
+            className="size-8 animate-spin rounded-full border-4 border-muted border-t-primary"
+            aria-hidden="true"
+          />
           <span className="text-sm text-muted-foreground">Loading flags...</span>
         </div>
         <span className="sr-only">Loading security flags, please wait</span>
@@ -25,11 +28,11 @@ export function LoadingState({ variant = 'list', count = 5, className }: Loading
     );
   }
 
-  if (variant === 'detail') {
+  if (variant === "detail") {
     return (
-      <div className={cn('space-y-6 p-6', className)} role="status">
+      <div className={cn("space-y-6 p-6", className)} role="status">
         <span className="sr-only">Loading flag details, please wait</span>
-        
+
         {/* Header skeleton */}
         <div className="space-y-3">
           <div className="flex items-start justify-between gap-4">
@@ -83,9 +86,9 @@ export function LoadingState({ variant = 'list', count = 5, className }: Loading
 
   // List variant (default)
   return (
-    <div className={cn('space-y-3', className)} role="status">
+    <div className={cn("space-y-3", className)} role="status">
       <span className="sr-only">Loading list of security flags, please wait</span>
-      
+
       {Array.from({ length: count }, (_, i) => (
         <FlagListItemSkeleton key={i} />
       ))}
@@ -98,10 +101,7 @@ export function LoadingState({ variant = 'list', count = 5, className }: Loading
  */
 function FlagListItemSkeleton() {
   return (
-    <div
-      className="rounded-lg border border-border bg-card p-4 space-y-3"
-      aria-hidden="true"
-    >
+    <div className="rounded-lg border border-border bg-card p-4 space-y-3" aria-hidden="true">
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 space-y-2">
@@ -138,19 +138,25 @@ function FlagListItemSkeleton() {
 /**
  * Simple spinner component
  */
-export function Spinner({ className, size = 'default' }: { className?: string; size?: 'sm' | 'default' | 'lg' }) {
+export function Spinner({
+  className,
+  size = "default",
+}: {
+  className?: string;
+  size?: "sm" | "default" | "lg";
+}) {
   const sizeClasses = {
-    sm: 'size-4 border-2',
-    default: 'size-6 border-3',
-    lg: 'size-8 border-4',
+    sm: "size-4 border-2",
+    default: "size-6 border-3",
+    lg: "size-8 border-4",
   };
 
   return (
     <div
       className={cn(
-        'animate-spin rounded-full border-muted border-t-primary',
+        "animate-spin rounded-full border-muted border-t-primary",
         sizeClasses[size],
-        className
+        className,
       )}
       role="status"
       aria-label="Loading"

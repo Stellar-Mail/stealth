@@ -1,20 +1,32 @@
 /**
  * Team Security Flagging Tool - Flag Form Component
- * 
+ *
  * Form for creating and editing security flags
  */
 
-import { useState, useId } from 'react';
-import { X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { cn } from '@/lib/utils';
-import type { SecurityFlag, CreateFlagFormData, UpdateFlagFormData, FlagCategory, FlagSeverity } from '../types';
-import { CATEGORY_META, SEVERITY_META, VALIDATION_MESSAGES, ARIA_LABELS } from '../constants';
-import { announce } from '../utils/accessibility';
+import { useState, useId } from "react";
+import { X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { cn } from "@/lib/utils";
+import type {
+  SecurityFlag,
+  CreateFlagFormData,
+  UpdateFlagFormData,
+  FlagCategory,
+  FlagSeverity,
+} from "../types";
+import { CATEGORY_META, SEVERITY_META, VALIDATION_MESSAGES, ARIA_LABELS } from "../constants";
+import { announce } from "../utils/accessibility";
 
 interface FlagFormProps {
   flag?: SecurityFlag;
@@ -47,15 +59,15 @@ export function FlagForm({
 
   // Form state
   const [formData, setFormData] = useState<CreateFlagFormData>({
-    title: flag?.title || '',
-    description: flag?.description || '',
-    category: flag?.category || 'phishing',
-    severity: flag?.severity || 'medium',
+    title: flag?.title || "",
+    description: flag?.description || "",
+    category: flag?.category || "phishing",
+    severity: flag?.severity || "medium",
     tags: flag?.tags || [],
   });
 
   const [errors, setErrors] = useState<FormErrors>({});
-  const [tagInput, setTagInput] = useState('');
+  const [tagInput, setTagInput] = useState("");
 
   // Validation
   const validate = (): boolean => {
@@ -93,8 +105,8 @@ export function FlagForm({
     if (Object.keys(newErrors).length > 0) {
       const errorCount = Object.keys(newErrors).length;
       announce(
-        `Form has ${errorCount} validation error${errorCount !== 1 ? 's' : ''}. Please review and correct.`,
-        'assertive'
+        `Form has ${errorCount} validation error${errorCount !== 1 ? "s" : ""}. Please review and correct.`,
+        "assertive",
       );
     }
 
@@ -111,9 +123,12 @@ export function FlagForm({
 
     try {
       await onSubmit(formData);
-      announce(isEdit ? 'Flag updated successfully' : 'Flag created successfully');
+      announce(isEdit ? "Flag updated successfully" : "Flag created successfully");
     } catch (error) {
-      announce(`Error: ${error instanceof Error ? error.message : 'Failed to save flag'}`, 'assertive');
+      announce(
+        `Error: ${error instanceof Error ? error.message : "Failed to save flag"}`,
+        "assertive",
+      );
     }
   };
 
@@ -125,7 +140,7 @@ export function FlagForm({
         ...formData,
         tags: [...(formData.tags || []), tag],
       });
-      setTagInput('');
+      setTagInput("");
       announce(`Tag "${tag}" added`);
     }
   };
@@ -142,8 +157,8 @@ export function FlagForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className={cn('space-y-6', className)}
-      aria-label={isEdit ? 'Edit flag form' : 'Create flag form'}
+      className={cn("space-y-6", className)}
+      aria-label={isEdit ? "Edit flag form" : "Create flag form"}
       noValidate
     >
       {/* Title */}
@@ -266,9 +281,7 @@ export function FlagForm({
             {errors.description}
           </p>
         )}
-        <p className="text-xs text-muted-foreground">
-          Minimum 10 characters
-        </p>
+        <p className="text-xs text-muted-foreground">Minimum 10 characters</p>
       </div>
 
       {/* Tags */}
@@ -281,7 +294,7 @@ export function FlagForm({
             value={tagInput}
             onChange={(e) => setTagInput(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') {
+              if (e.key === "Enter") {
                 e.preventDefault();
                 addTag();
               }
@@ -331,9 +344,9 @@ export function FlagForm({
         <Button
           type="submit"
           disabled={isLoading}
-          aria-label={isEdit ? 'Update flag' : 'Create flag'}
+          aria-label={isEdit ? "Update flag" : "Create flag"}
         >
-          {isLoading ? 'Saving...' : isEdit ? 'Update Flag' : 'Create Flag'}
+          {isLoading ? "Saving..." : isEdit ? "Update Flag" : "Create Flag"}
         </Button>
         <Button
           type="button"

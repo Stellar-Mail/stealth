@@ -9,25 +9,28 @@ This tool is designed to meet WCAG 2.1 Level AA standards across all success cri
 ## Keyboard Navigation
 
 ### Global Shortcuts
-| Key | Action | Context |
-|-----|--------|---------|
-| `/` | Focus search input | Anywhere in the tool |
-| `n` or `N` | Open create flag dialog | Anywhere in the tool |
-| `r` or `R` | Refresh flag list | Anywhere in the tool |
-| `f` or `F` | Toggle filters panel | Anywhere in the tool |
-| `?` | Announce keyboard shortcuts | Anywhere in the tool |
-| `Escape` | Close dialogs/modals | When a dialog is open |
+
+| Key        | Action                      | Context               |
+| ---------- | --------------------------- | --------------------- |
+| `/`        | Focus search input          | Anywhere in the tool  |
+| `n` or `N` | Open create flag dialog     | Anywhere in the tool  |
+| `r` or `R` | Refresh flag list           | Anywhere in the tool  |
+| `f` or `F` | Toggle filters panel        | Anywhere in the tool  |
+| `?`        | Announce keyboard shortcuts | Anywhere in the tool  |
+| `Escape`   | Close dialogs/modals        | When a dialog is open |
 
 ### List Navigation
-| Key | Action |
-|-----|--------|
-| `j` or `↓` | Navigate to next flag |
-| `k` or `↑` | Navigate to previous flag |
-| `Enter` | Open selected flag details |
-| `Tab` | Move to next interactive element |
+
+| Key         | Action                               |
+| ----------- | ------------------------------------ |
+| `j` or `↓`  | Navigate to next flag                |
+| `k` or `↑`  | Navigate to previous flag            |
+| `Enter`     | Open selected flag details           |
+| `Tab`       | Move to next interactive element     |
 | `Shift+Tab` | Move to previous interactive element |
 
 ### Form Navigation
+
 - **Tab**: Move between form fields
 - **Shift+Tab**: Move backward through form fields
 - **Enter**: Submit form (when on submit button)
@@ -37,6 +40,7 @@ This tool is designed to meet WCAG 2.1 Level AA standards across all success cri
 ## Screen Reader Support
 
 ### Structure
+
 - Proper heading hierarchy (h1 → h2 → h3)
 - Semantic HTML elements (`<nav>`, `<main>`, `<article>`, `<aside>`)
 - Landmark regions with clear labels
@@ -44,7 +48,9 @@ This tool is designed to meet WCAG 2.1 Level AA standards across all success cri
 ### ARIA Attributes
 
 #### Labels
+
 All interactive elements have accessible names:
+
 ```typescript
 // Buttons
 <Button aria-label="Create new flag">
@@ -59,7 +65,9 @@ All interactive elements have accessible names:
 ```
 
 #### Descriptions
+
 Context provided through `aria-describedby`:
+
 ```typescript
 <Input
   id="title"
@@ -71,7 +79,9 @@ Context provided through `aria-describedby`:
 ```
 
 #### Live Regions
+
 Dynamic updates announced automatically:
+
 ```typescript
 // Status updates
 <div role="status" aria-live="polite">
@@ -85,7 +95,9 @@ Dynamic updates announced automatically:
 ```
 
 #### States
+
 Current state communicated clearly:
+
 ```typescript
 // Loading state
 <div role="status">
@@ -102,6 +114,7 @@ Current state communicated clearly:
 ### Screen Reader Announcements
 
 The tool uses live regions to announce:
+
 - **Success actions**: "Flag created successfully"
 - **Updates**: "Flag updated successfully"
 - **Deletions**: "Flag deleted successfully"
@@ -113,44 +126,53 @@ The tool uses live regions to announce:
 ## Focus Management
 
 ### Visual Focus Indicators
+
 All focusable elements have clear focus indicators:
+
 ```css
-focus-visible:outline-none 
-focus-visible:ring-2 
-focus-visible:ring-ring 
+focus-visible:outline-none
+focus-visible:ring-2
+focus-visible:ring-ring
 focus-visible:ring-offset-2
 ```
 
 ### Focus Trapping
+
 When a dialog is open:
+
 1. Focus moves to the first focusable element
 2. Tab cycles through dialog elements only
 3. Escape closes dialog and returns focus to trigger
 4. On close, focus returns to the element that opened it
 
 ### Skip Links
+
 Consider adding skip links when integrating:
+
 ```html
-<a href="#main-content" className="sr-only focus:not-sr-only">
-  Skip to main content
-</a>
+<a href="#main-content" className="sr-only focus:not-sr-only"> Skip to main content </a>
 ```
 
 ## Color and Contrast
 
 ### Contrast Ratios
+
 All text meets WCAG AA requirements:
+
 - **Normal text**: Minimum 4.5:1
 - **Large text** (18pt+): Minimum 3:1
 - **UI components**: Minimum 3:1
 
 ### Color Independence
+
 Information is never conveyed by color alone:
+
 - Severity levels use both color AND icons
 - Status uses both color AND text labels
 - Form errors use both color AND error messages
 
 ### Tested Combinations
+
 - Light mode: All text passes WCAG AA
 - Dark mode: All text passes WCAG AA
 - High contrast mode: Supported via system preferences
@@ -158,14 +180,18 @@ Information is never conveyed by color alone:
 ## Form Accessibility
 
 ### Labels
+
 All form fields have associated labels:
+
 ```typescript
 <Label htmlFor="title">Title</Label>
 <Input id="title" />
 ```
 
 ### Required Fields
+
 Clearly marked for all users:
+
 ```typescript
 <Label htmlFor="title" className="required">
   Title
@@ -178,7 +204,9 @@ Clearly marked for all users:
 ```
 
 ### Error Handling
+
 Errors are clearly communicated:
+
 ```typescript
 <Input
   id="title"
@@ -193,6 +221,7 @@ Errors are clearly communicated:
 ```
 
 ### Validation
+
 - Real-time validation feedback
 - Errors announced to screen readers
 - Clear instructions for fixing errors
@@ -200,15 +229,16 @@ Errors are clearly communicated:
 ## Motion and Animation
 
 ### Respects User Preferences
+
 ```typescript
-const prefersReducedMotion = 
-  window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 // Conditionally apply animations
 const duration = prefersReducedMotion ? 0 : 200;
 ```
 
 ### Animation Guidelines
+
 - **Duration**: 200-300ms maximum
 - **Purpose**: State changes, loading indicators
 - **Essential**: No animation is required to understand content
@@ -216,13 +246,17 @@ const duration = prefersReducedMotion ? 0 : 200;
 ## Mobile and Touch Accessibility
 
 ### Touch Targets
+
 All interactive elements meet minimum size:
+
 - **Buttons**: Minimum 44×44px
 - **Links**: Minimum 44×44px tap area
 - **Form fields**: Minimum 44px height
 
 ### Gestures
+
 All gestures have keyboard equivalents:
+
 - Swipe → Arrow keys
 - Tap → Enter/Space
 - Long press → Context menu key
@@ -230,18 +264,21 @@ All gestures have keyboard equivalents:
 ## Testing Checklist
 
 ### Screen Readers
+
 - ✅ NVDA (Windows)
 - ✅ JAWS (Windows)
 - ✅ VoiceOver (macOS/iOS)
 - ✅ TalkBack (Android)
 
 ### Browsers
+
 - ✅ Chrome + NVDA
 - ✅ Firefox + NVDA
 - ✅ Safari + VoiceOver
 - ✅ Edge + Narrator
 
 ### Tools
+
 - ✅ axe DevTools
 - ✅ WAVE
 - ✅ Lighthouse Accessibility Audit
@@ -258,6 +295,7 @@ All gestures have keyboard equivalents:
 ## Accessibility Utilities
 
 ### Helper Functions
+
 Located in `utils/accessibility.ts`:
 
 ```typescript
@@ -280,6 +318,7 @@ formatNumberForSR(num: number)
 ## Future Enhancements
 
 ### Planned Features
+
 1. **High Contrast Mode**: Enhanced theme for users with low vision
 2. **Font Size Control**: User-adjustable text scaling
 3. **Reading Mode**: Simplified view for cognitive accessibility
@@ -287,6 +326,7 @@ formatNumberForSR(num: number)
 5. **Haptic Feedback**: For mobile touch interactions
 
 ### Continuous Improvement
+
 - Regular accessibility audits
 - User testing with assistive technology users
 - Feedback integration from accessibility community
@@ -294,10 +334,12 @@ formatNumberForSR(num: number)
 ## Resources
 
 ### Internal
+
 - [Design System Accessibility Guide](../../design-system/ACCESSIBILITY.md)
 - [Keyboard Shortcuts Documentation](./README.md#keyboard-shortcuts)
 
 ### External
+
 - [WCAG 2.1 Guidelines](https://www.w3.org/WAI/WCAG21/quickref/)
 - [ARIA Authoring Practices](https://www.w3.org/WAI/ARIA/apg/)
 - [WebAIM Checklist](https://webaim.org/standards/wcag/checklist)
@@ -305,6 +347,7 @@ formatNumberForSR(num: number)
 ## Reporting Accessibility Issues
 
 If you discover an accessibility issue:
+
 1. Check if it's already documented in Known Limitations
 2. Test with the latest version
 3. Report with:

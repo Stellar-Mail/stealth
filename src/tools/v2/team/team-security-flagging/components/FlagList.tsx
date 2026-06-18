@@ -1,15 +1,15 @@
 /**
  * Team Security Flagging Tool - Flag List Component
- * 
+ *
  * Displays a list of security flags with filtering and sorting
  */
 
-import { formatDistanceToNow } from 'date-fns';
-import { AlertCircle, AlertTriangle, AlertOctagon, Info } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import type { SecurityFlag, FlagSeverity } from '../types';
-import { SEVERITY_META, STATUS_META, CATEGORY_META } from '../constants';
-import { formatDateForSR } from '../utils/accessibility';
+import { formatDistanceToNow } from "date-fns";
+import { AlertCircle, AlertTriangle, AlertOctagon, Info } from "lucide-react";
+import { cn } from "@/lib/utils";
+import type { SecurityFlag, FlagSeverity } from "../types";
+import { SEVERITY_META, STATUS_META, CATEGORY_META } from "../constants";
+import { formatDateForSR } from "../utils/accessibility";
 
 interface FlagListProps {
   flags: SecurityFlag[];
@@ -20,11 +20,7 @@ interface FlagListProps {
 
 export function FlagList({ flags, selectedId, onSelect, className }: FlagListProps) {
   return (
-    <div
-      className={cn('space-y-2', className)}
-      role="list"
-      aria-label="Security flags list"
-    >
+    <div className={cn("space-y-2", className)} role="list" aria-label="Security flags list">
       {flags.map((flag) => (
         <FlagListItem
           key={flag.id}
@@ -58,41 +54,35 @@ function FlagListItem({ flag, isSelected, onSelect }: FlagListItemProps) {
       tabIndex={0}
       onClick={() => onSelect(flag)}
       onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
+        if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
           onSelect(flag);
         }
       }}
       className={cn(
-        'group rounded-lg border bg-card p-4 transition-all cursor-pointer',
-        'hover:border-primary/50 hover:shadow-md',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-        isSelected && 'border-primary bg-accent/30'
+        "group rounded-lg border bg-card p-4 transition-all cursor-pointer",
+        "hover:border-primary/50 hover:shadow-md",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+        isSelected && "border-primary bg-accent/30",
       )}
       aria-label={`Flag: ${flag.title}. ${categoryMeta.label}. ${severityMeta.label} severity. ${statusMeta.label}. Reported ${timeAgoSR}`}
     >
       {/* Header */}
       <div className="flex items-start justify-between gap-4 mb-3">
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-foreground truncate">
-            {flag.title}
-          </h3>
+          <h3 className="font-semibold text-foreground truncate">{flag.title}</h3>
           <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
-            <span aria-label={`Category: ${categoryMeta.label}`}>
-              {categoryMeta.label}
-            </span>
+            <span aria-label={`Category: ${categoryMeta.label}`}>{categoryMeta.label}</span>
             <span aria-hidden="true">•</span>
-            <span aria-label={`Reported ${timeAgoSR}`}>
-              {timeAgo}
-            </span>
+            <span aria-label={`Reported ${timeAgoSR}`}>{timeAgo}</span>
           </div>
         </div>
 
         {/* Status badge */}
         <span
           className={cn(
-            'inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border shrink-0',
-            statusMeta.color
+            "inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border shrink-0",
+            statusMeta.color,
           )}
           aria-label={`Status: ${statusMeta.label}`}
         >
@@ -101,9 +91,7 @@ function FlagListItem({ flag, isSelected, onSelect }: FlagListItemProps) {
       </div>
 
       {/* Description */}
-      <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
-        {flag.description}
-      </p>
+      <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{flag.description}</p>
 
       {/* Footer */}
       <div className="flex items-center justify-between">
@@ -111,8 +99,8 @@ function FlagListItem({ flag, isSelected, onSelect }: FlagListItemProps) {
           {/* Severity badge */}
           <span
             className={cn(
-              'inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border',
-              severityMeta.color
+              "inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border",
+              severityMeta.color,
             )}
             aria-label={`Severity: ${severityMeta.label}`}
           >
@@ -122,14 +110,20 @@ function FlagListItem({ flag, isSelected, onSelect }: FlagListItemProps) {
 
           {/* Tags */}
           {flag.tags && flag.tags.length > 0 && (
-            <span className="text-xs text-muted-foreground" aria-label={`Tags: ${flag.tags.join(', ')}`}>
-              {flag.tags.length} tag{flag.tags.length !== 1 ? 's' : ''}
+            <span
+              className="text-xs text-muted-foreground"
+              aria-label={`Tags: ${flag.tags.join(", ")}`}
+            >
+              {flag.tags.length} tag{flag.tags.length !== 1 ? "s" : ""}
             </span>
           )}
         </div>
 
         {/* Reporter */}
-        <span className="text-xs text-muted-foreground" aria-label={`Reported by ${flag.reportedBy.name}`}>
+        <span
+          className="text-xs text-muted-foreground"
+          aria-label={`Reported by ${flag.reportedBy.name}`}
+        >
           {flag.reportedBy.name}
         </span>
       </div>
@@ -141,16 +135,16 @@ function FlagListItem({ flag, isSelected, onSelect }: FlagListItemProps) {
  * Severity icon component
  */
 function SeverityIcon({ severity, className }: { severity: FlagSeverity; className?: string }) {
-  const iconProps = { className, 'aria-hidden': true };
+  const iconProps = { className, "aria-hidden": true };
 
   switch (severity) {
-    case 'low':
+    case "low":
       return <Info {...iconProps} />;
-    case 'medium':
+    case "medium":
       return <AlertTriangle {...iconProps} />;
-    case 'high':
+    case "high":
       return <AlertCircle {...iconProps} />;
-    case 'critical':
+    case "critical":
       return <AlertOctagon {...iconProps} />;
   }
 }
@@ -160,11 +154,7 @@ function SeverityIcon({ severity, className }: { severity: FlagSeverity; classNa
  */
 export function CompactFlagList({ flags, selectedId, onSelect, className }: FlagListProps) {
   return (
-    <div
-      className={cn('space-y-1', className)}
-      role="list"
-      aria-label="Security flags list"
-    >
+    <div className={cn("space-y-1", className)} role="list" aria-label="Security flags list">
       {flags.map((flag) => {
         const isSelected = selectedId === flag.id;
         const severityMeta = SEVERITY_META[flag.severity];
@@ -175,17 +165,15 @@ export function CompactFlagList({ flags, selectedId, onSelect, className }: Flag
             role="listitem"
             onClick={() => onSelect(flag)}
             className={cn(
-              'w-full text-left rounded-md px-3 py-2 transition-colors',
-              'hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-              isSelected && 'bg-accent'
+              "w-full text-left rounded-md px-3 py-2 transition-colors",
+              "hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              isSelected && "bg-accent",
             )}
             aria-label={`${flag.title}. ${severityMeta.label} severity`}
           >
             <div className="flex items-center gap-2">
               <SeverityIcon severity={flag.severity} className="size-3 shrink-0" />
-              <span className="text-sm font-medium truncate flex-1">
-                {flag.title}
-              </span>
+              <span className="text-sm font-medium truncate flex-1">{flag.title}</span>
             </div>
           </button>
         );

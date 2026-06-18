@@ -11,6 +11,7 @@ The Team Security Flagging tool enables teams to collaboratively identify, flag,
 ## Architecture
 
 This tool is built as a self-contained module with:
+
 - Isolated components (no dependencies on main app shell)
 - Full accessibility support (WCAG 2.1 AA compliant)
 - Complete state management (empty, loading, error, success)
@@ -48,6 +49,7 @@ team-security-flagging/
 ## Accessibility Features
 
 ### Keyboard Navigation
+
 - **Tab**: Navigate between interactive elements
 - **Enter/Space**: Activate buttons and toggles
 - **Arrow keys**: Navigate within lists and menus
@@ -55,6 +57,7 @@ team-security-flagging/
 - **Slash (/)**: Quick search focus
 
 ### Screen Reader Support
+
 - Semantic HTML structure
 - ARIA labels and descriptions
 - Live regions for dynamic updates
@@ -62,6 +65,7 @@ team-security-flagging/
 - Focus management
 
 ### Visual Accessibility
+
 - High contrast mode support
 - Focus indicators
 - Clear error messages
@@ -73,10 +77,10 @@ team-security-flagging/
 This tool is designed to be mounted independently and is not yet integrated into the main application routing system.
 
 ```tsx
-import { TeamSecurityFlagging } from '@/tools/v2/team/team-security-flagging';
+import { TeamSecurityFlagging } from "@/tools/v2/team/team-security-flagging";
 
 // Render the tool
-<TeamSecurityFlagging />
+<TeamSecurityFlagging />;
 ```
 
 ## Development Status

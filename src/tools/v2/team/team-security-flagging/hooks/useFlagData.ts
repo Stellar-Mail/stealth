@@ -1,10 +1,10 @@
 /**
  * Team Security Flagging Tool - Data Hook
- * 
+ *
  * Custom hook for managing flag data fetching and mutations
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from "react";
 import type {
   SecurityFlag,
   FlagFilters,
@@ -12,9 +12,9 @@ import type {
   CreateFlagFormData,
   UpdateFlagFormData,
   FlagListResponse,
-} from '../types';
-import { announce } from '../utils/accessibility';
-import { SR_ANNOUNCEMENTS } from '../constants';
+} from "../types";
+import { announce } from "../utils/accessibility";
+import { SR_ANNOUNCEMENTS } from "../constants";
 
 interface UseFlagDataOptions {
   filters?: FlagFilters;
@@ -45,9 +45,9 @@ interface UseFlagDataReturn {
  * TODO: Replace with actual API calls
  */
 function generateMockFlags(count: number = 10): SecurityFlag[] {
-  const categories = ['phishing', 'malware', 'spam', 'data-leak', 'policy-violation'] as const;
-  const severities = ['low', 'medium', 'high', 'critical'] as const;
-  const statuses = ['pending', 'reviewing', 'resolved', 'dismissed'] as const;
+  const categories = ["phishing", "malware", "spam", "data-leak", "policy-violation"] as const;
+  const severities = ["low", "medium", "high", "critical"] as const;
+  const statuses = ["pending", "reviewing", "resolved", "dismissed"] as const;
 
   return Array.from({ length: count }, (_, i) => ({
     id: `flag-${i + 1}`,
@@ -72,7 +72,7 @@ function generateMockFlags(count: number = 10): SecurityFlag[] {
  * Simulate API delay
  */
 function delay(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**
@@ -81,7 +81,7 @@ function delay(ms: number): Promise<void> {
 export function useFlagData(options: UseFlagDataOptions = {}): UseFlagDataReturn {
   const {
     filters = {},
-    sort = { field: 'createdAt', direction: 'desc' },
+    sort = { field: "createdAt", direction: "desc" },
     pageSize = 20,
     autoLoad = true,
   } = options;
@@ -107,16 +107,16 @@ export function useFlagData(options: UseFlagDataOptions = {}): UseFlagDataReturn
 
       // Generate mock data
       const mockFlags = generateMockFlags(pageSize);
-      
+
       setFlags(mockFlags);
       setTotal(mockFlags.length);
       setPage(1);
-      
+
       announce(SR_ANNOUNCEMENTS.filtersApplied(mockFlags.length));
     } catch (err) {
-      const error = err instanceof Error ? err : new Error('Failed to load flags');
+      const error = err instanceof Error ? err : new Error("Failed to load flags");
       setError(error);
-      announce(SR_ANNOUNCEMENTS.error(error.message), 'assertive');
+      announce(SR_ANNOUNCEMENTS.error(error.message), "assertive");
     } finally {
       setIsLoading(false);
       announce(SR_ANNOUNCEMENTS.loadingComplete);
@@ -134,16 +134,16 @@ export function useFlagData(options: UseFlagDataOptions = {}): UseFlagDataReturn
 
     try {
       await delay(500);
-      
+
       const moreFlags = generateMockFlags(pageSize);
-      setFlags(prev => [...prev, ...moreFlags]);
-      setPage(prev => prev + 1);
-      
+      setFlags((prev) => [...prev, ...moreFlags]);
+      setPage((prev) => prev + 1);
+
       announce(`Loaded ${moreFlags.length} more flags`);
     } catch (err) {
-      const error = err instanceof Error ? err : new Error('Failed to load more flags');
+      const error = err instanceof Error ? err : new Error("Failed to load more flags");
       setError(error);
-      announce(SR_ANNOUNCEMENTS.error(error.message), 'assertive');
+      announce(SR_ANNOUNCEMENTS.error(error.message), "assertive");
     } finally {
       setIsLoading(false);
     }
@@ -175,28 +175,28 @@ export function useFlagData(options: UseFlagDataOptions = {}): UseFlagDataReturn
         description: data.description,
         category: data.category,
         severity: data.severity,
-        status: 'pending',
+        status: "pending",
         messageId: data.messageId,
         reportedBy: {
-          id: 'current-user',
-          name: 'Current User',
-          email: 'current@example.com',
+          id: "current-user",
+          name: "Current User",
+          email: "current@example.com",
         },
         createdAt: new Date(),
         updatedAt: new Date(),
         tags: data.tags,
       };
 
-      setFlags(prev => [newFlag, ...prev]);
-      setTotal(prev => prev + 1);
-      
+      setFlags((prev) => [newFlag, ...prev]);
+      setTotal((prev) => prev + 1);
+
       announce(SR_ANNOUNCEMENTS.flagCreated(newFlag.title));
-      
+
       return newFlag;
     } catch (err) {
-      const error = err instanceof Error ? err : new Error('Failed to create flag');
+      const error = err instanceof Error ? err : new Error("Failed to create flag");
       setError(error);
-      announce(SR_ANNOUNCEMENTS.error(error.message), 'assertive');
+      announce(SR_ANNOUNCEMENTS.error(error.message), "assertive");
       throw error;
     } finally {
       setIsLoading(false);
@@ -206,82 +206,85 @@ export function useFlagData(options: UseFlagDataOptions = {}): UseFlagDataReturn
   /**
    * Update an existing flag
    */
-  const updateFlag = useCallback(async (
-    id: string,
-    data: UpdateFlagFormData
-  ): Promise<SecurityFlag> => {
-    setIsLoading(true);
-    setError(null);
+  const updateFlag = useCallback(
+    async (id: string, data: UpdateFlagFormData): Promise<SecurityFlag> => {
+      setIsLoading(true);
+      setError(null);
 
-    try {
-      await delay(500);
+      try {
+        await delay(500);
 
-      const flagIndex = flags.findIndex(f => f.id === id);
-      if (flagIndex === -1) {
-        throw new Error('Flag not found');
+        const flagIndex = flags.findIndex((f) => f.id === id);
+        if (flagIndex === -1) {
+          throw new Error("Flag not found");
+        }
+
+        const updatedFlag: SecurityFlag = {
+          ...flags[flagIndex],
+          ...data,
+          updatedAt: new Date(),
+        };
+
+        setFlags((prev) => {
+          const newFlags = [...prev];
+          newFlags[flagIndex] = updatedFlag;
+          return newFlags;
+        });
+
+        if (selectedFlag?.id === id) {
+          setSelectedFlag(updatedFlag);
+        }
+
+        announce(SR_ANNOUNCEMENTS.flagUpdated(updatedFlag.title));
+
+        return updatedFlag;
+      } catch (err) {
+        const error = err instanceof Error ? err : new Error("Failed to update flag");
+        setError(error);
+        announce(SR_ANNOUNCEMENTS.error(error.message), "assertive");
+        throw error;
+      } finally {
+        setIsLoading(false);
       }
-
-      const updatedFlag: SecurityFlag = {
-        ...flags[flagIndex],
-        ...data,
-        updatedAt: new Date(),
-      };
-
-      setFlags(prev => {
-        const newFlags = [...prev];
-        newFlags[flagIndex] = updatedFlag;
-        return newFlags;
-      });
-
-      if (selectedFlag?.id === id) {
-        setSelectedFlag(updatedFlag);
-      }
-
-      announce(SR_ANNOUNCEMENTS.flagUpdated(updatedFlag.title));
-      
-      return updatedFlag;
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error('Failed to update flag');
-      setError(error);
-      announce(SR_ANNOUNCEMENTS.error(error.message), 'assertive');
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [flags, selectedFlag]);
+    },
+    [flags, selectedFlag],
+  );
 
   /**
    * Delete a flag
    */
-  const deleteFlag = useCallback(async (id: string): Promise<void> => {
-    setIsLoading(true);
-    setError(null);
+  const deleteFlag = useCallback(
+    async (id: string): Promise<void> => {
+      setIsLoading(true);
+      setError(null);
 
-    try {
-      await delay(500);
+      try {
+        await delay(500);
 
-      const flag = flags.find(f => f.id === id);
-      if (!flag) {
-        throw new Error('Flag not found');
+        const flag = flags.find((f) => f.id === id);
+        if (!flag) {
+          throw new Error("Flag not found");
+        }
+
+        setFlags((prev) => prev.filter((f) => f.id !== id));
+        setTotal((prev) => prev - 1);
+
+        if (selectedFlag?.id === id) {
+          setSelectedFlag(null);
+        }
+
+        announce(SR_ANNOUNCEMENTS.flagDeleted(flag.title));
+      } catch (err) {
+        const error = err instanceof Error ? err : new Error("Failed to delete flag");
+        setError(error);
+        announce(SR_ANNOUNCEMENTS.error(error.message), "assertive");
+        throw error;
+      } finally {
+        setIsLoading(false);
       }
-
-      setFlags(prev => prev.filter(f => f.id !== id));
-      setTotal(prev => prev - 1);
-
-      if (selectedFlag?.id === id) {
-        setSelectedFlag(null);
-      }
-
-      announce(SR_ANNOUNCEMENTS.flagDeleted(flag.title));
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error('Failed to delete flag');
-      setError(error);
-      announce(SR_ANNOUNCEMENTS.error(error.message), 'assertive');
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [flags, selectedFlag]);
+    },
+    [flags, selectedFlag],
+  );
 
   /**
    * Refresh flags
