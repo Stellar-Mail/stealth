@@ -14,7 +14,21 @@ import {
 } from "@/lib/motion-presets";
 import { Settings, Play, RotateCcw } from "lucide-react";
 
-const presetCategories = [
+interface Preset {
+  name: string;
+  key: string;
+  description: string;
+  variant: any;
+  isInteractive?: boolean;
+}
+
+interface PresetCategory {
+  title: string;
+  description: string;
+  presets: Preset[];
+}
+
+const presetCategories: PresetCategory[] = [
   {
     title: "Entrance",
     description: "Animations for elements appearing or entering the screen",

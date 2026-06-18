@@ -499,6 +499,7 @@ function EventDetails({
   onResponseChange,
   onReminderChange,
   onShowToast,
+  onNavigateToEmail,
 }: {
   event: CalendarEvent;
   calendar?: CalendarDefinition;

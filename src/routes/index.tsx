@@ -169,6 +169,10 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
   const selected: Email | null = emails.find((e) => e.id === selectedId) ?? null;
   const snoozeEmail = emails.find((email) => email.id === snooze.target?.emailId) ?? null;
   const selectedSnoozeState = snoozeEmail?.folder === "snoozed" ? snoozeEmail.snooze : undefined;
+  const selectedEmails = useMemo(
+    () => emails.filter((e) => selectedIds.includes(e.id)),
+    [emails, selectedIds],
+  );
 
   const updateEmail = (id: string, patch: Partial<Email>) => {
     setEmails((prev) => prev.map((e: Email) => (e.id === id ? { ...e, ...patch } : e)));

@@ -64,6 +64,7 @@ export type EmailViewActions = {
   getCalendarEvents?: () => CalendarEvent[];
   onDuplicateEvent?: (eventId: string) => CalendarEvent | null;
   onDeleteEvent?: (eventId: string) => void;
+  onSendReadReceipt?: (email: Email) => void;
 };
 
 export function EmailView({
