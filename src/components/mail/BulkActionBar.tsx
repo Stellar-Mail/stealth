@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 
-
 import { motion } from "framer-motion";
 import {
   Archive,
@@ -13,15 +12,7 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
-
-
 // ... existing imports remain
-
-
-
-
-
-
 
 import {
   DropdownMenu,
@@ -94,7 +85,7 @@ export function BulkActionBar({
     ? Math.round((bulkProgress.completed / Math.max(bulkProgress.total, 1)) * 100)
     : 0;
 
-    const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmation, setConfirmation] = useState(null as any);
   const [pendingAction, setPendingAction] = useState<"allow" | "block" | "settle" | "refund" | null>(null);
 
