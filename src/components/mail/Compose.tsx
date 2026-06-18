@@ -28,6 +28,8 @@ import {
   type RecipientReadiness,
 } from "./composeValidation";
 import { DeliveryEstimator, type RelayStatus } from "./DeliveryEstimator";
+import { SendPipeline, type StageState } from "@/features/compose/sendPipeline";
+import { SendProgress } from "@/features/compose/SendProgress";
 
 const EMPTY_BLOCKED: string[] = [];
 const EMPTY_RESOLVED: RecipientReadiness[] = [];
@@ -63,6 +65,9 @@ export function Compose({
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [emojiOpen, setEmojiOpen] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [sendStages, setSendStages] = useState<StageState[]>([]);
+  const [sendError, setSendError] = useState<string | null>(null);
+  const pipelineRef = useRef<SendPipeline | null>(null);
   const [encrypted, setEncrypted] = useState(true);
   const [receipt, setReceipt] = useState(true);
   const [postage, setPostage] = useState(initialPostage);
@@ -101,6 +106,9 @@ export function Compose({
       setTo(initialTo);
       setSubject(initialSubject);
       setBody(initialBody);
+      setSendStages([]);
+      setSendError(null);
+      pipelineRef.current = null;
       setPostage(initialPostage);
     } else {
       setTo("");
@@ -233,8 +241,39 @@ export function Compose({
 
     setIsSending(true);
 
-    // Simulate sending
-    await new Promise((resolve) => setTimeout(resolve, 800));
+    // Run the staged send pipeline (immediate send only).
+    setSendError(null);
+
+    if (!scheduled) {
+      const pipeline =
+        pipelineRef.current ??
+        new SendPipeline(
+          { sender: "me", to: to.trim(), subject: subject.trim(), body },
+          setSendStages,
+        );
+      pipelineRef.current = pipeline;
+      setSendStages(pipeline.getStages());
+
+      const outcome = await pipeline.run();
+
+      if (!outcome.ok) {
+        setIsSending(false);
+        if (outcome.reason === "wallet_rejected") {
+          setSendError("Signature declined — your draft is safe. Retry when ready.");
+          onShowToast?.("Signature declined — draft kept");
+        } else if (outcome.reason === "wallet_unavailable") {
+          setSendError("No Stellar wallet detected. Unlock Freighter, then retry.");
+          onShowToast?.("Wallet unavailable");
+        } else {
+          setSendError(outcome.message);
+          onShowToast?.("Send failed — you can retry");
+        }
+        return;
+      }
+
+      pipelineRef.current = null;
+      setSendStages([]);
+    }
 
     onSubmit?.({
       to: to.trim(),
@@ -320,6 +359,14 @@ export function Compose({
                 placeholder="Write your message…"
                 className="glow-ring w-full resize-none rounded-lg border border-transparent bg-transparent px-1 py-2 text-sm placeholder:text-muted-foreground focus:border-white/10"
               />
+
+              {sendStages.length > 0 && (
+                <SendProgress
+                  stages={sendStages}
+                  error={sendError}
+                  onRetry={() => void handleSend(false)}
+                />
+              )}
 
               {/* Attachments */}
               {attachments.length > 0 && (
