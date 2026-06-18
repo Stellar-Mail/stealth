@@ -109,4 +109,6 @@ parent can observe drafts as they accumulate.
 
 ### Follow-up integration (out of scope here)
 
-Connecting the produced active `Draft[]` to the live demo inbox (e.g. dispatching `loadDraft` into the shared `draftReducer`, or seeding `src/components/mail/data.ts`) is a deliberate follow-up so that no files outside `src/features/demo-admin-dashboard/` change here.
+Connecting the produced active `Draft[]` to the live demo inbox (e.g. dispatching `loadDraft` into the shared `draftReducer`, or seeding `src/components/mail/data.ts`) is a deliberate follow-up.
+
+Refer to the **[Campaign Integration Handoff Guide](./docs/integration_handoff.md)** for detailed integration steps, code locations, and safety/risk notes.

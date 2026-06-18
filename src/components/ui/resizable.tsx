@@ -1,91 +1,78 @@
-import { useRef } from "react";
+import * as React from "react";
 import { GripVertical } from "lucide-react";
 import { Group, Panel, Separator } from "react-resizable-panels";
+import type { PanelSize } from "react-resizable-panels";
 
 import { cn } from "@/lib/utils";
 
-type ResizablePanelGroupProps = Omit<
-  React.ComponentProps<typeof Group>,
-  "orientation" | "onLayoutChange"
-> & {
-  direction?: "horizontal" | "vertical";
-  onLayout?: (sizes: number[]) => void;
-};
-
-type PanelLayoutSize = number | { asPercentage?: number };
-
-const panelSizeToPercent = (size: PanelLayoutSize) =>
-  typeof size === "number" ? size : size.asPercentage;
+import type { Layout } from "react-resizable-panels";
 
 const ResizablePanelGroup = ({
   className,
   direction,
   onLayout,
+  onLayoutChanged,
   ...props
-}: ResizablePanelGroupProps) => (
-  <Group
-    className={cn("flex h-full w-full data-[panel-group-direction=vertical]:flex-col", className)}
-    orientation={direction}
-    onLayoutChange={(layout) => {
-      const sizes = Object.values(layout).map((size) =>
-        panelSizeToPercent(size as PanelLayoutSize),
-      );
-      if (sizes.every((size): size is number => Number.isFinite(size))) {
-        onLayout?.(sizes);
-      }
-    }}
-    {...props}
-  />
-);
+}: Omit<
+  React.ComponentProps<typeof Group>,
+  "orientation" | "onLayoutChange" | "onLayoutChanged"
+> & {
+  direction?: "horizontal" | "vertical";
+  onLayout?: (sizes: number[]) => void;
+  onLayoutChanged?: (sizes: number[]) => void;
+}) => {
+  const handleLayoutChange = (layout: Layout) => {
+    onLayout?.(Object.values(layout));
+  };
 
-type ResizablePanelProps = React.ComponentProps<typeof Panel> & {
-  onCollapse?: () => void;
-  onExpand?: () => void;
+  const handleLayoutChanged = (layout: Layout) => {
+    onLayoutChanged?.(Object.values(layout));
+  };
+
+  return (
+    <Group
+      orientation={direction}
+      onLayoutChange={onLayout ? handleLayoutChange : undefined}
+      onLayoutChanged={onLayoutChanged ? handleLayoutChanged : undefined}
+      className={cn("flex h-full w-full data-[panel-group-direction=vertical]:flex-col", className)}
+      {...props}
+    />
+  );
 };
 
-const legacyPercentSize = (size: number | string | undefined) =>
-  typeof size === "number" ? `${size}%` : size;
-
 const ResizablePanel = ({
-  collapsible,
-  collapsedSize = 0,
-  defaultSize,
-  maxSize,
-  minSize,
   onCollapse,
   onExpand,
   onResize,
   ...props
-}: ResizablePanelProps) => {
-  const collapsedRef = useRef(false);
+}: Omit<React.ComponentProps<typeof Panel>, "onResize"> & {
+  onCollapse?: () => void;
+  onExpand?: () => void;
+  onResize?: (
+    size: PanelSize,
+    id: string | number | undefined,
+    prevSize: PanelSize | undefined,
+  ) => void;
+}) => {
+  const wasCollapsedRef = React.useRef(false);
 
-  return (
-    <Panel
-      collapsible={collapsible}
-      collapsedSize={legacyPercentSize(collapsedSize)}
-      defaultSize={legacyPercentSize(defaultSize)}
-      maxSize={legacyPercentSize(maxSize)}
-      minSize={legacyPercentSize(minSize)}
-      onResize={(size, id, previousSize) => {
-        const collapsedThreshold =
-          typeof collapsedSize === "number" ? collapsedSize : Number.parseFloat(collapsedSize);
-        const isCollapsed = !!collapsible && size.asPercentage <= collapsedThreshold + 0.5;
+  const handleResize = (
+    size: PanelSize,
+    id: string | number | undefined,
+    prevSize: PanelSize | undefined,
+  ) => {
+    onResize?.(size, id, prevSize);
+    const isCollapsed = size.asPercentage === 0;
+    if (isCollapsed && !wasCollapsedRef.current) {
+      wasCollapsedRef.current = true;
+      onCollapse?.();
+    } else if (!isCollapsed && wasCollapsedRef.current) {
+      wasCollapsedRef.current = false;
+      onExpand?.();
+    }
+  };
 
-        if (isCollapsed && !collapsedRef.current) {
-          collapsedRef.current = true;
-          onCollapse?.();
-        }
-
-        if (!isCollapsed && collapsedRef.current) {
-          collapsedRef.current = false;
-          onExpand?.();
-        }
-
-        onResize?.(size, id, previousSize);
-      }}
-      {...props}
-    />
-  );
+  return <Panel onResize={handleResize} {...props} />;
 };
 
 const ResizableHandle = ({
