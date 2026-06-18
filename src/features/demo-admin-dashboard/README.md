@@ -82,6 +82,13 @@ The dashboard exposes these tabbed sections:
 | Audit       | Timeline of demo protocol events (sessions, policies, postage) | `presets.ts`                    | Implemented |
 | Analytics   | Privacy-preserving aggregate product analytics (future)        | TBD                             | Placeholder |
 
+### Payload descriptor catalog
+
+The demo dataset now includes a local registry of safe sample payload descriptors for
+`pdf`, `image`, `text`, `key`, and `encrypted` content types. The catalog is defined in
+`fixtures/payloadDescriptorCatalog.ts`, exported from the feature root, and covered by a
+unit test that checks determinism and safety rules without relying on any external assets.
+
 ---
 
 ## Message templates (`./templates`)

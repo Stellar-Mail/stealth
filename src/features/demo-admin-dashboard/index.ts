@@ -6,6 +6,12 @@ export {
   getAdminDashboardWidthNote,
   isAdminDashboardWidthSupported,
 } from "./layout";
+export type { PayloadDescriptor, PayloadDescriptorKind } from "./types/payloadDescriptor";
+export {
+  PAYLOAD_DESCRIPTOR_CATALOG,
+  getPayloadDescriptorCatalog,
+  getPayloadDescriptorsByKind,
+} from "./fixtures/payloadDescriptorCatalog";
 
 export {
   adminDashboardLayoutChecks,
@@ -168,6 +174,50 @@ export {
 } from "./proofFormatting";
 export { demoProofRecords } from "./fixtures/proofRecordFixtures";
 
+// Campaign Timeline panel (issue #261)
+export { CampaignTimelinePanel } from "./components/CampaignTimelinePanel";
+export { isOverdue, isImminent } from "./components/CampaignTimelinePanel";
+
+// Campaign Timeline (issue #260): types, fixtures, helpers, display tokens.
+export type {
+  CampaignPhase,
+  CampaignPhaseKind,
+  CampaignPhaseStatus,
+  CampaignTimeline,
+  Milestone,
+  MilestoneKind,
+  MilestoneStatus,
+  PreviewWindow,
+  ScheduledSend,
+  ScheduledSendStatus,
+} from "./types/campaignTimeline";
+export { activeCampaignTimeline, draftCampaignTimeline } from "./fixtures/campaignTimelineFixtures";
+export {
+  getActivePhase,
+  getPhaseForDate,
+  getPhaseDurationDays,
+  getSendsInWindow,
+  getTimelineDateRange,
+  getUpcomingMilestones,
+  isDateInPhase,
+  sortPhasesByStartDate,
+  validateCampaignTimeline,
+  validateMilestones,
+  validatePhases,
+  validatePreviewWindows,
+  validateScheduledSends,
+} from "./utils/campaignTimelineHelpers";
+export {
+  CAMPAIGN_PHASE_TOKENS,
+  getMilestoneToken,
+  getMilestoneStatusToken,
+  getPhaseToken,
+  getSendStatusToken,
+  MILESTONE_KIND_TOKENS,
+  MILESTONE_STATUS_TOKENS,
+  SCHEDULED_SEND_STATUS_TOKENS,
+} from "./constants/displayTokens";
+
 // Draft dataset admin store (issue #172): reducer, selectors, hook, types, fixture.
 export { draftDatasetReducer, initialDraftDatasetState } from "./reducers/draftDatasetReducer";
 export {
@@ -182,3 +232,15 @@ export { useDraftDataset } from "./hooks/useDraftDataset";
 export type { UseDraftDatasetResult } from "./hooks/useDraftDataset";
 export type { DraftDatasetAction, DraftDatasetState } from "./types/draftDataset";
 export { draftDatasetSample } from "./fixtures/draftDatasetFixtures";
+
+// Draft dataset JSON export (issue #190): serializer, filename builder, button.
+export {
+  buildDatasetExport,
+  serializeDraftDataset,
+  serializeDraftDatasetState,
+  buildExportFilename,
+} from "./helpers/datasetExport";
+export { DATASET_EXPORT_SCHEMA_VERSION } from "./types/datasetExport";
+export type { DraftDatasetExport } from "./types/datasetExport";
+export { ExportDatasetButton } from "./components/ExportDatasetButton";
+export type { ExportDatasetButtonProps } from "./components/ExportDatasetButton";

@@ -176,3 +176,189 @@ export function getAudienceToken(audience: string): DisplayToken {
     }
   );
 }
+
+export const CAMPAIGN_PHASE_TOKENS: Record<
+  "planning" | "warmup" | "active" | "cooldown" | "completed" | "paused",
+  DisplayToken
+> = {
+  planning: {
+    bg: "bg-slate-500/10",
+    text: "text-slate-400",
+    border: "border-slate-500/20",
+    label: "Planning",
+  },
+  warmup: {
+    bg: "bg-sky-500/10",
+    text: "text-sky-400",
+    border: "border-sky-500/20",
+    label: "Warmup",
+  },
+  active: {
+    bg: "bg-teal-500/10",
+    text: "text-teal-400",
+    border: "border-teal-500/20",
+    label: "Active",
+  },
+  cooldown: {
+    bg: "bg-indigo-500/10",
+    text: "text-indigo-400",
+    border: "border-indigo-500/20",
+    label: "Cooldown",
+  },
+  completed: {
+    bg: "bg-green-500/10",
+    text: "text-green-400",
+    border: "border-green-500/20",
+    label: "Completed",
+  },
+  paused: {
+    bg: "bg-orange-500/10",
+    text: "text-orange-400",
+    border: "border-orange-500/20",
+    label: "Paused",
+  },
+};
+
+export const MILESTONE_KIND_TOKENS: Record<
+  "launch" | "review" | "approval" | "analysis" | "custom",
+  DisplayToken
+> = {
+  launch: {
+    bg: "bg-cyan-500/10",
+    text: "text-cyan-400",
+    border: "border-cyan-500/20",
+    label: "Launch",
+  },
+  review: {
+    bg: "bg-yellow-500/10",
+    text: "text-yellow-400",
+    border: "border-yellow-500/20",
+    label: "Review",
+  },
+  approval: {
+    bg: "bg-violet-500/10",
+    text: "text-violet-400",
+    border: "border-violet-500/20",
+    label: "Approval",
+  },
+  analysis: {
+    bg: "bg-blue-500/10",
+    text: "text-blue-400",
+    border: "border-blue-500/20",
+    label: "Analysis",
+  },
+  custom: {
+    bg: "bg-white/[0.04]",
+    text: "text-muted-foreground",
+    border: "border-white/[0.08]",
+    label: "Custom",
+  },
+};
+
+export function getPhaseToken(kind: string): DisplayToken {
+  const key = kind as keyof typeof CAMPAIGN_PHASE_TOKENS;
+  return (
+    CAMPAIGN_PHASE_TOKENS[key] ?? {
+      bg: "bg-white/[0.04]",
+      text: "text-muted-foreground",
+      border: "border-white/[0.08]",
+      label: kind,
+    }
+  );
+}
+
+export const MILESTONE_STATUS_TOKENS: Record<
+  "pending" | "resolved" | "overdue" | "skipped",
+  DisplayToken
+> = {
+  pending: {
+    bg: "bg-amber-500/10",
+    text: "text-amber-400",
+    border: "border-amber-500/20",
+    label: "Pending",
+  },
+  resolved: {
+    bg: "bg-emerald-500/10",
+    text: "text-emerald-400",
+    border: "border-emerald-500/20",
+    label: "Resolved",
+  },
+  overdue: {
+    bg: "bg-rose-500/10",
+    text: "text-rose-400",
+    border: "border-rose-500/20",
+    label: "Overdue",
+  },
+  skipped: {
+    bg: "bg-slate-500/10",
+    text: "text-slate-400",
+    border: "border-slate-500/20",
+    label: "Skipped",
+  },
+};
+
+export const SCHEDULED_SEND_STATUS_TOKENS: Record<
+  "pending" | "sent" | "failed" | "cancelled",
+  DisplayToken
+> = {
+  pending: {
+    bg: "bg-amber-500/10",
+    text: "text-amber-400",
+    border: "border-amber-500/20",
+    label: "Pending",
+  },
+  sent: {
+    bg: "bg-emerald-500/10",
+    text: "text-emerald-400",
+    border: "border-emerald-500/20",
+    label: "Sent",
+  },
+  failed: {
+    bg: "bg-rose-500/10",
+    text: "text-rose-400",
+    border: "border-rose-500/20",
+    label: "Failed",
+  },
+  cancelled: {
+    bg: "bg-slate-500/10",
+    text: "text-slate-400",
+    border: "border-slate-500/20",
+    label: "Cancelled",
+  },
+};
+
+export function getMilestoneStatusToken(status: string): DisplayToken {
+  const key = status as keyof typeof MILESTONE_STATUS_TOKENS;
+  return (
+    MILESTONE_STATUS_TOKENS[key] ?? {
+      bg: "bg-white/[0.04]",
+      text: "text-muted-foreground",
+      border: "border-white/[0.08]",
+      label: status,
+    }
+  );
+}
+
+export function getSendStatusToken(status: string): DisplayToken {
+  const key = status as keyof typeof SCHEDULED_SEND_STATUS_TOKENS;
+  return (
+    SCHEDULED_SEND_STATUS_TOKENS[key] ?? {
+      bg: "bg-white/[0.04]",
+      text: "text-muted-foreground",
+      border: "border-white/[0.08]",
+      label: status,
+    }
+  );
+}
+
+export function getMilestoneToken(kind: string): DisplayToken {
+  const key = kind as keyof typeof MILESTONE_KIND_TOKENS;
+  return (
+    MILESTONE_KIND_TOKENS[key] ?? {
+      bg: "bg-white/[0.04]",
+      text: "text-muted-foreground",
+      border: "border-white/[0.08]",
+      label: kind,
+    }
+  );
+}

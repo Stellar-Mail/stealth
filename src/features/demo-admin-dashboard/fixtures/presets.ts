@@ -1,4 +1,6 @@
 import type { PresetScenario } from "../types";
+import { encryptedCampaignPreset } from "./encryptedCampaignPreset";
+import { conferenceCampaignPreset } from "./conferenceCampaignPreset";
 
 export const PRESET_SCENARIOS: PresetScenario[] = [
   {
@@ -235,6 +237,92 @@ export const PRESET_SCENARIOS: PresetScenario[] = [
     ],
   },
   {
+    id: "paid-sender-request",
+    name: "Paid Sender Request",
+    description:
+      "Simulates a sender who paid postage and is waiting for a reviewer to approve the request.",
+    stats: [
+      { label: "Active Accounts", value: "11", delta: "+1" },
+      { label: "Messages Sent", value: "832", delta: "+9%" },
+      { label: "Pending Requests", value: "6", delta: "+2" },
+      { label: "Total Postage (XLM)", value: "1,310.0", delta: "+18.4" },
+    ],
+    accounts: [
+      { name: "Alice Demo", address: "GABCD...1234", balance: "500.0 XLM", type: "User" },
+      { name: "Bob Demo", address: "GBCDE...2345", balance: "320.0 XLM", type: "User" },
+      { name: "Moderator Demo", address: "GMODR...9999", balance: "750.0 XLM", type: "Reviewer" },
+      { name: "Relay South", address: "GSRLY...SOUT", balance: "980.0 XLM", type: "Relay" },
+    ],
+    mail: [
+      {
+        subject: "Payment received for message request",
+        status: "pending",
+        folder: "requests",
+        from: "Sender Review",
+        email: "review*stealth.demo",
+        body: "A sender has paid postage and is awaiting review. Please confirm that the sender is allowed to continue.",
+        time: "14m ago",
+        unread: true,
+        starred: false,
+        labels: ["Request", "Paid"],
+        avatarColor: "#58616f",
+        postageAmount: "10000000",
+        verifiedSender: false,
+      },
+      {
+        subject: "Postage confirmation ready",
+        status: "delivered",
+        folder: "inbox",
+        from: "Billing Bot",
+        email: "billing@example.org",
+        body: "This is a synthetic confirmation that postage was captured for the pending request.",
+        time: "22m ago",
+        unread: false,
+        starred: false,
+        labels: ["Billing"],
+        avatarColor: "#6d7482",
+      },
+    ],
+    attachments: [
+      {
+        id: "att-paid-request",
+        fileName: "payment_receipt.pdf",
+        fileSize: "88 KB",
+        fileType: "PDF Document",
+        messageSubject: "Payment received for message request",
+        sender: "review*stealth.demo",
+      },
+    ],
+    events: [
+      {
+        id: "evt-paid-request-review",
+        title: "Paid Sender Request Review",
+        date: "2026-06-16",
+        time: "1:30 PM",
+        location: "Review Queue",
+        organizer: "moderator*stealth.demo",
+        status: "tentative",
+      },
+    ],
+    auditEvents: [
+      {
+        action: "Postage payment captured for sender review",
+        actor: "billing@example.org",
+        timestamp: "2026-06-16T13:12:00Z",
+      },
+      {
+        action: "Manual approval queue updated",
+        actor: "moderator*stealth.demo",
+        timestamp: "2026-06-16T13:15:00Z",
+      },
+      {
+        action: "Sender request marked pending review",
+        actor: "system",
+        timestamp: "2026-06-16T13:18:00Z",
+      },
+    ],
+  },
+  {
     id: "receipt-settlement",
     name: "Receipt Settlement",
     description:
@@ -344,4 +432,6 @@ export const PRESET_SCENARIOS: PresetScenario[] = [
       },
     ],
   },
+  encryptedCampaignPreset,
+  conferenceCampaignPreset,
 ];

@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { BulkConfirmDialog } from "@/components/mail/BulkConfirmDialog";
 import { Sidebar } from "@/components/mail/Sidebar";
 import { Topbar } from "@/components/mail/Topbar";
+import { BottomNavigation } from "@/components/mail/BottomNavigation";
 import { EmailList } from "@/components/mail/EmailList";
 import { EmailView } from "@/components/mail/EmailView";
 import { Compose } from "@/components/mail/Compose";
@@ -68,6 +69,7 @@ import type { SnoozeState } from "@/components/mail/data";
 import { useIsMobile } from "@/lib/use-media-query";
 import { RequestsTriageBoard } from "@/features/requests";
 import { ProofInspectorModal } from "@/features/proof-inspector";
+import { SenderJourney } from "@/features/sender-journey";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -93,6 +95,7 @@ function delay(ms: number) {
 }
 
 function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
+  const [showSenderJourney, setShowSenderJourney] = useState(false);
   const [folder, setFolder] = useState<MailFolder>("inbox");
   const [emails, setEmails] = useState<Email[]>(initialEmails);
   const [selectedId, setSelectedId] = useState<string | null>(initialEmails[0].id);
@@ -622,6 +625,20 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
 
   const isTest = typeof window !== "undefined" && !!window.navigator.webdriver;
 
+  if (showSenderJourney) {
+    return (
+      <div className="h-screen">
+        <SenderJourney />
+        <button
+          onClick={() => setShowSenderJourney(false)}
+          className="fixed top-4 left-4 rounded-lg border border-white/10 bg-black/50 px-4 py-2 text-xs text-white/80 hover:bg-black/70 z-50"
+        >
+          Back to app
+        </button>
+      </div>
+    );
+  }
+
   return (
     <MotionConfig transition={isTest ? { duration: 0 } : undefined}>
       <div
@@ -671,6 +688,7 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
                   onCompose={() => openCompose()}
                   customFolder={customFolder}
                   onSelectCustomFolder={setCustomFolder}
+                  onOpenSenderJourney={() => setShowSenderJourney(true)}
                 />
               </ResizablePanel>
               <ResizableHandle withHandle />
@@ -693,7 +711,7 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
           )}
 
           <ResizablePanel defaultSize={isMobile ? 100 : 100 - layout.sidebarWidth}>
-            <div className="flex h-full flex-col min-w-0">
+            <div className="flex h-full flex-col min-w-0 pb-[72px] md:pb-0">
               <Topbar
                 onOpenPalette={() => setPaletteOpen(true)}
                 onOpenSettings={openSettings}
@@ -900,6 +918,17 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
           onShowToast={showToast}
         />
 
+        <BottomNavigation
+          active={folder}
+          onCompose={() => openCompose()}
+          onOpenPalette={() => setPaletteOpen(true)}
+          onOpenCalendar={() => openCalendar()}
+          onOpenSettings={openSettings}
+          onSelectFolder={(f) => {
+            setFolder(f);
+            setCustomFolder(null);
+          }}
+        />
         <FeedbackViewport items={feedbackItems} onDismiss={dismissFeedback} />
 
         <ImportWizard
