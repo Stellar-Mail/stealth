@@ -64,6 +64,14 @@ import {
   useSnooze,
   type SnoozeTarget,
 } from "@/features/snooze";
+import { SearchOverlay } from "@/features/search/SearchOverlay";
+import {
+  loadIndexFromDB,
+  searchEmails,
+  reindexAll,
+  indexMessage,
+  updateIndex,
+} from "@/services/storage/search-index";
 import type { SnoozeState } from "@/components/mail/data";
 import { useIsMobile } from "@/lib/use-media-query";
 import { RequestsTriageBoard } from "@/features/requests";
@@ -112,8 +120,25 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
     body?: string;
   }>({});
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+
+  // Initialize search index on startup
+  useEffect(() => {
+    async function initSearchIndex() {
+      try {
+        await loadIndexFromDB();
+        const matches = await searchEmails("");
+        if (matches.length === 0 && initialEmails.length > 0) {
+          await reindexAll(initialEmails);
+        }
+      } catch (err) {
+        console.error("Search index initialization failed", err);
+      }
+    }
+    initSearchIndex();
+  }, []);
   const [customFolder, setCustomFolder] = useState<string | null>(null);
   const [filters, setFilters] = useState<MailFilters>(defaultMailFilters);
   const [calendarOpen, setCalendarOpen] = useState(false);
@@ -168,7 +193,14 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
   const selectedSnoozeState = snoozeEmail?.folder === "snoozed" ? snoozeEmail.snooze : undefined;
 
   const updateEmail = (id: string, patch: Partial<Email>) => {
-    setEmails((prev) => prev.map((e: Email) => (e.id === id ? { ...e, ...patch } : e)));
+    setEmails((prev) => {
+      const next = prev.map((e: Email) => (e.id === id ? { ...e, ...patch } : e));
+      const updated = next.find((e) => e.id === id);
+      if (updated) {
+        updateIndex(updated).catch(console.error);
+      }
+      return next;
+    });
   };
 
   const openCompose = (initial: { to?: string; subject?: string; body?: string } = {}) => {
@@ -447,6 +479,7 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
       })),
       avatarColor: "#5b6470",
     };
+    indexMessage(message).catch(console.error);
     setEmails((current) => [message, ...current]);
   };
 
@@ -560,7 +593,7 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
     (action: ShortcutActionId) => {
       switch (action) {
         case "open-palette":
-          setPaletteOpen((open) => !open);
+          setSearchOpen((open) => !open);
           return;
         case "open-shortcuts":
           setShortcutOverlayOpen(true);
@@ -635,54 +668,30 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
           </div>
         )}
 
-        <ResizablePanelGroup
-          direction="horizontal"
-          className="flex h-full w-full"
-          onLayoutChanged={(sizes) => {
-            if (isMobile || !sizes.length) return;
-            const sidebarWidth = sizes[0];
-            if (sidebarWidth > 4) {
-              setLayout({ sidebarWidth });
-            }
-          }}
-        >
-          {!isMobile && (
-            <>
-              <ResizablePanel
-                defaultSize={layout.sidebarWidth}
-                minSize={4}
-                maxSize={20}
-                collapsible
-                onCollapse={() => setLayout({ sidebarCollapsed: true })}
-                onExpand={() => setLayout({ sidebarCollapsed: false })}
-                className={cn(
-                  layout.sidebarCollapsed && "min-w-[50px] transition-all duration-300 ease-in-out",
-                )}
-              >
-                <Sidebar
-                  active={folder}
-                  counts={folderCounts}
-                  onSelect={(f) => {
-                    setFolder(f);
-                    setCustomFolder(null);
-                  }}
-                  collapsed={layout.sidebarCollapsed}
-                  onToggle={() => setLayout({ sidebarCollapsed: !layout.sidebarCollapsed })}
-                  onCompose={() => openCompose()}
-                  customFolder={customFolder}
-                  onSelectCustomFolder={setCustomFolder}
-                />
-              </ResizablePanel>
-              <ResizableHandle withHandle />
-            </>
-          )}
-          {isMobile && (
-            <Sidebar
-              active={folder}
-              counts={folderCounts}
-              onSelect={(f) => {
-                setFolder(f);
+
+        <ResizablePanel defaultSize={isMobile ? 100 : 100 - layout.sidebarWidth}>
+          <div className="flex h-full flex-col min-w-0">
+            <Topbar
+              onOpenPalette={() => setPaletteOpen(true)}
+              onOpenSettings={openSettings}
+              onOpenProofInspector={() => runCommand("open-proof-inspector")}
+              onOpenShortcuts={() => setShortcutOverlayOpen(true)}
+              onImportContacts={() => setImportOpen(true)}
+              onShowToast={showToast}
+              filters={filters}
+              onFiltersChange={setFilters}
+              onOpenSearch={() => setSearchOpen(true)}
+              onQuickAction={(action) => {
                 setCustomFolder(null);
+                if (action === "proofs") setFolder("pending");
+                if (action === "later") setFolder("snoozed");
+                if (action === "files") {
+                  setFolder("all");
+                  setFilters({ ...defaultMailFilters, hasAttachments: true });
+                }
+              }}
+              onViewNotifications={() => {
+             setCustomFolder(null);
               }}
               collapsed={layout.sidebarCollapsed}
               onToggle={() => setLayout({ sidebarCollapsed: !layout.sidebarCollapsed })}
@@ -810,125 +819,135 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
                 )}
               </div>
             </div>
-          </ResizablePanel>
-        </ResizablePanelGroup>
 
-        <BulkConfirmDialog
-          confirmation={bulkConfirmation?.confirmation ?? null}
-          onCancel={() => setBulkConfirmation(null)}
-          onConfirm={() => {
-            const request = bulkConfirmation?.request;
-            setBulkConfirmation(null);
-            if (request) void runBulkAction(request);
-          }}
-        />
+          </div>
+        </ResizablePanel>
+      </ResizablePanelGroup>
 
-        <Compose
-          open={composeOpen}
-          onClose={() => setComposeOpen(false)}
-          onShowToast={showToast}
-          initialTo={composeInitial.to}
-          initialSubject={composeInitial.subject}
-          initialBody={composeInitial.body}
-          initialPostage={preferences.minimumPostage}
-          onSubmit={handleComposeSubmit}
-        />
-        <SettingsModal
-          open={settingsOpen}
-          onClose={() => {
-            setSettingsOpen(false);
-            setSettingsSnapshot(null);
-          }}
-          onCancel={() => {
-            if (settingsSnapshot) setPreferences(settingsSnapshot);
-            setSettingsOpen(false);
-            setSettingsSnapshot(null);
-            showToast("Settings changes discarded");
-          }}
-          preferences={preferences}
-          onChange={setPreferences}
-          layout={layout}
-          onLayoutChange={setLayout}
-          onResetLayout={resetLayout}
-          onSave={() => {
-            setSettingsSnapshot(null);
-            showToast("Settings saved");
-          }}
-        />
-        <CommandPalette
-          open={paletteOpen}
-          onClose={() => setPaletteOpen(false)}
-          context={{ email: selected, folder }}
-          emails={emails}
-          onRunCommand={runCommand}
-          onNavigate={(f) => {
-            setFolder(f);
-            setCustomFolder(null);
-          }}
-          onSelectEmail={(email) => {
-            setCustomFolder(null);
-            setFilters(defaultMailFilters);
-            setFolder(email.folder);
-            setSelectedId(email.id);
-            setSelectedIds([]);
-          }}
-          onOpenSettings={openSettings}
-        />
-        <ShortcutOverlay open={shortcutOverlayOpen} onClose={() => setShortcutOverlayOpen(false)} />
-        <ProofInspectorModal
-          open={proofInspectorOpen}
-          onClose={() => setProofInspectorOpen(false)}
-          emails={emails}
-          onOpenMessage={handleOpenMessageFromInspector}
-          onShowToast={showToast}
-          initialQuery={proofInspectorQuery}
-        />
-        <CalendarWorkspace
-          open={calendarOpen}
-          onClose={() => setCalendarOpen(false)}
-          calendars={calendar.calendars}
-          events={calendar.events}
-          initialEventId={calendarEventId}
-          createRequest={calendarCreateRequest}
-          onSaveEvent={calendar.saveEvent}
-          onDeleteEvent={calendar.deleteEvent}
-          onDuplicateEvent={calendar.duplicateEvent}
-          onResponseChange={calendar.updateResponse}
-          onReminderChange={calendar.updateReminder}
-          onToggleCalendar={calendar.toggleCalendar}
-          onAddCalendar={calendar.addCalendar}
-          onShowToast={showToast}
-        />
+      <BulkConfirmDialog
+        confirmation={bulkConfirmation?.confirmation ?? null}
+        onCancel={() => setBulkConfirmation(null)}
+        onConfirm={() => {
+          const request = bulkConfirmation?.request;
+          setBulkConfirmation(null);
+          if (request) void runBulkAction(request);
+        }}
+      />
 
-        <FeedbackViewport items={feedbackItems} onDismiss={dismissFeedback} />
+      <Compose
+        open={composeOpen}
+        onClose={() => setComposeOpen(false)}
+        onShowToast={showToast}
+        initialTo={composeInitial.to}
+        initialSubject={composeInitial.subject}
+        initialBody={composeInitial.body}
+        initialPostage={preferences.minimumPostage}
+        onSubmit={handleComposeSubmit}
+      />
+      <SettingsModal
+        open={settingsOpen}
+        onClose={() => {
+          setSettingsOpen(false);
+          setSettingsSnapshot(null);
+        }}
+        onCancel={() => {
+          if (settingsSnapshot) setPreferences(settingsSnapshot);
+          setSettingsOpen(false);
+          setSettingsSnapshot(null);
+          showToast("Settings changes discarded");
+        }}
+        preferences={preferences}
+        onChange={setPreferences}
+        layout={layout}
+        onLayoutChange={setLayout}
+        onResetLayout={resetLayout}
+        onSave={() => {
+          setSettingsSnapshot(null);
+          showToast("Settings saved");
+        }}
+      />
+      <CommandPalette
+        open={paletteOpen}
+        onClose={() => setPaletteOpen(false)}
+        context={{ email: selected, folder }}
+        emails={emails}
+        onRunCommand={runCommand}
+        onNavigate={(f) => {
+          setFolder(f);
+          setCustomFolder(null);
+        }}
+        onSelectEmail={(email) => {
+          setCustomFolder(null);
+          setFilters(defaultMailFilters);
+          setFolder(email.folder);
+          setSelectedId(email.id);
+          setSelectedIds([]);
+        }}
+        onOpenSettings={openSettings}
+      />
+      <SearchOverlay
+        open={searchOpen}
+        onClose={() => setSearchOpen(false)}
+        onSelectEmail={(email) => {
+          setCustomFolder(null);
+          setFilters(defaultMailFilters);
+          setFolder(email.folder);
+          setSelectedId(email.id);
+          setSelectedIds([]);
+        }}
+      />
+      <ShortcutOverlay open={shortcutOverlayOpen} onClose={() => setShortcutOverlayOpen(false)} />
+      <ProofInspectorModal
+        open={proofInspectorOpen}
+        onClose={() => setProofInspectorOpen(false)}
+        emails={emails}
+        onOpenMessage={handleOpenMessageFromInspector}
+        onShowToast={showToast}
+        initialQuery={proofInspectorQuery}
+      />
+      <CalendarWorkspace
+        open={calendarOpen}
+        onClose={() => setCalendarOpen(false)}
+        calendars={calendar.calendars}
+        events={calendar.events}
+        initialEventId={calendarEventId}
+        createRequest={calendarCreateRequest}
+        onSaveEvent={calendar.saveEvent}
+        onDeleteEvent={calendar.deleteEvent}
+        onDuplicateEvent={calendar.duplicateEvent}
+        onResponseChange={calendar.updateResponse}
+        onReminderChange={calendar.updateReminder}
+        onToggleCalendar={calendar.toggleCalendar}
+        onAddCalendar={calendar.addCalendar}
+        onShowToast={showToast}
+      />
 
-        <ImportWizard
-          open={importOpen}
-          onClose={() => setImportOpen(false)}
-          onSave={handleImportSave}
-        />
+      <FeedbackViewport items={feedbackItems} onDismiss={dismissFeedback} />
 
-        <SenderConversionDialog
-          target={senderConversion.target}
-          onConfirm={handleConvertSender}
-          onClose={senderConversion.close}
-        />
+      <ImportWizard
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        onSave={handleImportSave}
+      />
 
-        <SnoozeDialog
-          target={snooze.target}
-          initialState={selectedSnoozeState}
-          events={calendar.events}
-          onConfirm={handleSnooze}
-          onClose={snooze.close}
-        />
+      <SenderConversionDialog
+        target={senderConversion.target}
+        onConfirm={handleConvertSender}
+        onClose={senderConversion.close}
+      />
 
-        <AttachmentPreviewDrawer
-          isOpen={!!previewAttachment}
-          onClose={() => setPreviewAttachment(null)}
-          attachment={previewAttachment}
-          senderAddress={selected?.email}
-        />
-      </div>
-    </MotionConfig>
-  );
-}
+      <SnoozeDialog
+        target={snooze.target}
+        initialState={selectedSnoozeState}
+        events={calendar.events}
+        onConfirm={handleSnooze}
+        onClose={snooze.close}
+      />
+
+      <AttachmentPreviewDrawer
+        isOpen={!!previewAttachment}
+        onClose={() => setPreviewAttachment(null)}
+        attachment={previewAttachment}
+        senderAddress={selected?.email}
+      />
+    </div>
