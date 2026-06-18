@@ -109,7 +109,7 @@ export function Topbar({
         </button>
       </motion.div>
 
-      {/* <div className="hidden items-center gap-1.5 lg:flex">
+      <div className="hidden items-center gap-1.5 lg:flex">
         {quickActions.map((action) => (
           <QuickAction
             key={action.label}
@@ -117,7 +117,7 @@ export function Topbar({
             onClick={() => onQuickAction(action.action)}
           />
         ))}
-      </div> */}
+      </div> 
 
       <div className="glass-tile ml-auto flex items-center gap-1 rounded-[8px] px-1">
         {/* Filter dropdown */}
