@@ -78,7 +78,7 @@ export function EmailList({
     .filter((email): email is Email => Boolean(email));
   const allSelected = visibleIds.length > 0 && selectedVisibleIds.length === visibleIds.length;
   const someSelected = selectedVisibleIds.length > 0;
-  const listRef = useRef<HTMLUListElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
   const onSelectRef = useRef(onSelect);
   const onSelectionChangeRef = useRef(onSelectionChange);
   const [lastAnchorId, setLastAnchorId] = useState<string | null>(null);
@@ -359,7 +359,7 @@ export function EmailList({
                   />
                   <motion.button
                     data-email-id={e.id}
-                    onClick={(event) => selectMessage(event.shiftKey)}
+                    onClick={(event: React.MouseEvent) => selectMessage(event.shiftKey)}
                     whileTap={{ scale: 0.975 }}
                     transition={{ type: "spring", stiffness: 520, damping: 30 }}
                     aria-selected={active}

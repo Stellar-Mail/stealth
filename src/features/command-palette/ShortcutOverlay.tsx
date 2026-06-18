@@ -18,6 +18,17 @@ export function ShortcutOverlay({ open, onClose }: Props) {
     if (!open) setQuery("");
   }, [open]);
 
+  const shortcuts = useMemo(() => {
+    if (!query.trim()) return SHORTCUT_DEFINITIONS;
+    const q = query.toLowerCase();
+    return SHORTCUT_DEFINITIONS.filter(
+      (s) =>
+        s.label.toLowerCase().includes(q) ||
+        s.description.toLowerCase().includes(q) ||
+        s.id.toLowerCase().includes(q),
+    );
+  }, [query]);
+
   return (
     <AnimatePresence>
       {open && (
