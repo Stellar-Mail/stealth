@@ -77,6 +77,7 @@ export function SettingsModal({
 }) {
   const [activeTab, setActiveTab] = useState<Tab>("account");
   const containerRef = useFocusTrap(open, onCancel ?? onClose);
+  const { hasUnread } = useChangelog();
 
   return (
     <AnimatePresence>
