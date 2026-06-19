@@ -18,8 +18,10 @@
     "local:teardown": "powershell -ExecutionPolicy Bypass -File scripts/setup-local-env/teardown.ps1",
     "local:setup:unix": "bash scripts/setup-local-env/setup.sh",
     "local:teardown:unix": "bash scripts/setup-local-env/teardown.sh",
-    "generate:bindings": "node scripts/generate-contract-bindings.mjs"
+    "generate:bindings": "node scripts/generate-contract-bindings.mjs",
+    "postinstall": "patch-package"
   },
+  "overrides": {
   "overrides": {
     "ws": "8.21.0"
   },
@@ -96,6 +98,8 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^15.15.0",
+    "jsdom": "^26.1.0",
+    "patch-package": "^1.5.0",
     "prettier": "^3.7.3",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.56.1",

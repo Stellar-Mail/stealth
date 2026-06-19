@@ -1,0 +1,40 @@
+*** Begin Patch
+*** Update File: node_modules/entities/package.json
+@@
+-    "exports": {
+-        ".": {
+-            "require": "./lib/index.js",
+-            "import": "./lib/esm/index.js"
+-        },
+-        "./lib/decode.js": {
+-            "require": "./lib/decode.js",
+-            "import": "./lib/esm/decode.js"
+-        },
+-        "./lib/escape.js": {
+-            "require": "./lib/escape.js",
+-            "import": "./lib/esm/escape.js"
+-        }
+-    },
++    "exports": {
++        ".": {
++            "require": "./lib/index.js",
++            "import": "./lib/esm/index.js"
++        },
++        "./decode": {
++            "require": "./lib/decode.js",
++            "import": "./lib/esm/decode.js"
++        },
++        "./escape": {
++            "require": "./lib/escape.js",
++            "import": "./lib/esm/escape.js"
++        },
++        "./lib/decode.js": {
++            "require": "./lib/decode.js",
++            "import": "./lib/esm/decode.js"
++        },
++        "./lib/escape.js": {
++            "require": "./lib/escape.js",
++            "import": "./lib/esm/escape.js"
++        }
++    },
+*** End Patch
