@@ -1,7 +1,13 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useMemo, useSyncExternalStore } from "react";
+import { createLocalStorageStore } from "./storage";
 import { defaultLayoutPreferences, type LayoutPreferences } from "./layout-types";
 
 const storageKey = "stealth-layout-preferences";
+
+const layoutStore = createLocalStorageStore<LayoutPreferences>(
+  storageKey,
+  defaultLayoutPreferences,
+);
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
@@ -17,42 +23,27 @@ function clampPreferences(prefs: LayoutPreferences): LayoutPreferences {
 }
 
 export function useLayoutPreferences() {
-  const [layout, setLayout] = useState<LayoutPreferences>(defaultLayoutPreferences);
-  const [hydrated, setHydrated] = useState(false);
+  const snapshot = useSyncExternalStore(layoutStore.subscribe, layoutStore.getSnapshot, () =>
+    JSON.stringify(defaultLayoutPreferences),
+  );
 
-  useEffect(() => {
-    const stored = window.localStorage.getItem(storageKey);
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        setLayout(clampPreferences({ ...defaultLayoutPreferences, ...parsed }));
-      } catch {
-        window.localStorage.removeItem(storageKey);
-      }
-    }
-    setHydrated(true);
-  }, []);
+  const layout = useMemo<LayoutPreferences>(
+    () => clampPreferences({ ...defaultLayoutPreferences, ...JSON.parse(snapshot) }),
+    [snapshot],
+  );
 
-  useEffect(() => {
-    if (!hydrated) return;
-    window.localStorage.setItem(storageKey, JSON.stringify(layout));
-  }, [hydrated, layout]);
-
-  const setLayoutPreference = useCallback((patch: Partial<LayoutPreferences>) => {
-    setLayout((prev: LayoutPreferences) => {
-      const next = clampPreferences({ ...prev, ...patch });
-      // Only create a new object when at least one value actually changed.
-      const changed = (Object.keys(next) as Array<keyof LayoutPreferences>).some(
-        (k) => prev[k] !== next[k],
-      );
-      if (!changed) return prev;
-      return next;
-    });
+  const setLayout = useCallback((patch: Partial<LayoutPreferences>) => {
+    const prev = layoutStore.getValue();
+    const next = clampPreferences({ ...prev, ...patch });
+    const changed = (Object.keys(patch) as Array<keyof LayoutPreferences>).some(
+      (k) => prev[k] !== next[k],
+    );
+    if (changed) layoutStore.set(next);
   }, []);
 
   const resetLayout = useCallback(() => {
-    setLayout(defaultLayoutPreferences);
+    layoutStore.set(defaultLayoutPreferences);
   }, []);
 
-  return { layout, setLayout: setLayoutPreference, resetLayout, hydrated };
+  return { layout, setLayout, resetLayout, hydrated: true };
 }
