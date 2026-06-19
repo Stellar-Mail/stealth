@@ -2,6 +2,7 @@ import type {
   Device,
   DeviceCreate,
   DeviceUpdate,
+  IdempotencyRecord,
   MailboxPolicy,
   Postage,
   Receipt,

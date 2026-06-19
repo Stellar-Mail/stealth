@@ -178,24 +178,22 @@ export function Sidebar({
       </motion.button>
 
       <nav aria-label="Mail folders" className="scrollbar-thin mt-4 flex-1 overflow-y-auto pr-1">
-      {onOpenSenderJourney && (
-        <motion.button
-          whileHover={{ y: -1 }}
-          whileTap={{ scale: 0.97 }}
-          onClick={onOpenSenderJourney}
-          className={cn(
-            "group mt-2 flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium",
-            "border border-white/10 bg-emerald-500/10 text-emerald-300",
-            "shadow-[0_8px_30px_-10px_rgba(0,0,0,0.6)] transition hover:bg-emerald-500/20",
-            collapsed && "justify-center px-2",
-          )}
-        >
-          <Users className="h-4 w-4" />
-          {!collapsed && <span className="mail-preview-heading">Sender Journey</span>}
-        </motion.button>
-      )}
-
-      <nav className="scrollbar-thin mt-4 flex-1 overflow-y-auto pr-1">
+        {onOpenSenderJourney && (
+          <motion.button
+            whileHover={{ y: -1 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={onOpenSenderJourney}
+            className={cn(
+              "group mt-2 flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium",
+              "border border-white/10 bg-emerald-500/10 text-emerald-300",
+              "shadow-[0_8px_30px_-10px_rgba(0,0,0,0.6)] transition hover:bg-emerald-500/20",
+              collapsed && "justify-center px-2",
+            )}
+          >
+            <Users className="h-4 w-4" />
+            {!collapsed && <span className="mail-preview-heading">Sender Journey</span>}
+          </motion.button>
+        )}
         {sections.map((section, sectionIndex) => (
           <div key={section.title ?? "mail"} className={sectionIndex === 0 ? "" : "mt-5"}>
             {section.title && !collapsed && (

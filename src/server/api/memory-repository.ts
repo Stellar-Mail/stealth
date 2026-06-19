@@ -2,6 +2,7 @@ import type {
   Device,
   DeviceCreate,
   DeviceUpdate,
+  IdempotencyRecord,
   MailboxPolicy,
   Postage,
   Receipt,
@@ -25,6 +26,7 @@ export class MemoryApiRepository implements ApiRepository {
   private readonly devices = new Map<string, Device>();
   private readonly sessions = new Map<string, Session>();
   private readonly recoveryMethods = new Map<string, RecoveryMethod>();
+  private readonly idempotency = new Map<string, IdempotencyRecord>();
 
   async getPolicy(owner: string) {
     return structuredClone(this.policies.get(owner) ?? null);
@@ -241,5 +243,6 @@ export class MemoryApiRepository implements ApiRepository {
     this.devices.clear();
     this.sessions.clear();
     this.recoveryMethods.clear();
+    this.idempotency.clear();
   }
 }

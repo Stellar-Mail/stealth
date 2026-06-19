@@ -49,6 +49,7 @@ import {
   type SavedMailboxPolicyTemplate,
 } from "@/features/settings/mailbox-policy-templates";
 import { AuditLog } from "@/features/audit-log";
+import { useChangelog } from "@/features/changelog/useChangelog";
 import { useDevices } from "@/features/device-management/useDevices";
 import type { Device, KeyStatus, RecoveryMethod } from "@/features/device-management/types";
 
@@ -90,6 +91,7 @@ export function SettingsModal({
 }) {
   const [activeTab, setActiveTab] = useState<Tab>("account");
   const containerRef = useFocusTrap(open, onCancel ?? onClose);
+  const { hasUnread } = useChangelog();
 
   return (
     <AnimatePresence>

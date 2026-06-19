@@ -142,3 +142,9 @@ export type DeviceUpdate = z.infer<typeof deviceUpdateSchema>;
 export type RecoveryMethod = z.infer<typeof recoveryMethodSchema>;
 export type RecoveryMethodType = z.infer<typeof recoveryMethodTypeSchema>;
 export type RecoveryMethodCreate = z.infer<typeof recoveryMethodCreateSchema>;
+
+export interface IdempotencyRecord {
+  response: unknown;
+  status: number;
+  timestamp: number;
+}
