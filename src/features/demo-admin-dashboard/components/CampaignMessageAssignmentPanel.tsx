@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CampaignSnapshot } from "../types/campaignSnapshot";
@@ -23,157 +23,177 @@ export function CampaignMessageAssignmentPanel({ className }: CampaignMessageAss
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
 
-  const selectedCampaign = campaigns.find((c) => c.id === selectedCampaignId) ?? null;
+  const selectedCampaign = useMemo(
+    () => campaigns.find((c) => c.id === selectedCampaignId) ?? null,
+    [campaigns, selectedCampaignId],
+  );
 
   useEffect(() => {
     saveAssignments({ campaigns, pool });
   }, [campaigns, pool]);
 
-  function handleAssign(msg: AssignableMessage) {
-    if (!selectedCampaign) return;
-    const updated = assignMessage(selectedCampaign, msg);
-    setCampaigns((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
-    setPickerOpen(false);
-  }
+  const handleAssign = useCallback(
+    (msg: AssignableMessage) => {
+      if (!selectedCampaign) return;
+      const updated = assignMessage(selectedCampaign, msg);
+      setCampaigns((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+      setPickerOpen(false);
+    },
+    [selectedCampaign],
+  );
 
-  function handleUnassign(messageId: string) {
-    if (!selectedCampaign) return;
-    const updated = unassignMessage(selectedCampaign, messageId);
-    setCampaigns((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
-  }
+  const handleUnassign = useCallback(
+    (messageId: string) => {
+      if (!selectedCampaign) return;
+      const updated = unassignMessage(selectedCampaign, messageId);
+      setCampaigns((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+    },
+    [selectedCampaign],
+  );
 
   // Campaign list columns
-  const campaignColumns: Column<CampaignSnapshot>[] = [
-    {
-      key: "name",
-      header: "Campaign",
-      sortable: true,
-      render: (c) => (
-        <div>
-          <p className="font-medium text-foreground">{c.name}</p>
-          <p className="text-[10px] text-muted-foreground mt-0.5">{c.targetAudience}</p>
-        </div>
-      ),
-    },
-    {
-      key: "status",
-      header: "Status",
-      sortable: true,
-      sortValue: (c) => c.status ?? "draft",
-      render: (c) => {
-        const tk = CAMPAIGN_STATUS_TOKENS[c.status ?? "draft"];
-        return (
-          <span
-            className={cn(
-              "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium",
-              tk.bg,
-              tk.text,
-              tk.border,
-            )}
-          >
-            {tk.label}
-          </span>
-        );
+  const campaignColumns = useMemo<Column<CampaignSnapshot>[]>(
+    () => [
+      {
+        key: "name",
+        header: "Campaign",
+        sortable: true,
+        render: (c) => (
+          <div>
+            <p className="font-medium text-foreground">{c.name}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">{c.targetAudience}</p>
+          </div>
+        ),
       },
-    },
-    {
-      key: "drafts",
-      header: "Messages",
-      sortable: true,
-      sortValue: (c) => c.drafts.length,
-      render: (c) => <span className="tabular-nums text-muted-foreground">{c.drafts.length}</span>,
-    },
-    {
-      key: "tags",
-      header: "Tags",
-      render: (c) => (
-        <div className="flex flex-wrap gap-1">
-          {c.tags.slice(0, 2).map((tag) => {
-            const tk = TAG_COLOR_TOKENS[tag.toLowerCase()] ?? {
-              bg: TAG_COLOR_TOKENS.default.bg,
-              text: TAG_COLOR_TOKENS.default.text,
-              border: TAG_COLOR_TOKENS.default.border,
-              label: tag,
-            };
-            return (
-              <span
-                key={tag}
-                className={cn(
-                  "rounded-full border px-1.5 py-0.5 text-[9px] font-medium",
-                  tk.bg,
-                  tk.text,
-                  tk.border,
-                )}
-              >
-                {tk.label}
-              </span>
-            );
-          })}
-          {c.tags.length > 2 && (
-            <span className="text-[9px] text-muted-foreground">+{c.tags.length - 2}</span>
-          )}
-        </div>
-      ),
-    },
-  ];
+      {
+        key: "status",
+        header: "Status",
+        sortable: true,
+        sortValue: (c) => c.status ?? "draft",
+        render: (c) => {
+          const tk = CAMPAIGN_STATUS_TOKENS[c.status ?? "draft"];
+          return (
+            <span
+              className={cn(
+                "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium",
+                tk.bg,
+                tk.text,
+                tk.border,
+              )}
+            >
+              {tk.label}
+            </span>
+          );
+        },
+      },
+      {
+        key: "drafts",
+        header: "Messages",
+        sortable: true,
+        sortValue: (c) => c.drafts.length,
+        render: (c) => (
+          <span className="tabular-nums text-muted-foreground">{c.drafts.length}</span>
+        ),
+      },
+      {
+        key: "tags",
+        header: "Tags",
+        render: (c) => (
+          <div className="flex flex-wrap gap-1">
+            {c.tags.slice(0, 2).map((tag) => {
+              const tk = TAG_COLOR_TOKENS[tag.toLowerCase()] ?? {
+                bg: TAG_COLOR_TOKENS.default.bg,
+                text: TAG_COLOR_TOKENS.default.text,
+                border: TAG_COLOR_TOKENS.default.border,
+                label: tag,
+              };
+              return (
+                <span
+                  key={tag}
+                  className={cn(
+                    "rounded-full border px-1.5 py-0.5 text-[9px] font-medium",
+                    tk.bg,
+                    tk.text,
+                    tk.border,
+                  )}
+                >
+                  {tk.label}
+                </span>
+              );
+            })}
+            {c.tags.length > 2 && (
+              <span className="text-[9px] text-muted-foreground">+{c.tags.length - 2}</span>
+            )}
+          </div>
+        ),
+      },
+    ],
+    [],
+  );
 
   // Assigned message columns
-  const assignedMessages = selectedCampaign ? getAssignedMessages(selectedCampaign, pool) : [];
+  const assignedMessages = useMemo(
+    () => (selectedCampaign ? getAssignedMessages(selectedCampaign, pool) : []),
+    [pool, selectedCampaign],
+  );
 
-  const messageColumns: Column<AssignableMessage>[] = [
-    {
-      key: "subject",
-      header: "Subject",
-      sortable: true,
-      render: (msg) => (
-        <div>
-          <p className="font-medium text-foreground">{msg.subject}</p>
-          <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-1">{msg.preview}</p>
-        </div>
-      ),
-    },
-    {
-      key: "tags",
-      header: "Tags",
-      render: (msg) => (
-        <div className="flex flex-wrap gap-1">
-          {msg.tags.map((tag) => {
-            const tk = getTagToken(tag);
-            return (
-              <span
-                key={tag}
-                className={cn(
-                  "rounded-full border px-1.5 py-0.5 text-[9px] font-medium",
-                  tk.bg,
-                  tk.text,
-                  tk.border,
-                )}
-              >
-                {tk.label}
-              </span>
-            );
-          })}
-        </div>
-      ),
-    },
-    {
-      key: "remove",
-      header: "",
-      render: (msg) => (
-        <button
-          type="button"
-          aria-label={`Remove ${msg.subject}`}
-          onClick={(e) => {
-            e.stopPropagation();
-            handleUnassign(msg.id);
-          }}
-          className="rounded-lg p-1.5 text-muted-foreground transition hover:bg-rose-500/10 hover:text-rose-400"
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-        </button>
-      ),
-    },
-  ];
+  const messageColumns = useMemo<Column<AssignableMessage>[]>(
+    () => [
+      {
+        key: "subject",
+        header: "Subject",
+        sortable: true,
+        render: (msg) => (
+          <div>
+            <p className="font-medium text-foreground">{msg.subject}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-1">{msg.preview}</p>
+          </div>
+        ),
+      },
+      {
+        key: "tags",
+        header: "Tags",
+        render: (msg) => (
+          <div className="flex flex-wrap gap-1">
+            {msg.tags.map((tag) => {
+              const tk = getTagToken(tag);
+              return (
+                <span
+                  key={tag}
+                  className={cn(
+                    "rounded-full border px-1.5 py-0.5 text-[9px] font-medium",
+                    tk.bg,
+                    tk.text,
+                    tk.border,
+                  )}
+                >
+                  {tk.label}
+                </span>
+              );
+            })}
+          </div>
+        ),
+      },
+      {
+        key: "remove",
+        header: "",
+        render: (msg) => (
+          <button
+            type="button"
+            aria-label={`Remove ${msg.subject}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleUnassign(msg.id);
+            }}
+            className="rounded-lg p-1.5 text-muted-foreground transition hover:bg-rose-500/10 hover:text-rose-400"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        ),
+      },
+    ],
+    [handleUnassign],
+  );
 
   return (
     <section aria-label="Campaign message assignments" className={cn("space-y-4", className)}>

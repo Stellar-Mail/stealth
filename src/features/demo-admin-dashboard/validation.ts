@@ -48,10 +48,20 @@ export function sortIssues(issues: ValidationIssue[]): ValidationIssue[] {
 
 /** Group issues by severity in display order; empty groups are omitted. */
 export function groupBySeverity(issues: ValidationIssue[]): ValidationGroup[] {
-  return SEVERITY_ORDER.map((severity) => ({
-    severity,
-    issues: sortIssues(issues.filter((issue) => issue.severity === severity)),
-  })).filter((group) => group.issues.length > 0);
+  const grouped: Record<ValidationSeverity, ValidationIssue[]> = {
+    error: [],
+    warning: [],
+    info: [],
+  };
+
+  for (const issue of sortIssues(issues)) {
+    grouped[issue.severity].push(issue);
+  }
+
+  return SEVERITY_ORDER.flatMap((severity) => {
+    const severityIssues = grouped[severity];
+    return severityIssues.length > 0 ? [{ severity, issues: severityIssues }] : [];
+  });
 }
 
 /** Extract the navigation metadata needed to jump to an issue's field. */

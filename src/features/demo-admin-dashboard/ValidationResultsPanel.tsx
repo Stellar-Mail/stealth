@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { AlertCircle, AlertTriangle, CheckCircle2, Info } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -35,8 +36,8 @@ export function ValidationResultsPanel({
   title = "Validation results",
   className,
 }: ValidationResultsPanelProps) {
-  const summary = summarizeValidation(issues);
-  const groups = groupBySeverity(issues);
+  const summary = useMemo(() => summarizeValidation(issues), [issues]);
+  const groups = useMemo(() => groupBySeverity(issues), [issues]);
   const interactive = Boolean(onSelectIssue);
 
   return (

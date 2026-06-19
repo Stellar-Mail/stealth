@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import {
   Activity,
   BarChart3,
@@ -311,77 +311,81 @@ function AccountsContent({
   selectedAccountAddress: string | null;
   setSelectedAccountAddress: (addr: string | null) => void;
 }) {
-  const columns: Column<PresetAccount>[] = [
-    {
-      key: "name",
-      header: "Name",
-      sortable: true,
-      render: (acct) => (
-        <div className="flex items-center gap-2">
-          <span>{acct.name}</span>
-          {acct.relayMetadata && (
-            <span className="rounded bg-indigo-500/10 px-1.5 py-0.5 text-[9px] font-medium text-indigo-400 border border-indigo-500/20">
-              Inspectable
-            </span>
-          )}
-        </div>
-      ),
-    },
-    {
-      key: "address",
-      header: "Address",
-      sortable: true,
-      render: (acct) => (
-        <span className="font-mono text-xs text-muted-foreground">{acct.address}</span>
-      ),
-    },
-    {
-      key: "balance",
-      header: "Balance",
-      sortable: true,
-      sortValue: (acct) => parseFloat(acct.balance.replace(/[^0-9.]/g, "")),
-      render: (acct) => <span className="tabular-nums">{acct.balance}</span>,
-    },
-    {
-      key: "type",
-      header: "Type",
-      sortable: true,
-      render: (acct) => (
-        <span
-          className={cn(
-            "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium",
-            acct.type.includes("Relay") && "bg-indigo-500/10 text-indigo-400",
-            acct.type.includes("Contract") && "bg-purple-500/10 text-purple-400",
-            acct.type === "User" && "bg-white/5 text-muted-foreground",
-          )}
-        >
-          {acct.type}
-        </span>
-      ),
-    },
-    {
-      key: "status",
-      header: "Status",
-      sortable: true,
-      sortValue: (acct) => acct.relayMetadata?.status ?? "none",
-      render: (acct) => {
-        const status = acct.relayMetadata?.status;
-        if (!status) return <span className="text-muted-foreground text-xs">—</span>;
-        return (
+  const columns = useMemo<Column<PresetAccount>[]>(
+    () => [
+      {
+        key: "name",
+        header: "Name",
+        sortable: true,
+        render: (acct) => (
+          <div className="flex items-center gap-2">
+            <span>{acct.name}</span>
+            {acct.relayMetadata && (
+              <span className="rounded bg-indigo-500/10 px-1.5 py-0.5 text-[9px] font-medium text-indigo-400 border border-indigo-500/20">
+                Inspectable
+              </span>
+            )}
+          </div>
+        ),
+      },
+      {
+        key: "address",
+        header: "Address",
+        sortable: true,
+        render: (acct) => (
+          <span className="font-mono text-xs text-muted-foreground">{acct.address}</span>
+        ),
+      },
+      {
+        key: "balance",
+        header: "Balance",
+        sortable: true,
+        sortValue: (acct) => parseFloat(acct.balance.replace(/[^0-9.]/g, "")),
+        render: (acct) => <span className="tabular-nums">{acct.balance}</span>,
+      },
+      {
+        key: "type",
+        header: "Type",
+        sortable: true,
+        render: (acct) => (
           <span
             className={cn(
-              "inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium uppercase text-[9px] border",
-              status === "verified" && "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-              status === "pending" && "bg-amber-500/10 text-amber-400 border-amber-500/20",
-              status === "failed" && "bg-rose-500/10 text-rose-400 border-rose-500/20",
+              "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium",
+              acct.type.includes("Relay") && "bg-indigo-500/10 text-indigo-400",
+              acct.type.includes("Contract") && "bg-purple-500/10 text-purple-400",
+              acct.type === "User" && "bg-white/5 text-muted-foreground",
             )}
           >
-            {status}
+            {acct.type}
           </span>
-        );
+        ),
       },
-    },
-  ];
+      {
+        key: "status",
+        header: "Status",
+        sortable: true,
+        sortValue: (acct) => acct.relayMetadata?.status ?? "none",
+        render: (acct) => {
+          const status = acct.relayMetadata?.status;
+          if (!status) return <span className="text-muted-foreground text-xs">—</span>;
+          return (
+            <span
+              className={cn(
+                "inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium uppercase text-[9px] border",
+                status === "verified" &&
+                  "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+                status === "pending" && "bg-amber-500/10 text-amber-400 border-amber-500/20",
+                status === "failed" && "bg-rose-500/10 text-rose-400 border-rose-500/20",
+              )}
+            >
+              {status}
+            </span>
+          );
+        },
+      },
+    ],
+    [],
+  );
 
   return (
     <div className="space-y-6">
@@ -415,57 +419,60 @@ function MailContent({
   selectedMailSubject: string | null;
   setSelectedMailSubject: (subject: string | null) => void;
 }) {
-  const columns: Column<PresetMail>[] = [
-    {
-      key: "subject",
-      header: "Subject",
-      sortable: true,
-      render: (item) => (
-        <div className="flex flex-col">
-          <div className="flex items-center gap-2">
-            <span className="font-medium">{item.subject}</span>
-            {item.proofMetadata && (
-              <span className="rounded bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-medium text-emerald-400 border border-emerald-500/20">
-                Has Proof
-              </span>
-            )}
+  const columns = useMemo<Column<PresetMail>[]>(
+    () => [
+      {
+        key: "subject",
+        header: "Subject",
+        sortable: true,
+        render: (item) => (
+          <div className="flex flex-col">
+            <div className="flex items-center gap-2">
+              <span className="font-medium">{item.subject}</span>
+              {item.proofMetadata && (
+                <span className="rounded bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-medium text-emerald-400 border border-emerald-500/20">
+                  Has Proof
+                </span>
+              )}
+            </div>
+            <span className="text-[10px] text-muted-foreground mt-0.5">
+              From: {item.from} ({item.email})
+            </span>
           </div>
-          <span className="text-[10px] text-muted-foreground mt-0.5">
-            From: {item.from} ({item.email})
+        ),
+      },
+      {
+        key: "status",
+        header: "Status",
+        sortable: true,
+        render: (item) => (
+          <span
+            className={cn(
+              "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium border",
+              item.status === "delivered" &&
+                "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+              item.status === "pending" && "bg-amber-500/10 text-amber-400 border-amber-500/20",
+              item.status === "held" && "bg-rose-500/10 text-rose-400 border-rose-500/20",
+            )}
+          >
+            {item.status}
           </span>
-        </div>
-      ),
-    },
-    {
-      key: "status",
-      header: "Status",
-      sortable: true,
-      render: (item) => (
-        <span
-          className={cn(
-            "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium border",
-            item.status === "delivered" &&
-              "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-            item.status === "pending" && "bg-amber-500/10 text-amber-400 border-amber-500/20",
-            item.status === "held" && "bg-rose-500/10 text-rose-400 border-rose-500/20",
-          )}
-        >
-          {item.status}
-        </span>
-      ),
-    },
-    {
-      key: "folder",
-      header: "Folder",
-      sortable: true,
-      render: (item) => <span className="text-muted-foreground">{item.folder}</span>,
-    },
-    {
-      key: "time",
-      header: "Time",
-      sortable: true,
-    },
-  ];
+        ),
+      },
+      {
+        key: "folder",
+        header: "Folder",
+        sortable: true,
+        render: (item) => <span className="text-muted-foreground">{item.folder}</span>,
+      },
+      {
+        key: "time",
+        header: "Time",
+        sortable: true,
+      },
+    ],
+    [],
+  );
 
   return (
     <div className="space-y-6">
@@ -490,48 +497,51 @@ function MailContent({
 }
 
 function AttachmentsContent({ attachments }: { attachments: PresetAttachment[] }) {
-  const columns: Column<PresetAttachment>[] = [
-    {
-      key: "fileName",
-      header: "File Name",
-      sortable: true,
-      render: (att) => (
-        <div className="flex items-center gap-2 font-medium">
-          <Paperclip className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-          <span>{att.fileName}</span>
-        </div>
-      ),
-    },
-    {
-      key: "fileSize",
-      header: "Size",
-      sortable: true,
-    },
-    {
-      key: "fileType",
-      header: "Type",
-      sortable: true,
-      render: (att) => (
-        <span className="rounded bg-white/5 px-2 py-0.5 text-[11px] font-medium text-muted-foreground border border-white/[0.04]">
-          {att.fileType}
-        </span>
-      ),
-    },
-    {
-      key: "messageSubject",
-      header: "Source Message",
-      sortable: true,
-      render: (att) => <span className="text-muted-foreground">{att.messageSubject}</span>,
-    },
-    {
-      key: "sender",
-      header: "Sender",
-      sortable: true,
-      render: (att) => (
-        <span className="font-mono text-xs text-muted-foreground">{att.sender}</span>
-      ),
-    },
-  ];
+  const columns = useMemo<Column<PresetAttachment>[]>(
+    () => [
+      {
+        key: "fileName",
+        header: "File Name",
+        sortable: true,
+        render: (att) => (
+          <div className="flex items-center gap-2 font-medium">
+            <Paperclip className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            <span>{att.fileName}</span>
+          </div>
+        ),
+      },
+      {
+        key: "fileSize",
+        header: "Size",
+        sortable: true,
+      },
+      {
+        key: "fileType",
+        header: "Type",
+        sortable: true,
+        render: (att) => (
+          <span className="rounded bg-white/5 px-2 py-0.5 text-[11px] font-medium text-muted-foreground border border-white/[0.04]">
+            {att.fileType}
+          </span>
+        ),
+      },
+      {
+        key: "messageSubject",
+        header: "Source Message",
+        sortable: true,
+        render: (att) => <span className="text-muted-foreground">{att.messageSubject}</span>,
+      },
+      {
+        key: "sender",
+        header: "Sender",
+        sortable: true,
+        render: (att) => (
+          <span className="font-mono text-xs text-muted-foreground">{att.sender}</span>
+        ),
+      },
+    ],
+    [],
+  );
 
   return (
     <div className="space-y-6">
@@ -544,63 +554,66 @@ function AttachmentsContent({ attachments }: { attachments: PresetAttachment[] }
 }
 
 function EventsContent({ events }: { events: PresetEvent[] }) {
-  const columns: Column<PresetEvent>[] = [
-    {
-      key: "title",
-      header: "Title",
-      sortable: true,
-      render: (evt) => (
-        <div className="flex items-center gap-2 font-medium">
-          <Calendar className="h-3.5 w-3.5 text-amber-400 shrink-0" />
-          <span>{evt.title}</span>
-        </div>
-      ),
-    },
-    {
-      key: "date",
-      header: "Scheduled Time",
-      sortable: true,
-      sortValue: (evt) =>
-        new Date(`${evt.date}T${evt.time.replace(" PM", "").replace(" AM", "")}`).getTime(),
-      render: (evt) => (
-        <span className="tabular-nums">
-          {evt.date} · {evt.time}
-        </span>
-      ),
-    },
-    {
-      key: "location",
-      header: "Location",
-      sortable: true,
-      render: (evt) => <span className="text-muted-foreground">{evt.location}</span>,
-    },
-    {
-      key: "organizer",
-      header: "Organizer",
-      sortable: true,
-      render: (evt) => (
-        <span className="font-mono text-xs text-muted-foreground">{evt.organizer}</span>
-      ),
-    },
-    {
-      key: "status",
-      header: "Status",
-      sortable: true,
-      render: (evt) => (
-        <span
-          className={cn(
-            "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium uppercase text-[9px] border",
-            evt.status === "confirmed" &&
-              "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-            evt.status === "tentative" && "bg-amber-500/10 text-amber-400 border-amber-500/20",
-            evt.status === "cancelled" && "bg-rose-500/10 text-rose-400 border-rose-500/20",
-          )}
-        >
-          {evt.status}
-        </span>
-      ),
-    },
-  ];
+  const columns = useMemo<Column<PresetEvent>[]>(
+    () => [
+      {
+        key: "title",
+        header: "Title",
+        sortable: true,
+        render: (evt) => (
+          <div className="flex items-center gap-2 font-medium">
+            <Calendar className="h-3.5 w-3.5 text-amber-400 shrink-0" />
+            <span>{evt.title}</span>
+          </div>
+        ),
+      },
+      {
+        key: "date",
+        header: "Scheduled Time",
+        sortable: true,
+        sortValue: (evt) =>
+          new Date(`${evt.date}T${evt.time.replace(" PM", "").replace(" AM", "")}`).getTime(),
+        render: (evt) => (
+          <span className="tabular-nums">
+            {evt.date} · {evt.time}
+          </span>
+        ),
+      },
+      {
+        key: "location",
+        header: "Location",
+        sortable: true,
+        render: (evt) => <span className="text-muted-foreground">{evt.location}</span>,
+      },
+      {
+        key: "organizer",
+        header: "Organizer",
+        sortable: true,
+        render: (evt) => (
+          <span className="font-mono text-xs text-muted-foreground">{evt.organizer}</span>
+        ),
+      },
+      {
+        key: "status",
+        header: "Status",
+        sortable: true,
+        render: (evt) => (
+          <span
+            className={cn(
+              "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium uppercase text-[9px] border",
+              evt.status === "confirmed" &&
+                "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+              evt.status === "tentative" && "bg-amber-500/10 text-amber-400 border-amber-500/20",
+              evt.status === "cancelled" && "bg-rose-500/10 text-rose-400 border-rose-500/20",
+            )}
+          >
+            {evt.status}
+          </span>
+        ),
+      },
+    ],
+    [],
+  );
 
   return (
     <div className="space-y-6">
@@ -613,36 +626,41 @@ function EventsContent({ events }: { events: PresetEvent[] }) {
 }
 
 function AuditContent({ auditEvents }: { auditEvents: PresetAuditEvent[] }) {
-  const columns: Column<PresetAuditEvent>[] = [
-    {
-      key: "action",
-      header: "Action",
-      sortable: true,
-      render: (evt) => (
-        <div className="flex items-center gap-2">
-          <Shield className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-          <span className="font-medium">{evt.action}</span>
-        </div>
-      ),
-    },
-    {
-      key: "actor",
-      header: "Actor",
-      sortable: true,
-      render: (evt) => <span className="font-mono text-xs text-muted-foreground">{evt.actor}</span>,
-    },
-    {
-      key: "timestamp",
-      header: "Timestamp",
-      sortable: true,
-      sortValue: (evt) => new Date(evt.timestamp).getTime(),
-      render: (evt) => (
-        <span className="text-muted-foreground tabular-nums">
-          {new Date(evt.timestamp).toLocaleString()}
-        </span>
-      ),
-    },
-  ];
+  const columns = useMemo<Column<PresetAuditEvent>[]>(
+    () => [
+      {
+        key: "action",
+        header: "Action",
+        sortable: true,
+        render: (evt) => (
+          <div className="flex items-center gap-2">
+            <Shield className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            <span className="font-medium">{evt.action}</span>
+          </div>
+        ),
+      },
+      {
+        key: "actor",
+        header: "Actor",
+        sortable: true,
+        render: (evt) => (
+          <span className="font-mono text-xs text-muted-foreground">{evt.actor}</span>
+        ),
+      },
+      {
+        key: "timestamp",
+        header: "Timestamp",
+        sortable: true,
+        sortValue: (evt) => new Date(evt.timestamp).getTime(),
+        render: (evt) => (
+          <span className="text-muted-foreground tabular-nums">
+            {new Date(evt.timestamp).toLocaleString()}
+          </span>
+        ),
+      },
+    ],
+    [],
+  );
 
   return (
     <div className="space-y-6">
@@ -675,7 +693,10 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
   );
   const [campaignDraftDataset, setCampaignDraftDataset] = useState<Draft[]>([]);
 
-  const activePreset = PRESET_SCENARIOS.find((p) => p.id === activePresetId);
+  const activePreset = useMemo(
+    () => PRESET_SCENARIOS.find((p) => p.id === activePresetId),
+    [activePresetId],
+  );
 
   const stats = activePreset ? activePreset.stats : OVERVIEW_STATS;
   const accounts = activePreset ? activePreset.accounts : ACCOUNTS_FAKE;
@@ -684,8 +705,14 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
   const events = activePreset ? activePreset.events : EVENTS_FAKE;
   const auditEvents = activePreset ? activePreset.auditEvents : AUDIT_EVENTS_FAKE;
 
-  const selectedAccount = accounts.find((a) => a.address === selectedAccountAddress);
-  const selectedMail = mail.find((m) => m.subject === selectedMailSubject);
+  const selectedAccount = useMemo(
+    () => accounts.find((a) => a.address === selectedAccountAddress),
+    [accounts, selectedAccountAddress],
+  );
+  const selectedMail = useMemo(
+    () => mail.find((m) => m.subject === selectedMailSubject),
+    [mail, selectedMailSubject],
+  );
 
   const handleSectionChange = (section: DashboardSection) => {
     setActiveSection(section);
