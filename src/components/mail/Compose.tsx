@@ -17,6 +17,14 @@ import { EmojiPicker } from "./EmojiPicker";
 import { TrustBadge, type TrustState } from "@/features/design-system";
 import { cn } from "@/lib/utils";
 import { resolveRecipients } from "@/features/compose/recipientResolver";
+import { usePostageQuote } from "@/features/compose/usePostageQuote";
+import {
+  RecipientPolicyBanner,
+  isPolicyBlocking,
+  isTrustedSender,
+  getMinimumPostage,
+  xlmFromStroops,
+} from "@/features/compose/RecipientPolicyBanner";
 
 import {
   getRecipientReadiness,
@@ -28,6 +36,8 @@ import {
   type RecipientReadiness,
 } from "./composeValidation";
 import { DeliveryEstimator, type RelayStatus } from "./DeliveryEstimator";
+import { SendPipeline, type StageState } from "@/features/compose/sendPipeline";
+import { SendProgress } from "@/features/compose/SendProgress";
 
 const EMPTY_BLOCKED: string[] = [];
 const EMPTY_RESOLVED: RecipientReadiness[] = [];
@@ -63,11 +73,22 @@ export function Compose({
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [emojiOpen, setEmojiOpen] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [sendStages, setSendStages] = useState<StageState[]>([]);
+  const [sendError, setSendError] = useState<string | null>(null);
+  const pipelineRef = useRef<SendPipeline | null>(null);
   const [encrypted, setEncrypted] = useState(true);
   const [receipt, setReceipt] = useState(true);
   const [postage, setPostage] = useState(initialPostage);
   const [resolvedRecipients, setResolvedRecipients] = useState<RecipientReadiness[]>([]);
   const [relayStatus, setRelayStatus] = useState<RelayStatus>("unknown");
+  // Track whether user has manually overridden the postage field
+  const postageManuallySet = useRef(false);
+
+  // Derive the primary recipient (first entry) for policy quote
+  const primaryRecipient = parseRecipients(to)[0] ?? "";
+  // TODO: replace "me" with actual sender address from identity store
+  const senderAddress = "me";
+  const quoteState = usePostageQuote(primaryRecipient, senderAddress);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -101,7 +122,11 @@ export function Compose({
       setTo(initialTo);
       setSubject(initialSubject);
       setBody(initialBody);
+      setSendStages([]);
+      setSendError(null);
+      pipelineRef.current = null;
       setPostage(initialPostage);
+      postageManuallySet.current = false;
     } else {
       setTo("");
       setSubject("");
@@ -112,6 +137,7 @@ export function Compose({
       setReceipt(true);
       setPostage(initialPostage);
       setResolvedRecipients(EMPTY_RESOLVED);
+      postageManuallySet.current = false;
     }
   }, [open, initialTo, initialSubject, initialBody, initialPostage]);
 
@@ -131,6 +157,21 @@ export function Compose({
       cancelled = true;
     };
   }, [open]);
+
+  // Auto-suggest minimum postage from policy quote when user hasn't manually set it
+  useEffect(() => {
+    if (postageManuallySet.current) return;
+    if (quoteState.status !== "quoted") return;
+    const min = getMinimumPostage(quoteState);
+    if (min === null) return;
+    // Convert stroops to XLM for the postage input
+    if (min === "0") {
+      setPostage("0");
+    } else {
+      const xlm = xlmFromStroops(min);
+      setPostage(xlm);
+    }
+  }, [quoteState]);
 
   // Resolve recipients when `to` field changes
   useEffect(() => {
@@ -216,9 +257,26 @@ export function Compose({
       return;
     }
 
-    if (resolvedRecipients.some((r) => r.postage === "required")) {
-      onShowToast?.("Add postage before sending");
+    // Policy-level block (sender blocked by recipient policy)
+    if (isPolicyBlocking(quoteState)) {
+      onShowToast?.("Recipient has blocked this sender");
       return;
+    }
+
+    // Postage check: skip for trusted senders, enforce minimum for others
+    const currentQuote = quoteState.status === "quoted" ? quoteState.quote : null;
+    if (!isTrustedSender(quoteState)) {
+      if (currentQuote) {
+        const postageStroops = BigInt(Math.round(Number(postage) * 10_000_000));
+        const minimumStroops = BigInt(currentQuote.amount);
+        if (postageStroops < minimumStroops) {
+          onShowToast?.("Add postage before sending");
+          return;
+        }
+      } else if (resolvedRecipients.some((r) => r.postage === "required")) {
+        onShowToast?.("Add postage before sending");
+        return;
+      }
     }
 
     if (!subject.trim()) {
@@ -233,8 +291,39 @@ export function Compose({
 
     setIsSending(true);
 
-    // Simulate sending
-    await new Promise((resolve) => setTimeout(resolve, 800));
+    // Run the staged send pipeline (immediate send only).
+    setSendError(null);
+
+    if (!scheduled) {
+      const pipeline =
+        pipelineRef.current ??
+        new SendPipeline(
+          { sender: "me", to: to.trim(), subject: subject.trim(), body },
+          setSendStages,
+        );
+      pipelineRef.current = pipeline;
+      setSendStages(pipeline.getStages());
+
+      const outcome = await pipeline.run();
+
+      if (!outcome.ok) {
+        setIsSending(false);
+        if (outcome.reason === "wallet_rejected") {
+          setSendError("Signature declined — your draft is safe. Retry when ready.");
+          onShowToast?.("Signature declined — draft kept");
+        } else if (outcome.reason === "wallet_unavailable") {
+          setSendError("No Stellar wallet detected. Unlock Freighter, then retry.");
+          onShowToast?.("Wallet unavailable");
+        } else {
+          setSendError(outcome.message);
+          onShowToast?.("Send failed — you can retry");
+        }
+        return;
+      }
+
+      pipelineRef.current = null;
+      setSendStages([]);
+    }
 
     onSubmit?.({
       to: to.trim(),
@@ -249,10 +338,13 @@ export function Compose({
     });
     setIsSending(false);
     onClose();
+    const trusted = isTrustedSender(quoteState);
     onShowToast?.(
       scheduled
         ? "Message scheduled with postage reserved"
-        : `Encrypted message sent with ${postage} XLM postage`,
+        : trusted
+          ? "Encrypted message sent (trusted — no postage required)"
+          : `Encrypted message sent with ${postage} XLM postage`,
     );
   };
 
@@ -297,6 +389,7 @@ export function Compose({
             <div className="space-y-0 px-4">
               <Field label="To" placeholder="recipients@…" value={to} onChange={setTo} />
               <RecipientReadinessChips recipients={resolvedRecipients} />
+              <RecipientPolicyBanner quoteState={quoteState} className="mt-1.5" />
               <DeliveryEstimator
                 recipients={resolvedRecipients}
                 encrypted={encrypted}
@@ -320,6 +413,14 @@ export function Compose({
                 placeholder="Write your message…"
                 className="glow-ring w-full resize-none rounded-lg border border-transparent bg-transparent px-1 py-2 text-sm placeholder:text-muted-foreground focus:border-white/10"
               />
+
+              {sendStages.length > 0 && (
+                <SendProgress
+                  stages={sendStages}
+                  error={sendError}
+                  onRetry={() => void handleSend(false)}
+                />
+              )}
 
               {/* Attachments */}
               {attachments.length > 0 && (
@@ -390,12 +491,20 @@ export function Compose({
                     <span className="flex items-center gap-1 text-xs text-foreground">
                       <input
                         value={postage}
-                        onChange={(event) => setPostage(event.target.value)}
+                        onChange={(event) => {
+                          postageManuallySet.current = true;
+                          setPostage(event.target.value);
+                        }}
                         inputMode="decimal"
                         className="w-16 bg-transparent font-mono outline-none"
                         aria-label="Postage amount"
                       />
                       XLM
+                      {isTrustedSender(quoteState) && (
+                        <span className="ml-1 text-[9px] text-emerald-400 font-medium uppercase tracking-wide">
+                          free
+                        </span>
+                      )}
                     </span>
                   </span>
                 </label>
@@ -466,20 +575,68 @@ export function Compose({
                 <CalendarClock className="h-3.5 w-3.5" />
                 Schedule
               </motion.button>
-              <motion.button
-                whileHover={{ y: -1 }}
-                whileTap={{ scale: 0.97 }}
-                onClick={() => handleSend(false)}
-                disabled={isSending}
-                className={cn(
-                  "inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.08] px-3 py-1.5 text-xs font-medium text-foreground transition hover:bg-white/[0.14]",
-                  isSending && "opacity-50 cursor-not-allowed",
-                )}
-                style={{ boxShadow: "0 8px 30px -10px rgba(0,0,0,0.6)" }}
-              >
-                <Send className={cn("h-3.5 w-3.5", isSending && "animate-pulse")} />
-                {isSending ? "Sending..." : "Send"}
-              </motion.button>
+              {(() => {
+                const policyBlocked = isPolicyBlocking(quoteState);
+                const recipientBlocked = resolvedRecipients.some(
+                  (r) => r.state === "blocked" || r.state === "invalid",
+                );
+                const recipientResolving = resolvedRecipients.some((r) => r.state === "resolving");
+                const isBlocked = policyBlocked || recipientBlocked;
+                const trusted = isTrustedSender(quoteState);
+
+                // Determine send CTA disabled state
+                const isSendDisabled = isSending || isBlocked || recipientResolving;
+
+                // Determine button label and style
+                let sendLabel: string;
+                let sendButtonClass: string;
+                if (isSending) {
+                  sendLabel = "Sending...";
+                  sendButtonClass =
+                    "inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.08] px-3 py-1.5 text-xs font-medium text-foreground opacity-50 cursor-not-allowed";
+                } else if (isBlocked) {
+                  sendLabel = "Blocked";
+                  sendButtonClass =
+                    "inline-flex items-center gap-2 rounded-lg border border-red-300/20 bg-red-300/[0.08] px-3 py-1.5 text-xs font-medium text-red-200 opacity-70 cursor-not-allowed";
+                } else if (trusted) {
+                  sendLabel = "Send free";
+                  sendButtonClass =
+                    "inline-flex items-center gap-2 rounded-lg border border-emerald-300/20 bg-emerald-300/[0.08] px-3 py-1.5 text-xs font-medium text-emerald-100 transition hover:bg-emerald-300/[0.14]";
+                } else if (quoteState.status === "quoted" && Number(postage) > 0) {
+                  sendLabel = `Send + ${postage} XLM`;
+                  sendButtonClass =
+                    "inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.08] px-3 py-1.5 text-xs font-medium text-foreground transition hover:bg-white/[0.14]";
+                } else {
+                  sendLabel = "Send";
+                  sendButtonClass =
+                    "inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.08] px-3 py-1.5 text-xs font-medium text-foreground transition hover:bg-white/[0.14]";
+                }
+
+                const disabledReason = isBlocked
+                  ? "Recipient has blocked this sender"
+                  : recipientResolving
+                    ? "Waiting for recipient verification"
+                    : undefined;
+
+                return (
+                  <motion.button
+                    whileHover={isSendDisabled ? undefined : { y: -1 }}
+                    whileTap={isSendDisabled ? undefined : { scale: 0.97 }}
+                    onClick={() => void handleSend(false)}
+                    disabled={isSendDisabled}
+                    aria-disabled={isSendDisabled}
+                    title={disabledReason}
+                    aria-label={disabledReason ?? sendLabel}
+                    className={sendButtonClass}
+                    style={
+                      isSendDisabled ? undefined : { boxShadow: "0 8px 30px -10px rgba(0,0,0,0.6)" }
+                    }
+                  >
+                    <Send className={cn("h-3.5 w-3.5", isSending && "animate-pulse")} />
+                    {sendLabel}
+                  </motion.button>
+                );
+              })()}
             </div>
           </motion.div>
         </>

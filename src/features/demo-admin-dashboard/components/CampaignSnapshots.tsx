@@ -5,6 +5,7 @@ import {
   Calendar,
   Check,
   FolderHeart,
+  GitMerge,
   History,
   Plus,
   Tag,
@@ -16,6 +17,7 @@ import { cn } from "@/lib/utils";
 import type { Draft } from "../types/draft";
 import type { CampaignSnapshot } from "../types/campaignSnapshot";
 import { saveCampaignSnapshots, loadCampaignSnapshots } from "../persistence/localStorageAdapter";
+import { deterministicSnapshotId, normalizeLabels } from "../utils/normalizeDemoData";
 import {
   CAMPAIGN_STATUS_TOKENS,
   getTagToken,
@@ -23,6 +25,7 @@ import {
   TAG_COLOR_TOKENS,
   AUDIENCE_BADGE_TOKENS,
 } from "../constants/displayTokens";
+import { ConflictResolver } from "./ConflictResolver";
 
 interface CampaignSnapshotsProps {
   currentDataset: Draft[];
@@ -52,6 +55,9 @@ export function CampaignSnapshots({
   // State for restore confirmation dialog
   const [confirmRestoreTarget, setConfirmRestoreTarget] = useState<CampaignSnapshot | null>(null);
 
+  // State for merge-with-conflict-resolution workflow
+  const [mergeTarget, setMergeTarget] = useState<CampaignSnapshot | null>(null);
+
   // Helper to commit snapshots list and save to localStorage
   const commitSnapshots = (nextSnapshots: CampaignSnapshot[]) => {
     setSnapshots(nextSnapshots);
@@ -70,13 +76,11 @@ export function CampaignSnapshots({
       return;
     }
 
-    const newTags = tagsInput
-      .split(",")
-      .map((t) => t.trim())
-      .filter((t) => t.length > 0);
+    const newTags = normalizeLabels(tagsInput.split(","));
+    const existingIds = new Set(snapshots.map((s) => s.id));
 
     const newSnapshot: CampaignSnapshot = {
-      id: `snap-${Date.now()}`,
+      id: deterministicSnapshotId("snap", name.trim(), existingIds),
       name: name.trim(),
       description: description.trim(),
       targetAudience: targetAudience.trim(),
@@ -113,12 +117,27 @@ export function CampaignSnapshots({
     setConfirmRestoreTarget(null);
   };
 
+  const handleMergeResolved = (resolvedDrafts: Draft[]) => {
+    onRestoreDataset(resolvedDrafts);
+    setMergeTarget(null);
+  };
+
   return (
     <div className={cn("space-y-6", className)}>
       <p className="text-sm text-muted-foreground">
         Save snapshots of your current draft dataset or restore previous campaign configurations.
         Preloaded scenario snapshots are available by default.
       </p>
+
+      {/* ── Merge Conflict Resolver Modal ── */}
+      {mergeTarget && (
+        <ConflictResolver
+          incomingDrafts={mergeTarget.drafts}
+          existingDrafts={currentDataset}
+          onResolve={handleMergeResolved}
+          onCancel={() => setMergeTarget(null)}
+        />
+      )}
 
       {/* ── Restore Confirmation Modal / Alert ── */}
       {confirmRestoreTarget && (
@@ -140,7 +159,7 @@ export function CampaignSnapshots({
                 <span className="font-semibold text-foreground">
                   {currentDataset.length} drafts
                 </span>
-                ) with this snapshot's{" "}
+                ) with this snapshot’s{" "}
                 <span className="font-semibold text-foreground">
                   {confirmRestoreTarget.drafts.length} drafts
                 </span>
@@ -442,8 +461,22 @@ export function CampaignSnapshots({
                   </div>
                 </div>
 
-                {/* Action */}
-                <div className="pt-4 flex justify-end">
+                {/* Actions */}
+                <div className="pt-4 flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setMergeTarget(snap)}
+                    disabled={currentDataset.length === 0}
+                    className={cn(
+                      "inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-semibold transition",
+                      currentDataset.length === 0
+                        ? "border-white/[0.04] bg-white/[0.01] text-muted-foreground/50 cursor-not-allowed"
+                        : "border-indigo-500/20 bg-indigo-500/5 text-indigo-400 hover:bg-indigo-500/10",
+                    )}
+                    title="Merge this snapshot into the current active dataset with conflict resolution"
+                  >
+                    <GitMerge className="h-3.5 w-3.5" /> Merge Into Current
+                  </button>
                   <button
                     type="button"
                     onClick={() => triggerRestore(snap)}

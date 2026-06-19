@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { MailFolder } from "./data";
+import { DROP_TARGET_FOLDERS } from "./useDragDrop";
 
 type SidebarItem = { key: MailFolder; label: string; icon: LucideIcon };
 
@@ -89,6 +90,8 @@ export function Sidebar({
   onCompose,
   customFolder,
   onSelectCustomFolder,
+  onDrop,
+  onOpenSenderJourney,
 }: {
   active: MailFolder;
   counts: Partial<Record<MailFolder, number>>;
@@ -98,6 +101,8 @@ export function Sidebar({
   onCompose: () => void;
   customFolder?: string | null;
   onSelectCustomFolder?: (name: string | null) => void;
+  onDrop?: (emailIds: string[], target: MailFolder) => void;
+  onOpenSenderJourney?: () => void;
 }) {
   const [folders, setFolders] = useState(defaultFolders);
   const [isAddingFolder, setIsAddingFolder] = useState(false);
@@ -171,6 +176,23 @@ export function Sidebar({
         )}
       </motion.button>
 
+      {onOpenSenderJourney && (
+        <motion.button
+          whileHover={{ y: -1 }}
+          whileTap={{ scale: 0.97 }}
+          onClick={onOpenSenderJourney}
+          className={cn(
+            "group mt-2 flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium",
+            "border border-white/10 bg-emerald-500/10 text-emerald-300",
+            "shadow-[0_8px_30px_-10px_rgba(0,0,0,0.6)] transition hover:bg-emerald-500/20",
+            collapsed && "justify-center px-2",
+          )}
+        >
+          <Users className="h-4 w-4" />
+          {!collapsed && <span className="mail-preview-heading">Sender Journey</span>}
+        </motion.button>
+      )}
+
       <nav className="scrollbar-thin mt-4 flex-1 overflow-y-auto pr-1">
         {sections.map((section, sectionIndex) => (
           <div key={section.title ?? "mail"} className={sectionIndex === 0 ? "" : "mt-5"}>
@@ -188,6 +210,11 @@ export function Sidebar({
                     active={active === it.key}
                     collapsed={collapsed}
                     onSelect={() => onSelect(it.key)}
+                    onDrop={
+                      DROP_TARGET_FOLDERS.includes(it.key as import("./data").MailLocation)
+                        ? (ids) => onDrop?.(ids, it.key)
+                        : undefined
+                    }
                   />
                 </li>
               ))}
@@ -307,24 +334,52 @@ function FolderButton({
   active,
   collapsed,
   onSelect,
+  onDrop,
 }: {
   item: SidebarItem;
   count?: number;
   active: boolean;
   collapsed: boolean;
   onSelect: () => void;
+  onDrop?: (emailIds: string[]) => void;
 }) {
   const Icon = item.icon;
+  const [isOver, setIsOver] = useState(false);
 
   return (
     <motion.button
       whileTap={{ scale: 0.98 }}
       onClick={onSelect}
+      onDragOver={
+        onDrop
+          ? (e) => {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = "move";
+              setIsOver(true);
+            }
+          : undefined
+      }
+      onDragLeave={onDrop ? () => setIsOver(false) : undefined}
+      onDrop={
+        onDrop
+          ? (e) => {
+              e.preventDefault();
+              setIsOver(false);
+              try {
+                const ids: string[] = JSON.parse(e.dataTransfer.getData("text/plain"));
+                if (Array.isArray(ids) && ids.length > 0) onDrop(ids);
+              } catch {
+                /* ignore */
+              }
+            }
+          : undefined
+      }
       className={cn(
         "relative flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition",
         "text-muted-foreground hover:bg-white/[0.04] hover:text-foreground",
         active && "text-foreground",
         collapsed && "justify-center px-2",
+        isOver && "bg-white/[0.08] ring-1 ring-white/20 text-foreground",
       )}
     >
       {active && (
