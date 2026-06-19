@@ -1,0 +1,249 @@
+/**
+ * Team Inbox Rules Builder – local component styles
+ *
+ * All class names are prefixed with `tirb-` to guarantee zero collision with
+ * the shared design system.  Styling is intentionally thin: structural layout
+ * tokens are defined here; all color / typography tokens are consumed from the
+ * design system via Tailwind utilities in the component JSX.
+ *
+ * Do NOT import this file into the main app stylesheet.
+ */
+
+/* ─────────────────────────────────────────
+   Root shell
+   ───────────────────────────────────────── */
+.tirb-root {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  max-width: 56rem;       /* ~896 px – keeps the builder comfortable */
+  margin-inline: auto;
+  font-family: inherit;
+}
+
+/* ─────────────────────────────────────────
+   Header
+   ───────────────────────────────────────── */
+.tirb-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.tirb-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.75rem;
+  /* Allow programmatic focus for skip-to-content, suppress default outline */
+  outline: none;
+}
+
+/* ─────────────────────────────────────────
+   Primary action button
+   ───────────────────────────────────────── */
+.tirb-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 150ms ease, opacity 150ms ease;
+
+  /* Color tokens – resolved at runtime via design system */
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border: none;
+}
+
+.tirb-btn-primary:hover {
+  opacity: 0.9;
+}
+
+.tirb-btn-primary:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+.tirb-btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ─────────────────────────────────────────
+   Main content area
+   ───────────────────────────────────────── */
+.tirb-main {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* ─────────────────────────────────────────
+   Section heading + rule count badge
+   ───────────────────────────────────────── */
+.tirb-section-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+.tirb-rule-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  padding-inline: 0.375rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  background-color: hsl(var(--muted));
+  color: hsl(var(--muted-foreground));
+}
+
+/* ─────────────────────────────────────────
+   Focus rings – global override for tool elements
+   (supplements Tailwind focus-visible utilities)
+   ───────────────────────────────────────── */
+.tirb-root *:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+  border-radius: 0.25rem;
+}
+
+/* ─────────────────────────────────────────
+   Notification / banner strip
+   ───────────────────────────────────────── */
+.tirb-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.tirb-banner-success {
+  background-color: hsl(var(--success, 142 76% 36%) / 0.1);
+  border: 1px solid hsl(var(--success, 142 76% 36%) / 0.3);
+  color: hsl(var(--success, 142 76% 36%));
+}
+
+.tirb-banner-error {
+  background-color: hsl(var(--destructive) / 0.1);
+  border: 1px solid hsl(var(--destructive) / 0.3);
+  color: hsl(var(--destructive));
+}
+
+/* ─────────────────────────────────────────
+   Loading spinner animation
+   (used by LoadingState component)
+   ───────────────────────────────────────── */
+@keyframes tirb-spin {
+  to { transform: rotate(360deg); }
+}
+
+.tirb-spinner {
+  width: 2rem;
+  height: 2rem;
+  border: 2px solid hsl(var(--border));
+  border-top-color: hsl(var(--primary));
+  border-radius: 9999px;
+  animation: tirb-spin 600ms linear infinite;
+}
+
+/* ─────────────────────────────────────────
+   Rule card (RuleList item baseline)
+   ───────────────────────────────────────── */
+.tirb-rule-card {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid hsl(var(--border));
+  transition: box-shadow 150ms ease;
+}
+
+.tirb-rule-card:hover {
+  box-shadow: 0 1px 4px hsl(var(--foreground) / 0.08);
+}
+
+/* ─────────────────────────────────────────
+   Condition group color indicators
+   AND group → blue left border
+   OR  group → purple left border
+   ───────────────────────────────────────── */
+.tirb-group-and {
+  border-left: 3px solid hsl(217 91% 60%);  /* blue-400 */
+}
+
+.tirb-group-or {
+  border-left: 3px solid hsl(271 81% 56%);  /* purple-500 */
+}
+
+/* ─────────────────────────────────────────
+   Screen-reader only utility
+   ───────────────────────────────────────── */
+.tirb-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* ─────────────────────────────────────────
+   Responsive: on narrow viewports stack
+   the header vertically
+   ───────────────────────────────────────── */
+@media (max-width: 640px) {
+  .tirb-root {
+    padding: 1rem;
+  }
+
+  .tirb-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/* ─────────────────────────────────────────
+   Reduced-motion: suppress all transitions
+   and animations within the tool
+   ───────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .tirb-root *,
+  .tirb-spinner {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ─────────────────────────────────────────
+   High-contrast: thicker focus rings
+   ───────────────────────────────────────── */
+@media (prefers-contrast: more) {
+  .tirb-root *:focus-visible {
+    outline-width: 3px;
+    outline-offset: 3px;
+  }
+
+  .tirb-rule-card {
+    border-width: 2px;
+  }
+}
