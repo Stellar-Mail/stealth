@@ -1,41 +1,37 @@
-import { useState, useCallback } from "react";
-import { CHANGELOG_ENTRIES, LATEST_VERSION } from "./data";
-
-const STORAGE_KEY = "stealth:changelog:seen-version";
-
-function getSeenVersion(): string | null {
-  try {
-    return localStorage.getItem(STORAGE_KEY);
-  } catch {
-    return null;
-  }
-}
-
-function setSeenVersion(version: string) {
-  try {
-    localStorage.setItem(STORAGE_KEY, version);
-  } catch {
-    // ignore
-  }
-}
+import { useMemo, useState } from 'react';
+import { changelogEntries } from './data';
 
 export function useChangelog() {
-  const [seenVersion, setSeenVersionState] = useState<string | null>(getSeenVersion);
+  const [isOpen, setIsOpen] = useState(false);
+  const [readEntries, setReadEntries] = useState<Set<string>>(new Set());
 
-  const hasUnread = seenVersion !== LATEST_VERSION;
-
-  const markAllSeen = useCallback(() => {
-    setSeenVersion(LATEST_VERSION);
-    setSeenVersionState(LATEST_VERSION);
+  // Memoize sorted entries to eliminate O(N log N) sorting loops on every single render pass
+  const groupedEntries = useMemo(() => {
+    return [...changelogEntries].sort((a, b) => 
+      new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
   }, []);
 
-  const isEntryUnread = useCallback(
-    (entryVersion: string) => {
-      if (!seenVersion) return true;
-      return entryVersion > seenVersion;
-    },
-    [seenVersion],
-  );
+  // Compute unread entries selector lazily only when read status scales
+  const unreadCount = useMemo(() => {
+    return groupedEntries.filter(entry => !readEntries.has(entry.id)).length;
+  }, [groupedEntries, readEntries]);
 
-  return { entries: CHANGELOG_ENTRIES, hasUnread, markAllSeen, isEntryUnread };
+  const markAsRead = (id: string) => {
+    setReadEntries(prev => {
+      if (prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
+  };
+
+  return {
+    isOpen,
+    setIsOpen,
+    groupedEntries,
+    unreadCount,
+    readEntries,
+    markAsRead
+  };
 }
