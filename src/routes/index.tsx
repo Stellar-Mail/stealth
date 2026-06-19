@@ -928,7 +928,6 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
             />
           </div>
         </div>
-      </div>
         <FeedbackViewport items={feedbackItems} onDismiss={dismissFeedback} />
 
         <ImportWizard
