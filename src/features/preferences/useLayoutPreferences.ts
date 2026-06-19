@@ -7,13 +7,44 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
 
-function clampPreferences(prefs: LayoutPreferences): LayoutPreferences {
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === "object" && !Array.isArray(value);
+}
+
+function finiteNumberOrDefault(value: unknown, fallback: number) {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function booleanOrDefault(value: unknown, fallback: boolean) {
+  return typeof value === "boolean" ? value : fallback;
+}
+
+export function clampPreferences(prefs: LayoutPreferences): LayoutPreferences {
   return {
     ...prefs,
     sidebarWidth: clamp(prefs.sidebarWidth, 5, 40),
     listWidth: clamp(prefs.listWidth, 10, 60),
     readerWidth: clamp(prefs.readerWidth, 15, 80),
   };
+}
+
+export function normalizeLayoutPreferences(value: unknown): LayoutPreferences {
+  const stored = isRecord(value) ? value : {};
+
+  return clampPreferences({
+    sidebarWidth: finiteNumberOrDefault(stored.sidebarWidth, defaultLayoutPreferences.sidebarWidth),
+    sidebarCollapsed: booleanOrDefault(
+      stored.sidebarCollapsed,
+      defaultLayoutPreferences.sidebarCollapsed,
+    ),
+    listWidth: finiteNumberOrDefault(stored.listWidth, defaultLayoutPreferences.listWidth),
+    readerWidth: finiteNumberOrDefault(stored.readerWidth, defaultLayoutPreferences.readerWidth),
+    compactMode: booleanOrDefault(stored.compactMode, defaultLayoutPreferences.compactMode),
+    rightPanelCollapsed: booleanOrDefault(
+      stored.rightPanelCollapsed,
+      defaultLayoutPreferences.rightPanelCollapsed,
+    ),
+  });
 }
 
 export function useLayoutPreferences() {
@@ -24,8 +55,7 @@ export function useLayoutPreferences() {
     const stored = window.localStorage.getItem(storageKey);
     if (stored) {
       try {
-        const parsed = JSON.parse(stored);
-        setLayout(clampPreferences({ ...defaultLayoutPreferences, ...parsed }));
+        setLayout(normalizeLayoutPreferences(JSON.parse(stored)));
       } catch {
         window.localStorage.removeItem(storageKey);
       }
