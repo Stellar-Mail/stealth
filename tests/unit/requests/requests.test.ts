@@ -1,49 +1,107 @@
-import { describe, expect, it } from "vitest";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { describe, expect, it, vi } from "vitest";
 
-// Simple test for requests logic and formatting
-describe("Requests triage board unit helpers", () => {
-  // Test formatting for native Stellar postage amounts (1 XLM = 10,000,000 Stroops)
-  const formatPostage = (stroops?: string) => {
-    if (!stroops) return "0.0 XLM";
-    try {
-      const val = BigInt(stroops);
-      const xlm = Number(val) / 10_000_000;
-      return `${xlm.toLocaleString(undefined, {
-        minimumFractionDigits: 1,
-        maximumFractionDigits: 4,
-      })} XLM`;
-    } catch {
-      return `${stroops} stroops`;
-    }
-  };
+import type { Email } from "../../../src/components/mail/data";
+import { RequestCard, formatRequestPostage } from "../../../src/features/requests/RequestCard";
+import {
+  RequestsTriageBoard,
+  cleanRequestTriageLabels,
+  resolveRequestTriageCompletion,
+} from "../../../src/features/requests/RequestsTriageBoard";
 
-  const cleanLabels = (labels?: string[], toAdd?: string) => {
-    const filterOut = ["Request", "Paid", "Pending"];
-    const current = labels ? labels.filter((l) => !filterOut.includes(l)) : [];
-    return toAdd ? [...current, toAdd] : current;
-  };
+const requestEmail = (overrides: Partial<Email> = {}): Email => ({
+  id: "req-1",
+  from: "Avery Example",
+  email: "avery@example.test",
+  subject: "Partnership request",
+  preview: "Could we schedule a quick review?",
+  body: "Hello, I would like to discuss a small partnership.",
+  time: "10:30 AM",
+  unread: true,
+  starred: false,
+  folder: "requests",
+  labels: ["Request", "Paid", "Design"],
+  avatarColor: "bg-slate-500",
+  postageAmount: "15000000",
+  verifiedSender: false,
+  ...overrides,
+});
 
-  it("formats postage amounts from stroops to XLM native units", () => {
-    expect(formatPostage("10000000")).toBe("1.0 XLM");
-    expect(formatPostage("50000000")).toBe("5.0 XLM");
-    expect(formatPostage("15000000")).toBe("1.5 XLM");
-    expect(formatPostage("100000")).toBe("0.01 XLM");
-    expect(formatPostage(undefined)).toBe("0.0 XLM");
-    expect(formatPostage("invalid")).toBe("invalid stroops");
+describe("Request triage regressions", () => {
+  it("renders pending request details and resolves approval into inbox/trusted state", () => {
+    const email = requestEmail();
+    const boardHtml = renderToStaticMarkup(
+      createElement(RequestsTriageBoard, {
+        emails: [email],
+        onUpdateEmail: vi.fn(),
+        onShowToast: vi.fn(),
+      }),
+    );
+
+    expect(boardHtml).toContain("Request Triage Board");
+    expect(boardHtml).toContain("1 pending");
+    expect(boardHtml).toContain("Avery Example");
+    expect(boardHtml).toContain("Partnership request");
+
+    const cardHtml = renderToStaticMarkup(
+      createElement(RequestCard, {
+        email,
+        status: "idle",
+        simulateFailure: false,
+        onTriggerAction: vi.fn(),
+        onUndoAction: vi.fn(),
+        onFinalizeAction: vi.fn(),
+        onInspect: vi.fn(),
+      }),
+    );
+
+    expect(cardHtml).toContain("Unknown");
+    expect(cardHtml).toContain("1.5 XLM");
+    expect(cardHtml).toContain("Approve");
+
+    const result = resolveRequestTriageCompletion(email, "approve");
+    expect(result.patch).toEqual({
+      folder: "inbox",
+      senderPolicy: "allow",
+      labels: ["Design", "Trusted"],
+    });
+    expect(result.toast).toEqual({
+      message: "Avery Example added to Trusted Contacts. Mail moved to Inbox.",
+      tone: "success",
+    });
   });
 
-  it("cleans temporary triage labels and appends final policy badge", () => {
-    const originalLabels = ["Request", "Paid", "Design"];
-    const resultApprove = cleanLabels(originalLabels, "Trusted");
-    expect(resultApprove).toEqual(["Design", "Trusted"]);
-    expect(resultApprove).not.toContain("Request");
-    expect(resultApprove).not.toContain("Paid");
+  it("keeps the failure state visible and preserves malformed postage for retry context", () => {
+    const email = requestEmail({ postageAmount: "not-a-number" });
+    const cardHtml = renderToStaticMarkup(
+      createElement(RequestCard, {
+        email,
+        status: "failure",
+        simulateFailure: true,
+        onTriggerAction: vi.fn(),
+        onUndoAction: vi.fn(),
+        onFinalizeAction: vi.fn(),
+        onInspect: vi.fn(),
+      }),
+    );
 
-    const resultBlock = cleanLabels(originalLabels, "Blocked");
-    expect(resultBlock).toEqual(["Design", "Blocked"]);
+    expect(cardHtml).toContain("Action Failed");
+    expect(cardHtml).toContain("Could not resolve the transaction on the Stellar network");
+    expect(cardHtml).toContain("Cancel");
+    expect(cardHtml).toContain("Retry");
+    expect(formatRequestPostage("not-a-number")).toBe("not-a-number stroops");
+  });
 
-    const resultRefund = cleanLabels(originalLabels, "Refunded");
-    expect(resultRefund).toEqual(["Design", "Refunded"]);
+  it("cleans temporary triage labels without dropping unrelated badges", () => {
+    expect(cleanRequestTriageLabels(["Request", "Paid", "Design"], "Blocked")).toEqual([
+      "Design",
+      "Blocked",
+    ]);
+    expect(resolveRequestTriageCompletion(requestEmail(), "refund").patch).toEqual({
+      folder: "spam",
+      labels: ["Design", "Refunded"],
+    });
   });
 });
 

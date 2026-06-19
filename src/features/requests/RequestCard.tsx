@@ -28,6 +28,27 @@ interface RequestCardProps {
   onInspect: (email: Email) => void;
 }
 
+export function getTriageActionFromStatus(status: CardStatus): TriageAction | null {
+  if (status.includes("approve")) return "approve";
+  if (status.includes("block")) return "block";
+  if (status.includes("refund")) return "refund";
+  return null;
+}
+
+export function formatRequestPostage(stroops?: string) {
+  if (!stroops) return "0.0 XLM";
+  try {
+    const val = BigInt(stroops);
+    const xlm = Number(val) / 10_000_000;
+    return `${xlm.toLocaleString(undefined, {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 4,
+    })} XLM`;
+  } catch {
+    return `${stroops} stroops`;
+  }
+}
+
 export function RequestCard({
   email,
   status,
@@ -42,14 +63,7 @@ export function RequestCard({
   const startTimeRef = useRef<number>(0);
   const duration = 3000; // 3 seconds undo window
 
-  const getActionFromStatus = (status: CardStatus): TriageAction | null => {
-    if (status.includes("approve")) return "approve";
-    if (status.includes("block")) return "block";
-    if (status.includes("refund")) return "refund";
-    return null;
-  };
-
-  const currentAction = getActionFromStatus(status);
+  const currentAction = getTriageActionFromStatus(status);
 
   // Timer effect for the success undo countdown
   useEffect(() => {
@@ -82,21 +96,6 @@ export function RequestCard({
       }
     };
   }, [status, email.id, currentAction]);
-
-  // Handle formatting for native Stellar postage amounts (1 XLM = 10,000,000 Stroops)
-  const formatPostage = (stroops?: string) => {
-    if (!stroops) return "0.0 XLM";
-    try {
-      const val = BigInt(stroops);
-      const xlm = Number(val) / 10_000_000;
-      return `${xlm.toLocaleString(undefined, {
-        minimumFractionDigits: 1,
-        maximumFractionDigits: 4,
-      })} XLM`;
-    } catch {
-      return `${stroops} stroops`;
-    }
-  };
 
   return (
     <motion.div
@@ -162,7 +161,7 @@ export function RequestCard({
                   Postage Paid
                 </p>
                 <p className="text-xs font-semibold tabular-nums text-foreground mt-0.5">
-                  {formatPostage(email.postageAmount)}
+                  {formatRequestPostage(email.postageAmount)}
                 </p>
               </div>
             </div>

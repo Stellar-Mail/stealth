@@ -24,6 +24,53 @@ interface RequestsTriageBoardProps {
   onShowToast: (message: string, options?: { tone: "success" | "neutral" | "danger" }) => void;
 }
 
+export function cleanRequestTriageLabels(labels?: string[], toAdd?: string) {
+  const filterOut = ["Request", "Paid", "Pending"];
+  const current = labels ? labels.filter((label) => !filterOut.includes(label)) : [];
+  return toAdd ? [...current, toAdd] : current;
+}
+
+export function resolveRequestTriageCompletion(
+  email: Pick<Email, "from" | "labels">,
+  action: TriageAction,
+): {
+  patch: Partial<Email>;
+  toast: { message: string; tone: "success" | "danger" };
+} {
+  if (action === "approve") {
+    return {
+      patch: {
+        folder: "inbox",
+        senderPolicy: "allow",
+        labels: cleanRequestTriageLabels(email.labels, "Trusted"),
+      },
+      toast: {
+        message: `${email.from} added to Trusted Contacts. Mail moved to Inbox.`,
+        tone: "success",
+      },
+    };
+  }
+
+  if (action === "block") {
+    return {
+      patch: {
+        folder: "spam",
+        senderPolicy: "block",
+        labels: cleanRequestTriageLabels(email.labels, "Blocked"),
+      },
+      toast: { message: `${email.from} blocked. Mail moved to Spam.`, tone: "danger" },
+    };
+  }
+
+  return {
+    patch: {
+      folder: "spam",
+      labels: cleanRequestTriageLabels(email.labels, "Refunded"),
+    },
+    toast: { message: `Postage refunded for message from ${email.from}.`, tone: "success" },
+  };
+}
+
 export function RequestsTriageBoard({
   emails,
   onUpdateEmail,
@@ -81,36 +128,9 @@ export function RequestsTriageBoard({
     const email = emails.find((e) => e.id === emailId);
     if (!email) return;
 
-    // Apply cleaner label updates
-    const cleanLabels = (labels?: string[], toAdd?: string) => {
-      const filterOut = ["Request", "Paid", "Pending"];
-      const current = labels ? labels.filter((l) => !filterOut.includes(l)) : [];
-      return toAdd ? [...current, toAdd] : current;
-    };
-
-    if (action === "approve") {
-      onUpdateEmail(emailId, {
-        folder: "inbox",
-        senderPolicy: "allow",
-        labels: cleanLabels(email.labels, "Trusted"),
-      });
-      onShowToast(`${email.from} added to Trusted Contacts. Mail moved to Inbox.`, {
-        tone: "success",
-      });
-    } else if (action === "block") {
-      onUpdateEmail(emailId, {
-        folder: "spam",
-        senderPolicy: "block",
-        labels: cleanLabels(email.labels, "Blocked"),
-      });
-      onShowToast(`${email.from} blocked. Mail moved to Spam.`, { tone: "danger" });
-    } else if (action === "refund") {
-      onUpdateEmail(emailId, {
-        folder: "spam",
-        labels: cleanLabels(email.labels, "Refunded"),
-      });
-      onShowToast(`Postage refunded for message from ${email.from}.`, { tone: "success" });
-    }
+    const result = resolveRequestTriageCompletion(email, action);
+    onUpdateEmail(emailId, result.patch);
+    onShowToast(result.toast.message, { tone: result.toast.tone });
 
     // Clean up local card state
     setCardStates((prev) => {

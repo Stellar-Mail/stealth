@@ -1,5 +1,8 @@
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
+import { ConvertSenderButton } from "../../../src/features/sender-conversion/ConvertSenderButton";
 import {
   SENDER_POLICY_OPTIONS,
   getSenderPolicyOption,
@@ -30,6 +33,35 @@ describe("SENDER_POLICY_OPTIONS", () => {
     for (const choice of ["allow", "verify", "block"] as SenderPolicyChoice[]) {
       expect(getSenderPolicyOption(choice).value).toBe(choice);
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// ConvertSenderButton
+// ---------------------------------------------------------------------------
+describe("ConvertSenderButton", () => {
+  it("renders the shared conversion CTA as a non-submit button", () => {
+    const html = renderToStaticMarkup(
+      createElement(ConvertSenderButton, { onClick: () => undefined }),
+    );
+
+    expect(html).toContain('type="button"');
+    expect(html).toContain("Convert to contact");
+  });
+
+  it("supports contextual labels and variants for request-card entry points", () => {
+    const html = renderToStaticMarkup(
+      createElement(ConvertSenderButton, {
+        onClick: () => undefined,
+        label: "Review sender",
+        variant: "ghost",
+        className: "request-card-action",
+      }),
+    );
+
+    expect(html).toContain("Review sender");
+    expect(html).toContain("text-muted-foreground");
+    expect(html).toContain("request-card-action");
   });
 });
 
