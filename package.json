@@ -19,7 +19,7 @@
     "local:setup:unix": "bash scripts/setup-local-env/setup.sh",
     "local:teardown:unix": "bash scripts/setup-local-env/teardown.sh",
     "generate:bindings": "node scripts/generate-contract-bindings.mjs",
-    "postinstall": "node scripts/apply-entities-patch.js"
+    "postinstall": "node scripts/apply-entities-patch.cjs"
   },
   "overrides": {
     "ws": "8.21.0"
