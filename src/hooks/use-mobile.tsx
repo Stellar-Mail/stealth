@@ -1,19 +1,27 @@
-import * as React from "react";
+import { useEffect, useState } from 'react';
 
-const MOBILE_BREAKPOINT = 768;
+export function useMobile(breakpoint: number = 768) {
+  const [isMobile, setIsMobile] = useState(false);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
 
-export function useIsMobile() {
-  const [isMobile, setIsMobile] = React.useState<boolean | undefined>(undefined);
+  useEffect(() => {
+    const mqlMobile = window.matchMedia(`(max-width: ${breakpoint}px)`);
+    setIsMobile(mqlMobile.matches);
+    
+    const mqlMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    setPrefersReducedMotion(mqlMotion.matches);
 
-  React.useEffect(() => {
-    const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`);
-    const onChange = () => {
-      setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
+    const handleMobileChange = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    const handleMotionChange = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
+
+    mqlMobile.addEventListener('change', handleMobileChange);
+    mqlMotion.addEventListener('change', handleMotionChange);
+
+    return () => {
+      mqlMobile.removeEventListener('change', handleMobileChange);
+      mqlMotion.removeEventListener('change', handleMotionChange);
     };
-    mql.addEventListener("change", onChange);
-    setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
-    return () => mql.removeEventListener("change", onChange);
-  }, []);
+  }, [breakpoint]);
 
-  return !!isMobile;
+  return { isMobile, prefersReducedMotion };
 }
