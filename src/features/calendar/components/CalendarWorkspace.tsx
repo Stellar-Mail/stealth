@@ -28,6 +28,8 @@ import type {
   CalendarResponse,
 } from "../types";
 
+export type CalendarWorkspaceView = "agenda" | "month";
+
 type CalendarWorkspaceProps = {
   open: boolean;
   onClose: () => void;
@@ -64,7 +66,7 @@ export function CalendarWorkspace({
   const [month, setMonth] = useState(getAppToday());
   const [selectedDate, setSelectedDate] = useState(getAppToday());
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [view, setView] = useState<"agenda" | "month">("agenda");
+  const [view, setView] = useState<CalendarWorkspaceView>("agenda");
   const [editorEvent, setEditorEvent] = useState<CalendarEvent | null | undefined>(undefined);
   const [calendarName, setCalendarName] = useState("");
   const [calendarColor, setCalendarColor] = useState(calendarColors[3]);
@@ -106,23 +108,14 @@ export function CalendarWorkspace({
   }, [editorEvent, onClose, open]);
 
   const selectedEvent = events.find((event) => event.id === selectedId) ?? null;
-  const visibleIds = useMemo(
-    () => new Set(calendars.filter((calendar) => calendar.visible).map((calendar) => calendar.id)),
-    [calendars],
-  );
   const visibleEvents = useMemo(
-    () => events.filter((event) => visibleIds.has(event.calendarId)),
-    [events, visibleIds],
+    () => filterVisibleCalendarEvents(calendars, events),
+    [calendars, events],
   );
-  const displayedEvents = useMemo(() => {
-    if (view === "agenda") {
-      return visibleEvents.filter((event) => isSameDay(parseISO(event.date), selectedDate));
-    }
-    return visibleEvents.filter((event) => {
-      const date = parseISO(event.date);
-      return date.getMonth() === month.getMonth() && date.getFullYear() === month.getFullYear();
-    });
-  }, [month, selectedDate, view, visibleEvents]);
+  const displayedEvents = useMemo(
+    () => getDisplayedCalendarEvents({ calendars, events, selectedDate, month, view }),
+    [calendars, events, month, selectedDate, view],
+  );
   const eventDates = visibleEvents.map((event) => parseISO(event.date));
 
   const openNewEvent = () => {
@@ -477,6 +470,39 @@ export function CalendarWorkspace({
       )}
     </AnimatePresence>
   );
+}
+
+export function filterVisibleCalendarEvents(
+  calendars: CalendarDefinition[],
+  events: CalendarEvent[],
+): CalendarEvent[] {
+  const visibleIds = new Set(
+    calendars.filter((calendar) => calendar.visible).map((calendar) => calendar.id),
+  );
+  return events.filter((event) => visibleIds.has(event.calendarId));
+}
+
+export function getDisplayedCalendarEvents({
+  calendars,
+  events,
+  selectedDate,
+  month,
+  view,
+}: {
+  calendars: CalendarDefinition[];
+  events: CalendarEvent[];
+  selectedDate: Date;
+  month: Date;
+  view: CalendarWorkspaceView;
+}): CalendarEvent[] {
+  const visibleEvents = filterVisibleCalendarEvents(calendars, events);
+  if (view === "agenda") {
+    return visibleEvents.filter((event) => isSameDay(parseISO(event.date), selectedDate));
+  }
+  return visibleEvents.filter((event) => {
+    const date = parseISO(event.date);
+    return date.getMonth() === month.getMonth() && date.getFullYear() === month.getFullYear();
+  });
 }
 
 function EventDetails({

@@ -30,6 +30,7 @@ export function EventMailCard({
   const [view, setView] = useState<"event" | "monthly">("event");
   const [addedEvent, setAddedEvent] = useState<CalendarEvent | null>(calendarEvent ?? null);
   const savedEvent = calendarEvent ?? addedEvent;
+  const statusLabel = getEventMailCardStatusLabel(savedEvent);
 
   const addEvent = () => {
     const saved = onAdd?.(event);
@@ -185,10 +186,10 @@ export function EventMailCard({
         <span className="rounded-md border border-white/[0.1] bg-white/[0.04] px-2.5 py-1 backdrop-blur-xl">
           {savedEvent ? (
             <span className="inline-flex items-center gap-1">
-              <Check className="h-3 w-3 text-emerald-300" /> Added to calendar
+              <Check className="h-3 w-3 text-emerald-300" /> {statusLabel}
             </span>
           ) : (
-            "Upcoming event"
+            statusLabel
           )}
         </span>
         <button
@@ -204,4 +205,8 @@ export function EventMailCard({
       </div>
     </div>
   );
+}
+
+export function getEventMailCardStatusLabel(calendarEvent?: CalendarEvent | null): string {
+  return calendarEvent ? "Added to calendar" : "Upcoming event";
 }

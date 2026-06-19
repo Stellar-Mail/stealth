@@ -72,21 +72,7 @@ export function useCalendar() {
     const existing = snapshot.events.find((event) => event.sourceEmailId === sourceEmailId);
     if (existing) return existing;
 
-    return saveEvent({
-      title: mailEvent.title,
-      date: mailEvent.date ?? "2026-06-13",
-      time: to24HourTime(mailEvent.time),
-      endTime: mailEvent.endTime ?? addOneHour(to24HourTime(mailEvent.time)),
-      location: mailEvent.location,
-      note: mailEvent.note,
-      calendarId: mailEvent.calendar ?? "personal",
-      cadence: mailEvent.cadence,
-      organizer: mailEvent.organizer,
-      meetingUrl: mailEvent.meetingUrl,
-      sourceEmailId,
-      response: "going",
-      reminder: "15 minutes",
-    });
+    return saveEvent(mailEventToCalendarDraft(mailEvent, sourceEmailId));
   };
 
   const deleteEvent = (id: string) => {
@@ -152,6 +138,28 @@ export function useCalendar() {
     updateReminder,
     toggleCalendar,
     addCalendar,
+  };
+}
+
+export function mailEventToCalendarDraft(
+  mailEvent: MailEvent,
+  sourceEmailId: string,
+): CalendarEventDraft {
+  const startTime = to24HourTime(mailEvent.time);
+  return {
+    title: mailEvent.title,
+    date: mailEvent.date ?? "2026-06-13",
+    time: startTime,
+    endTime: mailEvent.endTime ?? addOneHour(startTime),
+    location: mailEvent.location,
+    note: mailEvent.note,
+    calendarId: mailEvent.calendar ?? "personal",
+    cadence: mailEvent.cadence,
+    organizer: mailEvent.organizer,
+    meetingUrl: mailEvent.meetingUrl,
+    sourceEmailId,
+    response: "going",
+    reminder: "15 minutes",
   };
 }
 
