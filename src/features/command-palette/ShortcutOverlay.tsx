@@ -102,7 +102,9 @@ export function ShortcutOverlay({ open, onClose }: Props) {
                     >
                       <div className="flex flex-wrap items-center gap-3">
                         <div className="min-w-0 flex-1">
-                          <div className="text-sm font-medium text-foreground">{shortcut.label}</div>
+                          <div className="text-sm font-medium text-foreground">
+                            {shortcut.label}
+                          </div>
                           <div className="mt-1 text-xs leading-5 text-muted-foreground">
                             {shortcut.description}
                           </div>

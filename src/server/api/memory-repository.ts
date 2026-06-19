@@ -1,4 +1,4 @@
-import type { MailboxPolicy, Postage, Receipt, SenderRule } from "./domain";
+import type { IdempotencyRecord, MailboxPolicy, Postage, Receipt, SenderRule } from "./domain";
 import type { ApiRepository } from "./repository";
 
 function key(owner: string, sender: string) {
@@ -11,6 +11,7 @@ export class MemoryApiRepository implements ApiRepository {
   private readonly receipts = new Map<string, Receipt>();
   private readonly senderRules = new Map<string, SenderRule>();
   private readonly counters = new Map<string, number[]>();
+  private readonly idempotency = new Map<string, IdempotencyRecord>();
 
   async getPolicy(owner: string) {
     return structuredClone(this.policies.get(owner) ?? null);
@@ -77,9 +78,19 @@ export class MemoryApiRepository implements ApiRepository {
     const now = Date.now();
     const windowMilliseconds = windowSeconds * 1000;
     const timestamps = this.counters.get(key) ?? [];
-    const filtered = [...timestamps, now].filter((timestamp) => now - timestamp <= windowMilliseconds);
+    const filtered = [...timestamps, now].filter(
+      (timestamp) => now - timestamp <= windowMilliseconds,
+    );
     this.counters.set(key, filtered);
     return filtered.length;
+  }
+
+  async getIdempotencyRecord(key: string) {
+    return structuredClone(this.idempotency.get(key) ?? null);
+  }
+
+  async setIdempotencyRecord(key: string, record: IdempotencyRecord) {
+    this.idempotency.set(key, structuredClone(record));
   }
 
   reset() {
@@ -88,5 +99,6 @@ export class MemoryApiRepository implements ApiRepository {
     this.receipts.clear();
     this.senderRules.clear();
     this.counters.clear();
+    this.idempotency.clear();
   }
 }

@@ -14,10 +14,29 @@ import {
   Coins,
   Receipt,
   Check,
+  type LucideIcon,
 } from "lucide-react";
-import { getEmailProvenance, type ProvenanceDetails, type ProvenanceItemDetails } from "./provenance";
+import {
+  getEmailProvenance,
+  type ProvenanceDetails,
+  type ProvenanceItemDetails,
+  type ProvenanceTimelineItem,
+} from "./provenance";
 import { ProvenanceInspector } from "./ProvenanceInspector";
+import { PostageDisputePanel, type PostageDisputeStatus } from "./PostageDisputePanel";
 import type { Email } from "./data";
+
+/** Map provenance status strings to the contract PostageStatus enum values. */
+function deriveDisputeStatus(status: string): PostageDisputeStatus {
+  const s = status.toLowerCase();
+  if (s.includes("escrow") || s.includes("pending")) return "pending";
+  if (s.includes("settled")) return "settled";
+  if (s.includes("refund")) return "refunded";
+  if (s.includes("reclaim")) return "reclaimed";
+  if (s.includes("disput")) return "disputed";
+  if (s.includes("expire")) return "expired";
+  return "pending";
+}
 
 export function ProvenancePanel({
   email,
@@ -41,6 +60,25 @@ export function ProvenancePanel({
   }
 
   const provenance = getEmailProvenance(email);
+
+  const getTimelineIcon = (step: ProvenanceTimelineItem["key"]) => {
+    switch (step) {
+      case "senderIdentity":
+        return Fingerprint;
+      case "relaySource":
+        return Server;
+      case "messageHash":
+        return Database;
+      case "payloadCommitment":
+        return Lock;
+      case "postageRecord":
+        return Coins;
+      case "receiptRecord":
+        return Receipt;
+      default:
+        return Shield;
+    }
+  };
 
   const handleCopy = async (key: string, value: string, label: string) => {
     try {
@@ -67,7 +105,7 @@ export function ProvenancePanel({
   }: {
     fieldKey: string;
     label: string;
-    icon: any;
+    icon: LucideIcon;
     displayValue: string;
     rawValue: string;
     details?: string;
@@ -138,17 +176,66 @@ export function ProvenancePanel({
               {isVerified
                 ? "Secure On-Chain Route"
                 : email.folder === "spam"
-                ? "SMTP Bridged (Unverified)"
-                : "Awaiting Envelope Proof"}
+                  ? "SMTP Bridged (Unverified)"
+                  : "Awaiting Envelope Proof"}
             </span>
           </div>
           <p className="mt-1 text-[10.5px] leading-relaxed text-muted-foreground/90">
             {isVerified
               ? `Delivered via ${provenance.relaySource.nodeId} with a verified postage record.`
               : email.folder === "spam"
-              ? "Bridged message without Stellar cryptographic signatures."
-              : "Message processed but security verification is currently in progress."}
+                ? "Bridged message without Stellar cryptographic signatures."
+                : "Message processed but security verification is currently in progress."}
           </p>
+        </div>
+      </div>
+
+      <div className="mt-4 rounded-2xl border border-white/[0.06] bg-black/10 p-3">
+        <div className="flex items-center justify-between gap-3 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+          <span>Proof Timeline</span>
+          <span>
+            {provenance.timeline.filter((item) => item.status === "complete").length}/
+            {provenance.timeline.length} complete
+          </span>
+        </div>
+        <div className="mt-3 space-y-3">
+          {provenance.timeline.map((item, index) => {
+            const Icon = getTimelineIcon(item.key);
+            const statusStyles =
+              item.status === "complete"
+                ? "border-emerald-500 bg-emerald-500 text-black"
+                : item.status === "pending"
+                  ? "border-amber-300 bg-amber-300 text-black"
+                  : "border-white/10 bg-white/10 text-muted-foreground";
+
+            return (
+              <div key={item.key} className="grid grid-cols-[auto_1fr] gap-3">
+                <div className="relative flex flex-col items-center">
+                  <span
+                    className={`grid h-9 w-9 place-items-center rounded-full border ${statusStyles}`}
+                  >
+                    <Icon className="h-4 w-4" />
+                  </span>
+                  {index < provenance.timeline.length - 1 && (
+                    <span className="absolute top-10 left-1/2 h-full w-px -translate-x-1/2 bg-white/[0.08]" />
+                  )}
+                </div>
+                <div className="border-b border-white/[0.04] pb-3 last:border-none last:pb-0">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="text-sm font-semibold text-foreground">{item.title}</div>
+                      <p className="mt-1 text-[10.5px] leading-relaxed text-muted-foreground">
+                        {item.description}
+                      </p>
+                    </div>
+                    <span className="shrink-0 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                      {item.timestamp}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -159,10 +246,7 @@ export function ProvenancePanel({
           className="flex w-full items-center justify-between py-2 text-[10.5px] font-semibold uppercase tracking-[0.14em] text-muted-foreground transition hover:text-foreground"
         >
           <span>Technical Provenance</span>
-          <motion.div
-            animate={{ rotate: expanded ? 180 : 0 }}
-            transition={{ duration: 0.2 }}
-          >
+          <motion.div animate={{ rotate: expanded ? 180 : 0 }} transition={{ duration: 0.2 }}>
             <ChevronDown className="h-3.5 w-3.5" />
           </motion.div>
         </button>
@@ -221,6 +305,10 @@ export function ProvenancePanel({
                   rawValue={provenance.postageRecord.txHash}
                   details={provenance.postageRecord.status}
                   inspectorData={provenance.postageRecord.inspector}
+                />
+                <PostageDisputePanel
+                  postageStatus={deriveDisputeStatus(provenance.postageRecord.status)}
+                  amountXlm={provenance.postageRecord.amount.replace(/[^0-9.]/g, "") || undefined}
                 />
                 <FieldRow
                   fieldKey="receipt"

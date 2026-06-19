@@ -112,9 +112,7 @@ export function Topbar({
 
   return (
     <header className="glass relative z-50 m-0 flex h-14 items-center gap-2 overflow-hidden rounded-none border-t-0 px-3">
-      <motion.div
-        className="relative flex h-9 min-w-[220px] flex-[1_1_320px] items-center lg:max-w-[430px]"
-      >
+      <motion.div className="relative flex h-9 min-w-[220px] flex-[1_1_320px] items-center lg:max-w-[430px]">
         <Search className="pointer-events-none absolute left-3 h-4 w-4 text-muted-foreground" />
         <input
           onFocus={() => setFocused(true)}
@@ -283,7 +281,12 @@ export function Topbar({
         </IconBtn>
 
         <div ref={helpRef} className="relative">
-          <IconBtn label="Help" onClick={() => setHelpOpen((open) => !open)} active={helpOpen} hint="?">
+          <IconBtn
+            label="Help"
+            onClick={() => setHelpOpen((open) => !open)}
+            active={helpOpen}
+            hint="?"
+          >
             <CircleHelp className="h-4 w-4" />
           </IconBtn>
         </div>

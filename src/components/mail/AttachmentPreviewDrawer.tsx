@@ -19,12 +19,7 @@ import {
   Eye,
   FileCode,
 } from "lucide-react";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 
 // Mock database of file contents
@@ -43,7 +38,7 @@ Core Identity Pillars:
 - Adaptability: Seamless transition between light and dark themes with consistent semantic tokens.
 
 Design Guidelines:
-Always respect the aspect ratio of the logo. Do not skew or stretch the brand mark. The primary background should default to #09090b (Zinc 950) in dark environments and #ffffff in light environments.`
+Always respect the aspect ratio of the logo. Do not skew or stretch the brand mark. The primary background should default to #09090b (Zinc 950) in dark environments and #ffffff in light environments.`,
       },
       {
         pageNumber: 2,
@@ -59,7 +54,7 @@ Primary Color Palette:
 - Neutral Light: #f4f4f5 (Background Secondary)
 - Accent Emerald: #10b981 (Success / Verified States)
 - Accent Sky: #0ea5e9 (Security / Protocol States)
-- Accent Amber: #f59e0b (Warning / Pending States)`
+- Accent Amber: #f59e0b (Warning / Pending States)`,
       },
       {
         pageNumber: 3,
@@ -69,27 +64,28 @@ Primary Color Palette:
 Animation Guidelines:
 - Hover States: Standard hover duration is 150ms with ease-out curve. Scale elements by 1.02x for tactile feedback.
 - Page Transitions: Use Framer Motion's AnimatePresence for layout morphing. Fade in with a slight vertical slide of 8px.
-- Spring Physics: Use spring-based animations for modals and drawers (stiffness: 300, damping: 30) to feel natural.`
-      }
-    ]
+- Spring Physics: Use spring-based animations for modals and drawers (stiffness: 300, damping: 30) to feel natural.`,
+      },
+    ],
   },
   "payload-test-vector.json": {
-    "version": "1.0.0",
-    "algorithm": "Curve25519-XSalsa20-Poly1305",
-    "header": {
-      "sender": "GDQ7...X4KJ",
-      "recipient": "GCKN...N4XQ",
-      "timestamp": "2026-06-16T15:18:22Z",
-      "postage_attached": "0.00010 XLM",
-      "sequence": 142857
+    version: "1.0.0",
+    algorithm: "Curve25519-XSalsa20-Poly1305",
+    header: {
+      sender: "GDQ7...X4KJ",
+      recipient: "GCKN...N4XQ",
+      timestamp: "2026-06-16T15:18:22Z",
+      postage_attached: "0.00010 XLM",
+      sequence: 142857,
     },
-    "payload_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-    "delivery_proof": {
-      "ledger": 52891244,
-      "transaction_hash": "48fb7b22d10a6ea9f323a67d022427ae41e4649b934ca495991b7852b855e902",
-      "relay_node": "Relay Node 07"
+    payload_hash: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    delivery_proof: {
+      ledger: 52891244,
+      transaction_hash: "48fb7b22d10a6ea9f323a67d022427ae41e4649b934ca495991b7852b855e902",
+      relay_node: "Relay Node 07",
     },
-    "encrypted_body": "U2VjcmV0IHBheWxvYWQgdGVzdCB2ZWN0b3IgZm9yIGRlYnVnZ2luZy4gVGhpcyBpcyBhIG1vY2sgY2lwaGVydGV4dCB0aGF0IGRvY3VtZW50cyBhIGNvcnJlY3RseSBmb3JtYXR0ZWQgU3RlbGxhciBtYWlsIGVudmVsb3BlLg=="
+    encrypted_body:
+      "U2VjcmV0IHBheWxvYWQgdGVzdCB2ZWN0b3IgZm9yIGRlYnVnZ2luZy4gVGhpcyBpcyBhIG1vY2sgY2lwaGVydGV4dCB0aGF0IGRvY3VtZW50cyBhIGNvcnJlY3RseSBmb3JtYXR0ZWQgU3RlbGxhciBtYWlsIGVudmVsb3BlLg==",
   },
   "release-notes.txt": `Stealth Mail Client v1.2.0 Release Notes
 =======================================
@@ -106,7 +102,7 @@ Security Updates:
 - Encrypted attachments now use sandboxed sandboxing for previews.
 - Verified Stellar identities receive a green badge check mark.
 - Standard bridge warnings are shown for legacy non-Stellar messages.`,
-  
+
   "public-key.txt": `-----BEGIN STEALTH PUBLIC KEY BLOCK-----
 Version: Stealth Mail v1.2
 
@@ -124,7 +120,7 @@ bnQgdXNpbmcgQ3VydmUyNTUxOS4gVGhpcyBpcyBhIHF1YXJhbnRpbmVkIHBheWxv
 YWQu
 -----END PGP MESSAGE-----`,
 
-  "stealth-payload.bin": `53 74 65 61 6c 74 68 20 45 6e 63 72 79 70 74 65 64 20 50 61 79 6c 6f 61 64 0a 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f 10 11 12 13 14 15 16 17 18 19 1a 1b 1c 1d 1e 1f 20 a1 b2 c3 d4 e5 f6`
+  "stealth-payload.bin": `53 74 65 61 6c 74 68 20 45 6e 63 72 79 70 74 65 64 20 50 61 79 6c 6f 61 64 0a 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f 10 11 12 13 14 15 16 17 18 19 1a 1b 1c 1d 1e 1f 20 a1 b2 c3 d4 e5 f6`,
 };
 
 export type Attachment = {
@@ -168,7 +164,10 @@ export function AttachmentPreviewDrawer({
   const isImage = ["png", "jpg", "jpeg", "webp", "gif"].includes(type);
   const isJSON = type === "json";
   const isText = ["txt", "log", "md", "conf"].includes(type);
-  const isEncrypted = ["enc", "pgp", "gpg", "bin", "payload"].includes(type) || attachment.name.endsWith(".enc") || attachment.name.endsWith(".gpg");
+  const isEncrypted =
+    ["enc", "pgp", "gpg", "bin", "payload"].includes(type) ||
+    attachment.name.endsWith(".enc") ||
+    attachment.name.endsWith(".gpg");
   const isUnsupported = !isPDF && !isImage && !isJSON && !isText && !isEncrypted;
 
   // Retrieve mock file content
@@ -255,23 +254,48 @@ export function AttachmentPreviewDrawer({
 
   // Helper for JSON syntax highlighting
   const renderHighlightedJson = (jsonStr: string) => {
-    const regex = /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?)/g;
+    const regex =
+      /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?)/g;
     const parts = jsonStr.split(regex);
 
     return parts.map((part, i) => {
       if (!part) return null;
-      if (part.startsWith('"') && part.endsWith(':')) {
-        return <span key={i} className="text-sky-300">{part}</span>;
+      if (part.startsWith('"') && part.endsWith(":")) {
+        return (
+          <span key={i} className="text-sky-300">
+            {part}
+          </span>
+        );
       } else if (part.startsWith('"')) {
-        return <span key={i} className="text-emerald-300">{part}</span>;
+        return (
+          <span key={i} className="text-emerald-300">
+            {part}
+          </span>
+        );
       } else if (/^(true|false)$/.test(part)) {
-        return <span key={i} className="text-amber-300 font-semibold">{part}</span>;
-      } else if (part === 'null') {
-        return <span key={i} className="text-gray-400 italic">{part}</span>;
+        return (
+          <span key={i} className="text-amber-300 font-semibold">
+            {part}
+          </span>
+        );
+      } else if (part === "null") {
+        return (
+          <span key={i} className="text-gray-400 italic">
+            {part}
+          </span>
+        );
       } else if (/^-?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?$/.test(part)) {
-        return <span key={i} className="text-violet-300">{part}</span>;
+        return (
+          <span key={i} className="text-violet-300">
+            {part}
+          </span>
+        );
       }
-      return <span key={i} className="text-white/80">{part}</span>;
+      return (
+        <span key={i} className="text-white/80">
+          {part}
+        </span>
+      );
     });
   };
 
@@ -390,7 +414,9 @@ export function AttachmentPreviewDrawer({
                   </span>
                   <button
                     disabled={pdfPage >= ((activeContent as any).pages?.length || 3)}
-                    onClick={() => setPdfPage((p) => Math.min(((activeContent as any).pages?.length || 3), p + 1))}
+                    onClick={() =>
+                      setPdfPage((p) => Math.min((activeContent as any).pages?.length || 3, p + 1))
+                    }
                     className="p-1 hover:bg-white/[0.05] rounded text-foreground disabled:opacity-40 disabled:hover:bg-transparent transition"
                   >
                     <ChevronRight className="h-4 w-4" />
@@ -421,9 +447,7 @@ export function AttachmentPreviewDrawer({
                     <span className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase">
                       {(activeContent as any).title}
                     </span>
-                    <span className="text-[10px] text-zinc-400">
-                      Page {pdfPage}
-                    </span>
+                    <span className="text-[10px] text-zinc-400">Page {pdfPage}</span>
                   </div>
 
                   {(() => {
@@ -492,14 +516,15 @@ export function AttachmentPreviewDrawer({
               </div>
 
               {/* Image Viewport with checkerboard background */}
-              <div className="flex-1 overflow-auto p-8 flex items-center justify-center relative min-h-[450px]"
+              <div
+                className="flex-1 overflow-auto p-8 flex items-center justify-center relative min-h-[450px]"
                 style={{
                   backgroundImage: `linear-gradient(45deg, rgba(255, 255, 255, 0.03) 25%, transparent 25%),
                                     linear-gradient(-45deg, rgba(255, 255, 255, 0.03) 25%, transparent 25%),
                                     linear-gradient(45deg, transparent 75%, rgba(255, 255, 255, 0.03) 75%),
                                     linear-gradient(-45deg, transparent 75%, rgba(255, 255, 255, 0.03) 75%)`,
                   backgroundSize: "20px 20px",
-                  backgroundPosition: "0 0, 0 10px, 10px -10px, -10px 0"
+                  backgroundPosition: "0 0, 0 10px, 10px -10px, -10px 0",
                 }}
               >
                 <img
@@ -547,9 +572,12 @@ export function AttachmentPreviewDrawer({
                   <ShieldAlert className="h-5 w-5" />
                 </div>
                 <div>
-                  <h4 className="text-sm font-semibold text-foreground/95">Encrypted Ciphertext Payload</h4>
+                  <h4 className="text-sm font-semibold text-foreground/95">
+                    Encrypted Ciphertext Payload
+                  </h4>
                   <p className="mt-1 text-xs text-muted-foreground leading-relaxed max-w-[550px]">
-                    This file contains cryptographically encrypted payload data. Previews are restricted to headers and raw hexadecimal structure to prevent data exposure.
+                    This file contains cryptographically encrypted payload data. Previews are
+                    restricted to headers and raw hexadecimal structure to prevent data exposure.
                   </p>
                 </div>
               </div>
@@ -557,19 +585,33 @@ export function AttachmentPreviewDrawer({
               {/* Cryptographic Metadata */}
               <div className="rounded-xl border border-white/5 bg-white/[0.015] p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground/60">Encryption Standard</div>
-                  <div className="text-xs font-semibold font-mono text-foreground/80">Curve25519-XSalsa20-Poly1305</div>
+                  <div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground/60">
+                    Encryption Standard
+                  </div>
+                  <div className="text-xs font-semibold font-mono text-foreground/80">
+                    Curve25519-XSalsa20-Poly1305
+                  </div>
                 </div>
                 <div className="space-y-1">
-                  <div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground/60">On-Chain Commitment</div>
-                  <div className="text-xs font-semibold font-mono text-foreground/80 truncate">Soroban read_proof (ledger #52891244)</div>
+                  <div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground/60">
+                    On-Chain Commitment
+                  </div>
+                  <div className="text-xs font-semibold font-mono text-foreground/80 truncate">
+                    Soroban read_proof (ledger #52891244)
+                  </div>
                 </div>
                 <div className="space-y-1">
-                  <div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground/60">Quarantine Status</div>
-                  <div className="text-xs font-semibold text-amber-300 font-medium">Restricted (Payload quarantined)</div>
+                  <div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground/60">
+                    Quarantine Status
+                  </div>
+                  <div className="text-xs font-semibold text-amber-300 font-medium">
+                    Restricted (Payload quarantined)
+                  </div>
                 </div>
                 <div className="space-y-1">
-                  <div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground/60">Integrity Signature</div>
+                  <div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground/60">
+                    Integrity Signature
+                  </div>
                   <div className="text-xs font-semibold text-emerald-400 font-medium flex items-center gap-1">
                     <Check className="h-3.5 w-3.5" /> Verified Stellar Signature
                   </div>
@@ -579,8 +621,12 @@ export function AttachmentPreviewDrawer({
               {/* Raw Ciphertext Dump */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
-                  <span className="font-semibold uppercase tracking-wider text-[10px] text-muted-foreground/70">Raw Ciphertext Inspector</span>
-                  <span className="font-mono text-[10px]">16-byte blocks (ASCII representation)</span>
+                  <span className="font-semibold uppercase tracking-wider text-[10px] text-muted-foreground/70">
+                    Raw Ciphertext Inspector
+                  </span>
+                  <span className="font-mono text-[10px]">
+                    16-byte blocks (ASCII representation)
+                  </span>
                 </div>
                 <div className="rounded-xl border border-white/10 bg-black/45 p-5 shadow-inner">
                   <pre className="font-mono text-[12.5px] leading-6 select-text overflow-x-auto text-amber-200/90 whitespace-pre">
@@ -602,13 +648,17 @@ export function AttachmentPreviewDrawer({
               </div>
               <h3 className="text-base font-semibold text-foreground/95">Preview Unavailable</h3>
               <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
-                This file extension <span className="font-semibold text-foreground font-mono">.{type}</span> is not supported for interactive, sandboxed previews in Stealth.
+                This file extension{" "}
+                <span className="font-semibold text-foreground font-mono">.{type}</span> is not
+                supported for interactive, sandboxed previews in Stealth.
               </p>
 
               <div className="w-full mt-6 rounded-xl border border-white/5 bg-white/[0.02] p-4 text-left space-y-3">
                 <div className="flex justify-between border-b border-white/5 pb-2 text-xs">
                   <span className="text-muted-foreground">File name</span>
-                  <span className="font-semibold text-foreground truncate max-w-[200px]">{attachment.name}</span>
+                  <span className="font-semibold text-foreground truncate max-w-[200px]">
+                    {attachment.name}
+                  </span>
                 </div>
                 <div className="flex justify-between border-b border-white/5 pb-2 text-xs">
                   <span className="text-muted-foreground">File size</span>
@@ -616,7 +666,9 @@ export function AttachmentPreviewDrawer({
                 </div>
                 <div className="flex justify-between text-xs">
                   <span className="text-muted-foreground">MIME classification</span>
-                  <span className="font-semibold font-mono text-foreground">{getMimeType(type)}</span>
+                  <span className="font-semibold font-mono text-foreground">
+                    {getMimeType(type)}
+                  </span>
                 </div>
               </div>
 
