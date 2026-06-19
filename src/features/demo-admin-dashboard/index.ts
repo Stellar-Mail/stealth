@@ -56,6 +56,8 @@ export {
 } from "./constants/displayTokens";
 
 export { CampaignTagManager } from "./components/CampaignTagManager";
+export { BulkLabelPanel } from "./components/BulkLabelPanel";
+export type { BulkLabelPanelProps } from "./components/BulkLabelPanel";
 export { MockPublishPanel } from "./components/MockPublishPanel";
 export type { MockPublishPanelProps } from "./components/MockPublishPanel";
 export {
@@ -72,6 +74,20 @@ export type {
   MockPublishStatus,
   MockPublishStep,
 } from "./mockPublishWorkflow";
+export {
+  applyBulkLabelEdit,
+  normalizeDraftLabel,
+  normalizeDraftLabels,
+  parseDraftLabelInput,
+  summarizeBulkLabelEdit,
+} from "./bulkLabelEditor";
+export type {
+  BulkLabelChange,
+  BulkLabelEditResult,
+  BulkLabelOperation,
+  BulkLabelSummary,
+  DraftLabelMessage,
+} from "./bulkLabelEditor";
 
 export {
   createTag,
