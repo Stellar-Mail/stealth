@@ -244,3 +244,38 @@ export { DATASET_EXPORT_SCHEMA_VERSION } from "./types/datasetExport";
 export type { DraftDatasetExport } from "./types/datasetExport";
 export { ExportDatasetButton } from "./components/ExportDatasetButton";
 export type { ExportDatasetButtonProps } from "./components/ExportDatasetButton";
+
+// Campaign KPI definitions (issue #262): types, fixtures, helpers, display tokens.
+export type {
+  CampaignKpiDefinition,
+  KpiMetricKind,
+  KpiStatus,
+  KpiTrend,
+  KpiUnit,
+} from "./types/campaignKpi";
+export { CAMPAIGN_KPI_DEFINITIONS } from "./fixtures/campaignKpiFixtures";
+export {
+  computeKpiProgress,
+  getKpiById,
+  getKpisForCampaign,
+  isKpiMet,
+  sortKpisByMetric,
+  validateCampaignKpiDefinition,
+} from "./utils/campaignKpiHelpers";
+export {
+  KPI_METRIC_TOKENS,
+  KPI_STATUS_TOKENS,
+  getKpiMetricToken,
+  getKpiStatusToken,
+} from "./constants/displayTokens";
+
+// Read receipt state controls (issue #182): states, option copy, and field component.
+export type { ReceiptState, ReceiptStateOption } from "./constants/receiptStates";
+export {
+  RECEIPT_STATES,
+  RECEIPT_STATE_OPTIONS,
+  DEFAULT_RECEIPT_STATE,
+  getReceiptStateOption,
+} from "./constants/receiptStates";
+export { ReceiptStateField } from "./components/ReceiptStateField";
+export type { ReceiptStateFieldProps } from "./components/ReceiptStateField";
