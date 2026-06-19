@@ -35,9 +35,7 @@ export class ScenarioConflictError extends Error {
  * Insertion order is preserved so that {@link ScenarioRegistry.list} output is
  * deterministic.
  */
-export class ScenarioRegistry<
-  T extends RegistrableScenario = RegistrableScenario,
-> {
+export class ScenarioRegistry<T extends RegistrableScenario = RegistrableScenario> {
   private readonly scenarios = new Map<string, T>();
 
   constructor(initial: readonly T[] = []) {
@@ -106,8 +104,7 @@ export class ScenarioRegistry<
     const seen = new Set<string>();
     const conflicts: string[] = [];
     for (const scenario of scenarios) {
-      const duplicate =
-        seen.has(scenario.id) || this.scenarios.has(scenario.id);
+      const duplicate = seen.has(scenario.id) || this.scenarios.has(scenario.id);
       if (duplicate && !conflicts.includes(scenario.id)) {
         conflicts.push(scenario.id);
       }
@@ -158,8 +155,8 @@ export class ScenarioRegistry<
 }
 
 /** Convenience factory mirroring the class constructor. */
-export function createScenarioRegistry<
-  T extends RegistrableScenario = RegistrableScenario,
->(initial: readonly T[] = []): ScenarioRegistry<T> {
+export function createScenarioRegistry<T extends RegistrableScenario = RegistrableScenario>(
+  initial: readonly T[] = [],
+): ScenarioRegistry<T> {
   return new ScenarioRegistry<T>(initial);
 }

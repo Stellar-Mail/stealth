@@ -39,7 +39,15 @@ export function useLayoutPreferences() {
   }, [hydrated, layout]);
 
   const setLayoutPreference = useCallback((patch: Partial<LayoutPreferences>) => {
-    setLayout((prev: LayoutPreferences) => ({ ...prev, ...patch }));
+    setLayout((prev: LayoutPreferences) => {
+      const next = clampPreferences({ ...prev, ...patch });
+      // Only create a new object when at least one value actually changed.
+      const changed = (Object.keys(next) as Array<keyof LayoutPreferences>).some(
+        (k) => prev[k] !== next[k],
+      );
+      if (!changed) return prev;
+      return next;
+    });
   }, []);
 
   const resetLayout = useCallback(() => {

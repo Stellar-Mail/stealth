@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { GripVertical, FolderInput } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   applyMailFilters,
@@ -8,6 +9,7 @@ import {
   type Email,
   type MailFilters,
   type MailFolder,
+  type MailLocation,
 } from "./data";
 import { cn } from "@/lib/utils";
 import { ConvertSenderButton } from "@/features/sender-conversion";
@@ -15,6 +17,7 @@ import { MobileMailCard } from "./MobileMailCard";
 import { EmailTrustBadges } from "./EmailTrustBadges";
 import { BulkActionBar } from "./BulkActionBar";
 import type { BulkActionRequest, BulkFailure, BulkProgressState } from "./bulk-actions";
+import { canDragEmail, DROP_TARGET_FOLDERS, getDropRejectionReason } from "./useDragDrop";
 
 type FilterTab = "all" | "unread" | "flagged";
 
@@ -37,6 +40,7 @@ export function EmailList({
   onArchive,
   onStar,
   onSnooze,
+  onMove,
 }: {
   emails: Email[];
   selectedId: string | null;
@@ -56,9 +60,11 @@ export function EmailList({
   onArchive?: (email: Email) => void;
   onStar?: (email: Email) => void;
   onSnooze?: (email: Email) => void;
+  onMove?: (emailIds: string[], target: MailLocation) => void;
 }) {
   const [activeTab, setActiveTab] = useState<FilterTab>("all");
   const folderLabel = customFolder ?? getFolderLabel(folder);
+  const [movePicker, setMovePicker] = useState<{ emailIds: string[] } | null>(null);
 
   const folderEmails = customFolder
     ? emails.filter((email) =>
@@ -79,8 +85,13 @@ export function EmailList({
   const allSelected = visibleIds.length > 0 && selectedVisibleIds.length === visibleIds.length;
   const someSelected = selectedVisibleIds.length > 0;
   const listRef = useRef<HTMLUListElement>(null);
+  const onSelectRef = useRef(onSelect);
   const onSelectionChangeRef = useRef(onSelectionChange);
   const [lastAnchorId, setLastAnchorId] = useState<string | null>(null);
+
+  useEffect(() => {
+    onSelectRef.current = onSelect;
+  });
 
   useEffect(() => {
     onSelectionChangeRef.current = onSelectionChange;
@@ -106,13 +117,45 @@ export function EmailList({
       }
       if (event.key === "Escape") {
         event.preventDefault();
+        if (movePicker) {
+          setMovePicker(null);
+          return;
+        }
         onSelectionChangeRef.current([]);
+      }
+      if (event.key === "m" || event.key === "M") {
+        const focused = document.activeElement;
+        if (focused && ["INPUT", "TEXTAREA", "SELECT"].includes((focused as HTMLElement).tagName))
+          return;
+        event.preventDefault();
+        const ids = selectedIds.length > 0 ? selectedIds : selectedId ? [selectedId] : [];
+        if (ids.length > 0) setMovePicker({ emailIds: ids });
       }
     };
 
     node.addEventListener("keydown", onKeyDown);
     return () => node.removeEventListener("keydown", onKeyDown);
   });
+
+  useEffect(() => {
+    const node = listRef.current;
+    if (!node) return;
+
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (!target) return;
+      if (target.closest('[role="checkbox"], input, button[aria-label^="Select"]')) return;
+
+      const row = target.closest<HTMLElement>("[data-email-id]");
+      const id = row?.dataset.emailId;
+      if (!id || !node.contains(row)) return;
+
+      onSelectRef.current(id);
+    };
+
+    node.addEventListener("pointerdown", onPointerDown, true);
+    return () => node.removeEventListener("pointerdown", onPointerDown, true);
+  }, []);
 
   const toggleSelection = (id: string) => {
     const next = new Set(selectedIds);
@@ -240,6 +283,13 @@ export function EmailList({
         {filtered.map((e, idx) => {
           const active = selectedId === e.id || selectedIds.includes(e.id);
           const selected = selectedIds.includes(e.id);
+          const selectMessage = (shiftKey = false) => {
+            if (shiftKey && lastAnchorId) {
+              selectRange(e.id);
+            } else {
+              onSelect(e.id);
+            }
+          };
 
           if (useMobile) {
             return (
@@ -290,7 +340,16 @@ export function EmailList({
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: idx * 0.02, duration: 0.25, ease: [0.2, 0.8, 0.2, 1] }}
             >
-              <div className="flex items-start gap-2">
+              <div
+                className="flex items-start gap-2"
+                onPointerDown={(event) => {
+                  const target = event.target as HTMLElement | null;
+                  if (target?.closest('[role="checkbox"], input, button[aria-label^="Select"]')) {
+                    return;
+                  }
+                  selectMessage(event.shiftKey);
+                }}
+              >
                 <Checkbox
                   checked={selected}
                   aria-label={`Select ${e.from}: ${e.subject}`}
@@ -301,13 +360,8 @@ export function EmailList({
                   className="mt-2.5 border-white/15 bg-white/[0.035] data-[state=checked]:border-white/30"
                 />
                 <motion.button
-                  onClick={(event) => {
-                    if (event.shiftKey && lastAnchorId) {
-                      selectRange(e.id);
-                    } else {
-                      onSelect(e.id);
-                    }
-                  }}
+                  data-email-id={e.id}
+                  onClick={(event) => selectMessage(event.shiftKey)}
                   whileTap={{ scale: 0.975 }}
                   transition={{ type: "spring", stiffness: 520, damping: 30 }}
                   aria-selected={active}
@@ -396,6 +450,65 @@ export function EmailList({
           );
         })}
       </ul>
+
+      {/* M-key folder picker overlay */}
+      <AnimatePresence>
+        {movePicker && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.97 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.97 }}
+            transition={{ duration: 0.15 }}
+            className="absolute inset-0 z-30 flex items-center justify-center bg-black/50 backdrop-blur-sm rounded-[8px]"
+          >
+            <div className="w-56 rounded-xl border border-white/12 bg-[oklch(0.15_0.005_270)] shadow-2xl overflow-hidden">
+              <div className="flex items-center gap-2 px-3 py-2.5 border-b border-white/10">
+                <FolderInput className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="text-xs font-medium text-foreground">Move to folder</span>
+                <span className="ml-auto text-[10px] text-muted-foreground">Esc to cancel</span>
+              </div>
+              <ul className="py-1">
+                {DROP_TARGET_FOLDERS.map((target) => {
+                  // Check if all selected emails can move to this target
+                  const targetEmails = movePicker.emailIds
+                    .map((id) => emails.find((em) => em.id === id))
+                    .filter((em): em is Email => !!em);
+                  const rejections = targetEmails
+                    .map((em) => getDropRejectionReason(em, target))
+                    .filter(Boolean);
+                  const disabled = rejections.length === targetEmails.length;
+                  const reason = disabled ? rejections[0] : null;
+
+                  return (
+                    <li key={target}>
+                      <button
+                        type="button"
+                        disabled={disabled}
+                        title={reason ?? undefined}
+                        onClick={() => {
+                          const validIds = targetEmails
+                            .filter((em) => !getDropRejectionReason(em, target))
+                            .map((em) => em.id);
+                          if (validIds.length > 0) onMove?.(validIds, target);
+                          setMovePicker(null);
+                        }}
+                        className={cn(
+                          "w-full px-3 py-2 text-left text-sm transition",
+                          disabled
+                            ? "opacity-40 cursor-not-allowed text-muted-foreground"
+                            : "hover:bg-white/[0.06] text-foreground cursor-pointer",
+                        )}
+                      >
+                        {getFolderLabel(target)}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </section>
   );
 }

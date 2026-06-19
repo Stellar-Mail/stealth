@@ -38,9 +38,9 @@ describe("ScenarioRegistry", () => {
       registry.registerAll([scenario("a"), scenario("b")]);
       expect(registry.ids()).toEqual(["a", "b"]);
 
-      expect(() =>
-        registry.registerAll([scenario("c"), scenario("c")]),
-      ).toThrow(ScenarioConflictError);
+      expect(() => registry.registerAll([scenario("c"), scenario("c")])).toThrow(
+        ScenarioConflictError,
+      );
       expect(registry.has("c")).toBe(false);
     });
   });
@@ -66,25 +66,21 @@ describe("ScenarioRegistry", () => {
     it("detects ids that clash with existing scenarios", () => {
       const registry = new ScenarioRegistry([scenario("a"), scenario("b")]);
 
-      expect(registry.detectConflicts([scenario("b"), scenario("c")])).toEqual([
-        "b",
-      ]);
+      expect(registry.detectConflicts([scenario("b"), scenario("c")])).toEqual(["b"]);
     });
 
     it("detects duplicates within the incoming batch", () => {
       const registry = new ScenarioRegistry();
 
-      expect(
-        registry.detectConflicts([scenario("x"), scenario("x"), scenario("y")]),
-      ).toEqual(["x"]);
+      expect(registry.detectConflicts([scenario("x"), scenario("x"), scenario("y")])).toEqual([
+        "x",
+      ]);
     });
 
     it("returns an empty array when there are no conflicts", () => {
       const registry = new ScenarioRegistry([scenario("a")]);
 
-      expect(registry.detectConflicts([scenario("b"), scenario("c")])).toEqual(
-        [],
-      );
+      expect(registry.detectConflicts([scenario("b"), scenario("c")])).toEqual([]);
     });
   });
 
@@ -101,9 +97,7 @@ describe("ScenarioRegistry", () => {
     it("throws on conflict by default and changes nothing", () => {
       const registry = new ScenarioRegistry([scenario("a", "Original")]);
 
-      expect(() => registry.merge([scenario("a", "Replacement")])).toThrow(
-        ScenarioConflictError,
-      );
+      expect(() => registry.merge([scenario("a", "Replacement")])).toThrow(ScenarioConflictError);
       expect(registry.get("a")?.name).toBe("Original");
     });
 
@@ -123,10 +117,7 @@ describe("ScenarioRegistry", () => {
     it("replaces entries with the 'overwrite' strategy", () => {
       const registry = new ScenarioRegistry([scenario("a", "Original")]);
 
-      const conflicts = registry.merge(
-        [scenario("a", "Replacement")],
-        "overwrite",
-      );
+      const conflicts = registry.merge([scenario("a", "Replacement")], "overwrite");
 
       expect(conflicts).toEqual(["a"]);
       expect(registry.get("a")?.name).toBe("Replacement");

@@ -1,0 +1,398 @@
+{
+  "structs": [
+    {
+      "name": "MailboxPolicy",
+      "fields": [
+        {
+          "name": "allow_unknown",
+          "type": "bool"
+        },
+        {
+          "name": "require_verified",
+          "type": "bool"
+        },
+        {
+          "name": "require_receipt",
+          "type": "bool"
+        },
+        {
+          "name": "minimum_postage",
+          "type": "i128"
+        }
+      ]
+    },
+    {
+      "name": "VersionedMailboxPolicy",
+      "fields": [
+        {
+          "name": "policy",
+          "type": "udt:MailboxPolicy"
+        },
+        {
+          "name": "version",
+          "type": "u32"
+        }
+      ]
+    },
+    {
+      "name": "DelegateScope",
+      "fields": [
+        {
+          "name": "can_set_policy",
+          "type": "bool"
+        },
+        {
+          "name": "can_set_senders",
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "PolicyDecision",
+      "fields": [
+        {
+          "name": "allowed",
+          "type": "bool"
+        },
+        {
+          "name": "reason",
+          "type": "udt:PolicyReason"
+        },
+        {
+          "name": "required_postage",
+          "type": "i128"
+        },
+        {
+          "name": "rule",
+          "type": "udt:SenderRule"
+        },
+        {
+          "name": "version",
+          "type": "u32"
+        }
+      ]
+    }
+  ],
+  "enums": [
+    {
+      "name": "SenderRule",
+      "cases": [
+        {
+          "name": "Default",
+          "value": 0
+        },
+        {
+          "name": "Allow",
+          "value": 1
+        },
+        {
+          "name": "Block",
+          "value": 2
+        }
+      ]
+    },
+    {
+      "name": "PolicyReason",
+      "cases": [
+        {
+          "name": "SenderAllowed",
+          "value": 0
+        },
+        {
+          "name": "SenderBlocked",
+          "value": 1
+        },
+        {
+          "name": "UnknownSendersDisabled",
+          "value": 2
+        },
+        {
+          "name": "VerificationRequired",
+          "value": 3
+        },
+        {
+          "name": "ReceiptRequired",
+          "value": 4
+        },
+        {
+          "name": "InsufficientPostage",
+          "value": 5
+        },
+        {
+          "name": "PolicySatisfied",
+          "value": 6
+        },
+        {
+          "name": "TierSatisfied",
+          "value": 7
+        }
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "name": "InvalidPostage",
+      "value": 1
+    },
+    {
+      "name": "UnauthorizedDelegate",
+      "value": 2
+    }
+  ],
+  "functions": [
+    {
+      "name": "set_policy",
+      "inputs": [
+        {
+          "name": "owner",
+          "type": "address"
+        },
+        {
+          "name": "policy",
+          "type": "udt:MailboxPolicy"
+        }
+      ],
+      "output": "result:void:Error"
+    },
+    {
+      "name": "set_policy_as",
+      "inputs": [
+        {
+          "name": "owner",
+          "type": "address"
+        },
+        {
+          "name": "actor",
+          "type": "address"
+        },
+        {
+          "name": "policy",
+          "type": "udt:MailboxPolicy"
+        }
+      ],
+      "output": "result:void:Error"
+    },
+    {
+      "name": "get_policy",
+      "inputs": [
+        {
+          "name": "owner",
+          "type": "address"
+        }
+      ],
+      "output": "udt:MailboxPolicy"
+    },
+    {
+      "name": "get_versioned_policy",
+      "inputs": [
+        {
+          "name": "owner",
+          "type": "address"
+        }
+      ],
+      "output": "udt:VersionedMailboxPolicy"
+    },
+    {
+      "name": "policy_version",
+      "inputs": [
+        {
+          "name": "owner",
+          "type": "address"
+        }
+      ],
+      "output": "u32"
+    },
+    {
+      "name": "set_delegate",
+      "inputs": [
+        {
+          "name": "owner",
+          "type": "address"
+        },
+        {
+          "name": "delegate",
+          "type": "address"
+        },
+        {
+          "name": "scope",
+          "type": "udt:DelegateScope"
+        }
+      ],
+      "output": "result:void:Error"
+    },
+    {
+      "name": "delegate_scope",
+      "inputs": [
+        {
+          "name": "owner",
+          "type": "address"
+        },
+        {
+          "name": "delegate",
+          "type": "address"
+        }
+      ],
+      "output": "udt:DelegateScope"
+    },
+    {
+      "name": "set_sender_rule",
+      "inputs": [
+        {
+          "name": "owner",
+          "type": "address"
+        },
+        {
+          "name": "sender",
+          "type": "address"
+        },
+        {
+          "name": "rule",
+          "type": "udt:SenderRule"
+        }
+      ],
+      "output": "result:void:Error"
+    },
+    {
+      "name": "set_sender_rule_as",
+      "inputs": [
+        {
+          "name": "owner",
+          "type": "address"
+        },
+        {
+          "name": "actor",
+          "type": "address"
+        },
+        {
+          "name": "sender",
+          "type": "address"
+        },
+        {
+          "name": "rule",
+          "type": "udt:SenderRule"
+        }
+      ],
+      "output": "result:void:Error"
+    },
+    {
+      "name": "set_sender_tier",
+      "inputs": [
+        {
+          "name": "owner",
+          "type": "address"
+        },
+        {
+          "name": "sender",
+          "type": "address"
+        },
+        {
+          "name": "minimum_postage",
+          "type": "i128"
+        }
+      ],
+      "output": "result:void:Error"
+    },
+    {
+      "name": "set_sender_tier_as",
+      "inputs": [
+        {
+          "name": "owner",
+          "type": "address"
+        },
+        {
+          "name": "actor",
+          "type": "address"
+        },
+        {
+          "name": "sender",
+          "type": "address"
+        },
+        {
+          "name": "minimum_postage",
+          "type": "i128"
+        }
+      ],
+      "output": "result:void:Error"
+    },
+    {
+      "name": "sender_rule",
+      "inputs": [
+        {
+          "name": "owner",
+          "type": "address"
+        },
+        {
+          "name": "sender",
+          "type": "address"
+        }
+      ],
+      "output": "udt:SenderRule"
+    },
+    {
+      "name": "sender_tier",
+      "inputs": [
+        {
+          "name": "owner",
+          "type": "address"
+        },
+        {
+          "name": "sender",
+          "type": "address"
+        }
+      ],
+      "output": "option:i128"
+    },
+    {
+      "name": "can_mail",
+      "inputs": [
+        {
+          "name": "owner",
+          "type": "address"
+        },
+        {
+          "name": "sender",
+          "type": "address"
+        },
+        {
+          "name": "verified",
+          "type": "bool"
+        },
+        {
+          "name": "postage",
+          "type": "i128"
+        },
+        {
+          "name": "receipt",
+          "type": "bool"
+        }
+      ],
+      "output": "bool"
+    },
+    {
+      "name": "evaluate",
+      "inputs": [
+        {
+          "name": "owner",
+          "type": "address"
+        },
+        {
+          "name": "sender",
+          "type": "address"
+        },
+        {
+          "name": "verified",
+          "type": "bool"
+        },
+        {
+          "name": "postage",
+          "type": "i128"
+        },
+        {
+          "name": "receipt",
+          "type": "bool"
+        }
+      ],
+      "output": "udt:PolicyDecision"
+    }
+  ]
+}

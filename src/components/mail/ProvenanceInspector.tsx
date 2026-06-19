@@ -80,7 +80,9 @@ export function ProvenanceInspector({
                       </span>
                       <span
                         className={`text-xs text-foreground/90 break-all leading-normal ${
-                          pair.isCode ? "font-mono bg-white/[0.03] px-1 py-0.5 rounded border border-white/[0.04]" : ""
+                          pair.isCode
+                            ? "font-mono bg-white/[0.03] px-1 py-0.5 rounded border border-white/[0.04]"
+                            : ""
                         }`}
                       >
                         {pair.value}

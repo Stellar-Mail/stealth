@@ -1,10 +1,13 @@
 import type { PresetScenario } from "../types";
+import { encryptedCampaignPreset } from "./encryptedCampaignPreset";
+import { conferenceCampaignPreset } from "./conferenceCampaignPreset";
 
 export const PRESET_SCENARIOS: PresetScenario[] = [
   {
     id: "relay-verification",
     name: "Relay Verification",
-    description: "Simulates registration, OTP generation, and identity verification for a new message routing relay.",
+    description:
+      "Simulates registration, OTP generation, and identity verification for a new message routing relay.",
     stats: [
       { label: "Active Accounts", value: "13", delta: "+3" },
       { label: "Messages Sent", value: "847", delta: "+12%" },
@@ -90,15 +93,28 @@ export const PRESET_SCENARIOS: PresetScenario[] = [
       },
     ],
     auditEvents: [
-      { action: "Relay Node 07 registration initiated", actor: "relay07*stealth.demo", timestamp: "2026-06-16T12:00:00Z" },
-      { action: "Authorization OTP generated and dispatched", actor: "system", timestamp: "2026-06-16T12:01:00Z" },
-      { action: "Relay verification check pending for GCRLY...N007", actor: "system", timestamp: "2026-06-16T12:02:00Z" },
+      {
+        action: "Relay Node 07 registration initiated",
+        actor: "relay07*stealth.demo",
+        timestamp: "2026-06-16T12:00:00Z",
+      },
+      {
+        action: "Authorization OTP generated and dispatched",
+        actor: "system",
+        timestamp: "2026-06-16T12:01:00Z",
+      },
+      {
+        action: "Relay verification check pending for GCRLY...N007",
+        actor: "system",
+        timestamp: "2026-06-16T12:02:00Z",
+      },
     ],
   },
   {
     id: "proof-pending",
     name: "Proof Pending",
-    description: "Simulates an incoming message bridge event holding for cryptographic proof generation on the Stellar ledger.",
+    description:
+      "Simulates an incoming message bridge event holding for cryptographic proof generation on the Stellar ledger.",
     stats: [
       { label: "Active Accounts", value: "13", delta: "+3" },
       { label: "Messages Sent", value: "847", delta: "+12%" },
@@ -203,15 +219,114 @@ export const PRESET_SCENARIOS: PresetScenario[] = [
       },
     ],
     auditEvents: [
-      { action: "Incoming bridge message captured", actor: "bridge*stealth.demo", timestamp: "2026-06-16T12:10:00Z" },
-      { action: "Postage preimage submitted to escrow contract", actor: "bridge*stealth.demo", timestamp: "2026-06-16T12:11:00Z" },
-      { action: "On-chain Soroban ledger proof check scheduled", actor: "system", timestamp: "2026-06-16T12:12:00Z" },
+      {
+        action: "Incoming bridge message captured",
+        actor: "bridge*stealth.demo",
+        timestamp: "2026-06-16T12:10:00Z",
+      },
+      {
+        action: "Postage preimage submitted to escrow contract",
+        actor: "bridge*stealth.demo",
+        timestamp: "2026-06-16T12:11:00Z",
+      },
+      {
+        action: "On-chain Soroban ledger proof check scheduled",
+        actor: "system",
+        timestamp: "2026-06-16T12:12:00Z",
+      },
+    ],
+  },
+  {
+    id: "paid-sender-request",
+    name: "Paid Sender Request",
+    description:
+      "Simulates a sender who paid postage and is waiting for a reviewer to approve the request.",
+    stats: [
+      { label: "Active Accounts", value: "11", delta: "+1" },
+      { label: "Messages Sent", value: "832", delta: "+9%" },
+      { label: "Pending Requests", value: "6", delta: "+2" },
+      { label: "Total Postage (XLM)", value: "1,310.0", delta: "+18.4" },
+    ],
+    accounts: [
+      { name: "Alice Demo", address: "GABCD...1234", balance: "500.0 XLM", type: "User" },
+      { name: "Bob Demo", address: "GBCDE...2345", balance: "320.0 XLM", type: "User" },
+      { name: "Moderator Demo", address: "GMODR...9999", balance: "750.0 XLM", type: "Reviewer" },
+      { name: "Relay South", address: "GSRLY...SOUT", balance: "980.0 XLM", type: "Relay" },
+    ],
+    mail: [
+      {
+        subject: "Payment received for message request",
+        status: "pending",
+        folder: "requests",
+        from: "Sender Review",
+        email: "review*stealth.demo",
+        body: "A sender has paid postage and is awaiting review. Please confirm that the sender is allowed to continue.",
+        time: "14m ago",
+        unread: true,
+        starred: false,
+        labels: ["Request", "Paid"],
+        avatarColor: "#58616f",
+        postageAmount: "10000000",
+        verifiedSender: false,
+      },
+      {
+        subject: "Postage confirmation ready",
+        status: "delivered",
+        folder: "inbox",
+        from: "Billing Bot",
+        email: "billing@example.org",
+        body: "This is a synthetic confirmation that postage was captured for the pending request.",
+        time: "22m ago",
+        unread: false,
+        starred: false,
+        labels: ["Billing"],
+        avatarColor: "#6d7482",
+      },
+    ],
+    attachments: [
+      {
+        id: "att-paid-request",
+        fileName: "payment_receipt.pdf",
+        fileSize: "88 KB",
+        fileType: "PDF Document",
+        messageSubject: "Payment received for message request",
+        sender: "review*stealth.demo",
+      },
+    ],
+    events: [
+      {
+        id: "evt-paid-request-review",
+        title: "Paid Sender Request Review",
+        date: "2026-06-16",
+        time: "1:30 PM",
+        location: "Review Queue",
+        organizer: "moderator*stealth.demo",
+        status: "tentative",
+      },
+    ],
+    auditEvents: [
+      {
+        action: "Postage payment captured for sender review",
+        actor: "billing@example.org",
+        timestamp: "2026-06-16T13:12:00Z",
+      },
+      {
+        action: "Manual approval queue updated",
+        actor: "moderator*stealth.demo",
+        timestamp: "2026-06-16T13:15:00Z",
+      },
+      {
+        action: "Sender request marked pending review",
+        actor: "system",
+        timestamp: "2026-06-16T13:18:00Z",
+      },
     ],
   },
   {
     id: "receipt-settlement",
     name: "Receipt Settlement",
-    description: "Simulates the successful settlement of postage fees and read confirmation receipts on the Soroban smart contract ledger.",
+    description:
+      "Simulates the successful settlement of postage fees and read confirmation receipts on the Soroban smart contract ledger.",
     stats: [
       { label: "Active Accounts", value: "12", delta: "0" },
       { label: "Messages Sent", value: "849", delta: "+15%" },
@@ -300,9 +415,23 @@ export const PRESET_SCENARIOS: PresetScenario[] = [
       },
     ],
     auditEvents: [
-      { action: "Soroban delivery receipt contract invoked: CCLC7...RECP", actor: "system", timestamp: "2026-06-16T11:00:00Z" },
-      { action: "Cryptographic read proof signature verified on-chain", actor: "system", timestamp: "2026-06-16T11:02:00Z" },
-      { action: "Postage fee of 0.0001 XLM released to Relay East", actor: "system", timestamp: "2026-06-16T11:05:00Z" },
+      {
+        action: "Soroban delivery receipt contract invoked: CCLC7...RECP",
+        actor: "system",
+        timestamp: "2026-06-16T11:00:00Z",
+      },
+      {
+        action: "Cryptographic read proof signature verified on-chain",
+        actor: "system",
+        timestamp: "2026-06-16T11:02:00Z",
+      },
+      {
+        action: "Postage fee of 0.0001 XLM released to Relay East",
+        actor: "system",
+        timestamp: "2026-06-16T11:05:00Z",
+      },
     ],
   },
+  encryptedCampaignPreset,
+  conferenceCampaignPreset,
 ];

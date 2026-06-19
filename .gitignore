@@ -21,6 +21,10 @@ target/
 .wrangler/
 .dev.vars
 
+# Playwright
+playwright-report/
+test-results/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -32,3 +36,7 @@ target/
 *.sln
 *.sw?
 test_snapshots/
+
+CLAUDE.md
+plan.md
+ASSUMPTIONS.md

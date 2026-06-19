@@ -28,9 +28,7 @@ The motion presets system (`@/lib/motion-presets`) provides centralized, accessi
 import { motionPresets } from "@/lib/motion-presets";
 import { motion, AnimatePresence } from "framer-motion";
 
-<motion.div {...motionPresets.entrance.slideUp()}>
-  Content with entrance animation
-</motion.div>
+<motion.div {...motionPresets.entrance.slideUp()}>Content with entrance animation</motion.div>;
 ```
 
 ### Categories
@@ -53,4 +51,3 @@ http://localhost:5173/motion-gallery (dev mode only)
 ### Documentation
 
 Full documentation is available in [`src/lib/MOTION_PRESETS.md`](../../lib/MOTION_PRESETS.md).
-

@@ -12,6 +12,8 @@ interface TemplatePickerProps {
   templates?: MessageTemplate[];
   /** Seed the draft dataset (e.g. for previews/tests). */
   initialDataset?: Draft[];
+  /** Controlled active draft dataset. */
+  dataset?: Draft[];
   /** Notified whenever the draft dataset changes (insert/remove). */
   onDatasetChange?: (dataset: Draft[]) => void;
   className?: string;
@@ -25,19 +27,24 @@ interface TemplatePickerProps {
 export function TemplatePicker({
   templates = messageTemplates,
   initialDataset = [],
+  dataset: propDataset,
   onDatasetChange,
   className,
 }: TemplatePickerProps) {
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(templates[0]?.id ?? null);
-  const [dataset, setDataset] = useState<Draft[]>(initialDataset);
+  const [internalDataset, setInternalDataset] = useState<Draft[]>(initialDataset);
+
+  const dataset = propDataset !== undefined ? propDataset : internalDataset;
 
   const results = useMemo(() => searchTemplates(templates, query), [templates, query]);
   const selected = templates.find((template) => template.id === selectedId) ?? results[0] ?? null;
   const alreadyInserted = selected ? isTemplateInserted(dataset, selected) : false;
 
   const commitDataset = (next: Draft[]) => {
-    setDataset(next);
+    if (propDataset === undefined) {
+      setInternalDataset(next);
+    }
     onDatasetChange?.(next);
   };
 
