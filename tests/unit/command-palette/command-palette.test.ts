@@ -175,6 +175,50 @@ describe("buildPaletteModel", () => {
     expect(senders?.rows.some((r) => r.type === "sender")).toBe(true);
   });
 
+  it("surfaces proof and settings results for searchable palette actions", () => {
+    const proofSections = buildPaletteModel(ctxOf(), "q2", emails);
+    const proofs = proofSections.find((s) => s.id === "proofs");
+    expect(proofs?.rows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: "proof",
+          proof: "01c7...9a9",
+          email: expect.objectContaining({ id: "1", subject: "Q2 brand system" }),
+        }),
+      ]),
+    );
+
+    const settingSections = buildPaletteModel(ctxOf(), "notifications", emails);
+    const settings = settingSections.find((s) => s.id === "settings");
+    expect(settings?.rows).toEqual([
+      expect.objectContaining({
+        type: "setting",
+        setting: expect.objectContaining({
+          id: "notifications",
+          label: "Notifications",
+        }),
+      }),
+    ]);
+  });
+
+  it("deduplicates sender search results by address", () => {
+    const sections = buildPaletteModel(ctxOf(), "lina", [
+      ...emails,
+      email({
+        id: "9",
+        from: "Lina Park",
+        email: "lina*vantage.studio",
+        subject: "Follow-up",
+      }),
+    ]);
+    const senders = sections.find((s) => s.id === "senders");
+    expect(senders?.rows.filter((r) => r.type === "sender")).toHaveLength(1);
+  });
+
+  it("returns no sections for a query with no command, folder, sender, proof, or setting matches", () => {
+    expect(buildPaletteModel(ctxOf(), "zzzzzz", emails)).toEqual([]);
+  });
+
   it("excludes disabled commands from keyboard-selectable rows", () => {
     const sections = buildPaletteModel(ctxOf({ email: null }), "", emails);
     const selectable = selectableRows(sections);
