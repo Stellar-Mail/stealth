@@ -88,3 +88,22 @@
   transform: translateY(0);
   filter: brightness(0.96);
 }
+
+/* Keyboard accessibility: visible focus indicator */
+.otp-copy-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px oklch(0.65 0.18 260), inset 0 1px 0 oklch(1 0 0 / 0.7);
+  transform: translateY(-1px);
+}
+
+/* Respect reduced motion preference in styles */
+@media (prefers-reduced-motion: reduce) {
+  .otp-copy-btn {
+    transition: none;
+  }
+  .otp-copy-btn:hover,
+  .otp-copy-btn:active {
+    transform: none;
+    filter: none;
+  }
+}

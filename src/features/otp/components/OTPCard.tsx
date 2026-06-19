@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { Check, Copy } from "lucide-react";
 import "../styles.css";
 
 export function OTPCard({ code }: { code: string }) {
   const [copied, setCopied] = useState(false);
   const digits = code.split("");
+  const prefersReducedMotion = useReducedMotion();
 
   const handleCopy = async () => {
     try {
@@ -17,12 +18,14 @@ export function OTPCard({ code }: { code: string }) {
     }
   };
 
+  const copyLabel = copied ? "Code copied to clipboard" : "Copy verification code";
+
   return (
     <div className="otp-scene my-7 flex justify-center overflow-hidden rounded-[18px] px-5 py-7 sm:px-8">
       <motion.div
-        initial={{ opacity: 0, y: 12, filter: "blur(8px)" }}
-        animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-        transition={{ duration: 0.45, ease: [0.2, 0.8, 0.2, 1] }}
+        initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 12, filter: "blur(8px)" }}
+        animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, y: 0, filter: "blur(0px)" }}
+        transition={{ duration: prefersReducedMotion ? 0.01 : 0.45, ease: [0.2, 0.8, 0.2, 1] }}
         className="otp-card relative w-full max-w-[340px] overflow-hidden rounded-[14px] px-6 pb-6 pt-5"
       >
         <div className="mb-4 flex justify-center">
@@ -36,28 +39,39 @@ export function OTPCard({ code }: { code: string }) {
           We&rsquo;ve detected a unique passkey in this email. Copy it to use anywhere.
         </p>
 
-        <div className="mt-5 flex items-center justify-center gap-2">
+        <div
+          className="mt-5 flex items-center justify-center gap-2"
+          role="group"
+          aria-label="Verification code digits"
+          aria-describedby="otp-desc"
+        >
           {digits.map((digit, i) => (
             <div
               key={i}
               className="otp-digit grid h-10 w-9 place-items-center rounded-md font-mono text-[16px] font-semibold tabular-nums text-foreground"
+              aria-hidden="true"
             >
               {digit}
             </div>
           ))}
         </div>
+        <p id="otp-desc" className="sr-only">
+          {digits.length}-digit verification code detected. Use the copy button below to copy it.
+        </p>
 
         <button
           onClick={handleCopy}
-          className="otp-copy-btn mt-5 flex h-10 w-full items-center justify-center gap-2 rounded-full text-[13px] font-semibold"
+          aria-label={copyLabel}
+          aria-pressed={copied}
+          className="otp-copy-btn mt-5 flex h-10 w-full items-center justify-center gap-2 rounded-full text-[13px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         >
           {copied ? (
             <>
-              <Check className="h-4 w-4" /> Copied
+              <Check className="h-4 w-4" aria-hidden="true" /> Copied
             </>
           ) : (
             <>
-              <Copy className="h-3.5 w-3.5" /> Copy code
+              <Copy className="h-3.5 w-3.5" aria-hidden="true" /> Copy code
             </>
           )}
         </button>
@@ -65,6 +79,11 @@ export function OTPCard({ code }: { code: string }) {
         <p className="mt-3 text-center text-[10.5px] text-muted-foreground/80">
           Code auto-detected from message body
         </p>
+
+        {/* Hidden live region for screen readers to announce copy status */}
+        <div aria-live="polite" aria-atomic="true" className="sr-only">
+          {copied ? "Verification code copied successfully" : ""}
+        </div>
       </motion.div>
     </div>
   );
