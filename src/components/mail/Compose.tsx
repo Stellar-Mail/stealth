@@ -116,6 +116,41 @@ export function Compose({
     [body],
   );
 
+  // Load draft from localStorage on mount if exists
+  useEffect(() => {
+    const saved = localStorage.getItem("composeDraft");
+    if (saved) {
+      try {
+        const draft = JSON.parse(saved);
+        if (draft && typeof draft === "object") {
+          setTo(draft.to ?? "");
+          setSubject(draft.subject ?? "");
+          setBody(draft.body ?? "");
+          setPostage(draft.postage ?? initialPostage);
+          setEncrypted(draft.encrypted ?? true);
+          setReceipt(draft.receipt ?? true);
+          setAttachments(draft.attachments ?? []);
+        }
+      } catch (e) {
+        console.error("Failed to parse saved draft", e);
+      }
+    }
+  }, []);
+
+  // Autosave draft to localStorage on changes
+  useEffect(() => {
+    const draft = {
+      to,
+      subject,
+      body,
+      postage,
+      encrypted,
+      receipt,
+      attachments,
+    };
+    localStorage.setItem("composeDraft", JSON.stringify(draft));
+  }, [to, subject, body, postage, encrypted, receipt, attachments]);
+
   // Hydrate / reset form when opening or closing
   useEffect(() => {
     if (open) {
@@ -239,8 +274,11 @@ export function Compose({
   const removeAttachment = (index: number) => {
     setAttachments(attachments.filter((_, i) => i !== index));
   };
+  const [isScheduled, setIsScheduled] = useState(false);
 
   const handleSend = async (scheduled = false) => {
+    // Cancel any existing schedule if user decides to send now
+    if (scheduled) setIsScheduled(true);
     // Prevent sending if recipients not fully resolved
     if (resolvedRecipients.length === 0) {
       onShowToast?.("Please add at least one recipient");
@@ -337,6 +375,7 @@ export function Compose({
       mode: scheduled ? "schedule" : mode,
     });
     setIsSending(false);
+    setIsScheduled(false);
     onClose();
     const trusted = isTrustedSender(quoteState);
     onShowToast?.(
@@ -568,12 +607,23 @@ export function Compose({
               {/* Send button */}
               <motion.button
                 whileTap={{ scale: 0.97 }}
-                onClick={() => handleSend(true)}
+                onClick={() => {
+                  if (isScheduled) {
+                    // Cancel scheduled send
+                    setIsScheduled(false);
+                    onShowToast?.("Scheduled send canceled");
+                  } else {
+                    handleSend(true);
+                  }
+                }}
                 disabled={isSending}
-                className="ml-auto inline-flex items-center gap-2 rounded-lg border border-white/10 px-3 py-1.5 text-xs text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground"
+                className={cn(
+                  "ml-auto inline-flex items-center gap-2 rounded-lg border border-white/10 px-3 py-1.5 text-xs text-muted-foreground",
+                  "hover:bg-white/[0.06] hover:text-foreground",
+                )}
               >
                 <CalendarClock className="h-3.5 w-3.5" />
-                Schedule
+                {isScheduled ? "Cancel Schedule" : "Schedule"}
               </motion.button>
               {(() => {
                 const policyBlocked = isPolicyBlocking(quoteState);
