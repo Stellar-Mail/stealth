@@ -8,7 +8,7 @@ Run from the repository root:
 node --test tools/v2/team/team-analytics-dashboard/tests/analytics-dashboard-fixtures.test.mjs
 ```
 
-Expected result:
+Expected result — 10 passing tests:
 
 - the fixture parses as valid JSON
 - `tool` equals `"team-analytics-dashboard"` and `version` is a positive integer
@@ -21,6 +21,31 @@ Expected result:
 - every member with SLA breaches appears in `summary.reviewRequiredMemberIds`
 - the top performer is `active` with zero SLA breaches
 - the bottleneck member holds the highest `openThreads` count
+- `generateDashboardReport()` produces output matching the fixture's expected summary and member statuses
+
+Also run the snapshot test suite:
+
+```bash
+node --test tools/v2/team/team-analytics-dashboard/tests/analytics-fixtures.test.mjs
+```
+
+Expected result — 2 passing tests:
+
+- the snapshot fixture follows the local review contract (source report → snapshot mapping)
+- `generateSnapshots()` produces output matching the fixture's expected snapshot values
+
+## Service Integration Tests
+
+The dashboard service test imports `generateDashboardReport` from `services/analytics-dashboard.service.mjs` and validates:
+
+- returned `teamId` and `period` match the fixture input
+- each member has the expected `memberId`, `status`, `avgResponseTimeHours`, and `slaBreaches`
+- the summary block (totals, top performer, bottleneck, review members) matches fixture expectations
+
+The snapshot service test imports `generateSnapshots` from `services/analytics-snapshot.service.mjs` and validates:
+
+- returned snapshot count matches expected
+- each snapshot's `id`, `team`, `period`, `status`, `totalThreads`, `averageFirstResponseHours`, `openBacklog`, `sourceReportId`, and `reviewRequired` match fixture expectations
 
 ## Manual Review Checklist
 
