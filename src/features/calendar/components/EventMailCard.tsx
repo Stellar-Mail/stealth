@@ -271,11 +271,13 @@ export function EventMailCard({
                     onChange={(change) => handleReminder(change.target.value)}
                     className="h-7 appearance-none bg-transparent pl-1.5 pr-6 outline-none disabled:opacity-50"
                   >
-                    {["None", "10 minutes", "15 minutes", "30 minutes", "1 hour"].map((reminder) => (
-                      <option key={reminder} value={reminder} className="bg-background">
-                        {reminder}
-                      </option>
-                    ))}
+                    {["None", "10 minutes", "15 minutes", "30 minutes", "1 hour"].map(
+                      (reminder) => (
+                        <option key={reminder} value={reminder} className="bg-background">
+                          {reminder}
+                        </option>
+                      ),
+                    )}
                   </select>
                   <ChevronDown className="pointer-events-none absolute right-1.5 h-2.5 w-2.5" />
                 </label>
