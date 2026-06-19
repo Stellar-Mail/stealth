@@ -5,6 +5,7 @@ import type {
   Condition,
   ConditionGroup,
 } from "../types";
+import { ValidationService } from "./validation.service";
 
 export class RuleEngineService {
   evaluate(rule: InboxRule, mailContext: MailContext): RuleEvaluationResult {
@@ -41,10 +42,16 @@ export class RuleEngineService {
   }
 
   private evaluateCondition(condition: Condition, mail: MailContext): boolean {
-    const fieldValue = this.getFieldValue(condition.field, mail);
-    if (fieldValue === undefined || fieldValue === null) {
+    const rawFieldValue = this.getFieldValue(condition.field, mail);
+    if (rawFieldValue === undefined || rawFieldValue === null) {
       return condition.operator === "notExists";
     }
+
+    // Performance hardening: Truncate large field values before processing
+    const fieldValue =
+      typeof rawFieldValue === "string"
+        ? ValidationService.truncateEmailContent(rawFieldValue)
+        : rawFieldValue;
 
     switch (condition.operator) {
       case "equals":
@@ -56,6 +63,10 @@ export class RuleEngineService {
       case "endsWith":
         return String(fieldValue).toLowerCase().endsWith(condition.value.toLowerCase());
       case "matches":
+        // Security hardening: Validate regex before execution
+        if (!ValidationService.isValidRegex(condition.value)) {
+          return false;
+        }
         try {
           return new RegExp(condition.value, "i").test(String(fieldValue));
         } catch {
