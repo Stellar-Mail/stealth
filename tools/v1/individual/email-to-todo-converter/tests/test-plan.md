@@ -17,13 +17,13 @@ dueDate/priority.
 
 ## Scenarios
 
-| Scenario              | Fixture                     | Expected result                                                                 |
-| --------------------- | --------------------------- | ------------------------------------------------------------------------------- |
-| Clear deadline        | `budget-review-deadline`    | One high-confidence todo; task mentions review and comments; dueDate present.   |
-| Meeting follow-up     | `team-sync-reschedule`      | One high-confidence todo; task captures confirm action; no dueDate required.    |
-| Multiple actions      | `project-kickoff-actions`   | Three distinct todos; respects at-most-five rule; all high confidence.          |
-| No actionable content | `newsletter-june-update`    | Empty array; no forced todo created.                                            |
-| Ambiguous request     | `catch-up-sometime`         | One low-confidence todo; evidence is minimal and quoted.                        |
+| Scenario              | Fixture                   | Expected result                                                               |
+| --------------------- | ------------------------- | ----------------------------------------------------------------------------- |
+| Clear deadline        | `budget-review-deadline`  | One high-confidence todo; task mentions review and comments; dueDate present. |
+| Meeting follow-up     | `team-sync-reschedule`    | One high-confidence todo; task captures confirm action; no dueDate required.  |
+| Multiple actions      | `project-kickoff-actions` | Three distinct todos; respects at-most-five rule; all high confidence.        |
+| No actionable content | `newsletter-june-update`  | Empty array; no forced todo created.                                          |
+| Ambiguous request     | `catch-up-sometime`       | One low-confidence todo; evidence is minimal and quoted.                      |
 
 ## Negative Checks
 
