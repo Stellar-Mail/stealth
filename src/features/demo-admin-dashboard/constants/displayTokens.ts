@@ -1,3 +1,5 @@
+import type { KpiMetricKind, KpiStatus } from "../types/campaignKpi";
+
 export interface DisplayToken {
   bg: string;
   text: string;
@@ -361,4 +363,79 @@ export function getMilestoneToken(kind: string): DisplayToken {
       label: kind,
     }
   );
+}
+
+// Campaign KPI display tokens (issue #262)
+export const KPI_METRIC_TOKENS: Record<KpiMetricKind, DisplayToken> = {
+  opens: {
+    bg: "bg-sky-500/10",
+    text: "text-sky-400",
+    border: "border-sky-500/20",
+    label: "Opens",
+  },
+  approvals: {
+    bg: "bg-emerald-500/10",
+    text: "text-emerald-400",
+    border: "border-emerald-500/20",
+    label: "Approvals",
+  },
+  replies: {
+    bg: "bg-indigo-500/10",
+    text: "text-indigo-400",
+    border: "border-indigo-500/20",
+    label: "Replies",
+  },
+  refunds: {
+    bg: "bg-rose-500/10",
+    text: "text-rose-400",
+    border: "border-rose-500/20",
+    label: "Refunds",
+  },
+  proof_inspections: {
+    bg: "bg-amber-500/10",
+    text: "text-amber-400",
+    border: "border-amber-500/20",
+    label: "Proof Inspections",
+  },
+  conversions: {
+    bg: "bg-fuchsia-500/10",
+    text: "text-fuchsia-400",
+    border: "border-fuchsia-500/20",
+    label: "Conversions",
+  },
+};
+
+export const KPI_STATUS_TOKENS: Record<KpiStatus, DisplayToken> = {
+  "on-track": {
+    bg: "bg-emerald-500/10",
+    text: "text-emerald-400",
+    border: "border-emerald-500/20",
+    label: "On Track",
+  },
+  "at-risk": {
+    bg: "bg-amber-500/10",
+    text: "text-amber-400",
+    border: "border-amber-500/20",
+    label: "At Risk",
+  },
+  met: {
+    bg: "bg-sky-500/10",
+    text: "text-sky-400",
+    border: "border-sky-500/20",
+    label: "Met",
+  },
+  missed: {
+    bg: "bg-rose-500/10",
+    text: "text-rose-400",
+    border: "border-rose-500/20",
+    label: "Missed",
+  },
+};
+
+export function getKpiMetricToken(metric: KpiMetricKind): DisplayToken {
+  return KPI_METRIC_TOKENS[metric];
+}
+
+export function getKpiStatusToken(status: KpiStatus): DisplayToken {
+  return KPI_STATUS_TOKENS[status];
 }

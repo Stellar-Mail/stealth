@@ -244,3 +244,13 @@ export { DATASET_EXPORT_SCHEMA_VERSION } from "./types/datasetExport";
 export type { DraftDatasetExport } from "./types/datasetExport";
 export { ExportDatasetButton } from "./components/ExportDatasetButton";
 export type { ExportDatasetButtonProps } from "./components/ExportDatasetButton";
+
+// Admin empty states (issue #201): reusable component, preset copy, CTA slot.
+export { AdminEmptyState } from "./components/AdminEmptyState";
+export type { AdminEmptyStateProps } from "./components/AdminEmptyState";
+export {
+  ADMIN_EMPTY_STATE_PRESETS,
+  ADMIN_EMPTY_STATE_KINDS,
+  getAdminEmptyStatePreset,
+} from "./constants/adminEmptyStates";
+export type { AdminEmptyStateCopy, AdminEmptyStateKind } from "./constants/adminEmptyStates";
