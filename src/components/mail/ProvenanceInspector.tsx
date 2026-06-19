@@ -1,7 +1,8 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Copy, Check, FileJson, Cpu } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import type { ProvenanceItemDetails } from "./provenance";
+import { motionPresets } from "@/lib/motion-presets";
 
 export function ProvenanceInspector({
   open,
@@ -15,6 +16,8 @@ export function ProvenanceInspector({
   onShowToast?: (message: string) => void;
 }) {
   const [copied, setCopied] = useState(false);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const headingId = "provenance-inspector-title";
 
   const handleCopyJson = async () => {
     if (!details) return;
@@ -28,39 +31,81 @@ export function ProvenanceInspector({
     }
   };
 
+  // Escape key to close
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    },
+    [onClose],
+  );
+
+  // Focus trap
+  const trapFocus = useCallback((e: KeyboardEvent) => {
+    const dialog = dialogRef.current;
+    if (!dialog || e.key !== "Tab") return;
+    const focusable = Array.from(
+      dialog.querySelectorAll<HTMLElement>(
+        'a[href],button:not([disabled]),input,textarea,select,[tabindex]:not([tabindex="-1"])',
+      ),
+    );
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (e.shiftKey) {
+      if (document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      }
+    } else {
+      if (document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    document.addEventListener("keydown", handleKeyDown);
+    document.addEventListener("keydown", trapFocus);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("keydown", trapFocus);
+    };
+  }, [open, handleKeyDown, trapFocus]);
+
   return (
     <AnimatePresence>
       {open && details && (
         <>
           {/* Overlay */}
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            {...motionPresets.patterns.modal.backdrop}
             onClick={onClose}
             className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
           />
 
           {/* Modal Container */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 16 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 16 }}
-            transition={{ type: "spring", stiffness: 350, damping: 28 }}
+            {...motionPresets.patterns.modal.content}
+            ref={dialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={headingId}
             className="glass-modal fixed left-1/2 top-1/2 z-[60] w-[min(540px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl shadow-2xl"
           >
             {/* Header */}
             <div className="flex items-center justify-between border-b border-white/5 px-5 py-4">
               <div className="flex items-center gap-2">
-                <Cpu className="h-4 w-4 text-emerald-300" />
-                <h3 className="text-sm font-semibold text-foreground">{details.title}</h3>
+                <Cpu className="h-4 w-4 text-emerald-300" aria-hidden="true" />
+                <h3 id={headingId} className="text-sm font-semibold text-foreground">{details.title}</h3>
               </div>
               <button
                 onClick={onClose}
-                className="rounded-lg p-1.5 text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground"
+                className="rounded-lg p-1.5 text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground focus:outline-none focus:ring-2 focus:ring-white/10"
                 aria-label="Close dialog"
               >
-                <X className="h-4 w-4" />
+                <X className="h-4 w-4" aria-hidden="true" />
               </button>
             </div>
 
@@ -96,21 +141,23 @@ export function ProvenanceInspector({
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    <FileJson className="h-3 w-3" />
+                    <FileJson className="h-3 w-3" aria-hidden="true" />
                     <span>Raw Verification Record (JSON)</span>
                   </div>
                   <button
                     onClick={handleCopyJson}
-                    className="flex items-center gap-1 rounded border border-white/10 bg-white/[0.04] px-2 py-1 text-[10px] text-muted-foreground transition hover:border-white/20 hover:text-foreground hover:bg-white/[0.08]"
+                    aria-label={copied ? "JSON copied to clipboard" : "Copy raw JSON record"}
+                    aria-pressed={copied}
+                    className="flex items-center gap-1 rounded border border-white/10 bg-white/[0.04] px-2 py-1 text-[10px] text-muted-foreground transition hover:border-white/20 hover:text-foreground hover:bg-white/[0.08] focus:outline-none focus:ring-2 focus:ring-white/10"
                   >
                     {copied ? (
                       <>
-                        <Check className="h-3 w-3 text-emerald-400" />
+                        <Check className="h-3 w-3 text-emerald-400" aria-hidden="true" />
                         <span className="text-emerald-400">Copied</span>
                       </>
                     ) : (
                       <>
-                        <Copy className="h-3 w-3" />
+                        <Copy className="h-3 w-3" aria-hidden="true" />
                         <span>Copy JSON</span>
                       </>
                     )}
@@ -126,7 +173,7 @@ export function ProvenanceInspector({
             <div className="flex justify-end border-t border-white/5 px-5 py-3.5 bg-black/10">
               <button
                 onClick={onClose}
-                className="rounded-lg border border-white/10 bg-white/[0.03] px-4 py-2 text-xs font-semibold text-foreground transition hover:bg-white/[0.08] hover:border-white/20"
+                className="rounded-lg border border-white/10 bg-white/[0.03] px-4 py-2 text-xs font-semibold text-foreground transition hover:bg-white/[0.08] hover:border-white/20 focus:outline-none focus:ring-2 focus:ring-white/10"
               >
                 Done
               </button>

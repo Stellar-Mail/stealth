@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Check,
@@ -60,6 +60,53 @@ export function ProofInspectorModal({
     text: string;
     type: "success" | "warning" | "error" | null;
   }>({ text: "", type: null });
+
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const headingId = "proof-inspector-title";
+  const validationId = "proof-inspector-validation";
+
+  // Escape key to close
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    },
+    [onClose],
+  );
+
+  // Focus trap
+  const trapFocus = useCallback((e: KeyboardEvent) => {
+    const dialog = dialogRef.current;
+    if (!dialog || e.key !== "Tab") return;
+    const focusable = Array.from(
+      dialog.querySelectorAll<HTMLElement>(
+        'a[href],button:not([disabled]),input,textarea,select,[tabindex]:not([tabindex="-1"])',
+      ),
+    );
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (e.shiftKey) {
+      if (document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      }
+    } else {
+      if (document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    document.addEventListener("keydown", handleKeyDown);
+    document.addEventListener("keydown", trapFocus);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("keydown", trapFocus);
+    };
+  }, [open, handleKeyDown, trapFocus]);
 
   // Reset state when opening/closing
   useEffect(() => {
@@ -204,17 +251,18 @@ export function ProofInspectorModal({
           {/* Modal Container */}
           <motion.div
             {...motionPresets.patterns.modal.content}
+            ref={dialogRef}
             role="dialog"
             aria-modal="true"
-            aria-label="Cryptographic proof inspector"
+            aria-labelledby={headingId}
             className="glass-strong fixed left-1/2 top-1/2 z-[101] w-[min(640px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl border border-white/10"
           >
             {/* Header */}
             <div className="flex items-start justify-between border-b border-white/[0.08] px-6 py-4 bg-white/[0.01]">
               <div className="flex items-center gap-2">
-                <Database className="h-4 w-4 text-[oklch(0.85_0.005_270)]" />
+                <Database className="h-4 w-4 text-[oklch(0.85_0.005_270)]" aria-hidden="true" />
                 <div>
-                  <h3 className="text-sm font-bold text-foreground">Stealth Proof Inspector</h3>
+                  <h3 id={headingId} className="text-sm font-bold text-foreground">Stealth Proof Inspector</h3>
                   <p className="text-[11px] text-muted-foreground mt-0.5">
                     Search and audit smart contract ledger proofs and payment preimages.
                   </p>
@@ -223,9 +271,9 @@ export function ProofInspectorModal({
               <button
                 onClick={onClose}
                 className="rounded-lg p-1 text-muted-foreground transition hover:bg-white/5 hover:text-foreground focus:outline-none focus:ring-2 focus:ring-white/10"
-                aria-label="Close inspector"
+                aria-label="Close proof inspector"
               >
-                <X className="h-4 w-4" />
+                <X className="h-4 w-4" aria-hidden="true" />
               </button>
             </div>
 
@@ -249,6 +297,8 @@ export function ProofInspectorModal({
                         setHasSearched(false);
                       }}
                       placeholder="Enter Message Hash, Payment Preimage, Address, or Sender..."
+                      aria-label="Search proof records"
+                      aria-describedby={validationId}
                       className={cn(
                         "glow-ring h-10 w-full min-w-0 rounded-xl border pl-9 pr-10 text-xs text-foreground bg-black/40",
                         validationMsg.type === "error"
@@ -263,9 +313,10 @@ export function ProofInspectorModal({
                           setQuery("");
                           setHasSearched(false);
                         }}
+                        aria-label="Clear search"
                         className="absolute right-3 top-3 rounded p-0.5 text-muted-foreground hover:text-foreground"
                       >
-                        <X className="h-3.5 w-3.5" />
+                        <X className="h-3.5 w-3.5" aria-hidden="true" />
                       </button>
                     )}
                   </div>
@@ -280,6 +331,9 @@ export function ProofInspectorModal({
                 {/* Format validation status feedback */}
                 {validationMsg.text && (
                   <p
+                    id={validationId}
+                    aria-live="polite"
+                    aria-atomic="true"
                     className={cn(
                       "text-[10px] font-medium leading-none px-1",
                       validationMsg.type === "success" && "text-emerald-400",
@@ -306,9 +360,10 @@ export function ProofInspectorModal({
                           setQuery(record.messageHash);
                           setHasSearched(true);
                         }}
+                        aria-label={`Inspect proof for message from ${record.email.from}`}
                         className="flex items-start gap-2.5 rounded-xl border border-white/5 bg-white/[0.01] p-2.5 text-left text-xs transition hover:bg-white/[0.04] hover:border-white/10"
                       >
-                        <Mail className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
+                        <Mail className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" aria-hidden="true" />
                         <div className="min-w-0 flex-1">
                           <p className="font-semibold text-foreground/80 truncate">
                             {record.email.from}
@@ -499,10 +554,11 @@ export function ProofInspectorModal({
                                 onClick={() =>
                                   copyToClipboard(selectedRecord.paymentHash, "Payment Hash")
                                 }
-                                className="font-mono text-[10px] text-emerald-400 hover:underline flex items-center gap-1"
+                                aria-label="Copy payment hash"
+                                className="font-mono text-[10px] text-emerald-400 hover:underline flex items-center gap-1 focus:outline-none focus:ring-1 focus:ring-white/20 rounded"
                               >
                                 {selectedRecord.paymentHash.slice(0, 8)}...
-                                <Copy className="h-2.5 w-2.5" />
+                                <Copy className="h-2.5 w-2.5" aria-hidden="true" />
                               </button>
                             </div>
                           </div>
@@ -530,10 +586,11 @@ export function ProofInspectorModal({
                                 onClick={() =>
                                   copyToClipboard(selectedRecord.email.email, "Sender address")
                                 }
-                                className="font-mono text-[9px] text-foreground/80 hover:underline flex items-center gap-0.5"
+                                aria-label="Copy sender address"
+                                className="font-mono text-[9px] text-foreground/80 hover:underline flex items-center gap-0.5 focus:outline-none focus:ring-1 focus:ring-white/20 rounded"
                               >
                                 {selectedRecord.email.email.slice(0, 12)}...
-                                <Copy className="h-2.5 w-2.5" />
+                                <Copy className="h-2.5 w-2.5" aria-hidden="true" />
                               </button>
                             </div>
                           </div>
@@ -563,10 +620,11 @@ export function ProofInspectorModal({
                                 onClick={() =>
                                   copyToClipboard(selectedRecord.diagnosticId, "Diagnostic ID")
                                 }
-                                className="font-mono text-[9px] text-foreground/80 hover:underline flex items-center gap-0.5"
+                                aria-label="Copy relay diagnostic ID"
+                                className="font-mono text-[9px] text-foreground/80 hover:underline flex items-center gap-0.5 focus:outline-none focus:ring-1 focus:ring-white/20 rounded"
                               >
                                 {selectedRecord.diagnosticId.slice(0, 12)}...
-                                <Copy className="h-2.5 w-2.5" />
+                                <Copy className="h-2.5 w-2.5" aria-hidden="true" />
                               </button>
                             </div>
                           </div>
@@ -590,7 +648,7 @@ export function ProofInspectorModal({
                         }
                         className="w-full inline-flex items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.02] py-2 text-xs font-semibold text-foreground transition hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-white/10"
                       >
-                        <Copy className="h-3.5 w-3.5" />
+                        <Copy className="h-3.5 w-3.5" aria-hidden="true" />
                         Copy Proof Diagnostic Report
                       </button>
                     </motion.div>
@@ -611,7 +669,7 @@ export function ProofInspectorModal({
                       className="inline-flex items-center gap-1 rounded-xl border border-white/10 px-3 py-2 text-xs font-semibold text-muted-foreground transition hover:bg-white/5 hover:text-foreground focus:outline-none focus:ring-2 focus:ring-white/10"
                     >
                       Stellar.Expert
-                      <ExternalLink className="h-3.5 w-3.5" />
+                      <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
                     </a>
                     <button
                       onClick={() => {
@@ -620,7 +678,7 @@ export function ProofInspectorModal({
                       }}
                       className="inline-flex items-center gap-1.5 rounded-xl bg-white px-4 py-2 text-xs font-bold text-black transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-white/30"
                     >
-                      <Mail className="h-3.5 w-3.5" />
+                      <Mail className="h-3.5 w-3.5" aria-hidden="true" />
                       Open Message
                     </button>
                   </>
