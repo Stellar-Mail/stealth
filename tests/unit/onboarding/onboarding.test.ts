@@ -1,5 +1,10 @@
-import { describe, expect, it } from "vitest";
+import React from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { OnboardingModal } from "../../../src/features/onboarding/OnboardingModal";
+import { IdentityStep } from "../../../src/features/onboarding/steps/IdentityStep";
+import { UnknownSenderRulesStep } from "../../../src/features/onboarding/steps/UnknownSenderRulesStep";
 import {
   DEFAULT_DRAFT,
   ONBOARDING_STEPS,
@@ -8,6 +13,228 @@ import {
   xlmToStroops,
   type OnboardingDraft,
 } from "../../../src/features/onboarding/types";
+import { useOnboarding } from "../../../src/features/onboarding/useOnboarding";
+import type { FreighterHook } from "../../../src/features/onboarding/useFreighter";
+
+const TEST_WALLET_ADDRESS = `G${"T".repeat(55)}`;
+const STORAGE_KEY = "stealth-onboarding-v1";
+
+type ButtonElement = React.ReactElement<{
+  children?: React.ReactNode;
+  onClick: () => void | Promise<void>;
+}>;
+
+function getText(node: React.ReactNode): string {
+  if (node === null || node === undefined || typeof node === "boolean") return "";
+  if (typeof node === "string" || typeof node === "number") return String(node);
+  if (Array.isArray(node)) return node.map(getText).join("");
+  if (React.isValidElement<{ children?: React.ReactNode }>(node)) {
+    return getText(node.props.children);
+  }
+  return "";
+}
+
+function findElement(
+  node: React.ReactNode,
+  predicate: (element: React.ReactElement) => boolean,
+): React.ReactElement | null {
+  if (node === null || node === undefined || typeof node === "boolean") return null;
+  if (Array.isArray(node)) {
+    for (const child of node) {
+      const match = findElement(child, predicate);
+      if (match) return match;
+    }
+    return null;
+  }
+  if (!React.isValidElement<{ children?: React.ReactNode }>(node)) return null;
+  if (predicate(node)) return node;
+  return findElement(node.props.children, predicate);
+}
+
+function findButtonByText(node: React.ReactNode, text: string): ButtonElement {
+  const button = findElement(
+    node,
+    (element) => element.type === "button" && getText(element).includes(text),
+  );
+  if (!button) throw new Error(`Button not found: ${text}`);
+  return button as ButtonElement;
+}
+
+function createLocalStorage(seed: Record<string, string> = {}) {
+  const store = { ...seed };
+  return {
+    getItem: vi.fn((key: string) => store[key] ?? null),
+    setItem: vi.fn((key: string, value: string) => {
+      store[key] = value;
+    }),
+    removeItem: vi.fn((key: string) => {
+      delete store[key];
+    }),
+  };
+}
+
+function UseOnboardingSnapshot() {
+  const onboarding = useOnboarding({ onComplete: async () => undefined });
+  const walletAddress = onboarding.draft.walletAddress ?? "none";
+  return React.createElement(
+    "output",
+    null,
+    `${onboarding.step}|${onboarding.stepIndex}|${onboarding.totalSteps}|${walletAddress}|${onboarding.draft.unknownSenderRule}`,
+  );
+}
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
+// ---------------------------------------------------------------------------
+// OnboardingModal / useOnboarding: initial and persisted progress
+// ---------------------------------------------------------------------------
+describe("OnboardingModal", () => {
+  it("renders the first onboarding step and progress when open", () => {
+    const markup = renderToStaticMarkup(
+      React.createElement(OnboardingModal, {
+        open: true,
+        onComplete: async () => undefined,
+      }),
+    );
+
+    expect(markup).toContain("1 / 7");
+    expect(markup).toContain("Connect your wallet");
+    expect(markup).toContain("Connect with Freighter");
+  });
+
+  it("renders nothing when closed", () => {
+    const markup = renderToStaticMarkup(
+      React.createElement(OnboardingModal, {
+        open: false,
+        onComplete: async () => undefined,
+      }),
+    );
+
+    expect(markup).toBe("");
+  });
+});
+
+describe("useOnboarding persisted progress", () => {
+  it("resumes a saved successful setup path", () => {
+    const localStorage = createLocalStorage({
+      [STORAGE_KEY]: JSON.stringify({
+        step: "unknown-sender-rules",
+        draft: {
+          ...DEFAULT_DRAFT,
+          walletAddress: TEST_WALLET_ADDRESS,
+          recoveryAcknowledged: true,
+          unknownSenderRule: "verified",
+        },
+      }),
+    });
+    vi.stubGlobal("window", { localStorage });
+
+    const markup = renderToStaticMarkup(React.createElement(UseOnboardingSnapshot));
+
+    expect(markup).toContain(`unknown-sender-rules|3|7|${TEST_WALLET_ADDRESS}|verified`);
+    expect(localStorage.getItem).toHaveBeenCalledWith(STORAGE_KEY);
+  });
+
+  it("falls back to a fresh identity step for unknown saved steps", () => {
+    const localStorage = createLocalStorage({
+      [STORAGE_KEY]: JSON.stringify({
+        step: "legacy-step",
+        draft: {
+          ...DEFAULT_DRAFT,
+          walletAddress: TEST_WALLET_ADDRESS,
+          unknownSenderRule: "block",
+        },
+      }),
+    });
+    vi.stubGlobal("window", { localStorage });
+
+    const markup = renderToStaticMarkup(React.createElement(UseOnboardingSnapshot));
+
+    expect(markup).toContain("identity|0|7|none|request");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// IdentityStep
+// ---------------------------------------------------------------------------
+describe("IdentityStep", () => {
+  it("advances with the returned wallet address after a successful connection", async () => {
+    const onAdvance = vi.fn();
+    const freighter: FreighterHook = {
+      state: { status: "idle" },
+      connect: vi.fn(async () => TEST_WALLET_ADDRESS),
+    };
+
+    const step = IdentityStep({ freighter, onAdvance });
+    const button = findButtonByText(step, "Connect with Freighter");
+
+    await button.props.onClick();
+
+    expect(freighter.connect).toHaveBeenCalledOnce();
+    expect(onAdvance).toHaveBeenCalledWith({ walletAddress: TEST_WALLET_ADDRESS });
+  });
+
+  it("shows wallet connection failures without advancing", async () => {
+    const onAdvance = vi.fn();
+    const freighter: FreighterHook = {
+      state: { status: "error", message: "User rejected wallet access" },
+      connect: vi.fn(async () => null),
+    };
+
+    const step = IdentityStep({ freighter, onAdvance });
+    const markup = renderToStaticMarkup(step);
+    const button = findButtonByText(step, "Connect with Freighter");
+
+    await button.props.onClick();
+
+    expect(markup).toContain("User rejected wallet access");
+    expect(markup).toContain("You can try again below.");
+    expect(onAdvance).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// UnknownSenderRulesStep
+// ---------------------------------------------------------------------------
+describe("UnknownSenderRulesStep", () => {
+  const draft: OnboardingDraft = {
+    ...DEFAULT_DRAFT,
+    walletAddress: TEST_WALLET_ADDRESS,
+  };
+
+  it("renders the privacy-preserving sender options", () => {
+    const step = UnknownSenderRulesStep({
+      draft,
+      onUpdate: vi.fn(),
+      onAdvance: vi.fn(),
+      onRetreat: vi.fn(),
+    });
+    const markup = renderToStaticMarkup(step);
+
+    expect(markup).toContain("Who can mail you?");
+    expect(markup).toContain("Request approval");
+    expect(markup).toContain("Verified senders only");
+    expect(markup).toContain("Trusted contacts only");
+    expect(markup).toContain("Recommended");
+  });
+
+  it("updates the draft when a stricter sender rule is selected", () => {
+    const onUpdate = vi.fn();
+    const step = UnknownSenderRulesStep({
+      draft,
+      onUpdate,
+      onAdvance: vi.fn(),
+      onRetreat: vi.fn(),
+    });
+    const button = findButtonByText(step, "Verified senders only");
+
+    button.props.onClick();
+
+    expect(onUpdate).toHaveBeenCalledWith({ unknownSenderRule: "verified" });
+  });
+});
 
 // ---------------------------------------------------------------------------
 // xlmToStroops
