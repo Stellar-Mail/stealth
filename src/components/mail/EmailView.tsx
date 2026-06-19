@@ -61,6 +61,10 @@ export type EmailViewActions = {
   onCalendarResponseChange?: (eventId: string, response: CalendarResponse) => void;
   onCalendarReminderChange?: (eventId: string, reminder: string) => void;
   onPreviewAttachment?: (attachment: { name: string; size: string; type: string }) => void;
+  getCalendarEvents?: () => CalendarEvent[];
+  onDuplicateEvent?: (eventId: string) => CalendarEvent | null;
+  onDeleteEvent?: (eventId: string) => void;
+  onSendReadReceipt?: (email: Email) => void;
 };
 
 export function EmailView({
@@ -280,6 +284,9 @@ export function EmailView({
                     onOpen={actions.onOpenCalendar}
                     onResponseChange={actions.onCalendarResponseChange}
                     onReminderChange={actions.onCalendarReminderChange}
+                    calendarEvents={actions.getCalendarEvents?.()}
+                    onDuplicate={actions.onDuplicateEvent}
+                    onDelete={actions.onDeleteEvent}
                   />
                 ) : null}
 

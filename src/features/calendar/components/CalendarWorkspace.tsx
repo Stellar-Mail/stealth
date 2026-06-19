@@ -15,6 +15,7 @@ import {
   Trash2,
   Users,
   X,
+  Mail,
 } from "lucide-react";
 import { addDays, addMonths, format, isSameDay, parseISO, subMonths } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
@@ -43,6 +44,7 @@ type CalendarWorkspaceProps = {
   onToggleCalendar: (id: string) => void;
   onAddCalendar: (calendar: Omit<CalendarDefinition, "id" | "visible">) => CalendarDefinition;
   onShowToast: (message: string) => void;
+  onNavigateToEmail?: (emailId: string) => void;
 };
 
 export function CalendarWorkspace({
@@ -60,6 +62,7 @@ export function CalendarWorkspace({
   onToggleCalendar,
   onAddCalendar,
   onShowToast,
+  onNavigateToEmail,
 }: CalendarWorkspaceProps) {
   const [month, setMonth] = useState(getAppToday());
   const [selectedDate, setSelectedDate] = useState(getAppToday());
@@ -375,46 +378,53 @@ export function CalendarWorkspace({
                       </div>
                     </div>
                   ) : (
-                    displayedEvents.map((event) => {
-                      const calendar = calendars.find((item) => item.id === event.calendarId);
-                      return (
-                        <button
-                          key={event.id}
-                          onClick={() => setSelectedId(event.id)}
-                          className={cn(
-                            "calendar-event-row group grid w-full grid-cols-[64px_5px_1fr_auto] items-center gap-3 rounded-xl border p-3 text-left transition",
-                            selectedId === event.id
-                              ? "border-white/20 bg-white/[0.08]"
-                              : "border-white/8 bg-white/[0.025] hover:border-white/14 hover:bg-white/[0.05]",
-                          )}
-                        >
-                          <div>
-                            <div className="text-xs font-semibold tabular-nums">{event.time}</div>
-                            <div className="text-[10px] tabular-nums text-muted-foreground">
-                              {event.endTime}
+                    <AnimatePresence initial={false}>
+                      {displayedEvents.map((event) => {
+                        const calendar = calendars.find((item) => item.id === event.calendarId);
+                        return (
+                          <motion.button
+                            key={event.id}
+                            layout
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            transition={{ duration: 0.2 }}
+                            onClick={() => setSelectedId(event.id)}
+                            className={cn(
+                              "calendar-event-row group grid w-full grid-cols-[64px_5px_1fr_auto] items-center gap-3 rounded-xl border p-3 text-left transition",
+                              selectedId === event.id
+                                ? "border-white/20 bg-white/[0.08]"
+                                : "border-white/8 bg-white/[0.025] hover:border-white/14 hover:bg-white/[0.05]",
+                            )}
+                          >
+                            <div>
+                              <div className="text-xs font-semibold tabular-nums">{event.time}</div>
+                              <div className="text-[10px] tabular-nums text-muted-foreground">
+                                {event.endTime}
+                              </div>
                             </div>
-                          </div>
-                          <span
-                            className="h-10 rounded-full"
-                            style={{ background: calendar?.color ?? "#d5d7dc" }}
-                          />
-                          <div className="min-w-0">
-                            <div className="truncate text-sm font-semibold">{event.title}</div>
-                            <div className="mt-1 flex items-center gap-3 text-[10px] text-muted-foreground">
-                              <span className="flex items-center gap-1">
-                                <MapPin className="h-3 w-3" /> {event.location}
-                              </span>
-                              <span className="hidden items-center gap-1 sm:flex">
-                                <Users className="h-3 w-3" /> {event.organizer ?? "Private"}
-                              </span>
+                            <span
+                              className="h-10 rounded-full"
+                              style={{ background: calendar?.color ?? "#d5d7dc" }}
+                            />
+                            <div className="min-w-0">
+                              <div className="truncate text-sm font-semibold">{event.title}</div>
+                              <div className="mt-1 flex items-center gap-3 text-[10px] text-muted-foreground">
+                                <span className="flex items-center gap-1">
+                                  <MapPin className="h-3 w-3" /> {event.location}
+                                </span>
+                                <span className="hidden items-center gap-1 sm:flex">
+                                  <Users className="h-3 w-3" /> {event.organizer ?? "Private"}
+                                </span>
+                              </div>
                             </div>
-                          </div>
-                          <span className="rounded-md border border-white/8 px-2 py-1 text-[9px] uppercase text-muted-foreground">
-                            {event.response}
-                          </span>
-                        </button>
-                      );
-                    })
+                            <span className="rounded-md border border-white/8 px-2 py-1 text-[9px] uppercase text-muted-foreground">
+                              {event.response}
+                            </span>
+                          </motion.button>
+                        );
+                      })}
+                    </AnimatePresence>
                   )}
                 </div>
               </main>
@@ -446,6 +456,7 @@ export function CalendarWorkspace({
                       onShowToast(`Reminder set for ${reminder}`);
                     }}
                     onShowToast={onShowToast}
+                    onNavigateToEmail={onNavigateToEmail}
                   />
                 ) : (
                   <div className="grid h-full min-h-56 place-items-center text-center">
@@ -488,6 +499,7 @@ function EventDetails({
   onResponseChange,
   onReminderChange,
   onShowToast,
+  onNavigateToEmail,
 }: {
   event: CalendarEvent;
   calendar?: CalendarDefinition;
@@ -497,6 +509,7 @@ function EventDetails({
   onResponseChange: (response: CalendarResponse) => void;
   onReminderChange: (reminder: string) => void;
   onShowToast: (message: string) => void;
+  onNavigateToEmail?: (emailId: string) => void;
 }) {
   return (
     <div>
@@ -593,6 +606,15 @@ function EventDetails({
           <Copy className="h-3.5 w-3.5" /> Copy details
         </button>
       </div>
+
+      {event.sourceEmailId && onNavigateToEmail && (
+        <button
+          onClick={() => onNavigateToEmail(event.sourceEmailId!)}
+          className="calendar-control w-full mt-2 flex items-center justify-center gap-1.5"
+        >
+          <Mail className="h-3.5 w-3.5" /> Open related mail
+        </button>
+      )}
 
       <div className="mt-5 flex gap-2 border-t border-white/8 pt-4">
         <button onClick={onDuplicate} className="calendar-control flex-1">
