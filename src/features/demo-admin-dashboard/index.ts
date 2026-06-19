@@ -96,6 +96,18 @@ export {
   type TemplateCategory,
 } from "./templates";
 
+export type { CampaignSeedExample, CampaignSeedScenario } from "./types/campaignSeed";
+export {
+  campaignSeedExamples,
+  getCampaignSeedExamplesByCategory,
+  getCampaignSeedExamplesByTag,
+} from "./seed-data/campaignSeedExamples";
+export {
+  isSafeDemoRecipient,
+  toCampaignSeedSlug,
+  validateCampaignSeedScenario,
+} from "./seed-helpers/campaignSeed";
+
 export * from "./validation-types";
 export * from "./validation";
 export * from "./validationFixtures";
@@ -245,12 +257,38 @@ export type { DraftDatasetExport } from "./types/datasetExport";
 export { ExportDatasetButton } from "./components/ExportDatasetButton";
 export type { ExportDatasetButtonProps } from "./components/ExportDatasetButton";
 
-// Admin empty states (issue #201): reusable component, preset copy, CTA slot.
-export { AdminEmptyState } from "./components/AdminEmptyState";
-export type { AdminEmptyStateProps } from "./components/AdminEmptyState";
+// Campaign KPI definitions (issue #262): types, fixtures, helpers, display tokens.
+export type {
+  CampaignKpiDefinition,
+  KpiMetricKind,
+  KpiStatus,
+  KpiTrend,
+  KpiUnit,
+} from "./types/campaignKpi";
+export { CAMPAIGN_KPI_DEFINITIONS } from "./fixtures/campaignKpiFixtures";
 export {
-  ADMIN_EMPTY_STATE_PRESETS,
-  ADMIN_EMPTY_STATE_KINDS,
-  getAdminEmptyStatePreset,
-} from "./constants/adminEmptyStates";
-export type { AdminEmptyStateCopy, AdminEmptyStateKind } from "./constants/adminEmptyStates";
+  computeKpiProgress,
+  getKpiById,
+  getKpisForCampaign,
+  isKpiMet,
+  sortKpisByMetric,
+  validateCampaignKpiDefinition,
+} from "./utils/campaignKpiHelpers";
+export {
+  KPI_METRIC_TOKENS,
+  KPI_STATUS_TOKENS,
+  getKpiMetricToken,
+  getKpiStatusToken,
+} from "./constants/displayTokens";
+
+export {
+  DEMO_FOLDERS,
+  MAILBOX_GROUPS,
+  FOLDER_DEFINITIONS,
+  DEFAULT_FOLDER,
+  getFolderDefinition,
+  getFoldersForGroup,
+} from "./constants/folderTaxonomy";
+export type { DemoFolder, MailboxGroup, FolderDefinition } from "./constants/folderTaxonomy";
+export { FolderTaxonomySelector } from "./components/FolderTaxonomySelector";
+export type { FolderTaxonomySelectorProps } from "./components/FolderTaxonomySelector";

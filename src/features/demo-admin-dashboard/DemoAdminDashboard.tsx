@@ -15,6 +15,7 @@ import {
   Target,
   Users,
   X,
+  Lock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CAMPAIGN_TEMPLATES } from "./fixtures/campaignFixtures";
@@ -256,6 +257,11 @@ function OverviewContent({
               id: "receipt-settlement" as const,
               name: "Receipt Settlement",
               desc: "Simulates postage fees and read receipts confirming on-chain.",
+            },
+            {
+              id: "encrypted-provenance" as const,
+              name: "Encrypted & Provenance",
+              desc: "Simulates encrypted payload delivery and cryptographic provenance verification on-chain.",
             },
           ].map((preset) => {
             const active = activePresetId === preset.id;
@@ -1003,6 +1009,16 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
                     {selectedMail.proofMetadata.postageStatus}
                   </span>
                 </div>
+                {selectedMail.folder === "encrypted" && (
+                  <div className="mt-3 rounded border border-emerald-500/20 bg-emerald-500/5 p-2.5 text-[11px] text-emerald-300 leading-relaxed">
+                    <p className="font-semibold flex items-center gap-1.5 mb-1 text-xs text-emerald-400">
+                      <Lock className="h-3 w-3" />
+                      Payload Decryption Notes
+                    </p>
+                    This payload is fully end-to-end encrypted on-chain. Bob Demo decrypted it using
+                    the ephemeral session key exchanged via Curve25519 and his private identity key.
+                  </div>
+                )}
               </div>
             </div>
           </div>
