@@ -35,6 +35,7 @@ test-results/
 *.njsproj
 *.sln
 *.sw?
+test_snapshots/
 
 CLAUDE.md
 plan.md

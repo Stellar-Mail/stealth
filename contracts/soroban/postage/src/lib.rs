@@ -1,4 +1,4 @@
-#![no_std]
+﻿#![no_std]
 
 use soroban_sdk::{
     contract, contracterror, contractevent, contractimpl, contracttype, symbol_short, token,
@@ -79,6 +79,7 @@ pub enum Error {
 impl PostageContract {
     pub fn initialize(
         env: Env,
+        admin: Address,
         asset: Address,
         treasury: Address,
         minimum: i128,
@@ -89,6 +90,7 @@ impl PostageContract {
         if env.storage().instance().has(&DataKey::Config) {
             return Err(Error::AlreadyInitialized);
         }
+        admin.require_auth();
         if minimum < 0 {
             return Err(Error::InvalidAmount);
         }
@@ -427,7 +429,7 @@ mod test {
         let treasury = Address::generate(&env);
 
         token_admin.mint(&sender, &1_000);
-        client.initialize(&asset, &treasury, &100, &fee_bps, &86_400, &3_600);
+        client.initialize(&admin, &asset, &treasury, &100, &fee_bps, &86_400, &3_600);
 
         Setup {
             env,
@@ -516,12 +518,13 @@ mod test {
     #[test]
     fn trusted_sender_has_zero_quote() {
         let env = Env::default();
+        env.mock_all_auths();
         let admin = Address::generate(&env);
-        let asset = env.register_stellar_asset_contract_v2(admin).address();
+        let asset = env.register_stellar_asset_contract_v2(admin.clone()).address();
         let treasury = Address::generate(&env);
         let contract_id = env.register(PostageContract, ());
         let client = PostageContractClient::new(&env, &contract_id);
-        client.initialize(&asset, &treasury, &100, &0, &86_400, &0);
+        client.initialize(&admin, &asset, &treasury, &100, &0, &86_400, &0);
 
         assert_eq!(client.quote(&true), 0);
         assert_eq!(client.quote(&false), 100);
@@ -612,7 +615,7 @@ mod test {
         let token = token::TokenClient::new(&env, &asset);
 
         token_admin.mint(&sender, &1_000);
-        client.initialize(&asset, &treasury, &100, &0, &30, &0);
+        client.initialize(&admin, &asset, &treasury, &100, &0, &30, &0);
         let postage = client.submit(&id(&env, 1), &sender, &recipient, &125);
         assert_eq!(postage.expires_at, 40);
         assert_eq!(postage.dispute_until, 40);
@@ -827,6 +830,16 @@ mod test {
     }
 
     #[test]
+    #[should_panic(expected = "Error(Auth, InvalidAction)")]
+    fn initialize_without_admin_auth_fails() {
+        let env = Env::default();
+        let admin = Address::generate(&env);
+        let asset = env.register_stellar_asset_contract_v2(admin.clone()).address();
+        let treasury = Address::generate(&env);
+        let contract_id = env.register(PostageContract, ());
+        let client = PostageContractClient::new(&env, &contract_id);
+
+        client.initialize(&admin, &asset, &treasury, &100, &0, &86_400, &0);
     #[should_panic(expected = "Error(Auth")]
     fn submit_requires_sender_auth() {
         let setup = setup(0);
