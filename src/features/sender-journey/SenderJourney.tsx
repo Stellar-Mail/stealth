@@ -34,10 +34,14 @@ function AddressStep({
         </p>
       </div>
       <div className="space-y-2">
-        <label className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
+        <label
+          htmlFor="recipient-address"
+          className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground"
+        >
           Recipient address
         </label>
         <input
+          id="recipient-address"
           type="text"
           placeholder="recipient*domain.com"
           value={state.recipientAddress}
@@ -205,10 +209,14 @@ function PaymentStep({
       </div>
 
       <div className="space-y-2">
-        <label className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
+        <label
+          htmlFor="subject"
+          className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground"
+        >
           Subject
         </label>
         <input
+          id="subject"
           type="text"
           placeholder="Quick question..."
           value={state.subject}
@@ -218,10 +226,14 @@ function PaymentStep({
       </div>
 
       <div className="space-y-2">
-        <label className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
+        <label
+          htmlFor="message-body"
+          className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground"
+        >
           Message
         </label>
         <textarea
+          id="message-body"
           placeholder="Hi there, I'd love to connect..."
           value={state.body}
           onChange={(e) => update({ body: e.target.value })}

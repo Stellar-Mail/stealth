@@ -90,6 +90,7 @@ export function MessageEditor({
         "rounded-xl border border-white/[0.08] bg-white/[0.02] p-5 space-y-4",
         className,
       )}
+      role="presentation"
       onKeyDown={handleKeyDown}
     >
       <div className="flex items-center justify-between">
