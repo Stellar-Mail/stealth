@@ -16,6 +16,7 @@ import {
 import { cn } from "@/lib/utils";
 import type { Draft } from "../types/draft";
 import type { CampaignSnapshot } from "../types/campaignSnapshot";
+import type { CampaignStatus } from "../types/campaignStatus";
 import { saveCampaignSnapshots, loadCampaignSnapshots } from "../persistence/localStorageAdapter";
 import { deterministicSnapshotId, normalizeLabels } from "../utils/normalizeDemoData";
 import {
@@ -46,7 +47,7 @@ export function CampaignSnapshots({
   const [description, setDescription] = useState("");
   const [targetAudience, setTargetAudience] = useState("");
   const [tagsInput, setTagsInput] = useState("");
-  const [status, setStatus] = useState<"active" | "draft" | "needs-review" | "archived">("draft");
+  const [status, setStatus] = useState<CampaignStatus>("draft");
   const [formError, setFormError] = useState("");
 
   // State for reference section visibility
@@ -295,15 +296,17 @@ export function CampaignSnapshots({
                 id="snap-status"
                 value={status}
                 onChange={(e) =>
-                  setStatus(e.target.value as "active" | "draft" | "needs-review" | "archived")
+                  setStatus(e.target.value as CampaignStatus)
                 }
                 className="w-full rounded-lg border border-white/[0.08] bg-black-90 px-3 py-2 text-xs text-foreground focus:border-white/20 focus:outline-none"
                 style={{ backgroundColor: "rgb(24 24 27)" }}
               >
                 <option value="draft">Draft</option>
+                <option value="ready">Ready</option>
                 <option value="active">Active</option>
-                <option value="needs-review">Needs Review</option>
+                <option value="paused">Paused</option>
                 <option value="archived">Archived</option>
+                <option value="failed">Failed</option>
               </select>
             </div>
           </div>

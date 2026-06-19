@@ -38,6 +38,31 @@ export type {
 export type { CampaignSnapshot } from "./types/campaignSnapshot";
 export type { CampaignTag, TagColorKey } from "./types/campaignTag";
 
+// Campaign Status Model (issue #34): types, transitions, fixtures.
+export type {
+  CampaignStatus,
+  CampaignStatusRecord,
+  CampaignStatusTransition,
+  CampaignStatusSummary,
+} from "./types/campaignStatus";
+export {
+  CAMPAIGN_STATUSES,
+  INITIAL_CAMPAIGN_STATUS,
+  TERMINAL_STATUSES,
+} from "./types/campaignStatus";
+export {
+  getAllowedTransitions,
+  canTransitionTo,
+  validateCampaignStatusTransition,
+  isTerminal,
+  isInitial,
+} from "./helpers/campaignStatusTransitions";
+export {
+  demoCampaignStatusRecords,
+  getCampaignStatusRecordById,
+  getCampaignsByStatus,
+} from "./fixtures/campaignStatusFixtures";
+
 export type {
   DemoAttachment,
   DemoCalendarEvent,
