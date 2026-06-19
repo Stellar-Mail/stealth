@@ -89,6 +89,11 @@ export interface TrustBadgeProps {
   className?: string;
 }
 
+export function getTrustBadgeAccessibleLabel(state: TrustState) {
+  const meta = TRUST_STATE_META[state];
+  return `${meta.label}: ${meta.tooltip}`;
+}
+
 /**
  * A single, consistent sender-trust pill. Presentational only so it can be
  * reused in list rows, the reader header, compose chips, and sender cards.
@@ -105,12 +110,14 @@ export function TrustBadge({
 
   const pill = (
     <span
+      aria-label={showTooltip ? getTrustBadgeAccessibleLabel(state) : undefined}
       className={cn(
         "inline-flex items-center gap-1 rounded-full border font-medium leading-none",
         size === "sm" ? "px-1.5 py-0.5 text-[10px]" : "px-2 py-0.5 text-xs",
         meta.className,
         className,
       )}
+      tabIndex={showTooltip ? 0 : undefined}
     >
       <Icon className={size === "sm" ? "h-2.5 w-2.5" : "h-3 w-3"} aria-hidden />
       {showLabel ? meta.label : <span className="sr-only">{meta.label}</span>}
