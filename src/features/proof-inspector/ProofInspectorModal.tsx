@@ -56,6 +56,7 @@ export function ProofInspectorModal({
 }: ProofInspectorModalProps) {
   const [query, setQuery] = useState(initialQuery);
   const [hasSearched, setHasSearched] = useState(false);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
   const [validationMsg, setValidationMsg] = useState<{
     text: string;
     type: "success" | "warning" | "error" | null;
@@ -120,26 +121,23 @@ export function ProofInspectorModal({
       return;
     }
 
-    // Check G-address or C-address format: 56 chars, starts with G or C
     const addressRegex = /^[GC][A-Z2-7]{55}$/i;
-    // Check 32-byte hex hash format: 64 hex characters (optional 0x prefix = 66 characters)
     const hashRegex = /^(0x)?[a-f0-9]{64}$/i;
-    // UUID format check
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
     if (addressRegex.test(trimmed)) {
-      setValidationMsg({ text: "✓ Valid Stellar address format", type: "success" });
+      setValidationMsg({ text: "Valid Stellar address", type: "success" });
     } else if (hashRegex.test(trimmed)) {
-      setValidationMsg({ text: "✓ Valid 32-byte hash format", type: "success" });
+      setValidationMsg({ text: "Valid 32-byte hash", type: "success" });
     } else if (uuidRegex.test(trimmed)) {
-      setValidationMsg({ text: "✓ Valid Relay diagnostic ID format", type: "success" });
+      setValidationMsg({ text: "Valid relay diagnostic ID", type: "success" });
     } else if (
       trimmed.length > 5 &&
       (trimmed.startsWith("G") || trimmed.startsWith("C")) &&
       trimmed.length !== 56
     ) {
       setValidationMsg({
-        text: `✗ Invalid address length (${trimmed.length}/56 characters)`,
+        text: `Address must be 56 characters (${trimmed.length}/56)`,
         type: "error",
       });
     } else if (
@@ -149,11 +147,11 @@ export function ProofInspectorModal({
       !trimmed.startsWith("0x")
     ) {
       setValidationMsg({
-        text: `✗ Invalid hash length (${trimmed.length}/64 hex characters)`,
+        text: `Hash must be 64 hex characters (${trimmed.length}/64)`,
         type: "error",
       });
     } else {
-      setValidationMsg({ text: "ⓘ Searching by sender name / subject keywords", type: "warning" });
+      setValidationMsg({ text: "Searching by sender name or subject", type: "warning" });
     }
   }, [query]);
 
@@ -183,9 +181,15 @@ export function ProofInspectorModal({
     });
   }, [hasSearched, query, proofRecords]);
 
-  const copyToClipboard = (text: string, label: string) => {
-    navigator.clipboard.writeText(text);
-    onShowToast(`${label} copied to clipboard`, { tone: "success" });
+  const copyToClipboard = (text: string, label: string, fieldKey?: string) => {
+    navigator.clipboard.writeText(text).catch(() => {
+      onShowToast("Failed to copy — clipboard access denied", { tone: "danger" });
+    });
+    onShowToast(`${label} copied`, { tone: "success" });
+    if (fieldKey) {
+      setCopiedField(fieldKey);
+      setTimeout(() => setCopiedField(null), 2000);
+    }
   };
 
   const selectedRecord = searchResults[0];
@@ -271,7 +275,8 @@ export function ProofInspectorModal({
                   </div>
                   <button
                     type="submit"
-                    className="h-10 rounded-xl bg-white px-4 text-xs font-bold text-black transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-white/30"
+                    disabled={!query.trim() || validationMsg.type === "error"}
+                    className="h-10 rounded-xl bg-white px-4 text-xs font-bold text-black transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-white/30 disabled:opacity-40 disabled:pointer-events-none"
                   >
                     Inspect
                   </button>
@@ -280,13 +285,17 @@ export function ProofInspectorModal({
                 {/* Format validation status feedback */}
                 {validationMsg.text && (
                   <p
+                    aria-live="polite"
                     className={cn(
-                      "text-[10px] font-medium leading-none px-1",
+                      "flex items-center gap-1 text-[10px] font-medium leading-none px-1",
                       validationMsg.type === "success" && "text-emerald-400",
                       validationMsg.type === "warning" && "text-amber-400",
                       validationMsg.type === "error" && "text-red-400",
                     )}
                   >
+                    {validationMsg.type === "success" && <Check className="h-2.5 w-2.5" />}
+                    {validationMsg.type === "error" && <ShieldAlert className="h-2.5 w-2.5" />}
+                    {validationMsg.type === "warning" && <Info className="h-2.5 w-2.5" />}
                     {validationMsg.text}
                   </p>
                 )}
@@ -331,6 +340,8 @@ export function ProofInspectorModal({
                     <motion.div
                       key="missing-state"
                       {...motionPresets.entrance.fadeIn()}
+                      role="status"
+                      aria-live="polite"
                       className="rounded-xl border border-rose-500/20 bg-rose-500/[0.01] p-4 space-y-4"
                     >
                       <div className="flex items-start gap-3">
@@ -408,6 +419,8 @@ export function ProofInspectorModal({
                     <motion.div
                       key="found-state"
                       {...motionPresets.entrance.fadeIn()}
+                      role="region"
+                      aria-label="Proof record"
                       className="space-y-4"
                     >
                       {/* Security Alert: Sensitive payload notice */}
@@ -497,12 +510,16 @@ export function ProofInspectorModal({
                               <span className="text-muted-foreground">Payment Hash:</span>
                               <button
                                 onClick={() =>
-                                  copyToClipboard(selectedRecord.paymentHash, "Payment Hash")
+                                  copyToClipboard(selectedRecord.paymentHash, "Payment Hash", "paymentHash")
                                 }
-                                className="font-mono text-[10px] text-emerald-400 hover:underline flex items-center gap-1"
+                                aria-label="Copy payment hash"
+                                className="font-mono text-[10px] text-emerald-400 hover:underline flex items-center gap-1 focus:outline-none focus-visible:ring-1 focus-visible:ring-white/20 rounded"
                               >
-                                {selectedRecord.paymentHash.slice(0, 8)}...
-                                <Copy className="h-2.5 w-2.5" />
+                                {copiedField === "paymentHash" ? (
+                                  <><Check className="h-2.5 w-2.5" />Copied</>
+                                ) : (
+                                  <>{selectedRecord.paymentHash.slice(0, 8)}...<Copy className="h-2.5 w-2.5" /></>
+                                )}
                               </button>
                             </div>
                           </div>
@@ -528,12 +545,16 @@ export function ProofInspectorModal({
                               <span className="text-muted-foreground">Sender Key:</span>
                               <button
                                 onClick={() =>
-                                  copyToClipboard(selectedRecord.email.email, "Sender address")
+                                  copyToClipboard(selectedRecord.email.email, "Sender address", "senderKey")
                                 }
-                                className="font-mono text-[9px] text-foreground/80 hover:underline flex items-center gap-0.5"
+                                aria-label="Copy sender address"
+                                className="font-mono text-[9px] text-foreground/80 hover:underline flex items-center gap-0.5 focus:outline-none focus-visible:ring-1 focus-visible:ring-white/20 rounded"
                               >
-                                {selectedRecord.email.email.slice(0, 12)}...
-                                <Copy className="h-2.5 w-2.5" />
+                                {copiedField === "senderKey" ? (
+                                  <><Check className="h-2.5 w-2.5 text-emerald-400" />Copied</>
+                                ) : (
+                                  <>{selectedRecord.email.email.slice(0, 12)}...<Copy className="h-2.5 w-2.5" /></>
+                                )}
                               </button>
                             </div>
                           </div>
@@ -561,12 +582,16 @@ export function ProofInspectorModal({
                               <span className="text-muted-foreground">Relay Diag ID:</span>
                               <button
                                 onClick={() =>
-                                  copyToClipboard(selectedRecord.diagnosticId, "Diagnostic ID")
+                                  copyToClipboard(selectedRecord.diagnosticId, "Diagnostic ID", "diagId")
                                 }
-                                className="font-mono text-[9px] text-foreground/80 hover:underline flex items-center gap-0.5"
+                                aria-label="Copy relay diagnostic ID"
+                                className="font-mono text-[9px] text-foreground/80 hover:underline flex items-center gap-0.5 focus:outline-none focus-visible:ring-1 focus-visible:ring-white/20 rounded"
                               >
-                                {selectedRecord.diagnosticId.slice(0, 12)}...
-                                <Copy className="h-2.5 w-2.5" />
+                                {copiedField === "diagId" ? (
+                                  <><Check className="h-2.5 w-2.5 text-emerald-400" />Copied</>
+                                ) : (
+                                  <>{selectedRecord.diagnosticId.slice(0, 12)}...<Copy className="h-2.5 w-2.5" /></>
+                                )}
                               </button>
                             </div>
                           </div>
@@ -578,20 +603,21 @@ export function ProofInspectorModal({
                         onClick={() =>
                           copyToClipboard(
                             JSON.stringify(
-                              {
-                                ...selectedRecord,
-                                email: undefined, // exclude sensitive email object
-                              },
+                              { ...selectedRecord, email: undefined },
                               null,
                               2,
                             ),
                             "Proof diagnostic report",
+                            "fullReport",
                           )
                         }
-                        className="w-full inline-flex items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.02] py-2 text-xs font-semibold text-foreground transition hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-white/10"
+                        className="w-full inline-flex items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.02] py-2 text-xs font-semibold text-foreground transition hover:bg-white/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/10"
                       >
-                        <Copy className="h-3.5 w-3.5" />
-                        Copy Proof Diagnostic Report
+                        {copiedField === "fullReport" ? (
+                          <><Check className="h-3.5 w-3.5 text-emerald-400" />Report Copied</>
+                        ) : (
+                          <><Copy className="h-3.5 w-3.5" />Copy Proof Diagnostic Report</>
+                        )}
                       </button>
                     </motion.div>
                   )}
@@ -602,34 +628,43 @@ export function ProofInspectorModal({
             {/* Modal Footer CTAs */}
             <div className="flex items-center justify-between border-t border-white/[0.08] px-6 py-4 bg-white/[0.01]">
               <div className="flex items-center gap-2">
-                {selectedRecord && (
-                  <>
-                    <a
-                      href={`https://stellar.expert/explorer/public/tx/${selectedRecord.paymentHash}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-1 rounded-xl border border-white/10 px-3 py-2 text-xs font-semibold text-muted-foreground transition hover:bg-white/5 hover:text-foreground focus:outline-none focus:ring-2 focus:ring-white/10"
+                <AnimatePresence>
+                  {selectedRecord && (
+                    <motion.div
+                      key="footer-actions"
+                      initial={{ opacity: 0, x: -6 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -6 }}
+                      transition={{ duration: 0.15 }}
+                      className="flex items-center gap-2"
                     >
-                      Stellar.Expert
-                      <ExternalLink className="h-3.5 w-3.5" />
-                    </a>
-                    <button
-                      onClick={() => {
-                        onOpenMessage(selectedRecord.email);
-                        onClose();
-                      }}
-                      className="inline-flex items-center gap-1.5 rounded-xl bg-white px-4 py-2 text-xs font-bold text-black transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-white/30"
-                    >
-                      <Mail className="h-3.5 w-3.5" />
-                      Open Message
-                    </button>
-                  </>
-                )}
+                      <a
+                        href={`https://stellar.expert/explorer/public/tx/${selectedRecord.paymentHash}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 rounded-xl border border-white/10 px-3 py-2 text-xs font-semibold text-muted-foreground transition hover:bg-white/5 hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-white/10"
+                      >
+                        Verify on Stellar
+                        <ExternalLink className="h-3.5 w-3.5" />
+                      </a>
+                      <button
+                        onClick={() => {
+                          onOpenMessage(selectedRecord.email);
+                          onClose();
+                        }}
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-white px-4 py-2 text-xs font-bold text-black transition hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+                      >
+                        <Mail className="h-3.5 w-3.5" />
+                        Open Message
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
 
               <button
                 onClick={onClose}
-                className="rounded-xl border border-white/10 px-4 py-2 text-xs font-semibold text-foreground transition hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-white/10"
+                className="rounded-xl border border-white/10 px-4 py-2 text-xs font-semibold text-foreground transition hover:bg-white/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/10"
               >
                 Close
               </button>

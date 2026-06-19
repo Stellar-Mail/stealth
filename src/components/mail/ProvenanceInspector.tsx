@@ -21,10 +21,10 @@ export function ProvenanceInspector({
     try {
       await navigator.clipboard.writeText(details.rawJson);
       setCopied(true);
-      onShowToast?.("JSON data copied to clipboard");
+      onShowToast?.("Verification record copied");
       setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error("Failed to copy JSON:", err);
+    } catch {
+      onShowToast?.("Copy failed — clipboard access denied");
     }
   };
 
@@ -57,8 +57,8 @@ export function ProvenanceInspector({
               </div>
               <button
                 onClick={onClose}
-                className="rounded-lg p-1.5 text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground"
-                aria-label="Close dialog"
+                className="rounded-lg p-1.5 text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-white/10"
+                aria-label="Close"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -101,7 +101,8 @@ export function ProvenanceInspector({
                   </div>
                   <button
                     onClick={handleCopyJson}
-                    className="flex items-center gap-1 rounded border border-white/10 bg-white/[0.04] px-2 py-1 text-[10px] text-muted-foreground transition hover:border-white/20 hover:text-foreground hover:bg-white/[0.08]"
+                    aria-label={copied ? "Copied" : "Copy JSON"}
+                    className="flex items-center gap-1 rounded border border-white/10 bg-white/[0.04] px-2 py-1 text-[10px] text-muted-foreground transition hover:border-white/20 hover:text-foreground hover:bg-white/[0.08] focus:outline-none focus-visible:ring-2 focus-visible:ring-white/10"
                   >
                     {copied ? (
                       <>
@@ -126,7 +127,7 @@ export function ProvenanceInspector({
             <div className="flex justify-end border-t border-white/5 px-5 py-3.5 bg-black/10">
               <button
                 onClick={onClose}
-                className="rounded-lg border border-white/10 bg-white/[0.03] px-4 py-2 text-xs font-semibold text-foreground transition hover:bg-white/[0.08] hover:border-white/20"
+                className="rounded-lg border border-white/10 bg-white/[0.03] px-4 py-2 text-xs font-semibold text-foreground transition hover:bg-white/[0.08] hover:border-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/10"
               >
                 Done
               </button>
