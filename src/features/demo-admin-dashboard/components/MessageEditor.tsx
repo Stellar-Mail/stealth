@@ -91,9 +91,7 @@ export function MessageEditor({
         className,
       )}
       role="group"
-      tabIndex={0}
       aria-label="Message editor"
-      onKeyDown={handleKeyDown}
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -121,6 +119,7 @@ export function MessageEditor({
           type="text"
           value={draft.subject}
           onChange={(e) => handleSubjectChange(e.target.value)}
+          onKeyDown={handleKeyDown}
           placeholder="Enter message subject"
           className={cn(
             "w-full rounded-lg border px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none bg-black/40",
@@ -144,6 +143,7 @@ export function MessageEditor({
           type="text"
           value={recipientsInput}
           onChange={(e) => handleRecipientsChange(e.target.value)}
+          onKeyDown={handleKeyDown}
           placeholder="e.g. alice@example.com, bob*stealth.demo"
           className={cn(
             "w-full rounded-lg border px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none bg-black/40",
@@ -166,6 +166,7 @@ export function MessageEditor({
           id="editor-body"
           value={draft.body}
           onChange={(e) => handleBodyChange(e.target.value)}
+          onKeyDown={handleKeyDown}
           placeholder="Enter message body"
           rows={6}
           className={cn(
