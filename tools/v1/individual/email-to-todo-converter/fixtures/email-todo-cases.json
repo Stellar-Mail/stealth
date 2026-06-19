@@ -1,0 +1,101 @@
+[
+  {
+    "id": "budget-review-deadline",
+    "from": "finance@example-corp.com",
+    "subject": "Q3 budget draft needs your review",
+    "snippet": "Please review the attached Q3 budget draft and reply with comments by end of week.",
+    "bodyPreview": "The draft is due for consolidation Friday. Let me know if any line items need adjustment.",
+    "receivedAt": "2026-06-18T10:00:00Z",
+    "expectedTodos": [
+      {
+        "id": "todo-budget-1",
+        "sourceEmailId": "budget-review-deadline",
+        "task": "Review Q3 budget draft and send comments",
+        "confidence": "high",
+        "evidence": "Please review the attached Q3 budget draft and reply with comments by end of week.",
+        "dueDate": "2026-06-20",
+        "priority": "high"
+      }
+    ]
+  },
+  {
+    "id": "team-sync-reschedule",
+    "from": "alice@example-team.com",
+    "subject": "Reschedule team sync",
+    "snippet": "Can we move tomorrow's sync to 3pm? Need to confirm attendees.",
+    "bodyPreview": "Please reply by noon so I can update the calendar invite.",
+    "receivedAt": "2026-06-18T11:30:00Z",
+    "expectedTodos": [
+      {
+        "id": "todo-sync-1",
+        "sourceEmailId": "team-sync-reschedule",
+        "task": "Confirm new time for team sync and reply",
+        "confidence": "high",
+        "evidence": "Can we move tomorrow's sync to 3pm? Need to confirm attendees.",
+        "priority": "medium"
+      }
+    ]
+  },
+  {
+    "id": "project-kickoff-actions",
+    "from": "pm@example-project.com",
+    "subject": "Project kickoff next steps",
+    "snippet": "Please prepare the requirements doc, schedule kickoff call, and assign owners for the three workstreams.",
+    "bodyPreview": "Draft doc by Monday, call on Tuesday, owners by Wednesday.",
+    "receivedAt": "2026-06-18T09:00:00Z",
+    "expectedTodos": [
+      {
+        "id": "todo-kick-1",
+        "sourceEmailId": "project-kickoff-actions",
+        "task": "Prepare requirements doc",
+        "confidence": "high",
+        "evidence": "Please prepare the requirements doc",
+        "dueDate": "2026-06-22",
+        "priority": "high"
+      },
+      {
+        "id": "todo-kick-2",
+        "sourceEmailId": "project-kickoff-actions",
+        "task": "Schedule kickoff call for next week",
+        "confidence": "high",
+        "evidence": "schedule kickoff call",
+        "priority": "medium"
+      },
+      {
+        "id": "todo-kick-3",
+        "sourceEmailId": "project-kickoff-actions",
+        "task": "Assign owners for the three workstreams",
+        "confidence": "high",
+        "evidence": "assign owners for the three workstreams",
+        "priority": "medium"
+      }
+    ]
+  },
+  {
+    "id": "newsletter-june-update",
+    "from": "news@example-product.com",
+    "subject": "June product newsletter",
+    "snippet": "This month we shipped search improvements and a new dashboard widget.",
+    "bodyPreview": "Read the full changelog and join our webinar next week if interested.",
+    "receivedAt": "2026-06-18T08:00:00Z",
+    "expectedTodos": []
+  },
+  {
+    "id": "catch-up-sometime",
+    "from": "bob@example-colleague.com",
+    "subject": "Quick catch up?",
+    "snippet": "We should grab coffee sometime soon to talk about the old project.",
+    "bodyPreview": "No rush, just wanted to reconnect.",
+    "receivedAt": "2026-06-18T14:00:00Z",
+    "expectedTodos": [
+      {
+        "id": "todo-catch-1",
+        "sourceEmailId": "catch-up-sometime",
+        "task": "Follow up with Bob about catching up",
+        "confidence": "low",
+        "evidence": "We should grab coffee sometime soon to talk about the old project.",
+        "priority": "low"
+      }
+    ]
+  }
+]
