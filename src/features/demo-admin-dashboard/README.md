@@ -29,6 +29,17 @@ Primary goals:
 - Laptop widths use a two-up card grid without requiring unrelated app-shell changes.
 - Desktop widths keep responsive review notes visible next to the card grid.
 
+## Campaign seed guide
+
+Contributors adding campaign seed data should follow the guide in [docs/CAMPAIGN_SEEDING_GUIDE.md](./docs/CAMPAIGN_SEEDING_GUIDE.md). The guide covers:
+
+- naming conventions for scenario slugs and IDs
+- safe recipient patterns and fake metadata rules
+- how to add deterministic examples under `seed-data/`
+- how to validate scenarios before they are used in the demo UI
+
+For reusable helpers, prefer the seed utilities exported from [seed-helpers/campaignSeed.ts](./seed-helpers/campaignSeed.ts) and the scenario fixtures in [seed-data/campaignSeedExamples.ts](./seed-data/campaignSeedExamples.ts).
+
 ## Validation
 
 Run the unit tests:

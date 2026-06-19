@@ -40,7 +40,7 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/componen
 import { CalendarWorkspace, useCalendar } from "@/features/calendar";
 import { FeedbackViewport } from "@/features/design-system/feedback/feedback-viewport";
 import { useFeedback } from "@/features/design-system/feedback/use-feedback";
-import { ImportWizard, type ImportedContact } from "@/features/contacts";
+import { ContactMigrationDialog } from "@/features/contacts";
 import {
   SenderConversionDialog,
   resolveSenderConversion,
@@ -147,9 +147,11 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
   const { dismiss: dismissFeedback, items: feedbackItems, notify: showToast } = useFeedback();
 
   const handleImportSave = useCallback(
-    (contacts: ImportedContact[]) => {
+    (result: { writes: number; rows: Array<{ name: string; address: string }> }) => {
       setImportOpen(false);
-      showToast(`${contacts.length} contact${contacts.length !== 1 ? "s" : ""} imported`);
+      showToast(
+        `${result.writes} sender rule${result.writes !== 1 ? "s" : ""} written for ${result.rows.length} contact${result.rows.length !== 1 ? "s" : ""}`,
+      );
     },
     [showToast],
   );
@@ -931,10 +933,13 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
         />
         <FeedbackViewport items={feedbackItems} onDismiss={dismissFeedback} />
 
-        <ImportWizard
+        <ContactMigrationDialog
           open={importOpen}
           onClose={() => setImportOpen(false)}
-          onSave={handleImportSave}
+          onComplete={handleImportSave}
+          owner={
+            emails.find((e) => e.email?.startsWith("G") || e.email?.includes("*"))?.email ?? ""
+          }
         />
 
         <SenderConversionDialog
