@@ -33,7 +33,7 @@ export const defaultCampaignSnapshots: CampaignSnapshot[] = [
     targetAudience: "High-Value Accounts",
     tags: ["security", "onboarding", "alert"],
     timestamp: "2026-06-15T09:30:00Z",
-    status: "needs-review",
+    status: "ready",
     drafts: [
       {
         id: "draft-security-1",
@@ -51,7 +51,7 @@ export const defaultCampaignSnapshots: CampaignSnapshot[] = [
     targetAudience: "Newsletter Subscribers",
     tags: ["newsletter", "marketing", "announcement"],
     timestamp: "2026-06-14T15:45:00Z",
-    status: "draft",
+    status: "ready",
     drafts: [
       {
         id: "draft-news-1",

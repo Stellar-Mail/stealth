@@ -6,32 +6,44 @@ export interface DisplayToken {
 }
 
 export const CAMPAIGN_STATUS_TOKENS: Record<
-  "active" | "draft" | "needs-review" | "archived",
+  "draft" | "ready" | "active" | "paused" | "archived" | "failed",
   DisplayToken
 > = {
-  active: {
-    bg: "bg-emerald-500/10",
-    text: "text-emerald-400",
-    border: "border-emerald-500/20",
-    label: "Active",
-  },
   draft: {
     bg: "bg-white/[0.04]",
     text: "text-muted-foreground",
     border: "border-white/[0.08]",
     label: "Draft",
   },
-  "needs-review": {
+  ready: {
+    bg: "bg-sky-500/10",
+    text: "text-sky-400",
+    border: "border-sky-500/20",
+    label: "Ready",
+  },
+  active: {
+    bg: "bg-emerald-500/10",
+    text: "text-emerald-400",
+    border: "border-emerald-500/20",
+    label: "Active",
+  },
+  paused: {
     bg: "bg-amber-500/10",
     text: "text-amber-400",
     border: "border-amber-500/20",
-    label: "Needs Review",
+    label: "Paused",
   },
   archived: {
     bg: "bg-rose-500/10",
     text: "text-rose-400",
     border: "border-rose-500/20",
     label: "Archived",
+  },
+  failed: {
+    bg: "bg-red-500/10",
+    text: "text-red-400",
+    border: "border-red-500/20",
+    label: "Failed",
   },
 };
 

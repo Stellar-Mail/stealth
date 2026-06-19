@@ -50,11 +50,11 @@ describe("Campaign Display Tokens Utilities", () => {
   });
 
   describe("CAMPAIGN_STATUS_TOKENS", () => {
-    it("should define statuses including active, draft, needs-review, and archived", () => {
-      expect(CAMPAIGN_STATUS_TOKENS.active).toBeDefined();
-      expect(CAMPAIGN_STATUS_TOKENS.draft).toBeDefined();
-      expect(CAMPAIGN_STATUS_TOKENS["needs-review"]).toBeDefined();
-      expect(CAMPAIGN_STATUS_TOKENS.archived).toBeDefined();
+    it("should define tokens for all six campaign statuses", () => {
+      const expected = ["draft", "ready", "active", "paused", "archived", "failed"];
+      for (const s of expected) {
+        expect(CAMPAIGN_STATUS_TOKENS[s as keyof typeof CAMPAIGN_STATUS_TOKENS]).toBeDefined();
+      }
     });
   });
 });
