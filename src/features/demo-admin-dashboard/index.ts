@@ -56,6 +56,8 @@ export {
 } from "./constants/displayTokens";
 
 export { CampaignTagManager } from "./components/CampaignTagManager";
+export { CampaignPublishChecklistPanel } from "./components/CampaignPublishChecklistPanel";
+export type { CampaignPublishChecklistPanelProps } from "./components/CampaignPublishChecklistPanel";
 export { MockPublishPanel } from "./components/MockPublishPanel";
 export type { MockPublishPanelProps } from "./components/MockPublishPanel";
 export {
@@ -72,6 +74,17 @@ export type {
   MockPublishStatus,
   MockPublishStep,
 } from "./mockPublishWorkflow";
+export {
+  buildCampaignPublishChecklist,
+  getCampaignPublishBlockers,
+  getCampaignPublishWarnings,
+  summarizeCampaignPublishChecklist,
+} from "./campaignPublishChecklist";
+export type {
+  CampaignPublishChecklistItem,
+  CampaignPublishChecklistResult,
+  CampaignPublishChecklistSeverity,
+} from "./campaignPublishChecklist";
 
 export {
   createTag,
