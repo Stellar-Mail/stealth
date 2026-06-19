@@ -1,3 +1,17 @@
+# Review Notes — Team Digest Generator
+
+What to look for:
+- Correct classification of items into `new_message`, `pending_item`, `completed_item`, `team_summary`.
+- Priority inference is deterministic and simple — look for obvious misses (e.g., false high-priority matches).
+- `requiresAttention` should flag urgent and pending items appropriately.
+
+Assumptions made:
+- Fixtures are deterministic and isolated; no external network calls.
+- Priority signals are keyword-based for now.
+
+Suggested follow-ups:
+- Add more fixtures covering CC/BCC, mentions, and threaded deduplication.
+- Expose a small UI for reviewers to confirm classifications interactively.
 # Review Notes
 
 ## What This Contribution Adds

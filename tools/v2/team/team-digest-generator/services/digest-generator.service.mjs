@@ -1,3 +1,84 @@
+// Minimal, deterministic digest generator service (zero-deps)
+
+function idFrom(email) {
+  return `${email.threadId || 't'}-${email.id}`;
+}
+
+export function classifyItem(email) {
+  const subj = (email.subject || '').toLowerCase();
+  const body = (email.body || '').toLowerCase();
+
+  if (subj.includes('summary') || email.tags?.summary) return 'team_summary';
+  if (subj.includes('completed') || subj.includes('done') || email.tags?.status === 'completed') return 'completed_item';
+  if (subj.includes('todo') || subj.includes('action') || body.includes('action required') || email.tags?.requiresAction) return 'pending_item';
+  return 'new_message';
+}
+
+export function inferPriority(email) {
+  const text = ((email.subject || '') + ' ' + (email.body || '')).toLowerCase();
+  const highSignals = ['urgent', 'asap', 'immediately', 'priority', 'blocked'];
+  const mediumSignals = ['please', 'review', 'attention', 'when you can'];
+
+  if (highSignals.some(s => text.includes(s))) return 'high';
+  if (mediumSignals.some(s => text.includes(s))) return 'medium';
+  return 'low';
+}
+
+export function requiresAttention(email) {
+  const type = classifyItem(email);
+  const priority = inferPriority(email);
+  if (priority === 'high') return true;
+  if (type === 'pending_item' && priority !== 'low') return true;
+  // explicit flags in fixture
+  if (email.flags?.needsAttention) return true;
+  return false;
+}
+
+export function buildSummary(items) {
+  const total = items.length;
+  const attentionCount = items.filter(i => i.requiresAttention).length;
+  const distinctTeamMembers = [...new Set(items.map(i => i.sender))].length;
+  const byType = items.reduce((acc, it) => {
+    acc[it.type] = (acc[it.type] || 0) + 1;
+    return acc;
+  }, {});
+
+  return { total, attentionCount, distinctTeamMembers, byType };
+}
+
+export function generateDigest(activity, date, generatedAt = new Date().toISOString()) {
+  if (!activity || !Array.isArray(activity.emails)) throw new Error('activity.emails array required');
+  const items = activity.emails.map(email => {
+    const type = classifyItem(email);
+    const priority = inferPriority(email);
+    const needs = requiresAttention(email);
+
+    return {
+      id: idFrom(email),
+      threadId: email.threadId || null,
+      messageId: email.id,
+      sender: email.from || 'unknown',
+      recipients: email.to || [],
+      subject: email.subject || '',
+      snippet: (email.body || '').slice(0, 240),
+      date: email.date || null,
+      type,
+      priority,
+      requiresAttention: needs,
+    };
+  });
+
+  const summary = buildSummary(items);
+
+  return {
+    date,
+    generatedAt,
+    items,
+    summary,
+  };
+}
+
+export default { generateDigest, classifyItem, inferPriority, requiresAttention, buildSummary };
 const ALLOWED_TYPES = new Set(["new_message", "pending_item", "completed_item", "team_summary"]);
 const ALLOWED_PRIORITIES = new Set(["low", "medium", "high"]);
 

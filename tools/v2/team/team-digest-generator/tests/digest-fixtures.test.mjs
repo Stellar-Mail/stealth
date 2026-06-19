@@ -1,3 +1,39 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const fixturePath = path.join(__dirname, '..', 'fixtures', 'sample-team-activity.json');
+const fixture = JSON.parse(readFileSync(fixturePath, 'utf8'));
+
+import { generateDigest } from '../services/digest-generator.service.mjs';
+
+test('fixture structure is valid', () => {
+  assert.ok(fixture && Array.isArray(fixture.emails), 'fixture.emails must be an array');
+  assert.equal(fixture.emails.length, 6, 'should contain 6 sample emails');
+  for (const e of fixture.emails) {
+    assert.ok(e.id, 'email must have id');
+    assert.ok(e.subject !== undefined, 'email must have subject');
+  }
+});
+
+test('digest generator produces expected summary', () => {
+  const digest = generateDigest(fixture, '2026-06-01');
+  assert.equal(digest.summary.total, fixture.expected.summary.total, 'total count matches expected');
+  assert.equal(digest.summary.attentionCount, fixture.expected.summary.attentionCount, 'attention count matches expected');
+  assert.equal(digest.summary.distinctTeamMembers, fixture.expected.summary.distinctTeamMembers, 'distinct team count matches expected');
+
+  // verify presence of all types
+  const types = Object.keys(digest.summary.byType || {});
+  assert.ok(types.includes('new_message'), 'should include new_message type');
+  assert.ok(types.includes('pending_item'), 'should include pending_item type');
+  assert.ok(types.includes('completed_item'), 'should include completed_item type');
+  assert.ok(types.includes('team_summary'), 'should include team_summary type');
+});
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
