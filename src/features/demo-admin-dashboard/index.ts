@@ -56,6 +56,8 @@ export {
 } from "./constants/displayTokens";
 
 export { CampaignTagManager } from "./components/CampaignTagManager";
+export { DemoInboxPreview } from "./components/DemoInboxPreview";
+export type { DemoInboxPreviewProps } from "./components/DemoInboxPreview";
 export { MockPublishPanel } from "./components/MockPublishPanel";
 export type { MockPublishPanelProps } from "./components/MockPublishPanel";
 export {
@@ -72,6 +74,13 @@ export type {
   MockPublishStatus,
   MockPublishStep,
 } from "./mockPublishWorkflow";
+export {
+  formatLocalInboxPreviewSubtitle,
+  getLocalInboxPreviewReader,
+  getLocalInboxPreviewRows,
+  getLocalInboxPreviewRowsForFolder,
+} from "./utils/localInboxPreview";
+export type { LocalInboxPreviewReader, LocalInboxPreviewRow } from "./utils/localInboxPreview";
 
 export {
   createTag,
