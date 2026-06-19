@@ -79,7 +79,15 @@ export function sanitizeTeamMemberName(name: string): string {
 /**
  * Validate team member object
  */
-export function validateTeamMember(member: any): ValidationError | null {
+export function validateTeamMember(member: unknown): ValidationError | null {
+  if (!member || typeof member !== "object") {
+    return {
+      field: "teamMember",
+      message: "Team member is required",
+      code: "REQUIRED",
+    };
+  }
+  const m = member as Partial<TeamMember>;
   if (!member) {
     return {
       field: "teamMember",
@@ -256,7 +264,17 @@ function validateCronField(
 /**
  * Validate schedule expression
  */
-export function validateScheduleExpression(schedule: any): ValidationError | null {
+export function validateScheduleExpression(schedule: unknown): ValidationError | null {
+  if (!schedule || typeof schedule !== "object") {
+    return {
+      field: "schedule",
+      message: "Schedule expression is required",
+      code: "REQUIRED",
+    };
+  }
+
+  const s = schedule as { type?: unknown; value?: unknown; timezone?: unknown };
+
   if (!schedule) {
     return {
       field: "schedule",
@@ -351,7 +369,11 @@ export function isValidTimezone(tz: string): boolean {
 /**
  * Validate filter rules - email exclusions, category exclusions, etc.
  */
-export function validateFilterRules(filters: any): ValidationError | null {
+export function validateFilterRules(filters: unknown): ValidationError | null {
+  if (!filters || typeof filters !== "object") {
+    return null; // Filters are optional or invalid shape
+  }
+  const f = filters as Record<string, unknown>;
   if (!filters) {
     return null; // Filters are optional
   }
@@ -451,7 +473,21 @@ export function validateFilterRules(filters: any): ValidationError | null {
 /**
  * Validate digest configuration
  */
-export function validateDigestConfig(config: any): ValidationResult {
+export function validateDigestConfig(config: unknown): ValidationResult {
+  if (!config || typeof config !== "object") {
+    return {
+      valid: false,
+      errors: [
+        {
+          field: "config",
+          message: "Configuration is required",
+          code: "REQUIRED",
+        },
+      ],
+    };
+  }
+
+  const cfg = config as Partial<DigestConfig>;
   const errors: ValidationError[] = [];
 
   if (!config) {

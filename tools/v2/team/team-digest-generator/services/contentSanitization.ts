@@ -155,7 +155,7 @@ export function escapeHtml(text: string): string {
  * Sanitize for JSON output
  * Prevents JSON injection attacks
  */
-export function sanitizeForJson(obj: any): string {
+export function sanitizeForJson(obj: unknown): string {
   try {
     // JSON.stringify handles most escaping
     return JSON.stringify(obj);
