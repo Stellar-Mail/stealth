@@ -67,9 +67,10 @@ describe("filterEvents", () => {
     expect(filterEvents(EVENTS, { category: "all", search: "bob" }).map((e) => e.id)).toEqual([
       "t_002",
     ]);
-    expect(
-      filterEvents(EVENTS, { category: "all", search: "msg_abc1" }).map((e) => e.id),
-    ).toEqual(["t_002", "t_003"]);
+    expect(filterEvents(EVENTS, { category: "all", search: "msg_abc1" }).map((e) => e.id)).toEqual([
+      "t_002",
+      "t_003",
+    ]);
     expect(
       filterEvents(EVENTS, { category: "all", search: "session.started" }).map((e) => e.id),
     ).toEqual(["t_001"]);
