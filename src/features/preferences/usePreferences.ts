@@ -14,6 +14,48 @@ function resolveTheme(theme: UiPreferences["theme"]) {
   return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
 }
 
+/**
+ * Resolve the effective motion level. Reduced motion wins whenever either the
+ * in-app toggle or the OS `prefers-reduced-motion` setting asks for it, so the
+ * accessibility preference is honored even when the user has not flipped the
+ * in-app switch. Pure so it can be unit tested without a DOM.
+ */
+export function resolveMotion(
+  lowerMotion: boolean,
+  prefersReducedMotion: boolean,
+): "lower" | "full" {
+  return lowerMotion || prefersReducedMotion ? "lower" : "full";
+}
+
+/**
+ * Pure resolution of persisted preferences, shared by the hook and its tests.
+ * Stored values are always merged over the current defaults so missing keys
+ * stay predictable across sessions and app versions. The current key wins; the
+ * legacy `stealth-preferences` key is migrated only when the current one is
+ * absent. `corrupt` is true when the current key is present but unparseable, so
+ * the caller can clear it.
+ */
+export function resolveStoredPreferences(
+  current: string | null,
+  legacy: string | null,
+): { preferences: UiPreferences; corrupt: boolean } {
+  if (current) {
+    try {
+      return { preferences: { ...defaultPreferences, ...JSON.parse(current) }, corrupt: false };
+    } catch {
+      return { preferences: defaultPreferences, corrupt: true };
+    }
+  }
+  if (legacy) {
+    try {
+      return { preferences: { ...defaultPreferences, ...JSON.parse(legacy) }, corrupt: false };
+    } catch {
+      return { preferences: defaultPreferences, corrupt: false };
+    }
+  }
+  return { preferences: defaultPreferences, corrupt: false };
+}
+
 export function usePreferences() {
   const snapshot = useSyncExternalStore(uiStore.subscribe, uiStore.getSnapshot, () =>
     JSON.stringify(defaultPreferences),

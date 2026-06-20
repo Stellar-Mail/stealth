@@ -13,7 +13,7 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
 
-function clampPreferences(prefs: LayoutPreferences): LayoutPreferences {
+export function clampLayoutPreferences(prefs: LayoutPreferences): LayoutPreferences {
   return {
     ...prefs,
     sidebarWidth: clamp(prefs.sidebarWidth, 5, 40),
