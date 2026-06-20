@@ -1,6 +1,27 @@
 import { describe, expect, it } from "vitest";
-import { resolveStoredPreferences } from "../../../src/features/preferences/usePreferences";
+import {
+  resolveStoredPreferences,
+  resolveMotion,
+} from "../../../src/features/preferences/usePreferences";
 import { defaultPreferences } from "../../../src/features/preferences/types";
+
+describe("preferences/resolveMotion", () => {
+  it("keeps full motion when neither the toggle nor the OS asks to reduce (success path)", () => {
+    expect(resolveMotion(false, false)).toBe("full");
+  });
+
+  it("reduces motion when the in-app toggle is on", () => {
+    expect(resolveMotion(true, false)).toBe("lower");
+  });
+
+  it("honors the OS reduced-motion setting even when the toggle is off (a11y fallback)", () => {
+    expect(resolveMotion(false, true)).toBe("lower");
+  });
+
+  it("reduces motion when both ask for it", () => {
+    expect(resolveMotion(true, true)).toBe("lower");
+  });
+});
 
 describe("preferences/resolveStoredPreferences", () => {
   it("merges a stored value over the current defaults (success path)", () => {

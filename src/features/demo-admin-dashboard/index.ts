@@ -66,8 +66,8 @@ export {
 } from "./constants/displayTokens";
 
 export { CampaignTagManager } from "./components/CampaignTagManager";
-export { CampaignListTable } from "./components/CampaignListTable";
-export type { CampaignListTableProps } from "./components/CampaignListTable";
+export { CampaignEditorPanel } from "./components/CampaignEditorPanel";
+export type { CampaignEditorPanelProps } from "./components/CampaignEditorPanel";
 export { MockPublishPanel } from "./components/MockPublishPanel";
 export type { MockPublishPanelProps } from "./components/MockPublishPanel";
 export { CampaignDiffPanel } from "./components/CampaignDiffPanel";
@@ -88,6 +88,21 @@ export type {
   CampaignListSortDirection,
   CampaignListSortKey,
 } from "./campaignListTable";
+export {
+  campaignEditorStateToSnapshot,
+  campaignToEditorState,
+  emptyCampaignEditorState,
+  getCampaignEditorEmptyState,
+  hasAnyCampaignEditorContent,
+  normalizeCampaignEditorTags,
+  validateCampaignEditorState,
+} from "./campaignEditor";
+export type {
+  CampaignEditorEmptyState,
+  CampaignEditorState,
+  CampaignEditorStatus,
+  CampaignEditorValidationResult,
+} from "./campaignEditor";
 export {
   canRetryMockPublish,
   canRollbackMockPublish,
@@ -472,3 +487,32 @@ export {
 } from "./labels/labelNormalization";
 export { demoLabels, labeledDemoMessages } from "./labels/labelFixtures";
 export { LabelManager } from "./labels/LabelManager";
+
+// Draft dataset JSON import (issue #272): JSON -> safe drafts mapper with error output.
+export { mapImportedDataset, parseDatasetImport } from "./helpers/datasetImport";
+export type { DatasetImportIssue, DatasetImportResult } from "./types/datasetImport";
+
+// Validation quick-fix framework (issue #221): one-click fixes for demo-data validation issues.
+export {
+  applyQuickFix,
+  createQuickFixRegistry,
+  defaultQuickFixRegistry,
+  quickFixKindForIssue,
+  toSafeRecipient,
+  SAFE_BODY,
+  SAFE_RECIPIENT,
+  SAFE_SUBJECT,
+} from "./helpers/quickFixRegistry";
+export type {
+  QuickFix,
+  QuickFixApplication,
+  QuickFixKind,
+  QuickFixRegistry,
+} from "./types/quickFix";
+// Scenario registry and loader (issue #216): load demo scenarios into draft state.
+export {
+  createScenarioRegistry,
+  demoScenarios,
+  loadScenarioIntoDraft,
+} from "./helpers/scenarioRegistry";
+export type { DemoScenario, ScenarioLoadMode, ScenarioRegistry } from "./types/scenario";
