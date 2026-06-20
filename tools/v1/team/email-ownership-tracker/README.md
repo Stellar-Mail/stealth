@@ -1,15 +1,53 @@
 # Email Ownership Tracker
 
-This folder is the isolated workspace for the Email Ownership Tracker tool.
+A self-contained V1 team tool for tracking who currently owns an email thread
+and preserving a bounded ownership history for review.
 
-## Ownership Boundary
+**Release tier:** V1
+**Audience:** Team
+**Isolation boundary:** `tools/v1/team/email-ownership-tracker/`
 
-All work for this tool must stay inside:
+## Purpose
 
-`text
-.\tools\v1\team\email-ownership-tracker\
-`
+Team inboxes need a clear handoff trail. This tool provides folder-local
+business logic for:
 
-Do not wire this tool into the main app, routing, inbox architecture, wallet core, Stellar core, database schema, or existing design system unless a future integration issue explicitly allows it.
+- validating ownership events before they are stored
+- normalizing owner, thread, and actor identifiers
+- sanitizing notes and reasons used in history rows
+- appending events without mutating existing histories
+- reading current ownership and compact thread histories
+- bounding large histories so the future UI does not process unlimited input
 
-See specs.md for the issue categories and contributor expectations.
+## Folder Structure
+
+```text
+email-ownership-tracker/
+├── docs/
+│   ├── REVIEW_NOTES.md
+│   └── SETUP.md
+├── fixtures/
+│   └── ownership.fixture.ts
+├── services/
+│   └── ownership.service.ts
+├── tests/
+│   ├── TEST_PLAN.md
+│   └── ownership.service.test.ts
+├── README.md
+├── specs.md
+└── vitest.config.ts
+```
+
+## Running Tests
+
+From the repository root:
+
+```bash
+npx vitest run --config tools/v1/team/email-ownership-tracker/vitest.config.ts
+```
+
+## Boundary
+
+This contribution is intentionally isolated. It does not import from the main
+app, mutate shared app state, add routes, touch auth, change the inbox
+architecture, or connect to external services.
