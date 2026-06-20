@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { memo, useState } from "react";
 import {
   BadgeDollarSign,
   ClipboardCopy,
@@ -74,7 +74,7 @@ function formatActor(event: AuditEvent): string {
 
 // ─── Row ─────────────────────────────────────────────────────────────────────
 
-function EventRow({ event }: { event: AuditEvent }) {
+const EventRow = memo(function EventRow({ event }: { event: AuditEvent }) {
   const Icon = CATEGORY_ICON[event.category];
   const context = event.context;
 
@@ -117,10 +117,9 @@ function EventRow({ event }: { event: AuditEvent }) {
       >
         {formatTs(event.ts)}
       </time>
-    </article>
+</article>
   );
-}
-
+});
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function AuditLog() {
