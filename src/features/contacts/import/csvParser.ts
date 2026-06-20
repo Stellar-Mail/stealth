@@ -30,10 +30,16 @@ function isHeaderLine(line: string): boolean {
  */
 export function validateImportAddress(address: string): string | null {
   const trimmed = address.trim();
-  if (!trimmed) return "Address is required.";
-  if (/^[GS][A-Z2-7]{55}$/.test(trimmed)) return null;
-  if (trimmed.includes("*")) return null;
-  return "Not a valid Stellar/Stealth address or federation address (name*domain).";
+  if (!trimmed) {
+    return "Address is required. Enter a Stellar address (G...), Stealth address (S...), or federation address (name*domain).";
+  }
+  if (/^[GS][A-Z2-7]{55}$/.test(trimmed)) {
+    return null;
+  }
+  if (trimmed.includes("*")) {
+    return null;
+  }
+  return "Invalid address. Use a Stellar address (G...), Stealth address (S...), or federation address (name*domain).";
 }
 
 /**

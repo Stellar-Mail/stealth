@@ -296,7 +296,7 @@ export function ContactMigrationDialog({
                       <div className="flex gap-3">
                         <button
                           onClick={() => goTo("source")}
-                          className="flex-1 rounded-xl border border-white/10 px-4 py-2.5 text-sm text-muted-foreground transition hover:bg-white/[0.04] hover:text-foreground"
+                          className="flex-1 rounded-xl border border-white/10 px-4 py-2.5 text-sm text-muted-foreground transition hover:bg-white/[0.04] hover:text-foreground focus:outline-none focus:ring-1 focus:ring-white/20"
                         >
                           Back
                         </button>
@@ -316,7 +316,7 @@ export function ContactMigrationDialog({
                           className={cn(
                             "flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold transition",
                             rows.filter((r) => !r.error).length > 0
-                              ? "bg-foreground text-background hover:opacity-90"
+                              ? "bg-foreground text-background hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-foreground/50"
                               : "cursor-not-allowed bg-white/10 text-muted-foreground",
                           )}
                         >
@@ -426,13 +426,13 @@ function TrustDefaultsStep({
       <div className="flex gap-3">
         <button
           onClick={onBack}
-          className="flex-1 rounded-xl border border-white/10 px-4 py-2.5 text-sm text-muted-foreground transition hover:bg-white/[0.04] hover:text-foreground"
+          className="flex-1 rounded-xl border border-white/10 px-4 py-2.5 text-sm text-muted-foreground transition hover:bg-white/[0.04] hover:text-foreground focus:outline-none focus:ring-1 focus:ring-white/20"
         >
           Back
         </button>
         <button
           onClick={onContinue}
-          className="flex-1 rounded-xl bg-foreground px-4 py-2.5 text-sm font-semibold text-background transition hover:opacity-90"
+          className="flex-1 rounded-xl bg-foreground px-4 py-2.5 text-sm font-semibold text-background transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-foreground/50"
         >
           Start migration
         </button>
@@ -492,7 +492,7 @@ function MigrationDoneStep({
 
       <button
         onClick={onFinish}
-        className="w-full rounded-xl bg-foreground px-4 py-2.5 text-sm font-semibold text-background transition hover:opacity-90"
+        className="w-full rounded-xl bg-foreground px-4 py-2.5 text-sm font-semibold text-background transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-foreground/50"
       >
         Done
       </button>

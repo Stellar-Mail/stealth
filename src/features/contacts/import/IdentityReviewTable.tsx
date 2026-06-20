@@ -120,7 +120,7 @@ export function IdentityReviewTable({ rows, onChange }: Props) {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by name or address…"
-            className="w-full rounded-lg border border-white/10 bg-white/[0.04] py-1.5 pl-8 pr-3 text-xs text-foreground placeholder:text-muted-foreground/50 outline-none focus:border-white/20"
+            className="w-full rounded-lg border border-white/10 bg-white/[0.04] py-1.5 pl-8 pr-3 text-xs text-foreground placeholder:text-muted-foreground/50 outline-none transition focus:border-white/20 focus:ring-1 focus:ring-white/20"
           />
         </div>
       </div>
@@ -178,7 +178,7 @@ export function IdentityReviewTable({ rows, onChange }: Props) {
                     value={row.name}
                     onChange={(e) => updateRow(row.id, { name: e.target.value })}
                     placeholder="Name"
-                    className="min-w-0 flex-1 rounded-lg border border-white/10 bg-white/[0.04] px-2 py-1 text-xs text-foreground placeholder:text-muted-foreground/50 outline-none focus:border-white/20"
+                    className="min-w-0 flex-1 rounded-lg border border-white/10 bg-white/[0.04] px-2 py-1 text-xs text-foreground placeholder:text-muted-foreground/50 outline-none transition focus:border-white/20 focus:ring-1 focus:ring-white/20"
                   />
                 </div>
                 <select
@@ -187,7 +187,7 @@ export function IdentityReviewTable({ rows, onChange }: Props) {
                     updateRow(row.id, { trust: e.target.value as ImportedContactRow["trust"] })
                   }
                   className={cn(
-                    "appearance-none rounded-md border px-2 py-0.5 pr-5 text-[11px] font-medium transition",
+                    "appearance-none rounded-md border px-2 py-0.5 pr-5 text-[11px] font-medium transition focus:outline-none focus:ring-1 focus:ring-white/20",
                     TRUST_COLORS[row.trust],
                   )}
                 >
@@ -198,7 +198,7 @@ export function IdentityReviewTable({ rows, onChange }: Props) {
                 <button
                   onClick={() => removeRow(row.id)}
                   aria-label="Remove contact"
-                  className="shrink-0 rounded p-1 text-muted-foreground transition hover:text-red-400"
+                  className="shrink-0 rounded p-1 text-muted-foreground transition hover:text-red-400 focus:outline-none focus:ring-1 focus:ring-red-400/30"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
@@ -209,8 +209,10 @@ export function IdentityReviewTable({ rows, onChange }: Props) {
                 onChange={(e) => updateRow(row.id, { address: e.target.value })}
                 placeholder="alice*stealth.xyz or GABC…"
                 className={cn(
-                  "w-full rounded-lg border bg-white/[0.04] px-2.5 py-1.5 font-mono text-xs outline-none focus:border-white/20",
-                  row.error ? "border-red-400/30 text-red-300" : "border-white/10 text-foreground",
+                  "w-full rounded-lg border bg-white/[0.04] px-2.5 py-1.5 font-mono text-xs outline-none transition focus:ring-1",
+                  row.error
+                    ? "border-red-400/30 text-red-300 focus:border-red-400/50 focus:ring-red-400/30"
+                    : "border-white/10 text-foreground focus:border-white/20 focus:ring-white/20",
                 )}
               />
 
