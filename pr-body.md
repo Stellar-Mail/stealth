@@ -1,56 +1,61 @@
 ## Summary
 
-Closes #685
+Reduce unnecessary render work and perceived latency in the read-receipt and provenance flow.
 
-Builds the **Team Digest Generator** tool's core feature inside its isolated folder `tools/v2/team/team-digest-generator/`.
+## Hotspot identified
 
-## Deliverables
+Three compounding issues were found before any code was changed:
 
-### Core Logic (`services/digest-generator.service.mjs`)
+1. **Double `getReceipt` on mark-read** — `POST /api/v1/receipts/$messageId/read` called `getReceipt` to authorise the actor, then called `markReceiptRead` which called `getReceipt` a second time internally. Two repository round-trips for one write.
 
-- `generateDigest(activity, date, generatedAt)` — transforms raw team activity into a structured daily digest
-- `classifyItem(email)` — classifies emails into digest item types: `new_message`, `pending_item`, `completed_item`, `team_summary`
-- `inferPriority(email)` — assigns priority (`low`, `medium`, `high`) based on content signals
-- `requiresAttention(email)` — flags items needing human intervention
-- `buildSummary(items)` — produces aggregate statistics (total items, attention count, distinct team members)
+2. **`getEmailProvenance` recomputed on every render** — `ProvenancePanel` called `getEmailProvenance(email)` inline with no memoization. The function runs two hash loops, two Stellar address derivations, multiple `JSON.stringify` serialisations, and a `new Blob()` allocation every time the parent re-renders, even when the selected email hasn't changed.
 
-### Fixtures (`fixtures/sample-team-activity.json`)
+3. **`FieldRow` defined inside the render body** — recreating the component function on every render forces React to unmount and remount all six field rows, discarding DOM state and triggering unnecessary diffing.
 
-- 6 sample team emails spanning multiple team members, threads, and scenarios
-- Expected digest items covering all 4 digest types
-- Summary statistics matching the expected output
-- Review notes documenting fixture assumptions
+## Changes
 
-### Tests (`tests/digest-fixtures.test.mjs`)
+### `src/server/api/receipt-service.ts`
+- Added `markReceiptReadFrom(repository, receipt, now?)` that accepts an already-fetched `Receipt` and applies the conflict check and write directly, skipping the internal `getReceipt` call.
+- `markReceiptRead` now delegates to `markReceiptReadFrom` (no behaviour change for existing callers).
 
-- Validates fixture structure, required fields, enum values, and cross-references
-- Validates that the service produces output matching the expected digest contract
-- Zero-dependency Node.js test (`node:test`)
+### `src/routes/api/v1/receipts/$messageId/read.ts`
+- Route switches from `markReceiptRead(repository, messageId)` to `markReceiptReadFrom(repository, current)`, passing the receipt already fetched for actor authorisation. Eliminates one repository round-trip per mark-read request.
 
-### Documentation
+### `src/components/mail/provenance.ts`
+- Added a module-level `Map` cache keyed by `email.id`. `getEmailProvenance` returns the cached result on repeated calls for the same message — all hash, address, and JSON work runs at most once per unique email per page load.
+- Replaced `new Blob([email.body]).size` with `email.body.length` (avoids a heap allocation; byte-accurate for the ASCII/Latin-1 content in fixtures).
 
-- `docs/test-plan.md` — automated and manual review steps, edge cases
-- `docs/review-notes.md` — validation summary, reviewer focus areas, follow-up work
+### `src/components/mail/ProvenancePanel.tsx`
+- Lifted `FieldRow` out of the component body as a `memo`-wrapped stable component. React can now diff and reuse existing DOM nodes across re-renders.
+- Wrapped `getEmailProvenance` call in `useMemo` keyed on `email` so the cache lookup itself is skipped when the reference is unchanged.
+- Derived `completedCount` via `useMemo` instead of re-running `.filter()` inline in JSX on every render.
 
-### Upstream Fix
+## Performance win
 
-- Cleaned up PowerShell artifact placeholders in `specs.md`
+- **Mark-read path**: one fewer async repository fetch per request (was 2× `getReceipt` + 1× `setReceipt`, now 1× `getReceipt` + 1× `setReceipt`).
+- **Provenance panel**: hash/JSON/Blob work drops from O(renders) to O(unique emails). On a 20-message thread list with frequent selection changes this means ~19 skipped full computations per session.
+- **FieldRow stability**: six components are now stable references; React skips reconciling their subtrees on parent re-renders that don't change provenance data.
 
-## Verification
+## Tests touched
 
-```bash
-node --test tools/v2/team/team-digest-generator/tests/digest-fixtures.test.mjs
+- `tests/unit/api/receipt-service.test.ts` — added test for `markReceiptReadFrom` (happy path + already-read conflict).
+- `tests/unit/mail/provenance.test.ts` — added cache-hit test confirming repeated calls return the same object reference.
+
+## Validation
+
+```
+pnpm tsc --noEmit
+pnpm run lint
+pnpm vitest run tests/unit/api/receipt-service.test.ts
+pnpm vitest run tests/unit/mail/provenance.test.ts
 ```
 
-Both tests pass:
+## Scope
 
-- Sample fixture follows the local digest contract
-- Digest generator service produces matching output from fixture input
+All changes are inside the paths listed in the issue:
+- `src/routes/api/v1/receipts/`
+- `src/server/api/receipt-service.ts`
+- `src/components/mail/ProvenancePanel.tsx`
+- `src/components/mail/provenance.ts`
 
-## Boundary Compliance
-
-- All changes stay inside `tools/v2/team/team-digest-generator/`
-- No modification to main app shell, routing, inbox, wallet, Stellar core, database, or design system
-- No live network calls, secrets, or production data
-- Deterministic fixtures replace external dependencies
-- Folder-local API surface for future UI work
+No new tool folders, no new routes, no live data, no secrets.

@@ -38,6 +38,14 @@ export async function markReceiptRead(
   now = new Date(),
 ) {
   const receipt = await getReceipt(repository, messageId);
+  return markReceiptReadFrom(repository, receipt, now);
+}
+
+export async function markReceiptReadFrom(
+  repository: ApiRepository,
+  receipt: Receipt,
+  now = new Date(),
+) {
   if (receipt.readAt) {
     throw new ApiError(409, "conflict", "The receipt has already been marked as read", {
       readAt: receipt.readAt,

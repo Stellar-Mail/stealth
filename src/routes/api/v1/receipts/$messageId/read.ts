@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { requireActorMatches } from "@/server/api/actor";
 import { getApiContext } from "@/server/api/context";
 import { hash32Schema } from "@/server/api/domain";
-import { getReceipt, markReceiptRead } from "@/server/api/receipt-service";
+import { getReceipt, markReceiptReadFrom } from "@/server/api/receipt-service";
 import { apiSuccess, handleApiRequest } from "@/server/api/response";
 
 export const Route = createFileRoute("/api/v1/receipts/$messageId/read")({
@@ -15,7 +15,7 @@ export const Route = createFileRoute("/api/v1/receipts/$messageId/read")({
           const messageId = hash32Schema.parse(params.messageId);
           const current = await getReceipt(repository, messageId);
           requireActorMatches(request, current.recipient);
-          const receipt = await markReceiptRead(repository, messageId);
+          const receipt = await markReceiptReadFrom(repository, current);
           return apiSuccess(request, receipt);
         }),
     },

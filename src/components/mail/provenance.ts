@@ -71,6 +71,8 @@ export interface ProvenanceDetails {
   };
 }
 
+const provenanceCache = new Map<string, ProvenanceDetails>();
+
 // Simple deterministic hash function
 function getDeterministicHash(seed: string, salt: string, length: number = 64): string {
   let hash = 0;
@@ -108,6 +110,9 @@ function formatIdentifier(id: string, start: number = 6, end: number = 6): strin
 }
 
 export function getEmailProvenance(email: Email): ProvenanceDetails {
+  const cached = provenanceCache.get(email.id);
+  if (cached) return cached;
+
   const seed = email.id;
   const isSmtpBridge = email.folder === "spam" || email.from.toLowerCase().includes("bridge");
   const isRequest = email.folder === "requests" || email.from.toLowerCase().includes("unknown");
@@ -230,7 +235,7 @@ export function getEmailProvenance(email: Email): ProvenanceDetails {
 
   // 3. Message Hash
   const rawMessageHash = getDeterministicHash(seed, email.body, 64);
-  const sizeBytes = new Blob([email.body]).size;
+  const sizeBytes = email.body.length;
 
   const messageHashInspector: ProvenanceItemDetails = {
     title: "Message Integrity Hash",
@@ -429,7 +434,7 @@ export function getEmailProvenance(email: Email): ProvenanceDetails {
     },
   ];
 
-  return {
+  const result: ProvenanceDetails = {
     timeline: timelineItems,
     senderIdentity: {
       raw: rawIdentity,
@@ -484,4 +489,7 @@ export function getEmailProvenance(email: Email): ProvenanceDetails {
       inspector: receiptRecordInspector,
     },
   };
+
+  provenanceCache.set(email.id, result);
+  return result;
 }

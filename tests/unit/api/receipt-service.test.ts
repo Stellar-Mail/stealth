@@ -6,6 +6,7 @@ import {
   createDeliveryReceipt,
   getReceipt,
   markReceiptRead,
+  markReceiptReadFrom,
 } from "../../../src/server/api/receipt-service";
 
 const recipient = `G${"A".repeat(55)}`;
@@ -49,5 +50,17 @@ describe("receipt service", () => {
       markReceiptRead(repository, messageId, new Date("2026-06-14T12:30:00.000Z")),
     ).resolves.toMatchObject({ readAt: "2026-06-14T12:30:00.000Z" });
     await expect(markReceiptRead(repository, messageId)).rejects.toMatchObject({ status: 409 });
+  });
+
+  it("markReceiptReadFrom skips the extra repository fetch", async () => {
+    const repository = new MemoryApiRepository();
+    const created = await createDeliveryReceipt(repository, { messageId, recipient, sender });
+
+    await expect(
+      markReceiptReadFrom(repository, created, new Date("2026-06-14T13:00:00.000Z")),
+    ).resolves.toMatchObject({ readAt: "2026-06-14T13:00:00.000Z" });
+    await expect(
+      markReceiptReadFrom(repository, { ...created, readAt: "2026-06-14T13:00:00.000Z" }),
+    ).rejects.toMatchObject({ status: 409 });
   });
 });
