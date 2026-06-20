@@ -3,6 +3,7 @@ export type DensityPreference = "comfortable" | "compact";
 export type GlassIntensityPreference = "subtle" | "medium" | "strong";
 export type ReaderTypographyPreference = "sans" | "serif" | "large";
 export type UnknownSenderPolicy = "request" | "verified" | "block";
+export type StellarNetwork = "mainnet" | "testnet";
 
 export type ReceiptPreference = "auto" | "manual" | "never";
 
@@ -21,12 +22,8 @@ export type UiPreferences = {
   minimumPostage: string;
   onboardingCompleted: boolean;
   receiptOnDelivery: boolean;
-  receipts: {
-    trusted: ReceiptPreference;
-    unknown: ReceiptPreference;
-    paid: ReceiptPreference;
-    organizations: ReceiptPreference;
-  };
+  // Actor address derived from wallet connection, null when disconnected
+  actorAddress: string | null;
 };
 
 export const defaultPreferences: UiPreferences = {
@@ -44,10 +41,6 @@ export const defaultPreferences: UiPreferences = {
   unknownSenders: "request",
   minimumPostage: "0.0001",
   onboardingCompleted: false,
-  receipts: {
-    trusted: "auto",
-    unknown: "manual",
-    paid: "manual",
-    organizations: "auto",
-  },
+  receiptOnDelivery: false,
+  actorAddress: null,
 };

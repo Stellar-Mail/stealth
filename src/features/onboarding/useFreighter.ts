@@ -9,13 +9,8 @@ export type FreighterState =
   | { status: "unavailable" }
   | { status: "error"; message: string };
 
-/**
- * Thin adapter over @stellar/freighter-api v6.
- *
- * Separates wallet I/O from step UI so each can be tested independently.
- * The import is dynamic to avoid loading Freighter in non-browser environments
- * (Cloudflare Workers SSR pass).
- */
+export type FreighterHook = ReturnType<typeof useFreighter>;
+
 export function useFreighter() {
   const [state, setState] = useState<FreighterState>({ status: "idle" });
 
@@ -31,7 +26,6 @@ export function useFreighter() {
         return null;
       }
 
-      // requestAccess prompts the Freighter popup; getAddress reads an already-allowed key.
       const { address, error } = await freighter.requestAccess();
       if (error) {
         setState({ status: "error", message: error.message });
@@ -47,7 +41,9 @@ export function useFreighter() {
     }
   }
 
-  return { state, connect };
-}
+  function disconnect(): void {
+    setState({ status: "idle" });
+  }
 
-export type FreighterHook = ReturnType<typeof useFreighter>;
+  return { state, connect, disconnect };
+}

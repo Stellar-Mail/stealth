@@ -48,28 +48,7 @@ import {
   type SenderConversionTarget,
   type SenderPolicyChoice,
 } from "@/features/sender-conversion";
-import {
-  CommandPalette,
-  ShortcutOverlay,
-  getShortcutAction,
-  type CommandId,
-  type ShortcutActionId,
-} from "@/features/command-palette";
-import {
-  SnoozeDialog,
-  buildSnoozeState,
-  formatSnoozeSummary,
-  getSnoozePreset,
-  snoozePatch,
-  unsnoozePatch,
-  useSnooze,
-  type SnoozeTarget,
-} from "@/features/snooze";
-import type { SnoozeState } from "@/components/mail/data";
-import { useIsMobile } from "@/lib/use-media-query";
-import { RequestsTriageBoard } from "@/features/requests";
-import { ProofInspectorModal } from "@/features/proof-inspector";
-import { SenderJourney } from "@/features/sender-journey";
+import { useWallet } from "@/features/wallet";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -124,6 +103,7 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
   const [calendarCreateRequest, setCalendarCreateRequest] = useState(0);
   const [settingsSnapshot, setSettingsSnapshot] = useState<typeof preferences | null>(null);
   const senderConversion = useSenderConversion();
+  const wallet = useWallet({ actorAddress: preferences.actorAddress });
   const snooze = useSnooze();
   const isMobile = useIsMobile();
   const [previewAttachment, setPreviewAttachment] = useState<{
@@ -920,17 +900,69 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
           onShowToast={showToast}
         />
 
-        <BottomNavigation
-          active={folder}
-          onCompose={() => openCompose()}
-          onOpenPalette={() => setPaletteOpen(true)}
-          onOpenCalendar={() => openCalendar()}
-          onOpenSettings={openSettings}
-          onSelectFolder={(f) => {
-            setFolder(f);
-            setCustomFolder(null);
-          }}
-        />
+        <div className="flex min-w-0 flex-1 flex-col">
+          <Topbar
+            onOpenPalette={() => setPaletteOpen(true)}
+            onOpenSettings={() => setSettingsOpen(true)}
+            onShowToast={showToast}
+            filters={filters}
+            onFiltersChange={setFilters}
+            onQuickAction={(action) => {
+              setCustomFolder(null);
+              if (action === "proofs") setFolder("pending");
+              if (action === "later") setFolder("snoozed");
+              if (action === "files") {
+                setFolder("all");
+                setFilters({ ...defaultMailFilters, hasAttachments: true });
+              }
+            }}
+            onViewNotifications={() => {
+              setCustomFolder(null);
+              setFolder("inbox");
+              setFilters({ ...defaultMailFilters, unreadOnly: true });
+            }}
+            wallet={wallet}
+          />
+          <div className="flex min-w-0 flex-1">
+            <EmailList
+              emails={emails}
+              selectedId={selectedId}
+              onSelect={setSelectedId}
+              onConvertSender={openSenderConversion}
+              folder={folder}
+              filters={filters}
+              customFolder={customFolder}
+              compact={preferences.compactMode}
+              showAvatars={preferences.showAvatars}
+            />
+            <EmailView email={selected} actions={emailActions} />
+            <RightPanel
+              email={selected}
+              onAction={handleContextAction}
+              onConvertSender={openSenderConversion}
+              calendarEvents={calendar.visibleEvents}
+              calendars={calendar.calendars}
+              onOpenCalendar={(eventId) => {
+                setCalendarEventId(eventId ?? null);
+                setCalendarOpen(true);
+              }}
+              onCreateEvent={() => {
+                setCalendarEventId(null);
+                setCalendarOpen(true);
+                setCalendarCreateRequest((request) => request + 1);
+              }}
+              onDraftReply={(email, prompt) =>
+                openCompose({
+                  to: email.email,
+                  subject: email.subject.startsWith("Re: ")
+                    ? email.subject
+                    : `Re: ${email.subject}`,
+                  body: `${prompt}\n\nDrafted response:\nThanks for the note. I reviewed the context and will follow up with the next step shortly.${quoteBody(email)}`,
+                })
+              }
+            />
+          </div>
+        </div>
         <FeedbackViewport items={feedbackItems} onDismiss={dismissFeedback} />
 
         <ContactMigrationDialog
