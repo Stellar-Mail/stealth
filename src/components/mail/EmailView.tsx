@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { useMediaQuery } from "@/lib/use-media-query";
 import {
   Archive,
   BadgeCheck,
@@ -26,7 +25,6 @@ import { AttachmentPanel, deriveAttachmentInfoList } from "@/features/attachment
 import { SnoozeBanner } from "@/features/snooze";
 import { ProvenancePanel } from "./ProvenancePanel";
 import { EmailTrustBadges } from "./EmailTrustBadges";
-import { EncryptedPayloadBanner } from "./EncryptedPayloadBanner";
 import type { Email } from "./data";
 import {
   getRecipientReadiness,
@@ -56,7 +54,6 @@ export type EmailViewActions = {
   onCalendarResponseChange?: (eventId: string, response: CalendarResponse) => void;
   onCalendarReminderChange?: (eventId: string, reminder: string) => void;
   onPreviewAttachment?: (attachment: { name: string; size: string; type: string }) => void;
-  onQuarantineAttachment?: (attachment: { name: string; size: string; type: string }) => void;
 };
 
 export function EmailView({
@@ -68,7 +65,6 @@ export function EmailView({
 }) {
   const [replyMenuOpen, setReplyMenuOpen] = useState(false);
   const [inlineMode, setInlineMode] = useState<ComposeMode | null>(null);
-  const reducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
 
   useEffect(() => {
     setReplyMenuOpen(false);
@@ -304,31 +300,7 @@ export function EmailView({
                   return otp ? <OTPCard code={otp} /> : null;
                 })()}
 
-                {email.encryptedPayload && (
-                  <EncryptedPayloadBanner
-                    payload={email.encryptedPayload}
-                    reducedMotion={reducedMotion}
-                    actions={{
-                      onUnlock: actions.onUnlockPayload
-                        ? () => actions.onUnlockPayload!(email)
-                        : undefined,
-                      onRetry: actions.onRetryDecrypt
-                        ? () => actions.onRetryDecrypt!(email)
-                        : undefined,
-                      onCopyDiagnosticId: async (id) => {
-                        await navigator.clipboard?.writeText(id);
-                        actions.onShowToast?.(`Diagnostic ID ${id} copied`);
-                      },
-                      onReportCorruption: (id) => {
-                        actions.onShowToast?.(`Corruption report submitted for ${id}`);
-                      },
-                    }}
-                  />
-                )}
-
-                {(!email.encryptedPayload || email.encryptedPayload.status === "decrypted") && (
-                  <ReaderBody body={email.body} />
-                )}
+                <ReaderBody body={email.body} />
 
                 {email.attachments?.length ? (
                   <AttachmentPanel
@@ -485,7 +457,7 @@ function InlineReplyComposer({
                       : "border-amber-200/20 bg-amber-200/[0.06] text-amber-100",
                 )}
               >
-                {recipient.address} · {recipient.policyType ?? "default"} · postage{" "}
+                {recipient.address} · {recipient.policyType || "default"} · postage{" "}
                 {recipient.postage}
               </span>
             ))}

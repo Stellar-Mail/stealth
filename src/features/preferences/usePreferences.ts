@@ -8,18 +8,48 @@ function resolveTheme(theme: UiPreferences["theme"]) {
   return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
 }
 
+/**
+ * Pure resolution of persisted preferences, shared by the hook and its tests.
+ * Stored values are always merged over the current defaults so missing keys
+ * stay predictable across sessions and app versions. The current key wins; the
+ * legacy `stealth-preferences` key is migrated only when the current one is
+ * absent. `corrupt` is true when the current key is present but unparseable, so
+ * the caller can clear it.
+ */
+export function resolveStoredPreferences(
+  current: string | null,
+  legacy: string | null,
+): { preferences: UiPreferences; corrupt: boolean } {
+  if (current) {
+    try {
+      return { preferences: { ...defaultPreferences, ...JSON.parse(current) }, corrupt: false };
+    } catch {
+      return { preferences: defaultPreferences, corrupt: true };
+    }
+  }
+  if (legacy) {
+    try {
+      return { preferences: { ...defaultPreferences, ...JSON.parse(legacy) }, corrupt: false };
+    } catch {
+      return { preferences: defaultPreferences, corrupt: false };
+    }
+  }
+  return { preferences: defaultPreferences, corrupt: false };
+}
+
 export function usePreferences() {
   const [preferences, setPreferences] = useState<UiPreferences>(defaultPreferences);
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    const stored = window.localStorage.getItem(storageKey);
-    if (stored) {
-      try {
-        setPreferences({ ...defaultPreferences, ...JSON.parse(stored) });
-      } catch {
-        window.localStorage.removeItem(storageKey);
-      }
+    const { preferences: resolved, corrupt } = resolveStoredPreferences(
+      window.localStorage.getItem(storageKey),
+      window.localStorage.getItem("stealth-preferences"),
+    );
+    if (corrupt) {
+      window.localStorage.removeItem(storageKey);
+    } else {
+      setPreferences(resolved);
     }
     setHydrated(true);
   }, []);

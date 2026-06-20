@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { GripVertical, FolderInput } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   applyMailFilters,
@@ -8,6 +9,7 @@ import {
   type Email,
   type MailFilters,
   type MailFolder,
+  type MailLocation,
 } from "./data";
 import { cn } from "@/lib/utils";
 import { ConvertSenderButton } from "@/features/sender-conversion";
@@ -15,6 +17,7 @@ import { MobileMailCard } from "./MobileMailCard";
 import { EmailTrustBadges } from "./EmailTrustBadges";
 import { BulkActionBar } from "./BulkActionBar";
 import type { BulkActionRequest, BulkFailure, BulkProgressState } from "./bulk-actions";
+import { canDragEmail, DROP_TARGET_FOLDERS, getDropRejectionReason } from "./useDragDrop";
 
 type FilterTab = "all" | "unread" | "flagged";
 
@@ -37,6 +40,7 @@ export function EmailList({
   onArchive,
   onStar,
   onSnooze,
+  onMove,
 }: {
   emails: Email[];
   selectedId: string | null;
@@ -56,9 +60,11 @@ export function EmailList({
   onArchive?: (email: Email) => void;
   onStar?: (email: Email) => void;
   onSnooze?: (email: Email) => void;
+  onMove?: (emailIds: string[], target: MailLocation) => void;
 }) {
   const [activeTab, setActiveTab] = useState<FilterTab>("all");
   const folderLabel = customFolder ?? getFolderLabel(folder);
+  const [movePicker, setMovePicker] = useState<{ emailIds: string[] } | null>(null);
 
   const folderEmails = customFolder
     ? emails.filter((email) =>
@@ -111,7 +117,19 @@ export function EmailList({
       }
       if (event.key === "Escape") {
         event.preventDefault();
+        if (movePicker) {
+          setMovePicker(null);
+          return;
+        }
         onSelectionChangeRef.current([]);
+      }
+      if (event.key === "m" || event.key === "M") {
+        const focused = document.activeElement;
+        if (focused && ["INPUT", "TEXTAREA", "SELECT"].includes((focused as HTMLElement).tagName))
+          return;
+        event.preventDefault();
+        const ids = selectedIds.length > 0 ? selectedIds : selectedId ? [selectedId] : [];
+        if (ids.length > 0) setMovePicker({ emailIds: ids });
       }
     };
 
@@ -432,6 +450,65 @@ export function EmailList({
           );
         })}
       </ul>
+
+      {/* M-key folder picker overlay */}
+      <AnimatePresence>
+        {movePicker && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.97 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.97 }}
+            transition={{ duration: 0.15 }}
+            className="absolute inset-0 z-30 flex items-center justify-center bg-black/50 backdrop-blur-sm rounded-[8px]"
+          >
+            <div className="w-56 rounded-xl border border-white/12 bg-[oklch(0.15_0.005_270)] shadow-2xl overflow-hidden">
+              <div className="flex items-center gap-2 px-3 py-2.5 border-b border-white/10">
+                <FolderInput className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="text-xs font-medium text-foreground">Move to folder</span>
+                <span className="ml-auto text-[10px] text-muted-foreground">Esc to cancel</span>
+              </div>
+              <ul className="py-1">
+                {DROP_TARGET_FOLDERS.map((target) => {
+                  // Check if all selected emails can move to this target
+                  const targetEmails = movePicker.emailIds
+                    .map((id) => emails.find((em) => em.id === id))
+                    .filter((em): em is Email => !!em);
+                  const rejections = targetEmails
+                    .map((em) => getDropRejectionReason(em, target))
+                    .filter(Boolean);
+                  const disabled = rejections.length === targetEmails.length;
+                  const reason = disabled ? rejections[0] : null;
+
+                  return (
+                    <li key={target}>
+                      <button
+                        type="button"
+                        disabled={disabled}
+                        title={reason ?? undefined}
+                        onClick={() => {
+                          const validIds = targetEmails
+                            .filter((em) => !getDropRejectionReason(em, target))
+                            .map((em) => em.id);
+                          if (validIds.length > 0) onMove?.(validIds, target);
+                          setMovePicker(null);
+                        }}
+                        className={cn(
+                          "w-full px-3 py-2 text-left text-sm transition",
+                          disabled
+                            ? "opacity-40 cursor-not-allowed text-muted-foreground"
+                            : "hover:bg-white/[0.06] text-foreground cursor-pointer",
+                        )}
+                      >
+                        {getFolderLabel(target)}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </section>
   );
 }

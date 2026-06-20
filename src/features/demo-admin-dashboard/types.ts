@@ -50,28 +50,9 @@ export type DashboardSection =
   | "events"
   | "templates"
   | "campaigns"
-  | "analytics"
-  | "audit";
-
-export interface Persona {
-  id: string;
-  name: string;
-  email: string;
-  stellarAddress: string;
-  avatar: string;
-}
-
-export interface Campaign {
-  id: string;
-  name: string;
-  description: string;
-  tags: string[];
-  createdAt: string;
-  updatedAt: string;
-  owner: Persona;
-  reviewer: Persona;
-  lastEditor: Persona;
-}
+  | "timeline"
+  | "audit"
+  | "analytics";
 
 /** Props passed to the dashboard shell. */
 export interface DemoAdminDashboardProps {
@@ -87,7 +68,15 @@ export interface StatCard {
   delta?: string;
 }
 
-export type PresetId = "none" | "relay-verification" | "proof-pending" | "receipt-settlement";
+export type PresetId =
+  | "none"
+  | "relay-verification"
+  | "proof-pending"
+  | "paid-sender-request"
+  | "receipt-settlement"
+  | "encrypted-provenance"
+  | "encrypted-payload"
+  | "conference-pass";
 
 export interface PresetAccount {
   name: string;

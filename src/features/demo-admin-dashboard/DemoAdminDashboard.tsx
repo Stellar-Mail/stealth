@@ -3,17 +3,21 @@ import {
   Activity,
   BarChart3,
   Calendar,
+  CalendarRange,
   FileText,
+  GitMerge,
   History,
   LayoutDashboard,
   Mail,
   Paperclip,
   PieChart,
   Shield,
-  Users,
+  Target,
   X,
+  Lock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { CAMPAIGN_TEMPLATES } from "./fixtures/campaignFixtures";
 import type {
   DashboardNavItem,
   DashboardSection,
@@ -27,19 +31,17 @@ import type {
   PresetEvent,
 } from "./types";
 import { TemplatePicker } from "./templates";
-import { PRESET_SCENARIOS } from "./fixtures/presets";
-import { CampaignSnapshots } from "./components/CampaignSnapshots";
-import type { Draft } from "./types/draft";
 import { AdminDataTable, type Column } from "./components/AdminDataTable";
+import { CampaignsContent } from "./CampaignsContent";
+import { PRESET_SCENARIOS } from "./fixtures/presets";
+import { CampaignMessageAssignmentPanel } from "./components/CampaignMessageAssignmentPanel";
 import { CampaignSnapshots } from "./components/CampaignSnapshots";
-import { ValidationResultsPanel } from "./ValidationResultsPanel";
-import { validateCampaignDrafts } from "./validation";
+import { CampaignTimelinePanel } from "./components/CampaignTimelinePanel";
 import type { Draft } from "./types/draft";
-import type { ValidationNavigation } from "./validation-types";
 
 // ─── Default Deterministic fake data ──────────────────────────────────────────
 
-export const NAV_ITEMS: DashboardNavItem[] = [
+const NAV_ITEMS: DashboardNavItem[] = [
   { id: "overview", label: "Overview", description: "High-level demo system status" },
   { id: "accounts", label: "Accounts", description: "Demo Stellar accounts and balances" },
   { id: "mail", label: "Mail", description: "Demo mail fixtures and delivery states" },
@@ -47,6 +49,7 @@ export const NAV_ITEMS: DashboardNavItem[] = [
   { id: "events", label: "Events", description: "Demo calendar and protocol events" },
   { id: "templates", label: "Templates", description: "Pick message templates to populate drafts" },
   { id: "campaigns", label: "Campaigns", description: "Save and restore campaign draft snapshots" },
+  { id: "timeline", label: "Timeline", description: "Campaign phase timeline and milestones" },
   { id: "audit", label: "Audit", description: "Demo protocol event log" },
   { id: "analytics", label: "Analytics", description: "Privacy-preserving product analytics" },
 ];
@@ -177,14 +180,15 @@ const EVENTS_FAKE: PresetEvent[] = [
 
 // ─── Section icon map ─────────────────────────────────────────────────────────
 
-export const SECTION_ICON: Record<DashboardSection, React.ElementType> = {
+const SECTION_ICON: Record<DashboardSection, React.ElementType> = {
   overview: LayoutDashboard,
-  accounts: Users,
+  accounts: Shield, // Changed to Shield to match usage in OverviewContent
   mail: Mail,
   attachments: Paperclip,
   events: Calendar,
   templates: FileText,
   campaigns: History,
+  timeline: CalendarRange,
   audit: Activity,
   analytics: PieChart,
 };
@@ -253,6 +257,11 @@ function OverviewContent({
               id: "receipt-settlement" as const,
               name: "Receipt Settlement",
               desc: "Simulates postage fees and read receipts confirming on-chain.",
+            },
+            {
+              id: "encrypted-provenance" as const,
+              name: "Encrypted & Provenance",
+              desc: "Simulates encrypted payload delivery and cryptographic provenance verification on-chain.",
             },
           ].map((preset) => {
             const active = activePresetId === preset.id;
@@ -650,74 +659,8 @@ function AuditContent({ auditEvents }: { auditEvents: PresetAuditEvent[] }) {
   );
 }
 
-function TemplatesContent({
-  dataset,
-  onDatasetChange,
-}: {
-  dataset: Draft[];
-  onDatasetChange: (dataset: Draft[]) => void;
-}) {
-  return <TemplatePicker dataset={dataset} onDatasetChange={onDatasetChange} />;
-}
-
-function CampaignsContent({
-  dataset,
-  onDatasetChange,
-  onSelectIssue,
-}: {
-  dataset: Draft[];
-  onDatasetChange: (dataset: Draft[]) => void;
-  onSelectIssue: (nav: ValidationNavigation) => void;
-}) {
-  const issues = validateCampaignDrafts(dataset);
-
-  return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_350px] items-start">
-      <div className="space-y-6">
-        <CampaignSnapshots currentDataset={dataset} onRestoreDataset={onDatasetChange} />
-      </div>
-      <div className="space-y-6 lg:sticky lg:top-4">
-        <ValidationResultsPanel
-          issues={issues}
-          onSelectIssue={onSelectIssue}
-          title="Campaign Validation"
-        />
-      </div>
-    </div>
-  );
-}
-
-function CampaignsContent() {
-  const [drafts, setDrafts] = useState<Draft[]>([]);
-
-  return <CampaignSnapshots currentDataset={drafts} onRestoreDataset={setDrafts} />;
-}
-
-function AnalyticsContent() {
-  return (
-    <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">
-        Privacy-preserving product analytics dashboard. Aggregate demo metrics will appear here once
-        this section is connected to the analytics pipeline.
-      </p>
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        {[
-          { label: "Active Sessions", value: "—", note: "Requires analytics integration" },
-          { label: "Features Used", value: "—", note: "Requires analytics integration" },
-          { label: "Avg. Session", value: "—", note: "Requires analytics integration" },
-        ].map((stat) => (
-          <div
-            key={stat.label}
-            className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4"
-          >
-            <p className="text-xs font-medium text-muted-foreground">{stat.label}</p>
-            <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">{stat.value}</p>
-            <p className="mt-0.5 text-[10px] text-muted-foreground/60">{stat.note}</p>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+function TemplatesContent() {
+  return <TemplatePicker />;
 }
 
 // ─── Dashboard Shell ──────────────────────────────────────────────────────────
@@ -727,7 +670,6 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
   const [activePresetId, setActivePresetId] = useState<PresetId>("none");
   const [selectedAccountAddress, setSelectedAccountAddress] = useState<string | null>(null);
   const [selectedMailSubject, setSelectedMailSubject] = useState<string | null>(null);
-  const [draftDataset, setDraftDataset] = useState<Draft[]>([]);
 
   const activePreset = PRESET_SCENARIOS.find((p) => p.id === activePresetId);
 
@@ -863,23 +805,13 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
 
           {activeSection === "events" && <EventsContent events={events} />}
 
-          {activeSection === "templates" && (
-            <TemplatesContent dataset={draftDataset} onDatasetChange={setDraftDataset} />
-          )}
-
-          {activeSection === "campaigns" && (
-            <CampaignsContent
-              dataset={draftDataset}
-              onDatasetChange={setDraftDataset}
-              onSelectIssue={() => handleSectionChange("templates")}
-            />
-          )}
+          {activeSection === "templates" && <TemplatesContent />}
 
           {activeSection === "campaigns" && <CampaignsContent />}
 
-          {activeSection === "audit" && <AuditContent auditEvents={auditEvents} />}
+          {activeSection === "timeline" && <div>Timeline Content</div>}
 
-          {activeSection === "analytics" && <AnalyticsContent />}
+          {activeSection === "audit" && <AuditContent auditEvents={auditEvents} />}
         </div>
       </div>
 
@@ -1034,6 +966,16 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
                     {selectedMail.proofMetadata.postageStatus}
                   </span>
                 </div>
+                {selectedMail.folder === "encrypted" && (
+                  <div className="mt-3 rounded border border-emerald-500/20 bg-emerald-500/5 p-2.5 text-[11px] text-emerald-300 leading-relaxed">
+                    <p className="font-semibold flex items-center gap-1.5 mb-1 text-xs text-emerald-400">
+                      <Lock className="h-3 w-3" />
+                      Payload Decryption Notes
+                    </p>
+                    This payload is fully end-to-end encrypted on-chain. Bob Demo decrypted it using
+                    the ephemeral session key exchanged via Curve25519 and his private identity key.
+                  </div>
+                )}
               </div>
             </div>
           </div>

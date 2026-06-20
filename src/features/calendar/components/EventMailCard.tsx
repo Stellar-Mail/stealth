@@ -81,6 +81,8 @@ export function EventMailCard({
               </div>
             </div>
 
+            <div className="mt-2.5 text-xs font-semibold text-foreground/90">{event.title}</div>
+
             <div className="mail-reader-meta mt-3.5 grid grid-cols-7 gap-1.5 text-center">
               {event.days.map((day) => (
                 <div key={`${day.label}-${day.date}`} className="space-y-1">
