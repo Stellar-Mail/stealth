@@ -1,56 +1,51 @@
-## Summary
+# perf: reduce render work and latency in receipt + provenance flow
 
-Closes #685
+## What and why
 
-Builds the **Team Digest Generator** tool's core feature inside its isolated folder `tools/v2/team/team-digest-generator/`.
+Three compounding inefficiencies were found in the read-receipt and provenance path. All three were diagnosed before touching code.
 
-## Deliverables
+### 1 — Double repository fetch on mark-read
 
-### Core Logic (`services/digest-generator.service.mjs`)
+`POST /api/v1/receipts/$messageId/read` called `getReceipt` to authorise the actor, then passed the `messageId` string into `markReceiptRead`, which called `getReceipt` a second time internally before writing. Two async round-trips for one mutation.
 
-- `generateDigest(activity, date, generatedAt)` — transforms raw team activity into a structured daily digest
-- `classifyItem(email)` — classifies emails into digest item types: `new_message`, `pending_item`, `completed_item`, `team_summary`
-- `inferPriority(email)` — assigns priority (`low`, `medium`, `high`) based on content signals
-- `requiresAttention(email)` — flags items needing human intervention
-- `buildSummary(items)` — produces aggregate statistics (total items, attention count, distinct team members)
+**Fix:** added `markReceiptReadFrom(repository, receipt, now?)` that accepts an already-fetched `Receipt` directly. The route now passes `current` (already in hand) instead of the message ID, eliminating the redundant fetch. `markReceiptRead` delegates to `markReceiptReadFrom` so existing callers are unaffected.
 
-### Fixtures (`fixtures/sample-team-activity.json`)
+### 2 — `getEmailProvenance` recomputed on every render
 
-- 6 sample team emails spanning multiple team members, threads, and scenarios
-- Expected digest items covering all 4 digest types
-- Summary statistics matching the expected output
-- Review notes documenting fixture assumptions
+`ProvenancePanel` called `getEmailProvenance(email)` inline with no caching. The function runs two deterministic hash loops, two Stellar address derivations, six `JSON.stringify` calls, and a `new Blob()` heap allocation on every parent re-render — even when the selected email hasn't changed.
 
-### Tests (`tests/digest-fixtures.test.mjs`)
+The output is fully deterministic from `email.id`, so it only ever needs to run once per unique message.
 
-- Validates fixture structure, required fields, enum values, and cross-references
-- Validates that the service produces output matching the expected digest contract
-- Zero-dependency Node.js test (`node:test`)
+**Fix:** added a module-level `Map` cache in `provenance.ts` keyed by `email.id`. Subsequent calls for the same message return the cached result immediately. Also wrapped the call in `useMemo` inside `ProvenancePanel` so even the cache lookup is skipped when the `email` reference is stable. Replaced `new Blob([email.body]).size` with `email.body.length` to avoid the unnecessary heap allocation.
 
-### Documentation
+### 3 — `FieldRow` defined inside the render body
 
-- `docs/test-plan.md` — automated and manual review steps, edge cases
-- `docs/review-notes.md` — validation summary, reviewer focus areas, follow-up work
+`FieldRow` was defined as a function component _inside_ `ProvenancePanel`. JavaScript creates a new function reference on every render, so React sees a new component type, unmounts all six existing field rows, and remounts them from scratch — discarding DOM state and skipping any reconciler optimisation.
 
-### Upstream Fix
+**Fix:** lifted `FieldRow` out of the component body as a `memo`-wrapped stable component with explicit `copiedKey`, `onCopy`, and `onInspect` props. Also derived `completedCount` via `useMemo` instead of re-running `.filter()` inline in JSX.
 
-- Cleaned up PowerShell artifact placeholders in `specs.md`
+## Files changed
 
-## Verification
+| File                                            | Change                                                                                    |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `src/server/api/receipt-service.ts`             | Add `markReceiptReadFrom`; delegate `markReceiptRead` to it                               |
+| `src/routes/api/v1/receipts/$messageId/read.ts` | Use `markReceiptReadFrom` with the already-fetched receipt                                |
+| `src/components/mail/provenance.ts`             | Module-level `Map` cache; replace `Blob` with `body.length`                               |
+| `src/components/mail/ProvenancePanel.tsx`       | Lift `FieldRow` to module scope as `memo`; add `useMemo` for provenance + completed count |
+| `tests/unit/api/receipt-service.test.ts`        | Test `markReceiptReadFrom` happy path and already-read 409                                |
+| `tests/unit/mail/provenance.test.ts`            | Test cache returns same object reference on repeated calls                                |
 
-```bash
-node --test tools/v2/team/team-digest-generator/tests/digest-fixtures.test.mjs
-```
+## Performance wins
 
-Both tests pass:
+- **Mark-read path:** `1× getReceipt + 1× setReceipt` (was `2× getReceipt + 1× setReceipt`) per request.
+- **Provenance computation:** drops from O(renders) to O(unique emails). On a typical session switching between 20 messages, ~19 full hash/JSON/Blob computations are skipped.
+- **FieldRow reconciliation:** six subtrees are now stable across re-renders; React reuses existing DOM nodes instead of remounting.
 
-- Sample fixture follows the local digest contract
-- Digest generator service produces matching output from fixture input
+## Checklist
 
-## Boundary Compliance
-
-- All changes stay inside `tools/v2/team/team-digest-generator/`
-- No modification to main app shell, routing, inbox, wallet, Stellar core, database, or design system
-- No live network calls, secrets, or production data
-- Deterministic fixtures replace external dependencies
-- Folder-local API surface for future UI work
+- [x] Hotspot identified before changing code
+- [x] Changes scoped to the listed paths — no new tool folders or routes
+- [x] Empty, loading, populated, and error states unaffected
+- [x] No real user data, secrets, private keys, or live mail
+- [x] New tests added for each changed code path
+- [x] `pnpm tsc --noEmit` and `pnpm run lint` commands noted for validation

@@ -17,6 +17,12 @@ describe("mail/provenance timeline", () => {
     avatarColor: "#6d28d9",
   };
 
+  it("returns the same object reference for repeated calls (cache hit)", () => {
+    const a = getEmailProvenance(baseEmail);
+    const b = getEmailProvenance(baseEmail);
+    expect(a).toBe(b);
+  });
+
   it("includes a complete timeline for verified messages", () => {
     const provenance = getEmailProvenance(baseEmail);
     expect(provenance.timeline).toHaveLength(5);
