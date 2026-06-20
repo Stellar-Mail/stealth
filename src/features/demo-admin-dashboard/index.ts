@@ -1,5 +1,5 @@
 export { DemoAdminDashboard } from "./DemoAdminDashboard";
-export { DemoAdminDashboard as DemoAdminLayoutDashboard } from "./components/DemoAdminDashboard";/
+export { DemoAdminDashboard as DemoAdminLayoutDashboard } from "./components/DemoAdminDashboard";
 export { AdminPage } from './components/AdminPage';
 export { AdminPanel } from './components/AdminPanel';
 export { AdminToolbar } from './components/AdminToolbar';
