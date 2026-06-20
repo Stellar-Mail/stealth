@@ -1,0 +1,168 @@
+{
+  "tool": "team-calendar-extraction",
+  "version": 1,
+  "sourceMessages": [
+    {
+      "id": "msg-cal-001",
+      "from": "alice@example.test",
+      "to": ["bob@example.test", "carol@example.test"],
+      "cc": ["dave@example.test"],
+      "subject": "Q3 Planning Meeting – Thursday 10am",
+      "receivedAt": "2026-06-16T09:00:00Z",
+      "body": "Hi all,\n\nPlease join us for a Q3 planning meeting on Thursday 26 June 2026 at 10:00 AM (UTC).\nThe meeting will run until approximately 11:30 AM.\n\nLocation: Conference Room B / Zoom link in calendar invite.\n\nAgenda items:\n- Roadmap review\n- Resource allocation\n- Risk register update\n\nSee you there!\nAlice",
+      "hasIcsAttachment": true
+    },
+    {
+      "id": "msg-cal-002",
+      "from": "hr@example.test",
+      "to": ["candidates@example.test"],
+      "cc": [],
+      "subject": "Interview Confirmation – Software Engineer Role",
+      "receivedAt": "2026-06-17T14:30:00Z",
+      "body": "Dear Candidate,\n\nThis is a confirmation of your interview for the Software Engineer role.\n\nDate: 25 June 2026\nTime: 2:00 PM – 3:00 PM (UTC)\nFormat: Video call (link will be shared separately)\n\nPlease confirm your availability by replying to this email.\n\nBest regards,\nHR Team",
+      "hasIcsAttachment": false
+    },
+    {
+      "id": "msg-cal-003",
+      "from": "ops@example.test",
+      "to": ["team@example.test"],
+      "cc": [],
+      "subject": "Cancelled: Weekly Standup – 20 June",
+      "receivedAt": "2026-06-19T08:00:00Z",
+      "body": "Hi team,\n\nThe weekly standup scheduled for 20 June 2026 at 9:00 AM has been cancelled due to a public holiday.\n\nWe will resume the regular standup on 27 June.\n\nThanks,\nOps",
+      "hasIcsAttachment": false
+    },
+    {
+      "id": "msg-cal-004",
+      "from": "product@example.test",
+      "to": ["engineering@example.test", "design@example.test"],
+      "cc": ["leadership@example.test"],
+      "subject": "Proposed: Product Demo – Tentative Date 24 June",
+      "receivedAt": "2026-06-18T11:15:00Z",
+      "body": "Team,\n\nWe are tentatively scheduling the product demo for 24 June 2026 at 3:30 PM (UTC).\nThis is a proposed time pending confirmation from the leadership team.\n\nVenue: Main boardroom or remote via conference bridge.\nDuration: 60 minutes.\n\nPlease flag any conflicts before end of day 19 June.\n\nRegards,\nProduct Team",
+      "hasIcsAttachment": false
+    },
+    {
+      "id": "msg-cal-005",
+      "from": "security@example.test",
+      "to": ["all-staff@example.test"],
+      "cc": [],
+      "subject": "Mandatory Security Awareness Workshop – 30 June 2026",
+      "receivedAt": "2026-06-18T16:00:00Z",
+      "body": "All staff,\n\nA mandatory security awareness workshop will be held on 30 June 2026.\nTime: 10:00 AM – 12:00 PM (UTC)\nLocation: Training Room 1\n\nAttendance is required for all employees. Please add this to your calendar.\nAn ICS file is attached to this message.\n\nSecurity Team",
+      "hasIcsAttachment": true
+    },
+    {
+      "id": "msg-cal-006",
+      "from": "alice@example.test",
+      "to": ["bob@example.test"],
+      "cc": [],
+      "subject": "Quick sync later?",
+      "receivedAt": "2026-06-19T13:00:00Z",
+      "body": "Hey Bob,\n\nGot 15 minutes for a quick sync call today around 4 PM?\nNo agenda, just a catch-up on the onboarding work.\n\nAlice",
+      "hasIcsAttachment": false
+    }
+  ],
+  "expectedEvents": [
+    {
+      "id": "event-001",
+      "title": "Q3 Planning Meeting",
+      "startAt": "2026-06-26T10:00:00Z",
+      "endAt": "2026-06-26T11:30:00Z",
+      "location": "Conference Room B",
+      "description": "Q3 roadmap review, resource allocation, and risk register update.",
+      "attendees": [
+        { "email": "alice@example.test", "name": "Alice", "organiser": true },
+        { "email": "bob@example.test", "organiser": false },
+        { "email": "carol@example.test", "organiser": false },
+        { "email": "dave@example.test", "organiser": false }
+      ],
+      "status": "confirmed",
+      "confidence": "high",
+      "sourceMessageId": "msg-cal-001"
+    },
+    {
+      "id": "event-002",
+      "title": "Interview – Software Engineer Role",
+      "startAt": "2026-06-25T14:00:00Z",
+      "endAt": "2026-06-25T15:00:00Z",
+      "location": null,
+      "description": "Video call interview for the Software Engineer role.",
+      "attendees": [
+        { "email": "hr@example.test", "organiser": true },
+        { "email": "candidates@example.test", "organiser": false }
+      ],
+      "status": "confirmed",
+      "confidence": "medium",
+      "sourceMessageId": "msg-cal-002"
+    },
+    {
+      "id": "event-003",
+      "title": "Weekly Standup – 20 June",
+      "startAt": "2026-06-20T09:00:00Z",
+      "endAt": "2026-06-20T09:15:00Z",
+      "location": null,
+      "description": "Regular weekly team standup (cancelled this week).",
+      "attendees": [
+        { "email": "ops@example.test", "organiser": true },
+        { "email": "team@example.test", "organiser": false }
+      ],
+      "status": "cancelled",
+      "confidence": "medium",
+      "sourceMessageId": "msg-cal-003"
+    },
+    {
+      "id": "event-004",
+      "title": "Product Demo",
+      "startAt": "2026-06-24T15:30:00Z",
+      "endAt": "2026-06-24T16:30:00Z",
+      "location": "Main boardroom",
+      "description": "Proposed product demo pending leadership confirmation.",
+      "attendees": [
+        { "email": "product@example.test", "organiser": true },
+        { "email": "engineering@example.test", "organiser": false },
+        { "email": "design@example.test", "organiser": false },
+        { "email": "leadership@example.test", "organiser": false }
+      ],
+      "status": "tentative",
+      "confidence": "medium",
+      "sourceMessageId": "msg-cal-004"
+    },
+    {
+      "id": "event-005",
+      "title": "Security Awareness Workshop",
+      "startAt": "2026-06-30T10:00:00Z",
+      "endAt": "2026-06-30T12:00:00Z",
+      "location": "Training Room 1",
+      "description": "Mandatory security awareness workshop for all staff.",
+      "attendees": [
+        { "email": "security@example.test", "organiser": true },
+        { "email": "all-staff@example.test", "organiser": false }
+      ],
+      "status": "confirmed",
+      "confidence": "high",
+      "sourceMessageId": "msg-cal-005"
+    },
+    {
+      "id": "event-006",
+      "title": "Quick Sync Call",
+      "startAt": "2026-06-19T16:00:00Z",
+      "endAt": "2026-06-19T16:15:00Z",
+      "location": null,
+      "description": "Informal catch-up on onboarding work.",
+      "attendees": [
+        { "email": "alice@example.test", "organiser": true },
+        { "email": "bob@example.test", "organiser": false }
+      ],
+      "status": "confirmed",
+      "confidence": "medium",
+      "sourceMessageId": "msg-cal-006"
+    }
+  ],
+  "reviewNotes": [
+    "All source messages use synthetic example.test addresses only.",
+    "ICS attachment presence is indicated via hasIcsAttachment flag; no real binary attachments are included.",
+    "Event titles, dates, and descriptions are fictional and do not correspond to any real calendar data.",
+    "Live mailbox ingestion, real calendar API writes, and notification delivery remain out of scope for this isolated tool."
+  ]
+}
