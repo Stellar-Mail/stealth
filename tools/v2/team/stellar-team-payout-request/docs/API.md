@@ -459,3 +459,6 @@ const config = {
 - [Setup Guide](./SETUP.md)
 - [Test Plan](../tests/TEST_PLAN.md)
 - [Known Issues](./KNOWN_ISSUES.md)
+- [Security Threat Model](./SECURITY_THREAT_MODEL.md)
+- [Validation Helpers](./VALIDATION_HELPERS.md)
+- [Performance Constraints](./PERFORMANCE_CONSTRAINTS.md)

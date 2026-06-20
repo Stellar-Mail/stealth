@@ -279,6 +279,9 @@ When reporting issues:
 - **Stellar Questions:** See https://developers.stellar.org/docs
 - **Tool Design:** Review specs in specs.md
 - **Tests:** See tests/TEST_PLAN.md
+- **Security:** See docs/SECURITY_THREAT_MODEL.md
+- **Validation:** See docs/VALIDATION_HELPERS.md
+- **Performance:** See docs/PERFORMANCE_CONSTRAINTS.md
 
 ---
 

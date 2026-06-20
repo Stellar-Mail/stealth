@@ -279,6 +279,14 @@ See [docs/API.md](./docs/API.md) for:
 - Service method signatures
 - Hook return types
 
+## Security and Performance
+
+See the following documentation for security and performance considerations:
+
+- [Security Threat Model](./docs/SECURITY_THREAT_MODEL.md) - Threat assumptions and unsafe inputs
+- [Validation Helpers](./docs/VALIDATION_HELPERS.md) - Validation, sanitization, and guard helpers
+- [Performance Constraints](./docs/PERFORMANCE_CONSTRAINTS.md) - Performance notes for large datasets
+
 ## Debugging
 
 ### Enable Debug Logging
