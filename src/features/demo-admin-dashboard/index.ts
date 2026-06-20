@@ -66,6 +66,8 @@ export {
 } from "./constants/displayTokens";
 
 export { CampaignTagManager } from "./components/CampaignTagManager";
+export { AdminConfirmDialog } from "./components/AdminConfirmDialog";
+export type { AdminConfirmDialogProps, ConfirmDialogVariant } from "./types/confirm-dialog";
 export { CampaignListTable } from "./components/CampaignListTable";
 export type { CampaignListTableProps } from "./components/CampaignListTable";
 export { MockPublishPanel } from "./components/MockPublishPanel";
