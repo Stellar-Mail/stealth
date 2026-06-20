@@ -1,0 +1,38 @@
+[
+  {
+    "id": "support-refund-follow-up",
+    "scenario": "Customer support follow-up that needs a warmer tone without changing the refund status.",
+    "inputDraft": "We got your request. The refund is still being checked. Wait for another email.",
+    "improvementGoals": ["warmer_tone", "clear_next_step", "preserve_facts"],
+    "suggestedDraft": "Thanks for reaching out. Your refund request is still under review, and we will send you an update by email as soon as the check is complete.",
+    "reviewChecks": [
+      "Does not promise a refund before review is complete.",
+      "Adds a clear update channel.",
+      "Keeps the message concise and professional."
+    ]
+  },
+  {
+    "id": "sales-demo-reschedule",
+    "scenario": "Sales reply that should be shorter and easier to act on.",
+    "inputDraft": "Hello, I think maybe we need to move the demo because the team is busy and there may be a better time later this week if that works for you.",
+    "improvementGoals": ["shorten", "actionable_question", "professional_tone"],
+    "suggestedDraft": "Could we move the demo to later this week? Please send two times that work for you, and I will confirm the best slot with our team.",
+    "reviewChecks": [
+      "Keeps the reschedule request intact.",
+      "Asks for a concrete next action.",
+      "Avoids adding unavailable calendar details."
+    ]
+  },
+  {
+    "id": "security-review-summary",
+    "scenario": "Internal update that should be clearer without leaking private implementation details.",
+    "inputDraft": "The review is mostly done. There were some risky parts but I fixed a few things and still need someone to check it.",
+    "improvementGoals": ["clarity", "safe_summary", "review_request"],
+    "suggestedDraft": "The review is nearly complete. I resolved the main risky items I found and need a second reviewer to verify the remaining changes before release.",
+    "reviewChecks": [
+      "Does not disclose sensitive implementation details.",
+      "States current status and remaining action.",
+      "Keeps the tone appropriate for internal stakeholders."
+    ]
+  }
+]
