@@ -84,7 +84,7 @@ export function EmailList({
     .filter((email): email is Email => Boolean(email));
   const allSelected = visibleIds.length > 0 && selectedVisibleIds.length === visibleIds.length;
   const someSelected = selectedVisibleIds.length > 0;
-  const listRef = useRef<HTMLUListElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
   const onSelectRef = useRef(onSelect);
   const onSelectionChangeRef = useRef(onSelectionChange);
   const [lastAnchorId, setLastAnchorId] = useState<string | null>(null);

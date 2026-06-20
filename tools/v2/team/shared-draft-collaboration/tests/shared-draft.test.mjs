@@ -218,3 +218,89 @@ describe("Shared Draft Collaboration — Service", () => {
     assert.strictEqual(m.active, 0);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Security & Performance Guards
+// ---------------------------------------------------------------------------
+
+describe("Shared Draft Collaboration — Security & Performance Guards", () => {
+  it("sanitizeText removes HTML/script tags (XSS check)", () => {
+    import("../guards/draft-guards.mjs").then((guards) => {
+      const dirty = "Draft Title <script>alert('xss')</script> check";
+      const clean = guards.sanitizeText(dirty);
+      assert.strictEqual(clean, "Draft Title alert('xss') check");
+    });
+  });
+
+  it("sanitizeText blocks CRLF header injection and null bytes", () => {
+    import("../guards/draft-guards.mjs").then((guards) => {
+      const dirty = "SubjectLine\r\nBcc: victim@example.test\0test";
+      const clean = guards.sanitizeText(dirty);
+      assert.ok(!clean.includes("\r"));
+      assert.ok(!clean.includes("\n"));
+      assert.ok(!clean.includes("\0"));
+    });
+  });
+
+  it("validateDraftId rejects path traversal and special characters", async () => {
+    const guards = await import("../guards/draft-guards.mjs");
+    assert.throws(() => guards.validateDraftId("../../../secret"), /contains illegal characters/);
+    assert.throws(() => guards.validateDraftId("draft 001"), /contains illegal characters/);
+    assert.throws(
+      () => guards.validateDraftId("draft-id-with-symbols$"),
+      /contains illegal characters/,
+    );
+    assert.strictEqual(guards.validateDraftId("draft-099_ok"), "draft-099_ok");
+  });
+
+  it("validateDraftTitle rejects empty, null or oversized titles", async () => {
+    const guards = await import("../guards/draft-guards.mjs");
+    assert.throws(() => guards.validateDraftTitle(""), /non-empty string/);
+    assert.throws(() => guards.validateDraftTitle("   "), /non-empty string/);
+    assert.throws(() => guards.validateDraftTitle(123), /non-empty string/);
+
+    const longTitle = "a".repeat(121);
+    assert.throws(() => guards.validateDraftTitle(longTitle), /exceeds maximum length/);
+  });
+
+  it("validateCollaboratorCount rejects out-of-bound values", async () => {
+    const guards = await import("../guards/draft-guards.mjs");
+    assert.throws(() => guards.validateCollaboratorCount(0), /must be between/);
+    assert.throws(() => guards.validateCollaboratorCount(51), /must be between/);
+    assert.throws(() => guards.validateCollaboratorCount(1.5), /must be an integer/);
+    assert.strictEqual(guards.validateCollaboratorCount(12), 12);
+  });
+
+  it("validateSearchQuery throws when query is oversized", async () => {
+    const guards = await import("../guards/draft-guards.mjs");
+    const longQuery = "q".repeat(101);
+    assert.throws(() => guards.validateSearchQuery(longQuery), /exceeds maximum length/);
+  });
+
+  it("guardDraftsCount throws when collection is full", async () => {
+    const guards = await import("../guards/draft-guards.mjs");
+    const fullList = Array(1000).fill({});
+    assert.throws(() => guards.guardDraftsCount(fullList), /safe limit/);
+  });
+
+  it("service validates inputs on addDraft", async () => {
+    const svc = createDraftService();
+    await assert.rejects(() => svc.addDraft({ title: "", collaborators: 1 }), /title must be/);
+    await assert.rejects(
+      () => svc.addDraft({ title: "Draft", collaborators: 60 }),
+      /collaborators count must be/,
+    );
+  });
+
+  it("service validates inputs on updateDraft", async () => {
+    const svc = createDraftService();
+    await assert.rejects(
+      () => svc.updateDraft({ id: "draft-001", title: "a".repeat(130) }),
+      /title exceeds/,
+    );
+    await assert.rejects(
+      () => svc.updateDraft({ id: "draft-001", collaborators: -1 }),
+      /collaborators count must be/,
+    );
+  });
+});

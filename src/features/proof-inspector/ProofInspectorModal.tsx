@@ -47,6 +47,36 @@ interface MockProofRecord {
   email: Email;
 }
 
+const generateMockProofRecord = (email: Email): MockProofRecord => {
+  // Message ID SHA-256 mock
+  const messageHash = `0x${email.id.repeat(16).padEnd(64, "a")}d8c7e9`;
+  // Payment Preimage Hash mock
+  const paymentHash = `0x${(email.id + "pay").repeat(12).padEnd(64, "b")}f12a3d`;
+  // Relay diagnostic ID UUID
+  const diagnosticId = `d1f038c7-4b1d-44a6-8968-3e5f492305${email.id.padStart(2, "0")}`;
+  // Contract address
+  const contractAddress = `CB${email.id.repeat(10).toUpperCase().padEnd(54, "9")}`;
+
+  return {
+    emailId: email.id,
+    messageHash,
+    paymentHash,
+    diagnosticId,
+    contractAddress,
+    relayNode: "relay-us-east-1.stealth.network",
+    latency: `${20 + (email.from.length % 5) * 6}ms`,
+    signature: `Ed25519 [0x${email.id.repeat(8).padEnd(32, "7")}f31b]`,
+    deliveredAt:
+      email.time.includes("AM") || email.time.includes("PM") ? "Today, " + email.time : email.time,
+    readAt: email.unread ? null : "Delivered + Read",
+    postageAmount: email.postageAmount ?? "10000000",
+    postageStatus:
+      email.folder === "requests" ? "pending" : email.folder === "spam" ? "refunded" : "settled",
+    senderRule: email.senderPolicy === "verify" ? "default" : (email.senderPolicy ?? "default"),
+    email,
+  };
+};
+
 export function ProofInspectorModal({
   open,
   onClose,
@@ -57,6 +87,7 @@ export function ProofInspectorModal({
 }: ProofInspectorModalProps) {
   const [query, setQuery] = useState(initialQuery);
   const [hasSearched, setHasSearched] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
   const [validationMsg, setValidationMsg] = useState<{
     text: string;
     type: "success" | "warning" | "error" | null;
@@ -68,50 +99,18 @@ export function ProofInspectorModal({
     if (open) {
       setQuery(initialQuery);
       setHasSearched(!!initialQuery);
+      setIsSearching(false);
     } else {
       setQuery("");
       setHasSearched(false);
+      setIsSearching(false);
       setValidationMsg({ text: "", type: null });
     }
   }, [open, initialQuery]);
 
-  // Generate deterministic mock proof records for emails
-  const proofRecords = useMemo<MockProofRecord[]>(() => {
-    return emails.map((email) => {
-      // Message ID SHA-256 mock
-      const messageHash = `0x${email.id.repeat(16).padEnd(64, "a")}d8c7e9`;
-      // Payment Preimage Hash mock
-      const paymentHash = `0x${(email.id + "pay").repeat(12).padEnd(64, "b")}f12a3d`;
-      // Relay diagnostic ID UUID
-      const diagnosticId = `d1f038c7-4b1d-44a6-8968-3e5f492305${email.id.padStart(2, "0")}`;
-      // Contract address
-      const contractAddress = `CB${email.id.repeat(10).toUpperCase().padEnd(54, "9")}`;
-
-      return {
-        emailId: email.id,
-        messageHash,
-        paymentHash,
-        diagnosticId,
-        contractAddress,
-        relayNode: "relay-us-east-1.stealth.network",
-        latency: `${20 + (email.from.length % 5) * 6}ms`,
-        signature: `Ed25519 [0x${email.id.repeat(8).padEnd(32, "7")}f31b]`,
-        deliveredAt:
-          email.time.includes("AM") || email.time.includes("PM")
-            ? "Today, " + email.time
-            : email.time,
-        readAt: email.unread ? null : "Delivered + Read",
-        postageAmount: email.postageAmount ?? "10000000",
-        postageStatus:
-          email.folder === "requests"
-            ? "pending"
-            : email.folder === "spam"
-              ? "refunded"
-              : "settled",
-        senderRule: email.senderPolicy === "verify" ? "default" : (email.senderPolicy ?? "default"),
-        email,
-      };
-    });
+  // Generate deterministic mock proof records ONLY for shortcuts
+  const recentShortcuts = useMemo<MockProofRecord[]>(() => {
+    return emails.slice(0, 4).map(generateMockProofRecord);
   }, [emails]);
 
   // Real-time query format validation
@@ -165,25 +164,30 @@ export function ProofInspectorModal({
     const trimmed = query.trim().toLowerCase();
     if (!trimmed) return [];
 
-    return proofRecords.filter((record) => {
-      // Match by message hash
-      if (record.messageHash.toLowerCase().includes(trimmed)) return true;
-      // Match by payment hash
-      if (record.paymentHash.toLowerCase().includes(trimmed)) return true;
-      // Match by diagnostic ID
-      if (record.diagnosticId.toLowerCase().includes(trimmed)) return true;
-      // Match by contract address
-      if (record.contractAddress.toLowerCase().includes(trimmed)) return true;
-      // Match by email/sender address
-      if (record.email.email.toLowerCase().includes(trimmed)) return true;
-      // Match by sender name
-      if (record.email.from.toLowerCase().includes(trimmed)) return true;
-      // Match by subject
-      if (record.email.subject.toLowerCase().includes(trimmed)) return true;
+    const matchedEmails = emails.filter((email) => {
+      // Basic checks
+      if (email.email.toLowerCase().includes(trimmed)) return true;
+      if (email.from.toLowerCase().includes(trimmed)) return true;
+      if (email.subject.toLowerCase().includes(trimmed)) return true;
+
+      // Derived hash checks
+      const messageHash = `0x${email.id.repeat(16).padEnd(64, "a")}d8c7e9`;
+      if (messageHash.toLowerCase().includes(trimmed)) return true;
+
+      const paymentHash = `0x${(email.id + "pay").repeat(12).padEnd(64, "b")}f12a3d`;
+      if (paymentHash.toLowerCase().includes(trimmed)) return true;
+
+      const diagnosticId = `d1f038c7-4b1d-44a6-8968-3e5f492305${email.id.padStart(2, "0")}`;
+      if (diagnosticId.toLowerCase().includes(trimmed)) return true;
+
+      const contractAddress = `CB${email.id.repeat(10).toUpperCase().padEnd(54, "9")}`;
+      if (contractAddress.toLowerCase().includes(trimmed)) return true;
 
       return false;
     });
-  }, [hasSearched, query, proofRecords]);
+
+    return matchedEmails.map(generateMockProofRecord);
+  }, [hasSearched, query, emails]);
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
@@ -244,7 +248,13 @@ export function ProofInspectorModal({
                 <form
                   onSubmit={(e) => {
                     e.preventDefault();
-                    setHasSearched(true);
+                    if (!query.trim()) return;
+                    setIsSearching(true);
+                    setHasSearched(false);
+                    setTimeout(() => {
+                      setHasSearched(true);
+                      setIsSearching(false);
+                    }, 400);
                   }}
                   className="relative flex items-center gap-2"
                 >
@@ -256,6 +266,7 @@ export function ProofInspectorModal({
                       onChange={(e) => {
                         setQuery(e.target.value);
                         setHasSearched(false);
+                        setIsSearching(false);
                       }}
                       placeholder="Enter Message Hash, Payment Preimage, Address, or Sender..."
                       className={cn(
@@ -271,6 +282,7 @@ export function ProofInspectorModal({
                         onClick={() => {
                           setQuery("");
                           setHasSearched(false);
+                          setIsSearching(false);
                         }}
                         className="absolute right-3 top-3 rounded p-0.5 text-muted-foreground hover:text-foreground"
                       >
@@ -280,9 +292,10 @@ export function ProofInspectorModal({
                   </div>
                   <button
                     type="submit"
-                    className="h-10 rounded-xl bg-white px-4 text-xs font-bold text-black transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-white/30"
+                    disabled={isSearching}
+                    className="h-10 rounded-xl bg-white px-4 text-xs font-bold text-black transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-white/30 disabled:opacity-50"
                   >
-                    Inspect
+                    {isSearching ? "Searching..." : "Inspect"}
                   </button>
                 </form>
 
@@ -302,18 +315,23 @@ export function ProofInspectorModal({
               </div>
 
               {/* Suggestions / Shortcuts when empty */}
-              {!hasSearched && (
+              {!hasSearched && !isSearching && (
                 <div className="space-y-2.5 pt-2">
                   <h4 className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
                     Quick shortcuts (local records)
                   </h4>
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                    {proofRecords.slice(0, 4).map((record) => (
+                    {recentShortcuts.map((record) => (
                       <button
                         key={record.emailId}
                         onClick={() => {
                           setQuery(record.messageHash);
-                          setHasSearched(true);
+                          setIsSearching(true);
+                          setHasSearched(false);
+                          setTimeout(() => {
+                            setHasSearched(true);
+                            setIsSearching(false);
+                          }, 400);
                         }}
                         className="flex items-start gap-2.5 rounded-xl border border-white/5 bg-white/[0.01] p-2.5 text-left text-xs transition hover:bg-white/[0.04] hover:border-white/10"
                       >
@@ -332,17 +350,29 @@ export function ProofInspectorModal({
                 </div>
               )}
 
-              {/* Search Result display */}
               <div aria-live="polite" aria-atomic="true">
-                {hasSearched && (
-                  <AnimatePresence mode="wait">
-                    {searchResults.length === 0 ? (
-                      /* MISSING RECORDS / NEXT STEPS GUIDE */
-                      <motion.div
-                        key="missing-state"
-                        {...motionPresets.entrance.fadeIn()}
-                        className="rounded-xl border border-rose-500/20 bg-rose-500/[0.01] p-4 space-y-4"
-                      >
+                <AnimatePresence mode="wait">
+                  {isSearching && (
+                    <motion.div
+                      key="loading-state"
+                      {...motionPresets.entrance.fadeIn()}
+                      className="space-y-4 pt-2"
+                    >
+                      <div className="h-16 w-full animate-pulse rounded-xl bg-white/[0.03] border border-white/[0.05]" />
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div className="h-[120px] w-full animate-pulse rounded-xl bg-white/[0.03] border border-white/[0.05]" />
+                        <div className="h-[120px] w-full animate-pulse rounded-xl bg-white/[0.03] border border-white/[0.05]" />
+                        <div className="h-[120px] w-full animate-pulse rounded-xl bg-white/[0.03] border border-white/[0.05]" />
+                        <div className="h-[120px] w-full animate-pulse rounded-xl bg-white/[0.03] border border-white/[0.05]" />
+                      </div>
+                      <div className="h-10 w-full animate-pulse rounded-xl bg-white/[0.03] border border-white/[0.05]" />
+                    </motion.div>
+                  )}
+
+                  {hasSearched && !isSearching && (
+                    <motion.div key="result-state" {...motionPresets.entrance.fadeIn()}>
+                      {searchResults.length === 0 ? (
+                        <div className="rounded-xl border border-rose-500/20 bg-rose-500/[0.01] p-4 space-y-4">
                         <div className="flex items-start gap-3">
                           <span className="grid h-7 w-7 place-items-center rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20 shrink-0">
                             <ShieldAlert className="h-4 w-4" />
@@ -412,14 +442,9 @@ export function ProofInspectorModal({
                             </li>
                           </ul>
                         </div>
-                      </motion.div>
-                    ) : (
-                      /* RECORD FOUND & DETAILED SECTIONS */
-                      <motion.div
-                        key="found-state"
-                        {...motionPresets.entrance.fadeIn()}
-                        className="space-y-4"
-                      >
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
                         {/* Security Alert: Sensitive payload notice */}
                         <div className="flex items-start gap-2.5 rounded-lg bg-white/[0.02] border border-white/[0.04] p-3 text-xs text-muted-foreground leading-normal">
                           <Info className="h-3.5 w-3.5 text-[oklch(0.85_0.005_270)] shrink-0 mt-0.5" />
@@ -609,17 +634,18 @@ export function ProofInspectorModal({
                           <Copy className="h-3.5 w-3.5" />
                           Copy Proof Diagnostic Report
                         </button>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                )}
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             </div>
 
             {/* Modal Footer CTAs */}
             <div className="flex items-center justify-between border-t border-white/[0.08] px-6 py-4 bg-white/[0.01]">
               <div className="flex items-center gap-2">
-                {selectedRecord && (
+                {selectedRecord && hasSearched && !isSearching && (
                   <>
                     <a
                       href={`https://stellar.expert/explorer/public/tx/${selectedRecord.paymentHash}`}
