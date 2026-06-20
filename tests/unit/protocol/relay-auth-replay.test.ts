@@ -224,7 +224,11 @@ describe("Relay Auth Replay Protection", () => {
 
     // Store a cached response for this idempotency key
     const idemKey = `${envelope1.kid}:${idempotencyKey}`;
-    idempotencyStore.set(idemKey, { status: 200, body: { result: "ok", id: "msg-1" }, timestamp: Date.now() });
+    idempotencyStore.set(idemKey, {
+      status: 200,
+      body: { result: "ok", id: "msg-1" },
+      timestamp: Date.now(),
+    });
 
     // Replay with same idempotency key (different nonce)
     const envelope2 = makeEnvelope({

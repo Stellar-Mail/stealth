@@ -28,6 +28,7 @@ Usage:
 Import `flagCampaign` or `CampaignQualityWarnings` from this folder to show warnings in the demo UI.
 
 All code is deterministic and safe for public repositories.
+
 # Demo Admin Dashboard
 
 This folder contains the isolated demo-admin dashboard slice for maintainers who need to populate and review fake demo UI data. It intentionally avoids production mail flows, live network calls, real user records, and route/app-shell integration.

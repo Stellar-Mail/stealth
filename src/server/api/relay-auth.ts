@@ -276,7 +276,12 @@ export function validateSignedRequest(
   const payload = envelope.payload;
 
   // 3. Validate timestamp
-  const tsResult = validateTimestamp(payload.created_at, nowMs, config.skewMs, config.replayWindowMs);
+  const tsResult = validateTimestamp(
+    payload.created_at,
+    nowMs,
+    config.skewMs,
+    config.replayWindowMs,
+  );
   if (!tsResult.ok) return tsResult;
 
   // 4. Validate audience
