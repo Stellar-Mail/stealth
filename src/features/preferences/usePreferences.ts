@@ -9,6 +9,19 @@ function resolveTheme(theme: UiPreferences["theme"]) {
 }
 
 /**
+ * Resolve the effective motion level. Reduced motion wins whenever either the
+ * in-app toggle or the OS `prefers-reduced-motion` setting asks for it, so the
+ * accessibility preference is honored even when the user has not flipped the
+ * in-app switch. Pure so it can be unit tested without a DOM.
+ */
+export function resolveMotion(
+  lowerMotion: boolean,
+  prefersReducedMotion: boolean,
+): "lower" | "full" {
+  return lowerMotion || prefersReducedMotion ? "lower" : "full";
+}
+
+/**
  * Pure resolution of persisted preferences, shared by the hook and its tests.
  * Stored values are always merged over the current defaults so missing keys
  * stay predictable across sessions and app versions. The current key wins; the
@@ -56,21 +69,30 @@ export function usePreferences() {
 
   useEffect(() => {
     if (!hydrated) return;
+    const colorScheme = window.matchMedia("(prefers-color-scheme: light)");
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
     const apply = () => {
       document.documentElement.dataset.theme = resolveTheme(preferences.theme);
       const density = preferences.density ?? (preferences.compactMode ? "compact" : "comfortable");
       document.documentElement.dataset.density = density;
       document.documentElement.dataset.glass = preferences.glassIntensity ?? "medium";
       document.documentElement.dataset.reader = preferences.readerTypography ?? "sans";
-      document.documentElement.dataset.motion = preferences.lowerMotion ? "lower" : "full";
+      document.documentElement.dataset.motion = resolveMotion(
+        preferences.lowerMotion,
+        reducedMotion.matches,
+      );
     };
 
     apply();
     window.localStorage.setItem(storageKey, JSON.stringify(preferences));
 
-    const media = window.matchMedia("(prefers-color-scheme: light)");
-    if (preferences.theme === "system") media.addEventListener("change", apply);
-    return () => media.removeEventListener("change", apply);
+    if (preferences.theme === "system") colorScheme.addEventListener("change", apply);
+    // Always track the OS reduced-motion setting so the fallback stays honored.
+    reducedMotion.addEventListener("change", apply);
+    return () => {
+      colorScheme.removeEventListener("change", apply);
+      reducedMotion.removeEventListener("change", apply);
+    };
   }, [hydrated, preferences]);
 
   return { preferences, setPreferences, hydrated };

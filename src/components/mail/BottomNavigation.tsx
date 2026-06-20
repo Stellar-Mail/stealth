@@ -64,7 +64,7 @@ export function BottomNavigation({
             <button
               key={item.id}
               onClick={handlers[item.id]}
-              className="relative flex flex-col items-center justify-center px-2 py-1.5 rounded-lg transition-all"
+              className="glow-ring relative flex flex-col items-center justify-center rounded-lg px-2 py-1.5 transition-all hover:bg-white/[0.04] active:scale-[0.96]"
               aria-label={item.label}
               aria-current={isActive ? "page" : undefined}
             >
