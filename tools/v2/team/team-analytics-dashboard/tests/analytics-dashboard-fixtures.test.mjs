@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import test from "node:test";
 
 const currentDir = dirname(fileURLToPath(import.meta.url));
 const fixturePath = join(currentDir, "..", "fixtures", "sample-analytics-data.json");
+const servicePath = join(currentDir, "..", "services", "analytics-dashboard.service.mjs");
 
 const allowedStatuses = new Set(["active", "overloaded", "underutilized", "away"]);
 const SLA_THRESHOLD_HOURS = 4;
@@ -183,4 +184,39 @@ test("bottleneck member has the highest open thread count", async () => {
     maxOpen,
     "bottleneck member must have the highest openThreads count",
   );
+});
+
+test("dashboard service produces matching output from fixture input", async () => {
+  const fixture = await loadFixture();
+  const { generateDashboardReport } = await import(pathToFileURL(servicePath).href);
+
+  const result = generateDashboardReport({
+    members: fixture.members,
+    period: fixture.period,
+    teamId: fixture.teamId,
+  });
+
+  assert.equal(result.teamId, fixture.teamId);
+  assert.equal(result.period.label, fixture.period.label);
+  assert.equal(result.members.length, fixture.members.length);
+  assert.equal(result.summary.totalEmailVolume, fixture.summary.totalEmailVolume);
+  assert.equal(result.summary.totalHandled, fixture.summary.totalHandled);
+  assert.equal(result.summary.totalOpen, fixture.summary.totalOpen);
+  assert.equal(result.summary.totalSlaBreaches, fixture.summary.totalSlaBreaches);
+  assert.equal(result.summary.topPerformerId, fixture.summary.topPerformerId);
+  assert.equal(result.summary.bottleneckMemberId, fixture.summary.bottleneckMemberId);
+  assert.deepEqual(result.summary.reviewRequiredMemberIds, fixture.summary.reviewRequiredMemberIds);
+
+  for (let i = 0; i < result.members.length; i++) {
+    const actual = result.members[i];
+    const expected = fixture.members[i];
+    assert.equal(actual.memberId, expected.memberId, `member ${i} memberId mismatch`);
+    assert.equal(actual.status, expected.status, `member ${i} status mismatch`);
+    assert.equal(
+      actual.avgResponseTimeHours,
+      expected.avgResponseTimeHours,
+      `member ${i} avgResponseTimeHours mismatch`,
+    );
+    assert.equal(actual.slaBreaches, expected.slaBreaches, `member ${i} slaBreaches mismatch`);
+  }
 });

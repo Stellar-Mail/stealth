@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   AlertTriangle,
   Bell,
@@ -30,11 +30,17 @@ import {
   HardDrive,
   Download,
 } from "lucide-react";
-import { useState, useEffect, useCallback, type CSSProperties } from "react";
+import {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  type CSSProperties,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from "react";
 import { toast } from "sonner";
 import { Surface } from "@/features/design-system";
 import { cn } from "@/lib/utils";
-import { useFocusTrap } from "@/hooks/use-focus-trap";
 import { SHORTCUT_DEFINITIONS } from "@/features/command-palette";
 import type { ReceiptPreference, UiPreferences, LayoutPreferences } from "@/features/preferences";
 import {
@@ -49,6 +55,7 @@ import {
   type SavedMailboxPolicyTemplate,
 } from "@/features/settings/mailbox-policy-templates";
 import { AuditLog } from "@/features/audit-log";
+import { ChangelogPanel } from "@/features/changelog";
 import { useChangelog } from "@/features/changelog/useChangelog";
 import { useDevices } from "@/features/device-management/useDevices";
 import type { Device, KeyStatus, RecoveryMethod } from "@/features/device-management/types";
@@ -90,8 +97,69 @@ export function SettingsModal({
   onSave: () => void;
 }) {
   const [activeTab, setActiveTab] = useState<Tab>("account");
-  const containerRef = useFocusTrap(open, onCancel ?? onClose);
   const { hasUnread } = useChangelog();
+  const panelRef = useRef<HTMLDivElement>(null);
+  const dismiss = onCancel ?? onClose;
+  const prefersReducedMotion = useReducedMotion();
+  const panelTransition = prefersReducedMotion
+    ? { duration: 0 }
+    : { type: "spring" as const, stiffness: 300, damping: 30 };
+
+  // Keyboard + focus management for the dialog: close on Escape, focus the
+  // panel on open, keep Tab focus inside it, and restore focus on close.
+  useEffect(() => {
+    if (!open) return;
+    const panel = panelRef.current;
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    const focusableSelector =
+      'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+    panel?.focus();
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        dismiss();
+        return;
+      }
+      if (e.key !== "Tab" || !panel) return;
+      const focusables = Array.from(panel.querySelectorAll<HTMLElement>(focusableSelector)).filter(
+        (el: HTMLElement) => el.offsetParent !== null,
+      );
+      if (focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const active = document.activeElement;
+      if (e.shiftKey && (active === first || active === panel)) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && active === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      previouslyFocused?.focus?.();
+    };
+  }, [open, dismiss]);
+
+  const onTabListKeyDown = (e: ReactKeyboardEvent<HTMLElement>) => {
+    const ids = tabs.map((t) => t.id);
+    const current = ids.indexOf(activeTab);
+    let next = current;
+    if (e.key === "ArrowDown" || e.key === "ArrowRight") next = (current + 1) % ids.length;
+    else if (e.key === "ArrowUp" || e.key === "ArrowLeft")
+      next = (current - 1 + ids.length) % ids.length;
+    else if (e.key === "Home") next = 0;
+    else if (e.key === "End") next = ids.length - 1;
+    else return;
+    e.preventDefault();
+    setActiveTab(ids[next]);
+    document.getElementById(`settings-tab-${ids[next]}`)?.focus();
+  };
 
   return (
     <AnimatePresence>
@@ -101,20 +169,22 @@ export function SettingsModal({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={onCancel ?? onClose}
+            onClick={dismiss}
+            aria-hidden="true"
             className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
           />
           <motion.div
-            ref={containerRef}
+            ref={panelRef}
             role="dialog"
             aria-modal="true"
-            aria-label="Settings"
+            aria-labelledby="settings-title"
+            tabIndex={-1}
             initial={{ opacity: 0, scale: 0.96, y: 8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 8 }}
-            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            transition={panelTransition}
             className={cn(
-              "glass-strong fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl transition-all",
+              "glass-strong fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl transition-all outline-none",
               activeTab === "audit" || activeTab === "changelog"
                 ? "w-[min(800px,calc(100vw-2rem))]"
                 : "w-[min(680px,calc(100vw-2rem))]",
@@ -122,10 +192,13 @@ export function SettingsModal({
           >
             {/* Header */}
             <div className="flex items-center justify-between border-b border-white/5 px-5 py-4">
-              <h2 className="text-sm font-semibold text-foreground">Settings</h2>
+              <h2 id="settings-title" className="text-sm font-semibold text-foreground">
+                Settings
+              </h2>
               <button
-                onClick={onCancel ?? onClose}
-                className="rounded-lg p-1.5 text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground"
+                onClick={dismiss}
+                aria-label="Close settings"
+                className="glow-ring rounded-lg p-1.5 text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground active:scale-95"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -139,16 +212,28 @@ export function SettingsModal({
             >
               {/* Sidebar tabs */}
               <div className="w-48 border-r border-white/5 p-3">
-                <nav className="space-y-1">
+                <div
+                  role="tablist"
+                  aria-orientation="vertical"
+                  aria-label="Settings sections"
+                  tabIndex={0}
+                  onKeyDown={onTabListKeyDown}
+                  className="space-y-1"
+                >
                   {tabs.map((tab) => {
                     const Icon = tab.icon;
                     const isActive = activeTab === tab.id;
                     return (
                       <button
                         key={tab.id}
+                        id={`settings-tab-${tab.id}`}
+                        role="tab"
+                        aria-selected={isActive}
+                        aria-controls={`settings-panel-${tab.id}`}
+                        tabIndex={isActive ? 0 : -1}
                         onClick={() => setActiveTab(tab.id)}
                         className={cn(
-                          "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition",
+                          "glow-ring flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition active:scale-[0.98]",
                           isActive
                             ? "bg-white/[0.08] text-foreground"
                             : "text-muted-foreground hover:bg-white/[0.04] hover:text-foreground",
@@ -162,11 +247,17 @@ export function SettingsModal({
                       </button>
                     );
                   })}
-                </nav>
+                </div>
               </div>
 
               {/* Content */}
-              <div className="flex-1 p-5 max-h-[450px] overflow-y-auto">
+              <div
+                role="tabpanel"
+                id={`settings-panel-${activeTab}`}
+                aria-labelledby={`settings-tab-${activeTab}`}
+                tabIndex={0}
+                className="glow-ring flex-1 p-5 max-h-[450px] overflow-y-auto"
+              >
                 {activeTab === "account" && <AccountSettings />}
                 {activeTab === "appearance" && (
                   <AppearanceSettings preferences={preferences} onChange={onChange} />
@@ -201,7 +292,7 @@ export function SettingsModal({
               <div className="flex items-center gap-2">
                 <button
                   onClick={onCancel ?? onClose}
-                  className="rounded-lg border border-white/10 px-4 py-2 text-xs font-semibold text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground"
+                  className="rounded-lg border border-white/10 px-4 py-2 text-xs font-semibold text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground active:scale-[0.98]"
                 >
                   Cancel
                 </button>
@@ -210,7 +301,7 @@ export function SettingsModal({
                     onSave();
                     onClose();
                   }}
-                  className="rounded-lg bg-foreground px-4 py-2 text-xs font-semibold text-background transition hover:opacity-90"
+                  className="rounded-lg bg-foreground px-4 py-2 text-xs font-semibold text-background transition hover:opacity-90 active:scale-[0.98]"
                 >
                   Save changes
                 </button>
@@ -354,24 +445,52 @@ function SegmentedSetting({
   options: [string, string][];
   onSelect: (value: string) => void;
 }) {
+  const groupId = `seg-${label.replace(/\s+/g, "-").toLowerCase()}`;
+  const onKeyDown = (e: ReactKeyboardEvent<HTMLDivElement>) => {
+    const idx = options.findIndex(([v]) => v === value);
+    let next = idx;
+    if (e.key === "ArrowRight" || e.key === "ArrowDown") next = (idx + 1) % options.length;
+    else if (e.key === "ArrowLeft" || e.key === "ArrowUp")
+      next = (idx - 1 + options.length) % options.length;
+    else return;
+    e.preventDefault();
+    onSelect(options[next][0]);
+    const radios = e.currentTarget.querySelectorAll<HTMLButtonElement>('[role="radio"]');
+    radios[next]?.focus();
+  };
+
   return (
     <div>
-      <label className="text-xs text-muted-foreground">{label}</label>
-      <div className="mt-2 flex flex-wrap gap-2">
-        {options.map(([optionValue, optionLabel]) => (
-          <button
-            key={optionValue}
-            onClick={() => onSelect(optionValue)}
-            className={cn(
-              "rounded-lg border px-4 py-2 text-xs transition",
-              value === optionValue
-                ? "border-white/20 bg-white/[0.08] text-foreground shadow-[var(--shadow-glow)]"
-                : "border-white/5 text-muted-foreground hover:border-white/10 hover:text-foreground",
-            )}
-          >
-            {optionLabel}
-          </button>
-        ))}
+      <span id={groupId} className="text-xs text-muted-foreground">
+        {label}
+      </span>
+      <div
+        role="radiogroup"
+        aria-labelledby={groupId}
+        tabIndex={0}
+        onKeyDown={onKeyDown}
+        className="mt-2 flex flex-wrap gap-2"
+      >
+        {options.map(([optionValue, optionLabel]) => {
+          const checked = value === optionValue;
+          return (
+            <button
+              key={optionValue}
+              role="radio"
+              aria-checked={checked}
+              tabIndex={checked ? 0 : -1}
+              onClick={() => onSelect(optionValue)}
+              className={cn(
+                "glow-ring rounded-lg border px-4 py-2 text-xs transition active:scale-[0.97]",
+                checked
+                  ? "border-white/20 bg-white/[0.08] text-foreground shadow-[var(--shadow-glow)]"
+                  : "border-white/5 text-muted-foreground hover:border-white/10 hover:text-foreground",
+              )}
+            >
+              {optionLabel}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
@@ -2016,9 +2135,11 @@ function SettingsToggle({
       </div>
       <button
         onClick={() => onChange(!checked)}
-        aria-pressed={checked}
+        role="switch"
+        aria-checked={checked}
+        aria-label={label}
         className={cn(
-          "relative h-6 w-11 rounded-full transition",
+          "glow-ring relative h-6 w-11 rounded-full transition hover:brightness-125 active:scale-95",
           checked ? "bg-white/20" : "bg-white/10",
         )}
       >

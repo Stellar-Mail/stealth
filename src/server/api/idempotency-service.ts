@@ -20,13 +20,13 @@ export async function recordIdempotency(
   actor: string,
   rawKey: string,
   status: number,
-  body: unknown,
+  response: unknown,
 ): Promise<void> {
   const keyHash = hashIdempotencyKey(actor, rawKey);
   const record: IdempotencyRecord = {
     status,
-    body,
-    createdAt: new Date().toISOString(),
+    response,
+    timestamp: Date.now(),
   };
   await repository.setIdempotencyRecord(keyHash, record);
 }

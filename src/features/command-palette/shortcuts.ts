@@ -143,7 +143,12 @@ export function isEditableTarget(target: EventTarget | null | undefined): boolea
 
 export function getShortcutAction(event: ShortcutEventLike): ShortcutActionId | null {
   if (isEditableTarget(event.target) || event.altKey) return null;
-  if (document.body.getAttribute("data-shortcuts-disabled") === "true") return null;
+  if (
+    typeof document !== "undefined" &&
+    document.body?.getAttribute("data-shortcuts-disabled") === "true"
+  ) {
+    return null;
+  }
 
   const key = event.key.toLowerCase();
   const hasCommandModifier = !!event.metaKey || !!event.ctrlKey;

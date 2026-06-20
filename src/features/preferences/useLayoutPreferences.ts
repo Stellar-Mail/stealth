@@ -7,7 +7,7 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
 
-function clampPreferences(prefs: LayoutPreferences): LayoutPreferences {
+export function clampLayoutPreferences(prefs: LayoutPreferences): LayoutPreferences {
   return {
     ...prefs,
     sidebarWidth: clamp(prefs.sidebarWidth, 5, 40),
@@ -25,7 +25,7 @@ export function useLayoutPreferences() {
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
-        setLayout(clampPreferences({ ...defaultLayoutPreferences, ...parsed }));
+        setLayout(clampLayoutPreferences({ ...defaultLayoutPreferences, ...parsed }));
       } catch {
         window.localStorage.removeItem(storageKey);
       }
@@ -40,7 +40,7 @@ export function useLayoutPreferences() {
 
   const setLayoutPreference = useCallback((patch: Partial<LayoutPreferences>) => {
     setLayout((prev: LayoutPreferences) => {
-      const next = clampPreferences({ ...prev, ...patch });
+      const next = clampLayoutPreferences({ ...prev, ...patch });
       // Only create a new object when at least one value actually changed.
       const changed = (Object.keys(next) as Array<keyof LayoutPreferences>).some(
         (k) => prev[k] !== next[k],

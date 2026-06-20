@@ -31,7 +31,7 @@ export const Route = createFileRoute("/api/v1/postage/")({
           if (rawIdempotencyKey) {
             const existing = await checkIdempotency(repo, input.sender, rawIdempotencyKey);
             if (existing) {
-              return apiSuccess(request, existing.body, {
+              return apiSuccess(request, existing.response, {
                 status: existing.status,
                 headers: { "x-idempotency-replayed": "true" },
               });

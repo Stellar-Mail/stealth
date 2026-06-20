@@ -21,6 +21,16 @@ export {
 
 export { defaultCampaignSnapshots } from "./fixtures/campaignSnapshotFixtures";
 export { defaultCampaignTags } from "./fixtures/campaignTagFixtures";
+export {
+  getSenderRecoveryOutcomeSummary,
+  senderRecoveryCampaignPreset,
+  senderRecoveryRequestStates,
+  validateSenderRecoveryCampaignPreset,
+} from "./fixtures/senderRecoveryCampaignPreset";
+export type {
+  SenderRecoveryRequestState,
+  SenderRecoveryRequestStatus,
+} from "./fixtures/senderRecoveryCampaignPreset";
 
 export type {
   AdminDashboardBreakpoint,
@@ -56,6 +66,55 @@ export {
 } from "./constants/displayTokens";
 
 export { CampaignTagManager } from "./components/CampaignTagManager";
+export { CampaignListTable } from "./components/CampaignListTable";
+export type { CampaignListTableProps } from "./components/CampaignListTable";
+export { MockPublishPanel } from "./components/MockPublishPanel";
+export type { MockPublishPanelProps } from "./components/MockPublishPanel";
+export { CampaignDiffPanel } from "./components/CampaignDiffPanel";
+export type { CampaignDiffPanelProps } from "./components/CampaignDiffPanel";
+export {
+  buildCampaignListRows,
+  clearCampaignSelection,
+  defaultCampaignListSort,
+  nextCampaignListSort,
+  selectAllCampaigns,
+  summarizeCampaignSelection,
+  toggleCampaignSelection,
+} from "./campaignListTable";
+export type {
+  CampaignListRow,
+  CampaignListSelectionSummary,
+  CampaignListSort,
+  CampaignListSortDirection,
+  CampaignListSortKey,
+} from "./campaignListTable";
+export {
+  canRetryMockPublish,
+  canRollbackMockPublish,
+  canStartMockPublish,
+  getMockPublishSummary,
+  initialMockPublishState,
+  mockPublishReducer,
+} from "./mockPublishWorkflow";
+export type {
+  MockPublishAction,
+  MockPublishState,
+  MockPublishStatus,
+  MockPublishStep,
+} from "./mockPublishWorkflow";
+export {
+  compareCampaignSnapshots,
+  formatCampaignDiffSummary,
+  getCampaignDiffEntriesByKind,
+  summarizeCampaignDiff,
+} from "./campaignDiff";
+export type {
+  CampaignDiffEntry,
+  CampaignDiffKind,
+  CampaignDiffResult,
+  CampaignDiffSection,
+  CampaignDiffSummary,
+} from "./campaignDiff";
 
 export {
   createTag,
@@ -95,6 +154,18 @@ export {
   type MessageTemplate,
   type TemplateCategory,
 } from "./templates";
+
+export type { CampaignSeedExample, CampaignSeedScenario } from "./types/campaignSeed";
+export {
+  campaignSeedExamples,
+  getCampaignSeedExamplesByCategory,
+  getCampaignSeedExamplesByTag,
+} from "./seed-data/campaignSeedExamples";
+export {
+  isSafeDemoRecipient,
+  toCampaignSeedSlug,
+  validateCampaignSeedScenario,
+} from "./seed-helpers/campaignSeed";
 
 export * from "./validation-types";
 export * from "./validation";
@@ -221,6 +292,18 @@ export {
 // Draft dataset admin store (issue #172): reducer, selectors, hook, types, fixture.
 export { draftDatasetReducer, initialDraftDatasetState } from "./reducers/draftDatasetReducer";
 export {
+  adminEditHistoryReducer,
+  canRedoAdminEdit,
+  canUndoAdminEdit,
+  createAdminEditHistory,
+  summarizeAdminEditHistory,
+} from "./reducers/historyReducer";
+export type {
+  AdminEditHistoryAction,
+  AdminEditHistoryState,
+  AdminEditHistorySummary,
+} from "./reducers/historyReducer";
+export {
   selectAllDrafts,
   selectDraftById,
   selectDraftCount,
@@ -232,6 +315,20 @@ export { useDraftDataset } from "./hooks/useDraftDataset";
 export type { UseDraftDatasetResult } from "./hooks/useDraftDataset";
 export type { DraftDatasetAction, DraftDatasetState } from "./types/draftDataset";
 export { draftDatasetSample } from "./fixtures/draftDatasetFixtures";
+export {
+  emptyBulkSelection,
+  normalizeSelectedDraftIds,
+  getBulkSelectionSummary,
+  selectAllDrafts as selectAllBulkDrafts,
+  clearBulkSelection,
+  selectDraftRange,
+  updateBulkSelection,
+  invertBulkSelection,
+  formatBulkSelectionSummary,
+} from "./bulkSelection";
+export type { BulkSelectionMode, BulkSelectionState, BulkSelectionSummary } from "./bulkSelection";
+export { BulkSelectionToolbar } from "./components/BulkSelectionToolbar";
+export type { BulkSelectionToolbarProps } from "./components/BulkSelectionToolbar";
 
 // Draft dataset JSON export (issue #190): serializer, filename builder, button.
 export {
@@ -244,3 +341,146 @@ export { DATASET_EXPORT_SCHEMA_VERSION } from "./types/datasetExport";
 export type { DraftDatasetExport } from "./types/datasetExport";
 export { ExportDatasetButton } from "./components/ExportDatasetButton";
 export type { ExportDatasetButtonProps } from "./components/ExportDatasetButton";
+
+// Campaign KPI definitions (issue #262): types, fixtures, helpers, display tokens.
+export type {
+  CampaignKpiDefinition,
+  KpiMetricKind,
+  KpiStatus,
+  KpiTrend,
+  KpiUnit,
+} from "./types/campaignKpi";
+export { CAMPAIGN_KPI_DEFINITIONS } from "./fixtures/campaignKpiFixtures";
+export {
+  computeKpiProgress,
+  formatKpiTrend,
+  getKpiById,
+  getKpisForCampaign,
+  isKpiMet,
+  sortKpisByMetric,
+  validateCampaignKpiDefinition,
+} from "./utils/campaignKpiHelpers";
+export {
+  KPI_METRIC_TOKENS,
+  KPI_STATUS_TOKENS,
+  KPI_TREND_TOKENS,
+  getKpiMetricToken,
+  getKpiStatusToken,
+  getKpiTrendToken,
+} from "./constants/displayTokens";
+
+// Campaign analytics preview cards (issue #264)
+export { CampaignAnalyticsCard } from "./components/CampaignAnalyticsCard";
+export { CampaignAnalyticsPanel } from "./components/CampaignAnalyticsPanel";
+
+export {
+  MESSAGE_FOLDERS,
+  DEFAULT_MESSAGE_FOLDER,
+  MESSAGE_FIELDS,
+  getMessageField,
+  createEmptyMessage,
+} from "./constants/messageListEditorModel";
+export type {
+  MessageFolder,
+  MessageFieldKey,
+  MessageFieldType,
+  EditableMessage,
+  MessageFieldMeta,
+} from "./constants/messageListEditorModel";
+export { messageListFixtures } from "./fixtures/messageListFixtures";
+
+// Inbox seed dataset (issue #6): fixtures, metadata, helpers, validation
+export { inboxSeedDataset, inboxSeedMessages, inboxSeedSenders } from "./fixtures/inboxSeedDataset";
+export {
+  inboxSeedMetadata,
+  inboxSeedFolderMap,
+  inboxSeedFolderCounts,
+} from "./fixtures/inboxSeedMetadata";
+export type { InboxSeedMetadata } from "./fixtures/inboxSeedMetadata";
+export {
+  getMessagesByLabel,
+  getMessagesBySender,
+  getMessagesByProofStatus,
+  getMessagesByFolder,
+  getUnreadMessages,
+  getStarredMessages,
+  getMessagesWithAttachments,
+  getMessagesWithCalendarEvent,
+  getSnoozedMessages,
+  getTrustedSenders,
+  getUntrustedSenders,
+  getRelaySenders,
+  collectLabels,
+  computeFolderDistribution,
+  findMessageById,
+  findSenderByAddress,
+} from "./utils/inboxSeedHelpers";
+export { validateInboxSeedDataset } from "./seedDatasetValidation";
+export { getSeedDatasetPreview } from "./utils/seedDatasetPreview";
+export type { SeedDatasetPreview } from "./utils/seedDatasetPreview";
+export {
+  DEMO_FOLDERS,
+  MAILBOX_GROUPS,
+  FOLDER_DEFINITIONS,
+  DEFAULT_FOLDER,
+  getFolderDefinition,
+  getFoldersForGroup,
+} from "./constants/folderTaxonomy";
+export type { DemoFolder, MailboxGroup, FolderDefinition } from "./constants/folderTaxonomy";
+export { FolderTaxonomySelector } from "./components/FolderTaxonomySelector";
+export type { FolderTaxonomySelectorProps } from "./components/FolderTaxonomySelector";
+
+// Campaign snapshot JSON export (issue #273): serializer, filename builder.
+export {
+  buildCampaignExport,
+  serializeCampaignSnapshot,
+  buildCampaignExportFilename,
+} from "./helpers/campaignExport";
+export { CAMPAIGN_EXPORT_SCHEMA_VERSION } from "./types/campaignExport";
+export type { CampaignExportMeta, CampaignSnapshotExport } from "./types/campaignExport";
+
+// Calendar Event Editor (issue #16): editor component, types, fixtures, validation.
+export { CalendarEventEditor } from "./components/CalendarEventEditor";
+export type { CalendarEventEditorProps } from "./components/CalendarEventEditor";
+export { prepareAttendees, formatAttendeesDisplay } from "./components/CalendarEventEditor";
+export type {
+  CalendarEventEditorState,
+  CalendarResponseState,
+  CalendarResponseStateOption,
+} from "./types/calendarEvent";
+export {
+  CALENDAR_RESPONSE_STATES,
+  CALENDAR_RESPONSE_STATE_OPTIONS,
+  DEFAULT_RESPONSE_STATE,
+  getResponseStateOption,
+  calendarEventToEditorState,
+  editorStateToCalendarEvent,
+} from "./types/calendarEvent";
+export { calendarEventFixtures, defaultCalendarEvent } from "./fixtures/calendarEventFixtures";
+export { validateCalendarEventEditor } from "./calendarEventValidation";
+
+// Label manager (issue #185): types, helpers, fixtures, and UI.
+export type { DemoLabel, LabeledDemoMessage, LabelUsage } from "./labels/types";
+export {
+  addLabel,
+  countLabelUsage,
+  createLabel,
+  normalizeLabelName,
+  removeLabel,
+  toLabelId,
+  unusedLabels,
+} from "./labels/labelNormalization";
+export { demoLabels, labeledDemoMessages } from "./labels/labelFixtures";
+export { LabelManager } from "./labels/LabelManager";
+
+// Draft dataset JSON import (issue #272): JSON -> safe drafts mapper with error output.
+export { mapImportedDataset, parseDatasetImport } from "./helpers/datasetImport";
+export type { DatasetImportIssue, DatasetImportResult } from "./types/datasetImport";
+
+// Scenario registry and loader (issue #216): load demo scenarios into draft state.
+export {
+  createScenarioRegistry,
+  demoScenarios,
+  loadScenarioIntoDraft,
+} from "./helpers/scenarioRegistry";
+export type { DemoScenario, ScenarioLoadMode, ScenarioRegistry } from "./types/scenario";
