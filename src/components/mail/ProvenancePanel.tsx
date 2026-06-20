@@ -119,7 +119,7 @@ export function ProvenancePanel({
   const [inspectItem, setInspectItem] = useState<ProvenanceItemDetails | null>(null);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
-  const provenance = useMemo(() => email ? getEmailProvenance(email) : null, [email]);
+  const provenance = useMemo(() => (email ? getEmailProvenance(email) : null), [email]);
   const completedCount = useMemo(
     () => provenance?.timeline.filter((item) => item.status === "complete").length ?? 0,
     [provenance],
