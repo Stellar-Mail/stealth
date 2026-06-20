@@ -12,9 +12,23 @@ const quoteSchema = z.object({
   sender: stellarAddressSchema,
 });
 
+function parseQuoteParams(request: Request) {
+  const url = new URL(request.url);
+  return quoteSchema.parse({
+    recipient: url.searchParams.get("recipient") ?? "",
+    sender: url.searchParams.get("sender") ?? "",
+  });
+}
+
 export const Route = createFileRoute("/api/v1/postage/quote")({
   server: {
     handlers: {
+      GET: ({ request }) =>
+        handleApiRequest(request, async () => {
+          const input = parseQuoteParams(request);
+          const quote = await quotePostage(getApiContext().repository, input);
+          return apiSuccess(request, quote);
+        }),
       POST: ({ request }) =>
         handleApiRequest(request, async () => {
           const input = await parseJsonBody(request, quoteSchema);

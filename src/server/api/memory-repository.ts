@@ -34,21 +34,25 @@ export class MemoryApiRepository implements ApiRepository {
   }
 
   async getPostage(messageId: string) {
-    return structuredClone(this.postage.get(messageId) ?? null);
+    const p = this.postage.get(messageId);
+    return p ? { ...p } : null;
   }
 
   async setPostage(postage: Postage) {
-    this.postage.set(postage.messageId, structuredClone(postage));
-    return structuredClone(postage);
+    const stored = { ...postage };
+    this.postage.set(postage.messageId, stored);
+    return { ...stored };
   }
 
   async getReceipt(messageId: string) {
-    return structuredClone(this.receipts.get(messageId) ?? null);
+    const r = this.receipts.get(messageId);
+    return r ? { ...r } : null;
   }
 
   async setReceipt(receipt: Receipt) {
-    this.receipts.set(receipt.messageId, structuredClone(receipt));
-    return structuredClone(receipt);
+    const stored = { ...receipt };
+    this.receipts.set(receipt.messageId, stored);
+    return { ...stored };
   }
 
   async getRelayQueueDepth(_relayId: string) {
@@ -70,19 +74,21 @@ export class MemoryApiRepository implements ApiRepository {
   async getRelayDeadLetterCount(_relayId: string) {
     return 0;
   }
+
   async getCounter(key: string) {
     return this.counters.get(key)?.length ?? 0;
   }
 
   async incrementCounter(key: string, windowSeconds: number) {
     const now = Date.now();
-    const windowMilliseconds = windowSeconds * 1000;
+    const cutoff = now - windowSeconds * 1000;
     const timestamps = this.counters.get(key) ?? [];
-    const filtered = [...timestamps, now].filter(
-      (timestamp) => now - timestamp <= windowMilliseconds,
-    );
-    this.counters.set(key, filtered);
-    return filtered.length;
+    let i = 0;
+    while (i < timestamps.length && timestamps[i] <= cutoff) i++;
+    const fresh = timestamps.slice(i);
+    fresh.push(now);
+    this.counters.set(key, fresh);
+    return fresh.length;
   }
 
   async getIdempotencyRecord(key: string) {
