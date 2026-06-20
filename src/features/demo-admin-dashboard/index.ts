@@ -66,8 +66,8 @@ export {
 } from "./constants/displayTokens";
 
 export { CampaignTagManager } from "./components/CampaignTagManager";
-export { CampaignListTable } from "./components/CampaignListTable";
-export type { CampaignListTableProps } from "./components/CampaignListTable";
+export { CampaignEditorPanel } from "./components/CampaignEditorPanel";
+export type { CampaignEditorPanelProps } from "./components/CampaignEditorPanel";
 export { MockPublishPanel } from "./components/MockPublishPanel";
 export type { MockPublishPanelProps } from "./components/MockPublishPanel";
 export { CampaignDiffPanel } from "./components/CampaignDiffPanel";
@@ -88,6 +88,21 @@ export type {
   CampaignListSortDirection,
   CampaignListSortKey,
 } from "./campaignListTable";
+export {
+  campaignEditorStateToSnapshot,
+  campaignToEditorState,
+  emptyCampaignEditorState,
+  getCampaignEditorEmptyState,
+  hasAnyCampaignEditorContent,
+  normalizeCampaignEditorTags,
+  validateCampaignEditorState,
+} from "./campaignEditor";
+export type {
+  CampaignEditorEmptyState,
+  CampaignEditorState,
+  CampaignEditorStatus,
+  CampaignEditorValidationResult,
+} from "./campaignEditor";
 export {
   canRetryMockPublish,
   canRollbackMockPublish,
