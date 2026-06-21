@@ -4,8 +4,8 @@ import { MailQuestion } from "lucide-react";
 import { ActionButton, EmptyState, Surface } from "@/features/design-system";
 import appCss from "../styles.css?url";
 
-import { MobileNavigation } from '@/components/mail/MobileNavigation';
-import { Topbar } from '@/components/mail/Topbar';
+import { MobileNavigation } from "@/components/mail/MobileNavigation";
+import { Topbar } from "@/components/mail/Topbar";
 
 function RootComponent() {
   return (
@@ -93,7 +93,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
   );
 }
 
-test('mobile folder drawer opens', async ({ page }) => {
+test("mobile folder drawer opens", async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 667 });
   // test drawer, back, compose flow
 });

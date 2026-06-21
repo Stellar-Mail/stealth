@@ -1,11 +1,10 @@
-
 import { useState, useRef, useEffect, useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 // src/components/mail/Topbar.tsx
-import { Menu, Search, Settings } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { MobileNavigation } from './MobileNavigation'; // ← Import new component
+import { Menu, Search, Settings } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { MobileNavigation } from "./MobileNavigation"; // ← Import new component
 
 import {
   Bell,
@@ -54,8 +53,7 @@ const quickActions: {
   { label: "Files", value: "9", action: "files", icon: Paperclip },
 ];
 
-export function Topbar(
-  {
+export function Topbar({
   onOpenPalette,
   onOpenSettings,
   onOpenProofInspector,
@@ -118,36 +116,36 @@ export function Topbar(
   }, [filterOpen, accountOpen, helpOpen, notificationsOpen]);
 
   export function Topbar() {
-  return (
-    <>
-      {/* Desktop Topbar - hidden on mobile */}
-      <header className="hidden md:flex h-14 border-b bg-background px-4 items-center justify-between">
-        <div className="flex items-center gap-4">
-          {/* Desktop logo / app name */}
-          <div className="font-semibold">Stealth</div>
+    return (
+      <>
+        {/* Desktop Topbar - hidden on mobile */}
+        <header className="hidden md:flex h-14 border-b bg-background px-4 items-center justify-between">
+          <div className="flex items-center gap-4">
+            {/* Desktop logo / app name */}
+            <div className="font-semibold">Stealth</div>
 
-          <div className="relative w-80">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Search mail..."
-              className="w-full bg-muted pl-10 py-2 rounded-md text-sm"
-            />
+            <div className="relative w-80">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Search mail..."
+                className="w-full bg-muted pl-10 py-2 rounded-md text-sm"
+              />
+            </div>
           </div>
-        </div>
 
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon">
-            <Settings className="h-5 w-5" />
-          </Button>
-          {/* Other desktop actions */}
-        </div>
-      </header>
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon">
+              <Settings className="h-5 w-5" />
+            </Button>
+            {/* Other desktop actions */}
+          </div>
+        </header>
 
-      {/* Mobile Navigation (already handled in MobileNavigation.tsx) */}
-      <MobileNavigation />
-    </>
-  );
+        {/* Mobile Navigation (already handled in MobileNavigation.tsx) */}
+        <MobileNavigation />
+      </>
+    );
   }
 
   return (

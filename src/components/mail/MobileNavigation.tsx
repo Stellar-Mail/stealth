@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { Menu, ArrowLeft, PenBox } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Sidebar } from './Sidebar';
-import { useMobileNavigation } from '@/hooks/useMobileNavigation';
+import { Menu, ArrowLeft, PenBox } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sidebar } from "./Sidebar";
+import { useMobileNavigation } from "@/hooks/useMobileNavigation";
 
 export function MobileNavigation() {
   const { isDrawerOpen, openDrawer, closeDrawer, handleBack, isMobile } = useMobileNavigation();
@@ -27,11 +27,7 @@ export function MobileNavigation() {
         </Sheet>
       </div>
 
-      <Button
-        onClick={() => navigate({ to: '/mail/compose' })}
-        size="sm"
-        className="gap-2"
-      >
+      <Button onClick={() => navigate({ to: "/mail/compose" })} size="sm" className="gap-2">
         <PenBox className="h-4 w-4" />
         Compose
       </Button>

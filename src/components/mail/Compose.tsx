@@ -1,9 +1,9 @@
 // src/components/mail/Compose.tsx
-'use client';
+"use client";
 
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { useMobileNavigation } from '@/hooks/useMobileNavigation';
-import { useComposeStore } from '@/stores/composeStore'; // Assume you have a draft store
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { useMobileNavigation } from "@/hooks/useMobileNavigation";
+import { useComposeStore } from "@/stores/composeStore"; // Assume you have a draft store
 import { motion, AnimatePresence } from "framer-motion";
 import {
   CalendarClock,
@@ -41,7 +41,7 @@ export function Compose({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
   const { draft, saveDraft, resetDraft } = useComposeStore();
 
   const handleClose = () => {
-    saveDraft();           // Preserve draft
+    saveDraft(); // Preserve draft
     resetDraft();
     onClose();
   };
@@ -51,10 +51,7 @@ export function Compose({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
       <SheetContent
         side={isMobile ? "bottom" : "right"}
         className={`
-          ${isMobile 
-            ? 'h-[95dvh] w-full rounded-t-2xl' 
-            : 'w-[620px]'
-          }
+          ${isMobile ? "h-[95dvh] w-full rounded-t-2xl" : "w-[620px]"}
         `}
       >
         <SheetHeader>
@@ -65,7 +62,9 @@ export function Compose({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
         {/* ... recipient resolution, subject, body, attachments ... */}
 
         <div className="flex justify-end gap-3 mt-6">
-          <Button variant="outline" onClick={handleClose}>Save Draft</Button>
+          <Button variant="outline" onClick={handleClose}>
+            Save Draft
+          </Button>
           <Button onClick={sendMessage}>Send</Button>
         </div>
       </SheetContent>

@@ -23,12 +23,12 @@ export function MobileMailCard({ email, onClick }: Props) {
       className="group flex w-full min-h-[52px] items-center gap-3 rounded-xl px-4 py-3 hover:bg-muted active:bg-muted/70 transition-colors cursor-pointer border border-transparent active:border-border"
     >
       {/* Avatar, subject, snippet, trust badges */}
-      <div className="flex-1 min-w-0"> {/* Prevent horizontal overflow */}
+      <div className="flex-1 min-w-0">
+        {" "}
+        {/* Prevent horizontal overflow */}
         <div className="flex justify-between">
           <p className="font-medium truncate">{email.subject}</p>
-          <span className="text-xs text-muted-foreground whitespace-nowrap ml-2">
-            {email.time}
-          </span>
+          <span className="text-xs text-muted-foreground whitespace-nowrap ml-2">{email.time}</span>
         </div>
         <p className="text-sm text-muted-foreground truncate">{email.snippet}</p>
       </div>

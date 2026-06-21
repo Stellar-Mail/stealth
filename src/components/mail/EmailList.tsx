@@ -24,11 +24,7 @@ export function EmailList({ onSelect }: { onSelect: (id: string) => void }) {
     <div className="flex h-full flex-col overflow-hidden">
       <div className="overflow-y-auto flex-1 px-3 py-2 space-y-1">
         {emails.map((email) => (
-          <MobileMailCard 
-            key={email.id} 
-            email={email} 
-            onClick={() => onSelect(email.id)} 
-          />
+          <MobileMailCard key={email.id} email={email} onClick={() => onSelect(email.id)} />
         ))}
       </div>
     </div>
