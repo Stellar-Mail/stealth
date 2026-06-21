@@ -24,3 +24,9 @@ export {
   successState,
   stateByName,
 } from "./fixtures/projects";
+
+// Core logic exports
+export { createProject, deleteProject, bindMail, unbindMail } from "./core";
+export type { CreateProjectParams, BindMailParams, CoreDeps } from "./core";
+
+export { LocalBinderService } from "./service";

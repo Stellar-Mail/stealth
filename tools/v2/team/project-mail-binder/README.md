@@ -88,6 +88,43 @@ Two views:
 - **Focus management**: visible focus rings (`ring-2` / `box-shadow`), auto-focus on detail panel mount
 - **Color contrast**: all text/background combinations exceed WCAG AA (4.5:1 for normal text, 3:1 for large text) — verified against the oklch token values
 
+## Core Logic Service
+
+The core feature logic (introduced in Issue #640) is implemented as a set of pure functions wrapped by a `LocalBinderService` for predictable async testing and UI integration.
+
+### Assumptions about Feature Scope
+
+Because the exact "Mail Binder" scope wasn't strictly defined, we assumed a minimalistic CRUD-style feature set:
+
+- Organizing mail items into named collections ("binders" or "projects").
+- Basic operations to **Create** and **Delete** projects.
+- Operations to **Bind** and **Unbind** mail items to projects.
+- Maintaining relationships between mails and projects without needing real external IDs.
+- Deterministic behavior: generating test IDs without relying on global unmockable `Math.random` or `Date.now()`.
+
+### API Surface & State Modeling
+
+The `LocalBinderService` models its results as a **discriminated union (`BinderState`)** instead of bare promises or throwing errors. This allows the UI to drive its state directly from the service output, natively supporting `empty`, `loading`, `error`, and `success` views without intermediate mapping.
+
+#### `BinderState` Shapes
+
+- `BinderStateEmpty`: `{ status: "empty" }`
+- `BinderStateLoading`: `{ status: "loading" }`
+- `BinderStateError`: `{ status: "error", message: string }`
+- `BinderStateSuccess`: `{ status: "success", projects: BinderProject[], mails: BinderMail[] }`
+
+#### Exported Service Methods (`LocalBinderService`)
+
+| Method                        | Inputs                                                         | Returns                | Possible Errors                          |
+| ----------------------------- | -------------------------------------------------------------- | ---------------------- | ---------------------------------------- |
+| `getState()`                  | None                                                           | `Promise<BinderState>` | None                                     |
+| `createProject(params)`       | `CreateProjectParams` (name, desc, color)                      | `Promise<BinderState>` | Invalid initial state, empty name        |
+| `deleteProject(id)`           | `ProjectId`                                                    | `Promise<BinderState>` | Invalid initial state, project not found |
+| `bindMail(projectId, params)` | `ProjectId`, `BindMailParams` (subject, sender, date, snippet) | `Promise<BinderState>` | Invalid initial state, project not found |
+| `unbindMail(mailId)`          | `MailId`                                                       | `Promise<BinderState>` | Invalid initial state, mail not found    |
+
+_Under the hood, all logic flows through predictable, pure functions found in `core.ts`. The service handles simulating network latency and state mutation isolation._
+
 ## Running Tests
 
 ```bash
@@ -96,6 +133,8 @@ npx vitest run tools/v2/team/project-mail-binder/
 
 Tests cover:
 
+- Core pure function business rules (create, delete, bind, unbind)
+- `LocalBinderService` async operations and error boundary
 - State builder shape and determinism
 - Type guard correctness
 - Fixture data validation (field shapes, referential integrity, date validity)

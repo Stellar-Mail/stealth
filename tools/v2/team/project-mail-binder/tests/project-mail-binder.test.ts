@@ -23,6 +23,8 @@ import {
 } from "../fixtures/projects";
 import { isEmptyState, isLoadingState, isErrorState, isSuccessState, A11Y } from "../types";
 import type { BinderState, BinderProject, BinderMail } from "../types";
+import { createProject, deleteProject, bindMail, unbindMail } from "../core";
+import { LocalBinderService } from "../service";
 
 // ---------------------------------------------------------------------------
 // State builder shape tests
@@ -298,5 +300,175 @@ describe("Empty state edge cases", () => {
         expect(mail.projectId).toBe("proj-onboarding");
       }
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Core pure functions
+// ---------------------------------------------------------------------------
+
+describe("Core pure functions", () => {
+  const deps = {
+    generateId: (prefix: string) => `${prefix}-test-id`,
+    now: () => "2026-06-20T12:00:00.000Z",
+  };
+
+  describe("createProject", () => {
+    it("creates a project successfully", () => {
+      const result = createProject(
+        emptyState(),
+        { name: "New Project", description: "Desc", color: "blue" },
+        deps,
+      );
+      expect(isSuccessState(result)).toBe(true);
+      if (isSuccessState(result)) {
+        expect(result.projects).toHaveLength(1);
+        expect(result.projects[0].name).toBe("New Project");
+        expect(result.projects[0].id).toBe("proj-test-id");
+        expect(result.mails).toHaveLength(0);
+      }
+    });
+
+    it("fails if name is empty", () => {
+      const result = createProject(
+        emptyState(),
+        { name: "   ", description: "", color: "blue" },
+        deps,
+      );
+      expect(isErrorState(result)).toBe(true);
+    });
+  });
+
+  describe("deleteProject", () => {
+    it("deletes an existing project and its bound mails", () => {
+      const state = successState();
+      const targetId = state.projects[0].id;
+      const initialMailCount = state.mails.filter((m) => m.projectId === targetId).length;
+      expect(initialMailCount).toBeGreaterThan(0);
+
+      const result = deleteProject(state, targetId);
+      expect(isSuccessState(result)).toBe(true);
+      if (isSuccessState(result)) {
+        expect(result.projects.some((p) => p.id === targetId)).toBe(false);
+        expect(result.mails.some((m) => m.projectId === targetId)).toBe(false);
+      }
+    });
+
+    it("fails if project is not found", () => {
+      const result = deleteProject(successState(), "non-existent");
+      expect(isErrorState(result)).toBe(true);
+    });
+  });
+
+  describe("bindMail", () => {
+    it("binds a mail to a project and increments mailCount", () => {
+      const state = successState();
+      const targetId = state.projects[0].id;
+      const initialCount = state.projects[0].mailCount;
+
+      const result = bindMail(
+        state,
+        targetId,
+        { subject: "Subj", sender: "Sender", date: "2026-06-20T12:00:00.000Z", snippet: "Snippet" },
+        deps,
+      );
+
+      expect(isSuccessState(result)).toBe(true);
+      if (isSuccessState(result)) {
+        const updatedProject = result.projects.find((p) => p.id === targetId)!;
+        expect(updatedProject.mailCount).toBe(initialCount + 1);
+        const newMail = result.mails.find((m) => m.id === "mail-test-id");
+        expect(newMail).toBeDefined();
+        expect(newMail?.projectId).toBe(targetId);
+      }
+    });
+
+    it("fails if project is not found", () => {
+      const result = bindMail(
+        successState(),
+        "non-existent",
+        { subject: "", sender: "", date: "", snippet: "" },
+        deps,
+      );
+      expect(isErrorState(result)).toBe(true);
+    });
+  });
+
+  describe("unbindMail", () => {
+    it("unbinds a mail and decrements mailCount", () => {
+      const state = successState();
+      const mailToUnbind = state.mails[0];
+      const targetId = mailToUnbind.projectId;
+      const initialCount = state.projects.find((p) => p.id === targetId)!.mailCount;
+
+      const result = unbindMail(state, mailToUnbind.id, deps);
+      expect(isSuccessState(result)).toBe(true);
+      if (isSuccessState(result)) {
+        const updatedProject = result.projects.find((p) => p.id === targetId)!;
+        expect(updatedProject.mailCount).toBe(initialCount - 1);
+        expect(result.mails.some((m) => m.id === mailToUnbind.id)).toBe(false);
+      }
+    });
+
+    it("fails if mail is not found", () => {
+      const result = unbindMail(successState(), "non-existent", deps);
+      expect(isErrorState(result)).toBe(true);
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// LocalBinderService
+// ---------------------------------------------------------------------------
+
+describe("LocalBinderService", () => {
+  it("initializes with default seed data if no state provided", () => {
+    const service = new LocalBinderService();
+    // Reaches inside slightly to verify, but getState is async so we await it
+    return service.getState().then((state) => {
+      expect(isSuccessState(state)).toBe(true);
+      if (isSuccessState(state)) {
+        expect(state.projects.length).toBeGreaterThan(0);
+      }
+    });
+  });
+
+  it("exposes async operations that update internal state", async () => {
+    const service = new LocalBinderService(emptyState());
+
+    // Create
+    const createResult = await service.createProject({
+      name: "Service Project",
+      description: "Desc",
+      color: "amber",
+    });
+    expect(isSuccessState(createResult)).toBe(true);
+    if (!isSuccessState(createResult)) return; // TS narrowing
+
+    const projectId = createResult.projects[0].id;
+
+    // Bind
+    const bindResult = await service.bindMail(projectId, {
+      subject: "Hello",
+      sender: "test@example.com",
+      date: "2026-06-20",
+      snippet: "Test snippet",
+    });
+    expect(isSuccessState(bindResult)).toBe(true);
+    if (!isSuccessState(bindResult)) return;
+
+    const mailId = bindResult.mails[0].id;
+    expect(bindResult.projects[0].mailCount).toBe(1);
+
+    // Unbind
+    const unbindResult = await service.unbindMail(mailId);
+    expect(isSuccessState(unbindResult)).toBe(true);
+    if (!isSuccessState(unbindResult)) return;
+    expect(unbindResult.projects[0].mailCount).toBe(0);
+
+    // Delete
+    const deleteResult = await service.deleteProject(projectId);
+    // Becomes empty state when last project is removed
+    expect(isEmptyState(deleteResult)).toBe(true);
   });
 });
