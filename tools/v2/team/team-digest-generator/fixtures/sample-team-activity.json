@@ -1,0 +1,146 @@
+{
+  "tool": "team-digest-generator",
+  "version": 1,
+  "date": "2026-06-17",
+  "generatedAt": "2026-06-18T08:00:00Z",
+  "team": "Engineering",
+  "activity": [
+    {
+      "id": "email-alpha-001",
+      "threadId": "thread-deploy",
+      "from": "alice@team.test",
+      "to": ["eng-team@team.test"],
+      "subject": "Deploy pipeline failed on staging",
+      "receivedAt": "2026-06-17T09:15:00Z",
+      "body": "The staging deploy failed at the migration step. Needs someone to investigate.",
+      "signals": ["failed", "needs investigation", "blocked"]
+    },
+    {
+      "id": "email-beta-002",
+      "threadId": "thread-deploy",
+      "from": "bob@team.test",
+      "to": ["eng-team@team.test"],
+      "subject": "Re: Deploy pipeline failed on staging",
+      "receivedAt": "2026-06-17T10:30:00Z",
+      "body": "I found the issue. The migration script has a missing index. Fix is ready for review.",
+      "signals": ["found issue", "fix ready", "needs review"]
+    },
+    {
+      "id": "email-gamma-003",
+      "threadId": "thread-code-review",
+      "from": "carol@team.test",
+      "to": ["eng-team@team.test"],
+      "subject": "PR #342: API rate limiting ready for review",
+      "receivedAt": "2026-06-17T11:00:00Z",
+      "body": "The rate limiting feature is complete. Please review the PR when you get a chance.",
+      "signals": ["PR ready", "awaiting feedback", "rate limiting feature"]
+    },
+    {
+      "id": "email-delta-004",
+      "threadId": "thread-bug-fix",
+      "from": "alice@team.test",
+      "to": ["bob@team.test"],
+      "subject": "Fixed the login redirect bug",
+      "receivedAt": "2026-06-17T14:20:00Z",
+      "body": "The login redirect after OAuth is now fixed and deployed to production.",
+      "signals": ["fixed", "deployed", "completed"]
+    },
+    {
+      "id": "email-epsilon-005",
+      "threadId": "thread-sprint-planning",
+      "from": "dave@team.test",
+      "to": ["eng-team@team.test"],
+      "subject": "Sprint planning notes — next sprint priorities",
+      "receivedAt": "2026-06-17T16:00:00Z",
+      "body": "Next sprint: finish API docs, review database migration, plan load testing.",
+      "signals": ["sprint planning", "priorities", "roadmap"]
+    },
+    {
+      "id": "email-zeta-006",
+      "threadId": "thread-security-audit",
+      "from": "security@team.test",
+      "to": ["eng-team@team.test"],
+      "subject": "Security audit findings — action required",
+      "receivedAt": "2026-06-17T17:30:00Z",
+      "body": "Three medium-severity findings need triage before end of sprint.",
+      "signals": ["security", "findings", "action required", "triage"]
+    }
+  ],
+  "expectedDigest": {
+    "date": "2026-06-17",
+    "team": "Engineering",
+    "items": [
+      {
+        "id": "digest-alpha-001",
+        "type": "pending_item",
+        "title": "Investigate staging deploy pipeline failure",
+        "sourceEmailId": "email-alpha-001",
+        "teamMember": "unassigned",
+        "priority": "high",
+        "timestamp": "2026-06-17T09:15:00Z",
+        "requiresAttention": true
+      },
+      {
+        "id": "digest-beta-002",
+        "type": "pending_item",
+        "title": "Review deploy pipeline fix by Bob",
+        "sourceEmailId": "email-beta-002",
+        "teamMember": "Bob",
+        "priority": "medium",
+        "timestamp": "2026-06-17T10:30:00Z",
+        "requiresAttention": true
+      },
+      {
+        "id": "digest-gamma-003",
+        "type": "new_message",
+        "title": "PR #342: API rate limiting ready for review",
+        "sourceEmailId": "email-gamma-003",
+        "teamMember": "Carol",
+        "priority": "medium",
+        "timestamp": "2026-06-17T11:00:00Z",
+        "requiresAttention": false
+      },
+      {
+        "id": "digest-delta-004",
+        "type": "completed_item",
+        "title": "Fixed the login redirect bug",
+        "sourceEmailId": "email-delta-004",
+        "teamMember": "Alice",
+        "priority": "low",
+        "timestamp": "2026-06-17T14:20:00Z",
+        "requiresAttention": false
+      },
+      {
+        "id": "digest-epsilon-005",
+        "type": "team_summary",
+        "title": "Sprint planning — next sprint priorities documented",
+        "sourceEmailId": "email-epsilon-005",
+        "teamMember": "Dave",
+        "priority": "low",
+        "timestamp": "2026-06-17T16:00:00Z",
+        "requiresAttention": false
+      },
+      {
+        "id": "digest-zeta-006",
+        "type": "pending_item",
+        "title": "Security audit findings — action required",
+        "sourceEmailId": "email-zeta-006",
+        "teamMember": "unassigned",
+        "priority": "high",
+        "timestamp": "2026-06-17T17:30:00Z",
+        "requiresAttention": true
+      }
+    ],
+    "summary": {
+      "totalItems": 6,
+      "requiresAttention": 3,
+      "teamMembers": ["Alice", "Bob", "Carol", "Dave", "unassigned"]
+    }
+  },
+  "reviewNotes": [
+    "The fixture uses team.test addresses to avoid real customer data.",
+    "Timestamps are in UTC and should be localized in future UI work.",
+    "Items with requiresAttention: true represent actionable items that need human intervention.",
+    "The unassigned team member represents items not yet claimed by a specific person."
+  ]
+}

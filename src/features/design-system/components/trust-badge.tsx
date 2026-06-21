@@ -1,3 +1,4 @@
+import { memo } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
   BadgeCheck,
@@ -93,7 +94,7 @@ export interface TrustBadgeProps {
  * A single, consistent sender-trust pill. Presentational only so it can be
  * reused in list rows, the reader header, compose chips, and sender cards.
  */
-export function TrustBadge({
+export const TrustBadge = memo(function TrustBadge({
   state,
   showLabel = true,
   showTooltip = true,
@@ -127,4 +128,4 @@ export function TrustBadge({
       </Tooltip>
     </TooltipProvider>
   );
-}
+});

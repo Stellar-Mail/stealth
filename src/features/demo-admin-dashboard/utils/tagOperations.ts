@@ -1,5 +1,6 @@
 import type { CampaignTag, TagColorKey } from "../types/campaignTag";
 import type { CampaignSnapshot } from "../types/campaignSnapshot";
+import { deterministicId } from "./normalizeDemoData";
 
 type CreateResult = { ok: true; tags: CampaignTag[] } | { ok: false; error: string };
 
@@ -11,7 +12,7 @@ export function createTag(tags: CampaignTag[], name: string, color: TagColorKey)
   const duplicate = tags.some((t) => t.name.toLowerCase() === normalized);
   if (duplicate) return { ok: false, error: `A tag named "${name}" already exists.` };
   const newTag: CampaignTag = {
-    id: `tag-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    id: deterministicId("tag", name),
     name: name.trim(),
     color,
   };
