@@ -102,7 +102,7 @@ export function flagCampaign(campaign: Campaign, others: Campaign[] = []): Issue
 
   // Repetitive / duplicate sentences
   const sentences = (campaign.body || "")
-    .split(/[\.\!\?]+/)
+    .split(/[.!?]+/)
     .map((s) => normalize(s))
     .filter(Boolean);
   const counts = sentences.reduce<Record<string, number>>((acc, s) => {
