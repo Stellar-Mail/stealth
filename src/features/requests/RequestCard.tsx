@@ -1,18 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  BadgeCheck,
-  Ban,
-  Check,
-  Eye,
-  RefreshCcw,
-  RefreshCw,
-  RotateCcw,
-  ShieldAlert,
-  ShieldCheck,
-  Undo2,
-  X,
-} from "lucide-react";
+import { BadgeCheck, Check, Eye, RefreshCw, RotateCcw, ShieldAlert, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Email } from "@/components/mail/data";
 import { motionPresets } from "@/lib/motion-presets";
@@ -36,7 +24,7 @@ export function RequestCard({
   onUndoAction,
   onFinalizeAction,
   onInspect,
-}: RequestCardProps) {
+}: Readonly<RequestCardProps>) {
   const [timeLeft, setTimeLeft] = useState(100);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const startTimeRef = useRef<number>(0);
@@ -103,10 +91,10 @@ export function RequestCard({
       {...motionPresets.entrance.slideUp()}
       exit={motionPresets.remove.collapse()}
       className={cn(
-        "relative overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] p-4 transition-all duration-300",
+        "relative overflow-hidden rounded-xl border border-white/10 bg-white/2 p-4 transition-all duration-300",
         "focus-within:border-white/20 focus-within:ring-1 focus-within:ring-white/15",
-        status.startsWith("success-") && "border-emerald-500/20 bg-emerald-500/[0.02]",
-        status === "failure" && "border-rose-500/20 bg-rose-500/[0.02]",
+        status.startsWith("success-") && "border-emerald-500/20 bg-emerald-500/2",
+        status === "failure" && "border-rose-500/20 bg-rose-500/2",
         status.startsWith("pending-") && "border-white/5 opacity-80",
       )}
     >
@@ -168,7 +156,7 @@ export function RequestCard({
             </div>
 
             {/* Message Preview */}
-            <div className="rounded-lg bg-black/15 p-2.5 text-xs border border-white/[0.04] transition hover:bg-black/25">
+            <div className="rounded-lg bg-black/15 p-2.5 text-xs border border-white/4 transition hover:bg-black/25">
               <div className="font-semibold text-foreground/80 truncate">{email.subject}</div>
               <p className="text-muted-foreground mt-1 line-clamp-2 leading-relaxed">
                 {email.preview}
@@ -176,7 +164,7 @@ export function RequestCard({
             </div>
 
             {/* Action CTAs */}
-            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/[0.06] pt-3 mt-1">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/6 pt-3 mt-1">
               <button
                 onClick={() => onInspect(email)}
                 className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition hover:bg-white/5 hover:text-foreground focus:outline-none focus:ring-2 focus:ring-white/10"
@@ -218,7 +206,7 @@ export function RequestCard({
             exit={{ opacity: 0 }}
             className="flex h-[140px] flex-col items-center justify-center gap-2.5"
           >
-            <RefreshCw className="h-5 w-5 animate-spin text-muted-foreground" />
+            <RefreshCw className="h-5 w-5 motion-safe:animate-spin text-muted-foreground" />
             <p className="text-xs font-medium text-muted-foreground">
               {status === "pending-approve" && "Approving sender and settling postage..."}
               {status === "pending-block" && "Blocking sender and registering rule..."}
@@ -254,7 +242,7 @@ export function RequestCard({
               </div>
             </div>
 
-            <div className="flex items-center justify-between gap-2 border-t border-white/[0.06] pt-3 pb-1">
+            <div className="flex items-center justify-between gap-2 border-t border-white/6 pt-3 pb-1">
               <span className="text-[10px] text-muted-foreground italic">
                 Finalizing in {Math.ceil((timeLeft / 100) * 3)}s...
               </span>
@@ -268,7 +256,7 @@ export function RequestCard({
             </div>
 
             {/* Shrinking progress bar */}
-            <div className="absolute -bottom-4 -left-4 -right-4 h-1 bg-white/[0.04]">
+            <div className="absolute -bottom-4 -left-4 -right-4 h-1 bg-white/4">
               <motion.div
                 initial={{ width: "100%" }}
                 animate={{ width: `${timeLeft}%` }}
@@ -300,7 +288,7 @@ export function RequestCard({
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 border-t border-white/[0.06] pt-3">
+            <div className="flex justify-end gap-2 border-t border-white/6 pt-3">
               <button
                 onClick={() => onUndoAction(email.id)}
                 className="rounded-lg border border-white/10 px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition hover:bg-white/5 hover:text-foreground focus:outline-none focus:ring-2 focus:ring-white/10"
@@ -334,7 +322,7 @@ export function RequestCard({
             exit={{ opacity: 0 }}
             className="flex h-[140px] flex-col items-center justify-center gap-2.5"
           >
-            <RefreshCw className="h-5 w-5 animate-spin text-amber-400" />
+            <RefreshCw className="h-5 w-5 motion-safe:animate-spin text-amber-400" />
             <p className="text-xs font-medium text-amber-400">Reverting policy changes...</p>
           </motion.div>
         )}
