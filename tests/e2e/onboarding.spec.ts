@@ -6,7 +6,15 @@ const DEMO_WALLET = `G${"D".repeat(55)}`;
 test.describe("Onboarding flow", () => {
   test.beforeEach(async ({ page }) => {
     // Install a deterministic wallet stub so Freighter calls succeed
+    // Also clear localStorage to ensure fresh onboarding state
     await page.addInitScript((walletAddress) => {
+      // Clear onboarding state from localStorage
+      try {
+        localStorage.removeItem("stealth-onboarding-v1");
+      } catch {
+        // localStorage may not be available in some contexts
+      }
+
       Object.defineProperty(window, "__freighterApi", {
         configurable: true,
         value: {
@@ -16,9 +24,8 @@ test.describe("Onboarding flow", () => {
       });
     }, DEMO_WALLET);
 
-    // Clear localStorage to ensure fresh onboarding state
+    // Clear cookies to ensure fresh state
     await page.context().clearCookies();
-    await page.evaluate(() => localStorage.clear());
 
     // Navigate to the app home
     await page.goto("/");
