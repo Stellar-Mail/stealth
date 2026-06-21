@@ -71,9 +71,6 @@
       "distinctTeamMembers": 6
     }
   },
-  "reviewNotes": "Fixtures aim to cover new_message, pending_item, completed_item, team_summary and attention flags. 'alice' action and 'erin' urgent flagged as attention."
-}
-{
   "tool": "team-digest-generator",
   "version": 1,
   "date": "2026-06-17",
@@ -213,6 +210,7 @@
     }
   },
   "reviewNotes": [
+    "Fixtures aim to cover new_message, pending_item, completed_item, team_summary and attention flags. 'alice' action and 'erin' urgent flagged as attention.",
     "The fixture uses team.test addresses to avoid real customer data.",
     "Timestamps are in UTC and should be localized in future UI work.",
     "Items with requiresAttention: true represent actionable items that need human intervention.",
