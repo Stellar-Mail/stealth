@@ -33,12 +33,23 @@ The test validates synthetic sample messages and expected deadline states.
 ## Tool Workflow
 
 1. Accept message-like input through local `DeadlineMessage` objects.
-2. Detect ISO dates, US dates, relative phrases such as today/tomorrow/next
+2. Normalize and cap source messages before date or time matching starts.
+3. Detect ISO dates, US dates, relative phrases such as today/tomorrow/next
    week, and simple 24-hour times.
-3. Classify each result as `detected`, `needs-review`, `missed`, or `ignored`.
-4. Rank urgent results first while preserving ambiguous rows for manual review.
-5. Offer UI actions for review or reminder creation without creating reminders
+4. Classify each result as `detected`, `needs-review`, `missed`, or `ignored`.
+5. Rank urgent results first while preserving ambiguous rows for manual review.
+6. Offer UI actions for review or reminder creation without creating reminders
    automatically.
+
+## Safety and Performance Guard Rails
+
+`services/input-guards.ts` is the folder-local input boundary. It caps message
+batches, cleans text fields, normalizes malformed message objects, defaults
+unknown source types to `email`, and prevents large bodies from reaching the
+date-matching step unchanged.
+
+`docs/SAFETY_PERFORMANCE.md` documents unsafe input categories, limits, and
+review checks for the guard layer.
 
 ## UI Surface
 
@@ -71,6 +82,8 @@ No real sender, mailbox, or personal data is used.
 - `specs.md` defines scope, status rules, and the local detection contract.
 - `docs/ACCESSIBILITY.md` documents keyboard, focus, and screen-reader behavior.
 - `docs/VISUAL_STYLE.md` documents the local visual treatment.
+- `docs/SAFETY_PERFORMANCE.md` documents the input guard limits and review
+  checks.
 - `docs/TEST_PLAN.md` lists automated and manual review checks.
 - `tests/deadline-fixtures.test.mjs` validates the fixture contract.
 
