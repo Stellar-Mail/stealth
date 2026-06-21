@@ -10,7 +10,9 @@ All work for this tool must stay inside:
 .\tools\v1\individual\email-tone-rewriter\
 `
 
-Do not wire this tool into the main app, routing, inbox architecture, wallet core, Stellar core, database schema, or existing design system unless a future integration issue explicitly allows it.
+Do not wire this tool into the main app, routing, inbox architecture, wallet
+core, Stellar core, database schema, or existing design system unless a future
+integration issue explicitly allows it.
 
 ## Contributor Setup
 
@@ -30,6 +32,23 @@ The tool helps an individual user rewrite a draft email into a selected tone,
 such as concise, friendly, formal, or apologetic. A future implementation should
 accept a draft, requested tone, and optional constraints, then return a
 reviewable rewrite without sending or saving anything automatically.
+
+## Safety and Performance Guard Rails
+
+This folder now includes a local guard helper for future tone rewrite work:
+
+- `services/tone-guards.mjs` normalizes draft input, validates supported tones,
+  caps large fields, keeps only attachment metadata, and returns deterministic
+  success or error results.
+- `tests/tone-guards.test.mjs` covers valid requests, malformed drafts,
+  unsupported tones, large input truncation, attachment metadata limits, and
+  history caps.
+- `docs/security-performance-notes.md` documents unsafe inputs, assumptions,
+  and performance limits.
+
+Suggested local check:
+
+`node --test tools/v1/individual/email-tone-rewriter/tests/tone-guards.test.mjs`
 
 ## Known Limitations
 
