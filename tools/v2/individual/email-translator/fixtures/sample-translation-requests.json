@@ -1,0 +1,60 @@
+{
+  "tool": "email-translator",
+  "sourceRequests": [
+    {
+      "id": "safe-fr-en",
+      "sourceLanguage": "fr",
+      "targetLanguage": "en",
+      "subject": "Rendez-vous demain",
+      "body": "Bonjour, pouvez-vous confirmer le rendez-vous de demain matin ?",
+      "recipients": ["buyer@example.test"],
+      "attachments": [],
+      "expectedOk": true,
+      "expectedMode": "inline"
+    },
+    {
+      "id": "html-tracking-warning",
+      "sourceLanguage": "en",
+      "targetLanguage": "es",
+      "subject": "Welcome",
+      "body": "<p>Welcome to the project.</p><img src=\"https://tracker.example.test/pixel\" width=\"1\" height=\"1\">",
+      "recipients": ["member@example.test"],
+      "attachments": [{ "name": "overview.pdf", "bytes": 42000 }],
+      "expectedOk": true,
+      "expectedWarning": "content:tracking-pixel"
+    },
+    {
+      "id": "hostile-active-markup",
+      "sourceLanguage": "en",
+      "targetLanguage": "de",
+      "subject": "Security update",
+      "body": "<script>alert('x')</script>Please translate this message.",
+      "recipients": ["reviewer@example.test"],
+      "attachments": [],
+      "expectedOk": false,
+      "expectedError": "content:active-markup"
+    },
+    {
+      "id": "secret-looking-body",
+      "sourceLanguage": "en",
+      "targetLanguage": "pt",
+      "subject": "Credentials",
+      "body": "The password is in the private key backup. Do not translate until reviewed.",
+      "recipients": ["security@example.test"],
+      "attachments": [],
+      "expectedOk": false,
+      "expectedError": "content:possible-secret"
+    },
+    {
+      "id": "unsupported-language",
+      "sourceLanguage": "en",
+      "targetLanguage": "klingon",
+      "subject": "Unsupported target",
+      "body": "This should be rejected before work starts.",
+      "recipients": ["qa@example.test"],
+      "attachments": [],
+      "expectedOk": false,
+      "expectedError": "targetLanguage:unsupported"
+    }
+  ]
+}
