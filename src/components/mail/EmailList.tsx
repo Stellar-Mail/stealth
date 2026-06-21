@@ -12,7 +12,6 @@ import {
   type MailLocation,
 } from "./data";
 import { cn } from "@/lib/utils";
-import { ConvertSenderButton } from "@/features/sender-conversion";
 import { MobileMailCard } from "./MobileMailCard";
 import { EmailTrustBadges } from "./EmailTrustBadges";
 import { BulkActionBar } from "./BulkActionBar";
@@ -30,7 +29,7 @@ export function EmailList({
   onBulkAction,
   bulkProgress,
   bulkFailures,
-  onConvertSender,
+  onOpenSenderIdentity,
   folder,
   filters,
   customFolder,
@@ -50,7 +49,7 @@ export function EmailList({
   onBulkAction: (request: BulkActionRequest) => void;
   bulkProgress: BulkProgressState | null;
   bulkFailures: BulkFailure[];
-  onConvertSender: (email: Email) => void;
+  onOpenSenderIdentity: (email: Email) => void;
   folder: MailFolder;
   filters: MailFilters;
   customFolder?: string | null;
@@ -314,6 +313,7 @@ export function EmailList({
                       email={e}
                       selected={active}
                       onSelect={() => onSelect(e.id)}
+                      onOpenSenderIdentity={() => onOpenSenderIdentity(e)}
                       onArchive={() => onArchive?.(e)}
                       onStar={() => onStar?.(e)}
                       onSnooze={() => onSnooze?.(e)}
@@ -322,11 +322,13 @@ export function EmailList({
                 </div>
                 {e.folder === "requests" && (
                   <div className="mt-1 flex justify-end px-2">
-                    <ConvertSenderButton
-                      variant="subtle"
-                      label="Review sender"
-                      onClick={() => onConvertSender(e)}
-                    />
+                    <button
+                      type="button"
+                      onClick={() => onOpenSenderIdentity(e)}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.05] px-2.5 py-1.5 text-xs font-medium text-foreground/90 transition hover:bg-white/[0.08]"
+                    >
+                      Review sender
+                    </button>
                   </div>
                 )}
               </motion.li>
@@ -439,11 +441,13 @@ export function EmailList({
               </div>
               {e.folder === "requests" && (
                 <div className="mt-1 flex justify-end px-2">
-                  <ConvertSenderButton
-                    variant="subtle"
-                    label="Review sender"
-                    onClick={() => onConvertSender(e)}
-                  />
+                  <button
+                    type="button"
+                    onClick={() => onOpenSenderIdentity(e)}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.05] px-2.5 py-1.5 text-xs font-medium text-foreground/90 transition hover:bg-white/[0.08]"
+                  >
+                    Review sender
+                  </button>
                 </div>
               )}
             </motion.li>

@@ -178,11 +178,12 @@ export function RequestCard({
             {/* Action CTAs */}
             <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/[0.06] pt-3 mt-1">
               <button
+                type="button"
                 onClick={() => onInspect(email)}
                 className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition hover:bg-white/5 hover:text-foreground focus:outline-none focus:ring-2 focus:ring-white/10"
               >
                 <Eye className="h-3.5 w-3.5" />
-                Inspect Context
+                Open profile
               </button>
 
               <div className="flex items-center gap-2">

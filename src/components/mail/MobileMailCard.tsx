@@ -10,6 +10,7 @@ type MobileMailCardProps = {
   email: Email;
   selected: boolean;
   onSelect: () => void;
+  onOpenSenderIdentity: () => void;
   onArchive?: () => void;
   onStar?: () => void;
   onSnooze?: () => void;
@@ -19,6 +20,7 @@ export function MobileMailCard({
   email,
   selected,
   onSelect,
+  onOpenSenderIdentity,
   onArchive,
   onStar,
   onSnooze,
@@ -52,15 +54,31 @@ export function MobileMailCard({
       )}
 
       {/* Main card content */}
-      <button
+      <div
+        role="button"
+        tabIndex={0}
         onClick={onSelect}
-        className="relative w-full px-3 py-2.5 text-left"
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            onSelect();
+          }
+        }}
+        className="relative w-full px-3 py-2.5 text-left outline-none"
         style={{ minWidth: 0 }}
       >
         {/* Header row: avatar, sender, time */}
         <div className="flex items-start gap-2.5">
           {/* Avatar with unread indicator */}
-          <div className="relative shrink-0">
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              onOpenSenderIdentity();
+            }}
+            className="relative shrink-0"
+            aria-label={`Open sender profile for ${email.from}`}
+          >
             <div className="h-9 w-9 overflow-hidden rounded-full ring-1 ring-white/15 shadow-[0_8px_18px_-12px_rgba(0,0,0,0.9)]">
               <img
                 src={`https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(email.from)}&backgroundColor=1a1a1d`}
@@ -72,20 +90,25 @@ export function MobileMailCard({
             {email.unread && (
               <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-[oklch(0.9_0.005_270)] ring-2 ring-[oklch(0.18_0.005_270)]" />
             )}
-          </div>
+          </button>
 
           {/* Sender and time */}
           <div className="min-w-0 flex-1">
             <div className="flex items-start justify-between gap-2">
               <div className="flex min-w-0 items-center gap-1.5">
-                <span
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onOpenSenderIdentity();
+                  }}
                   className={cn(
-                    "truncate text-[13px] font-semibold leading-tight text-foreground/88",
+                    "truncate text-left text-[13px] font-semibold leading-tight text-foreground/88 transition hover:text-foreground",
                     email.unread && "text-foreground/94",
                   )}
                 >
                   {email.from}
-                </span>
+                </button>
                 <EmailTrustBadges
                   email={email}
                   max={1}
@@ -168,7 +191,7 @@ export function MobileMailCard({
             </span>
           </div>
         )}
-      </button>
+      </div>
 
       {/* Touch-friendly action bar */}
       <div className="flex border-t border-white/8 bg-white/[0.02]">

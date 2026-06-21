@@ -27,6 +27,7 @@ export function RightPanel({
   onAction,
   onDraftReply,
   onConvertSender,
+  onOpenSenderIdentity,
   onSnooze,
   calendarEvents,
   calendars,
@@ -39,6 +40,7 @@ export function RightPanel({
   onAction: (action: ContextAction, email: Email) => void;
   onDraftReply: (email: Email, prompt: string) => void;
   onConvertSender: (email: Email) => void;
+  onOpenSenderIdentity?: (email: Email) => void;
   onSnooze: (email: Email) => void;
   calendarEvents: CalendarEvent[];
   calendars: CalendarDefinition[];
@@ -205,16 +207,19 @@ export function RightPanel({
         <Card>
           <SectionHeader icon={User} title="Contact" />
           <div className="mt-3 flex items-center gap-3">
-            <div
-              className="grid h-10 w-10 place-items-center rounded-full text-xs font-medium text-white/90"
+            <button
+              type="button"
+              onClick={() => onOpenSenderIdentity?.(email)}
+              className="grid h-10 w-10 place-items-center rounded-full text-xs font-medium text-white/90 transition hover:scale-[1.02] hover:ring-1 hover:ring-white/15"
               style={{ background: `linear-gradient(135deg, ${email.avatarColor}, #1a1a1d)` }}
+              aria-label={`Open sender profile for ${email.from}`}
             >
               {email.from
                 .split(" ")
                 .map((name) => name[0])
                 .slice(0, 2)
                 .join("")}
-            </div>
+            </button>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5">
                 <span className="truncate text-sm text-foreground">{email.from}</span>

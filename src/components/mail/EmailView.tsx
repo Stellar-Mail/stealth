@@ -5,6 +5,7 @@ import {
   BadgeCheck,
   CalendarClock,
   CheckCheck,
+  CircleAlert,
   Coins,
   Braces,
   Clock,
@@ -51,6 +52,7 @@ export type EmailViewActions = {
   onTrash?: (email: Email) => void;
   onToggleStar?: (email: Email) => void;
   onConvertSender?: (email: Email) => void;
+  onOpenSenderIdentity?: (email: Email) => void;
   onSnooze?: (email: Email) => void;
   onUnsnooze?: (email: Email) => void;
   onSendReadReceipt?: (email: Email) => void;
@@ -110,7 +112,11 @@ export function EmailView({
           >
             <div className="flex flex-wrap items-center gap-2 border-b border-white/5 px-4 py-2.5">
               <div className="min-w-[220px] flex-1">
-                <SenderIdentity email={email} compact />
+                <SenderIdentity
+                  email={email}
+                  compact
+                  onOpen={() => actions.onOpenSenderIdentity?.(email)}
+                />
               </div>
 
               <div className="order-3 flex w-full min-w-0 items-center justify-center gap-1 md:order-none md:w-auto md:flex-none">
@@ -290,6 +296,7 @@ export function EmailView({
                   <SenderRequest
                     sender={email.from}
                     address={email.email}
+                    onOpenIdentity={() => actions.onOpenSenderIdentity?.(email)}
                     onManage={() => actions.onConvertSender?.(email)}
                   />
                 ) : null}
@@ -686,10 +693,12 @@ function ReceiptStatus({
 function SenderRequest({
   sender,
   address,
+  onOpenIdentity,
   onManage,
 }: {
   sender: string;
   address: string;
+  onOpenIdentity: () => void;
   onManage: () => void;
 }) {
   return (
@@ -701,6 +710,14 @@ function SenderRequest({
       </p>
       <div className="mt-3 flex gap-2">
         <button
+          type="button"
+          onClick={onOpenIdentity}
+          className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-semibold text-foreground transition hover:bg-white/[0.08]"
+        >
+          <CircleAlert className="h-3.5 w-3.5" /> Open profile
+        </button>
+        <button
+          type="button"
           onClick={onManage}
           className="inline-flex items-center gap-2 rounded-lg bg-foreground px-3 py-2 text-xs font-semibold text-background transition hover:opacity-90"
         >
@@ -736,13 +753,52 @@ function getAttachmentIcon(type: string): { icon: LucideIcon; className: string 
   return { icon: File, className: "text-slate-200" };
 }
 
-function SenderIdentity({ email, compact = false }: { email: Email; compact?: boolean }) {
+function SenderIdentity({
+  email,
+  compact = false,
+  onOpen,
+}: {
+  email: Email;
+  compact?: boolean;
+  onOpen?: () => void;
+}) {
+  const className = `glass-tile flex w-full items-center gap-2.5 rounded-lg text-left ${
+    compact ? "max-w-[280px] p-1.5" : "max-w-[280px] p-2.5"
+  } ${onOpen ? "transition hover:bg-white/[0.06]" : ""}`;
+
+  if (onOpen) {
+    return (
+      <button type="button" onClick={onOpen} className={className}>
+        <div
+          className={`flex shrink-0 items-center justify-center rounded-md text-xs font-semibold text-white/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] ${
+            compact ? "h-8 w-8" : "h-10 w-10"
+          }`}
+          style={{ background: `linear-gradient(135deg, ${email.avatarColor}, #1a1a1d)` }}
+        >
+          {email.from
+            .split(" ")
+            .map((name) => name[0])
+            .slice(0, 2)
+            .join("")}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="mail-reader-meta flex items-center gap-1.5">
+            <span className="truncate text-[12px] font-semibold leading-4 text-foreground/92">
+              {email.from}
+            </span>
+            <SenderBadge policy={email.senderPolicy} />
+            <EmailTrustBadges email={email} max={3} size="sm" className="ml-1" />
+          </div>
+          <div className="mail-reader-meta truncate text-[9.5px] leading-3 text-muted-foreground/80">
+            {email.email}
+          </div>
+        </div>
+      </button>
+    );
+  }
+
   return (
-    <div
-      className={`glass-tile flex w-full items-center gap-2.5 rounded-lg ${
-        compact ? "max-w-[280px] p-1.5" : "max-w-[280px] p-2.5"
-      }`}
-    >
+    <div className={className}>
       <div
         className={`flex shrink-0 items-center justify-center rounded-md text-xs font-semibold text-white/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] ${
           compact ? "h-8 w-8" : "h-10 w-10"
