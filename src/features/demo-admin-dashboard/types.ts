@@ -50,6 +50,7 @@ export type DashboardSection =
   | "events"
   | "templates"
   | "campaigns"
+  | "timeline"
   | "audit"
   | "analytics";
 
@@ -73,6 +74,11 @@ export type PresetId =
   | "proof-pending"
   | "receipt-settlement"
   | "relay-operator-campaign";
+  | "paid-sender-request"
+  | "receipt-settlement"
+  | "encrypted-provenance"
+  | "encrypted-payload"
+  | "conference-pass";
 
 export interface PresetAccount {
   name: string;

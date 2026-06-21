@@ -1,0 +1,223 @@
+/**
+ * Team Payment Approval Tool - Component Styles
+ * 
+ * Local styles for the Team Payment Approval tool.
+ * These styles use Tailwind classes and do not modify the shared design system.
+ * 
+ * All styling is scoped to components within this tool folder.
+ */
+
+/* Focus indicators for keyboard navigation */
+.payment-approval-interactive:focus-visible {
+  outline: none;
+  @apply ring-2 ring-ring ring-offset-2;
+}
+
+/* Payment list table responsive styles */
+@media (max-width: 768px) {
+  .payment-list-table {
+    @apply text-xs;
+  }
+
+  .payment-list-table tbody tr {
+    @apply grid grid-cols-2 gap-2 py-4 mb-2 border-b border-border;
+  }
+
+  .payment-list-table td {
+    @apply py-2 flex justify-between items-center;
+  }
+
+  .payment-list-table td::before {
+    @apply content-['attr(data-label)'] font-semibold mr-2;
+  }
+}
+
+/* Loading state animations */
+.payment-skeleton {
+  @apply animate-pulse rounded bg-muted-foreground/20;
+}
+
+.payment-skeleton-avatar {
+  @apply h-12 w-12;
+}
+
+.payment-skeleton-text {
+  @apply h-4 w-24;
+}
+
+/* Status badge styles */
+.status-badge {
+  @apply inline-flex items-center gap-2 px-2 py-1 rounded text-xs font-medium transition-colors;
+}
+
+.status-pending {
+  @apply bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-100;
+}
+
+.status-approved {
+  @apply bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-100;
+}
+
+.status-rejected {
+  @apply bg-destructive/10 text-destructive;
+}
+
+.status-expired {
+  @apply bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-100;
+}
+
+/* Priority level styles */
+.priority-low {
+  @apply text-muted-foreground;
+}
+
+.priority-normal {
+  @apply text-foreground;
+}
+
+.priority-high {
+  @apply text-amber-600 dark:text-amber-400 font-semibold;
+}
+
+.priority-urgent {
+  @apply text-destructive font-semibold;
+}
+
+/* Form field styles */
+.payment-form-field {
+  @apply space-y-2;
+}
+
+.payment-form-label {
+  @apply block text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70;
+}
+
+.payment-form-input {
+  @apply flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm;
+}
+
+.payment-form-textarea {
+  @apply flex min-h-24 w-full rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm resize-vertical;
+}
+
+.payment-form-error {
+  @apply p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm;
+}
+
+/* Radio group styles */
+.payment-radio-group {
+  @apply space-y-2;
+}
+
+.payment-radio-option {
+  @apply flex items-center gap-3 p-3 rounded-lg border-2 border-transparent hover:border-primary/20 cursor-pointer transition-colors focus-within:ring-2 focus-within:ring-ring focus-within:border-ring;
+}
+
+.payment-radio-option:has(input:checked) {
+  @apply border-primary/50 bg-primary/5;
+}
+
+/* Decision buttons */
+.approval-button-approve {
+  @apply px-4 py-2 rounded-lg font-medium text-foreground bg-emerald-600 hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-not-allowed transition-colors;
+}
+
+.approval-button-reject {
+  @apply px-4 py-2 rounded-lg font-medium text-foreground bg-destructive hover:bg-destructive/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-not-allowed transition-colors;
+}
+
+/* Empty/Loading/Error states */
+.state-container {
+  @apply mx-auto flex max-w-md flex-col items-center justify-center text-center py-12 px-4;
+}
+
+.state-icon {
+  @apply glass-tile mb-6 flex size-14 items-center justify-center rounded-2xl;
+}
+
+.state-icon-empty {
+  @apply text-foreground;
+}
+
+.state-icon-error {
+  @apply text-destructive;
+}
+
+.state-icon-success {
+  @apply text-emerald-500;
+}
+
+.state-title {
+  @apply text-2xl font-semibold text-foreground;
+}
+
+.state-description {
+  @apply mt-3 text-sm leading-6 text-muted-foreground;
+}
+
+/* Screen reader only content */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Print styles */
+@media print {
+  .payment-approval-interactive:focus-visible {
+    outline: 2px solid #000;
+  }
+
+  .payment-list-table {
+    page-break-inside: avoid;
+  }
+
+  .payment-list-table tbody tr {
+    page-break-inside: avoid;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: more) {
+  .payment-approval-interactive:focus-visible {
+    @apply ring-4 ring-offset-4;
+  }
+
+  .status-badge {
+    @apply border-2 border-current;
+  }
+
+  .payment-radio-option {
+    @apply border-2;
+  }
+
+  .payment-radio-option:has(input:checked) {
+    @apply border-4 border-current;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .payment-skeleton {
+    @apply animate-none opacity-50;
+  }
+
+  .payment-radio-option {
+    @apply transition-none;
+  }
+
+  .approval-button-approve,
+  .approval-button-reject {
+    @apply transition-none;
+  }
+
+  * {
+    @apply !transition-none !animation-none;
+  }
+}

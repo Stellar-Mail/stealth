@@ -4,6 +4,7 @@ import {
   adminDashboardWidthNotes,
 } from "../fixtures/demoData";
 import { ADMIN_DASHBOARD_MIN_SUPPORTED_WIDTH } from "../layout";
+import { CampaignMessageAssignmentPanel } from "./CampaignMessageAssignmentPanel";
 import "./DemoAdminDashboard.css";
 
 const statusLabels = {
@@ -77,6 +78,8 @@ export function DemoAdminDashboard() {
           ))}
         </section>
       </div>
+
+      <CampaignMessageAssignmentPanel />
     </section>
   );
 }
