@@ -209,7 +209,7 @@ export function EmailView({
                   <motion.button
                     whileTap={{ scale: 0.9 }}
                     onClick={() => actions.onSnooze?.(email)}
-                    title="Snooze"
+                    aria-label="Snooze"
                     className="inline-flex items-center gap-1.5 rounded-md p-2 text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground"
                   >
                     <Clock className="h-4 w-4" />
@@ -219,7 +219,7 @@ export function EmailView({
                 <motion.button
                   whileTap={{ scale: 0.9 }}
                   onClick={() => actions.onArchive?.(email)}
-                  title="Archive"
+                  aria-label="Archive"
                   className="inline-flex items-center gap-1.5 rounded-md p-2 text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground"
                 >
                   <Archive className="h-4 w-4" />
@@ -228,7 +228,7 @@ export function EmailView({
                 <motion.button
                   whileTap={{ scale: 0.9 }}
                   onClick={() => actions.onTrash?.(email)}
-                  title="Move to trash"
+                  aria-label="Move to trash"
                   className="shrink-0 rounded-md p-2 text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground"
                 >
                   <Trash2 className="h-4 w-4" />
@@ -236,7 +236,7 @@ export function EmailView({
                 <motion.button
                   whileTap={{ scale: 0.9 }}
                   onClick={() => actions.onToggleStar?.(email)}
-                  title={email.starred ? "Unstar" : "Star"}
+                  aria-label={email.starred ? "Unstar" : "Star"}
                   className={cn(
                     "shrink-0 rounded-md p-2 transition hover:bg-white/[0.06]",
                     email.starred
@@ -599,6 +599,9 @@ function ProtocolStatus({
               className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
             />
             <motion.div
+              role="dialog"
+              aria-modal="true"
+              aria-label="Message provenance"
               initial={{ opacity: 0, scale: 0.95, y: 16 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 16 }}

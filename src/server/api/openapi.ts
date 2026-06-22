@@ -41,6 +41,64 @@ export const openApiDocument = {
           requireVerified: { type: "boolean" },
         },
       },
+      Device: {
+        type: "object",
+        required: [
+          "id",
+          "address",
+          "name",
+          "type",
+          "fingerprint",
+          "publicKey",
+          "keyStatus",
+          "trusted",
+          "lastActive",
+          "lastIp",
+          "lastLocation",
+          "createdAt",
+          "isCurrent",
+        ],
+        properties: {
+          id: { type: "string" },
+          address: { $ref: "#/components/schemas/StellarAddress" },
+          name: { type: "string" },
+          type: { type: "string", enum: ["desktop", "mobile", "tablet", "unknown"] },
+          fingerprint: { type: "string" },
+          publicKey: { type: "string" },
+          keyStatus: { type: "string", enum: ["active", "compromised", "revoked", "rotated"] },
+          trusted: { type: "boolean" },
+          lastActive: { type: "string", format: "date-time" },
+          lastIp: { type: "string" },
+          lastLocation: { type: "string" },
+          createdAt: { type: "string", format: "date-time" },
+          isCurrent: { type: "boolean" },
+        },
+      },
+      RecoveryMethod: {
+        type: "object",
+        required: [
+          "id",
+          "address",
+          "type",
+          "label",
+          "value",
+          "createdAt",
+          "lastTestedAt",
+          "disabled",
+        ],
+        properties: {
+          id: { type: "string" },
+          type: {
+            type: "string",
+            enum: ["trusted_contact", "hardware_key", "paper_key", "encrypted_backup"],
+          },
+          label: { type: "string" },
+          value: { type: "string" },
+          createdAt: { type: "string", format: "date-time" },
+          lastTestedAt: { type: "string", format: "date-time", nullable: true },
+          disabled: { type: "boolean" },
+        },
+      },
     },
   },
   paths: {
@@ -82,6 +140,43 @@ export const openApiDocument = {
     },
     "/receipts/{messageId}/read": {
       post: { summary: "Record recipient read acknowledgment", security: actorSecurity },
+    },
+    "/devices": {
+      get: { summary: "List registered devices with session info", security: actorSecurity },
+    },
+    "/devices/register": {
+      post: { summary: "Register a new device", security: actorSecurity },
+    },
+    "/devices/recovery": {
+      get: { summary: "Read account recovery status", security: actorSecurity },
+    },
+    "/devices/{deviceId}": {
+      get: { summary: "Read a specific device", security: actorSecurity },
+    },
+    "/devices/{deviceId}/name": {
+      put: { summary: "Rename a device", security: actorSecurity },
+    },
+    "/devices/{deviceId}/trust": {
+      post: { summary: "Toggle device trust status", security: actorSecurity },
+    },
+    "/devices/{deviceId}/revoke": {
+      post: { summary: "Revoke a device", security: actorSecurity },
+    },
+    "/devices/{deviceId}/compromised": {
+      post: { summary: "Flag a device as compromised", security: actorSecurity },
+    },
+    "/devices/rotate-keys": {
+      post: { summary: "Rotate encryption keys for devices", security: actorSecurity },
+    },
+    "/devices/recovery-methods": {
+      get: { summary: "List recovery methods", security: actorSecurity },
+      post: { summary: "Create a recovery method", security: actorSecurity },
+    },
+    "/devices/recovery-methods/{methodId}": {
+      delete: { summary: "Delete a recovery method", security: actorSecurity },
+    },
+    "/sessions/{sessionId}/revoke": {
+      post: { summary: "Revoke a specific session", security: actorSecurity },
     },
   },
 } as const;

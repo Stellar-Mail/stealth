@@ -16,6 +16,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { EmojiPicker } from "./EmojiPicker";
 import { TrustBadge, type TrustState } from "@/features/design-system";
 import { cn } from "@/lib/utils";
+import { useFocusTrap } from "@/hooks/use-focus-trap";
 import { resolveRecipients } from "@/features/compose/recipientResolver";
 import { usePostageQuote } from "@/features/compose/usePostageQuote";
 import {
@@ -89,6 +90,7 @@ export function Compose({
   const senderAddress = freighter.state.status === "connected" ? freighter.state.address : "me";
   const quoteState = usePostageQuote(primaryRecipient, senderAddress);
 
+  const containerRef = useFocusTrap(open, onClose);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -319,6 +321,10 @@ export function Compose({
             className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
           />
           <motion.div
+            ref={containerRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label={mode === "compose" ? "New message" : "Compose"}
             initial={{ opacity: 0, y: 24, scale: 0.96, filter: "blur(8px)" }}
             animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
             exit={{ opacity: 0, y: 24, scale: 0.97, filter: "blur(6px)" }}
@@ -432,7 +438,7 @@ export function Compose({
                   detail="On-chain proof"
                   onClick={() => setReceipt((value) => !value)}
                 />
-                <label className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.035] px-3 py-2">
+                <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.035] px-3 py-2">
                   <Coins className="h-4 w-4 text-muted-foreground" />
                   <span className="min-w-0 flex-1">
                     <span className="block text-[10px] uppercase tracking-wider text-muted-foreground">
@@ -457,7 +463,7 @@ export function Compose({
                       )}
                     </span>
                   </span>
-                </label>
+                </div>
               </div>
             </div>
             <div className="flex items-center gap-1 border-t border-white/5 px-3 py-2.5">
@@ -703,10 +709,14 @@ function Field({
 }>) {
   return (
     <div className="flex items-center gap-3 border-b border-white/5 py-2">
-      <span className="w-16 shrink-0 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+      <span
+        id={`compose-field-${label}`}
+        className="w-16 shrink-0 text-[11px] uppercase tracking-[0.18em] text-muted-foreground"
+      >
         {label}
       </span>
       <input
+        aria-labelledby={`compose-field-${label}`}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}

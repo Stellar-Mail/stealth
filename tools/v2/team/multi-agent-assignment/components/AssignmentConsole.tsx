@@ -177,10 +177,14 @@ export function AssignmentConsole() {
             </p>
             <form onSubmit={handleSimulateCustom} className="grid gap-4 md:grid-cols-3">
               <div className="space-y-1">
-                <label className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">
+                <label
+                  htmlFor="assignment-sender"
+                  className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold"
+                >
                   Sender Address
                 </label>
                 <input
+                  id="assignment-sender"
                   type="email"
                   placeholder="e.g. user@stellar.org"
                   value={sender}
@@ -190,10 +194,14 @@ export function AssignmentConsole() {
               </div>
 
               <div className="space-y-1">
-                <label className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">
+                <label
+                  htmlFor="assignment-subject"
+                  className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold"
+                >
                   Subject Line
                 </label>
                 <input
+                  id="assignment-subject"
                   type="text"
                   placeholder="e.g. API Gateway Timeout"
                   value={subject}
@@ -203,10 +211,14 @@ export function AssignmentConsole() {
               </div>
 
               <div className="space-y-1">
-                <label className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">
+                <label
+                  htmlFor="assignment-category"
+                  className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold"
+                >
                   Category Tag
                 </label>
                 <select
+                  id="assignment-category"
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
                   className="w-full p-2 bg-zinc-950 border border-zinc-850 rounded-lg text-xs text-zinc-200 focus:outline-none focus:border-zinc-700"
@@ -220,10 +232,14 @@ export function AssignmentConsole() {
               </div>
 
               <div className="md:col-span-2 space-y-1">
-                <label className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">
+                <label
+                  htmlFor="assignment-snippet"
+                  className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold"
+                >
                   Email Message Excerpt
                 </label>
                 <input
+                  id="assignment-snippet"
                   type="text"
                   placeholder="Summarize the issue snippet..."
                   value={snippet}
@@ -232,11 +248,11 @@ export function AssignmentConsole() {
                 />
               </div>
 
-              <div className="space-y-1">
-                <label className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">
+              <fieldset className="space-y-1">
+                <legend className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">
                   Priority Tier
-                </label>
-                <div className="flex gap-2 h-9 items-center">
+                </legend>
+                <div className="flex h-9 gap-2 items-center">
                   {(["low", "medium", "high"] as const).map((p) => (
                     <button
                       key={p}
@@ -252,7 +268,7 @@ export function AssignmentConsole() {
                     </button>
                   ))}
                 </div>
-              </div>
+              </fieldset>
 
               <div className="md:col-span-3 flex justify-end">
                 <button

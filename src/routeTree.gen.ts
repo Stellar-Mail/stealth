@@ -17,14 +17,27 @@ import { Route as ApiV1OpenapiDotjsonRouteImport } from './routes/api/v1/openapi
 import { Route as ApiV1HealthRouteImport } from './routes/api/v1/health'
 import { Route as ApiV1ReceiptsIndexRouteImport } from './routes/api/v1/receipts/index'
 import { Route as ApiV1PostageIndexRouteImport } from './routes/api/v1/postage/index'
+import { Route as ApiV1DevicesIndexRouteImport } from './routes/api/v1/devices/index'
+import { Route as ApiV1SessionsSessionIdRouteImport } from './routes/api/v1/sessions/$sessionId'
 import { Route as ApiV1ReceiptsMessageIdRouteImport } from './routes/api/v1/receipts/$messageId'
 import { Route as ApiV1PostageQuoteRouteImport } from './routes/api/v1/postage/quote'
 import { Route as ApiV1PostageMessageIdRouteImport } from './routes/api/v1/postage/$messageId'
 import { Route as ApiV1PoliciesEvaluateRouteImport } from './routes/api/v1/policies/evaluate'
 import { Route as ApiV1PoliciesOwnerRouteImport } from './routes/api/v1/policies/$owner'
+import { Route as ApiV1DevicesRotateKeysRouteImport } from './routes/api/v1/devices/rotate-keys'
+import { Route as ApiV1DevicesRegisterRouteImport } from './routes/api/v1/devices/register'
+import { Route as ApiV1DevicesRecoveryMethodsRouteImport } from './routes/api/v1/devices/recovery-methods'
+import { Route as ApiV1DevicesRecoveryRouteImport } from './routes/api/v1/devices/recovery'
+import { Route as ApiV1DevicesDeviceIdRouteImport } from './routes/api/v1/devices/$deviceId'
+import { Route as ApiV1SessionsSessionIdRevokeRouteImport } from './routes/api/v1/sessions/$sessionId/revoke'
 import { Route as ApiV1ReceiptsMessageIdReadRouteImport } from './routes/api/v1/receipts/$messageId/read'
 import { Route as ApiV1PostageMessageIdSettleRouteImport } from './routes/api/v1/postage/$messageId/settle'
 import { Route as ApiV1PostageMessageIdRefundRouteImport } from './routes/api/v1/postage/$messageId/refund'
+import { Route as ApiV1DevicesRecoveryMethodsMethodIdRouteImport } from './routes/api/v1/devices/recovery-methods/$methodId'
+import { Route as ApiV1DevicesDeviceIdTrustRouteImport } from './routes/api/v1/devices/$deviceId/trust'
+import { Route as ApiV1DevicesDeviceIdRevokeRouteImport } from './routes/api/v1/devices/$deviceId/revoke'
+import { Route as ApiV1DevicesDeviceIdNameRouteImport } from './routes/api/v1/devices/$deviceId/name'
+import { Route as ApiV1DevicesDeviceIdCompromisedRouteImport } from './routes/api/v1/devices/$deviceId/compromised'
 import { Route as ApiV1PoliciesOwnerSendersSenderRouteImport } from './routes/api/v1/policies/$owner/senders/$sender'
 
 const MotionGalleryRoute = MotionGalleryRouteImport.update({
@@ -67,6 +80,16 @@ const ApiV1PostageIndexRoute = ApiV1PostageIndexRouteImport.update({
   path: '/api/v1/postage/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1DevicesIndexRoute = ApiV1DevicesIndexRouteImport.update({
+  id: '/api/v1/devices/',
+  path: '/api/v1/devices/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1SessionsSessionIdRoute = ApiV1SessionsSessionIdRouteImport.update({
+  id: '/api/v1/sessions/$sessionId',
+  path: '/api/v1/sessions/$sessionId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1ReceiptsMessageIdRoute = ApiV1ReceiptsMessageIdRouteImport.update({
   id: '/api/v1/receipts/$messageId',
   path: '/api/v1/receipts/$messageId',
@@ -92,6 +115,38 @@ const ApiV1PoliciesOwnerRoute = ApiV1PoliciesOwnerRouteImport.update({
   path: '/api/v1/policies/$owner',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1DevicesRotateKeysRoute = ApiV1DevicesRotateKeysRouteImport.update({
+  id: '/api/v1/devices/rotate-keys',
+  path: '/api/v1/devices/rotate-keys',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1DevicesRegisterRoute = ApiV1DevicesRegisterRouteImport.update({
+  id: '/api/v1/devices/register',
+  path: '/api/v1/devices/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1DevicesRecoveryMethodsRoute =
+  ApiV1DevicesRecoveryMethodsRouteImport.update({
+    id: '/api/v1/devices/recovery-methods',
+    path: '/api/v1/devices/recovery-methods',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiV1DevicesRecoveryRoute = ApiV1DevicesRecoveryRouteImport.update({
+  id: '/api/v1/devices/recovery',
+  path: '/api/v1/devices/recovery',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1DevicesDeviceIdRoute = ApiV1DevicesDeviceIdRouteImport.update({
+  id: '/api/v1/devices/$deviceId',
+  path: '/api/v1/devices/$deviceId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1SessionsSessionIdRevokeRoute =
+  ApiV1SessionsSessionIdRevokeRouteImport.update({
+    id: '/revoke',
+    path: '/revoke',
+    getParentRoute: () => ApiV1SessionsSessionIdRoute,
+  } as any)
 const ApiV1ReceiptsMessageIdReadRoute =
   ApiV1ReceiptsMessageIdReadRouteImport.update({
     id: '/read',
@@ -110,6 +165,36 @@ const ApiV1PostageMessageIdRefundRoute =
     path: '/refund',
     getParentRoute: () => ApiV1PostageMessageIdRoute,
   } as any)
+const ApiV1DevicesRecoveryMethodsMethodIdRoute =
+  ApiV1DevicesRecoveryMethodsMethodIdRouteImport.update({
+    id: '/$methodId',
+    path: '/$methodId',
+    getParentRoute: () => ApiV1DevicesRecoveryMethodsRoute,
+  } as any)
+const ApiV1DevicesDeviceIdTrustRoute =
+  ApiV1DevicesDeviceIdTrustRouteImport.update({
+    id: '/trust',
+    path: '/trust',
+    getParentRoute: () => ApiV1DevicesDeviceIdRoute,
+  } as any)
+const ApiV1DevicesDeviceIdRevokeRoute =
+  ApiV1DevicesDeviceIdRevokeRouteImport.update({
+    id: '/revoke',
+    path: '/revoke',
+    getParentRoute: () => ApiV1DevicesDeviceIdRoute,
+  } as any)
+const ApiV1DevicesDeviceIdNameRoute =
+  ApiV1DevicesDeviceIdNameRouteImport.update({
+    id: '/name',
+    path: '/name',
+    getParentRoute: () => ApiV1DevicesDeviceIdRoute,
+  } as any)
+const ApiV1DevicesDeviceIdCompromisedRoute =
+  ApiV1DevicesDeviceIdCompromisedRouteImport.update({
+    id: '/compromised',
+    path: '/compromised',
+    getParentRoute: () => ApiV1DevicesDeviceIdRoute,
+  } as any)
 const ApiV1PoliciesOwnerSendersSenderRoute =
   ApiV1PoliciesOwnerSendersSenderRouteImport.update({
     id: '/senders/$sender',
@@ -124,16 +209,29 @@ export interface FileRoutesByFullPath {
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
   '/api/v1/protocol': typeof ApiV1ProtocolRoute
+  '/api/v1/devices/$deviceId': typeof ApiV1DevicesDeviceIdRouteWithChildren
+  '/api/v1/devices/recovery': typeof ApiV1DevicesRecoveryRoute
+  '/api/v1/devices/recovery-methods': typeof ApiV1DevicesRecoveryMethodsRouteWithChildren
+  '/api/v1/devices/register': typeof ApiV1DevicesRegisterRoute
+  '/api/v1/devices/rotate-keys': typeof ApiV1DevicesRotateKeysRoute
   '/api/v1/policies/$owner': typeof ApiV1PoliciesOwnerRouteWithChildren
   '/api/v1/policies/evaluate': typeof ApiV1PoliciesEvaluateRoute
   '/api/v1/postage/$messageId': typeof ApiV1PostageMessageIdRouteWithChildren
   '/api/v1/postage/quote': typeof ApiV1PostageQuoteRoute
   '/api/v1/receipts/$messageId': typeof ApiV1ReceiptsMessageIdRouteWithChildren
+  '/api/v1/sessions/$sessionId': typeof ApiV1SessionsSessionIdRouteWithChildren
+  '/api/v1/devices/': typeof ApiV1DevicesIndexRoute
   '/api/v1/postage/': typeof ApiV1PostageIndexRoute
   '/api/v1/receipts/': typeof ApiV1ReceiptsIndexRoute
+  '/api/v1/devices/$deviceId/compromised': typeof ApiV1DevicesDeviceIdCompromisedRoute
+  '/api/v1/devices/$deviceId/name': typeof ApiV1DevicesDeviceIdNameRoute
+  '/api/v1/devices/$deviceId/revoke': typeof ApiV1DevicesDeviceIdRevokeRoute
+  '/api/v1/devices/$deviceId/trust': typeof ApiV1DevicesDeviceIdTrustRoute
+  '/api/v1/devices/recovery-methods/$methodId': typeof ApiV1DevicesRecoveryMethodsMethodIdRoute
   '/api/v1/postage/$messageId/refund': typeof ApiV1PostageMessageIdRefundRoute
   '/api/v1/postage/$messageId/settle': typeof ApiV1PostageMessageIdSettleRoute
   '/api/v1/receipts/$messageId/read': typeof ApiV1ReceiptsMessageIdReadRoute
+  '/api/v1/sessions/$sessionId/revoke': typeof ApiV1SessionsSessionIdRevokeRoute
   '/api/v1/policies/$owner/senders/$sender': typeof ApiV1PoliciesOwnerSendersSenderRoute
 }
 export interface FileRoutesByTo {
@@ -143,16 +241,29 @@ export interface FileRoutesByTo {
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
   '/api/v1/protocol': typeof ApiV1ProtocolRoute
+  '/api/v1/devices/$deviceId': typeof ApiV1DevicesDeviceIdRouteWithChildren
+  '/api/v1/devices/recovery': typeof ApiV1DevicesRecoveryRoute
+  '/api/v1/devices/recovery-methods': typeof ApiV1DevicesRecoveryMethodsRouteWithChildren
+  '/api/v1/devices/register': typeof ApiV1DevicesRegisterRoute
+  '/api/v1/devices/rotate-keys': typeof ApiV1DevicesRotateKeysRoute
   '/api/v1/policies/$owner': typeof ApiV1PoliciesOwnerRouteWithChildren
   '/api/v1/policies/evaluate': typeof ApiV1PoliciesEvaluateRoute
   '/api/v1/postage/$messageId': typeof ApiV1PostageMessageIdRouteWithChildren
   '/api/v1/postage/quote': typeof ApiV1PostageQuoteRoute
   '/api/v1/receipts/$messageId': typeof ApiV1ReceiptsMessageIdRouteWithChildren
+  '/api/v1/sessions/$sessionId': typeof ApiV1SessionsSessionIdRouteWithChildren
+  '/api/v1/devices': typeof ApiV1DevicesIndexRoute
   '/api/v1/postage': typeof ApiV1PostageIndexRoute
   '/api/v1/receipts': typeof ApiV1ReceiptsIndexRoute
+  '/api/v1/devices/$deviceId/compromised': typeof ApiV1DevicesDeviceIdCompromisedRoute
+  '/api/v1/devices/$deviceId/name': typeof ApiV1DevicesDeviceIdNameRoute
+  '/api/v1/devices/$deviceId/revoke': typeof ApiV1DevicesDeviceIdRevokeRoute
+  '/api/v1/devices/$deviceId/trust': typeof ApiV1DevicesDeviceIdTrustRoute
+  '/api/v1/devices/recovery-methods/$methodId': typeof ApiV1DevicesRecoveryMethodsMethodIdRoute
   '/api/v1/postage/$messageId/refund': typeof ApiV1PostageMessageIdRefundRoute
   '/api/v1/postage/$messageId/settle': typeof ApiV1PostageMessageIdSettleRoute
   '/api/v1/receipts/$messageId/read': typeof ApiV1ReceiptsMessageIdReadRoute
+  '/api/v1/sessions/$sessionId/revoke': typeof ApiV1SessionsSessionIdRevokeRoute
   '/api/v1/policies/$owner/senders/$sender': typeof ApiV1PoliciesOwnerSendersSenderRoute
 }
 export interface FileRoutesById {
@@ -163,16 +274,29 @@ export interface FileRoutesById {
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
   '/api/v1/protocol': typeof ApiV1ProtocolRoute
+  '/api/v1/devices/$deviceId': typeof ApiV1DevicesDeviceIdRouteWithChildren
+  '/api/v1/devices/recovery': typeof ApiV1DevicesRecoveryRoute
+  '/api/v1/devices/recovery-methods': typeof ApiV1DevicesRecoveryMethodsRouteWithChildren
+  '/api/v1/devices/register': typeof ApiV1DevicesRegisterRoute
+  '/api/v1/devices/rotate-keys': typeof ApiV1DevicesRotateKeysRoute
   '/api/v1/policies/$owner': typeof ApiV1PoliciesOwnerRouteWithChildren
   '/api/v1/policies/evaluate': typeof ApiV1PoliciesEvaluateRoute
   '/api/v1/postage/$messageId': typeof ApiV1PostageMessageIdRouteWithChildren
   '/api/v1/postage/quote': typeof ApiV1PostageQuoteRoute
   '/api/v1/receipts/$messageId': typeof ApiV1ReceiptsMessageIdRouteWithChildren
+  '/api/v1/sessions/$sessionId': typeof ApiV1SessionsSessionIdRouteWithChildren
+  '/api/v1/devices/': typeof ApiV1DevicesIndexRoute
   '/api/v1/postage/': typeof ApiV1PostageIndexRoute
   '/api/v1/receipts/': typeof ApiV1ReceiptsIndexRoute
+  '/api/v1/devices/$deviceId/compromised': typeof ApiV1DevicesDeviceIdCompromisedRoute
+  '/api/v1/devices/$deviceId/name': typeof ApiV1DevicesDeviceIdNameRoute
+  '/api/v1/devices/$deviceId/revoke': typeof ApiV1DevicesDeviceIdRevokeRoute
+  '/api/v1/devices/$deviceId/trust': typeof ApiV1DevicesDeviceIdTrustRoute
+  '/api/v1/devices/recovery-methods/$methodId': typeof ApiV1DevicesRecoveryMethodsMethodIdRoute
   '/api/v1/postage/$messageId/refund': typeof ApiV1PostageMessageIdRefundRoute
   '/api/v1/postage/$messageId/settle': typeof ApiV1PostageMessageIdSettleRoute
   '/api/v1/receipts/$messageId/read': typeof ApiV1ReceiptsMessageIdReadRoute
+  '/api/v1/sessions/$sessionId/revoke': typeof ApiV1SessionsSessionIdRevokeRoute
   '/api/v1/policies/$owner/senders/$sender': typeof ApiV1PoliciesOwnerSendersSenderRoute
 }
 export interface FileRouteTypes {
@@ -184,16 +308,29 @@ export interface FileRouteTypes {
     | '/api/v1/health'
     | '/api/v1/openapi.json'
     | '/api/v1/protocol'
+    | '/api/v1/devices/$deviceId'
+    | '/api/v1/devices/recovery'
+    | '/api/v1/devices/recovery-methods'
+    | '/api/v1/devices/register'
+    | '/api/v1/devices/rotate-keys'
     | '/api/v1/policies/$owner'
     | '/api/v1/policies/evaluate'
     | '/api/v1/postage/$messageId'
     | '/api/v1/postage/quote'
     | '/api/v1/receipts/$messageId'
+    | '/api/v1/sessions/$sessionId'
+    | '/api/v1/devices/'
     | '/api/v1/postage/'
     | '/api/v1/receipts/'
+    | '/api/v1/devices/$deviceId/compromised'
+    | '/api/v1/devices/$deviceId/name'
+    | '/api/v1/devices/$deviceId/revoke'
+    | '/api/v1/devices/$deviceId/trust'
+    | '/api/v1/devices/recovery-methods/$methodId'
     | '/api/v1/postage/$messageId/refund'
     | '/api/v1/postage/$messageId/settle'
     | '/api/v1/receipts/$messageId/read'
+    | '/api/v1/sessions/$sessionId/revoke'
     | '/api/v1/policies/$owner/senders/$sender'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -203,16 +340,29 @@ export interface FileRouteTypes {
     | '/api/v1/health'
     | '/api/v1/openapi.json'
     | '/api/v1/protocol'
+    | '/api/v1/devices/$deviceId'
+    | '/api/v1/devices/recovery'
+    | '/api/v1/devices/recovery-methods'
+    | '/api/v1/devices/register'
+    | '/api/v1/devices/rotate-keys'
     | '/api/v1/policies/$owner'
     | '/api/v1/policies/evaluate'
     | '/api/v1/postage/$messageId'
     | '/api/v1/postage/quote'
     | '/api/v1/receipts/$messageId'
+    | '/api/v1/sessions/$sessionId'
+    | '/api/v1/devices'
     | '/api/v1/postage'
     | '/api/v1/receipts'
+    | '/api/v1/devices/$deviceId/compromised'
+    | '/api/v1/devices/$deviceId/name'
+    | '/api/v1/devices/$deviceId/revoke'
+    | '/api/v1/devices/$deviceId/trust'
+    | '/api/v1/devices/recovery-methods/$methodId'
     | '/api/v1/postage/$messageId/refund'
     | '/api/v1/postage/$messageId/settle'
     | '/api/v1/receipts/$messageId/read'
+    | '/api/v1/sessions/$sessionId/revoke'
     | '/api/v1/policies/$owner/senders/$sender'
   id:
     | '__root__'
@@ -222,16 +372,29 @@ export interface FileRouteTypes {
     | '/api/v1/health'
     | '/api/v1/openapi.json'
     | '/api/v1/protocol'
+    | '/api/v1/devices/$deviceId'
+    | '/api/v1/devices/recovery'
+    | '/api/v1/devices/recovery-methods'
+    | '/api/v1/devices/register'
+    | '/api/v1/devices/rotate-keys'
     | '/api/v1/policies/$owner'
     | '/api/v1/policies/evaluate'
     | '/api/v1/postage/$messageId'
     | '/api/v1/postage/quote'
     | '/api/v1/receipts/$messageId'
+    | '/api/v1/sessions/$sessionId'
+    | '/api/v1/devices/'
     | '/api/v1/postage/'
     | '/api/v1/receipts/'
+    | '/api/v1/devices/$deviceId/compromised'
+    | '/api/v1/devices/$deviceId/name'
+    | '/api/v1/devices/$deviceId/revoke'
+    | '/api/v1/devices/$deviceId/trust'
+    | '/api/v1/devices/recovery-methods/$methodId'
     | '/api/v1/postage/$messageId/refund'
     | '/api/v1/postage/$messageId/settle'
     | '/api/v1/receipts/$messageId/read'
+    | '/api/v1/sessions/$sessionId/revoke'
     | '/api/v1/policies/$owner/senders/$sender'
   fileRoutesById: FileRoutesById
 }
@@ -242,11 +405,18 @@ export interface RootRouteChildren {
   ApiV1HealthRoute: typeof ApiV1HealthRoute
   ApiV1OpenapiDotjsonRoute: typeof ApiV1OpenapiDotjsonRoute
   ApiV1ProtocolRoute: typeof ApiV1ProtocolRoute
+  ApiV1DevicesDeviceIdRoute: typeof ApiV1DevicesDeviceIdRouteWithChildren
+  ApiV1DevicesRecoveryRoute: typeof ApiV1DevicesRecoveryRoute
+  ApiV1DevicesRecoveryMethodsRoute: typeof ApiV1DevicesRecoveryMethodsRouteWithChildren
+  ApiV1DevicesRegisterRoute: typeof ApiV1DevicesRegisterRoute
+  ApiV1DevicesRotateKeysRoute: typeof ApiV1DevicesRotateKeysRoute
   ApiV1PoliciesOwnerRoute: typeof ApiV1PoliciesOwnerRouteWithChildren
   ApiV1PoliciesEvaluateRoute: typeof ApiV1PoliciesEvaluateRoute
   ApiV1PostageMessageIdRoute: typeof ApiV1PostageMessageIdRouteWithChildren
   ApiV1PostageQuoteRoute: typeof ApiV1PostageQuoteRoute
   ApiV1ReceiptsMessageIdRoute: typeof ApiV1ReceiptsMessageIdRouteWithChildren
+  ApiV1SessionsSessionIdRoute: typeof ApiV1SessionsSessionIdRouteWithChildren
+  ApiV1DevicesIndexRoute: typeof ApiV1DevicesIndexRoute
   ApiV1PostageIndexRoute: typeof ApiV1PostageIndexRoute
   ApiV1ReceiptsIndexRoute: typeof ApiV1ReceiptsIndexRoute
 }
@@ -309,6 +479,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1PostageIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/devices/': {
+      id: '/api/v1/devices/'
+      path: '/api/v1/devices'
+      fullPath: '/api/v1/devices/'
+      preLoaderRoute: typeof ApiV1DevicesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/sessions/$sessionId': {
+      id: '/api/v1/sessions/$sessionId'
+      path: '/api/v1/sessions/$sessionId'
+      fullPath: '/api/v1/sessions/$sessionId'
+      preLoaderRoute: typeof ApiV1SessionsSessionIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/receipts/$messageId': {
       id: '/api/v1/receipts/$messageId'
       path: '/api/v1/receipts/$messageId'
@@ -344,6 +528,48 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1PoliciesOwnerRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/devices/rotate-keys': {
+      id: '/api/v1/devices/rotate-keys'
+      path: '/api/v1/devices/rotate-keys'
+      fullPath: '/api/v1/devices/rotate-keys'
+      preLoaderRoute: typeof ApiV1DevicesRotateKeysRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/devices/register': {
+      id: '/api/v1/devices/register'
+      path: '/api/v1/devices/register'
+      fullPath: '/api/v1/devices/register'
+      preLoaderRoute: typeof ApiV1DevicesRegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/devices/recovery-methods': {
+      id: '/api/v1/devices/recovery-methods'
+      path: '/api/v1/devices/recovery-methods'
+      fullPath: '/api/v1/devices/recovery-methods'
+      preLoaderRoute: typeof ApiV1DevicesRecoveryMethodsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/devices/recovery': {
+      id: '/api/v1/devices/recovery'
+      path: '/api/v1/devices/recovery'
+      fullPath: '/api/v1/devices/recovery'
+      preLoaderRoute: typeof ApiV1DevicesRecoveryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/devices/$deviceId': {
+      id: '/api/v1/devices/$deviceId'
+      path: '/api/v1/devices/$deviceId'
+      fullPath: '/api/v1/devices/$deviceId'
+      preLoaderRoute: typeof ApiV1DevicesDeviceIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/sessions/$sessionId/revoke': {
+      id: '/api/v1/sessions/$sessionId/revoke'
+      path: '/revoke'
+      fullPath: '/api/v1/sessions/$sessionId/revoke'
+      preLoaderRoute: typeof ApiV1SessionsSessionIdRevokeRouteImport
+      parentRoute: typeof ApiV1SessionsSessionIdRoute
+    }
     '/api/v1/receipts/$messageId/read': {
       id: '/api/v1/receipts/$messageId/read'
       path: '/read'
@@ -365,6 +591,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1PostageMessageIdRefundRouteImport
       parentRoute: typeof ApiV1PostageMessageIdRoute
     }
+    '/api/v1/devices/recovery-methods/$methodId': {
+      id: '/api/v1/devices/recovery-methods/$methodId'
+      path: '/$methodId'
+      fullPath: '/api/v1/devices/recovery-methods/$methodId'
+      preLoaderRoute: typeof ApiV1DevicesRecoveryMethodsMethodIdRouteImport
+      parentRoute: typeof ApiV1DevicesRecoveryMethodsRoute
+    }
+    '/api/v1/devices/$deviceId/trust': {
+      id: '/api/v1/devices/$deviceId/trust'
+      path: '/trust'
+      fullPath: '/api/v1/devices/$deviceId/trust'
+      preLoaderRoute: typeof ApiV1DevicesDeviceIdTrustRouteImport
+      parentRoute: typeof ApiV1DevicesDeviceIdRoute
+    }
+    '/api/v1/devices/$deviceId/revoke': {
+      id: '/api/v1/devices/$deviceId/revoke'
+      path: '/revoke'
+      fullPath: '/api/v1/devices/$deviceId/revoke'
+      preLoaderRoute: typeof ApiV1DevicesDeviceIdRevokeRouteImport
+      parentRoute: typeof ApiV1DevicesDeviceIdRoute
+    }
+    '/api/v1/devices/$deviceId/name': {
+      id: '/api/v1/devices/$deviceId/name'
+      path: '/name'
+      fullPath: '/api/v1/devices/$deviceId/name'
+      preLoaderRoute: typeof ApiV1DevicesDeviceIdNameRouteImport
+      parentRoute: typeof ApiV1DevicesDeviceIdRoute
+    }
+    '/api/v1/devices/$deviceId/compromised': {
+      id: '/api/v1/devices/$deviceId/compromised'
+      path: '/compromised'
+      fullPath: '/api/v1/devices/$deviceId/compromised'
+      preLoaderRoute: typeof ApiV1DevicesDeviceIdCompromisedRouteImport
+      parentRoute: typeof ApiV1DevicesDeviceIdRoute
+    }
     '/api/v1/policies/$owner/senders/$sender': {
       id: '/api/v1/policies/$owner/senders/$sender'
       path: '/senders/$sender'
@@ -374,6 +635,38 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface ApiV1DevicesDeviceIdRouteChildren {
+  ApiV1DevicesDeviceIdCompromisedRoute: typeof ApiV1DevicesDeviceIdCompromisedRoute
+  ApiV1DevicesDeviceIdNameRoute: typeof ApiV1DevicesDeviceIdNameRoute
+  ApiV1DevicesDeviceIdRevokeRoute: typeof ApiV1DevicesDeviceIdRevokeRoute
+  ApiV1DevicesDeviceIdTrustRoute: typeof ApiV1DevicesDeviceIdTrustRoute
+}
+
+const ApiV1DevicesDeviceIdRouteChildren: ApiV1DevicesDeviceIdRouteChildren = {
+  ApiV1DevicesDeviceIdCompromisedRoute: ApiV1DevicesDeviceIdCompromisedRoute,
+  ApiV1DevicesDeviceIdNameRoute: ApiV1DevicesDeviceIdNameRoute,
+  ApiV1DevicesDeviceIdRevokeRoute: ApiV1DevicesDeviceIdRevokeRoute,
+  ApiV1DevicesDeviceIdTrustRoute: ApiV1DevicesDeviceIdTrustRoute,
+}
+
+const ApiV1DevicesDeviceIdRouteWithChildren =
+  ApiV1DevicesDeviceIdRoute._addFileChildren(ApiV1DevicesDeviceIdRouteChildren)
+
+interface ApiV1DevicesRecoveryMethodsRouteChildren {
+  ApiV1DevicesRecoveryMethodsMethodIdRoute: typeof ApiV1DevicesRecoveryMethodsMethodIdRoute
+}
+
+const ApiV1DevicesRecoveryMethodsRouteChildren: ApiV1DevicesRecoveryMethodsRouteChildren =
+  {
+    ApiV1DevicesRecoveryMethodsMethodIdRoute:
+      ApiV1DevicesRecoveryMethodsMethodIdRoute,
+  }
+
+const ApiV1DevicesRecoveryMethodsRouteWithChildren =
+  ApiV1DevicesRecoveryMethodsRoute._addFileChildren(
+    ApiV1DevicesRecoveryMethodsRouteChildren,
+  )
 
 interface ApiV1PoliciesOwnerRouteChildren {
   ApiV1PoliciesOwnerSendersSenderRoute: typeof ApiV1PoliciesOwnerSendersSenderRoute
@@ -415,6 +708,20 @@ const ApiV1ReceiptsMessageIdRouteWithChildren =
     ApiV1ReceiptsMessageIdRouteChildren,
   )
 
+interface ApiV1SessionsSessionIdRouteChildren {
+  ApiV1SessionsSessionIdRevokeRoute: typeof ApiV1SessionsSessionIdRevokeRoute
+}
+
+const ApiV1SessionsSessionIdRouteChildren: ApiV1SessionsSessionIdRouteChildren =
+  {
+    ApiV1SessionsSessionIdRevokeRoute: ApiV1SessionsSessionIdRevokeRoute,
+  }
+
+const ApiV1SessionsSessionIdRouteWithChildren =
+  ApiV1SessionsSessionIdRoute._addFileChildren(
+    ApiV1SessionsSessionIdRouteChildren,
+  )
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   PolicyEditorRouteRoute: PolicyEditorRouteRoute,
@@ -422,11 +729,19 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1HealthRoute: ApiV1HealthRoute,
   ApiV1OpenapiDotjsonRoute: ApiV1OpenapiDotjsonRoute,
   ApiV1ProtocolRoute: ApiV1ProtocolRoute,
+  ApiV1DevicesDeviceIdRoute: ApiV1DevicesDeviceIdRouteWithChildren,
+  ApiV1DevicesRecoveryRoute: ApiV1DevicesRecoveryRoute,
+  ApiV1DevicesRecoveryMethodsRoute:
+    ApiV1DevicesRecoveryMethodsRouteWithChildren,
+  ApiV1DevicesRegisterRoute: ApiV1DevicesRegisterRoute,
+  ApiV1DevicesRotateKeysRoute: ApiV1DevicesRotateKeysRoute,
   ApiV1PoliciesOwnerRoute: ApiV1PoliciesOwnerRouteWithChildren,
   ApiV1PoliciesEvaluateRoute: ApiV1PoliciesEvaluateRoute,
   ApiV1PostageMessageIdRoute: ApiV1PostageMessageIdRouteWithChildren,
   ApiV1PostageQuoteRoute: ApiV1PostageQuoteRoute,
   ApiV1ReceiptsMessageIdRoute: ApiV1ReceiptsMessageIdRouteWithChildren,
+  ApiV1SessionsSessionIdRoute: ApiV1SessionsSessionIdRouteWithChildren,
+  ApiV1DevicesIndexRoute: ApiV1DevicesIndexRoute,
   ApiV1PostageIndexRoute: ApiV1PostageIndexRoute,
   ApiV1ReceiptsIndexRoute: ApiV1ReceiptsIndexRoute,
 }

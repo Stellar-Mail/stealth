@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { AlertTriangle, CalendarClock, Check, Clock, X } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useFocusTrap } from "@/hooks/use-focus-trap";
 import { getLocalTimeZone, getReferenceNow, type CalendarEvent } from "@/features/calendar";
 import type { SnoozeState } from "@/components/mail/data";
 import type { SnoozeTarget } from "./useSnooze";
@@ -42,6 +43,8 @@ export function SnoozeDialog({ target, initialState, events, onConfirm, onClose 
   const [customDate, setCustomDate] = useState("");
   const [customTime, setCustomTime] = useState("");
 
+  const containerRef = useFocusTrap(!!target, onClose);
+
   // Seed from an existing reminder when editing; otherwise start blank so no
   // option is pre-applied.
   useEffect(() => {
@@ -59,15 +62,6 @@ export function SnoozeDialog({ target, initialState, events, onConfirm, onClose 
       setCustomTime("");
     }
   }, [target?.emailId, initialState, target]);
-
-  useEffect(() => {
-    if (!target) return;
-    const handler = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [target, onClose]);
 
   // Resolve the selected choice into a concrete reminder + validity. Memoized so
   // the preview and conflict list recompute only when inputs change.
@@ -110,6 +104,7 @@ export function SnoozeDialog({ target, initialState, events, onConfirm, onClose 
             className="fixed inset-0 z-40 bg-black/70 backdrop-blur-md"
           />
           <motion.div
+            ref={containerRef}
             key="snooze-panel"
             role="dialog"
             aria-modal="true"

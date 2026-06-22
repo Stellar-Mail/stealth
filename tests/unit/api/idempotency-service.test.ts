@@ -41,8 +41,8 @@ describe("Idempotency Service", () => {
     const check2 = await checkIdempotency(repository, actor1, rawKey);
     expect(check2).not.toBeNull();
     expect(check2?.status).toBe(201);
-    expect(check2?.body).toEqual(responseBody);
-    expect(check2?.createdAt).toBeDefined();
+    expect(check2?.response).toEqual(responseBody);
+    expect(check2?.timestamp).toBeDefined();
 
     // check other actor does not see the same key
     const checkOther = await checkIdempotency(repository, actor2, rawKey);

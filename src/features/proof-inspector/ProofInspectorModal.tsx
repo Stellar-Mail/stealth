@@ -17,6 +17,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useFocusTrap } from "@/hooks/use-focus-trap";
 import type { Email } from "@/components/mail/data";
 import { motionPresets } from "@/lib/motion-presets";
 import {
@@ -50,6 +51,7 @@ export function ProofInspectorModal({
     text: string;
     type: "success" | "warning" | "error" | null;
   }>({ text: "", type: null });
+  const containerRef = useFocusTrap(open, onClose);
 
   // Reset state when opening/closing
   useEffect(() => {
@@ -98,10 +100,12 @@ export function ProofInspectorModal({
 
           {/* Modal Container */}
           <motion.div
+            ref={containerRef}
             {...motionPresets.patterns.modal.content}
             role="dialog"
             aria-modal="true"
             aria-label="Cryptographic proof inspector"
+            aria-describedby="proof-inspector-description"
             className="glass-strong fixed left-1/2 top-1/2 z-[101] w-[min(640px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl border border-white/10"
           >
             {/* Header */}
@@ -109,8 +113,13 @@ export function ProofInspectorModal({
               <div className="flex items-center gap-2">
                 <Database className="h-4 w-4 text-[oklch(0.85_0.005_270)]" />
                 <div>
-                  <h3 className="text-sm font-bold text-foreground">Stealth Proof Inspector</h3>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                  <h3 className="text-sm font-bold text-foreground" id="proof-inspector-title">
+                    Stealth Proof Inspector
+                  </h3>
+                  <p
+                    id="proof-inspector-description"
+                    className="text-[11px] text-muted-foreground mt-0.5"
+                  >
                     Search and audit smart contract ledger proofs and payment preimages.
                   </p>
                 </div>
@@ -232,31 +241,29 @@ export function ProofInspectorModal({
                 </div>
               )}
 
-              {/* Loading State */}
-              <AnimatePresence mode="wait">
-                {isSearching && (
-                  <motion.div
-                    key="loading-state"
-                    {...motionPresets.entrance.fadeIn()}
-                    className="space-y-4 pt-2"
-                  >
-                    <div className="h-16 w-full animate-pulse rounded-xl bg-white/[0.03] border border-white/[0.05]" />
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                      <div className="h-[120px] w-full animate-pulse rounded-xl bg-white/[0.03] border border-white/[0.05]" />
-                      <div className="h-[120px] w-full animate-pulse rounded-xl bg-white/[0.03] border border-white/[0.05]" />
-                      <div className="h-[120px] w-full animate-pulse rounded-xl bg-white/[0.03] border border-white/[0.05]" />
-                      <div className="h-[120px] w-full animate-pulse rounded-xl bg-white/[0.03] border border-white/[0.05]" />
-                    </div>
-                    <div className="h-10 w-full animate-pulse rounded-xl bg-white/[0.03] border border-white/[0.05]" />
-                  </motion.div>
-                )}
+              <div aria-live="polite" aria-atomic="true">
+                <AnimatePresence mode="wait">
+                  {isSearching && (
+                    <motion.div
+                      key="loading-state"
+                      {...motionPresets.entrance.fadeIn()}
+                      className="space-y-4 pt-2"
+                    >
+                      <div className="h-16 w-full animate-pulse rounded-xl bg-white/[0.03] border border-white/[0.05]" />
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div className="h-[120px] w-full animate-pulse rounded-xl bg-white/[0.03] border border-white/[0.05]" />
+                        <div className="h-[120px] w-full animate-pulse rounded-xl bg-white/[0.03] border border-white/[0.05]" />
+                        <div className="h-[120px] w-full animate-pulse rounded-xl bg-white/[0.03] border border-white/[0.05]" />
+                        <div className="h-[120px] w-full animate-pulse rounded-xl bg-white/[0.03] border border-white/[0.05]" />
+                      </div>
+                      <div className="h-10 w-full animate-pulse rounded-xl bg-white/[0.03] border border-white/[0.05]" />
+                    </motion.div>
+                  )}
 
-                {/* Search Result display */}
-                {hasSearched && !isSearching && (
-                  <motion.div key="result-state" {...motionPresets.entrance.fadeIn()}>
-                    {searchResults.length === 0 ? (
-                      /* MISSING RECORDS / NEXT STEPS GUIDE */
-                      <div className="rounded-xl border border-rose-500/20 bg-rose-500/[0.01] p-4 space-y-4">
+                  {hasSearched && !isSearching && (
+                    <motion.div key="result-state" {...motionPresets.entrance.fadeIn()}>
+                      {searchResults.length === 0 ? (
+                        <div className="rounded-xl border border-rose-500/20 bg-rose-500/[0.01] p-4 space-y-4">
                         <div className="flex items-start gap-3">
                           <span className="grid h-7 w-7 place-items-center rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20 shrink-0">
                             <ShieldAlert className="h-4 w-4" />
@@ -326,10 +333,9 @@ export function ProofInspectorModal({
                             </li>
                           </ul>
                         </div>
-                      </div>
-                    ) : (
-                      /* RECORD FOUND & DETAILED SECTIONS */
-                      <div className="space-y-4">
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
                         {/* Security Alert: Sensitive payload notice */}
                         <div className="flex items-start gap-2.5 rounded-lg bg-white/[0.02] border border-white/[0.04] p-3 text-xs text-muted-foreground leading-normal">
                           <Info className="h-3.5 w-3.5 text-[oklch(0.85_0.005_270)] shrink-0 mt-0.5" />
@@ -519,11 +525,12 @@ export function ProofInspectorModal({
                           <Copy className="h-3.5 w-3.5" />
                           Copy Proof Diagnostic Report
                         </button>
-                      </div>
-                    )}
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
 
             {/* Modal Footer CTAs */}
