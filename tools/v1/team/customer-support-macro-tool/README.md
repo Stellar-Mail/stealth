@@ -17,9 +17,10 @@ apply reusable response templates ("macros") with variable interpolation.
 4. [Usage](#4-usage)
 5. [Fixtures](#5-fixtures)
 6. [Running tests](#6-running-tests)
-7. [Known limitations](#7-known-limitations)
-8. [OSS reviewer notes](#8-oss-reviewer-notes)
-9. [Integration roadmap](#9-integration-roadmap)
+7. [Architecture contract](#7-architecture-contract)
+8. [Known limitations](#8-known-limitations)
+9. [OSS reviewer notes](#9-oss-reviewer-notes)
+10. [Integration roadmap](#10-integration-roadmap)
 
 ---
 
@@ -53,6 +54,8 @@ customer-support-macro-tool/
 │   ├── storage.service.test.ts # Unit tests — persistence layer
 │   └── TEST_PLAN.md            # Full test strategy document
 ├── docs/
+│   ├── ARCHITECTURE.md         # Folder-local architecture contract
+│   ├── REVIEW_NOTES.md         # OSS review guide
 │   └── SETUP.md                # Dev setup guide
 ├── README.md                   ← you are here
 └── specs.md                    # Issue categories and contributor expectations
@@ -95,7 +98,7 @@ const body = interpolateMacro(macro.body, {
   customer_name: "Alice",
   company_name: "Acme Corp",
 });
-// → "Hi Alice, welcome to Acme Corp support!"
+// -> "Hi Alice, welcome to Acme Corp support!"
 ```
 
 ### Using the React hook
@@ -171,7 +174,20 @@ coverage targets, and a description of every test case.
 
 ---
 
-## 7. Known limitations
+## 7. Architecture contract
+
+See [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) for the folder-local
+architecture contract. It defines:
+
+- service, storage, hook, fixture, test, docs, and future component boundaries;
+- data owned by this tool versus data owned by the main app;
+- dependency rules that keep this folder isolated from app shell, inbox,
+  wallet, Stellar, database, routing, and design-system internals;
+- allowed future changes and changes that require a separate integration issue.
+
+---
+
+## 8. Known limitations
 
 | Limitation                  | Detail                                                                                                                              |
 | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
@@ -184,15 +200,16 @@ coverage targets, and a description of every test case.
 
 ---
 
-## 8. OSS reviewer notes
+## 9. OSS reviewer notes
 
 ### How to review this contribution independently
 
-1. **Read `tests/TEST_PLAN.md`** — it maps every test file to the feature it exercises.
-2. **Run the tests** (`npx vitest run tools/v1/team/customer-support-macro-tool/tests`) — all should pass.
-3. **Inspect the services** — `macro.service.ts` contains only pure functions. No side effects, no React, no imports from `src/`.
-4. **Check isolation** — `grep -r "from.*src/" tools/v1/team/customer-support-macro-tool/` should return **zero** results.
-5. **Verify boundary** — no file outside `tools/v1/team/customer-support-macro-tool/` is modified by this PR.
+1. **Read `docs/ARCHITECTURE.md`** — it defines module boundaries and integration guardrails.
+2. **Read `tests/TEST_PLAN.md`** — it maps every test file to the feature it exercises.
+3. **Run the tests** (`npx vitest run tools/v1/team/customer-support-macro-tool/tests`) — all should pass.
+4. **Inspect the services** — `macro.service.ts` contains only pure functions. No side effects, no React, no imports from `src/`.
+5. **Check isolation** — `grep -r "from.*src/" tools/v1/team/customer-support-macro-tool/` should return **zero** results.
+6. **Verify boundary** — no file outside `tools/v1/team/customer-support-macro-tool/` is modified by this PR.
 
 ### What reviewers should NOT worry about
 
@@ -202,7 +219,7 @@ coverage targets, and a description of every test case.
 
 ---
 
-## 9. Integration roadmap
+## 10. Integration roadmap
 
 When a future integration issue is opened, the following adapter points are ready:
 
