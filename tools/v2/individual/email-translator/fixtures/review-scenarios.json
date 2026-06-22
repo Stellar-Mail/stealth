@@ -1,0 +1,81 @@
+[
+  {
+    "id": "en-to-es-support-reply",
+    "title": "English support reply translated to Spanish",
+    "sourceLanguage": "en",
+    "targetLanguage": "es",
+    "sourceText": "Hello Mina, your invoice has been received and our billing team will follow up before Friday.",
+    "expectedReviewFocus": [
+      "keeps named recipients unchanged",
+      "keeps billing timing intact",
+      "does not invent payment confirmation"
+    ],
+    "uiStates": [
+      "success",
+      "copy-ready"
+    ]
+  },
+  {
+    "id": "fr-to-en-calendar-note",
+    "title": "French calendar note translated to English",
+    "sourceLanguage": "fr",
+    "targetLanguage": "en",
+    "sourceText": "Bonjour, la reunion produit est deplacee a 14h30 demain. Merci de confirmer votre presence.",
+    "expectedReviewFocus": [
+      "preserves tomorrow timing",
+      "preserves meeting intent",
+      "keeps confirmation request visible"
+    ],
+    "uiStates": [
+      "success",
+      "copy-ready"
+    ]
+  },
+  {
+    "id": "ja-to-en-short-message",
+    "title": "Japanese short email translated to English",
+    "sourceLanguage": "ja",
+    "targetLanguage": "en",
+    "sourceText": "ご連絡ありがとうございます。資料を確認して、本日中に返信します。",
+    "expectedReviewFocus": [
+      "handles non-Latin input",
+      "keeps same-day response promise",
+      "does not add unsupported details"
+    ],
+    "uiStates": [
+      "success",
+      "copy-ready"
+    ]
+  },
+  {
+    "id": "empty-source-error",
+    "title": "Empty source text validation",
+    "sourceLanguage": "en",
+    "targetLanguage": "de",
+    "sourceText": "",
+    "expectedReviewFocus": [
+      "blocks translation until source text exists",
+      "returns a user-readable validation error",
+      "does not call provider"
+    ],
+    "uiStates": [
+      "error",
+      "empty"
+    ]
+  },
+  {
+    "id": "unsupported-language-error",
+    "title": "Unsupported target language validation",
+    "sourceLanguage": "en",
+    "targetLanguage": "tlh",
+    "sourceText": "Please translate this product update for the regional team.",
+    "expectedReviewFocus": [
+      "rejects unsupported target language",
+      "keeps source text local",
+      "surfaces a recoverable error state"
+    ],
+    "uiStates": [
+      "error"
+    ]
+  }
+]

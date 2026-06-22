@@ -4,7 +4,7 @@ The Email Translator helps **Individual** users translate email body content bet
 
 ## Current Status
 
-**Architecture only — implementation deferred.** This folder contains the architectural contract, module placeholders, and contributor rules. No TypeScript components, services, or hooks are implemented yet. Future issues should implement against `ARCHITECTURE.md` without modifying core application files.
+**Architecture and local review assets only — implementation deferred.** This folder contains the architectural contract, module placeholders, contributor rules, and a folder-local test plan. No TypeScript components, services, or hooks are implemented yet. Future issues should implement against `ARCHITECTURE.md` without modifying core application files.
 
 ## Folder Structure
 
@@ -15,11 +15,24 @@ email-translator/
 ├── components/        # EmailTranslatorShell, LanguageSelector, etc. (planned)
 ├── services/          # translationProvider, translationService, languageDetector (planned)
 ├── hooks/             # useTranslation, useLanguageDetect (planned)
-├── tests/             # Local unit and integration tests (planned)
-└── docs/              # Extended local documentation (planned)
+├── fixtures/          # Synthetic review scenarios for future implementation
+├── tests/             # Folder-local fixture contract tests and future coverage
+└── docs/              # Test plan and review notes
 ```
 
 See [ARCHITECTURE.md](./ARCHITECTURE.md) for component, service, and hook responsibilities.
+See [docs/TEST_PLAN.md](./docs/TEST_PLAN.md) for setup, usage, fixtures, and known limitations.
+See [docs/REVIEW_NOTES.md](./docs/REVIEW_NOTES.md) for independent review guidance.
+
+## Local Validation
+
+Run the folder-local fixture contract test from the repository root:
+
+```bash
+node --test tools/v2/individual/email-translator/tests/fixture-contract.test.mjs
+```
+
+This test validates the synthetic review fixtures that future service, hook, and UI tests should reuse. It does not call a live translation provider or the main app.
 
 ## Contributor Rules
 
