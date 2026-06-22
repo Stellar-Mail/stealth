@@ -30,7 +30,6 @@ import {
 import {
   getRecipientReadiness,
   parseRecipients,
-  validateComposeDraft,
   type Attachment,
   type ComposeMode,
   type ComposeSubmission,
@@ -39,7 +38,7 @@ import {
 import { DeliveryEstimator, type RelayStatus } from "./DeliveryEstimator";
 import { SendPipeline, type StageState } from "@/features/compose/sendPipeline";
 import { SendProgress } from "@/features/compose/SendProgress";
-
+import { useFreighter } from "@/features/onboarding/useFreighter";
 const EMPTY_BLOCKED: string[] = [];
 const EMPTY_RESOLVED: RecipientReadiness[] = [];
 
@@ -55,7 +54,7 @@ export function Compose({
   blockedRecipients = EMPTY_BLOCKED,
   onSubmit,
   resolutionContext,
-}: {
+}: Readonly<{
   open: boolean;
   onClose: () => void;
   onShowToast?: (message: string) => void;
@@ -67,7 +66,7 @@ export function Compose({
   blockedRecipients?: string[];
   onSubmit?: (submission: ComposeSubmission) => void;
   resolutionContext?: Parameters<typeof resolveRecipients>[2];
-}) {
+}>) {
   const [to, setTo] = useState(initialTo);
   const [subject, setSubject] = useState(initialSubject);
   const [body, setBody] = useState(initialBody);
@@ -87,8 +86,8 @@ export function Compose({
 
   // Derive the primary recipient (first entry) for policy quote
   const primaryRecipient = parseRecipients(to)[0] ?? "";
-  // TODO: replace "me" with actual sender address from identity store
-  const senderAddress = "me";
+  const freighter = useFreighter();
+  const senderAddress = freighter.state.status === "connected" ? freighter.state.address : "me";
   const quoteState = usePostageQuote(primaryRecipient, senderAddress);
 
   const containerRef = useFocusTrap(open, onClose);
@@ -148,7 +147,7 @@ export function Compose({
     if (!open) return;
     let cancelled = false;
     fetch("/relays/default/diagnostics")
-      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("Relay check failed"))))
       .then((data: { status: RelayStatus }) => {
         if (!cancelled) setRelayStatus(data.status ?? "unknown");
       })
@@ -220,8 +219,8 @@ export function Compose({
         insertAtCursor(aiSuggestion);
       }
     };
-    if (open) window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
+    if (open) globalThis.addEventListener("keydown", handler);
+    return () => globalThis.removeEventListener("keydown", handler);
   }, [open, onClose, emojiOpen, insertAtCursor]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>, type: "file" | "image") => {
@@ -243,53 +242,15 @@ export function Compose({
   };
 
   const handleSend = async (scheduled = false) => {
-    // Prevent sending if recipients not fully resolved
-    if (resolvedRecipients.length === 0) {
-      onShowToast?.("Please add at least one recipient");
-      return;
-    }
-
-    if (resolvedRecipients.some((r) => r.state === "resolving" || r.state === "invalid")) {
-      onShowToast?.("All recipients must be verified before sending");
-      return;
-    }
-
-    if (resolvedRecipients.some((r) => r.state === "blocked")) {
-      onShowToast?.("Remove blocked recipients before sending");
-      return;
-    }
-
-    // Policy-level block (sender blocked by recipient policy)
-    if (isPolicyBlocking(quoteState)) {
-      onShowToast?.("Recipient has blocked this sender");
-      return;
-    }
-
-    // Postage check: skip for trusted senders, enforce minimum for others
-    const currentQuote = quoteState.status === "quoted" ? quoteState.quote : null;
-    if (!isTrustedSender(quoteState)) {
-      if (currentQuote) {
-        const postageStroops = BigInt(Math.round(Number(postage) * 10_000_000));
-        const minimumStroops = BigInt(currentQuote.amount);
-        if (postageStroops < minimumStroops) {
-          onShowToast?.("Add postage before sending");
-          return;
-        }
-      } else if (resolvedRecipients.some((r) => r.postage === "required")) {
-        onShowToast?.("Add postage before sending");
-        return;
-      }
-    }
-
-    if (!subject.trim()) {
-      onShowToast?.("Please enter a subject");
-      return;
-    }
-
-    if (!body.trim()) {
-      onShowToast?.("Please enter a message");
-      return;
-    }
+    const isValid = validateSendRequest({
+      resolvedRecipients,
+      quoteState,
+      postage,
+      subject,
+      body,
+      onShowToast,
+    });
+    if (!isValid) return;
 
     setIsSending(true);
 
@@ -340,14 +301,7 @@ export function Compose({
     });
     setIsSending(false);
     onClose();
-    const trusted = isTrustedSender(quoteState);
-    onShowToast?.(
-      scheduled
-        ? "Message scheduled with postage reserved"
-        : trusted
-          ? "Encrypted message sent (trusted — no postage required)"
-          : `Encrypted message sent with ${postage} XLM postage`,
-    );
+    onShowToast?.(getSuccessToastMessage(scheduled, isTrustedSender(quoteState), postage));
   };
 
   const handleEmojiSelect = (emoji: string) => {
@@ -379,15 +333,11 @@ export function Compose({
           >
             <div className="flex items-center justify-between border-b border-white/5 px-4 py-3">
               <div className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                {mode === "compose"
-                  ? "New message"
-                  : mode === "schedule"
-                    ? "Schedule send"
-                    : mode.replace("-", " ")}
+                {getHeaderTitle(mode)}
               </div>
               <button
                 onClick={onClose}
-                className="rounded-lg p-1.5 text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground"
+                className="rounded-lg p-1.5 text-muted-foreground transition hover:bg-white/6 hover:text-foreground"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -433,8 +383,8 @@ export function Compose({
                 <div className="mb-2 flex flex-wrap gap-2">
                   {attachments.map((att, i) => (
                     <div
-                      key={i}
-                      className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.04] px-2 py-1.5"
+                      key={`${att.name}-${att.size}`}
+                      className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/4 px-2 py-1.5"
                     >
                       {att.type === "image" ? (
                         <ImageIcon className="h-3.5 w-3.5 text-muted-foreground" />
@@ -445,7 +395,7 @@ export function Compose({
                       <span className="text-[10px] text-muted-foreground">{att.size}</span>
                       <button
                         onClick={() => removeAttachment(i)}
-                        className="ml-1 rounded p-0.5 text-muted-foreground transition hover:bg-white/[0.08] hover:text-foreground"
+                        className="ml-1 rounded p-0.5 text-muted-foreground transition hover:bg-white/8 hover:text-foreground"
                       >
                         <X className="h-3 w-3" />
                       </button>
@@ -459,7 +409,7 @@ export function Compose({
                 initial={{ opacity: 0, y: 4 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.15 }}
-                className="mt-2 flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-[11px] text-muted-foreground"
+                className="mt-2 flex items-center gap-2 rounded-lg border border-white/10 bg-white/3 px-3 py-2 text-[11px] text-muted-foreground"
               >
                 <Sparkles className="h-3.5 w-3.5 shrink-0" />
                 <span className="min-w-0 flex-1 truncate">
@@ -467,7 +417,7 @@ export function Compose({
                 </span>
                 <button
                   onClick={() => insertAtCursor(aiSuggestion)}
-                  className="shrink-0 rounded-md border border-white/10 bg-white/[0.06] px-2 py-0.5 text-[10px] text-foreground/90 transition hover:bg-white/[0.1]"
+                  className="shrink-0 rounded-md border border-white/10 bg-white/6 px-2 py-0.5 text-[10px] text-foreground/90 transition hover:bg-white/10"
                 >
                   Tab to insert
                 </button>
@@ -502,7 +452,7 @@ export function Compose({
                           setPostage(event.target.value);
                         }}
                         inputMode="decimal"
-                        className="w-16 bg-transparent font-mono outline-none"
+                        className="w-16 rounded-sm bg-transparent font-mono outline-none focus-visible:ring-2 focus-visible:ring-white/20"
                         aria-label="Postage amount"
                       />
                       XLM
@@ -538,7 +488,7 @@ export function Compose({
               <motion.button
                 whileTap={{ scale: 0.9 }}
                 onClick={() => fileInputRef.current?.click()}
-                className="rounded-lg p-2 text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground"
+                className="rounded-lg p-2 text-muted-foreground transition hover:bg-white/6 hover:text-foreground"
               >
                 <Paperclip className="h-4 w-4" />
               </motion.button>
@@ -547,7 +497,7 @@ export function Compose({
               <motion.button
                 whileTap={{ scale: 0.9 }}
                 onClick={() => imageInputRef.current?.click()}
-                className="rounded-lg p-2 text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground"
+                className="rounded-lg p-2 text-muted-foreground transition hover:bg-white/6 hover:text-foreground"
               >
                 <ImageIcon className="h-4 w-4" />
               </motion.button>
@@ -558,8 +508,8 @@ export function Compose({
                   whileTap={{ scale: 0.9 }}
                   onClick={() => setEmojiOpen(!emojiOpen)}
                   className={cn(
-                    "rounded-lg p-2 text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground",
-                    emojiOpen && "bg-white/[0.06] text-foreground",
+                    "rounded-lg p-2 text-muted-foreground transition hover:bg-white/6 hover:text-foreground",
+                    emojiOpen && "bg-white/6 text-foreground",
                   )}
                 >
                   <Smile className="h-4 w-4" />
@@ -576,7 +526,7 @@ export function Compose({
                 whileTap={{ scale: 0.97 }}
                 onClick={() => handleSend(true)}
                 disabled={isSending}
-                className="ml-auto inline-flex items-center gap-2 rounded-lg border border-white/10 px-3 py-1.5 text-xs text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground"
+                className="ml-auto inline-flex items-center gap-2 rounded-lg border border-white/10 px-3 py-1.5 text-xs text-muted-foreground transition hover:bg-white/6 hover:text-foreground"
               >
                 <CalendarClock className="h-3.5 w-3.5" />
                 Schedule
@@ -618,11 +568,7 @@ export function Compose({
                     "inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.08] px-3 py-1.5 text-xs font-medium text-foreground transition hover:bg-white/[0.14]";
                 }
 
-                const disabledReason = isBlocked
-                  ? "Recipient has blocked this sender"
-                  : recipientResolving
-                    ? "Waiting for recipient verification"
-                    : undefined;
+                const disabledReason = getDisabledReason(isBlocked, recipientResolving);
 
                 return (
                   <motion.button
@@ -631,6 +577,7 @@ export function Compose({
                     onClick={() => void handleSend(false)}
                     disabled={isSendDisabled}
                     aria-disabled={isSendDisabled}
+                    aria-busy={isSending}
                     title={disabledReason}
                     aria-label={disabledReason ?? sendLabel}
                     className={sendButtonClass}
@@ -638,7 +585,7 @@ export function Compose({
                       isSendDisabled ? undefined : { boxShadow: "0 8px 30px -10px rgba(0,0,0,0.6)" }
                     }
                   >
-                    <Send className={cn("h-3.5 w-3.5", isSending && "animate-pulse")} />
+                    <Send className={cn("h-3.5 w-3.5", isSending && "motion-safe:animate-pulse")} />
                     {sendLabel}
                   </motion.button>
                 );
@@ -670,13 +617,13 @@ function getRecipientChipColor(state: RecipientReadiness["state"]) {
     case "unknown":
       return "border-amber-300/25 bg-amber-300/10 text-amber-100";
     case "resolving":
-      return "border-blue-300/25 bg-blue-300/10 text-blue-100 animate-pulse";
+      return "border-blue-300/25 bg-blue-300/10 text-blue-100 motion-safe:animate-pulse";
     default:
       return "border-zinc-300/25 bg-zinc-300/10 text-zinc-100";
   }
 }
 
-function RecipientReadinessChips({ recipients }: { recipients: RecipientReadiness[] }) {
+function RecipientReadinessChips({ recipients }: Readonly<{ recipients: RecipientReadiness[] }>) {
   if (!recipients.length) return null;
 
   return (
@@ -721,13 +668,13 @@ function ProtocolToggle({
   label,
   detail,
   onClick,
-}: {
+}: Readonly<{
   active: boolean;
   icon: typeof Lock;
   label: string;
   detail: string;
   onClick: () => void;
-}) {
+}>) {
   return (
     <button
       type="button"
@@ -736,8 +683,8 @@ function ProtocolToggle({
       className={cn(
         "flex items-center gap-2 rounded-lg border px-3 py-2 text-left transition",
         active
-          ? "border-emerald-200/20 bg-emerald-200/[0.06]"
-          : "border-white/10 bg-white/[0.025] opacity-60",
+          ? "border-emerald-200/20 bg-emerald-200/6"
+          : "border-white/10 bg-white/2.5 opacity-60",
       )}
     >
       <Icon className={cn("h-4 w-4", active ? "text-emerald-200" : "text-muted-foreground")} />
@@ -754,12 +701,12 @@ function Field({
   placeholder,
   value,
   onChange,
-}: {
+}: Readonly<{
   label: string;
   placeholder: string;
   value: string;
   onChange: (v: string) => void;
-}) {
+}>) {
   return (
     <div className="flex items-center gap-3 border-b border-white/5 py-2">
       <span
@@ -773,7 +720,7 @@ function Field({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="glow-ring w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none"
+        className="glow-ring w-full rounded-sm bg-transparent text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
       />
     </div>
   );
@@ -784,5 +731,79 @@ function formatFileSize(bytes: number): string {
   const k = 1024;
   const sizes = ["B", "KB", "MB", "GB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
+  return Number.parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
+}
+
+function validateSendRequest({
+  resolvedRecipients,
+  quoteState,
+  postage,
+  subject,
+  body,
+  onShowToast,
+}: {
+  resolvedRecipients: RecipientReadiness[];
+  quoteState: ReturnType<typeof usePostageQuote>;
+  postage: string;
+  subject: string;
+  body: string;
+  onShowToast?: (message: string) => void;
+}) {
+  if (resolvedRecipients.length === 0) {
+    onShowToast?.("Please add at least one recipient");
+    return false;
+  }
+  if (resolvedRecipients.some((r) => r.state === "resolving" || r.state === "invalid")) {
+    onShowToast?.("All recipients must be verified before sending");
+    return false;
+  }
+  if (resolvedRecipients.some((r) => r.state === "blocked")) {
+    onShowToast?.("Remove blocked recipients before sending");
+    return false;
+  }
+  if (isPolicyBlocking(quoteState)) {
+    onShowToast?.("Recipient has blocked this sender");
+    return false;
+  }
+  if (!isTrustedSender(quoteState)) {
+    const currentQuote = quoteState.status === "quoted" ? quoteState.quote : null;
+    if (currentQuote) {
+      const postageStroops = BigInt(Math.round(Number(postage) * 10_000_000));
+      const minimumStroops = BigInt(currentQuote.amount);
+      if (postageStroops < minimumStroops) {
+        onShowToast?.("Add postage before sending");
+        return false;
+      }
+    } else if (resolvedRecipients.some((r) => r.postage === "required")) {
+      onShowToast?.("Add postage before sending");
+      return false;
+    }
+  }
+  if (!subject.trim()) {
+    onShowToast?.("Please enter a subject");
+    return false;
+  }
+  if (!body.trim()) {
+    onShowToast?.("Please enter a message");
+    return false;
+  }
+  return true;
+}
+
+function getHeaderTitle(mode: string) {
+  if (mode === "compose") return "New message";
+  if (mode === "schedule") return "Schedule send";
+  return mode.replace("-", " ");
+}
+
+function getDisabledReason(isBlocked: boolean, recipientResolving: boolean) {
+  if (isBlocked) return "Recipient has blocked this sender";
+  if (recipientResolving) return "Waiting for recipient verification";
+  return undefined;
+}
+
+function getSuccessToastMessage(scheduled: boolean, trusted: boolean, postage: string) {
+  if (scheduled) return "Message scheduled with postage reserved";
+  if (trusted) return "Encrypted message sent (trusted — no postage required)";
+  return `Encrypted message sent with ${postage} XLM postage`;
 }

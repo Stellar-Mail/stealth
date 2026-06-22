@@ -1,0 +1,276 @@
+.idd-shell {
+  color: #172033;
+  display: grid;
+  gap: 1rem;
+  max-width: 760px;
+}
+
+.idd-header,
+.idd-result-heading,
+.idd-actions {
+  align-items: center;
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+}
+
+.idd-header h1,
+.idd-panel h2,
+.idd-panel h3,
+.idd-kicker,
+.idd-state-label {
+  letter-spacing: 0;
+  margin: 0;
+}
+
+.idd-header h1 {
+  font-size: 1.75rem;
+  line-height: 1.2;
+}
+
+.idd-kicker,
+.idd-state-label {
+  color: #58627a;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.idd-badge,
+.idd-priority {
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0.38rem 0.55rem;
+}
+
+.idd-badge {
+  background: #e7f2ec;
+  color: #12633f;
+}
+
+.idd-controls,
+.idd-panel {
+  background: #ffffff;
+  border: 1px solid #d9dfeb;
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgb(20 32 50 / 8%);
+  padding: 1rem;
+}
+
+.idd-controls {
+  display: grid;
+  gap: 1rem;
+}
+
+.idd-help,
+.idd-panel p {
+  color: #4d5870;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.idd-controls fieldset {
+  border: 1px solid #d9dfeb;
+  border-radius: 8px;
+  display: grid;
+  gap: 0.7rem;
+  margin: 0;
+  padding: 0.85rem;
+}
+
+.idd-controls legend,
+.idd-field span {
+  color: #202a3e;
+  font-weight: 700;
+}
+
+.idd-checkbox,
+.idd-field {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.idd-checkbox {
+  align-items: center;
+  grid-template-columns: auto 1fr;
+}
+
+.idd-field select {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  color: #172033;
+  min-height: 2.5rem;
+  padding: 0.55rem 0.7rem;
+}
+
+.idd-actions {
+  flex-wrap: wrap;
+  justify-content: flex-start;
+}
+
+.idd-shell button {
+  background: #17324d;
+  border: 1px solid #17324d;
+  border-radius: 6px;
+  color: #ffffff;
+  cursor: pointer;
+  font-weight: 700;
+  min-height: 2.5rem;
+  padding: 0.6rem 0.85rem;
+}
+
+.idd-shell button:hover,
+.idd-shell button:focus-visible {
+  background: #234a70;
+}
+
+.idd-shell button:focus-visible,
+.idd-field select:focus-visible,
+.idd-checkbox input:focus-visible {
+  outline: 3px solid #f5b84b;
+  outline-offset: 2px;
+}
+
+.idd-shell .idd-secondary {
+  background: #ffffff;
+  color: #17324d;
+}
+
+.idd-shell .idd-ghost {
+  background: transparent;
+  border-color: transparent;
+  color: #334155;
+}
+
+.idd-panel {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.idd-empty {
+  border-style: dashed;
+}
+
+.idd-error {
+  border-color: #d8594c;
+}
+
+.idd-loading {
+  align-items: start;
+}
+
+.idd-spinner {
+  animation: idd-spin 850ms linear infinite;
+  border: 3px solid #d9dfeb;
+  border-radius: 50%;
+  border-top-color: #17324d;
+  height: 2rem;
+  width: 2rem;
+}
+
+.idd-summary {
+  font-size: 1rem;
+}
+
+.idd-insights {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0;
+}
+
+.idd-insights div {
+  background: #f6f8fb;
+  border: 1px solid #e4e9f1;
+  border-radius: 8px;
+  padding: 0.8rem;
+}
+
+.idd-insights dt {
+  color: #58627a;
+  font-size: 0.8rem;
+}
+
+.idd-insights dd {
+  color: #172033;
+  font-size: 1.4rem;
+  font-weight: 800;
+  margin: 0.2rem 0 0;
+}
+
+.idd-email-list,
+.idd-next-actions {
+  display: grid;
+  gap: 0.65rem;
+  margin: 0.6rem 0 0;
+  padding-left: 0;
+}
+
+.idd-email-list {
+  list-style: none;
+}
+
+.idd-email-list li {
+  align-items: center;
+  border: 1px solid #e4e9f1;
+  border-radius: 8px;
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: auto 1fr;
+  padding: 0.75rem;
+}
+
+.idd-email-list strong,
+.idd-email-list span {
+  display: block;
+}
+
+.idd-email-list span {
+  color: #58627a;
+}
+
+.idd-priority-high {
+  background: #fdecea;
+  color: #a3291f;
+}
+
+.idd-priority-normal {
+  background: #eaf1fb;
+  color: #1c5790;
+}
+
+.idd-priority-low {
+  background: #eef2f7;
+  color: #475569;
+}
+
+.idd-next-actions {
+  padding-left: 1.25rem;
+}
+
+@keyframes idd-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 640px) {
+  .idd-header,
+  .idd-result-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .idd-insights {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .idd-spinner {
+    animation: none;
+  }
+}

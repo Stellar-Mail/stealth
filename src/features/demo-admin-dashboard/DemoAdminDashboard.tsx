@@ -273,7 +273,7 @@ function OverviewContent({
                   setActivePresetId(preset.id);
                 }}
                 className={cn(
-                  "rounded-xl border p-4 text-left transition flex flex-col justify-between h-36 w-full",
+                  "glow-ring rounded-xl border p-4 text-left transition flex flex-col justify-between h-36 w-full active:scale-[0.99]",
                   active
                     ? "border-amber-500/50 bg-amber-500/5 ring-1 ring-amber-500/20"
                     : "border-white/[0.06] bg-white/[0.02] hover:border-white/10 hover:bg-white/[0.04]",
@@ -740,7 +740,7 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
               aria-label={item.description}
               onClick={() => handleSectionChange(item.id)}
               className={cn(
-                "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition",
+                "glow-ring flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition active:scale-95",
                 isActive
                   ? "bg-white/[0.08] text-foreground"
                   : "text-muted-foreground hover:bg-white/[0.04] hover:text-foreground",
@@ -827,7 +827,8 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
               <button
                 type="button"
                 onClick={() => setSelectedAccountAddress(null)}
-                className="rounded-md p-1 text-muted-foreground hover:bg-white/5 hover:text-foreground"
+                aria-label="Close relay node inspector"
+                className="glow-ring rounded-md p-1 text-muted-foreground transition hover:bg-white/5 hover:text-foreground active:scale-95"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -888,7 +889,7 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
           <button
             type="button"
             onClick={() => setSelectedAccountAddress(null)}
-            className="w-full rounded-lg border border-white/10 bg-white/[0.02] py-2 text-xs font-semibold text-foreground hover:bg-white/5 transition"
+            className="glow-ring w-full rounded-lg border border-white/10 bg-white/[0.02] py-2 text-xs font-semibold text-foreground hover:bg-white/5 transition active:scale-[0.99]"
           >
             Close Inspector
           </button>
@@ -907,7 +908,8 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
               <button
                 type="button"
                 onClick={() => setSelectedMailSubject(null)}
-                className="rounded-md p-1 text-muted-foreground hover:bg-white/5 hover:text-foreground"
+                aria-label="Close ledger proof inspector"
+                className="glow-ring rounded-md p-1 text-muted-foreground transition hover:bg-white/5 hover:text-foreground active:scale-95"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -982,7 +984,7 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
           <button
             type="button"
             onClick={() => setSelectedMailSubject(null)}
-            className="w-full rounded-lg border border-white/10 bg-white/[0.02] py-2 text-xs font-semibold text-foreground hover:bg-white/5 transition mt-4"
+            className="glow-ring w-full rounded-lg border border-white/10 bg-white/[0.02] py-2 text-xs font-semibold text-foreground hover:bg-white/5 transition mt-4 active:scale-[0.99]"
           >
             Close Inspector
           </button>
