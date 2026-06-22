@@ -49,7 +49,7 @@ export const encryptedCampaignPreset: PresetScenario = {
       status: "Locked",
       folder: "encrypted",
       from: "Kael Ortega",
-      email: "kael*nexus.io",
+      email: "kael*stealth.demo",
       body: "This funding proposal is sealed with your registered public key. Please approve access to decrypt the payload.",
       time: "10:30 AM",
       unread: true,
@@ -73,7 +73,7 @@ export const encryptedCampaignPreset: PresetScenario = {
       status: "Decrypted",
       folder: "encrypted",
       from: "Nadia Reyes",
-      email: "nadia*atlas.dev",
+      email: "nadia*stealth.demo",
       body: "The Curve25519 envelope has been successfully decrypted. Attached are the technical specifications and test vectors.",
       time: "11:00 AM",
       unread: false,
@@ -97,7 +97,7 @@ export const encryptedCampaignPreset: PresetScenario = {
       status: "Failed",
       folder: "encrypted",
       from: "Vault Node",
-      email: "vault*stealth.network",
+      email: "vault*stealth.demo",
       body:
         "The payload failed integrity verification. This may indicate a corrupted message or potential relay tampering. Diagnostic ID: " +
         mockDiagnosticId("enc-trace-3"),
@@ -137,6 +137,27 @@ export const encryptedCampaignPreset: PresetScenario = {
       sender: "Nadia Reyes",
     },
   ],
-  events: [],
-  auditEvents: [],
+  events: [
+    {
+      id: "evt-encrypted-payload",
+      title: "Encrypted Payload Verification",
+      date: "2026-06-18",
+      time: "2:00 PM",
+      location: "Virtual",
+      organizer: "cipher*stealth.demo",
+      status: "confirmed",
+    },
+  ],
+  auditEvents: [
+    {
+      action: "Encrypted payload campaign initialized",
+      actor: "Admin User",
+      timestamp: "2026-06-16T08:00:00Z",
+    },
+    {
+      action: "Sealed proposal message dispatched with Curve25519 envelope",
+      actor: "cipher*stealth.demo",
+      timestamp: "2026-06-16T10:30:00Z",
+    },
+  ],
 };

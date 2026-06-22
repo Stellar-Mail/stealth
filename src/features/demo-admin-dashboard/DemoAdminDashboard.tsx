@@ -35,6 +35,7 @@ import { PRESET_SCENARIOS } from "./fixtures/presets";
 import { AdminDataTable, type Column } from "./components/AdminDataTable";
 import { CampaignMessageAssignmentPanel } from "./components/CampaignMessageAssignmentPanel";
 import { CampaignSnapshots } from "./components/CampaignSnapshots";
+import { CampaignTimelinePanel } from "./components/CampaignTimelinePanel";
 import type { Draft } from "./types/draft";
 
 // ─── Default Deterministic fake data ──────────────────────────────────────────
