@@ -29,11 +29,12 @@ The contract deliberately excludes message bodies, full mailbox content, private
 ## User-Facing States
 
 - Empty timeline: `EmptyState` explains that policy changes, sender decisions, delivery proofs, and session events will appear after activity starts, while message body content is never recorded.
-- Default timeline: rows are ordered by the provided event array and show the summary, actor, optional context, and timestamp.
-- Category filter: `All`, `Policy`, `Delivery`, `Security`, and `Billing` narrow the current event set without mutating source data.
-- Search filter: case-insensitive matching across summary, kind, sender display name, and message ID.
-- Copy diagnostics: copies the filtered event set as plain text for support and review.
-- Export JSON: downloads the filtered event set as `stealth-audit-YYYY-MM-DD.json`.
+- Filtered empty state: when filters or search remove every row, `EmptyState` offers a `Clear filters` action instead of implying the audit trail is empty.
+- Default timeline: rows are ordered by the provided event array and show the summary, actor, optional context, category label for assistive tech, and timestamp with a hover title for the full local datetime.
+- Category filter: `All`, `Policy`, `Delivery`, `Security`, and `Billing` narrow the current event set without mutating source data. Active filters expose `aria-pressed` and keyboard-visible focus rings.
+- Search filter: case-insensitive matching across summary, kind, sender display name, and message ID, with an inline clear control when text is present.
+- Copy diagnostics: copies the filtered event set as plain text for support and review. The action is disabled when no rows are visible, shows loading/success/error feedback, and never includes message bodies.
+- Export JSON: downloads the filtered event set as `stealth-audit-YYYY-MM-DD.json`. The action is disabled when no rows are visible and surfaces a recovery message if the browser blocks download.
 
 Filtering, copying, and exporting are read-only from the app's perspective. They should never write back to protocol state, mailbox state, or server-side audit storage without a separate reviewed API contract.
 
