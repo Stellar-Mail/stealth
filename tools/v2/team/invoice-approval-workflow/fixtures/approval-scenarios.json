@@ -1,0 +1,87 @@
+[
+  {
+    "id": "standard-software-renewal-approved",
+    "title": "Standard software renewal can be approved",
+    "invoice": {
+      "vendor": "Northstar Analytics",
+      "amount": 1240.5,
+      "currency": "USD",
+      "dueDate": "2026-07-15",
+      "purchaseOrder": "PO-2026-1042"
+    },
+    "reviewSignals": [
+      "purchase order matches vendor",
+      "amount is below team approval threshold",
+      "due date leaves more than five business days"
+    ],
+    "expectedState": "approved"
+  },
+  {
+    "id": "missing-po-needs-information",
+    "title": "Missing purchase order requires more information",
+    "invoice": {
+      "vendor": "Harbor Design Studio",
+      "amount": 875,
+      "currency": "USD",
+      "dueDate": "2026-07-03",
+      "purchaseOrder": ""
+    },
+    "reviewSignals": [
+      "purchase order is missing",
+      "vendor is otherwise known",
+      "reviewer should request procurement context"
+    ],
+    "expectedState": "needs_information"
+  },
+  {
+    "id": "large-contract-blocked",
+    "title": "Large contract invoice is blocked for policy review",
+    "invoice": {
+      "vendor": "Atlas Infrastructure",
+      "amount": 18500,
+      "currency": "USD",
+      "dueDate": "2026-07-21",
+      "purchaseOrder": "PO-2026-1188"
+    },
+    "reviewSignals": [
+      "amount exceeds team approval threshold",
+      "legal review is required before approval",
+      "finance lead must be included"
+    ],
+    "expectedState": "blocked"
+  },
+  {
+    "id": "duplicate-invoice-rejected",
+    "title": "Duplicate invoice is rejected",
+    "invoice": {
+      "vendor": "Northstar Analytics",
+      "amount": 1240.5,
+      "currency": "USD",
+      "dueDate": "2026-07-15",
+      "purchaseOrder": "PO-2026-1042"
+    },
+    "reviewSignals": [
+      "same vendor, amount, due date, and purchase order already exist",
+      "duplicate payment risk should be prevented",
+      "reviewer should keep an audit note"
+    ],
+    "expectedState": "rejected"
+  },
+  {
+    "id": "urgent-foreign-currency-pending-review",
+    "title": "Foreign currency invoice remains pending review",
+    "invoice": {
+      "vendor": "Kite Localization",
+      "amount": 2100,
+      "currency": "EUR",
+      "dueDate": "2026-07-01",
+      "purchaseOrder": "PO-2026-1202"
+    },
+    "reviewSignals": [
+      "currency conversion needs confirmation",
+      "due date is near",
+      "reviewer should confirm budget owner"
+    ],
+    "expectedState": "pending_review"
+  }
+]
