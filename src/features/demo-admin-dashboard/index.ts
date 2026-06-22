@@ -488,6 +488,21 @@ export {
 export { demoLabels, labeledDemoMessages } from "./labels/labelFixtures";
 export { LabelManager } from "./labels/LabelManager";
 
+// Bulk label panel (issue #40): add/remove labels across selected demo messages.
+export { BulkLabelPanel, calculateLabelState } from "./components/BulkLabelPanel";
+export type { BulkLabelPanelProps } from "./components/BulkLabelPanel";
+export {
+  applyBulkLabelEdit,
+  normalizeLabelsForBulk,
+  summarizeBulkLabelEdit,
+} from "./bulkLabelPanel";
+export type {
+  BulkLabelAuditSummary,
+  BulkLabelEditResult,
+  BulkLabelMessageChange,
+  BulkLabelOperation,
+} from "./bulkLabelPanel";
+
 // Draft dataset JSON import (issue #272): JSON -> safe drafts mapper with error output.
 export { mapImportedDataset, parseDatasetImport } from "./helpers/datasetImport";
 export type { DatasetImportIssue, DatasetImportResult } from "./types/datasetImport";
@@ -516,3 +531,30 @@ export {
   loadScenarioIntoDraft,
 } from "./helpers/scenarioRegistry";
 export type { DemoScenario, ScenarioLoadMode, ScenarioRegistry } from "./types/scenario";
+
+// Demo Inbox Preview Components (issue #24): folder-local preview without live integration
+export { DemoInboxPreview } from "./components/DemoInboxPreview";
+export { DemoInboxList } from "./components/DemoInboxList";
+export { DemoMailReader } from "./components/DemoMailReader";
+
+// Demo Inbox Data Fixtures (issue #24): safe demo data for inbox preview
+export {
+  createDemoInboxData,
+  getDemoMessagesByLabel,
+  getUnreadDemoMessages,
+  getStarredDemoMessages,
+  getDemoMessagesWithAttachments,
+  getDemoMessagesWithEvents,
+} from "./fixtures/demoInboxData";
+
+// Demo Data Validation (issue #24): safety compliance helpers
+export {
+  validateDemoDataset,
+  validateDemoMessage,
+  validateDemoSender,
+  validateSafeEmailAddress,
+  validateTextContent,
+  generateComplianceReport,
+  assertDemoDataSafety,
+} from "./helpers/demoDataValidator";
+export type { ValidationIssue, ValidationResult } from "./helpers/demoDataValidator";

@@ -1,4 +1,7 @@
-# Tool Architecture - Multi-Agent Assignment
+# Tool Architecture - Multi-Agent Assignment (Technical Deep Dive)
+
+> **Note:** The authoritative architecture contract is in [`../ARCHITECTURE.md`](../ARCHITECTURE.md).
+> This document provides technical details on data models, routing algorithms, and UI structure.
 
 This document details the architectural decisions, data models, and logic workflows of the Multi-Agent Assignment tool.
 

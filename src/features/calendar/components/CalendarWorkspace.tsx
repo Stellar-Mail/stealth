@@ -123,7 +123,19 @@ export function CalendarWorkspace({
       return date.getMonth() === month.getMonth() && date.getFullYear() === month.getFullYear();
     });
   }, [month, selectedDate, view, visibleEvents]);
-  const eventDates = visibleEvents.map((event) => parseISO(event.date));
+  const eventDates = useMemo(
+    () => visibleEvents.map((event) => parseISO(event.date)),
+    [visibleEvents],
+  );
+  // Precompute per-calendar event counts once (O(events)) instead of filtering
+  // the full event list for every calendar row each render (O(calendars × events)).
+  const eventCountByCalendar = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const event of events) {
+      counts.set(event.calendarId, (counts.get(event.calendarId) ?? 0) + 1);
+    }
+    return counts;
+  }, [events]);
   const visibleCalendarCount = visibleIds.size;
   const emptyState =
     visibleCalendarCount === 0
@@ -288,7 +300,7 @@ export function CalendarWorkspace({
                         </span>
                         <span className="flex-1">{calendar.name}</span>
                         <span className="text-[10px] text-muted-foreground">
-                          {events.filter((event) => event.calendarId === calendar.id).length}
+                          {eventCountByCalendar.get(calendar.id) ?? 0}
                         </span>
                       </button>
                     ))}

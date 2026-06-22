@@ -55,7 +55,7 @@ export const LIMITS = Object.freeze({
 /** Strip control characters and trim. Returns null for non-strings. */
 export function sanitizeText(value) {
   if (typeof value !== "string") return null;
-  // eslint-disable-next-line no-control-regex
+
   return value.trim().replace(/[\x00-\x1F\x7F]/g, "");
 }
 

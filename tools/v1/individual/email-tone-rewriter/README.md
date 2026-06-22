@@ -14,13 +14,16 @@ Do not wire this tool into the main app, routing, inbox architecture, wallet cor
 
 ## Contributor Setup
 
-This folder does not contain executable tool code yet. Until a feature issue
-adds the implementation, contributors should use these local documents as the
-launch contract:
+The folder now includes a reviewable, folder-local core service for the V1
+feature issue:
 
+- `services.ts` exposes the pure rewrite API, validation helpers, and preserved
+  key-point extraction.
+- `services.test.ts` covers supported tones, validation errors, key-point
+  preservation, disabled send/save flags, and length constraints.
 - `specs.md` defines the behavior and ownership boundary.
-- `docs/test-plan.md` lists the acceptance scenarios future unit and component
-  tests should cover.
+- `docs/test-plan.md` lists the acceptance scenarios future component tests
+  should cover.
 - `docs/fixtures.md` describes synthetic rewrite requests and expected outputs.
 - `REVIEW_NOTES.md` gives reviewers a quick checklist for this isolated work.
 
@@ -33,7 +36,8 @@ reviewable rewrite without sending or saving anything automatically.
 
 ## Known Limitations
 
-- No production code is present in this folder yet.
-- The documented tests are a plan, not an executable suite.
-- Main app routing, inbox integration, send actions, and persistence are
-  intentionally out of scope until a future integration issue allows them.
+- This issue adds the pure core service only; UI, integration, send actions, and
+  persistence are intentionally out of scope until a future integration issue
+  allows them.
+- The rewrite is deterministic and local. It does not call external AI providers,
+  production APIs, or mailbox data.

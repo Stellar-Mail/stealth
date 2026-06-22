@@ -37,12 +37,25 @@ tools/v2/team/shared-contact-notes/
 ├── README.md                   # Tool overview
 ├── ARCHITECTURE.md             # This file
 ├── specs.md                    # Feature specs and contracts
+├── components/
+│   ├── index.ts                # Component barrel export
+│   ├── SharedContactNotes.tsx  # Main state machine component
+│   ├── ContactNotesEmptyState.tsx
+│   ├── ContactNotesLoadingState.tsx
+│   ├── ContactNotesErrorState.tsx
+│   ├── ContactNotesList.tsx    # List with active/archived sections
+│   ├── ContactNoteEntry.tsx    # Individual note card
+│   └── ContactNoteForm.tsx     # Create/edit form with validation
+├── hooks/
+│   └── useContactNotes.ts      # useReducer-based hook wrapping NoteService
 ├── docs/
-│   └── review-notes.md         # Reviewer checklist
+│   ├── review-notes.md         # Reviewer checklist
+│   └── ACCESSIBILITY.md        # WCAG 2.1 AA compliance documentation
 ├── fixtures/
 │   └── notes.ts                # Seed data for tests
 └── tests/
-    ├── service.test.ts         # Vitest unit tests
+    ├── service.test.ts         # Vitest unit tests (service layer)
+    ├── components.test.tsx     # Vitest component tests (UI layer)
     └── test-plan.md            # Test coverage documentation
 ```
 
@@ -183,20 +196,75 @@ constructor(seedNotes?: Note[], config?: Partial<ServiceConfig>)
 
 ---
 
+#### 6. **hooks/useContactNotes.ts** — React Hook
+
+**Responsibility:** Bridge the `NoteService` with React state management.
+
+**Exports:**
+
+- `useContactNotes(contactId, service, initialLoad?)` — Returns `{ status, notes, error, loadNotes, createNote, updateNote, deleteNote, archiveNote }`
+
+**State Machine:**
+
+| Status    | Meaning                        |
+| --------- | ------------------------------ |
+| `idle`    | Initial state, no load started |
+| `loading` | Fetch in progress              |
+| `success` | Data loaded successfully       |
+| `error`   | Fetch failed                   |
+
+**Rules:**
+
+- Uses `useReducer` with a discriminated union of action types.
+- All mutations dispatch optimistically after service confirms.
+- Cleanup via `mountedRef` prevents state updates on unmounted components.
+- Does not import from `src/` or other tool folders.
+
+---
+
+#### 7. **components/** — React UI Layer
+
+**Responsibility:** Render all UI states with full accessibility support.
+
+**Components:**
+
+| Component                  | Role             | States Handled        |
+| -------------------------- | ---------------- | --------------------- |
+| `SharedContactNotes`       | Main container   | loading/error/success |
+| `ContactNotesLoadingState` | Skeleton loader  | `aria-busy="true"`    |
+| `ContactNotesErrorState`   | Error display    | `role="alert"`        |
+| `ContactNotesEmptyState`   | Empty state CTA  | `role="status"`       |
+| `ContactNotesList`         | Note list        | Active/Archived split |
+| `ContactNoteEntry`         | Individual note  | Edit/Archive/Delete   |
+| `ContactNoteForm`          | Create/Edit form | Inline validation     |
+
+**Rules:**
+
+- All interactive elements have `aria-label`, focus behavior, and keyboard support.
+- Components import UI primitives from `../../../../src/components/ui/` (shared shadcn/ui library).
+- No modification of the shared design system.
+- No main app shell or routing dependencies.
+
+---
+
 ### Data Ownership
 
 #### Responsibilities
 
-| Module              | Owns            | Responsible For                    |
-| ------------------- | --------------- | ---------------------------------- |
-| `types.ts`          | Data shapes     | Defining all contracts             |
-| `errors.ts`         | Error taxonomy  | Error creation and serialization   |
-| `validation.ts`     | Input rules     | Validating user input              |
-| `service.ts`        | In-memory store | CRUD operations, state consistency |
-| `fixtures/notes.ts` | Test data       | Providing deterministic seed data  |
-| `tests/`            | Test coverage   | Validating all contract guarantees |
+| Module                     | Owns            | Responsible For                         |
+| -------------------------- | --------------- | --------------------------------------- |
+| `types.ts`                 | Data shapes     | Defining all contracts                  |
+| `errors.ts`                | Error taxonomy  | Error creation and serialization        |
+| `validation.ts`            | Input rules     | Validating user input                   |
+| `service.ts`               | In-memory store | CRUD operations, state consistency      |
+| `hooks/useContactNotes.ts` | React state     | Bridging service to UI state management |
+| `components/`              | UI rendering    | All UI states and accessibility         |
+| `fixtures/notes.ts`        | Test data       | Providing deterministic seed data       |
+| `tests/`                   | Test coverage   | Validating all contract guarantees      |
 
 #### Data Flow
+
+**Engine Layer:**
 
 ```
 External Input
@@ -210,6 +278,22 @@ Internal Store (Map<NoteId, Note>)
 [service.ts] — copy data before returning
     ↓
 External Output (Promise<Note> or Promise<void>)
+```
+
+**UI Layer:**
+
+```
+[useContactNotes hook]
+    ─ calls service methods ─→ [NoteService] ─→ Promise<Note[]>
+    ← dispatches action ───── [useReducer]  ─→ new state
+         ↓
+[SharedContactNotes] renders based on status:
+    loading  → ContactNotesLoadingState
+    error    → ContactNotesErrorState
+    success
+      ─ empty → ContactNotesEmptyState
+      ─ data  → ContactNotesList → ContactNoteEntry
+    create/edit → ContactNoteForm
 ```
 
 ---
@@ -234,26 +318,49 @@ index.ts
   ├─→ errors.ts (re-exports error classes)
   └─→ validation.ts (re-exports validators)
 
+hooks/useContactNotes.ts
+  ├─→ service.ts (calls NoteService methods)
+  ├─→ types.ts (imports Note, CreateNoteInput, etc.)
+  └─→ errors.ts (handles NoteError type)
+
+components/SharedContactNotes.tsx
+  ├─→ hooks/useContactNotes.ts (state management)
+  ├─→ service.ts (instantiates NoteService)
+  ├─→ fixtures/notes.ts (default seed data)
+  └─→ components/* (renders child components)
+
 tests/service.test.ts
   ├─→ service.ts (tests NoteService)
   ├─→ types.ts (types for test data)
   ├─→ errors.ts (expects error types)
   └─→ fixtures/notes.ts (seeds test data)
+
+tests/components.test.tsx
+  ├─→ components/SharedContactNotes.tsx (renders component)
+  ├─→ service.ts (instantiates NoteService)
+  └─→ fixtures/notes.ts (seeds test data)
 ```
 
 #### External Dependencies
 
-**Allowed:**
+**Allowed (Engine Layer):**
 
 - TypeScript (type system only)
 - `crypto.randomUUID()` (native Web API for id generation)
 
+**Allowed (UI Layer):**
+
+- React 19 (`useState`, `useReducer`, `useCallback`, `useEffect`, `useRef`)
+- Shared shadcn/ui components from `../../../../src/components/ui/`
+- `lucide-react` icons
+- `@testing-library/react` and `@testing-library/user-event` (test only)
+
 **Not allowed:**
 
-- Main app imports (`src/`, relative paths outside this folder)
-- External npm libraries (no third-party code)
-- Browser APIs beyond `crypto`
+- Main app feature imports (`src/features/`, `src/hooks/`, `src/stores/`)
+- External npm libraries beyond those already in the project
 - Network or persistence libraries
+- Modification of `src/components/ui/` or shared design system
 
 ---
 
