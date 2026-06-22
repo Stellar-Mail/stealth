@@ -34,6 +34,22 @@ implements the following deterministic rules:
 - Manual review of fixture signals against expected digest item properties.
 - Confirmed the service output matches fixture expectations for all six items.
 
+## Quick Validation
+
+```bash
+# Run this tool's executable Node test
+node --test tools/v2/team/team-digest-generator/tests/digest-fixtures.test.mjs
+
+# Confirm review scope stays folder-local
+git diff --name-only | grep -v "tools/v2/team/team-digest-generator/"
+
+# Optional project-wide checks from the repo root
+npx tsc --noEmit
+npm run lint
+```
+
+The folder-local scope command should return no files for this issue.
+
 ## Reviewer Focus
 
 - The issue is intentionally limited to testing, documentation, and core logic.

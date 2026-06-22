@@ -18,6 +18,7 @@ integration issue explicitly allows it.
 
 - **[ARCHITECTURE.md](./ARCHITECTURE.md)** - Module boundaries, data ownership, integration constraints, and contributor guidelines
 - **[specs.md](./specs.md)** - Issue categories and scope
+- **[docs/SETUP.md](./docs/SETUP.md)** - Local setup and validation commands
 - **[docs/](./docs/)** - API reference, threat model, performance notes
 
 ## Recommended Internal Structure
