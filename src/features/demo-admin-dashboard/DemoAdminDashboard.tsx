@@ -724,7 +724,7 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
       </div>
 
       {/* ── Navigation slots ── */}
-      <nav
+      <div
         className="flex gap-1 border-b border-white/[0.06] px-4 py-2"
         role="tablist"
         aria-label="Admin dashboard sections"
@@ -751,7 +751,7 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
             </button>
           );
         })}
-      </nav>
+      </div>
 
       {/* ── Content region ── */}
       <div

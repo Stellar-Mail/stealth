@@ -64,7 +64,7 @@ function PolicyEditorPage() {
               <div className="space-y-8">
                 <div className="flex items-center justify-between">
                   <div>
-                    <label className="font-medium text-sm">Allow Unknown Senders</label>
+                    <span className="font-medium text-sm">Allow Unknown Senders</span>
                     <p className="text-xs text-muted-foreground mt-1 max-w-[280px]">
                       If disabled, only explicitly trusted contacts can reach you. All others are
                       blocked.
@@ -88,7 +88,7 @@ function PolicyEditorPage() {
 
                 <div className="flex items-center justify-between">
                   <div>
-                    <label className="font-medium text-sm">Require Verification</label>
+                    <span className="font-medium text-sm">Require Verification</span>
                     <p className="text-xs text-muted-foreground mt-1 max-w-[280px]">
                       Unknown senders must prove their cryptographic identity. Unverified mail is
                       rejected.

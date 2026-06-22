@@ -117,6 +117,20 @@ export function Topbar({
     };
   }, [filterOpen, accountOpen, helpOpen, notificationsOpen]);
 
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      setFilterOpen(false);
+      setAccountOpen(false);
+      setHelpOpen(false);
+      setNotificationsOpen(false);
+    };
+    if (filterOpen || accountOpen || helpOpen || notificationsOpen) {
+      window.addEventListener("keydown", onKeyDown);
+      return () => window.removeEventListener("keydown", onKeyDown);
+    }
+  }, [filterOpen, accountOpen, helpOpen, notificationsOpen]);
+
   return (
     <header className="glass relative z-50 m-0 flex h-14 items-center gap-2 overflow-hidden rounded-none border-t-0 px-3">
       <motion.div className="relative flex h-9 min-w-[220px] flex-[1_1_320px] items-center lg:max-w-[430px]">
@@ -125,6 +139,7 @@ export function Topbar({
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
           onClick={onOpenPalette}
+          aria-label="Search messages, people, proofs, attachments"
           placeholder="Search messages, people, proofs, attachments..."
           className="glow-ring h-9 w-full min-w-0 rounded-md border border-white/[0.07] bg-white/[0.035] pl-9 pr-14 text-[13px] text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.045)] placeholder:text-muted-foreground/70 transition focus:bg-white/[0.06]"
         />
@@ -187,6 +202,8 @@ export function Topbar({
                       zIndex: 110,
                     }}
                     className="glass-modal overflow-hidden rounded-xl p-2"
+                    role="menu"
+                    aria-label="Filter options"
                   >
                     <div className="mb-2 px-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
                       Filters
@@ -398,9 +415,11 @@ export function Topbar({
                       zIndex: 110,
                     }}
                     className="glass-modal overflow-hidden rounded-xl"
+                    role="menu"
+                    aria-label="Account menu"
                   >
                     {/* Account info */}
-                    <div className="border-b border-white/5 p-3">
+                    <div className="border-b border-white/5 p-3" role="presentation">
                       <div className="flex items-center gap-3">
                         <div className="h-10 w-10 rounded-full bg-gradient-to-br from-[#4d5560] to-[#232326] flex items-center justify-center">
                           <span className="text-sm font-medium text-white/90">EN</span>
@@ -439,7 +458,7 @@ export function Topbar({
                           );
                         }}
                       />
-                      <div className="my-1 border-t border-white/5" />
+                      <div className="my-1 border-t border-white/5" role="separator" />
                       <AccountMenuItem
                         icon={LogOut}
                         label="Sign out"
@@ -575,6 +594,7 @@ function AccountMenuItem({
 }) {
   return (
     <button
+      role="menuitem"
       onClick={onClick}
       className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground"
     >

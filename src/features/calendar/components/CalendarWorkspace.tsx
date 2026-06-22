@@ -317,10 +317,14 @@ export function CalendarWorkspace({
                     setCalendarName("");
                   }}
                 >
-                  <label className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                  <label
+                    htmlFor="calendar-name"
+                    className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground"
+                  >
                     Custom calendar
                   </label>
                   <input
+                    id="calendar-name"
                     value={calendarName}
                     onChange={(event) => setCalendarName(event.target.value)}
                     placeholder="Calendar name"
@@ -582,10 +586,10 @@ function EventDetails({
       <p className="mt-4 text-xs leading-5 text-muted-foreground">{event.note}</p>
 
       <div className="mt-5">
-        <label className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
           RSVP
-        </label>
-        <div className="mt-2 grid grid-cols-3 gap-1.5">
+        </span>
+        <div className="mt-2 grid grid-cols-3 gap-1.5" role="group" aria-label="RSVP">
           {(["going", "maybe", "declined"] as const).map((response) => (
             <button
               key={response}

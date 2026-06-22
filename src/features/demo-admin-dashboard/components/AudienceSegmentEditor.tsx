@@ -221,10 +221,14 @@ export function AudienceSegmentEditor({ className }: AudienceSegmentEditorProps)
                 <div className="flex items-center gap-3">
                   <span className="text-2xl leading-none">{selectedSegment.icon}</span>
                   <div className="flex-1 min-w-0 space-y-1.5">
-                    <label className="block text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                    <label
+                      htmlFor="segment-label"
+                      className="block text-[11px] font-medium uppercase tracking-wide text-muted-foreground"
+                    >
                       Label
                     </label>
                     <input
+                      id="segment-label"
                       type="text"
                       value={selectedSegment.label}
                       onChange={(e) =>
@@ -243,10 +247,14 @@ export function AudienceSegmentEditor({ className }: AudienceSegmentEditorProps)
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="block text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                  <label
+                    htmlFor="segment-description"
+                    className="block text-[11px] font-medium uppercase tracking-wide text-muted-foreground"
+                  >
                     Description
                   </label>
                   <textarea
+                    id="segment-description"
                     value={selectedSegment.description}
                     onChange={(e) =>
                       updateSegment(updateSegmentDescription(selectedSegment, e.target.value))
