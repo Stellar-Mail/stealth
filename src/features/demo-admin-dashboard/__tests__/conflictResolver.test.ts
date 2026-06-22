@@ -1,4 +1,3 @@
-/* eslint-disable */
 import { describe, expect, it } from "vitest";
 import {
   detectConflicts,
