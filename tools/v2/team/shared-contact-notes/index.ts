@@ -11,3 +11,17 @@ export type {
   ServiceConfig,
 } from "./types";
 export { validateCreateNote, validateUpdateNote } from "./validation";
+
+// Hook
+export { useContactNotes } from "./hooks/useContactNotes";
+
+// UI Components
+export {
+  SharedContactNotes,
+  ContactNotesEmptyState,
+  ContactNotesLoadingState,
+  ContactNotesErrorState,
+  ContactNotesList,
+  ContactNoteEntry,
+  ContactNoteForm,
+} from "./components";

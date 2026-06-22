@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import test from "node:test";
 
 const currentDir = dirname(fileURLToPath(import.meta.url));
 const fixturePath = join(currentDir, "..", "fixtures", "sample-team-analytics.json");
+const snapshotServicePath = join(currentDir, "..", "services", "analytics-snapshot.service.mjs");
 
 const allowedStatuses = new Set(["healthy", "watch", "needs-attention", "blocked"]);
 const requiredStatuses = ["healthy", "watch", "needs-attention", "blocked"];
@@ -102,5 +103,41 @@ test("sample team analytics fixture follows the local review contract", async ()
 
   for (const status of requiredStatuses) {
     assert.ok(seenStatuses.has(status), `fixture must include ${status} status`);
+  }
+});
+
+test("snapshot service produces snapshots matching fixture expectations", async () => {
+  const fixture = await loadFixture();
+  const { generateSnapshots } = await import(pathToFileURL(snapshotServicePath).href);
+
+  const result = generateSnapshots(fixture.sourceReports);
+
+  assert.equal(result.length, fixture.expectedSnapshots.length);
+
+  for (let i = 0; i < result.length; i++) {
+    const actual = result[i];
+    const expected = fixture.expectedSnapshots[i];
+
+    assert.equal(actual.id, expected.id, `snapshot ${i} id mismatch`);
+    assert.equal(actual.team, expected.team, `snapshot ${i} team mismatch`);
+    assert.equal(actual.period, expected.period, `snapshot ${i} period mismatch`);
+    assert.equal(actual.status, expected.status, `snapshot ${i} status mismatch`);
+    assert.equal(actual.totalThreads, expected.totalThreads, `snapshot ${i} totalThreads mismatch`);
+    assert.equal(
+      actual.averageFirstResponseHours,
+      expected.averageFirstResponseHours,
+      `snapshot ${i} averageFirstResponseHours mismatch`,
+    );
+    assert.equal(actual.openBacklog, expected.openBacklog, `snapshot ${i} openBacklog mismatch`);
+    assert.equal(
+      actual.sourceReportId,
+      expected.sourceReportId,
+      `snapshot ${i} sourceReportId mismatch`,
+    );
+    assert.equal(
+      actual.reviewRequired,
+      expected.reviewRequired,
+      `snapshot ${i} reviewRequired mismatch`,
+    );
   }
 });

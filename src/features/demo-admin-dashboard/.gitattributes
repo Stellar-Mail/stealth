@@ -1,0 +1,3 @@
+# Force LF line endings for all files in this directory
+# This ensures prettier and ESLint pass on Linux CI runners
+* text eol=lf

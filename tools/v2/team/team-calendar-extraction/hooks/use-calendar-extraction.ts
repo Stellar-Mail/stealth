@@ -1,66 +1,112 @@
 import { useState, useCallback } from "react";
-import type { CalendarEvent, CalendarExtractionRequest, ExtractionResult } from "../types";
-import { calendarService } from "../services";
+import { CalendarEvent, EmailData, ExtractionStats } from "../types";
+import { processTeamEmails } from "../services/extraction.service";
+import { parseIcsContent } from "../services/ics-parser";
+import { sanitizeFilename } from "../services/sanitization";
+import { validateCalendarEvent } from "../services/validation";
 
-/**
- * useCalendarExtraction Hook
- *
- * Manages the state of calendar extraction workflow locally.
- * Handles extraction requests, event processing, and state transitions.
- */
-interface UseCalendarExtractionOptions {
-  onExtract?: (request: CalendarExtractionRequest) => Promise<ExtractionResult>;
-}
+export function useCalendarExtraction() {
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [stats, setStats] = useState<ExtractionStats | null>(null);
+  const [errors, setErrors] = useState<string[]>([]);
+  const [logs, setLogs] = useState<string[]>([]);
 
-export function useCalendarExtraction(options: UseCalendarExtractionOptions = {}) {
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [results, setResults] = useState<Map<string, ExtractionResult>>(new Map());
+  const processEmails = useCallback(async (emails: EmailData[]) => {
+    setIsProcessing(true);
+    setErrors([]);
+    setLogs(["Initiating team email scanning batch..."]);
 
-  const extract = useCallback(
-    async (request: CalendarExtractionRequest): Promise<ExtractionResult | undefined> => {
-      setIsLoading(true);
-      setError(null);
+    // Delay briefly to allow UI to render spinner and simulate asynchronous parsing
+    await new Promise((resolve) => setTimeout(resolve, 600));
 
-      try {
-        let result: ExtractionResult;
+    try {
+      const result = processTeamEmails(emails);
 
-        if (options.onExtract) {
-          result = await options.onExtract(request);
-        } else {
-          // Use simulated extraction by default
-          const sourceEvents = request.events.length > 0 ? request.events : [];
-          result = await calendarService.simulateExtraction(request, sourceEvents);
-        }
+      setEvents(result.events);
+      setStats(result.stats);
+      setLogs((prev) => [
+        ...prev,
+        ...result.sanitizationLog,
+        `Finished scanning. Processed ${result.stats.bytesProcessed} bytes in ${result.stats.timeElapsedMs}ms.`,
+      ]);
 
-        setResults((prev) => new Map(prev).set(request.id, result));
-        return result;
-      } catch (err) {
-        const message = err instanceof Error ? err.message : "Failed to extract calendar events";
-        setError(message);
-        throw new Error(message);
-      } finally {
-        setIsLoading(false);
+      if (result.errors.length > 0) {
+        setErrors(result.errors.map((e) => `[Email ${e.emailId}]: ${e.message}`));
       }
-    },
-    [options],
-  );
+    } catch (err) {
+      setErrors([(err as Error).message || "An unexpected error occurred during email extraction"]);
+    } finally {
+      setIsProcessing(false);
+    }
+  }, []);
 
-  const getResult = useCallback((requestId: string) => results.get(requestId), [results]);
+  const processIcsFile = useCallback(async (fileContent: string, filename: string) => {
+    setIsProcessing(true);
+    setErrors([]);
+    const safeName = sanitizeFilename(filename);
+    setLogs([`Reading calendar file: ${safeName}...`]);
+    const startTime = Date.now();
 
-  const clearError = useCallback(() => setError(null), []);
+    await new Promise((resolve) => setTimeout(resolve, 400));
 
-  const clearResults = useCallback(() => setResults(new Map()), []);
+    try {
+      const byteLength = new Blob([fileContent]).size;
+      const parseResult = parseIcsContent(fileContent);
+
+      const validatedEvents: CalendarEvent[] = [];
+      const validationErrors: string[] = [];
+
+      parseResult.events.forEach((evt) => {
+        const validation = validateCalendarEvent(evt);
+        if (validation.valid) {
+          validatedEvents.push(evt);
+        } else {
+          validationErrors.push(
+            `Event "${evt.title}" failed validation: ${validation.errors.map((e) => e.message).join(", ")}`,
+          );
+        }
+      });
+
+      setEvents(validatedEvents);
+      setErrors([...parseResult.errors, ...validationErrors]);
+
+      const timeElapsedMs = Date.now() - startTime;
+      setStats({
+        bytesProcessed: byteLength,
+        timeElapsedMs,
+        eventsFound: parseResult.events.length,
+        eventsExtracted: validatedEvents.length,
+        sanitizationActions: parseResult.errors.length,
+      });
+
+      setLogs((prev) => [
+        ...prev,
+        `ICS file parsed successfully. Extracted ${validatedEvents.length} events.`,
+      ]);
+    } catch (err) {
+      setErrors([(err as Error).message || "Failed to process ICS file"]);
+    } finally {
+      setIsProcessing(false);
+    }
+  }, []);
+
+  const clear = useCallback(() => {
+    setEvents([]);
+    setStats(null);
+    setErrors([]);
+    setLogs([]);
+    setIsProcessing(false);
+  }, []);
 
   return {
-    isLoading,
-    error,
-    results,
-    extract,
-    getResult,
-    clearError,
-    clearResults,
+    isProcessing,
+    events,
+    stats,
+    errors,
+    logs,
+    processEmails,
+    processIcsFile,
+    clear,
   };
 }
-
-export type { UseCalendarExtractionOptions };
