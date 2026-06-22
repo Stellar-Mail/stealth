@@ -22,13 +22,13 @@ most frequent, not the segment with the most total inboxes.
 
 **One-page ICP**
 
-| Dimension | Hypothesis |
-|---|---|
-| **Who** | Operator or gatekeeper for a high-value, high-target inbox: a founder/exec EA, a crypto-native team's ops/security lead, or a paid expert (advisor, auditor, counsel) who sells access to their time/attention. |
-| **Firmographic qualifiers** | Org size 2–200; handles outside money (treasury, client funds, or paid consulting); has a named security/compliance owner or an EA managing exec inboxes; already pays for at least one identity/security tool (2FA hardware, password manager, KYC tool). |
-| **Behavioral qualifiers** | Receives unsolicited high-stakes outreach weekly (deal flow, vendor pitches, impersonation attempts); has been targeted by phishing/spoofing in the last 12 months; currently uses manual workarounds (allowlists, separate "public" vs "private" addresses, gatekeeping via EA) to manage inbound trust. |
-| **Trigger event** | A specific impersonation/phishing incident, a wallet/treasury near-miss, or onboarding a new EA/ops hire tasked with "cleaning up" the inbox. |
-| **Buyer vs. user** | Buyer is typically the security/ops lead or the principal themselves (for solo paid experts); user is the EA, ops lead, or the principal directly. These are the same person in solo/paid-expert cases, distinct in exec/crypto-team cases — this split changes onboarding and pricing motion and must be confirmed per segment. |
+| Dimension                   | Hypothesis                                                                                                                                                                                                                                                                                                                       |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Who**                     | Operator or gatekeeper for a high-value, high-target inbox: a founder/exec EA, a crypto-native team's ops/security lead, or a paid expert (advisor, auditor, counsel) who sells access to their time/attention.                                                                                                                  |
+| **Firmographic qualifiers** | Org size 2–200; handles outside money (treasury, client funds, or paid consulting); has a named security/compliance owner or an EA managing exec inboxes; already pays for at least one identity/security tool (2FA hardware, password manager, KYC tool).                                                                       |
+| **Behavioral qualifiers**   | Receives unsolicited high-stakes outreach weekly (deal flow, vendor pitches, impersonation attempts); has been targeted by phishing/spoofing in the last 12 months; currently uses manual workarounds (allowlists, separate "public" vs "private" addresses, gatekeeping via EA) to manage inbound trust.                        |
+| **Trigger event**           | A specific impersonation/phishing incident, a wallet/treasury near-miss, or onboarding a new EA/ops hire tasked with "cleaning up" the inbox.                                                                                                                                                                                    |
+| **Buyer vs. user**          | Buyer is typically the security/ops lead or the principal themselves (for solo paid experts); user is the EA, ops lead, or the principal directly. These are the same person in solo/paid-expert cases, distinct in exec/crypto-team cases — this split changes onboarding and pricing motion and must be confirmed per segment. |
 
 ## Top three jobs (ranked by urgency × frequency — hypothesis)
 
@@ -83,12 +83,12 @@ Run across all four named segments: executive inboxes (EAs/principals), crypto-n
 
 Target: **5 design partners** committed to testing the same core workflow within 30 days of completing interviews. Track per segment to confirm the workflow generalizes rather than being a one-segment artifact:
 
-| Segment | Interviews completed | Design partners committed |
-|---|---|---|
-| Executive inboxes | 0 / — | 0 / 5 |
-| Crypto-native teams | 0 / — | 0 / 5 |
-| Security-sensitive orgs | 0 / — | 0 / 5 |
-| Paid expert access | 0 / — | 0 / 5 |
+| Segment                 | Interviews completed | Design partners committed |
+| ----------------------- | -------------------- | ------------------------- |
+| Executive inboxes       | 0 / —                | 0 / 5                     |
+| Crypto-native teams     | 0 / —                | 0 / 5                     |
+| Security-sensitive orgs | 0 / —                | 0 / 5                     |
+| Paid expert access      | 0 / —                | 0 / 5                     |
 
 ## Next steps
 
