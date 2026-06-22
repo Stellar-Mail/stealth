@@ -3,7 +3,9 @@ import {
   Activity,
   BarChart3,
   Calendar,
+  CalendarRange,
   FileText,
+  GitMerge,
   History,
   LayoutDashboard,
   Mail,
@@ -11,8 +13,8 @@ import {
   PieChart,
   Shield,
   Target,
-  Users,
   X,
+  Lock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CAMPAIGN_TEMPLATES } from "./fixtures/campaignFixtures";
@@ -29,9 +31,13 @@ import type {
   PresetEvent,
 } from "./types";
 import { TemplatePicker } from "./templates";
-import { PRESET_SCENARIOS } from "./fixtures/presets";
 import { AdminDataTable, type Column } from "./components/AdminDataTable";
+import { CampaignsContent } from "./CampaignsContent";
+import { PRESET_SCENARIOS } from "./fixtures/presets";
 import { CampaignMessageAssignmentPanel } from "./components/CampaignMessageAssignmentPanel";
+import { CampaignSnapshots } from "./components/CampaignSnapshots";
+import { CampaignTimelinePanel } from "./components/CampaignTimelinePanel";
+import type { Draft } from "./types/draft";
 
 // ─── Default Deterministic fake data ──────────────────────────────────────────
 
@@ -43,6 +49,7 @@ const NAV_ITEMS: DashboardNavItem[] = [
   { id: "events", label: "Events", description: "Demo calendar and protocol events" },
   { id: "templates", label: "Templates", description: "Pick message templates to populate drafts" },
   { id: "campaigns", label: "Campaigns", description: "Save and restore campaign draft snapshots" },
+  { id: "timeline", label: "Timeline", description: "Campaign phase timeline and milestones" },
   { id: "audit", label: "Audit", description: "Demo protocol event log" },
   { id: "analytics", label: "Analytics", description: "Privacy-preserving product analytics" },
 ];
@@ -175,12 +182,13 @@ const EVENTS_FAKE: PresetEvent[] = [
 
 const SECTION_ICON: Record<DashboardSection, React.ElementType> = {
   overview: LayoutDashboard,
-  accounts: Users,
+  accounts: Shield, // Changed to Shield to match usage in OverviewContent
   mail: Mail,
   attachments: Paperclip,
   events: Calendar,
   templates: FileText,
   campaigns: History,
+  timeline: CalendarRange,
   audit: Activity,
   analytics: PieChart,
 };
@@ -250,6 +258,11 @@ function OverviewContent({
               name: "Receipt Settlement",
               desc: "Simulates postage fees and read receipts confirming on-chain.",
             },
+            {
+              id: "encrypted-provenance" as const,
+              name: "Encrypted & Provenance",
+              desc: "Simulates encrypted payload delivery and cryptographic provenance verification on-chain.",
+            },
           ].map((preset) => {
             const active = activePresetId === preset.id;
             return (
@@ -260,7 +273,7 @@ function OverviewContent({
                   setActivePresetId(preset.id);
                 }}
                 className={cn(
-                  "rounded-xl border p-4 text-left transition flex flex-col justify-between h-36 w-full",
+                  "glow-ring rounded-xl border p-4 text-left transition flex flex-col justify-between h-36 w-full active:scale-[0.99]",
                   active
                     ? "border-amber-500/50 bg-amber-500/5 ring-1 ring-amber-500/20"
                     : "border-white/[0.06] bg-white/[0.02] hover:border-white/10 hover:bg-white/[0.04]",
@@ -727,7 +740,7 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
               aria-label={item.description}
               onClick={() => handleSectionChange(item.id)}
               className={cn(
-                "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition",
+                "glow-ring flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition active:scale-95",
                 isActive
                   ? "bg-white/[0.08] text-foreground"
                   : "text-muted-foreground hover:bg-white/[0.04] hover:text-foreground",
@@ -794,7 +807,9 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
 
           {activeSection === "templates" && <TemplatesContent />}
 
-          {activeSection === "campaigns" && <CampaignMessageAssignmentPanel />}
+          {activeSection === "campaigns" && <CampaignsContent />}
+
+          {activeSection === "timeline" && <div>Timeline Content</div>}
 
           {activeSection === "audit" && <AuditContent auditEvents={auditEvents} />}
         </div>
@@ -812,7 +827,8 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
               <button
                 type="button"
                 onClick={() => setSelectedAccountAddress(null)}
-                className="rounded-md p-1 text-muted-foreground hover:bg-white/5 hover:text-foreground"
+                aria-label="Close relay node inspector"
+                className="glow-ring rounded-md p-1 text-muted-foreground transition hover:bg-white/5 hover:text-foreground active:scale-95"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -873,7 +889,7 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
           <button
             type="button"
             onClick={() => setSelectedAccountAddress(null)}
-            className="w-full rounded-lg border border-white/10 bg-white/[0.02] py-2 text-xs font-semibold text-foreground hover:bg-white/5 transition"
+            className="glow-ring w-full rounded-lg border border-white/10 bg-white/[0.02] py-2 text-xs font-semibold text-foreground hover:bg-white/5 transition active:scale-[0.99]"
           >
             Close Inspector
           </button>
@@ -892,7 +908,8 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
               <button
                 type="button"
                 onClick={() => setSelectedMailSubject(null)}
-                className="rounded-md p-1 text-muted-foreground hover:bg-white/5 hover:text-foreground"
+                aria-label="Close ledger proof inspector"
+                className="glow-ring rounded-md p-1 text-muted-foreground transition hover:bg-white/5 hover:text-foreground active:scale-95"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -951,13 +968,23 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
                     {selectedMail.proofMetadata.postageStatus}
                   </span>
                 </div>
+                {selectedMail.folder === "encrypted" && (
+                  <div className="mt-3 rounded border border-emerald-500/20 bg-emerald-500/5 p-2.5 text-[11px] text-emerald-300 leading-relaxed">
+                    <p className="font-semibold flex items-center gap-1.5 mb-1 text-xs text-emerald-400">
+                      <Lock className="h-3 w-3" />
+                      Payload Decryption Notes
+                    </p>
+                    This payload is fully end-to-end encrypted on-chain. Bob Demo decrypted it using
+                    the ephemeral session key exchanged via Curve25519 and his private identity key.
+                  </div>
+                )}
               </div>
             </div>
           </div>
           <button
             type="button"
             onClick={() => setSelectedMailSubject(null)}
-            className="w-full rounded-lg border border-white/10 bg-white/[0.02] py-2 text-xs font-semibold text-foreground hover:bg-white/5 transition mt-4"
+            className="glow-ring w-full rounded-lg border border-white/10 bg-white/[0.02] py-2 text-xs font-semibold text-foreground hover:bg-white/5 transition mt-4 active:scale-[0.99]"
           >
             Close Inspector
           </button>

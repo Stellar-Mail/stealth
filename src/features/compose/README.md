@@ -1,224 +1,114 @@
-# Recipient Address Resolution
+# Compose Flow Contributor Handoff
 
-This feature implements recipient address resolution in the compose interface with clear verification and failure states.
+This feature covers the existing compose journey from recipient entry through
+send progress. Keep changes focused on the current draft, validation, postage,
+encryption, schedule, and send-progress surfaces rather than adding a new mail
+tool or unrelated delivery architecture.
 
-## Overview
+## Local File Map
 
-Recipients can now be resolved through multiple address formats:
+- `src/components/mail/Compose.tsx` owns the modal shell, To/Subject/Body fields,
+  attachment chips, emoji picker, AI suggestion insertion, encryption/receipt
+  toggles, postage input, schedule/send buttons, toast copy, and the bridge into
+  recipient resolution, policy quotes, relay diagnostics, and staged sending.
+- `src/components/mail/composeValidation.ts` defines compose draft/submission
+  types, recipient parsing, initial recipient readiness, blocked-recipient
+  handling, policy-aware postage validation, and basic required-field errors.
+- `src/features/compose/recipientResolver.ts` resolves Stealth, Stellar, and
+  federation-style recipient inputs into readiness states.
+- `src/features/compose/usePostageQuote.ts` and
+  `src/features/compose/RecipientPolicyBanner.tsx` surface sender policy,
+  trusted-sender, blocked-sender, and minimum-postage state.
+- `src/features/compose/sendPipeline.ts` stages immediate sends through encrypt,
+  sign, postage, persist, submit, and reconcile steps.
+- `src/features/compose/SendProgress.tsx` renders staged progress, failures, and
+  retry affordances from `StageState[]`.
+- `tests/unit/compose/usePostageQuote.test.ts`,
+  `tests/unit/compose/recipientResolver.test.ts`, and `tests/e2e/compose.spec.ts`
+  cover the highest-risk validation and user-flow behavior.
 
-- **Stealth addresses** (S-prefix, 56 chars)
-- **Stellar G-addresses** (G-prefix, 56 chars)
-- **Federation addresses** (name\*domain format)
-- **Contact aliases** (stored locally or in database)
+## Data Contracts
 
-## Resolution States
+`Compose` accepts controlled opening state plus optional initial draft fields,
+blocked recipients, and a resolver context. It emits `ComposeSubmission` only
+after local validation, recipient readiness checks, policy/postage checks, and
+the immediate send pipeline when the user sends now. Scheduled sends preserve
+the same submission shape with `scheduled: true` and `mode: "schedule"`.
 
-Each recipient chip displays one of five states:
+Recipients are comma- or semicolon-separated by `parseRecipients`. A
+`RecipientReadiness` entry includes the entered address, resolver state,
+postage readiness, status message, optional resolved account, policy type, and
+encryption key hint. Initial readiness is synchronous and marked `resolving`;
+the async resolver replaces it after the debounce window.
 
-### Verified ✓
+`validateComposeDraft` is intentionally conservative. It blocks empty
+recipients, empty bodies, blocked recipients, invalid or still-resolving
+resolved recipients, sender-policy blocks, and postage below the recipient's
+quoted minimum unless the policy quote marks the sender as trusted.
 
-- **Color**: Emerald/green
-- **Meaning**: Address has been resolved and cryptographically verified
-- **Examples**:
-  - Contact found in address book
-  - Stellar federation address resolved successfully
-  - Stealth address on-chain verified
+`SendPipeline` creates or reuses a message id and reports `StageState[]` for
+the fixed order: `encrypt`, `sign`, `postage`, `persist`, `submit`,
+`reconcile`. Wallet rejection and wallet unavailability fail before persistence
+or relay submission; relay failures are reconciled into outbox status instead of
+being hidden.
 
-### Resolving ⟳
+## User-Facing States
 
-- **Color**: Blue (animated pulse)
-- **Meaning**: Address is currently being resolved
-- **Duration**: Typically <500ms after recipient is added
-- **UX**: Users see immediate feedback while system resolves in background
+- Empty recipient/body/subject states show short toast messages and keep the
+  draft open.
+- Recipient chips show resolving, verified, unknown, invalid, and blocked
+  states with trust badge styling and explanatory tooltips.
+- The policy banner communicates trusted sender, blocked sender, minimum
+  postage, and quote-loading states before send.
+- Delivery estimator state is informational and should not override validation.
+- The send CTA changes between `Send`, `Send free`, `Send + {postage} XLM`,
+  `Blocked`, and `Sending...` based on policy, postage, and progress.
+- `SendProgress` shows each pipeline stage with pending, active, done, or error
+  status plus retry when a failure is recoverable.
+- Wallet rejection copy must reassure the user that the draft is safe; wallet
+  unavailable copy should ask the user to unlock or connect a wallet before
+  retrying.
 
-### Unknown ⚠️
+## Safety And Privacy Boundaries
 
-- **Color**: Amber/yellow
-- **Meaning**: Address format is valid but identity unverified
-- **Reason**: No contact match, federation failed, or on-chain data unavailable
-- **Action**: Users must explicitly confirm before sending (future feature)
+Do not add real customer mail, private keys, access tokens, wallet seeds, live
+recipient lists, payment account details, or production relay payloads to docs,
+fixtures, tests, or screenshots. Existing sample compose copy is demo-only and
+must stay synthetic.
 
-### Invalid ✗
+The compose UI must not silently send, schedule, decrypt, sign, reserve postage,
+or submit to a relay without an explicit user action. The staged pipeline is the
+only immediate-send path; scheduled sends should stay a clear user-selected
+mode. Keep wallet signing user-mediated and keep plaintext out of logs,
+diagnostics, progress messages, and persistent outbox metadata.
 
-- **Color**: Red
-- **Meaning**: Address format is invalid or malformed
-- **Reason**: Doesn't match any supported format (Stellar, Stealth, federation, alias)
-- **Action**: Compose prevents send until fixed
+Recipient and policy states are trust-sensitive. Avoid copy that guarantees a
+person's identity, wallet ownership, message delivery, or payment settlement
+unless the backing resolver, policy quote, wallet signature, or relay response
+already proves it. Prefer precise states such as `verified`, `unknown`,
+`blocked`, `trusted`, `minimum postage`, and `delivery failed`.
 
-### Blocked 🚫
+Postage is shown as XLM for user clarity but comparisons use stroops from the
+policy quote. Avoid floating-point conversions outside display and current UI
+entry handling unless the validation contract is updated with tests.
 
-- **Color**: Red
-- **Meaning**: Recipient is explicitly blocked by user policy
-- **Reason**: Added to blocklist or policy prevents sending
-- **Action**: Compose prevents send, must be removed from blocklist
+## QA Checklist
 
-## Recipient Chip UI
-
-Each recipient appears as an interactive chip showing:
-
-```
-[TRUST ICON] address@domain → S...abc... [encryption indicator]
-```
-
-**Components:**
-
-- **Trust Badge**: Visual indicator of verification state
-- **Address**: Full recipient input (may show alias or email)
-- **Resolved Account**: Truncated Stealth/Stellar address if verified (optional)
-- **Encryption Indicator**: Dot showing encryption key is available (optional)
-- **Tooltip**: Full message with status details
-
-## Implementation
-
-### Core Components
-
-#### `RecipientResolver` (`recipientResolver.ts`)
-
-Async resolution engine supporting:
-
-- Format validation
-- Contact database lookup
-- Stellar federation resolution
-- Blocked recipient checking
-- Batch resolution with debouncing
-
-```typescript
-import {
-  resolveRecipients,
-  type RecipientResolutionContext,
-} from "@/features/compose/recipientResolver";
-
-const context: RecipientResolutionContext = {
-  resolveContact: async (input) => {
-    /* query contact DB */
-  },
-  resolveFederation: async (address) => {
-    /* query federation */
-  },
-  isBlockedRecipient: async (address) => {
-    /* check policy */
-  },
-};
-
-const resolved = await resolveRecipients(addresses, blockedList, context);
-```
-
-#### `Compose` Component
-
-Enhanced with async resolution:
-
-- Real-time resolution as users type
-- 300ms debounce to prevent excessive API calls
-- Prevents send if recipients are unresolved or blocked
-- Shows all resolution states in chips
-
-```typescript
-<Compose
-  open={true}
-  resolutionContext={resolutionContext}
-  onSubmit={(submission) => {
-    // submission.to has been validated and resolved
-  }}
-/>
-```
-
-#### `RecipientReadinessChips` Component
-
-Displays resolved state with styling:
-
-```typescript
-<RecipientReadinessChips recipients={resolvedRecipients} />
-```
-
-### Types
-
-```typescript
-export type RecipientResolutionState = "resolving" | "verified" | "unknown" | "invalid" | "blocked";
-
-export type RecipientReadiness = {
-  address: string;
-  state: RecipientResolutionState;
-  postage: "ready" | "required";
-  message: string;
-  resolvedAccount?: string; // Stealth address if verified
-  policyType?: "allow" | "block" | "default";
-  encryptionKey?: string; // Public key for encryption
-};
-```
-
-## Validation Rules
-
-**Send prevention conditions:**
-
-1. No recipients entered
-2. Any recipient has state: `resolving` or `invalid`
-3. Any recipient has state: `blocked`
-4. Any recipient lacks required postage
-5. No subject line
-6. No message body
-
-## Format Validation
-
-Accepted formats (case-insensitive):
-
-- `S[A-Z0-9]{55}` - Stealth address
-- `G[A-Z2-7]{55}` - Stellar G-address
-- `name*domain.com` - Federation address
-- `alias_name` - Contact alias (alphanumeric, underscore, hyphen)
-
-**Rejected:**
-
-- Email addresses (unsupported - use federation format)
-- Arbitrary text without @ or \*
-- Addresses with spaces or special characters
-
-## Future Enhancements
-
-### Phase 2: Policy Review
-
-- Allow sending to "unknown" recipients if user confirms
-- Per-recipient override with "I understand the risk"
-- Bulk verify multiple recipients at once
-
-### Phase 3: Federation Integration
-
-- Real Stellar federation lookup via HTTP
-- Domain trust management
-- SPF/DKIM verification for legacy SMTP
-
-### Phase 4: Contact UI
-
-- Autocomplete suggestions during typing
-- Click to add contacts from suggested list
-- Quick-add new contact from compose
-- Search contacts by name or address
-
-### Phase 5: Encryption Key Management
-
-- Display encryption key fingerprints
-- Verify key authenticity
-- Key expiration warnings
-- Multiple keys per recipient support
-
-## Testing
-
-### Unit Tests
-
-- Format validation for all address types
-- Resolution state transitions
-- Blocked recipient filtering
-- Postage validation
-
-### Integration Tests
-
-- End-to-end resolution flow
-- Contact database integration
-- Federation resolver fallback
-- Send prevention logic
-
-### E2E Tests
-
-- Type recipient → see resolving state
-- Wait for resolution → see verified state
-- Try to send unresolved → see error
-- Try to send blocked → see error
+- Verify recipient parsing accepts comma and semicolon separated inputs and
+  keeps invalid, blocked, resolving, unknown, and verified recipients visually
+  distinct.
+- Confirm send is blocked for no recipient, invalid/resolving/blocked
+  recipients, policy-level blocks, postage below minimum, missing subject, and
+  missing body.
+- Confirm trusted-sender quotes allow `Send free` while non-trusted quotes still
+  require minimum postage.
+- Exercise wallet rejected, wallet unavailable, relay failure, and successful
+  delivery paths in `SendPipeline` or the nearest available tests.
+- Check `SendProgress` renders pending, active, done, error, detail text, and
+  retry without exposing plaintext message contents.
+- Confirm schedule mode preserves draft fields and emits a scheduled submission
+  without running the immediate relay pipeline.
+- Run `tests/unit/compose/usePostageQuote.test.ts`,
+  `tests/unit/compose/recipientResolver.test.ts`, and `tests/e2e/compose.spec.ts`
+  when changing this area, then run typecheck and lint when dependencies are
+  available.

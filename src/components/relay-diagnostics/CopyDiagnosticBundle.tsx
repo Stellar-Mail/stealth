@@ -50,8 +50,9 @@ export function CopyDiagnosticBundle({ diagnostics }: { diagnostics: RelayDiagno
     <Button
       type="button"
       onClick={handleCopy}
-      className="fixed bottom-4 right-4 z-20 border-[#1e2430] bg-[#13161b] text-slate-100 shadow-none hover:bg-[#171b22]"
+      className="fixed bottom-4 right-4 z-20 border-[#1e2430] bg-[#13161b] text-slate-100 shadow-none hover:bg-[#171b22] focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
       variant="outline"
+      aria-live="polite"
     >
       {copied ? "Copied ✓" : "Copy diagnostic report"}
     </Button>

@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Surface, ActionButton, useFeedback } from "@/features/design-system";
 import { Check, X, Shield, ShieldAlert, Code } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { simulateSenderAdmission } from "./simulate-sender";
 
 export const Route = createFileRoute("/policy-editor")({
   component: PolicyEditorPage,
@@ -16,29 +17,6 @@ function PolicyEditorPage() {
   const [apiError, setApiError] = useState<string | null>(null);
 
   const { notify } = useFeedback();
-
-  const simulateSender = (type: "trusted" | "blocked" | "verified" | "unverified") => {
-    if (type === "trusted") {
-      return { allowed: true, reason: "Sender is explicitly trusted in contact list." };
-    }
-    if (type === "blocked") {
-      return { allowed: false, reason: "Sender is explicitly blocked." };
-    }
-
-    if (!allowUnknown) {
-      return { allowed: false, reason: "Unknown senders are disabled completely." };
-    }
-    if (requireVerified && type === "unverified") {
-      return { allowed: false, reason: "Sender lacks verified cryptographic identity." };
-    }
-    if (minimumPostage > 0) {
-      return {
-        allowed: true,
-        reason: `Allowed if sender attaches >= ${minimumPostage.toFixed(3)} XLM postage.`,
-      };
-    }
-    return { allowed: true, reason: "Allowed freely without restrictions." };
-  };
 
   const payload = {
     allowUnknown,
@@ -173,7 +151,10 @@ function PolicyEditorPage() {
               </h2>
               <div className="space-y-3">
                 {(["trusted", "blocked", "verified", "unverified"] as const).map((type) => {
-                  const result = simulateSender(type);
+                  const result = simulateSenderAdmission(
+                    { allowUnknown, requireVerified, minimumPostage },
+                    type,
+                  );
                   return (
                     <div
                       key={type}

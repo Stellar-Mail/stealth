@@ -76,7 +76,7 @@ export function ShortcutOverlay({ open, onClose }: Props) {
                   </p>
                 </div>
               </div>
-              <div className="mt-4 flex items-center gap-3 rounded-2xl border border-white/8 bg-black/20 px-4 py-3">
+              <div className="mt-4 flex items-center gap-3 rounded-2xl border border-white/8 bg-black/20 px-4 py-3 transition focus-within:border-white/20 focus-within:bg-black/30">
                 <Search className="h-4 w-4 text-muted-foreground" />
                 <input
                   autoFocus
