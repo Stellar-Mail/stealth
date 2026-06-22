@@ -12,9 +12,9 @@ function editableTarget(tagName: string, parentElement: any = null) {
 
 describe("shortcut guards", () => {
   it("treats inputs, textareas, selects, and textboxes as editable", () => {
-    expect(isEditableTarget(editableTarget("INPUT"))).toBe(true);
-    expect(isEditableTarget(editableTarget("TEXTAREA"))).toBe(true);
-    expect(isEditableTarget(editableTarget("SELECT"))).toBe(true);
+    expect(isEditableTarget(editableTarget("INPUT") as EventTarget)).toBe(true);
+    expect(isEditableTarget(editableTarget("TEXTAREA") as EventTarget)).toBe(true);
+    expect(isEditableTarget(editableTarget("SELECT") as EventTarget)).toBe(true);
     expect(
       isEditableTarget({
         tagName: "DIV",
@@ -53,5 +53,20 @@ describe("shortcut guards", () => {
     expect(getShortcutAction({ key: "n", metaKey: true, target: null })).toBe("compose");
     expect(getShortcutAction({ key: "?", shiftKey: true, target: null })).toBe("open-shortcuts");
     expect(getShortcutAction({ key: ",", target: null })).toBe("open-settings");
+  });
+
+  it("maps bare-letter mailbox shortcuts outside editable fields", () => {
+    expect(getShortcutAction({ key: "E", target: null })).toBe("archive-thread");
+    expect(getShortcutAction({ key: "z", target: null })).toBe("snooze-thread");
+    expect(getShortcutAction({ key: "a", target: null })).toBe("approve-sender");
+    expect(getShortcutAction({ key: "B", target: null })).toBe("block-sender");
+    expect(getShortcutAction({ key: "c", target: null })).toBe("open-calendar");
+    expect(getShortcutAction({ key: "I", target: null })).toBe("open-proof-inspector");
+  });
+
+  it("ignores alt-modified and unsupported shortcut keys", () => {
+    expect(getShortcutAction({ key: "k", ctrlKey: true, altKey: true, target: null })).toBeNull();
+    expect(getShortcutAction({ key: "e", altKey: true, target: null })).toBeNull();
+    expect(getShortcutAction({ key: "x", target: null })).toBeNull();
   });
 });
