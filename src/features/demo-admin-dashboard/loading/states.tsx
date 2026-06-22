@@ -5,12 +5,7 @@ import type {
   PreviewLoadingState,
   PublishLoadingState,
 } from "./types";
-import {
-  ImportSkeleton,
-  ValidationSkeleton,
-  PreviewSkeleton,
-  PublishSkeleton,
-} from "./skeletons";
+import { ImportSkeleton, ValidationSkeleton, PreviewSkeleton, PublishSkeleton } from "./skeletons";
 
 // ---------------------------------------------------------------------------
 // Shared helpers
@@ -69,10 +64,7 @@ export function ValidationLoadingView({ state }: { state: ValidationLoadingState
     <div className="space-y-3">
       <ValidationSkeleton />
       {pct != null && <Progress value={pct} />}
-      <StatusLabel
-        label={state.label ?? "Validating records…"}
-        error={state.error}
-      />
+      <StatusLabel label={state.label ?? "Validating records…"} error={state.error} />
     </div>
   );
 }
@@ -114,14 +106,9 @@ export function PublishLoadingView({ state }: { state: PublishLoadingState }) {
     <div className="space-y-3">
       <PublishSkeleton />
       {state.progress != null && <Progress value={state.progress} />}
-      <StatusLabel
-        label={state.label ?? "Publishing demo data…"}
-        error={state.error}
-      />
+      <StatusLabel label={state.label ?? "Publishing demo data…"} error={state.error} />
       {state.mockTxId && (
-        <p className="font-mono text-xs text-muted-foreground">
-          mock tx: {state.mockTxId}
-        </p>
+        <p className="font-mono text-xs text-muted-foreground">mock tx: {state.mockTxId}</p>
       )}
     </div>
   );

@@ -76,7 +76,9 @@ export function DiagnosticsTable({ entries }: { entries: DeliveryEntry[] }) {
               ) : (
                 entries.map((entry) => (
                   <tr key={entry.id} className="border-b border-[#1e2430]/60 last:border-0">
-                    <td className="px-5 py-4 font-mono text-slate-200">{formatTimestamp(entry.timestamp)}</td>
+                    <td className="px-5 py-4 font-mono text-slate-200">
+                      {formatTimestamp(entry.timestamp)}
+                    </td>
                     <td className="px-5 py-4 text-slate-200">{entry.recipientDomain}</td>
                     <td className="px-5 py-4">
                       <Badge

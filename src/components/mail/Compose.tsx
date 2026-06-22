@@ -14,16 +14,33 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { EmojiPicker } from "./EmojiPicker";
+import { TrustBadge, type TrustState } from "@/features/design-system";
 import { cn } from "@/lib/utils";
+import { resolveRecipients } from "@/features/compose/recipientResolver";
+import { usePostageQuote } from "@/features/compose/usePostageQuote";
+import {
+  RecipientPolicyBanner,
+  isPolicyBlocking,
+  isTrustedSender,
+  getMinimumPostage,
+  xlmFromStroops,
+} from "@/features/compose/RecipientPolicyBanner";
 
 import {
   getRecipientReadiness,
+  parseRecipients,
   validateComposeDraft,
   type Attachment,
   type ComposeMode,
   type ComposeSubmission,
   type RecipientReadiness,
 } from "./composeValidation";
+import { DeliveryEstimator, type RelayStatus } from "./DeliveryEstimator";
+import { SendPipeline, type StageState } from "@/features/compose/sendPipeline";
+import { SendProgress } from "@/features/compose/SendProgress";
+
+const EMPTY_BLOCKED: string[] = [];
+const EMPTY_RESOLVED: RecipientReadiness[] = [];
 
 export function Compose({
   open,
@@ -34,8 +51,9 @@ export function Compose({
   initialBody = "",
   initialPostage = "0.0001",
   mode = "compose",
-  blockedRecipients = [],
+  blockedRecipients = EMPTY_BLOCKED,
   onSubmit,
+  resolutionContext,
 }: {
   open: boolean;
   onClose: () => void;
@@ -47,6 +65,7 @@ export function Compose({
   mode?: ComposeMode;
   blockedRecipients?: string[];
   onSubmit?: (submission: ComposeSubmission) => void;
+  resolutionContext?: Parameters<typeof resolveRecipients>[2];
 }) {
   const [to, setTo] = useState(initialTo);
   const [subject, setSubject] = useState(initialSubject);
@@ -54,9 +73,22 @@ export function Compose({
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [emojiOpen, setEmojiOpen] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [sendStages, setSendStages] = useState<StageState[]>([]);
+  const [sendError, setSendError] = useState<string | null>(null);
+  const pipelineRef = useRef<SendPipeline | null>(null);
   const [encrypted, setEncrypted] = useState(true);
   const [receipt, setReceipt] = useState(true);
   const [postage, setPostage] = useState(initialPostage);
+  const [resolvedRecipients, setResolvedRecipients] = useState<RecipientReadiness[]>([]);
+  const [relayStatus, setRelayStatus] = useState<RelayStatus>("unknown");
+  // Track whether user has manually overridden the postage field
+  const postageManuallySet = useRef(false);
+
+  // Derive the primary recipient (first entry) for policy quote
+  const primaryRecipient = parseRecipients(to)[0] ?? "";
+  // TODO: replace "me" with actual sender address from identity store
+  const senderAddress = "me";
+  const quoteState = usePostageQuote(primaryRecipient, senderAddress);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -90,7 +122,11 @@ export function Compose({
       setTo(initialTo);
       setSubject(initialSubject);
       setBody(initialBody);
+      setSendStages([]);
+      setSendError(null);
+      pipelineRef.current = null;
       setPostage(initialPostage);
+      postageManuallySet.current = false;
     } else {
       setTo("");
       setSubject("");
@@ -100,8 +136,72 @@ export function Compose({
       setEncrypted(true);
       setReceipt(true);
       setPostage(initialPostage);
+      setResolvedRecipients(EMPTY_RESOLVED);
+      postageManuallySet.current = false;
     }
   }, [open, initialTo, initialSubject, initialBody, initialPostage]);
+
+  // Fetch relay status when compose opens
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    fetch("/relays/default/diagnostics")
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((data: { status: RelayStatus }) => {
+        if (!cancelled) setRelayStatus(data.status ?? "unknown");
+      })
+      .catch(() => {
+        if (!cancelled) setRelayStatus("unknown");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
+
+  // Auto-suggest minimum postage from policy quote when user hasn't manually set it
+  useEffect(() => {
+    if (postageManuallySet.current) return;
+    if (quoteState.status !== "quoted") return;
+    const min = getMinimumPostage(quoteState);
+    if (min === null) return;
+    // Convert stroops to XLM for the postage input
+    if (min === "0") {
+      setPostage("0");
+    } else {
+      const xlm = xlmFromStroops(min);
+      setPostage(xlm);
+    }
+  }, [quoteState]);
+
+  // Resolve recipients when `to` field changes
+  useEffect(() => {
+    const addresses = parseRecipients(to);
+    if (!addresses.length) {
+      if (resolvedRecipients.length > 0) {
+        setResolvedRecipients(EMPTY_RESOLVED);
+      }
+      return;
+    }
+
+    // Show initial "resolving" state immediately
+    setResolvedRecipients(getRecipientReadiness(to, postage, blockedRecipients));
+
+    // Debounce resolution to avoid excessive API calls
+    const timer = setTimeout(async () => {
+      const resolved = await resolveRecipients(addresses, blockedRecipients, resolutionContext);
+
+      // Update postage state based on current postage value
+      const postageReady = Number.parseFloat(postage) > 0;
+      const withPostage = resolved.map((r) => ({
+        ...r,
+        postage: postageReady ? ("ready" as const) : ("required" as const),
+      }));
+
+      setResolvedRecipients(withPostage);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [to, blockedRecipients, postage, resolutionContext, resolvedRecipients.length]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -141,20 +241,89 @@ export function Compose({
   };
 
   const handleSend = async (scheduled = false) => {
-    const validationError = validateComposeDraft({ to, body, postage, blockedRecipients });
-    if (validationError) {
-      onShowToast?.(validationError);
+    // Prevent sending if recipients not fully resolved
+    if (resolvedRecipients.length === 0) {
+      onShowToast?.("Please add at least one recipient");
       return;
     }
+
+    if (resolvedRecipients.some((r) => r.state === "resolving" || r.state === "invalid")) {
+      onShowToast?.("All recipients must be verified before sending");
+      return;
+    }
+
+    if (resolvedRecipients.some((r) => r.state === "blocked")) {
+      onShowToast?.("Remove blocked recipients before sending");
+      return;
+    }
+
+    // Policy-level block (sender blocked by recipient policy)
+    if (isPolicyBlocking(quoteState)) {
+      onShowToast?.("Recipient has blocked this sender");
+      return;
+    }
+
+    // Postage check: skip for trusted senders, enforce minimum for others
+    const currentQuote = quoteState.status === "quoted" ? quoteState.quote : null;
+    if (!isTrustedSender(quoteState)) {
+      if (currentQuote) {
+        const postageStroops = BigInt(Math.round(Number(postage) * 10_000_000));
+        const minimumStroops = BigInt(currentQuote.amount);
+        if (postageStroops < minimumStroops) {
+          onShowToast?.("Add postage before sending");
+          return;
+        }
+      } else if (resolvedRecipients.some((r) => r.postage === "required")) {
+        onShowToast?.("Add postage before sending");
+        return;
+      }
+    }
+
     if (!subject.trim()) {
       onShowToast?.("Please enter a subject");
       return;
     }
 
+    if (!body.trim()) {
+      onShowToast?.("Please enter a message");
+      return;
+    }
+
     setIsSending(true);
 
-    // Simulate sending
-    await new Promise((resolve) => setTimeout(resolve, 800));
+    // Run the staged send pipeline (immediate send only).
+    setSendError(null);
+
+    if (!scheduled) {
+      const pipeline =
+        pipelineRef.current ??
+        new SendPipeline(
+          { sender: "me", to: to.trim(), subject: subject.trim(), body },
+          setSendStages,
+        );
+      pipelineRef.current = pipeline;
+      setSendStages(pipeline.getStages());
+
+      const outcome = await pipeline.run();
+
+      if (!outcome.ok) {
+        setIsSending(false);
+        if (outcome.reason === "wallet_rejected") {
+          setSendError("Signature declined — your draft is safe. Retry when ready.");
+          onShowToast?.("Signature declined — draft kept");
+        } else if (outcome.reason === "wallet_unavailable") {
+          setSendError("No Stellar wallet detected. Unlock Freighter, then retry.");
+          onShowToast?.("Wallet unavailable");
+        } else {
+          setSendError(outcome.message);
+          onShowToast?.("Send failed — you can retry");
+        }
+        return;
+      }
+
+      pipelineRef.current = null;
+      setSendStages([]);
+    }
 
     onSubmit?.({
       to: to.trim(),
@@ -169,10 +338,13 @@ export function Compose({
     });
     setIsSending(false);
     onClose();
+    const trusted = isTrustedSender(quoteState);
     onShowToast?.(
       scheduled
         ? "Message scheduled with postage reserved"
-        : `Encrypted message sent with ${postage} XLM postage`,
+        : trusted
+          ? "Encrypted message sent (trusted — no postage required)"
+          : `Encrypted message sent with ${postage} XLM postage`,
     );
   };
 
@@ -216,8 +388,19 @@ export function Compose({
             </div>
             <div className="space-y-0 px-4">
               <Field label="To" placeholder="recipients@…" value={to} onChange={setTo} />
-              <RecipientReadinessChips
-                recipients={getRecipientReadiness(to, postage, blockedRecipients)}
+              <RecipientReadinessChips recipients={resolvedRecipients} />
+              <RecipientPolicyBanner quoteState={quoteState} className="mt-1.5" />
+              <DeliveryEstimator
+                recipients={resolvedRecipients}
+                encrypted={encrypted}
+                postage={postage}
+                relayStatus={relayStatus}
+                onAddPostage={() => {
+                  const el = document.querySelector<HTMLInputElement>(
+                    '[aria-label="Postage amount"]',
+                  );
+                  el?.focus();
+                }}
               />
               <Field label="Subject" placeholder="Subject" value={subject} onChange={setSubject} />
             </div>
@@ -230,6 +413,14 @@ export function Compose({
                 placeholder="Write your message…"
                 className="glow-ring w-full resize-none rounded-lg border border-transparent bg-transparent px-1 py-2 text-sm placeholder:text-muted-foreground focus:border-white/10"
               />
+
+              {sendStages.length > 0 && (
+                <SendProgress
+                  stages={sendStages}
+                  error={sendError}
+                  onRetry={() => void handleSend(false)}
+                />
+              )}
 
               {/* Attachments */}
               {attachments.length > 0 && (
@@ -300,12 +491,20 @@ export function Compose({
                     <span className="flex items-center gap-1 text-xs text-foreground">
                       <input
                         value={postage}
-                        onChange={(event) => setPostage(event.target.value)}
+                        onChange={(event) => {
+                          postageManuallySet.current = true;
+                          setPostage(event.target.value);
+                        }}
                         inputMode="decimal"
                         className="w-16 bg-transparent font-mono outline-none"
                         aria-label="Postage amount"
                       />
                       XLM
+                      {isTrustedSender(quoteState) && (
+                        <span className="ml-1 text-[9px] text-emerald-400 font-medium uppercase tracking-wide">
+                          free
+                        </span>
+                      )}
                     </span>
                   </span>
                 </label>
@@ -376,20 +575,68 @@ export function Compose({
                 <CalendarClock className="h-3.5 w-3.5" />
                 Schedule
               </motion.button>
-              <motion.button
-                whileHover={{ y: -1 }}
-                whileTap={{ scale: 0.97 }}
-                onClick={() => handleSend(false)}
-                disabled={isSending}
-                className={cn(
-                  "inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.08] px-3 py-1.5 text-xs font-medium text-foreground transition hover:bg-white/[0.14]",
-                  isSending && "opacity-50 cursor-not-allowed",
-                )}
-                style={{ boxShadow: "0 8px 30px -10px rgba(0,0,0,0.6)" }}
-              >
-                <Send className={cn("h-3.5 w-3.5", isSending && "animate-pulse")} />
-                {isSending ? "Sending..." : "Send"}
-              </motion.button>
+              {(() => {
+                const policyBlocked = isPolicyBlocking(quoteState);
+                const recipientBlocked = resolvedRecipients.some(
+                  (r) => r.state === "blocked" || r.state === "invalid",
+                );
+                const recipientResolving = resolvedRecipients.some((r) => r.state === "resolving");
+                const isBlocked = policyBlocked || recipientBlocked;
+                const trusted = isTrustedSender(quoteState);
+
+                // Determine send CTA disabled state
+                const isSendDisabled = isSending || isBlocked || recipientResolving;
+
+                // Determine button label and style
+                let sendLabel: string;
+                let sendButtonClass: string;
+                if (isSending) {
+                  sendLabel = "Sending...";
+                  sendButtonClass =
+                    "inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.08] px-3 py-1.5 text-xs font-medium text-foreground opacity-50 cursor-not-allowed";
+                } else if (isBlocked) {
+                  sendLabel = "Blocked";
+                  sendButtonClass =
+                    "inline-flex items-center gap-2 rounded-lg border border-red-300/20 bg-red-300/[0.08] px-3 py-1.5 text-xs font-medium text-red-200 opacity-70 cursor-not-allowed";
+                } else if (trusted) {
+                  sendLabel = "Send free";
+                  sendButtonClass =
+                    "inline-flex items-center gap-2 rounded-lg border border-emerald-300/20 bg-emerald-300/[0.08] px-3 py-1.5 text-xs font-medium text-emerald-100 transition hover:bg-emerald-300/[0.14]";
+                } else if (quoteState.status === "quoted" && Number(postage) > 0) {
+                  sendLabel = `Send + ${postage} XLM`;
+                  sendButtonClass =
+                    "inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.08] px-3 py-1.5 text-xs font-medium text-foreground transition hover:bg-white/[0.14]";
+                } else {
+                  sendLabel = "Send";
+                  sendButtonClass =
+                    "inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.08] px-3 py-1.5 text-xs font-medium text-foreground transition hover:bg-white/[0.14]";
+                }
+
+                const disabledReason = isBlocked
+                  ? "Recipient has blocked this sender"
+                  : recipientResolving
+                    ? "Waiting for recipient verification"
+                    : undefined;
+
+                return (
+                  <motion.button
+                    whileHover={isSendDisabled ? undefined : { y: -1 }}
+                    whileTap={isSendDisabled ? undefined : { scale: 0.97 }}
+                    onClick={() => void handleSend(false)}
+                    disabled={isSendDisabled}
+                    aria-disabled={isSendDisabled}
+                    title={disabledReason}
+                    aria-label={disabledReason ?? sendLabel}
+                    className={sendButtonClass}
+                    style={
+                      isSendDisabled ? undefined : { boxShadow: "0 8px 30px -10px rgba(0,0,0,0.6)" }
+                    }
+                  >
+                    <Send className={cn("h-3.5 w-3.5", isSending && "animate-pulse")} />
+                    {sendLabel}
+                  </motion.button>
+                );
+              })()}
             </div>
           </motion.div>
         </>
@@ -398,26 +645,65 @@ export function Compose({
   );
 }
 
+function recipientTrustState(state: RecipientReadiness["state"]): TrustState {
+  if (state === "blocked") return "blocked";
+  if (state === "verified") return "verified";
+  if (state === "unknown") return "unknown";
+  if (state === "invalid") return "blocked"; // invalid is treated like blocked visually
+  return "unknown"; // resolving
+}
+
+function getRecipientChipColor(state: RecipientReadiness["state"]) {
+  switch (state) {
+    case "verified":
+      return "border-emerald-300/25 bg-emerald-300/10 text-emerald-100";
+    case "blocked":
+      return "border-red-300/25 bg-red-300/10 text-red-100";
+    case "invalid":
+      return "border-red-300/25 bg-red-300/10 text-red-100";
+    case "unknown":
+      return "border-amber-300/25 bg-amber-300/10 text-amber-100";
+    case "resolving":
+      return "border-blue-300/25 bg-blue-300/10 text-blue-100 animate-pulse";
+    default:
+      return "border-zinc-300/25 bg-zinc-300/10 text-zinc-100";
+  }
+}
+
 function RecipientReadinessChips({ recipients }: { recipients: RecipientReadiness[] }) {
   if (!recipients.length) return null;
 
   return (
     <div className="flex flex-wrap gap-1.5 border-b border-white/5 py-2 pl-[76px]">
       {recipients.map((recipient) => (
-        <span
+        <div
           key={recipient.address}
           title={recipient.message}
           className={cn(
-            "rounded-full border px-2 py-1 text-[10px]",
-            recipient.policy === "blocked"
-              ? "border-red-300/20 bg-red-300/[0.06] text-red-200"
-              : recipient.postage === "ready"
-                ? "border-emerald-200/20 bg-emerald-200/[0.06] text-emerald-100"
-                : "border-amber-200/20 bg-amber-200/[0.06] text-amber-100",
+            "rounded-full border px-3 py-1.5 text-[10px] flex items-center gap-2",
+            getRecipientChipColor(recipient.state),
           )}
         >
-          {recipient.address} · {recipient.policy} · postage {recipient.postage}
-        </span>
+          <TrustBadge
+            state={recipientTrustState(recipient.state)}
+            showLabel={false}
+            size="sm"
+            className="shrink-0"
+          />
+          <span className="truncate">{recipient.address}</span>
+
+          {/* Show account details if resolved */}
+          {recipient.resolvedAccount && (
+            <span className="shrink-0 text-[9px] opacity-75">
+              → {recipient.resolvedAccount.slice(0, 8)}…
+            </span>
+          )}
+
+          {/* Show encryption key availability */}
+          {recipient.encryptionKey && (
+            <span className="shrink-0 inline-block w-2 h-2 rounded-full bg-current opacity-50" />
+          )}
+        </div>
       ))}
     </div>
   );

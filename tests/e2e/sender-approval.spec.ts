@@ -1,38 +1,33 @@
-import { test, expect } from "./fixtures";
+import { test, expect, openDemoMailbox } from "./fixtures";
 
 test.describe("sender approval", () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript(() => {
-      localStorage.setItem("stealth-preferences", JSON.stringify({ onboardingCompleted: true }));
-    });
-    await page.goto("/");
+    await openDemoMailbox(page);
   });
 
   test("approves an unknown sender from the requests folder", async ({ page }) => {
-    // Navigate to Requests folder in sidebar
-    await page.getByRole("button", { name: "Requests" }).click();
+    await page.getByRole("button", { name: "Requests 3" }).click();
+    await expect(page.getByRole("heading", { name: "Request Triage Board" })).toBeVisible();
 
-    // Select the 'Message request awaiting approval' email (id=5 in seed data)
-    await page.getByText("Message request awaiting approval").click();
+    const approveButtons = page.getByRole("button", { name: "Approve" });
+    await expect(approveButtons).toHaveCount(3);
+    await approveButtons.first().click();
 
-    // The SenderRequest widget should be visible
-    await expect(page.getByText("Decide who can mail you")).toBeVisible();
-
-    // Approve the sender
-    await page.getByRole("button", { name: "Allow sender" }).click();
-
-    // Toast confirms approval
-    await expect(page.getByText(/can now mail you/i)).toBeVisible();
+    await expect(
+      page.getByText(/Unknown Sender added to Trusted Contacts\. Mail moved to Inbox\./i),
+    ).toBeVisible();
   });
 
   test("blocks an unknown sender and queues postage refund", async ({ page }) => {
-    await page.getByRole("button", { name: "Requests" }).click();
-    await page.getByText("Message request awaiting approval").click();
+    await page.getByRole("button", { name: "Requests 3" }).click();
+    await expect(page.getByRole("heading", { name: "Request Triage Board" })).toBeVisible();
 
-    await expect(page.getByText("Decide who can mail you")).toBeVisible();
+    const refundButtons = page.getByRole("button", { name: "Refund" });
+    await expect(refundButtons).toHaveCount(3);
+    await refundButtons.first().click();
 
-    await page.getByRole("button", { name: "Block and refund" }).click();
-
-    await expect(page.getByText(/blocked and postage marked for refund/i)).toBeVisible();
+    await expect(
+      page.getByText(/Postage refunded for message from Unknown Sender\./i),
+    ).toBeVisible();
   });
 });

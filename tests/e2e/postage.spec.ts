@@ -1,19 +1,22 @@
-import { test, expect, ACTOR, SENDER, MSG_ID, PAYMENT_HASH } from "./fixtures";
+import { test, expect, ACTOR, SENDER } from "./fixtures";
 
 // API-level tests – no UI navigation required. The dev server must be running
 // so that the TanStack Start API routes are reachable at /api/v1/…
 
 test.describe("postage API", () => {
   test("quotes zero postage for an explicitly allowed sender", async ({ api }) => {
+    const actor = `${ACTOR.slice(0, -2)}A2`;
+    const sender = `${SENDER.slice(0, -2)}A2`;
+
     // Allow the sender first
-    await api.putPolicy(ACTOR, {
+    await api.putPolicy(actor, {
       allowUnknown: true,
       minimumPostage: "100",
       requireVerified: false,
     });
-    await api.setSenderRule(ACTOR, SENDER, "allow");
+    await api.setSenderRule(actor, sender, "allow");
 
-    const res = await api.quotePostage(ACTOR, SENDER);
+    const res = await api.quotePostage(actor, sender);
     expect(res.status()).toBe(200);
 
     const { data } = await res.json();
@@ -23,9 +26,12 @@ test.describe("postage API", () => {
   });
 
   test("quote marks blocked sender as ineligible", async ({ api }) => {
-    await api.setSenderRule(ACTOR, SENDER, "block");
+    const actor = `${ACTOR.slice(0, -2)}A3`;
+    const sender = `${SENDER.slice(0, -2)}A3`;
 
-    const res = await api.quotePostage(ACTOR, SENDER);
+    await api.setSenderRule(actor, sender, "block");
+
+    const res = await api.quotePostage(actor, sender);
     expect(res.status()).toBe(200);
 
     const { data } = await res.json();
@@ -34,22 +40,39 @@ test.describe("postage API", () => {
   });
 
   test("submits postage and then settles it", async ({ page, api }) => {
-    await api.putPolicy(ACTOR, {
+    const actor = `${ACTOR.slice(0, -2)}A4`;
+    const sender = `${SENDER.slice(0, -2)}A4`;
+    const msgId = "3".repeat(64);
+    const payHash = "3".repeat(64);
+
+    await api.putPolicy(actor, {
       allowUnknown: true,
       minimumPostage: "100",
       requireVerified: false,
     });
 
-    const submitRes = await api.submitPostage(MSG_ID, PAYMENT_HASH, "100");
+    const submitRes = await page.request.post("/api/v1/postage/", {
+      headers: {
+        "Content-Type": "application/json",
+        "x-stealth-address": sender,
+      },
+      data: {
+        amount: "100",
+        messageId: msgId,
+        paymentHash: payHash,
+        recipient: actor,
+        sender: sender,
+      },
+    });
     expect(submitRes.status()).toBe(201);
     const { data: pending } = await submitRes.json();
     expect(pending.status).toBe("pending");
 
-    // Settle as recipient (ACTOR)
-    const settleRes = await page.request.post(`/api/v1/postage/${MSG_ID}/settle`, {
+    // Settle as recipient (actor)
+    const settleRes = await page.request.post(`/api/v1/postage/${msgId}/settle`, {
       headers: {
         "Content-Type": "application/json",
-        "x-stealth-address": ACTOR,
+        "x-stealth-address": actor,
       },
     });
     expect(settleRes.status()).toBe(200);
@@ -58,55 +81,82 @@ test.describe("postage API", () => {
   });
 
   test("submits postage and then refunds it", async ({ page, api }) => {
-    // Use different IDs to avoid collision with other tests
+    const actor = `${ACTOR.slice(0, -2)}A5`;
+    const sender = `${SENDER.slice(0, -2)}A5`;
     const msgId = "c".repeat(64);
     const payHash = "d".repeat(64);
 
-    await api.putPolicy(ACTOR, { allowUnknown: true, minimumPostage: "0", requireVerified: false });
+    await api.putPolicy(actor, { allowUnknown: true, minimumPostage: "0", requireVerified: false });
 
     const submitRes = await page.request.post("/api/v1/postage/", {
-      headers: { "Content-Type": "application/json", "x-stealth-address": SENDER },
+      headers: { "Content-Type": "application/json", "x-stealth-address": sender },
       data: {
         amount: "50",
         messageId: msgId,
         paymentHash: payHash,
-        recipient: ACTOR,
-        sender: SENDER,
+        recipient: actor,
+        sender: sender,
       },
     });
     expect(submitRes.status()).toBe(201);
 
     const refundRes = await page.request.post(`/api/v1/postage/${msgId}/refund`, {
-      headers: { "Content-Type": "application/json", "x-stealth-address": ACTOR },
+      headers: { "Content-Type": "application/json", "x-stealth-address": actor },
     });
     expect(refundRes.status()).toBe(200);
     const { data } = await refundRes.json();
     expect(data.status).toBe("refunded");
   });
 
-  test("rejects duplicate postage submission with 409", async ({ api }) => {
+  test("rejects duplicate postage submission with 409", async ({ page, api }) => {
+    const actor = `${ACTOR.slice(0, -2)}A6`;
+    const sender = `${SENDER.slice(0, -2)}A6`;
     const msgId = "e".repeat(64);
     const payHash = "f".repeat(64);
 
-    await api.putPolicy(ACTOR, { allowUnknown: true, minimumPostage: "0", requireVerified: false });
+    await api.putPolicy(actor, { allowUnknown: true, minimumPostage: "0", requireVerified: false });
 
-    const first = await api.submitPostage(msgId, payHash, "0");
+    const submitFn = () =>
+      page.request.post("/api/v1/postage/", {
+        headers: { "Content-Type": "application/json", "x-stealth-address": sender },
+        data: {
+          amount: "0",
+          messageId: msgId,
+          paymentHash: payHash,
+          recipient: actor,
+          sender: sender,
+        },
+      });
+
+    const first = await submitFn();
     expect(first.status()).toBe(201);
 
-    const second = await api.submitPostage(msgId, payHash, "0");
+    const second = await submitFn();
     expect(second.status()).toBe(409);
   });
 
-  test("rejects postage below mailbox minimum with 422", async ({ api }) => {
-    await api.putPolicy(ACTOR, {
+  test("rejects postage below mailbox minimum with 422", async ({ page, api }) => {
+    const actor = `${ACTOR.slice(0, -2)}A7`;
+    const sender = `${SENDER.slice(0, -2)}A7`;
+    const msgId = "9".repeat(64);
+    const payHash = "8".repeat(64);
+
+    await api.putPolicy(actor, {
       allowUnknown: true,
       minimumPostage: "1000",
       requireVerified: false,
     });
 
-    const msgId = "9".repeat(64);
-    const payHash = "8".repeat(64);
-    const res = await api.submitPostage(msgId, payHash, "1");
+    const res = await page.request.post("/api/v1/postage/", {
+      headers: { "Content-Type": "application/json", "x-stealth-address": sender },
+      data: {
+        amount: "1",
+        messageId: msgId,
+        paymentHash: payHash,
+        recipient: actor,
+        sender: sender,
+      },
+    });
     expect(res.status()).toBe(422);
   });
 });

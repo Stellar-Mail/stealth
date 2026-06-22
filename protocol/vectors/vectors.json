@@ -82,25 +82,37 @@
             "id": "primitives/hash/valid/all-zeros",
             "description": "All-zero hash — the minimum representable 32-byte value.",
             "input": "0000000000000000000000000000000000000000000000000000000000000000",
-            "expected": { "valid": true, "normalized": "0000000000000000000000000000000000000000000000000000000000000000" }
+            "expected": {
+              "valid": true,
+              "normalized": "0000000000000000000000000000000000000000000000000000000000000000"
+            }
           },
           {
             "id": "primitives/hash/valid/all-f",
             "description": "All-0xff hash — the maximum representable 32-byte value.",
             "input": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-            "expected": { "valid": true, "normalized": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff" }
+            "expected": {
+              "valid": true,
+              "normalized": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+            }
           },
           {
             "id": "primitives/hash/valid/mixed",
             "description": "Mixed lowercase hex characters — typical SHA-256 output pattern.",
             "input": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
-            "expected": { "valid": true, "normalized": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789" }
+            "expected": {
+              "valid": true,
+              "normalized": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789"
+            }
           },
           {
             "id": "primitives/hash/valid/uppercase-normalised",
             "description": "Uppercase hex characters are normalised to lowercase. Implementations must store the normalised form.",
             "input": "ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789",
-            "expected": { "valid": true, "normalized": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789" }
+            "expected": {
+              "valid": true,
+              "normalized": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789"
+            }
           },
           {
             "id": "primitives/hash/invalid/too-short",
@@ -361,9 +373,7 @@
             "amount": "1000",
             "submitAt": "2026-01-01T00:00:00.000Z"
           },
-          "preconditions": [
-            { "op": "setSenderRule", "rule": "block" }
-          ],
+          "preconditions": [{ "op": "setSenderRule", "rule": "block" }],
           "operations": ["submit"],
           "expected": {
             "error": {
@@ -525,6 +535,247 @@
           "schema": "stroopAmount",
           "input": "100.0",
           "expected": { "valid": false, "error": "Expected a non-negative integer string" }
+        }
+      ]
+    },
+    "envelope": {
+      "description": "Cryptographic envelope validation, canonical serialization (JCS), and fail-closed critical field test cases.",
+      "cases": [
+        {
+          "id": "envelope/valid/basic",
+          "description": "A fully valid message envelope with valid payload and signature.",
+          "input": {
+            "payload": {
+              "version": "v1",
+              "sender": "GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+              "recipient": "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+              "timestamp": "2026-06-17T22:00:00.000Z",
+              "encryption_metadata": {
+                "algorithm": "X25519-XSalsa20-Poly1305",
+                "ephemeral_public_key": "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                "nonce": "aabbccddeeff00112233445566778899",
+                "mac": "0000000000000000000000000000000000000000000000000000000000000000"
+              },
+              "content_commitment": "1111111111111111111111111111111111111111111111111111111111111111",
+              "attachments": []
+            },
+            "signature": {
+              "scheme": "Ed25519",
+              "value": "22222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222"
+            }
+          },
+          "expected": {
+            "valid": true,
+            "canonical": "{\"attachments\":[],\"content_commitment\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"encryption_metadata\":{\"algorithm\":\"X25519-XSalsa20-Poly1305\",\"ephemeral_public_key\":\"GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\",\"mac\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"nonce\":\"aabbccddeeff00112233445566778899\"},\"recipient\":\"GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC\",\"sender\":\"GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB\",\"timestamp\":\"2026-06-17T22:00:00.000Z\",\"version\":\"v1\"}"
+          }
+        },
+        {
+          "id": "envelope/valid/extensibility",
+          "description": "An envelope with unknown optional fields that are NOT listed in critical. It should pass.",
+          "input": {
+            "payload": {
+              "version": "v1",
+              "sender": "GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+              "recipient": "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+              "timestamp": "2026-06-17T22:00:00.000Z",
+              "encryption_metadata": {
+                "algorithm": "X25519-XSalsa20-Poly1305",
+                "ephemeral_public_key": "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                "nonce": "aabbccddeeff00112233445566778899",
+                "mac": "0000000000000000000000000000000000000000000000000000000000000000"
+              },
+              "content_commitment": "1111111111111111111111111111111111111111111111111111111111111111",
+              "attachments": [],
+              "unknown_optional_field": "some_value"
+            },
+            "signature": {
+              "scheme": "Ed25519",
+              "value": "22222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222"
+            }
+          },
+          "expected": {
+            "valid": true,
+            "canonical": "{\"attachments\":[],\"content_commitment\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"encryption_metadata\":{\"algorithm\":\"X25519-XSalsa20-Poly1305\",\"ephemeral_public_key\":\"GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\",\"mac\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"nonce\":\"aabbccddeeff00112233445566778899\"},\"recipient\":\"GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC\",\"sender\":\"GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB\",\"timestamp\":\"2026-06-17T22:00:00.000Z\",\"unknown_optional_field\":\"some_value\",\"version\":\"v1\"}"
+          }
+        },
+        {
+          "id": "envelope/invalid/unknown-mandatory",
+          "description": "An envelope containing an unknown field listed in critical. It must fail closed.",
+          "input": {
+            "payload": {
+              "version": "v1",
+              "sender": "GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+              "recipient": "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+              "timestamp": "2026-06-17T22:00:00.000Z",
+              "encryption_metadata": {
+                "algorithm": "X25519-XSalsa20-Poly1305",
+                "ephemeral_public_key": "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                "nonce": "aabbccddeeff00112233445566778899",
+                "mac": "0000000000000000000000000000000000000000000000000000000000000000"
+              },
+              "content_commitment": "1111111111111111111111111111111111111111111111111111111111111111",
+              "attachments": [],
+              "unknown_mandatory_field": "critical_value",
+              "critical": ["unknown_mandatory_field"]
+            },
+            "signature": {
+              "scheme": "Ed25519",
+              "value": "22222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222"
+            }
+          },
+          "expected": {
+            "valid": false,
+            "error": "Unknown mandatory field: unknown_mandatory_field"
+          }
+        },
+        {
+          "id": "envelope/valid/known-mandatory-critical",
+          "description": "An envelope listing a known mandatory field (e.g. version) in the critical list. It should pass.",
+          "input": {
+            "payload": {
+              "version": "v1",
+              "sender": "GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+              "recipient": "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+              "timestamp": "2026-06-17T22:00:00.000Z",
+              "encryption_metadata": {
+                "algorithm": "X25519-XSalsa20-Poly1305",
+                "ephemeral_public_key": "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                "nonce": "aabbccddeeff00112233445566778899",
+                "mac": "0000000000000000000000000000000000000000000000000000000000000000"
+              },
+              "content_commitment": "1111111111111111111111111111111111111111111111111111111111111111",
+              "attachments": [],
+              "critical": ["version"]
+            },
+            "signature": {
+              "scheme": "Ed25519",
+              "value": "22222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222"
+            }
+          },
+          "expected": {
+            "valid": true,
+            "canonical": "{\"attachments\":[],\"content_commitment\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"critical\":[\"version\"],\"encryption_metadata\":{\"algorithm\":\"X25519-XSalsa20-Poly1305\",\"ephemeral_public_key\":\"GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\",\"mac\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"nonce\":\"aabbccddeeff00112233445566778899\"},\"recipient\":\"GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC\",\"sender\":\"GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB\",\"timestamp\":\"2026-06-17T22:00:00.000Z\",\"version\":\"v1\"}"
+          }
+        },
+        {
+          "id": "envelope/invalid/missing-sender",
+          "description": "An envelope missing the sender field in payload. It must fail validation.",
+          "input": {
+            "payload": {
+              "version": "v1",
+              "recipient": "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+              "timestamp": "2026-06-17T22:00:00.000Z",
+              "encryption_metadata": {
+                "algorithm": "X25519-XSalsa20-Poly1305",
+                "ephemeral_public_key": "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                "nonce": "aabbccddeeff00112233445566778899",
+                "mac": "0000000000000000000000000000000000000000000000000000000000000000"
+              },
+              "content_commitment": "1111111111111111111111111111111111111111111111111111111111111111",
+              "attachments": []
+            },
+            "signature": {
+              "scheme": "Ed25519",
+              "value": "22222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222"
+            }
+          },
+          "expected": {
+            "valid": false,
+            "error": "Required"
+          }
+        }
+      ]
+    },
+    "relay_submission": {
+      "description": "Relay submission auth, idempotency, and policy denial vectors",
+      "cases": [
+        {
+          "id": "relay/auth/missing-header",
+          "description": "Missing x-stealth-address header returns 401 unauthorized",
+          "headers": {},
+          "input": {
+            "amount": "1000",
+            "messageId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "paymentHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "recipient": "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+            "sender": "GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
+          },
+          "expected": {
+            "status": 401,
+            "code": "unauthorized"
+          }
+        },
+        {
+          "id": "relay/auth/actor-mismatch",
+          "description": "x-stealth-address header mismatch with sender returns 403 forbidden",
+          "headers": {
+            "x-stealth-address": "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+          },
+          "input": {
+            "amount": "1000",
+            "messageId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "paymentHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "recipient": "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+            "sender": "GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
+          },
+          "expected": {
+            "status": 403,
+            "code": "forbidden"
+          }
+        },
+        {
+          "id": "relay/auth/invalid-address",
+          "description": "x-stealth-address header with invalid Stellar G-address format returns 401 unauthorized",
+          "headers": {
+            "x-stealth-address": "invalid-address"
+          },
+          "input": {
+            "amount": "1000",
+            "messageId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "paymentHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "recipient": "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+            "sender": "GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
+          },
+          "expected": {
+            "status": 401,
+            "code": "unauthorized"
+          }
+        },
+        {
+          "id": "relay/idempotency/duplicate-key-returns-original",
+          "description": "Re-submitting with same x-idempotency-key returns original 201 success",
+          "headers": {
+            "x-stealth-address": "GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+            "x-idempotency-key": "idempotency-test-key-123"
+          },
+          "input": {
+            "amount": "1000",
+            "messageId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "paymentHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "recipient": "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+            "sender": "GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
+          },
+          "expected": {
+            "status": 201
+          }
+        },
+        {
+          "id": "relay/policy/blocked-no-mailbox-leak",
+          "description": "Policy denial due to blocked sender returns 403 forbidden without leaking metadata",
+          "headers": {
+            "x-stealth-address": "GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
+          },
+          "input": {
+            "amount": "1000",
+            "messageId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "paymentHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "recipient": "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+            "sender": "GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
+          },
+          "expected": {
+            "status": 403,
+            "code": "forbidden"
+          }
         }
       ]
     }

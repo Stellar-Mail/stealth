@@ -13,16 +13,17 @@ import {
   Lock,
   Palette,
   RefreshCw,
+  ScrollText,
   ShieldCheck,
   Trash2,
   User,
   X,
 } from "lucide-react";
-import { useState, type CSSProperties } from "react";
+import { useState, useEffect, type CSSProperties } from "react";
 import { Surface } from "@/features/design-system";
 import { cn } from "@/lib/utils";
 import { SHORTCUT_DEFINITIONS } from "@/features/command-palette";
-import type { ReceiptPreference, UiPreferences } from "@/features/preferences";
+import type { ReceiptPreference, UiPreferences, LayoutPreferences } from "@/features/preferences";
 import {
   MAILBOX_POLICY_TEMPLATES,
   buildCustomMailboxPolicyTemplate,
@@ -31,19 +32,23 @@ import {
   savedCustomTemplateToPreferences,
   templateToPreferences,
   type MailboxPolicyTemplateId,
+  type MailboxPolicyTemplate,
   type SavedMailboxPolicyTemplate,
 } from "@/features/settings/mailbox-policy-templates";
 import { AuditLog } from "@/features/audit-log";
+import { ChangelogPanel, useChangelog } from "@/features/changelog";
 
 const tabs = [
   { id: "account", label: "Account", icon: User },
   { id: "appearance", label: "Appearance", icon: Palette },
   { id: "notifications", label: "Notifications", icon: Bell },
+  { id: "layout", label: "Layout", icon: Laptop },
   { id: "inbox", label: "Inbox control", icon: ShieldCheck },
   { id: "receipts", label: "Read receipts", icon: CheckCheck },
   { id: "security", label: "Security", icon: Lock },
   { id: "shortcuts", label: "Shortcuts", icon: Keyboard },
   { id: "audit", label: "Audit log", icon: ClipboardList },
+  { id: "changelog", label: "What's new", icon: ScrollText },
 ] as const;
 
 type Tab = (typeof tabs)[number]["id"];
@@ -54,6 +59,9 @@ export function SettingsModal({
   onCancel,
   preferences,
   onChange,
+  layout,
+  onLayoutChange,
+  onResetLayout,
   onSave,
 }: {
   open: boolean;
@@ -61,9 +69,13 @@ export function SettingsModal({
   onCancel?: () => void;
   preferences: UiPreferences;
   onChange: (preferences: UiPreferences) => void;
+  layout: LayoutPreferences;
+  onLayoutChange: (layout: LayoutPreferences) => void;
+  onResetLayout: () => void;
   onSave: () => void;
 }) {
   const [activeTab, setActiveTab] = useState<Tab>("account");
+  const { hasUnread } = useChangelog();
 
   return (
     <AnimatePresence>
@@ -83,7 +95,7 @@ export function SettingsModal({
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
             className={cn(
               "glass-strong fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl transition-all",
-              activeTab === "audit"
+              activeTab === "audit" || activeTab === "changelog"
                 ? "w-[min(800px,calc(100vw-2rem))]"
                 : "w-[min(680px,calc(100vw-2rem))]",
             )}
@@ -99,7 +111,12 @@ export function SettingsModal({
               </button>
             </div>
 
-            <div className={cn("flex", activeTab === "audit" ? "h-[520px]" : "min-h-[400px]")}>
+            <div
+              className={cn(
+                "flex",
+                activeTab === "audit" || activeTab === "changelog" ? "h-[520px]" : "min-h-[400px]",
+              )}
+            >
               {/* Sidebar tabs */}
               <div className="w-48 border-r border-white/5 p-3">
                 <nav className="space-y-1">
@@ -118,7 +135,10 @@ export function SettingsModal({
                         )}
                       >
                         <Icon className="h-4 w-4" />
-                        {tab.label}
+                        <span className="flex-1 text-left">{tab.label}</span>
+                        {tab.id === "changelog" && hasUnread && (
+                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                        )}
                       </button>
                     );
                   })}
@@ -134,6 +154,13 @@ export function SettingsModal({
                 {activeTab === "notifications" && (
                   <NotificationSettings preferences={preferences} onChange={onChange} />
                 )}
+                {activeTab === "layout" && (
+                  <LayoutSettings
+                    layout={layout}
+                    onChange={onLayoutChange}
+                    onReset={onResetLayout}
+                  />
+                )}
                 {activeTab === "inbox" && (
                   <InboxSettings open={open} preferences={preferences} onChange={onChange} />
                 )}
@@ -143,6 +170,7 @@ export function SettingsModal({
                 {activeTab === "security" && <SecuritySettings />}
                 {activeTab === "shortcuts" && <ShortcutSettings />}
                 {activeTab === "audit" && <AuditLog />}
+                {activeTab === "changelog" && <ChangelogPanel />}
               </div>
             </div>
             <div className="flex items-center justify-between border-t border-white/5 px-5 py-3">
@@ -467,7 +495,7 @@ function InboxSettings({
         ? savedCustomTemplateToPreferences(savedCustomTemplate)
         : currentDraft
       : selectedPreview
-        ? templateToPreferences(selectedPreview)
+        ? templateToPreferences(selectedPreview as MailboxPolicyTemplate)
         : currentDraft;
 
   const previewMatchesCurrent =
@@ -477,7 +505,10 @@ function InboxSettings({
           savedCustomTemplate.policy.minimumPostage === preferences.minimumPostage
         : true
       : selectedPreview
-        ? mailboxPolicyTemplateMatchesPreferences(selectedPreview, currentDraft)
+        ? mailboxPolicyTemplateMatchesPreferences(
+            selectedPreview as MailboxPolicyTemplate,
+            currentDraft,
+          )
         : false;
 
   const applyingWillReplaceCurrent =
@@ -485,7 +516,7 @@ function InboxSettings({
       ? !!savedCustomTemplate && !previewMatchesCurrent
       : !previewMatchesCurrent;
 
-  const handleTemplateChange = (id: MailboxPolicyTemplateId) => {
+  const handleTemplateChange = (id: MailboxPolicyTemplateId | "custom") => {
     setPreviewTemplateId(id);
   };
 
@@ -509,7 +540,7 @@ function InboxSettings({
 
     onChange({
       ...preferences,
-      ...templateToPreferences(selectedPreview),
+      ...templateToPreferences(selectedPreview as MailboxPolicyTemplate),
     });
   };
 
@@ -1246,6 +1277,53 @@ function SecuritySettings() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+function LayoutSettings({
+  layout,
+  onChange,
+  onReset,
+}: {
+  layout: LayoutPreferences;
+  onChange: (layout: LayoutPreferences) => void;
+  onReset: () => void;
+}) {
+  return (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-sm font-medium text-foreground">Layout</h3>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Customize your mailbox layout and panel sizes.
+        </p>
+      </div>
+
+      <div className="space-y-4">
+        <SettingsToggle
+          label="Compact mode"
+          description="A denser layout for the email list and message views."
+          checked={layout.compactMode}
+          onChange={(checked) => onChange({ ...layout, compactMode: checked })}
+        />
+
+        <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-foreground">Reset layout</p>
+              <p className="text-xs text-muted-foreground">
+                Restore all panel widths and collapse states to default.
+              </p>
+            </div>
+            <button
+              onClick={onReset}
+              className="flex items-center gap-2 rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-foreground transition hover:bg-white/[0.06]"
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+              Reset
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

@@ -172,11 +172,7 @@ export function RequestsTriageBoard({
               </p>
             </motion.div>
           ) : (
-            <motion.div
-              key="cards-grid"
-              className="grid grid-cols-1 gap-4 lg:grid-cols-2"
-              layout
-            >
+            <motion.div key="cards-grid" className="grid grid-cols-1 gap-4 lg:grid-cols-2" layout>
               {requests.map((email) => (
                 <motion.div key={email.id} layout>
                   <RequestCard
@@ -256,7 +252,9 @@ export function RequestsTriageBoard({
                     )}
                   </div>
                   <div>
-                    <span className="text-muted-foreground font-medium block">Postage Attached</span>
+                    <span className="text-muted-foreground font-medium block">
+                      Postage Attached
+                    </span>
                     <span className="font-semibold text-foreground mt-0.5 block">
                       {inspectEmail.postageAmount
                         ? `${Number(inspectEmail.postageAmount) / 10_000_000} XLM`
