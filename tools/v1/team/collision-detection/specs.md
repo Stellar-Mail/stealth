@@ -1,41 +1,56 @@
-# Collision Detection
-
-Prevent duplicate responses.
-
-## Scope
-
-- Release tier: $(System.Collections.Hashtable.Tier.ToUpperInvariant())
-- Audience: $(System.Collections.Hashtable.Audience)
-- Folder ownership: $dir/
-
-This is a self-contained tooling workspace. Do not wire this tool into the main app, routing, inbox architecture, wallet core, Stellar core, or design system unless a future integration issue explicitly allows it.
-
-Recommended internal structure:
-
-- components/
-- services/
-- hooks/
--     ests/
-- docs/
-  "@ | Set-Content -Path "tools/v1/team/collision-detection/README.md"
-  @"
-
 # Collision Detection Specs
 
 ## Purpose
 
-Prevent duplicate responses.
+Prevent duplicate team responses by comparing a draft reply with previous
+messages in the same shared mailbox thread.
 
-## Contributor boundary
+## Scope
 
-All work for this tool should stay in:
+- Release tier: V1
+- Audience: team
+- Folder ownership: `tools/v1/team/collision-detection/`
 
-$dir/
+The tool must remain self-contained until a future integration issue connects it
+to live mail data or the main inbox workflow.
 
-## Required issue categories
+## Candidate Input Shape
 
-- Architecture
-- Feature
-- UI and accessibility
-- Security and performance
-- Testing and documentation
+The future detector can be reviewed against this minimal input contract:
+
+| Field | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `threadId` | string | Yes | Stable thread identifier from the caller |
+| `draftReply` | object | Yes | Proposed outbound reply |
+| `draftReply.authorId` | string | Yes | Team member preparing the response |
+| `draftReply.body` | string | Yes | Plain-text body used for comparison |
+| `priorResponses` | array | Yes | Earlier team responses in the same thread |
+| `priorResponses[].authorId` | string | Yes | Sender of the prior response |
+| `priorResponses[].body` | string | Yes | Plain-text body of the prior response |
+| `priorResponses[].sentAt` | string | No | ISO timestamp when available |
+
+## Expected Outcomes
+
+| Outcome | Meaning |
+| --- | --- |
+| `duplicate` | The draft repeats an existing answer closely enough to block by default. |
+| `possible_duplicate` | The draft overlaps with a prior answer and needs human review. |
+| `distinct` | The draft appears to answer a different request or add new information. |
+| `invalid_input` | Required draft or thread data is missing or empty. |
+
+## Review Heuristics
+
+- Exact or near-exact normalized body matches should be `duplicate`.
+- Same recipient and same resolution intent with small wording changes should be
+  `possible_duplicate`.
+- Different task, recipient, or resolution should be `distinct`.
+- Empty draft body, missing thread id, or missing response context should be
+  `invalid_input`.
+
+## Out of Scope
+
+- No production mailbox reads.
+- No automatic sending or blocking behavior.
+- No database schema changes.
+- No app navigation, dashboard, or routing changes.
+- No shared design-system changes.

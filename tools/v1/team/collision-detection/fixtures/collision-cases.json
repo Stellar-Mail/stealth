@@ -1,0 +1,69 @@
+{
+  "description": "Synthetic collision detection review cases for the isolated V1 team tool.",
+  "cases": [
+    {
+      "id": "exact-duplicate-renewal",
+      "expectedOutcome": "duplicate",
+      "threadId": "thread-renewal-001",
+      "draftReply": {
+        "authorId": "agent-lina",
+        "body": "Your renewal was approved and the updated terms are attached."
+      },
+      "priorResponses": [
+        {
+          "authorId": "agent-mika",
+          "body": "Your renewal was approved and the updated terms are attached.",
+          "sentAt": "2026-06-17T09:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "possible-duplicate-shipping",
+      "expectedOutcome": "possible_duplicate",
+      "threadId": "thread-shipping-014",
+      "draftReply": {
+        "authorId": "agent-rao",
+        "body": "We found the delayed package and expect delivery by Friday."
+      },
+      "priorResponses": [
+        {
+          "authorId": "agent-eli",
+          "body": "The delayed package has been located. Current estimate is Friday delivery.",
+          "sentAt": "2026-06-17T10:30:00Z"
+        }
+      ]
+    },
+    {
+      "id": "distinct-billing-followup",
+      "expectedOutcome": "distinct",
+      "threadId": "thread-billing-022",
+      "draftReply": {
+        "authorId": "agent-nora",
+        "body": "The duplicate invoice was voided and the corrected receipt is ready."
+      },
+      "priorResponses": [
+        {
+          "authorId": "agent-omar",
+          "body": "We reset access for the billing portal and sent a temporary sign-in link.",
+          "sentAt": "2026-06-17T11:45:00Z"
+        }
+      ]
+    },
+    {
+      "id": "invalid-empty-draft",
+      "expectedOutcome": "invalid_input",
+      "threadId": "thread-empty-003",
+      "draftReply": {
+        "authorId": "agent-lina",
+        "body": ""
+      },
+      "priorResponses": [
+        {
+          "authorId": "agent-mika",
+          "body": "We need a complete draft before checking for collision risk.",
+          "sentAt": "2026-06-17T12:00:00Z"
+        }
+      ]
+    }
+  ]
+}
