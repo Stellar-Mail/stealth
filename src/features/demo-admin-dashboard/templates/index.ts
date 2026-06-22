@@ -9,4 +9,13 @@ export {
   removeDraft,
   type InsertResult,
 } from "./templateToDraft";
+export {
+  buildTemplateRegistry,
+  getTemplatesForScenario,
+  messageTemplateScenarios,
+  validateTemplateRegistry,
+  type MessageTemplateScenario,
+  type TemplateRegistryEntry,
+  type TemplateScenarioMetadata,
+} from "./templateRegistry";
 export { TEMPLATE_CATEGORY_LABEL, type MessageTemplate, type TemplateCategory } from "./types";
