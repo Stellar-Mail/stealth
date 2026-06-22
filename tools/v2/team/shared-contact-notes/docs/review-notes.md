@@ -19,6 +19,22 @@ self-contained mini-product under `tools/v2/team/shared-contact-notes/`.
   not-found errors, determinism guarantees, and loading state behavior.
 - The public API is exported through `index.ts` (barrel).
 
+## Quick Validation
+
+```bash
+# Run only this tool's service and component tests
+npx vitest run tools/v2/team/shared-contact-notes/tests
+
+# Confirm review scope stays folder-local
+git diff --name-only | grep -v "tools/v2/team/shared-contact-notes/"
+
+# Optional project-wide checks from the repo root
+npx tsc --noEmit
+npm run lint
+```
+
+The folder-local scope command should return no files for this issue.
+
 ## What Is Intentionally Not Included
 
 - No application shell, routing, navigation, or dashboard integration.

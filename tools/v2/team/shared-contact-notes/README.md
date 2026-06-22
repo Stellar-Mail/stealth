@@ -31,6 +31,7 @@ design system from this issue.
 - `hooks/useContactNotes.ts` provides React hook wrapping NoteService with `useReducer`.
 - `components/` contains all React UI components with empty, loading, error, and success states.
 - `docs/ACCESSIBILITY.md` documents WCAG 2.1 AA compliance measures.
+- `docs/SETUP.md` explains how to review and run this tool independently.
 - `docs/review-notes.md` gives maintainers a review checklist.
 
 ## Intended Behavior
