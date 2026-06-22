@@ -1,41 +1,57 @@
-# Email Ownership Tracker
-
-Track ownership history.
-
-## Scope
-
-- Release tier: $(System.Collections.Hashtable.Tier.ToUpperInvariant())
-- Audience: $(System.Collections.Hashtable.Audience)
-- Folder ownership: $dir/
-
-This is a self-contained tooling workspace. Do not wire this tool into the main app, routing, inbox architecture, wallet core, Stellar core, or design system unless a future integration issue explicitly allows it.
-
-Recommended internal structure:
-
-- components/
-- services/
-- hooks/
--     ests/
-- docs/
-  "@ | Set-Content -Path "tools/v1/team/email-ownership-tracker/README.md"
-  @"
-
 # Email Ownership Tracker Specs
 
 ## Purpose
 
-Track ownership history.
+Track ownership for shared mailbox threads so teammates can avoid duplicate
+responses and see who is responsible for the next action.
 
-## Contributor boundary
+## Scope
 
-All work for this tool should stay in:
+- Release tier: V1
+- Audience: team
+- Folder ownership: `tools/v1/team/email-ownership-tracker/`
 
-$dir/
+This issue implements only the isolated core engine. Main app integration,
+database persistence, routing, and UI mounting are out of scope.
 
-## Required issue categories
+## Inputs
 
-- Architecture
-- Feature
-- UI and accessibility
-- Security and performance
-- Testing and documentation
+`OwnershipTrackerService` accepts deterministic seed threads:
+
+| Field | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `id` | string | Yes | Stable thread identifier |
+| `subject` | string | Yes | Public-safe thread title for review |
+| `sender` | string | Yes | Synthetic sender address in fixtures |
+| `status` | `unassigned`, `assigned`, `released` | Yes | Current ownership state |
+| `ownerId` | string or null | Yes | Current teammate id when assigned |
+| `ownerName` | string or null | Yes | Current teammate display name |
+| `updatedAt` | string | Yes | ISO timestamp supplied by the caller |
+
+## Outputs
+
+- Claiming returns the updated `OwnershipThread`.
+- Releasing returns the updated `OwnershipThread`.
+- Listing and lookup methods return defensive copies.
+- Ownership events are kept in memory for folder-local review.
+
+## Error States
+
+- Missing `threadId`, teammate id, teammate name, or timestamp throws an error.
+- Unknown thread id throws an error.
+- Claiming a thread owned by another teammate throws an error.
+- Releasing a thread without ownership throws an error.
+- Releasing a thread owned by another teammate throws an error.
+
+## Loading States
+
+The core service is synchronous by design. Future hooks or UI components can add
+loading and retry states when this engine is connected to persistence or live
+mailbox data.
+
+## Safety Notes
+
+- No network calls.
+- No secrets or production data.
+- No app-wide imports.
+- No main application wiring.
