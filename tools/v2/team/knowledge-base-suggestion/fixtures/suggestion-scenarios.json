@@ -1,0 +1,82 @@
+[
+  {
+    "id": "missing-runbook-suggested",
+    "title": "Missing incident runbook becomes a new article suggestion",
+    "sourceContext": "Several support handoffs mention manual steps for rotating webhook credentials after an integration outage.",
+    "targetArticle": {
+      "slug": "incident-response/webhook-credential-rotation",
+      "section": "Incident Response",
+      "exists": false
+    },
+    "reviewSignals": [
+      "repeated team context names the same operational gap",
+      "suggestion has a clear article section",
+      "no existing article slug matches the proposed runbook"
+    ],
+    "expectedOutcome": "suggested"
+  },
+  {
+    "id": "stale-onboarding-needs-review",
+    "title": "Stale onboarding article needs reviewer confirmation",
+    "sourceContext": "New team members keep asking whether the sandbox API token is still provisioned by the old onboarding script.",
+    "targetArticle": {
+      "slug": "onboarding/sandbox-api-token",
+      "section": "Onboarding",
+      "exists": true
+    },
+    "reviewSignals": [
+      "existing article may be stale",
+      "source context does not include the replacement command",
+      "owner confirmation is needed before editing"
+    ],
+    "expectedOutcome": "needs_review"
+  },
+  {
+    "id": "duplicate-vpn-guide-duplicate",
+    "title": "Duplicate VPN setup suggestion is detected",
+    "sourceContext": "A user asks for a VPN setup guide, but the knowledge base already has the current team VPN article.",
+    "targetArticle": {
+      "slug": "it/vpn-setup",
+      "section": "Information Technology",
+      "exists": true
+    },
+    "reviewSignals": [
+      "existing article already covers the request",
+      "suggestion should link to current documentation",
+      "no new article is needed"
+    ],
+    "expectedOutcome": "duplicate"
+  },
+  {
+    "id": "secret-containing-context-blocked",
+    "title": "Context with secret-looking content is blocked",
+    "sourceContext": "The draft includes an API key shaped token and asks to document it for the team.",
+    "targetArticle": {
+      "slug": "security/shared-api-key",
+      "section": "Security",
+      "exists": false
+    },
+    "reviewSignals": [
+      "source context may contain sensitive credentials",
+      "suggestion should not publish secret material",
+      "security review is required before any article is drafted"
+    ],
+    "expectedOutcome": "blocked"
+  },
+  {
+    "id": "low-evidence-feature-request-rejected",
+    "title": "Low-evidence feature request is rejected",
+    "sourceContext": "One message says a future dashboard might need a new knowledge base page, but no workflow details are available.",
+    "targetArticle": {
+      "slug": "product/future-dashboard",
+      "section": "Product",
+      "exists": false
+    },
+    "reviewSignals": [
+      "single low-detail source",
+      "no actionable article outline",
+      "proposal should wait for stronger evidence"
+    ],
+    "expectedOutcome": "rejected"
+  }
+]
