@@ -17,6 +17,19 @@ Do not modify the main application shell, dashboard layout, routing, inbox
 architecture, wallet core, Stellar integration, database schema, or shared
 design system from this issue.
 
+## Independent Review Quick Start
+
+Reviewers can validate this tool without booting the full mail application:
+
+```bash
+npm ci
+npx vitest run tools/v2/team/shared-contact-notes/tests/service.test.ts
+npx vitest run tools/v2/team/shared-contact-notes/tests/components.test.tsx
+```
+
+Use `docs/USAGE.md` for the setup flow, local usage example, fixture notes,
+and known limitations that should be considered during review.
+
 ## Review Map
 
 - `types.ts` defines all data types and input contracts.
@@ -30,6 +43,7 @@ design system from this issue.
 - `tests/test-plan.md` documents all test scenarios.
 - `hooks/useContactNotes.ts` provides React hook wrapping NoteService with `useReducer`.
 - `components/` contains all React UI components with empty, loading, error, and success states.
+- `docs/USAGE.md` documents local setup, usage, fixtures, review checks, and limitations.
 - `docs/ACCESSIBILITY.md` documents WCAG 2.1 AA compliance measures.
 - `docs/review-notes.md` gives maintainers a review checklist.
 
@@ -41,7 +55,7 @@ The engine provides note management for shared contacts:
 - **Read** all notes for a specific contact, or a single note by id.
 - **Update** note content (partial updates supported).
 - **Delete** a note permanently.
-- **Archive** a note (idempotent — archiving an archived note is a no-op).
+- **Archive** a note (idempotent - archiving an archived note is a no-op).
 
 All operations are async with a configurable delay for deterministic loading
 state simulation. With `delayMs: 0` (the default), operations resolve
@@ -49,8 +63,8 @@ immediately but still return Promises, allowing UI layers to always await.
 
 ## Known Limitations
 
-- No persistence — the store is an in-memory `Map`.
-- No authentication or authorization — any caller can perform any operation.
+- No persistence - the store is an in-memory `Map`.
+- No authentication or authorization - any caller can perform any operation.
 - No integration with the main application's contact models.
 - The UI layer is self-contained and not wired into the main app shell or routing.
 - No real-time or multi-user collaboration support.
