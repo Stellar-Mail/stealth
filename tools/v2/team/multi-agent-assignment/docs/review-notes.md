@@ -10,6 +10,11 @@ Thank you for reviewing the Multi-Agent Assignment tool! This self-contained tea
 - [ ] No files outside the owner boundary `tools/v2/team/multi-agent-assignment/` have been changed.
 - [ ] All core behaviors (Assignment, Unassignment, Resolution, Workload Balancing, and Status updates) are fully tested and functional.
 - [ ] Accessibility, Architecture, and Setup documents are fully detailed.
+- [ ] Root `ARCHITECTURE.md` contract is accurate and complete (module boundaries, data ownership, integration constraints).
+- [ ] `specs.md` documents all service operations and error conditions.
+- [ ] `tests/test-plan.md` covers all test scenarios.
+- [ ] No imports from `src/` or other tool folders.
+- [ ] Public API surface matches what `index.ts` exports.
 
 ---
 

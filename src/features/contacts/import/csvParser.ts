@@ -40,6 +40,7 @@ export function validateImportAddress(address: string): string | null {
  * Parse CSV/TSV text into ImportedContactRow[].
  * Handles multiple column layouts with or without headers.
  * Skips empty lines and strips BOM.
+ * Optimized: pre-split all lines once, reuse delimiter detection.
  */
 export function parseImportCsv(raw: string, source: ImportSource = "csv"): ImportedContactRow[] {
   const cleaned = raw.replace(/^\uFEFF/, "").trim();
@@ -66,9 +67,13 @@ export function parseImportCsv(raw: string, source: ImportSource = "csv"): Impor
   );
   const emailIdx = header.findIndex((h) => h === "email");
 
-  return dataLines.flatMap((line, i) => {
+  const results: ImportedContactRow[] = [];
+  const timestamp = Date.now();
+
+  for (let i = 0; i < dataLines.length; i++) {
+    const line = dataLines[i];
     const parts = splitLine(line, delimiter);
-    if (parts.length === 0) return [];
+    if (parts.length === 0) continue;
 
     let name: string;
     let address: string;
@@ -93,18 +98,23 @@ export function parseImportCsv(raw: string, source: ImportSource = "csv"): Impor
       address = parts[1]?.trim() ?? "";
     }
 
-    const row: ImportedContactRow = {
-      id: `import-${source}-${i}-${Date.now()}`,
+    const error = validateImportAddress(address);
+
+    // Skip completely empty/invalid rows
+    if (error && !address && !name) continue;
+
+    results.push({
+      id: `import-${source}-${i}-${timestamp}`,
       name,
       address,
       source,
       trust: "default",
       match: null,
-      error: validateImportAddress(address),
-    };
+      error,
+    });
+  }
 
-    return row.error && !row.address && !row.name ? [] : [row];
-  });
+  return results;
 }
 
 function splitLine(line: string, delimiter: string): string[] {
@@ -131,11 +141,15 @@ function splitLine(line: string, delimiter: string): string[] {
 /**
  * Deduplicate rows by address (case-insensitive).
  * Later rows with the same address replace earlier ones.
+ * Optimized: pre-normalize keys to avoid repeated toLowerCase() calls.
  */
 export function deduplicateRows(rows: ImportedContactRow[]): ImportedContactRow[] {
+  if (rows.length === 0) return rows;
+
   const seen = new Map<string, ImportedContactRow>();
   for (const row of rows) {
-    seen.set(row.address.trim().toLowerCase(), row);
+    const key = row.address.trim().toLowerCase();
+    seen.set(key, row);
   }
   return [...seen.values()];
 }

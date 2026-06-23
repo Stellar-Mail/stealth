@@ -19,3 +19,14 @@ export type {
   SignalType,
 } from "./services/followUpReminder";
 export { sampleEmails, sampleEmailList } from "./services/fixtures";
+export {
+  GUARD_LIMITS,
+  checkInputLimits,
+  checkOptionsLimits,
+  safeBuildFollowUpReminder,
+  sanitizeInput,
+  sanitizeText,
+  validateInput,
+  validateOptions,
+} from "./services/guards";
+export type { GuardErrorCode, GuardIssue, SafeBuildResult } from "./services/guards";

@@ -29,17 +29,16 @@ tools/v2/team/multi-agent-assignment/
 │   ├── ThreadList.tsx        # Renders mail queue, priority tiers, assign/resolve controls
 │   ├── AssignmentConsole.tsx # Integrated console view with metrics, simulator & logs
 │   └── index.ts              # Component public exports
-├── tests/
-│   └── assignment.test.ts    # 19 Vitest unit tests covering service logic & routing
 ├── docs/
 │   ├── README.md             # This setup and usage guide
-│   ├── ARCHITECTURE.md       # Technical design and routing algorithm specification
+│   ├── ARCHITECTURE.md       # Technical deep dive (routing algorithm)
 │   ├── ACCESSIBILITY.md      # Keyboard navigation, contrast ratios & WAI-ARIA states
 │   └── review-notes.md       # OSS reviewer validation guide
-├── demo.tsx                  # Local developer test harness
-├── vitest.config.ts          # Isolated Vitest configuration
-├── specs.md                  # Project specifications
-└── README.md                 # Root reference
+├── ARCHITECTURE.md           # Folder-local architecture contract
+├── specs.md                  # Feature specs and service contracts
+├── tests/
+│   ├── assignment.test.ts    # 19 Vitest unit tests covering service logic & routing
+│   └── test-plan.md          # Test coverage documentation
 ```
 
 ## Getting Started
