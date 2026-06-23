@@ -1,41 +1,33 @@
-# Manager Review Queue
-
-Manager approvals.
-
-## Scope
-
-- Release tier: $(System.Collections.Hashtable.Tier.ToUpperInvariant())
-- Audience: $(System.Collections.Hashtable.Audience)
-- Folder ownership: $dir/
-
-This is a self-contained tooling workspace. Do not wire this tool into the main app, routing, inbox architecture, wallet core, Stellar core, or design system unless a future integration issue explicitly allows it.
-
-Recommended internal structure:
-
-- components/
-- services/
-- hooks/
--     ests/
-- docs/
-  "@ | Set-Content -Path "tools/v2/team/manager-review-queue/README.md"
-  @"
-
 # Manager Review Queue Specs
 
 ## Purpose
 
-Manager approvals.
+Provide a folder-local manager approval queue workspace with reviewable tests,
+fixtures, and documentation for team approval workflows.
 
-## Contributor boundary
+## Contributor Boundary
 
-All work for this tool should stay in:
+All work for this tool must stay inside:
 
-$dir/
+```text
+tools/v2/team/manager-review-queue/
+```
 
-## Required issue categories
+Do not wire this tool into the main app, routing, inbox architecture, wallet
+core, Stellar core, database schema, or shared design system unless a future
+integration issue explicitly allows it.
 
-- Architecture
-- Feature
-- UI and accessibility
-- Security and performance
-- Testing and documentation
+## Required Local Behavior
+
+- Keep guard tests, fixtures, and documentation inside the tool folder.
+- Validate review id, status, priority, submitter email, notes, subjects, queue
+  size, history size, attachment count, and tags.
+- Document automated setup, manual review steps, fixtures, and known limits.
+- Avoid live network calls, production data, or app-wide test dependencies.
+
+## Recommended Internal Structure
+
+- `guards/` for pure validation and performance guards.
+- `fixtures/` for deterministic review request examples.
+- `tests/` for standalone Node tests.
+- `docs/` for API, accessibility, test plan, review notes, and security notes.
