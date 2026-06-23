@@ -18,6 +18,12 @@ Support teams that share an address (support@, ops@, team@) need ownership track
 
 See [docs/setup.md](./docs/setup.md) for full instructions.
 
+For the folder-local core engine added here, no package install is required:
+
+```bash
+node tools/v1/team/shared-team-inbox/tests/shared-inbox-service.test.mjs
+```
+
 Quick start:
 
 ```bash
@@ -59,6 +65,18 @@ When testing, fixtures should cover:
 - **Internal comments** — Author, body, timestamp, visibility flag (team-only).
 - **Status transitions** — Valid status values and allowed transitions.
 - **Team rosters** — List of authorized Stealth addresses.
+
+## Core Engine Surface
+
+This folder exposes a local core API from `index.mjs`:
+
+- `createSharedInboxService`
+- `normalizeMessage`
+- `SharedInboxError`
+- status and transition constants for future UI work
+
+The reference implementation is synchronous and in-memory. It does not send
+mail, call a relay, read production inbox data, or modify the main app.
 
 ## Known Limitations
 

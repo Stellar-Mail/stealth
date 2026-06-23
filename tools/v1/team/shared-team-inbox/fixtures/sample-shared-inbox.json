@@ -1,0 +1,54 @@
+{
+  "tool": "shared-team-inbox",
+  "teamMembers": [
+    "alice@example.test",
+    "bob@example.test",
+    "carol@example.test"
+  ],
+  "messages": [
+    {
+      "id": "msg-001",
+      "deliveryProofHash": "proof-msg-001",
+      "sharedInboxAddress": "support@example.test",
+      "senderAddress": "customer.one@example.test",
+      "subject": "Login help",
+      "body": "I need help signing in to my account.",
+      "receivedAt": "2026-06-20T09:00:00.000Z"
+    },
+    {
+      "id": "msg-002",
+      "deliveryProofHash": "proof-msg-002",
+      "sharedInboxAddress": "support@example.test",
+      "senderAddress": "customer.two@example.test",
+      "subject": "Billing question",
+      "body": "Can you confirm whether the latest invoice was received?",
+      "receivedAt": "2026-06-20T10:00:00.000Z"
+    }
+  ],
+  "duplicateMessage": {
+    "id": "msg-duplicate",
+    "deliveryProofHash": "proof-msg-001",
+    "sharedInboxAddress": "support@example.test",
+    "senderAddress": "customer.one@example.test",
+    "subject": "Duplicate login help",
+    "body": "This has the same delivery proof hash.",
+    "receivedAt": "2026-06-20T11:00:00.000Z"
+  },
+  "invalidMessages": [
+    {
+      "id": "missing-proof",
+      "sharedInboxAddress": "support@example.test",
+      "senderAddress": "customer@example.test",
+      "subject": "Missing proof",
+      "body": "This message is missing a proof hash."
+    },
+    {
+      "id": "bad-sender",
+      "deliveryProofHash": "proof-bad-sender",
+      "sharedInboxAddress": "support@example.test",
+      "senderAddress": "customer@example.test\r\nBcc: attacker@example.test",
+      "subject": "Injected sender",
+      "body": "This sender contains CRLF injection."
+    }
+  ]
+}

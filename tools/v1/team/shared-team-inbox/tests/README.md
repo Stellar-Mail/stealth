@@ -18,6 +18,16 @@ Folder-local test strategy for the Shared Team Inbox tool.
 
 ## Unit Test Scenarios
 
+Current standalone coverage:
+
+```bash
+node tools/v1/team/shared-team-inbox/tests/shared-inbox-service.test.mjs
+```
+
+This validates the folder-local reference service for ingestion, duplicate
+delivery proof handling, assignment, release, status transitions, internal
+comments, local reply records, and cloned state snapshots.
+
 ### Message ingestion
 
 - New message from relay is stored with normalized fields.
