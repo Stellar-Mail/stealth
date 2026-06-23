@@ -45,6 +45,9 @@ export type {
   PresetEvent,
 } from "./types";
 
+export type { AdminRole, AdminPermission, RolePermissionMap } from "./types/adminRoles";
+export { getPermissionsForRole, roleHasPermission, ROLE_PERMISSIONS, PERMISSION_DESCRIPTIONS } from "./types/adminRoles";
+
 export type { CampaignSnapshot } from "./types/campaignSnapshot";
 export type { CampaignTag, TagColorKey } from "./types/campaignTag";
 
