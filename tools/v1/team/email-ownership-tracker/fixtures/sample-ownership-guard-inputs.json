@@ -1,0 +1,76 @@
+{
+  "events": [
+    {
+      "eventId": "own-event-001",
+      "messageId": "msg-owner-001",
+      "sharedInboxAddress": "support@team.test",
+      "subject": "Account recovery request",
+      "action": "claimed",
+      "actorAddress": "Alice@Team.Test",
+      "ownerAddress": "Alice@Team.Test",
+      "occurredAt": "2026-06-23T09:00:00.000Z",
+      "note": "Initial claim from support queue."
+    },
+    {
+      "eventId": "own-event-002",
+      "messageId": "msg-owner-001",
+      "sharedInboxAddress": "support@team.test",
+      "subject": "Account recovery request",
+      "action": "reassigned",
+      "actorAddress": "alice@team.test",
+      "previousOwnerAddress": "alice@team.test",
+      "ownerAddress": "riley@team.test",
+      "occurredAt": "2026-06-23T09:30:00.000Z",
+      "note": "Handoff to recovery specialist."
+    },
+    {
+      "eventId": "own-event-003",
+      "messageId": "msg-owner-002",
+      "sharedInboxAddress": "ops@team.test",
+      "subject": "Relay configuration issue",
+      "action": "claimed",
+      "actorAddress": "jordan@team.test",
+      "ownerAddress": "jordan@team.test",
+      "occurredAt": "2026-06-23T08:45:00.000Z",
+      "note": ""
+    },
+    {
+      "eventId": "own-event-004",
+      "messageId": "msg-owner-002",
+      "sharedInboxAddress": "ops@team.test",
+      "subject": "Relay configuration issue",
+      "action": "escalated",
+      "actorAddress": "jordan@team.test",
+      "ownerAddress": "jordan@team.test",
+      "occurredAt": "2026-06-23T09:10:00.000Z",
+      "note": "Escalated to operations rotation."
+    },
+    {
+      "eventId": "own-event-005",
+      "messageId": "msg-owner-003",
+      "sharedInboxAddress": "billing@team.test",
+      "subject": "Billing contact update",
+      "action": "claimed",
+      "actorAddress": "taylor@team.test",
+      "ownerAddress": "taylor@team.test",
+      "occurredAt": "2026-06-23T07:45:00.000Z",
+      "note": "Billing queue triage."
+    },
+    {
+      "eventId": "own-event-006",
+      "messageId": "msg-owner-003",
+      "sharedInboxAddress": "billing@team.test",
+      "subject": "Billing contact update",
+      "action": "released",
+      "actorAddress": "taylor@team.test",
+      "previousOwnerAddress": "taylor@team.test",
+      "occurredAt": "2026-06-23T08:20:00.000Z",
+      "note": "Resolved externally; release ownership."
+    }
+  ],
+  "claimDraft": {
+    "messageId": "msg-owner-004",
+    "actorAddress": "sam@team.test",
+    "note": "Claiming from shared support queue."
+  }
+}
