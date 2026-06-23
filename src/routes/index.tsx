@@ -332,6 +332,8 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
     onCalendarReminderChange: calendar.updateReminder,
     onPreviewAttachment: (attachment: { name: string; size: string; type: string }) =>
       setPreviewAttachment(attachment),
+    onQuarantineAttachment: (attachment: { name: string; size: string; type: string }) =>
+      showToast(`"${attachment.name}" quarantined`),
   };
 
   const runBulkAction = async (request: BulkActionRequest) => {

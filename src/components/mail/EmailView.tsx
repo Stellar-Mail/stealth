@@ -6,29 +6,22 @@ import {
   CalendarClock,
   CheckCheck,
   Coins,
-  Braces,
   Clock,
-  File,
-  FileArchive,
-  FileText,
   Forward,
-  Image,
-  KeyRound,
   Paperclip,
   Reply,
   ReplyAll,
   Sparkles,
   Star,
-  Table2,
   Send,
   Trash2,
   X,
-  type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EventMailCard, type CalendarEvent, type CalendarResponse } from "@/features/calendar";
 import { OTPCard, detectOtp } from "@/features/otp";
 import { ConvertSenderButton, SenderBadge } from "@/features/sender-conversion";
+import { AttachmentPanel, deriveAttachmentInfoList } from "@/features/attachments";
 import { SnoozeBanner } from "@/features/snooze";
 import { ProvenancePanel } from "./ProvenancePanel";
 import { EmailTrustBadges } from "./EmailTrustBadges";
@@ -310,37 +303,23 @@ export function EmailView({
                 <ReaderBody body={email.body} />
 
                 {email.attachments?.length ? (
-                  <div className="mt-7 max-w-[500px]">
-                    <div className="mail-reader-meta mb-2 flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-                      <Paperclip className="h-3 w-3" /> {email.attachments.length} attachment
-                      {email.attachments.length > 1 ? "s" : ""}
-                    </div>
-                    <div className="grid max-w-[440px] grid-cols-1 gap-2 sm:grid-cols-2">
-                      {email.attachments.map((attachment) => (
-                        <motion.div
-                          key={attachment.name}
-                          onClick={() => actions.onPreviewAttachment?.(attachment)}
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          className={cn(
-                            "glass-tile flex min-w-0 items-center gap-2 rounded-md px-2 py-1.5 transition-all duration-150",
-                            actions.onPreviewAttachment &&
-                              "cursor-pointer hover:bg-white/[0.08] hover:border-white/15",
-                          )}
-                        >
-                          <AttachmentIcon type={attachment.type} />
-                          <div className="min-w-0 flex-1">
-                            <div className="mail-attachment-name truncate text-[11px] font-semibold leading-[14px] text-foreground/92">
-                              {attachment.name}
-                            </div>
-                            <div className="text-[9.5px] leading-[12px] text-muted-foreground">
-                              {attachment.size}
-                            </div>
-                          </div>
-                        </motion.div>
-                      ))}
-                    </div>
-                  </div>
+                  <AttachmentPanel
+                    attachments={deriveAttachmentInfoList(email.attachments, email)}
+                    actions={{
+                      onPreview: (att) =>
+                        actions.onPreviewAttachment?.({
+                          name: att.name,
+                          size: att.size,
+                          type: att.type,
+                        }),
+                      onQuarantine: (att) =>
+                        actions.onQuarantineAttachment?.({
+                          name: att.name,
+                          size: att.size,
+                          type: att.type,
+                        }),
+                    }}
+                  />
                 ) : null}
 
                 <div className="h-8" />
@@ -709,31 +688,6 @@ function SenderRequest({
       </div>
     </div>
   );
-}
-
-function AttachmentIcon({ type }: { type: string }) {
-  const { icon: Icon, className } = getAttachmentIcon(type);
-
-  return (
-    <div className="grid h-7 w-7 shrink-0 place-items-center rounded-md border border-white/[0.1] bg-white/[0.06] shadow-[inset_0_1px_0_oklch(1_0_0/0.12)]">
-      <Icon className={`h-4 w-4 ${className}`} />
-    </div>
-  );
-}
-
-function getAttachmentIcon(type: string): { icon: LucideIcon; className: string } {
-  const normalized = type.toLowerCase();
-
-  if (normalized === "pdf") return { icon: FileText, className: "text-red-300" };
-  if (normalized === "key") return { icon: KeyRound, className: "text-sky-200" };
-  if (normalized === "json") return { icon: Braces, className: "text-emerald-200" };
-  if (["png", "jpg", "jpeg", "gif", "webp"].includes(normalized))
-    return { icon: Image, className: "text-violet-200" };
-  if (["zip", "rar", "7z"].includes(normalized))
-    return { icon: FileArchive, className: "text-amber-200" };
-  if (["xls", "xlsx", "csv"].includes(normalized))
-    return { icon: Table2, className: "text-green-200" };
-  return { icon: File, className: "text-slate-200" };
 }
 
 function SenderIdentity({ email, compact = false }: { email: Email; compact?: boolean }) {
