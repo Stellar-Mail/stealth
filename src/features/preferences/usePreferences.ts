@@ -1,7 +1,13 @@
-import { useEffect, useState } from "react";
-import { defaultPreferences, type UiPreferences } from "./types";
+import { useCallback, useLayoutEffect, useMemo, useSyncExternalStore } from "react";
+import { createLocalStorageStore } from "./storage";
+import { defaultPreferences, resolveDensity, type UiPreferences } from "./types";
 
 const storageKey = "stealth-ui-preferences";
+const legacyKey = "stealth-preferences";
+
+const uiStore = createLocalStorageStore<UiPreferences>(storageKey, defaultPreferences, {
+  legacyKey,
+});
 
 function resolveTheme(theme: UiPreferences["theme"]) {
   if (theme !== "system") return theme;
@@ -51,49 +57,59 @@ export function resolveStoredPreferences(
 }
 
 export function usePreferences() {
-  const [preferences, setPreferences] = useState<UiPreferences>(defaultPreferences);
-  const [hydrated, setHydrated] = useState(false);
+  const snapshot = useSyncExternalStore(uiStore.subscribe, uiStore.getSnapshot, () =>
+    JSON.stringify(defaultPreferences),
+  );
 
-  useEffect(() => {
-    const { preferences: resolved, corrupt } = resolveStoredPreferences(
-      window.localStorage.getItem(storageKey),
-      window.localStorage.getItem("stealth-preferences"),
-    );
-    if (corrupt) {
-      window.localStorage.removeItem(storageKey);
-    } else {
-      setPreferences(resolved);
-    }
-    setHydrated(true);
-  }, []);
+  const preferences = useMemo<UiPreferences>(
+    () => ({ ...defaultPreferences, ...JSON.parse(snapshot) }),
+    [snapshot],
+  );
 
-  useEffect(() => {
-    if (!hydrated) return;
-    const colorScheme = window.matchMedia("(prefers-color-scheme: light)");
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const apply = () => {
-      document.documentElement.dataset.theme = resolveTheme(preferences.theme);
-      const density = preferences.density ?? (preferences.compactMode ? "compact" : "comfortable");
-      document.documentElement.dataset.density = density;
-      document.documentElement.dataset.glass = preferences.glassIntensity ?? "medium";
-      document.documentElement.dataset.reader = preferences.readerTypography ?? "sans";
-      document.documentElement.dataset.motion = resolveMotion(
-        preferences.lowerMotion,
-        reducedMotion.matches,
+  const setPreferences = useCallback(
+    (
+      value:
+        | UiPreferences
+        | Partial<UiPreferences>
+        | ((prev: UiPreferences) => UiPreferences | Partial<UiPreferences>),
+    ) => {
+      const prev = uiStore.getValue();
+      const patch = typeof value === "function" ? value(prev) : value;
+      const next = { ...defaultPreferences, ...prev, ...patch };
+      const changed = (Object.keys(next) as Array<keyof UiPreferences>).some(
+        (k) => prev[k] !== next[k],
       );
+      if (changed) uiStore.set(next);
+    },
+    [],
+  );
+
+  const theme = useMemo(() => resolveTheme(preferences.theme), [preferences.theme]);
+  const density = useMemo(() => resolveDensity(preferences), [preferences]);
+
+  useLayoutEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    document.documentElement.dataset.density = density;
+    document.documentElement.dataset.glass = preferences.glassIntensity ?? "medium";
+    document.documentElement.dataset.reader = preferences.readerTypography ?? "sans";
+    document.documentElement.dataset.motion = preferences.lowerMotion ? "lower" : "full";
+
+    const media = window.matchMedia("(prefers-color-scheme: light)");
+    const listener = () => {
+      if (preferences.theme === "system") {
+        document.documentElement.dataset.theme = resolveTheme(preferences.theme);
+      }
     };
+    if (preferences.theme === "system") media.addEventListener("change", listener);
+    return () => media.removeEventListener("change", listener);
+  }, [
+    theme,
+    density,
+    preferences.glassIntensity,
+    preferences.readerTypography,
+    preferences.lowerMotion,
+    preferences.theme,
+  ]);
 
-    apply();
-    window.localStorage.setItem(storageKey, JSON.stringify(preferences));
-
-    if (preferences.theme === "system") colorScheme.addEventListener("change", apply);
-    // Always track the OS reduced-motion setting so the fallback stays honored.
-    reducedMotion.addEventListener("change", apply);
-    return () => {
-      colorScheme.removeEventListener("change", apply);
-      reducedMotion.removeEventListener("change", apply);
-    };
-  }, [hydrated, preferences]);
-
-  return { preferences, setPreferences, hydrated };
+  return { preferences, setPreferences, hydrated: true };
 }

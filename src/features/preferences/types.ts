@@ -51,3 +51,14 @@ export const defaultPreferences: UiPreferences = {
     organizations: "auto",
   },
 };
+
+/**
+ * Derive the active density value from the legacy `compactMode` flag and the
+ * newer `density` field. Centralising this keeps the rest of the app from
+ * repeating the same fallback inline.
+ */
+export function resolveDensity(
+  prefs: Pick<UiPreferences, "density" | "compactMode">,
+): DensityPreference {
+  return prefs.density ?? (prefs.compactMode ? "compact" : "comfortable");
+}
