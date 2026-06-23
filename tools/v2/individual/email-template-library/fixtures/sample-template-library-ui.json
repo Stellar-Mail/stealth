@@ -1,0 +1,73 @@
+{
+  "stats": {
+    "totalTemplates": 3,
+    "categories": 3,
+    "recentlyUpdated": 2,
+    "missingVariableTemplates": 1
+  },
+  "selectedTemplateId": "tmpl-follow-up",
+  "templates": [
+    {
+      "id": "tmpl-follow-up",
+      "name": "Polite follow-up",
+      "category": "Follow-up",
+      "subject": "Checking in on {{topic}}",
+      "preview": "A concise follow-up for ongoing conversations that need a gentle nudge.",
+      "variables": [
+        {
+          "key": "firstName",
+          "label": "First name",
+          "value": "Sam"
+        },
+        {
+          "key": "topic",
+          "label": "Topic",
+          "value": "the onboarding checklist"
+        }
+      ],
+      "updatedAt": "2026-06-22T09:00:00.000Z",
+      "usageCount": 14
+    },
+    {
+      "id": "tmpl-support-close",
+      "name": "Support closure",
+      "category": "Support",
+      "subject": "Resolved: {{issue}}",
+      "preview": "A closure message for support cases after the customer confirms resolution.",
+      "variables": [
+        {
+          "key": "issue",
+          "label": "Issue"
+        }
+      ],
+      "updatedAt": "2026-06-21T15:30:00.000Z",
+      "usageCount": 8
+    },
+    {
+      "id": "tmpl-intro",
+      "name": "Warm intro",
+      "category": "Relationship",
+      "subject": "Introducing {{personA}} and {{personB}}",
+      "preview": "A structured introduction template for connecting two contacts.",
+      "variables": [
+        {
+          "key": "personA",
+          "label": "First person",
+          "value": "Avery"
+        },
+        {
+          "key": "personB",
+          "label": "Second person",
+          "value": "Jordan"
+        }
+      ],
+      "updatedAt": "2026-06-20T11:45:00.000Z",
+      "usageCount": 3
+    }
+  ],
+  "preview": {
+    "subject": "Checking in on the onboarding checklist",
+    "body": "Hi Sam,\n\nI wanted to check in on the onboarding checklist and see whether anything is blocking progress.\n\nBest,",
+    "missingVariables": []
+  }
+}
