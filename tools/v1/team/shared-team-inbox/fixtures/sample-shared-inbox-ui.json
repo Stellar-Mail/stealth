@@ -1,0 +1,92 @@
+{
+  "summary": {
+    "total": 5,
+    "unassigned": 1,
+    "claimed": 1,
+    "inProgress": 1,
+    "awaitingReply": 1,
+    "resolved": 1
+  },
+  "messages": [
+    {
+      "id": "msg-unassigned-001",
+      "senderAddress": "pat.customer@example.test",
+      "subject": "Cannot unlock encrypted receipt",
+      "preview": "The customer can open the message but the receipt attachment remains locked.",
+      "status": "unassigned",
+      "team": "Support",
+      "receivedAt": "2026-06-22T08:15:00.000Z",
+      "deliveryProofHash": "proof_ui_unassigned_001",
+      "internalCommentCount": 0,
+      "replyCount": 0
+    },
+    {
+      "id": "msg-claimed-002",
+      "senderAddress": "sam.vendor@example.test",
+      "subject": "Need shared identity confirmation",
+      "preview": "Vendor asks whether the response should come from the shared team address.",
+      "status": "claimed",
+      "team": "Operations",
+      "receivedAt": "2026-06-22T07:20:00.000Z",
+      "deliveryProofHash": "proof_ui_claimed_002",
+      "assignee": {
+        "id": "member-alice",
+        "displayName": "Alice Chen",
+        "stealthAddress": "alice.support@team.test"
+      },
+      "internalCommentCount": 2,
+      "replyCount": 0
+    },
+    {
+      "id": "msg-progress-003",
+      "senderAddress": "morgan.partner@example.test",
+      "subject": "Follow-up on relay outage",
+      "preview": "Partner shared log timestamps and is waiting for an operational update.",
+      "status": "in-progress",
+      "team": "Support",
+      "receivedAt": "2026-06-21T23:45:00.000Z",
+      "deliveryProofHash": "proof_ui_progress_003",
+      "assignee": {
+        "id": "member-riley",
+        "displayName": "Riley Park",
+        "stealthAddress": "riley.ops@team.test"
+      },
+      "internalCommentCount": 3,
+      "replyCount": 1
+    },
+    {
+      "id": "msg-awaiting-004",
+      "senderAddress": "lee.accounting@example.test",
+      "subject": "Billing mailbox verification",
+      "preview": "Accounting team replied with a verification question about the shared mailbox.",
+      "status": "awaiting-reply",
+      "team": "Finance",
+      "receivedAt": "2026-06-21T19:30:00.000Z",
+      "deliveryProofHash": "proof_ui_awaiting_004",
+      "assignee": {
+        "id": "member-jordan",
+        "displayName": "Jordan Smith",
+        "stealthAddress": "jordan.finance@team.test"
+      },
+      "internalCommentCount": 1,
+      "replyCount": 1
+    },
+    {
+      "id": "msg-resolved-005",
+      "senderAddress": "casey.requester@example.test",
+      "subject": "Completed mailbox migration",
+      "preview": "Requester confirmed that messages now route to the shared team inbox.",
+      "status": "resolved",
+      "team": "Operations",
+      "receivedAt": "2026-06-20T15:10:00.000Z",
+      "deliveryProofHash": "proof_ui_resolved_005",
+      "assignee": {
+        "id": "member-taylor",
+        "displayName": "Taylor Reed",
+        "stealthAddress": "taylor.ops@team.test"
+      },
+      "internalCommentCount": 4,
+      "replyCount": 2
+    }
+  ]
+}
