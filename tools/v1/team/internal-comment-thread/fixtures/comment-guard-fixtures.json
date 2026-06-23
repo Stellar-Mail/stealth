@@ -1,0 +1,71 @@
+{
+  "teamMembers": [
+    "alice@example.test",
+    "bob@example.test",
+    "carol@example.test"
+  ],
+  "validComments": [
+    {
+      "id": "valid-001",
+      "target": { "kind": "message", "id": "msg-001" },
+      "author": "alice@example.test",
+      "body": "Customer is on the legacy plan. Check the migration note before replying."
+    },
+    {
+      "id": "valid-002",
+      "target": { "kind": "thread", "id": "thread-002" },
+      "author": "bob@example.test",
+      "body": "Legal already approved the wording for this thread."
+    }
+  ],
+  "hostileInputs": [
+    {
+      "id": "hostile-001",
+      "field": "target",
+      "value": { "kind": "message", "id": "../msg-001" },
+      "reason": "path traversal target id"
+    },
+    {
+      "id": "hostile-002",
+      "field": "target",
+      "value": { "kind": "external", "id": "msg-001" },
+      "reason": "unsupported target kind"
+    },
+    {
+      "id": "hostile-003",
+      "field": "author",
+      "value": "alice@example.test\r\nBcc: customer@example.test",
+      "reason": "header injection in author"
+    },
+    {
+      "id": "hostile-004",
+      "field": "author",
+      "value": "outsider@example.test",
+      "reason": "author outside team roster"
+    },
+    {
+      "id": "hostile-005",
+      "field": "body",
+      "value": "",
+      "reason": "empty comment"
+    }
+  ],
+  "leakScenario": {
+    "message": {
+      "senderAddress": "customer@example.test",
+      "subject": "Account migration question"
+    },
+    "replyBody": "Thanks for reaching out. We will follow up with migration options.",
+    "comments": [
+      {
+        "id": "comment-001",
+        "body": "Do not mention the internal discount exception.",
+        "author": "alice@example.test"
+      }
+    ],
+    "unsafePayload": {
+      "to": "customer@example.test",
+      "body": "Do not mention the internal discount exception."
+    }
+  }
+}

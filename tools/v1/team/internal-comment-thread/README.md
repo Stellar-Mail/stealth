@@ -18,6 +18,12 @@ Support and operations teams need a private channel to discuss context, next ste
 
 See [docs/setup.md](./docs/setup.md) for full instructions.
 
+Security and performance guard tests can run without installing packages:
+
+```bash
+node tools/v1/team/internal-comment-thread/tests/comment-guards.test.mjs
+```
+
 Quick start:
 
 ```bash
@@ -66,6 +72,12 @@ When testing, fixtures should cover:
 - No attachment of files or images to comments.
 - No search or filtering over comment history.
 - Ephemeral state by default (in-memory storage; restart loses data unless a durable adapter is connected).
+
+## Security Guard Surface
+
+This folder includes `guards/comment-guards.mjs` for target validation, author
+validation, comment body sanitization, collection size guards, and explicit
+checks that external payloads do not contain internal comment text.
 
 ## OSS Review Notes
 

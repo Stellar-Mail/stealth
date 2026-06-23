@@ -1,5 +1,16 @@
 # Test Plan
 
+Current standalone guard coverage:
+
+```bash
+node tools/v1/team/internal-comment-thread/tests/comment-guards.test.mjs
+```
+
+The guard suite validates target references, team-member authors, comment body
+sanitization, bounded comment histories, bounded team rosters, and the
+non-negotiable rule that internal comment body text cannot leak into external
+reply payloads.
+
 Folder-local test strategy for the Internal Comment Thread tool.
 
 > Tests will be written as `.test.ts` files alongside the source implementation. This document defines the plan and coverage expectations.
