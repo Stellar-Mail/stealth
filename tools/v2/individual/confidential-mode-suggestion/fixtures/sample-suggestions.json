@@ -1,0 +1,70 @@
+{
+  "tool": "confidential-mode-suggestion",
+  "suggestions": [
+    {
+      "id": "suggestion-contract-attachment",
+      "draftTitle": "Vendor contract renewal",
+      "recipientLabel": "external vendor",
+      "status": "suggested",
+      "recommendedMode": "confidential-mode",
+      "expiresIn": "7 days",
+      "preventForwarding": true,
+      "requirePasscode": true,
+      "signals": [
+        {
+          "id": "attachment-contract",
+          "label": "Sensitive attachment",
+          "severity": "high",
+          "evidence": "Draft references an unsigned renewal agreement."
+        },
+        {
+          "id": "external-domain",
+          "label": "External recipient",
+          "severity": "medium",
+          "evidence": "Recipient is outside the organization."
+        }
+      ],
+      "reason": "The draft includes a sensitive contract and an external recipient.",
+      "suggestedAction": "Apply confidential mode with forwarding disabled and passcode required."
+    },
+    {
+      "id": "suggestion-credential-block",
+      "draftTitle": "Temporary account access",
+      "recipientLabel": "customer contact",
+      "status": "blocked",
+      "recommendedMode": "manual-review",
+      "expiresIn": "1 day",
+      "preventForwarding": true,
+      "requirePasscode": true,
+      "signals": [
+        {
+          "id": "secret-text",
+          "label": "Credential-like text",
+          "severity": "high",
+          "evidence": "Draft mentions a temporary password."
+        }
+      ],
+      "reason": "Credentials should not be sent until the user removes secret values.",
+      "suggestedAction": "Block send and ask the user to remove credentials before continuing."
+    },
+    {
+      "id": "suggestion-standard-safe",
+      "draftTitle": "Team lunch poll",
+      "recipientLabel": "internal team",
+      "status": "safe",
+      "recommendedMode": "standard-send",
+      "preventForwarding": false,
+      "requirePasscode": false,
+      "signals": [
+        {
+          "id": "low-risk-content",
+          "label": "Low-risk content",
+          "severity": "low",
+          "evidence": "Draft contains scheduling text and no personal or financial data."
+        }
+      ],
+      "reason": "The draft does not contain sensitive indicators.",
+      "suggestedAction": "No confidential-mode action is required."
+    }
+  ]
+}
