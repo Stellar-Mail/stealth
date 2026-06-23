@@ -1,38 +1,46 @@
 import type { CreateNoteInput, UpdateNoteInput } from "./types";
+import { LIMITS } from "./types";
 
-export function validateCreateNote(
-  input: CreateNoteInput,
-): Array<{ field: string; message: string }> {
-  const errors: Array<{ field: string; message: string }> = [];
+type FieldError = { field: string; message: string };
 
-  if (
-    !input.contactId ||
-    typeof input.contactId !== "string" ||
-    input.contactId.trim().length === 0
-  ) {
-    errors.push({ field: "contactId", message: "contactId is required" });
+function checkId(value: unknown, field: string): FieldError | null {
+  if (!value || typeof value !== "string" || value.trim().length === 0) {
+    return { field, message: `${field} is required` };
   }
-  if (!input.content || typeof input.content !== "string" || input.content.trim().length === 0) {
-    errors.push({ field: "content", message: "content is required" });
+  if (value.length > LIMITS.ID_MAX) {
+    return { field, message: `${field} must be ${LIMITS.ID_MAX} characters or fewer` };
   }
-  if (!input.authorId || typeof input.authorId !== "string" || input.authorId.trim().length === 0) {
-    errors.push({ field: "authorId", message: "authorId is required" });
-  }
+  return null;
+}
 
+function checkContent(value: unknown, field = "content"): FieldError | null {
+  if (!value || typeof value !== "string" || value.trim().length === 0) {
+    return { field, message: `${field} is required` };
+  }
+  if (value.length > LIMITS.CONTENT_MAX) {
+    return { field, message: `${field} must be ${LIMITS.CONTENT_MAX} characters or fewer` };
+  }
+  return null;
+}
+
+export function validateCreateNote(input: CreateNoteInput): FieldError[] {
+  const errors: FieldError[] = [];
+  const contactErr = checkId(input.contactId, "contactId");
+  if (contactErr) errors.push(contactErr);
+  const contentErr = checkContent(input.content);
+  if (contentErr) errors.push(contentErr);
+  const authorErr = checkId(input.authorId, "authorId");
+  if (authorErr) errors.push(authorErr);
   return errors;
 }
 
-export function validateUpdateNote(
-  input: UpdateNoteInput,
-): Array<{ field: string; message: string }> {
-  const errors: Array<{ field: string; message: string }> = [];
+export function validateUpdateNote(input: UpdateNoteInput): FieldError[] {
+  if (input.content === undefined) return [];
+  const err = checkContent(input.content);
+  return err ? [err] : [];
+}
 
-  if (
-    input.content !== undefined &&
-    (typeof input.content !== "string" || input.content.trim().length === 0)
-  ) {
-    errors.push({ field: "content", message: "content cannot be empty" });
-  }
-
-  return errors;
+/** Validate a bare ID used in get/update/delete/archive calls. */
+export function validateId(id: unknown, field = "id"): FieldError | null {
+  return checkId(id, field);
 }

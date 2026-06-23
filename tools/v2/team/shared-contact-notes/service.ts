@@ -7,7 +7,15 @@ import type {
   ServiceConfig,
 } from "./types";
 import { NoteNotFoundError, ValidationError } from "./errors";
-import { validateCreateNote, validateUpdateNote } from "./validation";
+import { validateCreateNote, validateUpdateNote, validateId } from "./validation";
+
+const DEFAULT_CONFIG: ServiceConfig = {
+  delayMs: 0,
+  // Performance guard: cap results per contact to avoid unbounded reads when a
+  // contact accumulates a large note history. Callers that need pagination can
+  // lower this and implement cursor logic on top.
+  maxNotesPerContact: 500,
+};
 
 export class NoteService {
   private notes: Map<NoteId, Note>;
@@ -15,7 +23,7 @@ export class NoteService {
 
   constructor(seedNotes?: Note[], config?: Partial<ServiceConfig>) {
     this.notes = new Map();
-    this.config = { delayMs: 0, ...config };
+    this.config = { ...DEFAULT_CONFIG, ...config };
     if (seedNotes) {
       for (const note of seedNotes) {
         this.notes.set(note.id, { ...note });
@@ -30,10 +38,8 @@ export class NoteService {
   }
 
   async create(input: CreateNoteInput): Promise<Note> {
-    const validationErrors = validateCreateNote(input);
-    if (validationErrors.length > 0) {
-      throw new ValidationError(validationErrors);
-    }
+    const errors = validateCreateNote(input);
+    if (errors.length > 0) throw new ValidationError(errors);
 
     await this.delay();
 
@@ -53,44 +59,42 @@ export class NoteService {
   }
 
   async getByContact(contactId: ContactId): Promise<Note[]> {
-    if (!contactId || typeof contactId !== "string" || contactId.trim().length === 0) {
-      throw new ValidationError([{ field: "contactId", message: "contactId is required" }]);
-    }
+    const idErr = validateId(contactId, "contactId");
+    if (idErr) throw new ValidationError([idErr]);
 
     await this.delay();
 
-    return Array.from(this.notes.values())
-      .filter((note) => note.contactId === contactId.trim())
-      .map((note) => ({ ...note }));
+    const results: Note[] = [];
+    for (const note of this.notes.values()) {
+      if (note.contactId === contactId.trim()) {
+        results.push({ ...note });
+        // Stop early once we hit the cap — avoids iterating the full map on
+        // contacts with very large note histories.
+        if (results.length >= this.config.maxNotesPerContact) break;
+      }
+    }
+    return results;
   }
 
   async getById(id: NoteId): Promise<Note> {
     await this.delay();
 
     const note = this.notes.get(id);
-    if (!note) {
-      throw new NoteNotFoundError(id);
-    }
-
+    if (!note) throw new NoteNotFoundError(id);
     return { ...note };
   }
 
   async update(id: NoteId, input: UpdateNoteInput): Promise<Note> {
-    if (!id || typeof id !== "string" || id.trim().length === 0) {
-      throw new ValidationError([{ field: "id", message: "id is required" }]);
-    }
+    const idErr = validateId(id);
+    if (idErr) throw new ValidationError([idErr]);
 
-    const validationErrors = validateUpdateNote(input);
-    if (validationErrors.length > 0) {
-      throw new ValidationError(validationErrors);
-    }
+    const errors = validateUpdateNote(input);
+    if (errors.length > 0) throw new ValidationError(errors);
 
     await this.delay();
 
     const existing = this.notes.get(id);
-    if (!existing) {
-      throw new NoteNotFoundError(id);
-    }
+    if (!existing) throw new NoteNotFoundError(id);
 
     const updated: Note = {
       ...existing,
@@ -103,30 +107,23 @@ export class NoteService {
   }
 
   async delete(id: NoteId): Promise<void> {
-    if (!id || typeof id !== "string" || id.trim().length === 0) {
-      throw new ValidationError([{ field: "id", message: "id is required" }]);
-    }
+    const idErr = validateId(id);
+    if (idErr) throw new ValidationError([idErr]);
 
     await this.delay();
 
-    if (!this.notes.has(id)) {
-      throw new NoteNotFoundError(id);
-    }
-
+    if (!this.notes.has(id)) throw new NoteNotFoundError(id);
     this.notes.delete(id);
   }
 
   async archive(id: NoteId): Promise<Note> {
-    if (!id || typeof id !== "string" || id.trim().length === 0) {
-      throw new ValidationError([{ field: "id", message: "id is required" }]);
-    }
+    const idErr = validateId(id);
+    if (idErr) throw new ValidationError([idErr]);
 
     await this.delay();
 
     const existing = this.notes.get(id);
-    if (!existing) {
-      throw new NoteNotFoundError(id);
-    }
+    if (!existing) throw new NoteNotFoundError(id);
 
     const archived: Note = {
       ...existing,

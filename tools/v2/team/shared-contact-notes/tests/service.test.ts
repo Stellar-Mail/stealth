@@ -1,11 +1,13 @@
 import { describe, it, expect } from "vitest";
 import { NoteService } from "../service";
 import { ValidationError, NoteNotFoundError } from "../errors";
+import { validateId } from "../validation";
+import { LIMITS } from "../types";
 import { seedNotes } from "../fixtures/notes";
 import type { Note, CreateNoteInput, UpdateNoteInput } from "../types";
 
-function createService(notes?: Note[]): NoteService {
-  return new NoteService(notes, { delayMs: 0 });
+function createService(notes?: Note[], config?: { delayMs?: number; maxNotesPerContact?: number }) {
+  return new NoteService(notes, { delayMs: 0, ...config });
 }
 
 const validCreateInput: CreateNoteInput = {
@@ -478,5 +480,102 @@ describe("NoteService", () => {
       const retrieved = await service.getById(note.id);
       expect(retrieved.id).toBe(note.id);
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Safety: length limits
+// ---------------------------------------------------------------------------
+describe("input length limits", () => {
+  it("rejects content over LIMITS.CONTENT_MAX", async () => {
+    const service = createService();
+    const oversized = "x".repeat(LIMITS.CONTENT_MAX + 1);
+    await expect(
+      service.create({ ...validCreateInput, content: oversized }),
+    ).rejects.toThrow(ValidationError);
+  });
+
+  it("accepts content exactly at LIMITS.CONTENT_MAX", async () => {
+    const service = createService();
+    const atLimit = "x".repeat(LIMITS.CONTENT_MAX);
+    const note = await service.create({ ...validCreateInput, content: atLimit });
+    expect(note.content).toBe(atLimit);
+  });
+
+  it("rejects contactId over LIMITS.ID_MAX", async () => {
+    const service = createService();
+    const longId = "a".repeat(LIMITS.ID_MAX + 1);
+    await expect(
+      service.create({ ...validCreateInput, contactId: longId }),
+    ).rejects.toThrow(ValidationError);
+  });
+
+  it("rejects authorId over LIMITS.ID_MAX", async () => {
+    const service = createService();
+    const longId = "a".repeat(LIMITS.ID_MAX + 1);
+    await expect(
+      service.create({ ...validCreateInput, authorId: longId }),
+    ).rejects.toThrow(ValidationError);
+  });
+
+  it("rejects oversized content on update", async () => {
+    const service = createService(seedNotes);
+    const oversized = "x".repeat(LIMITS.CONTENT_MAX + 1);
+    await expect(service.update("note-alice-1", { content: oversized })).rejects.toThrow(
+      ValidationError,
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Safety: validateId helper
+// ---------------------------------------------------------------------------
+describe("validateId", () => {
+  it("returns null for a valid id", () => {
+    expect(validateId("note-123")).toBeNull();
+  });
+
+  it("returns an error for an empty string", () => {
+    const err = validateId("");
+    expect(err).not.toBeNull();
+    expect(err!.field).toBe("id");
+  });
+
+  it("returns an error for an oversized id", () => {
+    const err = validateId("x".repeat(LIMITS.ID_MAX + 1));
+    expect(err).not.toBeNull();
+  });
+
+  it("uses the provided field name in the error", () => {
+    const err = validateId("", "contactId");
+    expect(err!.field).toBe("contactId");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Performance: maxNotesPerContact cap
+// ---------------------------------------------------------------------------
+describe("maxNotesPerContact", () => {
+  it("caps results at the configured limit", async () => {
+    const count = 20;
+    const notes: Note[] = Array.from({ length: count }, (_, i) => ({
+      id: `bulk-${i}`,
+      contactId: "contact-bulk",
+      content: `Note ${i}`,
+      authorId: "user-test",
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-01-01T00:00:00.000Z",
+      archivedAt: null,
+    }));
+
+    const service = createService(notes, { maxNotesPerContact: 5 });
+    const results = await service.getByContact("contact-bulk");
+    expect(results.length).toBe(5);
+  });
+
+  it("returns all notes when count is below the cap", async () => {
+    const service = createService(seedNotes);
+    const results = await service.getByContact("contact-alice");
+    expect(results.length).toBe(2);
   });
 });
