@@ -1,15 +1,32 @@
 # Email Ownership Tracker
 
-This folder is the isolated workspace for the Email Ownership Tracker tool.
+Email Ownership Tracker is a folder-local team tool for tracking who currently owns a shared
+inbox message and how ownership changed over time. The tool is isolated until a future integration
+issue explicitly connects it to the main mail application.
 
 ## Ownership Boundary
 
-All work for this tool must stay inside:
+All source, docs, tests, fixtures, and future local configuration for this tool must stay under:
 
-`text
-.\tools\v1\team\email-ownership-tracker\
-`
+```text
+tools/v1/team/email-ownership-tracker/
+```
 
-Do not wire this tool into the main app, routing, inbox architecture, wallet core, Stellar core, database schema, or existing design system unless a future integration issue explicitly allows it.
+Do not wire this tool into the main app shell, routing, inbox architecture, wallet core, Stellar
+core, database schema, or shared design system unless a future integration issue explicitly allows
+that work.
 
-See specs.md for the issue categories and contributor expectations.
+## Local Architecture Contract
+
+- `components/` may render ownership queues, ownership history, empty/loading/error states, and
+  handoff controls using folder-local props only.
+- `services/` owns validation, ownership event normalization, timeline construction, and summary
+  derivation.
+- `hooks/` may adapt folder-local services into React state, but must not call global stores or
+  live mail APIs.
+- `fixtures/` stores synthetic ownership events and histories for deterministic tests.
+- `tests/` contains folder-local unit, fixture, and architecture contract tests.
+- `docs/` records architecture, contributor boundaries, safety assumptions, and integration notes.
+
+See [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) and
+[docs/CONTRIBUTOR_BOUNDARY.md](./docs/CONTRIBUTOR_BOUNDARY.md) for the detailed contract.
