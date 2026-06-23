@@ -1,0 +1,77 @@
+{
+  "categories": [
+    {
+      "id": "support",
+      "name": "Support"
+    },
+    {
+      "id": "sales",
+      "name": "Sales"
+    },
+    {
+      "id": "follow-up",
+      "name": "Follow Up"
+    }
+  ],
+  "templates": [
+    {
+      "id": "tpl-support-password-reset",
+      "name": "Password reset follow-up",
+      "categoryId": "support",
+      "subject": "Password reset steps for {{firstName}}",
+      "body": "Hi {{firstName}}, here are the password reset steps for your account: {{resetSteps}}. Reply if you still cannot sign in.",
+      "variables": [
+        {
+          "key": "firstName",
+          "label": "First name"
+        },
+        {
+          "key": "resetSteps",
+          "label": "Reset steps"
+        }
+      ]
+    },
+    {
+      "id": "tpl-sales-demo",
+      "name": "Demo scheduling reply",
+      "categoryId": "sales",
+      "subject": "Demo times for {{companyName}}",
+      "body": "Hi {{firstName}}, I can offer {{timeOptionOne}} or {{timeOptionTwo}} for a product demo with {{companyName}}.",
+      "variables": [
+        {
+          "key": "firstName",
+          "label": "First name"
+        },
+        {
+          "key": "companyName",
+          "label": "Company name"
+        },
+        {
+          "key": "timeOptionOne",
+          "label": "First time option"
+        },
+        {
+          "key": "timeOptionTwo",
+          "label": "Second time option"
+        }
+      ]
+    },
+    {
+      "id": "tpl-follow-up",
+      "name": "Gentle follow-up",
+      "categoryId": "follow-up",
+      "subject": "Following up on {{topic}}",
+      "body": "Hi {{firstName}}, I wanted to follow up on {{topic}}. Let me know if this is still useful.",
+      "variables": [
+        {
+          "key": "firstName",
+          "label": "First name"
+        },
+        {
+          "key": "topic",
+          "label": "Topic"
+        }
+      ]
+    }
+  ]
+}

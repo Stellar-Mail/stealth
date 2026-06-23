@@ -4,9 +4,9 @@ Personal template system.
 
 ## Scope
 
-- Release tier: $(System.Collections.Hashtable.Tier.ToUpperInvariant())
-- Audience: $(System.Collections.Hashtable.Audience)
-- Folder ownership: $dir/
+- Release tier: V2
+- Audience: individual
+- Folder ownership: `tools/v2/individual/email-template-library/`
 
 This is a self-contained tooling workspace. Do not wire this tool into the main app, routing, inbox architecture, wallet core, Stellar core, or design system unless a future integration issue explicitly allows it.
 
@@ -15,22 +15,22 @@ Recommended internal structure:
 - components/
 - services/
 - hooks/
--     ests/
+- tests/
 - docs/
-  "@ | Set-Content -Path "tools/v2/individual/email-template-library/README.md"
-  @"
 
-# Email Template Library Specs
+## Core Feature Contract
 
-## Purpose
+The core feature owns a deterministic personal template engine. It should remain
+framework-free and folder-local until a future integration issue connects it to
+UI, storage, mail compose, or app settings.
 
-Personal template system.
+The core feature work should:
 
-## Contributor boundary
-
-All work for this tool should stay in:
-
-$dir/
+- validate malformed or missing template input,
+- support in-memory create, update, delete, search, and render flows,
+- document loading, empty, success, and error states for future UI work,
+- avoid live network calls, production data, secrets, persistence, or global app wiring,
+- expose only a folder-local API from `index.mjs`.
 
 ## Required issue categories
 
