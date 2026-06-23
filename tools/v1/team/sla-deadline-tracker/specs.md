@@ -1,38 +1,48 @@
-# SLA Deadline Tracker
-
-Response deadline monitoring.
-
-## Scope
-
-- Release tier: $(System.Collections.Hashtable.Tier.ToUpperInvariant())
-- Audience: $(System.Collections.Hashtable.Audience)
-- Folder ownership: $dir/
-
-This is a self-contained tooling workspace. Do not wire this tool into the main app, routing, inbox architecture, wallet core, Stellar core, or design system unless a future integration issue explicitly allows it.
-
-Recommended internal structure:
-
-- components/
-- services/
-- hooks/
--     ests/
-- docs/
-  "@ | Set-Content -Path "tools/v1/team/sla-deadline-tracker/README.md"
-  @"
-
 # SLA Deadline Tracker Specs
 
 ## Purpose
 
-Response deadline monitoring.
+SLA Deadline Tracker helps teams monitor shared inbox response deadlines, identify messages that
+are approaching breach, and prepare future escalation workflows without connecting to production
+mail or notification systems.
 
-## Contributor boundary
+## Scope
 
-All work for this tool should stay in:
+- Release tier: V1
+- Audience: team
+- Folder ownership: `tools/v1/team/sla-deadline-tracker/`
+- Work mode: isolated mini-product until a future integration issue links it into the app.
 
-$dir/
+## In Scope
 
-## Required issue categories
+- Define local module boundaries for components, services, hooks, tests, docs, and fixtures.
+- Document data ownership and the shape of deadline records future contributors may introduce.
+- Describe dependency limits and integration constraints.
+- Keep all architecture notes and validation inside this folder.
+
+## Out of Scope
+
+- Main app shell, navigation, routing, or dashboard changes.
+- Existing inbox architecture, wallet core, Stellar core, mail rendering, or database schema changes.
+- Live network calls, production mail data, credentials, or external notification delivery.
+- Global design system edits or root dependency changes.
+
+## Data Ownership
+
+The tool owns derived SLA metadata only:
+
+- message reference ID
+- shared inbox identity
+- received timestamp
+- SLA policy name and target duration
+- computed due timestamp
+- deadline state: `ok`, `due-soon`, `breached`, or `resolved`
+- optional assignee and escalation note
+
+The tool must not become the source of truth for message bodies, wallet identities, sender
+credentials, delivery proofs, or permanent audit logs.
+
+## Required Issue Categories
 
 - Architecture
 - Feature
