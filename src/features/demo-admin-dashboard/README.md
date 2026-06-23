@@ -1,3 +1,34 @@
+Demo Admin Dashboard — Campaign Data Linting
+
+This folder contains deterministic demo campaign fixtures, a small lint helper to flag low-quality campaign data for the demo admin UI, a React warning component, and unit tests.
+
+Usage:
+
+- Import `demoCampaigns` from `fixtures/campaigns` and run `lintCampaigns(demoCampaigns)` to get `CampaignLintIssue[]`.
+- Render `CampaignWarnings` in the admin preview to surface issues.
+
+Run tests (isolated to this folder):
+
+```bash
+# from repo root
+npx vitest run --config src/features/demo-admin-dashboard/vitest.config.ts
+```
+
+All code stays under `src/features/demo-admin-dashboard` and uses fake, deterministic data suitable for public repos.
+Demo Admin Dashboard — Campaign Quality Helper
+
+This folder contains a small helper to flag low-quality campaign fixture data for the demo admin dashboard.
+
+- `campaignQuality.ts`: exports `flagCampaign` and `summarizeIssues` to analyze demo campaign objects.
+- `fixtures.ts`: deterministic fake campaigns used for examples and tests.
+- `CampaignQualityWarnings.tsx`: small React component that displays issues for a campaign.
+
+Usage:
+
+Import `flagCampaign` or `CampaignQualityWarnings` from this folder to show warnings in the demo UI.
+
+All code is deterministic and safe for public repositories.
+
 # Demo Admin Dashboard
 
 This folder contains the isolated demo-admin dashboard slice for maintainers who need to populate and review fake demo UI data. It intentionally avoids production mail flows, live network calls, real user records, and route/app-shell integration.

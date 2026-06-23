@@ -1,0 +1,14 @@
+{
+  "name": "relay-auth-test",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node ./runner.js"
+  },
+  "dependencies": {
+    "fastify": "^4.19.0",
+    "nanoid": "^4.0.0",
+    "tweetnacl": "^1.0.3"
+  }
+}
