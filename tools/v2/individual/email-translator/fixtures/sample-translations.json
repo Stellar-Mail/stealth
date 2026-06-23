@@ -1,0 +1,48 @@
+{
+  "tool": "email-translator",
+  "languages": [
+    { "code": "auto", "label": "Auto-detect" },
+    { "code": "en", "label": "English" },
+    { "code": "es", "label": "Spanish", "nativeLabel": "Español" },
+    { "code": "fr", "label": "French", "nativeLabel": "Français" },
+    { "code": "de", "label": "German", "nativeLabel": "Deutsch" }
+  ],
+  "results": [
+    {
+      "id": "translation-ready",
+      "subject": "Project update",
+      "sourceLanguage": "en",
+      "targetLanguage": "es",
+      "sourceText": "Hi Marta,\n\nCould you review the attached timeline before Friday?\n\nThanks,\nAlex",
+      "translatedText": "Hola Marta,\n\n¿Podrías revisar el cronograma adjunto antes del viernes?\n\nGracias,\nAlex",
+      "status": "translated",
+      "confidence": 0.96,
+      "preservedElements": ["greeting", "deadline", "signoff"],
+      "warnings": []
+    },
+    {
+      "id": "translation-review",
+      "subject": "Legal clause question",
+      "sourceLanguage": "en",
+      "targetLanguage": "fr",
+      "sourceText": "Please review clause 4.2 before we send this to the customer.",
+      "translatedText": "Veuillez examiner la clause 4.2 avant que nous l'envoyions au client.",
+      "status": "needs-review",
+      "confidence": 0.74,
+      "preservedElements": ["clause number"],
+      "warnings": ["Legal wording needs review"]
+    },
+    {
+      "id": "translation-blocked",
+      "subject": "Account credentials",
+      "sourceLanguage": "en",
+      "targetLanguage": "de",
+      "sourceText": "The temporary password is included below.",
+      "translatedText": "",
+      "status": "blocked",
+      "confidence": 0,
+      "preservedElements": [],
+      "warnings": ["Remove secrets before translation"]
+    }
+  ]
+}
