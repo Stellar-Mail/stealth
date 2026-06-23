@@ -1,41 +1,35 @@
-# Escalation Tool
-
-Escalate conversations.
-
-## Scope
-
-- Release tier: $(System.Collections.Hashtable.Tier.ToUpperInvariant())
-- Audience: $(System.Collections.Hashtable.Audience)
-- Folder ownership: $dir/
-
-This is a self-contained tooling workspace. Do not wire this tool into the main app, routing, inbox architecture, wallet core, Stellar core, or design system unless a future integration issue explicitly allows it.
-
-Recommended internal structure:
-
-- components/
-- services/
-- hooks/
--     ests/
-- docs/
-  "@ | Set-Content -Path "tools/v2/team/escalation-tool/README.md"
-  @"
-
 # Escalation Tool Specs
 
 ## Purpose
 
-Escalate conversations.
+Define a folder-local testing and documentation foundation for escalating team
+conversations based on severity, owner, SLA risk, and review status.
 
-## Contributor boundary
+## Contributor Boundary
 
-All work for this tool should stay in:
+All work for this tool must stay inside:
 
-$dir/
+```text
+tools/v2/team/escalation-tool/
+```
 
-## Required issue categories
+Do not wire this tool into the main app, routing, inbox architecture, wallet
+core, Stellar core, database schema, or shared design system unless a future
+integration issue explicitly allows it.
 
-- Architecture
-- Feature
-- UI and accessibility
-- Security and performance
-- Testing and documentation
+## Required Local Behavior
+
+- Keep test plans, review notes, and fixtures inside the tool folder.
+- Describe expected escalation states: `queued`, `assigned`, `escalated`,
+  `resolved`, and `blocked`.
+- Document setup, usage, fixtures, and known limitations.
+- Provide fixture examples for normal, high-priority, blocked, and resolved
+  escalation scenarios.
+- Avoid live network calls, production data, and app-wide test dependencies.
+
+## Recommended Future Structure
+
+- `services/` for pure escalation routing rules.
+- `fixtures/` for deterministic conversation examples.
+- `tests/` for standalone Node tests.
+- `docs/` for setup, test plan, review notes, and future integration guidance.

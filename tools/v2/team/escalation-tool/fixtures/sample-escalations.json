@@ -1,0 +1,63 @@
+{
+  "tool": "escalation-tool",
+  "states": ["queued", "assigned", "escalated", "resolved", "blocked"],
+  "requests": [
+    {
+      "id": "esc-queued-001",
+      "conversationId": "conv-2026-001",
+      "subject": "Billing question needs triage",
+      "state": "queued",
+      "severity": "medium",
+      "ownerTeam": "support-ops",
+      "slaMinutesRemaining": 240,
+      "signals": ["billing", "customer-reply"],
+      "expectedAction": "Assign to the support operations queue."
+    },
+    {
+      "id": "esc-assigned-001",
+      "conversationId": "conv-2026-002",
+      "subject": "Enterprise legal review",
+      "state": "assigned",
+      "severity": "high",
+      "ownerTeam": "legal",
+      "assignee": "legal-reviewer@example.test",
+      "slaMinutesRemaining": 90,
+      "signals": ["contract", "enterprise"],
+      "expectedAction": "Keep assigned and request legal review notes."
+    },
+    {
+      "id": "esc-escalated-001",
+      "conversationId": "conv-2026-003",
+      "subject": "Security incident follow-up",
+      "state": "escalated",
+      "severity": "critical",
+      "ownerTeam": "security",
+      "assignee": "security-lead@example.test",
+      "slaMinutesRemaining": 15,
+      "signals": ["security", "incident", "sla-risk"],
+      "expectedAction": "Escalate to security lead and flag SLA risk."
+    },
+    {
+      "id": "esc-resolved-001",
+      "conversationId": "conv-2026-004",
+      "subject": "Resolved onboarding question",
+      "state": "resolved",
+      "severity": "low",
+      "ownerTeam": "customer-success",
+      "slaMinutesRemaining": 0,
+      "signals": ["onboarding", "resolved"],
+      "expectedAction": "Keep closed unless the customer replies again."
+    },
+    {
+      "id": "esc-blocked-001",
+      "conversationId": "conv-2026-005",
+      "subject": "Missing owner for refund review",
+      "state": "blocked",
+      "severity": "high",
+      "ownerTeam": "",
+      "slaMinutesRemaining": 60,
+      "signals": ["refund", "missing-owner"],
+      "expectedAction": "Request owner team before routing."
+    }
+  ]
+}
