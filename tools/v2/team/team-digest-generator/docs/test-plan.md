@@ -1,3 +1,21 @@
+# Test Plan — Team Digest Generator
+
+Automated:
+- Run the provided Node.js tests: `node --test tools/v2/team/team-digest-generator/tests/digest-fixtures.test.mjs`
+- Validate that both assertions pass and exit code is 0.
+
+Manual checks:
+- Inspect `fixtures/sample-team-activity.json` to confirm coverage of digest item types and attention signals.
+- Run `generateDigest()` interactively in a Node REPL to inspect output shape and sample items.
+
+Edge cases:
+- Empty `activity.emails` should throw a helpful error (current behaviour).
+- Emails missing `from` or `subject` are tolerated; sender becomes `unknown` and subject becomes empty string.
+- Long bodies are trimmed to 240 chars for snippet.
+
+Follow-ups:
+- Add richer NLP for priority inference (future work).
+- Connect this service to a UI route inside `tools/v2/team/...` in a follow-up PR.
 # Test Plan
 
 ## Automated Fixture Test

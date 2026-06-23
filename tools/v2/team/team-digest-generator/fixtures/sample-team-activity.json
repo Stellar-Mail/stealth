@@ -1,4 +1,76 @@
 {
+  "meta": {
+    "name": "sample-team-activity",
+    "version": "1.0.0",
+    "description": "Deterministic sample team emails for digest generator tests"
+  },
+  "emails": [
+    {
+      "id": "m-001",
+      "threadId": "th-1",
+      "from": "alice@example.com",
+      "to": ["team@example.com"],
+      "subject": "Project kickoff: next steps (action)",
+      "body": "Please review the plan and send feedback. Action required by Friday.",
+      "date": "2026-06-01T09:00:00Z",
+      "tags": { "requiresAction": true }
+    },
+    {
+      "id": "m-002",
+      "threadId": "th-1",
+      "from": "bob@example.com",
+      "to": ["alice@example.com"],
+      "subject": "Re: Project kickoff",
+      "body": "Thanks — I'll take the lead on the checklist.",
+      "date": "2026-06-01T10:05:00Z"
+    },
+    {
+      "id": "m-003",
+      "threadId": "th-2",
+      "from": "carol@example.com",
+      "to": ["team@example.com"],
+      "subject": "Postmortem completed",
+      "body": "The incident postmortem is completed and attached.",
+      "date": "2026-06-01T11:30:00Z",
+      "tags": { "status": "completed" }
+    },
+    {
+      "id": "m-004",
+      "threadId": "th-3",
+      "from": "dave@example.com",
+      "to": ["team@example.com"],
+      "subject": "Daily summary: metrics and highlights",
+      "body": "Daily summary: pageviews up 5%. See attached summary.",
+      "date": "2026-06-01T12:00:00Z",
+      "tags": { "summary": true }
+    },
+    {
+      "id": "m-005",
+      "threadId": "th-4",
+      "from": "erin@example.com",
+      "to": ["team@example.com"],
+      "subject": "Blocked on API (urgent)",
+      "body": "Blocked by the payments API. Urgent help needed.",
+      "date": "2026-06-01T12:30:00Z",
+      "flags": { "needsAttention": true }
+    },
+    {
+      "id": "m-006",
+      "threadId": "th-5",
+      "from": "frank@example.com",
+      "to": ["team@example.com"],
+      "subject": "FYI: design tweaks",
+      "body": "Minor design adjustments; no action required.",
+      "date": "2026-06-01T13:00:00Z"
+    }
+  ],
+  "expected": {
+    "summary": {
+      "total": 6,
+      "attentionCount": 2,
+      "distinctTeamMembers": 6
+    }
+  },
   "tool": "team-digest-generator",
   "version": 1,
   "date": "2026-06-17",
@@ -138,6 +210,7 @@
     }
   },
   "reviewNotes": [
+    "Fixtures aim to cover new_message, pending_item, completed_item, team_summary and attention flags. 'alice' action and 'erin' urgent flagged as attention.",
     "The fixture uses team.test addresses to avoid real customer data.",
     "Timestamps are in UTC and should be localized in future UI work.",
     "Items with requiresAttention: true represent actionable items that need human intervention.",
