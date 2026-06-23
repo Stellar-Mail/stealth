@@ -24,4 +24,13 @@ export type UpdateNoteInput = {
 
 export type ServiceConfig = {
   delayMs: number;
+  /** Max notes returned per getByContact call. Prevents unbounded reads on large datasets. */
+  maxNotesPerContact: number;
 };
+
+// Hard limits — keep these conservative. Content is user-facing prose, not
+// arbitrary binary. IDs are internal references and should never be long.
+export const LIMITS = {
+  CONTENT_MAX: 10_000,
+  ID_MAX: 256,
+} as const;

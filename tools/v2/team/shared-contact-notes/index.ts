@@ -10,4 +10,5 @@ export type {
   UpdateNoteInput,
   ServiceConfig,
 } from "./types";
-export { validateCreateNote, validateUpdateNote } from "./validation";
+export { LIMITS } from "./types";
+export { validateCreateNote, validateUpdateNote, validateId } from "./validation";
