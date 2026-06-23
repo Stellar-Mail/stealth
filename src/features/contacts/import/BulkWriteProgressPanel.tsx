@@ -116,7 +116,7 @@ export function BulkWriteProgressPanel({ progress, onPause, onResume, onCancel }
         {isRunning && (
           <button
             onClick={onPause}
-            className="flex items-center justify-center gap-2 flex-1 rounded-xl border border-white/10 px-4 py-2.5 text-sm text-muted-foreground transition hover:bg-white/[0.04] hover:text-foreground"
+            className="flex items-center justify-center gap-2 flex-1 rounded-xl border border-white/10 px-4 py-2.5 text-sm text-muted-foreground transition hover:bg-white/[0.04] hover:text-foreground focus:outline-none focus:ring-1 focus:ring-white/20"
           >
             <PauseCircle className="h-4 w-4" />
             Pause
@@ -126,14 +126,14 @@ export function BulkWriteProgressPanel({ progress, onPause, onResume, onCancel }
           <>
             <button
               onClick={onResume}
-              className="flex items-center justify-center gap-2 flex-1 rounded-xl bg-foreground px-4 py-2.5 text-sm font-semibold text-background transition hover:opacity-90"
+              className="flex items-center justify-center gap-2 flex-1 rounded-xl bg-foreground px-4 py-2.5 text-sm font-semibold text-background transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-foreground/50"
             >
               <PlayCircle className="h-4 w-4" />
               Resume
             </button>
             <button
               onClick={onCancel}
-              className="flex items-center justify-center gap-2 flex-1 rounded-xl border border-red-400/20 px-4 py-2.5 text-sm text-red-300 transition hover:bg-red-400/[0.06]"
+              className="flex items-center justify-center gap-2 flex-1 rounded-xl border border-red-400/20 px-4 py-2.5 text-sm text-red-300 transition hover:bg-red-400/[0.06] focus:outline-none focus:ring-1 focus:ring-red-400/30"
             >
               <XCircle className="h-4 w-4" />
               Cancel
@@ -143,7 +143,7 @@ export function BulkWriteProgressPanel({ progress, onPause, onResume, onCancel }
         {(isCompleted || isFailed) && (
           <button
             onClick={onCancel}
-            className="w-full rounded-xl bg-foreground px-4 py-2.5 text-sm font-semibold text-background transition hover:opacity-90"
+            className="w-full rounded-xl bg-foreground px-4 py-2.5 text-sm font-semibold text-background transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-foreground/50"
           >
             Done
           </button>

@@ -58,6 +58,7 @@ const SOURCES: SourceOption[] = [
 export function ImportSourcePicker({ onSelectSource }: Props) {
   const [csv, setCsv] = useState("");
   const [mode, setMode] = useState<"pick" | "csv-input">("pick");
+  const [isDragging, setIsDragging] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const handleFile = useCallback((file: File) => {
@@ -69,11 +70,22 @@ export function ImportSourcePicker({ onSelectSource }: Props) {
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
       e.preventDefault();
+      setIsDragging(false);
       const file = e.dataTransfer.files[0];
       if (file) handleFile(file);
     },
     [handleFile],
   );
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  }, []);
 
   if (mode === "csv-input") {
     return (
@@ -97,10 +109,16 @@ export function ImportSourcePicker({ onSelectSource }: Props) {
         </div>
 
         <div
-          onDragOver={(e) => e.preventDefault()}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
           onDrop={handleDrop}
           onClick={() => fileRef.current?.click()}
-          className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-white/10 bg-white/[0.02] px-4 py-6 transition hover:bg-white/[0.04]"
+          className={cn(
+            "flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed px-4 py-6 transition",
+            isDragging
+              ? "border-foreground/30 bg-foreground/5"
+              : "border-white/10 bg-white/[0.02] hover:bg-white/[0.04]",
+          )}
         >
           <Upload className="h-5 w-5 text-muted-foreground" />
           <p className="text-xs text-muted-foreground">
