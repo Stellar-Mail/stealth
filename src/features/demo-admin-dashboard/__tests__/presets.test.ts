@@ -2,13 +2,15 @@ import { describe, expect, it } from "vitest";
 import { PRESET_SCENARIOS } from "../fixtures/presets";
 
 describe("demo admin dashboard presets", () => {
-  it("defines the four required scenario flows", () => {
+  it("defines the six required scenario flows", () => {
     const ids = PRESET_SCENARIOS.map((p) => p.id);
     expect(ids).toContain("relay-verification");
     expect(ids).toContain("proof-pending");
     expect(ids).toContain("receipt-settlement");
     expect(ids).toContain("paid-sender-request");
-    expect(PRESET_SCENARIOS.length).toBe(4);
+    expect(ids).toContain("conference-pass");
+    expect(ids).toContain("encrypted-payload");
+    expect(PRESET_SCENARIOS.length).toBe(6);
   });
 
   it("contains deterministic and valid stats, accounts, mail, and audit logs for each scenario", () => {
