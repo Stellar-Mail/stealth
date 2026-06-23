@@ -10,6 +10,7 @@ import {
   Command,
   Filter,
   LogOut,
+  Map,
   Paperclip,
   RefreshCw,
   Search,
@@ -40,9 +41,10 @@ type TopbarProps = {
 const quickActions: {
   label: string;
   value: string;
-  action: "proofs" | "later" | "files";
+  action: "proofs" | "later" | "files" | "roadmap";
   icon: LucideIcon;
 }[] = [
+  { label: "Roadmap", value: "8", action: "roadmap", icon: Map },
   { label: "Proofs", value: "2", action: "proofs", icon: ShieldCheck },
   { label: "Later", value: "5", action: "later", icon: Clock3 },
   { label: "Files", value: "9", action: "files", icon: Paperclip },
