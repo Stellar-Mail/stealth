@@ -35,3 +35,10 @@
 ## Files changed are limited to $rel/
 
 All work is contained within `tools/v2/team/team-workload-balancer/`.
+
+## Issue linkage note
+
+The original delivery PR (#767) merged the folder-local tests, fixtures, and docs, but
+its description referenced the issue without a GitHub closing keyword, so the issue was
+not auto-closed or linked on merge. This follow-up records the completed linkage so that
+issue #713 is closed by a merged pull request.
