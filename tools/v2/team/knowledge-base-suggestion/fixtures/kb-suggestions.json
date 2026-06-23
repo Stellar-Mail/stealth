@@ -1,0 +1,67 @@
+{
+  "articles": [
+    {
+      "id": "kb-001",
+      "title": "Reset shared mailbox access",
+      "summary": "Steps for restoring team mailbox access after role or group changes.",
+      "keywords": ["mailbox", "access", "role", "group", "permission", "reset"],
+      "tags": ["access", "mailbox"],
+      "teamIds": ["support", "operations"],
+      "priority": "high",
+      "href": "/kb/shared-mailbox-access"
+    },
+    {
+      "id": "kb-002",
+      "title": "Triage suspicious sender reports",
+      "summary": "How to classify sender spoofing, phishing, and suspicious domain reports.",
+      "keywords": ["sender", "spoofing", "phishing", "domain", "suspicious", "report"],
+      "tags": ["security"],
+      "teamIds": ["security", "support"],
+      "priority": "high",
+      "href": "/kb/suspicious-sender-triage"
+    },
+    {
+      "id": "kb-003",
+      "title": "Create a knowledge base article from support mail",
+      "summary": "Template for turning repeated support questions into reusable documentation.",
+      "keywords": ["knowledge", "article", "support", "documentation", "template", "question"],
+      "tags": ["documentation"],
+      "teamIds": ["support"],
+      "priority": "normal",
+      "href": "/kb/article-template"
+    },
+    {
+      "id": "kb-004",
+      "title": "Escalate legal review requests",
+      "summary": "When and how team members should route compliance-sensitive messages.",
+      "keywords": ["legal", "compliance", "review", "contract", "risk", "escalate"],
+      "tags": ["legal", "compliance"],
+      "teamIds": ["legal", "operations"],
+      "priority": "normal",
+      "href": "/kb/legal-review-routing"
+    }
+  ],
+  "requests": {
+    "mailboxAccess": {
+      "id": "msg-001",
+      "subject": "Team cannot access shared mailbox",
+      "body": "Support agents lost mailbox permissions after a role group update.",
+      "teamId": "support",
+      "labels": ["access", "mailbox"]
+    },
+    "securityReport": {
+      "id": "msg-002",
+      "subject": "Suspicious sender domain report",
+      "body": "A customer reported phishing from a spoofing domain that looks like our support address.",
+      "teamId": "security",
+      "labels": ["security"]
+    },
+    "unknown": {
+      "id": "msg-003",
+      "subject": "Office snack preferences",
+      "body": "The team is voting on snacks for the next planning session.",
+      "teamId": "operations",
+      "labels": []
+    }
+  }
+}
