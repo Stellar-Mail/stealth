@@ -1,0 +1,51 @@
+{
+  "messages": [
+    {
+      "id": "msg-newer-001",
+      "senderAddress": "Customer.One@Example.Test",
+      "sharedInboxAddress": "support@team.test",
+      "subject": "Cannot open encrypted message",
+      "preview": "The customer reports that the encrypted body opens but the attached receipt does not.",
+      "receivedAt": "2026-06-23T10:10:00.000Z",
+      "deliveryProofHash": "proof_guard_newer_001",
+      "status": "unassigned",
+      "internalCommentCount": 0,
+      "replyCount": 0
+    },
+    {
+      "id": "msg-older-002",
+      "senderAddress": "vendor.ops@example.test",
+      "sharedInboxAddress": "support@team.test",
+      "subject": "Relay status follow-up",
+      "preview": "Vendor asks whether the team has a new relay status update.",
+      "receivedAt": "2026-06-23T09:00:00.000Z",
+      "deliveryProofHash": "proof_guard_older_002",
+      "status": "claimed",
+      "assigneeAddress": "riley@team.test",
+      "internalCommentCount": 2,
+      "replyCount": 1
+    }
+  ],
+  "commentDraft": {
+    "messageId": "msg-newer-001",
+    "authorAddress": "alice@team.test",
+    "body": "Known receipt issue. Keep the note internal."
+  },
+  "replyDraft": {
+    "messageId": "msg-newer-001",
+    "fromSharedInboxAddress": "support@team.test",
+    "toAddress": "customer.one@example.test",
+    "subject": "Re: Cannot open encrypted message",
+    "body": "Thanks for the report. We are checking the encrypted receipt path now."
+  },
+  "attachments": [
+    {
+      "filename": "receipt-metadata.json",
+      "sizeBytes": 1024
+    },
+    {
+      "filename": "debug-log.txt",
+      "sizeBytes": 2048
+    }
+  ]
+}
