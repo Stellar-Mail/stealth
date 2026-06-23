@@ -1,0 +1,62 @@
+{
+  "now": "2026-06-23T10:00:00.000Z",
+  "records": [
+    {
+      "id": "deadline-ok-001",
+      "messageId": "msg-ok-001",
+      "sharedInboxId": "support@team.test",
+      "subject": "Product onboarding question",
+      "receivedAt": "2026-06-23T09:30:00.000Z",
+      "policy": {
+        "name": "Standard support response",
+        "targetMinutes": 120,
+        "dueSoonWindowMinutes": 30
+      },
+      "assignee": "alice@team.test",
+      "escalationNote": ""
+    },
+    {
+      "id": "deadline-due-soon-002",
+      "messageId": "msg-due-soon-002",
+      "sharedInboxId": "support@team.test",
+      "subject": "Encrypted attachment cannot be opened",
+      "receivedAt": "2026-06-23T08:20:00.000Z",
+      "policy": {
+        "name": "Standard support response",
+        "targetMinutes": 120,
+        "dueSoonWindowMinutes": 30
+      },
+      "assignee": "riley@team.test",
+      "escalationNote": "Ask support lead to review before breach."
+    },
+    {
+      "id": "deadline-breached-003",
+      "messageId": "msg-breached-003",
+      "sharedInboxId": "ops@team.test",
+      "subject": "Partner relay outage report",
+      "receivedAt": "2026-06-23T06:00:00.000Z",
+      "policy": {
+        "name": "Operations urgent response",
+        "targetMinutes": 90,
+        "dueSoonWindowMinutes": 20
+      },
+      "assignee": "jordan@team.test",
+      "escalationNote": "Escalate to operations rotation."
+    },
+    {
+      "id": "deadline-resolved-004",
+      "messageId": "msg-resolved-004",
+      "sharedInboxId": "billing@team.test",
+      "subject": "Billing address confirmation",
+      "receivedAt": "2026-06-23T07:00:00.000Z",
+      "resolvedAt": "2026-06-23T07:40:00.000Z",
+      "policy": {
+        "name": "Billing response",
+        "targetMinutes": 180,
+        "dueSoonWindowMinutes": 45
+      },
+      "assignee": "taylor@team.test",
+      "escalationNote": ""
+    }
+  ]
+}
