@@ -1,0 +1,74 @@
+{
+  "messages": [
+    {
+      "messageId": "msg-history-001",
+      "sharedInboxAddress": "support@team.test",
+      "subject": "Account recovery request",
+      "events": [
+        {
+          "eventId": "event-history-001-a",
+          "action": "claimed",
+          "actorAddress": "alice@team.test",
+          "ownerAddress": "alice@team.test",
+          "occurredAt": "2026-06-23T08:00:00.000Z",
+          "note": "Initial owner from support queue."
+        },
+        {
+          "eventId": "event-history-001-b",
+          "action": "reassigned",
+          "actorAddress": "alice@team.test",
+          "previousOwnerAddress": "alice@team.test",
+          "ownerAddress": "riley@team.test",
+          "occurredAt": "2026-06-23T08:45:00.000Z",
+          "note": "Handoff to recovery specialist."
+        }
+      ]
+    },
+    {
+      "messageId": "msg-history-002",
+      "sharedInboxAddress": "ops@team.test",
+      "subject": "Relay configuration question",
+      "events": [
+        {
+          "eventId": "event-history-002-a",
+          "action": "claimed",
+          "actorAddress": "jordan@team.test",
+          "ownerAddress": "jordan@team.test",
+          "occurredAt": "2026-06-23T09:10:00.000Z",
+          "note": "Operations owner assigned."
+        },
+        {
+          "eventId": "event-history-002-b",
+          "action": "escalated",
+          "actorAddress": "jordan@team.test",
+          "ownerAddress": "jordan@team.test",
+          "occurredAt": "2026-06-23T09:25:00.000Z",
+          "note": "Needs rotation review."
+        }
+      ]
+    },
+    {
+      "messageId": "msg-history-003",
+      "sharedInboxAddress": "billing@team.test",
+      "subject": "Billing contact update",
+      "events": [
+        {
+          "eventId": "event-history-003-a",
+          "action": "claimed",
+          "actorAddress": "taylor@team.test",
+          "ownerAddress": "taylor@team.test",
+          "occurredAt": "2026-06-23T07:30:00.000Z",
+          "note": "Billing owner assigned."
+        },
+        {
+          "eventId": "event-history-003-b",
+          "action": "released",
+          "actorAddress": "taylor@team.test",
+          "previousOwnerAddress": "taylor@team.test",
+          "occurredAt": "2026-06-23T08:05:00.000Z",
+          "note": "Resolved; owner released."
+        }
+      ]
+    }
+  ]
+}
