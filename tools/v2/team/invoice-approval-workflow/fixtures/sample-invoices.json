@@ -1,0 +1,134 @@
+{
+  "validInvoices": [
+    {
+      "id": "valid-001",
+      "invoiceId": "invoice-2026-001",
+      "invoiceNumber": "INV-2026-001",
+      "vendorName": "Northwind Supplies",
+      "currency": "USD",
+      "amount": 1250.5,
+      "status": "pending",
+      "approverEmail": "manager@example.test",
+      "memo": "Office equipment invoice for review.",
+      "lineItems": [
+        { "description": "Standing desks", "amount": 900.0 },
+        { "description": "Monitor arms", "amount": 350.5 }
+      ],
+      "attachments": [
+        {
+          "filename": "invoice-2026-001.pdf",
+          "mimeType": "application/pdf",
+          "sizeBytes": 450000
+        }
+      ]
+    },
+    {
+      "id": "valid-002",
+      "invoiceId": "invoice_urgent_42",
+      "invoiceNumber": "ACME.42",
+      "vendorName": "Acme Consulting",
+      "currency": "eur",
+      "amount": 4999.99,
+      "status": "escalated",
+      "approverEmail": "finance.lead@example.test",
+      "memo": "Requires approval before quarter close.",
+      "lineItems": [
+        { "description": "Implementation review", "amount": 4999.99 }
+      ],
+      "attachments": []
+    }
+  ],
+  "hostileInputs": [
+    {
+      "id": "hostile-001",
+      "field": "invoiceId",
+      "value": "../../etc/passwd",
+      "reason": "path traversal attempt"
+    },
+    {
+      "id": "hostile-002",
+      "field": "invoiceNumber",
+      "value": "INV<script>",
+      "reason": "markup in invoice number"
+    },
+    {
+      "id": "hostile-003",
+      "field": "vendorName",
+      "value": "<script>alert(1)</script>",
+      "reason": "markup in vendor name"
+    },
+    {
+      "id": "hostile-004",
+      "field": "status",
+      "value": "paid",
+      "reason": "status not in allowlist"
+    },
+    {
+      "id": "hostile-005",
+      "field": "currency",
+      "value": "BTC",
+      "reason": "unsupported currency"
+    },
+    {
+      "id": "hostile-006",
+      "field": "approverEmail",
+      "value": "manager@example.test\r\nBcc: attacker@example.test",
+      "reason": "CRLF header injection"
+    },
+    {
+      "id": "hostile-007",
+      "field": "amount",
+      "value": -50,
+      "reason": "negative amount"
+    },
+    {
+      "id": "hostile-008",
+      "field": "amount",
+      "value": 1000000.01,
+      "reason": "amount exceeds approval cap"
+    }
+  ],
+  "sanitizerCases": [
+    {
+      "id": "sanitize-001",
+      "field": "memo",
+      "value": "Review\u0000notes\u001Fwith controls",
+      "expected": "Reviewnoteswith controls"
+    },
+    {
+      "id": "sanitize-002",
+      "field": "invoiceNumber",
+      "value": " INV-2026-002\r\nX-Injected: yes ",
+      "expected": "INV-2026-002X-Injected: yes"
+    },
+    {
+      "id": "sanitize-003",
+      "field": "vendorName",
+      "value": "  Example Vendor\u0000  ",
+      "expected": "Example Vendor"
+    }
+  ],
+  "unsafeAttachments": [
+    {
+      "id": "attachment-001",
+      "filename": "../invoice.pdf",
+      "mimeType": "application/pdf",
+      "sizeBytes": 10,
+      "reason": "path separator in filename"
+    },
+    {
+      "id": "attachment-002",
+      "filename": "invoice.exe",
+      "mimeType": "application/x-msdownload",
+      "sizeBytes": 10,
+      "reason": "unsupported MIME type"
+    },
+    {
+      "id": "attachment-003",
+      "filename": "invoice.pdf",
+      "mimeType": "application/pdf",
+      "sizeBytes": 999999999,
+      "reason": "oversized attachment"
+    }
+  ]
+}
