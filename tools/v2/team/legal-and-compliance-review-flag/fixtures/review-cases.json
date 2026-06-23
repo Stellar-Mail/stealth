@@ -1,0 +1,25 @@
+{
+  "cases": {
+    "contractReview": {
+      "id": "review-001",
+      "source": "team-mail",
+      "subject": "New enterprise MSA terms need approval",
+      "body": "The customer sent a master services agreement and DPA for signature before launch.",
+      "labels": ["contract", "enterprise"]
+    },
+    "regulatoryRequest": {
+      "id": "review-002",
+      "source": "team-mail",
+      "subject": "Court order received for account records",
+      "body": "A regulator sent a subpoena and requested account data by Friday.",
+      "labels": ["urgent", "legal"]
+    },
+    "routineSupport": {
+      "id": "review-003",
+      "source": "support-mail",
+      "subject": "How do I reset notification preferences?",
+      "body": "A customer needs help changing weekly digest settings.",
+      "labels": ["support"]
+    }
+  }
+}

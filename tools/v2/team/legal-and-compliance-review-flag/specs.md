@@ -4,9 +4,9 @@ Compliance workflow.
 
 ## Scope
 
-- Release tier: $(System.Collections.Hashtable.Tier.ToUpperInvariant())
-- Audience: $(System.Collections.Hashtable.Audience)
-- Folder ownership: $dir/
+- Release tier: V2
+- Audience: team
+- Folder ownership: `tools/v2/team/legal-and-compliance-review-flag/`
 
 This is a self-contained tooling workspace. Do not wire this tool into the main app, routing, inbox architecture, wallet core, Stellar core, or design system unless a future integration issue explicitly allows it.
 
@@ -15,22 +15,21 @@ Recommended internal structure:
 - components/
 - services/
 - hooks/
--     ests/
+- tests/
 - docs/
-  "@ | Set-Content -Path "tools/v2/team/legal-and-compliance-review-flag/README.md"
-  @"
 
-# Legal and Compliance Review Flag Specs
+## Core Feature Contract
 
-## Purpose
+The core engine classifies local review contexts for legal/compliance sensitivity.
+It must stay deterministic and folder-local until a future integration issue
+connects it to real mail, policy, or ticket systems.
 
-Compliance workflow.
+The core feature work should:
 
-## Contributor boundary
-
-All work for this tool should stay in:
-
-$dir/
+- validate malformed or missing input,
+- document loading, empty, success, and error states for future UI work,
+- avoid live network calls, production data, secrets, or global app wiring,
+- expose only a folder-local API from `index.mjs`.
 
 ## Required issue categories
 
