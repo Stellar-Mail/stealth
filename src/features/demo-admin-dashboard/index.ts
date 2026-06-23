@@ -48,6 +48,24 @@ export type {
 export type { CampaignSnapshot } from "./types/campaignSnapshot";
 export type { CampaignTag, TagColorKey } from "./types/campaignTag";
 
+// Campaign taxonomy: records, groups, audiences, message links (issue #252)
+export type {
+  CampaignGroup,
+  CampaignGroupCategory,
+  CampaignMessageLink,
+  CampaignMessageRole,
+  CampaignRecord,
+  CampaignRelationshipMap,
+} from "./types/campaignTaxonomy";
+export {
+  CAMPAIGN_GROUPS_BY_ID,
+  CAMPAIGN_RECORDS_BY_ID,
+  campaignGroups,
+  campaignMessageLinks,
+  campaignRecords,
+  campaignRelationshipExamples,
+} from "./fixtures/campaignTaxonomyFixtures";
+
 export type {
   DemoAttachment,
   DemoCalendarEvent,
