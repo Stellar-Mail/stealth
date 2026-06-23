@@ -1,41 +1,36 @@
-# Draft Improver
-
-Improve draft quality before sending.
-
-## Scope
-
-- Release tier: $(System.Collections.Hashtable.Tier.ToUpperInvariant())
-- Audience: $(System.Collections.Hashtable.Audience)
-- Folder ownership: $dir/
-
-This is a self-contained tooling workspace. Do not wire this tool into the main app, routing, inbox architecture, wallet core, Stellar core, or design system unless a future integration issue explicitly allows it.
-
-Recommended internal structure:
-
-- components/
-- services/
-- hooks/
--     ests/
-- docs/
-  "@ | Set-Content -Path "tools/v2/individual/draft-improver/README.md"
-  @"
-
 # Draft Improver Specs
 
 ## Purpose
 
-Improve draft quality before sending.
+Improve draft quality before sending by producing a self-contained review result
+with deterministic rewrite suggestions.
 
-## Contributor boundary
+## Contributor Boundary
 
-All work for this tool should stay in:
+All work for this tool must stay inside:
 
-$dir/
+```text
+tools/v2/individual/draft-improver/
+```
 
-## Required issue categories
+Do not wire this tool into the main app, routing, inbox architecture, wallet
+core, Stellar core, database schema, or shared design system unless a future
+integration issue explicitly allows it.
 
-- Architecture
-- Feature
-- UI and accessibility
-- Security and performance
-- Testing and documentation
+## Required Local Behavior
+
+- Normalize draft inputs without requiring external services.
+- Detect missing body content, missing call to action, overly terse drafts,
+  overly long drafts, harsh phrasing, excessive punctuation, missing greeting,
+  missing signoff, and sensitive-data risk.
+- Return a deterministic improved draft body and suggested subject line.
+- Mark drafts as `ready`, `needs-review`, `blocked`, or `error`.
+- Preserve the original draft id for traceability.
+- Keep review fixtures synthetic and free of personal data.
+
+## Recommended Internal Structure
+
+- `services/` for pure core behavior.
+- `fixtures/` for deterministic local examples.
+- `tests/` for standalone Node tests.
+- `docs/` for input, output, loading, and error-state contracts.

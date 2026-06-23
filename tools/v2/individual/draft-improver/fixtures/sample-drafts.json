@@ -1,0 +1,72 @@
+{
+  "tool": "draft-improver",
+  "sourceDrafts": [
+    {
+      "id": "draft-ready",
+      "subject": "Project timeline review",
+      "body": "Hi Maya,\n\nCould you review the updated project timeline and confirm whether Friday still works for the handoff?\n\nThanks,\nAlex",
+      "recipientName": "Maya",
+      "senderName": "Alex",
+      "tone": "neutral",
+      "channel": "email",
+      "audience": "peer"
+    },
+    {
+      "id": "draft-needs-review",
+      "subject": "",
+      "body": "Per my last email, I need the launch notes ASAP!!",
+      "recipientName": "Jordan",
+      "senderName": "Alex",
+      "tone": "warm",
+      "channel": "email",
+      "audience": "manager"
+    },
+    {
+      "id": "draft-blocked-sensitive",
+      "subject": "Account access",
+      "body": "Hi Sam,\n\nThe password is temporary-pass-123. Please use it today.\n\nThanks,\nAlex",
+      "recipientName": "Sam",
+      "senderName": "Alex",
+      "tone": "neutral",
+      "channel": "email",
+      "audience": "customer"
+    },
+    {
+      "id": "draft-short",
+      "subject": "",
+      "body": "Need this fixed.",
+      "recipientName": "Riley",
+      "senderName": "Alex",
+      "tone": "formal",
+      "channel": "email",
+      "audience": "general"
+    }
+  ],
+  "expected": [
+    {
+      "id": "draft-ready",
+      "status": "ready",
+      "reviewRequired": false,
+      "minimumScore": 90
+    },
+    {
+      "id": "draft-needs-review",
+      "status": "needs-review",
+      "reviewRequired": true,
+      "requiredIssues": ["tone-risk", "too-short", "missing-greeting", "missing-signoff"],
+      "requiredChanges": ["Replace confrontational follow-up phrasing.", "Collapse repeated punctuation."]
+    },
+    {
+      "id": "draft-blocked-sensitive",
+      "status": "blocked",
+      "reviewRequired": true,
+      "requiredIssues": ["sensitive-data"]
+    },
+    {
+      "id": "draft-short",
+      "status": "needs-review",
+      "reviewRequired": true,
+      "requiredIssues": ["too-short", "missing-action"]
+    }
+  ]
+}
