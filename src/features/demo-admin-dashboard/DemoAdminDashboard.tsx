@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import React, { useState } from "react";
 import {
   Activity,
   BarChart3,
@@ -207,7 +207,7 @@ function OverviewContent({
   return (
     <div className="space-y-6">
       <p className="text-sm text-muted-foreground">
-        Summary of the demo environment. All data is synthetic and resets on each page load.
+        Summary of the demo environment. All data is synthetic and updates dynamically on imports.
       </p>
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {stats.map((stat) => (
@@ -746,7 +746,7 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
                 "glow-ring flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20",
                 isActive
                   ? "bg-white/[0.08] text-foreground"
-                  : "text-muted-foreground hover:bg-white/[0.04] hover:text-foreground",
+                  : "text-muted-foreground hover:bg-white/[0.04] hover:text-foreground"
               )}
             >
               <NavIcon className="h-3.5 w-3.5" />
@@ -755,6 +755,7 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
           );
         })}
       </nav>
+      {showAccessibility && <AccessibilityInfo />}
 
       {/* ── Content region ── */}
       <div
@@ -764,6 +765,30 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
         aria-labelledby={`${activeSection}-tab`}
       >
         <div className="mx-auto max-w-4xl">
+          {/* Error and Success Alert Banners */}
+          {errorMsg && (
+            <div role="alert" aria-live="assertive" className="mb-6 rounded-lg border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-400 flex items-center justify-between">
+              <span>{errorMsg}</span>
+              <button
+                onClick={() => setErrorMsg(null)}
+                className="text-red-400 hover:text-red-300 font-bold ml-2 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+          {successMsg && (
+            <div role="status" aria-live="polite" className="mb-6 rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm text-emerald-400 flex items-center justify-between animate-fade-in">
+              <span>{successMsg}</span>
+              <button
+                onClick={() => setSuccessMsg(null)}
+                className="text-emerald-400 hover:text-emerald-300 font-bold ml-2 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+
           {/* Section header */}
           <div className="mb-6 flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -997,3 +1022,4 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
     </div>
   );
 }
+
