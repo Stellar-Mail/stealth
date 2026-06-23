@@ -1,0 +1,48 @@
+{
+  "teamRoster": [
+    "alice@team.test",
+    "bob@team.test",
+    "carol@team.test"
+  ],
+  "messageTarget": {
+    "kind": "message",
+    "id": "msg-internal-001"
+  },
+  "threadTarget": {
+    "kind": "thread",
+    "id": "thread-internal-001"
+  },
+  "comments": [
+    {
+      "id": "comment-001",
+      "target": {
+        "kind": "message",
+        "id": "msg-internal-001"
+      },
+      "author": "alice@team.test",
+      "body": "Customer mentioned an old support case. Keep this note internal.",
+      "createdAt": "2026-06-23T09:00:00.000Z"
+    },
+    {
+      "id": "comment-002",
+      "target": {
+        "kind": "message",
+        "id": "msg-internal-001"
+      },
+      "author": "bob@team.test",
+      "body": "I checked the team record and the previous workaround still applies.",
+      "createdAt": "2026-06-23T09:05:00.000Z"
+    },
+    {
+      "id": "comment-003",
+      "target": {
+        "kind": "thread",
+        "id": "thread-internal-001"
+      },
+      "author": "carol@team.test",
+      "body": "Thread-level note for the weekly operations review.",
+      "createdAt": "2026-06-23T09:10:00.000Z"
+    }
+  ],
+  "externalSenderAddress": "customer@example.test"
+}
