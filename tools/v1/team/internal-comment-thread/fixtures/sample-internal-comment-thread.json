@@ -1,0 +1,46 @@
+{
+  "teamRoster": [
+    "alice@team.test",
+    "bob@team.test",
+    "carol@team.test"
+  ],
+  "targets": [
+    {
+      "kind": "message",
+      "id": "msg-internal-doc-001",
+      "comments": [
+        {
+          "id": "comment-doc-001",
+          "author": "alice@team.test",
+          "body": "Internal only: customer used the retired migration path.",
+          "createdAt": "2026-06-23T09:00:00.000Z"
+        },
+        {
+          "id": "comment-doc-002",
+          "author": "bob@team.test",
+          "body": "Internal only: verify the old plan flag before replying.",
+          "createdAt": "2026-06-23T09:05:00.000Z"
+        }
+      ]
+    },
+    {
+      "kind": "thread",
+      "id": "thread-internal-doc-001",
+      "comments": [
+        {
+          "id": "comment-doc-003",
+          "author": "carol@team.test",
+          "body": "Internal only: include this in the weekly ops review.",
+          "createdAt": "2026-06-23T09:10:00.000Z"
+        }
+      ]
+    }
+  ],
+  "externalPayloadSample": {
+    "to": "customer@example.test",
+    "subject": "Re: Migration question",
+    "internalCommentCount": 2,
+    "latestInternalCommentAt": "2026-06-23T09:05:00.000Z",
+    "commentBodiesIncluded": false
+  }
+}
