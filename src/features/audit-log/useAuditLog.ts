@@ -17,6 +17,26 @@ export function formatEventAsText(e: AuditEvent): string {
   return `[${e.ts}] ${e.kind} | ${actor} | ${e.summary}${ctx ? ` | ${ctx}` : ""}`;
 }
 
+export function filterEvents(events: AuditEvent[], filter: AuditFilter): AuditEvent[] {
+  return events.filter((e) => {
+    if (filter.category !== "all" && e.category !== filter.category) return false;
+    if (filter.search) {
+      const q = filter.search.toLowerCase();
+      return (
+        e.summary.toLowerCase().includes(q) ||
+        e.kind.toLowerCase().includes(q) ||
+        (e.context?.senderDisplayName?.toLowerCase().includes(q) ?? false) ||
+        (e.context?.messageId?.toLowerCase().includes(q) ?? false)
+      );
+    }
+    return true;
+  });
+}
+
+export function useAuditLog(initialEvents: AuditEvent[] = MOCK_AUDIT_EVENTS) {
+  const [filter, setFilter] = useState<AuditFilter>({ category: "all", search: "" });
+
+  const filtered = useMemo(() => filterEvents(initialEvents, filter), [initialEvents, filter]);
 export function filterAuditEvents(events: AuditEvent[], filter: AuditFilter): AuditEvent[] {
   return events.filter((event) => {
     if (filter.category !== "all" && event.category !== filter.category) return false;
