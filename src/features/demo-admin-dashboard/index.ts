@@ -43,6 +43,9 @@ export type {
   StatCard,
   PresetAttachment,
   PresetEvent,
+  PresetCampaignMetadata,
+  PresetOperatorPersona,
+  PresetProofAssignment,
 } from "./types";
 
 export type { CampaignSnapshot } from "./types/campaignSnapshot";

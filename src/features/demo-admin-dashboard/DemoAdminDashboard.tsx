@@ -236,13 +236,18 @@ function OverviewContent({
             nodes, and pending proof mail flows.
           </p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
           {[
             {
               id: "none" as const,
               name: "Default System",
               desc: "Standard demo system stats and static fixtures.",
             },
+            ...PRESET_SCENARIOS.map((scenario) => ({
+              id: scenario.id,
+              name: scenario.name,
+              desc: scenario.description,
+            })),
             {
               id: "relay-verification" as const,
               name: "Relay Verification",
