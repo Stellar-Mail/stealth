@@ -1,0 +1,76 @@
+{
+  "categories": [
+    {
+      "id": "work",
+      "name": "Work"
+    },
+    {
+      "id": "recruiting",
+      "name": "Recruiting"
+    },
+    {
+      "id": "billing",
+      "name": "Billing"
+    }
+  ],
+  "templates": [
+    {
+      "id": "welcome-client",
+      "name": "Welcome Client",
+      "categoryId": "work",
+      "subject": "Welcome, {{firstName}}",
+      "body": "Hi {{firstName}}, welcome to {{companyName}}. I will follow up with the onboarding notes by {{dueDate}}.",
+      "variables": [
+        "firstName",
+        "companyName",
+        "dueDate"
+      ]
+    },
+    {
+      "id": "interview-follow-up",
+      "name": "Interview Follow Up",
+      "categoryId": "recruiting",
+      "subject": "Next steps for {{roleName}}",
+      "body": "Hello {{candidateName}}, thank you for discussing the {{roleName}} role. The team will share feedback by {{followUpDate}}.",
+      "variables": [
+        "candidateName",
+        "roleName",
+        "followUpDate"
+      ]
+    },
+    {
+      "id": "invoice-reminder",
+      "name": "Invoice Reminder",
+      "categoryId": "billing",
+      "subject": "Invoice {{invoiceNumber}} reminder",
+      "body": "Hi {{firstName}}, invoice {{invoiceNumber}} for {{amountDue}} is due on {{dueDate}}.",
+      "variables": [
+        "firstName",
+        "invoiceNumber",
+        "amountDue",
+        "dueDate"
+      ]
+    }
+  ],
+  "previewValues": {
+    "firstName": "Alex",
+    "companyName": "Example Studio",
+    "dueDate": "Friday",
+    "candidateName": "Jordan",
+    "roleName": "Product Designer",
+    "followUpDate": "June 30",
+    "invoiceNumber": "INV-1001",
+    "amountDue": "125 USDC"
+  },
+  "missingValueScenario": {
+    "templateId": "invoice-reminder",
+    "suppliedValues": {
+      "firstName": "Alex",
+      "invoiceNumber": "INV-1001"
+    },
+    "expectedMissingVariables": [
+      "amountDue",
+      "dueDate"
+    ]
+  }
+}
