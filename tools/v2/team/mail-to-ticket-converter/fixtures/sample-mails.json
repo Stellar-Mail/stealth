@@ -1,0 +1,105 @@
+{
+  "safeEmail": {
+    "id": "mail-001",
+    "from": "ops@example.com",
+    "subject": "Cannot access team mailbox",
+    "body": "The support team cannot access the shared mailbox after the latest role update.",
+    "receivedAt": "2026-06-22T09:30:00Z",
+    "attachments": [
+      {
+        "filename": "screenshot.png",
+        "contentType": "image/png",
+        "sizeBytes": 240000
+      }
+    ],
+    "thread": [
+      {
+        "from": "ops@example.com",
+        "body": "This started after the admin role update."
+      }
+    ]
+  },
+  "hostileEmail": {
+    "id": "mail-evil",
+    "from": "attacker@example.com",
+    "subject": "<script>alert('x')</script>Urgent password reset",
+    "body": "password=super-secret \u0000 <script>steal()</script> Please create a ticket. Authorization: Bearer abc.def.ghi",
+    "receivedAt": "2026-06-22T10:00:00Z",
+    "attachments": [
+      {
+        "filename": "../../payload.html",
+        "contentType": "text/html",
+        "sizeBytes": 15000000
+      }
+    ],
+    "thread": []
+  },
+  "largeEmail": {
+    "id": "mail-large",
+    "from": "archive@example.com",
+    "subject": "Import large archive as support ticket",
+    "body": "A very large support archive is available in an external system. Do not fetch it automatically.",
+    "receivedAt": "2026-06-22T11:00:00Z",
+    "attachments": [
+      {
+        "filename": "archive-01.zip",
+        "contentType": "application/zip",
+        "sizeBytes": 12000000
+      },
+      {
+        "filename": "archive-02.zip",
+        "contentType": "application/zip",
+        "sizeBytes": 12000000
+      },
+      {
+        "filename": "archive-03.zip",
+        "contentType": "application/zip",
+        "sizeBytes": 12000000
+      },
+      {
+        "filename": "archive-04.zip",
+        "contentType": "application/zip",
+        "sizeBytes": 12000000
+      },
+      {
+        "filename": "archive-05.zip",
+        "contentType": "application/zip",
+        "sizeBytes": 12000000
+      },
+      {
+        "filename": "archive-06.zip",
+        "contentType": "application/zip",
+        "sizeBytes": 12000000
+      },
+      {
+        "filename": "archive-07.zip",
+        "contentType": "application/zip",
+        "sizeBytes": 12000000
+      },
+      {
+        "filename": "archive-08.zip",
+        "contentType": "application/zip",
+        "sizeBytes": 12000000
+      },
+      {
+        "filename": "archive-09.zip",
+        "contentType": "application/zip",
+        "sizeBytes": 12000000
+      }
+    ],
+    "thread": [
+      {
+        "from": "archive@example.com",
+        "body": "Thread item 1"
+      },
+      {
+        "from": "archive@example.com",
+        "body": "Thread item 2"
+      },
+      {
+        "from": "archive@example.com",
+        "body": "Thread item 3"
+      }
+    ]
+  }
+}
