@@ -1,41 +1,34 @@
-# Email Ownership Tracker
-
-Track ownership history.
-
-## Scope
-
-- Release tier: $(System.Collections.Hashtable.Tier.ToUpperInvariant())
-- Audience: $(System.Collections.Hashtable.Audience)
-- Folder ownership: $dir/
-
-This is a self-contained tooling workspace. Do not wire this tool into the main app, routing, inbox architecture, wallet core, Stellar core, or design system unless a future integration issue explicitly allows it.
-
-Recommended internal structure:
-
-- components/
-- services/
-- hooks/
--     ests/
-- docs/
-  "@ | Set-Content -Path "tools/v1/team/email-ownership-tracker/README.md"
-  @"
-
 # Email Ownership Tracker Specs
 
 ## Purpose
 
-Track ownership history.
+Track who owns each shared inbox message, surface stale ownership, and expose
+safe local controls for claim, transfer, release, and review workflows.
 
-## Contributor boundary
+## Contributor Boundary
 
-All work for this tool should stay in:
+All work for this tool must stay inside:
 
-$dir/
+```text
+tools/v1/team/email-ownership-tracker/
+```
 
-## Required issue categories
+Do not wire this tool into the main app, routing, inbox architecture, wallet
+core, Stellar core, database schema, or shared design system unless a future
+integration issue explicitly allows it.
 
-- Architecture
-- Feature
-- UI and accessibility
-- Security and performance
-- Testing and documentation
+## Required Local Behavior
+
+- Provide empty, loading, error, and success UI states.
+- Expose folder-local components for the primary ownership workflow.
+- Include native keyboard support for filters and ownership actions.
+- Provide accessible names for icon-backed controls.
+- Document focus, screen-reader, and visual treatment.
+- Use synthetic fixtures only.
+
+## Recommended Internal Structure
+
+- `components/` for folder-local UI components.
+- `fixtures/` for deterministic ownership examples.
+- `tests/` for standalone contract checks.
+- `docs/` for accessibility and local visual style notes.

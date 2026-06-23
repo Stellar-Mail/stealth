@@ -1,0 +1,52 @@
+{
+  "tool": "email-ownership-tracker",
+  "records": [
+    {
+      "id": "own-unassigned-001",
+      "messageId": "msg-001",
+      "subject": "Login help",
+      "senderLabel": "customer.one@example.test",
+      "status": "unassigned",
+      "team": "Support",
+      "updatedAt": "2026-06-20T09:00:00.000Z",
+      "ageMinutes": 18,
+      "lastAction": "Message entered the shared inbox."
+    },
+    {
+      "id": "own-owned-001",
+      "messageId": "msg-002",
+      "subject": "Billing question",
+      "senderLabel": "customer.two@example.test",
+      "status": "owned",
+      "owner": "alice@example.test",
+      "team": "Support",
+      "updatedAt": "2026-06-20T10:00:00.000Z",
+      "ageMinutes": 42,
+      "lastAction": "Alice claimed the message."
+    },
+    {
+      "id": "own-stale-001",
+      "messageId": "msg-003",
+      "subject": "Contract review",
+      "senderLabel": "customer.three@example.test",
+      "status": "stale",
+      "owner": "bob@example.test",
+      "team": "Legal",
+      "updatedAt": "2026-06-19T15:00:00.000Z",
+      "ageMinutes": 960,
+      "lastAction": "Ownership has not changed since yesterday."
+    },
+    {
+      "id": "own-resolved-001",
+      "messageId": "msg-004",
+      "subject": "Resolved setup question",
+      "senderLabel": "customer.four@example.test",
+      "status": "resolved",
+      "owner": "carol@example.test",
+      "team": "Customer Success",
+      "updatedAt": "2026-06-20T11:00:00.000Z",
+      "ageMinutes": 5,
+      "lastAction": "Carol resolved the conversation."
+    }
+  ]
+}
