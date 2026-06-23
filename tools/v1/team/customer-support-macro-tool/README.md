@@ -41,6 +41,7 @@ This tool provides:
 
 ```
 customer-support-macro-tool/
+├── components/        # Folder-local React UI surface
 ├── services/
 │   ├── macro.service.ts        # Pure CRUD / search / validation functions
 │   └── storage.service.ts      # localStorage + in-memory adapters
@@ -53,7 +54,9 @@ customer-support-macro-tool/
 │   ├── storage.service.test.ts # Unit tests — persistence layer
 │   └── TEST_PLAN.md            # Full test strategy document
 ├── docs/
-│   └── SETUP.md                # Dev setup guide
+│   ├── ACCESSIBILITY.md        # Keyboard and screen-reader notes
+│   ├── SETUP.md                # Dev setup guide
+│   └── VISUAL_STYLE.md         # Local visual style notes
 ├── README.md                   ← you are here
 └── specs.md                    # Issue categories and contributor expectations
 ```
@@ -156,6 +159,9 @@ import { FIXTURE_MACROS } from "./fixtures/macros.fixture";
 ## 6. Running tests
 
 ```bash
+# Run UI contract checks without package install
+node tools/v1/team/customer-support-macro-tool/tests/ui-contract.test.mjs
+
 # Run only this tool's tests (from repo root)
 npx vitest run tools/v1/team/customer-support-macro-tool/tests
 
@@ -178,7 +184,7 @@ coverage targets, and a description of every test case.
 | localStorage only           | No sync across tabs. Tab isolation is fine for V1.                                                                                  |
 | No server-side storage      | Macros are local to the browser. Cloud sync is a V2 concern.                                                                        |
 | Hook not unit-tested        | `useMacros.ts` wraps the fully-tested service layer. Full hook tests require `@testing-library/react`, which is not in devDeps yet. |
-| No UI component             | The component layer is planned in a separate issue.                                                                                 |
+| No app-mounted UI           | The component layer is folder-local and intentionally not mounted in the main app yet.                                               |
 | No conflict resolution      | If two agents edit the same macro name, last write wins.                                                                            |
 | Max body length 4,000 chars | Enforced by `validateMacroInput`. Configurable in a future issue.                                                                   |
 

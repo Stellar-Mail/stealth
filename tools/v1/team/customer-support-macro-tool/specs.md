@@ -20,7 +20,7 @@ unless a future integration issue explicitly allows it.
 
 ```
 customer-support-macro-tool/
-├── components/   # React UI (future issue)
+├── components/   # React UI (implemented locally)
 ├── services/     # Pure business logic (implemented)
 ├── hooks/        # React hooks (implemented)
 ├── tests/        # Unit tests + test plan (implemented)
@@ -34,7 +34,7 @@ customer-support-macro-tool/
 | ------------------------- | ------------------------------------------------------------------------- |
 | Architecture              | Addressed — service layer, storage adapter pattern, hook interface        |
 | Feature                   | Addressed — CRUD, search, sort, interpolation, validation, usage tracking |
-| UI and accessibility      | Deferred — separate UI issue                                              |
+| UI and accessibility      | Addressed — folder-local components and accessibility docs                |
 | Security and performance  | Addressed — input validation, no external deps, immutable patterns        |
 | Testing and documentation | ✅ Completed — this issue                                                 |
 
