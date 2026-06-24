@@ -63,7 +63,10 @@ export function matchesRule(message: MessageContext, rule: TeamInboxRule): boole
     return false;
   }
 
-  if (conditions.projectEquals && normalize(message.project ?? "") !== normalize(conditions.projectEquals)) {
+  if (
+    conditions.projectEquals &&
+    normalize(message.project ?? "") !== normalize(conditions.projectEquals)
+  ) {
     return false;
   }
 
@@ -72,7 +75,9 @@ export function matchesRule(message: MessageContext, rule: TeamInboxRule): boole
 
 export function evaluateInboxRules(
   message: MessageContext,
-  rules: TeamInboxRule[]
+  rules: TeamInboxRule[],
 ): RuleMatchResult[] {
-  return rules.filter((rule) => matchesRule(message, rule)).map((rule) => ({ rule, actions: rule.actions }));
+  return rules
+    .filter((rule) => matchesRule(message, rule))
+    .map((rule) => ({ rule, actions: rule.actions }));
 }
