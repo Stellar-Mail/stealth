@@ -39,6 +39,21 @@
 - Date-range filtering works correctly.
 - Metrics calculation (average, median, min, max, SLA %) is tested.
 
+### Security & Performance Guards
+
+- `guards/response-time-guards.mjs` — 13 pure guard functions covering:
+  - XSS prevention via `sanitizeText()` / `sanitizeSubject()`
+  - CRLF header injection prevention via control-character filtering
+  - ID injection / path traversal prevention via `/^[a-zA-Z0-9_-]+$/`
+  - Status enum bypass via `Set.has()` allowlist
+  - Date-string validation (prevents NaN crashes)
+  - Response-time range enforcement `[0, 7776000000]`
+  - Date-range span cap of 365 days
+  - Collection-size limits (10k entries, 500 members)
+  - Config validation (delayMs clamped to 10s)
+- Guards are called at every service entry point before business logic runs.
+- All guards are synchronous, pure, and throw `RTTValidationError` with `.field`.
+
 ### Fixtures
 
 - 7 sample entries spanning 3 SLA statuses.
