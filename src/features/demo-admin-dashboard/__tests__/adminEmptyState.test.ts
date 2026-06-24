@@ -6,13 +6,14 @@ import {
 } from "../constants/adminEmptyStates";
 
 describe("admin empty state presets", () => {
-  it("covers all five required panels", () => {
+  it("covers all required panels", () => {
     expect(ADMIN_EMPTY_STATE_KINDS).toEqual([
       "messages",
       "senders",
       "attachments",
       "events",
       "validation",
+      "kpis",
     ]);
     expect(Object.keys(ADMIN_EMPTY_STATE_PRESETS).sort()).toEqual(
       [...ADMIN_EMPTY_STATE_KINDS].sort(),

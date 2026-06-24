@@ -13,7 +13,6 @@ import {
   PieChart,
   Shield,
   Target,
-  Users,
   X,
   Lock,
 } from "lucide-react";
@@ -32,8 +31,9 @@ import type {
   PresetEvent,
 } from "./types";
 import { TemplatePicker } from "./templates";
-import { PRESET_SCENARIOS } from "./fixtures/presets";
 import { AdminDataTable, type Column } from "./components/AdminDataTable";
+import { CampaignsContent } from "./CampaignsContent";
+import { PRESET_SCENARIOS } from "./fixtures/presets";
 import { CampaignMessageAssignmentPanel } from "./components/CampaignMessageAssignmentPanel";
 import { CampaignSnapshots } from "./components/CampaignSnapshots";
 import { CampaignTimelinePanel } from "./components/CampaignTimelinePanel";
@@ -182,7 +182,7 @@ const EVENTS_FAKE: PresetEvent[] = [
 
 const SECTION_ICON: Record<DashboardSection, React.ElementType> = {
   overview: LayoutDashboard,
-  accounts: Users,
+  accounts: Shield, // Changed to Shield to match usage in OverviewContent
   mail: Mail,
   attachments: Paperclip,
   events: Calendar,
@@ -269,11 +269,12 @@ function OverviewContent({
               <button
                 key={preset.id}
                 type="button"
+                aria-pressed={active}
                 onClick={() => {
                   setActivePresetId(preset.id);
                 }}
                 className={cn(
-                  "rounded-xl border p-4 text-left transition flex flex-col justify-between h-36 w-full",
+                  "glow-ring rounded-xl border p-4 text-left transition flex flex-col justify-between h-36 w-full active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500",
                   active
                     ? "border-amber-500/50 bg-amber-500/5 ring-1 ring-amber-500/20"
                     : "border-white/[0.06] bg-white/[0.02] hover:border-white/10 hover:bg-white/[0.04]",
@@ -670,10 +671,6 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
   const [activePresetId, setActivePresetId] = useState<PresetId>("none");
   const [selectedAccountAddress, setSelectedAccountAddress] = useState<string | null>(null);
   const [selectedMailSubject, setSelectedMailSubject] = useState<string | null>(null);
-  const [campaignSubView, setCampaignSubView] = useState<"assignments" | "snapshots">(
-    "assignments",
-  );
-  const [campaignDraftDataset, setCampaignDraftDataset] = useState<Draft[]>([]);
 
   const activePreset = PRESET_SCENARIOS.find((p) => p.id === activePresetId);
 
@@ -741,10 +738,12 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
               key={item.id}
               role="tab"
               aria-selected={isActive}
+              aria-controls={`${item.id}-panel`}
+              id={`${item.id}-tab`}
               aria-label={item.description}
               onClick={() => handleSectionChange(item.id)}
               className={cn(
-                "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition",
+                "glow-ring flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20",
                 isActive
                   ? "bg-white/[0.08] text-foreground"
                   : "text-muted-foreground hover:bg-white/[0.04] hover:text-foreground",
@@ -759,9 +758,10 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
 
       {/* ── Content region ── */}
       <div
+        id={`${activeSection}-panel`}
         className="flex-1 overflow-y-auto p-6"
         role="tabpanel"
-        aria-label={`${activeSection} section`}
+        aria-labelledby={`${activeSection}-tab`}
       >
         <div className="mx-auto max-w-4xl">
           {/* Section header */}
@@ -811,46 +811,7 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
 
           {activeSection === "templates" && <TemplatesContent />}
 
-          {activeSection === "campaigns" && (
-            <div className="space-y-6">
-              {/* Sub-navigation toggle */}
-              <div className="flex items-center gap-1 rounded-lg bg-white/[0.03] p-1 border border-white/[0.06] w-fit">
-                {(
-                  [
-                    { key: "assignments" as const, label: "Assignments", icon: Target },
-                    { key: "snapshots" as const, label: "Merge & Snapshots", icon: GitMerge },
-                  ] as const
-                ).map((tab) => {
-                  const TabIcon = tab.icon;
-                  const isActive = campaignSubView === tab.key;
-                  return (
-                    <button
-                      key={tab.key}
-                      type="button"
-                      onClick={() => setCampaignSubView(tab.key)}
-                      className={cn(
-                        "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition",
-                        isActive
-                          ? "bg-white/[0.08] text-foreground shadow-sm"
-                          : "text-muted-foreground hover:text-foreground hover:bg-white/[0.04]",
-                      )}
-                    >
-                      <TabIcon className="h-3.5 w-3.5" />
-                      {tab.label}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {campaignSubView === "assignments" && <CampaignMessageAssignmentPanel />}
-              {campaignSubView === "snapshots" && (
-                <CampaignSnapshots
-                  currentDataset={campaignDraftDataset}
-                  onRestoreDataset={setCampaignDraftDataset}
-                />
-              )}
-            </div>
-          )}
+          {activeSection === "campaigns" && <CampaignsContent />}
 
           {activeSection === "timeline" && <div>Timeline Content</div>}
 
@@ -860,7 +821,7 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
 
       {/* ── Slide-out Inspection Panel (Drawer for Account/Relay Metadata) ── */}
       {selectedAccount && selectedAccount.relayMetadata && (
-        <div className="absolute inset-y-0 right-0 z-40 w-96 border-l border-white/[0.08] bg-black/95 p-6 shadow-2xl backdrop-blur-xl transition-all flex flex-col justify-between">
+        <div className="absolute inset-y-0 right-0 z-40 w-96 border-l border-white/[0.08] bg-black/95 p-6 shadow-2xl backdrop-blur-xl transition-all motion-reduce:transition-none flex flex-col justify-between">
           <div className="space-y-6">
             <div className="flex items-start justify-between border-b border-white/[0.06] pb-4">
               <div>
@@ -869,8 +830,9 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
               </div>
               <button
                 type="button"
+                aria-label="Close relay node inspector"
                 onClick={() => setSelectedAccountAddress(null)}
-                className="rounded-md p-1 text-muted-foreground hover:bg-white/5 hover:text-foreground"
+                className="glow-ring rounded-md p-1 text-muted-foreground transition hover:bg-white/5 hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -931,7 +893,7 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
           <button
             type="button"
             onClick={() => setSelectedAccountAddress(null)}
-            className="w-full rounded-lg border border-white/10 bg-white/[0.02] py-2 text-xs font-semibold text-foreground hover:bg-white/5 transition"
+            className="glow-ring w-full rounded-lg border border-white/10 bg-white/[0.02] py-2 text-xs font-semibold text-foreground hover:bg-white/5 transition active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
           >
             Close Inspector
           </button>
@@ -940,7 +902,7 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
 
       {/* ── Slide-out Inspection Panel (Drawer for Cryptographic Ledger Proof) ── */}
       {selectedMail && selectedMail.proofMetadata && (
-        <div className="absolute inset-y-0 right-0 z-40 w-96 border-l border-white/[0.08] bg-black/95 p-6 shadow-2xl backdrop-blur-xl transition-all flex flex-col justify-between">
+        <div className="absolute inset-y-0 right-0 z-40 w-96 border-l border-white/[0.08] bg-black/95 p-6 shadow-2xl backdrop-blur-xl transition-all motion-reduce:transition-none flex flex-col justify-between">
           <div className="space-y-6 overflow-y-auto flex-1 pr-1">
             <div className="flex items-start justify-between border-b border-white/[0.06] pb-4">
               <div>
@@ -949,8 +911,9 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
               </div>
               <button
                 type="button"
+                aria-label="Close ledger proof inspector"
                 onClick={() => setSelectedMailSubject(null)}
-                className="rounded-md p-1 text-muted-foreground hover:bg-white/5 hover:text-foreground"
+                className="glow-ring rounded-md p-1 text-muted-foreground transition hover:bg-white/5 hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -1025,7 +988,7 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
           <button
             type="button"
             onClick={() => setSelectedMailSubject(null)}
-            className="w-full rounded-lg border border-white/10 bg-white/[0.02] py-2 text-xs font-semibold text-foreground hover:bg-white/5 transition mt-4"
+            className="glow-ring w-full rounded-lg border border-white/10 bg-white/[0.02] py-2 text-xs font-semibold text-foreground hover:bg-white/5 transition mt-4 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
           >
             Close Inspector
           </button>

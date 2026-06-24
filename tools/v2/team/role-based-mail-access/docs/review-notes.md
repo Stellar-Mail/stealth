@@ -1,40 +1,83 @@
-# Review Notes
+# Reviewer Validation Guide - Role-Based Mail Access UI
 
-## What This Contribution Adds
+This guide assists reviewers and OSS contributors in testing the Role-Based Mail Access Control Plane user interface.
 
-- A guard module (`guards/access-guards.mjs`) with validation, sanitisation, and performance-safety helpers — no UI, no service wiring, no app integration.
-- A fixture (`fixtures/sample-access-requests.json`) that encodes the valid-request contract and a named catalogue of 19 hostile inputs covering role escalation, injection, and traversal attacks.
-- A test suite (`tests/access-guards.test.mjs`) with 33 tests that validate every guard function against both normal and adversarial inputs, and verify that all fixture hostile inputs throw `AccessValidationError`.
-- A threat model (`docs/threat-model.md`) documenting trust boundaries, attack categories, and out-of-scope threats for future issues.
-- Performance notes (`docs/performance-notes.md`) covering O(n) risks, size caps, and future implementation guidance.
-- An updated `README.md` with setup, run command, file map, and known limitations.
+---
 
-## Validation Performed
+## 1. Quick Verification Checklist
+
+- [ ] Node.js guard tests pass (`node --test tools/v2/team/role-based-mail-access/tests/access-guards.test.mjs`).
+- [ ] Vitest service tests pass (`npx vitest -c tools/v2/team/role-based-mail-access/vitest.config.ts run`).
+- [ ] Prettier formatting is clean.
+- [ ] Verification form catches malformed inputs (invalid email format, special chars in threadIds).
+- [ ] Matrix checks dynamically grant or block requests.
+- [ ] Threat Scan correctly identifies and rejects all 19 hostile payloads.
+- [ ] Team size and attachment bounds limits trigger limit checks.
+
+---
+
+## 2. Running the Test Suites
+
+### Unit Guard Tests (Node.js)
 
 ```bash
 node --test tools/v2/team/role-based-mail-access/tests/access-guards.test.mjs
 ```
 
-All 33 tests pass. No install step required.
+_Expected: 32 tests passed._
 
-## Reviewer Focus
+### UI Service State Tests (Vitest)
 
-- **Guard completeness** — every hostile input category in `docs/threat-model.md` should have a corresponding entry in `fixtures/sample-access-requests.json` and a passing rejection test.
-- **Allowlist discipline** — `validateRole` and `validateAccessLevel` use `Set.has()` against hard-coded allowlists, not regex. If the allowed roles or levels change in a future issue, update `ALLOWED_ROLES` / `ALLOWED_ACCESS_LEVELS` in the guard module and the `policy` object in the fixture.
-- **Error field tagging** — every `AccessValidationError` carries a `field` property so future UI code can surface per-field error messages without parsing the message string.
-- **No production code touched** — this contribution is self-contained. No files outside `tools/v2/team/role-based-mail-access/` were modified.
+```bash
+npx vitest -c tools/v2/team/role-based-mail-access/vitest.config.ts run
+```
 
-## Intentionally Out of Scope
+_Expected: 12 tests passed._
 
-- Authentication (verifying the caller owns the declared role) — requires session/token integration
-- Audit logging of access decisions — separate compliance concern
-- Rate limiting / brute-force protection — requires middleware outside this boundary
-- UI components for role assignment — future feature issue
-- Integration with the main inbox or routing — blocked by isolation boundary
+---
 
-## Follow-Up Work
+## 3. Interactive Walkthrough Validation (UI/UX)
 
-- Add service code that loads the live role policy and wires `checkAccess` to inbox thread lookups.
-- Add authentication middleware that validates the declared role against the session token.
-- Add audit logging so every access decision is recorded for compliance review.
-- Add integration tests only after a future issue explicitly allows app wiring.
+If testing the demo harness visually in your local sandboxed app, check the following interactive paths:
+
+### A. Simulating Access Requests (Presets)
+
+1. Click the preset card `req-001` (Role: manager, Action: assign).
+2. Observe:
+   - Form fields auto-fill.
+   - A pulsing "Evaluating..." state is displayed for 800ms.
+   - An alert shows: `✓ Access Authorization Succeeded` (granted outcome).
+   - An entry is logged in the "Clearance Check Audit Trail".
+3. Click the preset card `req-003` (Role: viewer, Action: write).
+4. Observe:
+   - A pulsing "Evaluating..." state is displayed for 800ms.
+   - An alert shows: `✕ Access Authorization Denied` (since viewers cannot write).
+   - An audit entry is appended.
+
+### B. Dynamically Modifying Access Policies
+
+1. Select the preset `req-003` (viewer, write) and check that access is denied.
+2. Go to the **Access Level Control Matrix** table.
+3. Check the box under row **viewer**, column **write**.
+4. Submit the verifier form again with `viewer` and `write`.
+5. Observe:
+   - The result shifts to **Granted**, proving permission policies bind dynamically.
+
+### C. Threat Scan Verification
+
+1. Click the red button **🛡 Run Threat Scan** in the console header.
+2. Observe:
+   - A loading scanner status pulse starts, evaluating the 19 hostile vectors.
+   - An alert appears: `✓ Threat Scanning Validation Succeeded`.
+   - The text confirms that all 19 hostile vectors (e.g. CRLF header injects, null-byte hacks, path traversals) were successfully blocked and logged.
+
+### D. Size Limits Guard Check
+
+1. Locate the **Boundary Limit Verifiers** panel.
+2. Increase the "Simulated Team Size" field to `501`.
+3. Observe:
+   - The status badge shifts from "Safe" to "Limit Exceeded".
+   - A validation message appears: `team size 501 exceeds safe limit of 500`.
+4. Increase "Simulated Attachment Count" to `101`.
+5. Observe:
+   - The status badge shifts to "Limit Exceeded" with: `attachment count 101 exceeds safe limit of 100`.

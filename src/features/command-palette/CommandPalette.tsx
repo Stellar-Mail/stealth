@@ -167,7 +167,7 @@ export function CommandPalette({
                     value={q}
                     onChange={(event) => setQ(event.target.value)}
                     placeholder="Run a command or search folders, senders, proofs…"
-                    className="w-full bg-transparent text-sm placeholder:text-muted-foreground/70 focus:outline-none"
+                    className="glow-ring w-full rounded-md bg-transparent text-sm placeholder:text-muted-foreground/70 focus:outline-none"
                   />
                   {context.email && (
                     <span className="hidden max-w-[140px] truncate rounded-md border border-white/10 bg-black/30 px-1.5 py-0.5 text-[10px] text-muted-foreground sm:inline">
@@ -357,14 +357,14 @@ function ConfirmPanel({
       <div className="mt-5 flex gap-3">
         <button
           onClick={onCancel}
-          className="flex-1 rounded-xl border border-white/10 px-4 py-2.5 text-sm text-muted-foreground transition hover:bg-white/[0.04] hover:text-foreground"
+          className="glow-ring flex-1 rounded-xl border border-white/10 px-4 py-2.5 text-sm text-muted-foreground transition hover:bg-white/[0.04] hover:text-foreground active:scale-[0.98]"
         >
           Cancel
         </button>
         <button
           autoFocus
           onClick={onConfirm}
-          className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-red-500/90 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-500"
+          className="glow-ring flex flex-1 items-center justify-center gap-2 rounded-xl bg-red-500/90 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-500 active:scale-[0.98]"
         >
           {command.confirm?.confirmLabel}
           <CornerDownLeft className="h-3.5 w-3.5" />
