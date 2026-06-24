@@ -104,6 +104,24 @@ interface DateRange {
 }
 ```
 
+## Security & Performance Constraints
+
+See `docs/security-and-performance.md` for the full threat model, input
+validation spec, and performance notes.
+
+### Guard Layer
+
+All validation, sanitisation, and performance guards live in
+`guards/response-time-guards.mjs`. Every service function that accepts
+external input calls the relevant guard before touching business logic.
+
+| Guard Function               | Applied In               |
+|------------------------------|--------------------------|
+| `validateDateRange`          | `filterByDateRange`      |
+| `guardEntriesCount`          | `getEntries`, `calculateMetrics` |
+| `guardMembersCount`          | `getTeamMembers`         |
+| `validateServiceConfig`      | `createResponseTimeService` |
+
 ## Required Issue Categories
 
 - Architecture

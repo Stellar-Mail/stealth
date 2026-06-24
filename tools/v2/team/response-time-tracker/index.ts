@@ -7,6 +7,26 @@ export { DateRangePicker } from "./components/date-range-picker";
 export { useResponseTimes } from "./hooks/use-response-times";
 export { createResponseTimeService } from "./services/response-time-service";
 
+export {
+  sanitizeText,
+  sanitizeSubject,
+  validateEntryId,
+  validateThreadId,
+  validateTeamMemberId,
+  validateEmailField,
+  validateStatus,
+  validateDateString,
+  validateResponseTimeMs,
+  validateDateRange,
+  guardEntriesCount,
+  guardMembersCount,
+  validateEntryInput,
+  validateServiceConfig,
+  RTTValidationError,
+  LIMITS,
+  ALLOWED_STATUSES,
+} from "./guards/response-time-guards.mjs";
+
 export type {
   DateRange,
   FetchState,

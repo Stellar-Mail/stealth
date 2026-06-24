@@ -3,12 +3,24 @@ import type { DateRange, ResponseTimeEntry, ResponseTimeMetrics, TeamMember } fr
 import sampleEntries from "../fixtures/sample-response-times.json";
 import sampleMembers from "../fixtures/team-members.json";
 
+import {
+  validateDateRange,
+  guardEntriesCount,
+  guardMembersCount,
+  validateResponseTimeMs,
+  validateStatus,
+  validateDateString,
+  RTTValidationError,
+  LIMITS,
+} from "../guards/response-time-guards.mjs";
+
 function msToHours(ms: number): number {
   return Math.round((ms / 3600000) * 10) / 10;
 }
 
 function calculateMetrics(entries: ResponseTimeEntry[]): ResponseTimeMetrics {
   const slaMs = 14400000;
+  guardEntriesCount(entries);
 
   if (entries.length === 0) {
     return {
@@ -51,12 +63,35 @@ function calculateMetrics(entries: ResponseTimeEntry[]): ResponseTimeMetrics {
 }
 
 function filterByDateRange(entries: ResponseTimeEntry[], range: DateRange): ResponseTimeEntry[] {
-  const start = new Date(range.start).getTime();
-  const endExclusive = new Date(range.end).getTime() + 86400000;
+  const validated = validateDateRange(range);
+  const start = new Date(validated.start).getTime();
+  const endExclusive = new Date(validated.end).getTime() + 86400000;
   return entries.filter((e) => {
     const sent = new Date(e.sentAt).getTime();
     return sent >= start && sent < endExclusive;
   });
+}
+
+function validateServiceConfig(config: ResponseTimeServiceConfig): ResponseTimeServiceConfig {
+  const out: ResponseTimeServiceConfig = {};
+  out.simulateDelay = config.simulateDelay !== false;
+  if (config.delayMs !== undefined) {
+    if (typeof config.delayMs !== "number" || config.delayMs < 0) {
+      throw new RTTValidationError("delayMs must be a non-negative number", "delayMs");
+    }
+    out.delayMs = Math.min(config.delayMs, 10_000);
+  } else {
+    out.delayMs = 800;
+  }
+  if (config.failureRate !== undefined) {
+    if (typeof config.failureRate !== "number" || config.failureRate < 0 || config.failureRate > 1) {
+      throw new RTTValidationError("failureRate must be a number between 0 and 1", "failureRate");
+    }
+    out.failureRate = config.failureRate;
+  } else {
+    out.failureRate = 0;
+  }
+  return out;
 }
 
 export interface ResponseTimeServiceConfig {
@@ -66,7 +101,8 @@ export interface ResponseTimeServiceConfig {
 }
 
 export function createResponseTimeService(config: ResponseTimeServiceConfig = {}) {
-  const { simulateDelay = true, delayMs = 800, failureRate = 0 } = config;
+  const safeConfig = validateServiceConfig(config);
+  const { simulateDelay, delayMs, failureRate } = safeConfig;
 
   const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
@@ -81,12 +117,15 @@ export function createResponseTimeService(config: ResponseTimeServiceConfig = {}
     if (range) {
       entries = filterByDateRange(entries, range);
     }
+    guardEntriesCount(entries);
     return entries;
   }
 
   async function getTeamMembers(): Promise<TeamMember[]> {
     if (simulateDelay) await delay(delayMs / 2);
-    return sampleMembers as TeamMember[];
+    const members = sampleMembers as TeamMember[];
+    guardMembersCount(members);
+    return members;
   }
 
   async function getMetrics(range?: DateRange): Promise<ResponseTimeMetrics> {
@@ -94,7 +133,8 @@ export function createResponseTimeService(config: ResponseTimeServiceConfig = {}
     return calculateMetrics(entries);
   }
 
-  return { getEntries, getTeamMembers, getMetrics, calculateMetrics };
+  return { getEntries, getTeamMembers, getMetrics, calculateMetrics, validateServiceConfig };
 }
 
 export type ResponseTimeService = ReturnType<typeof createResponseTimeService>;
+export { validateServiceConfig };

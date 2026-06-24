@@ -5,16 +5,39 @@
 Run from the repository root:
 
 ```bash
+# Service logic tests
 node --test tools/v2/team/response-time-tracker/tests/response-time.test.mjs
+
+# Guard / security tests
+node --test tools/v2/team/response-time-tracker/tests/guards.test.mjs
 ```
 
-### What the automated test covers
+### What the automated tests cover
+
+#### Service tests (`response-time.test.mjs`)
 
 1. **Service: getEntries** — Returns all fixture entries, respects date filtering.
 2. **Service: getMetrics** — Computes correct average, median, min, max, SLA %.
 3. **Service: empty metrics** — All-zero metrics when no entries exist.
 4. **Service: error handling** — Throws when failure rate is 100%.
 5. **Service: date filtering** — Returns empty array when range matches nothing.
+
+#### Guard tests (`guards.test.mjs`)
+
+1. **sanitizeText** — Strips HTML tags, CR/LF/null, trims, non-string handling.
+2. **sanitizeSubject** — Strips control characters, caps at 998 chars.
+3. **validateEntryId** — Valid format, empty, non-string, oversized, traversal chars.
+4. **validateThreadId** — Valid format, empty, traversal chars.
+5. **validateTeamMemberId** — Valid format, empty.
+6. **validateEmailField** — Valid email, empty, no @, missing parts, control chars, oversized.
+7. **validateStatus** — Allowlist exact match (met/missed/breached), rejects casing/unknown.
+8. **validateDateString** — Valid ISO, malformed string, empty.
+9. **validateResponseTimeMs** — Valid range, NaN, Infinity, negative, oversized, non-number.
+10. **validateDateRange** — Valid range, non-object, end before start, exceeds 365 days, max span, malformed inner dates.
+11. **guardEntriesCount** — Under limit, over limit, non-array.
+12. **guardMembersCount** — Under limit, over limit, non-array.
+13. **validateEntryInput** — Valid full object, non-object types, invalid status, negative time, bad email, traversal ID.
+14. **fixture validation** — All fixture entries pass `validateEntryInput`.
 
 ## Manual Review Steps
 
