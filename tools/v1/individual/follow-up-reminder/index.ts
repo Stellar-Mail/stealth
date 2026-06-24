@@ -20,9 +20,13 @@ export type {
 } from "./services/followUpReminder";
 export { sampleEmails, sampleEmailList } from "./services/fixtures";
 export {
-  FollowUpReminder,
-  FollowUpReminderCard,
-  FollowUpReminderEmptyState,
-  FollowUpReminderErrorState,
-  FollowUpReminderLoadingState,
-} from "./components";
+  GUARD_LIMITS,
+  checkInputLimits,
+  checkOptionsLimits,
+  safeBuildFollowUpReminder,
+  sanitizeInput,
+  sanitizeText,
+  validateInput,
+  validateOptions,
+} from "./services/guards";
+export type { GuardErrorCode, GuardIssue, SafeBuildResult } from "./services/guards";
