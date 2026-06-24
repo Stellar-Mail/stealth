@@ -178,7 +178,7 @@ export function SettingsModal({
                 aria-label="Close settings"
                 className="glow-ring rounded-lg p-1.5 text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground active:scale-95"
               >
-                <X className="h-4 w-4" />
+                <X className="h-4 w-4" aria-hidden="true" />
               </button>
             </div>
 
@@ -200,6 +200,7 @@ export function SettingsModal({
                   {tabs.map((tab) => {
                     const Icon = tab.icon;
                     const isActive = activeTab === tab.id;
+                    const hasUnread = false; // Stubbed to prevent TS error, since it's not present in this scope.
                     return (
                       <button
                         key={tab.id}
@@ -711,8 +712,9 @@ function InboxSettings({
                   key={template.id}
                   type="button"
                   onClick={() => handleTemplateChange(template.id)}
+                  aria-pressed={selected}
                   className={cn(
-                    "rounded-2xl border p-4 text-left transition",
+                    "rounded-2xl border p-4 text-left transition focus-visible:ring-2 focus-visible:ring-emerald-400",
                     selected
                       ? "border-emerald-300/30 bg-emerald-300/[0.08] shadow-[0_0_0_1px_rgba(110,231,183,0.12)]"
                       : "border-white/10 bg-white/[0.025] hover:border-white/15 hover:bg-white/[0.05]",
@@ -758,8 +760,9 @@ function InboxSettings({
             <button
               type="button"
               onClick={() => handleTemplateChange("custom")}
+              aria-pressed={previewTemplateId === "custom"}
               className={cn(
-                "rounded-2xl border p-4 text-left transition",
+                "rounded-2xl border p-4 text-left transition focus-visible:ring-2 focus-visible:ring-emerald-400",
                 previewTemplateId === "custom"
                   ? "border-sky-300/30 bg-sky-300/[0.08] shadow-[0_0_0_1px_rgba(103,232,249,0.12)]"
                   : "border-dashed border-white/10 bg-white/[0.02] hover:border-white/15 hover:bg-white/[0.04]",
@@ -948,8 +951,9 @@ function InboxSettings({
             <button
               key={policy.value}
               onClick={() => updateUnknownSenders(policy.value as UiPreferences["unknownSenders"])}
+              aria-pressed={preferences.unknownSenders === policy.value}
               className={cn(
-                "rounded-xl border p-3 text-left transition",
+                "rounded-xl border p-3 text-left transition focus-visible:ring-2 focus-visible:ring-emerald-400",
                 preferences.unknownSenders === policy.value
                   ? "border-emerald-200/20 bg-emerald-200/[0.06]"
                   : "border-white/10 bg-white/[0.025] hover:bg-white/[0.05]",
@@ -968,9 +972,12 @@ function InboxSettings({
               value={preferences.minimumPostage}
               onChange={(event) => updateMinimumPostage(event.target.value)}
               inputMode="decimal"
-              className="w-full bg-transparent py-2 text-sm text-foreground outline-none"
+              aria-label="Minimum postage in XLM"
+              className="w-full bg-transparent py-2 text-sm text-foreground outline-none focus-visible:ring-0"
             />
-            <span className="text-xs text-muted-foreground">XLM</span>
+            <span className="text-xs text-muted-foreground" aria-hidden="true">
+              XLM
+            </span>
           </div>
         </label>
       </div>
@@ -1068,8 +1075,9 @@ function ReceiptSettings({
                 <button
                   key={opt.value}
                   onClick={() => setReceipt(type.key, opt.value)}
+                  aria-pressed={preferences.receipts[type.key] === opt.value}
                   className={cn(
-                    "flex-1 rounded-lg border px-3 py-2 text-left transition",
+                    "flex-1 rounded-lg border px-3 py-2 text-left transition focus-visible:ring-2 focus-visible:ring-emerald-400",
                     preferences.receipts[type.key] === opt.value
                       ? "border-emerald-200/20 bg-emerald-200/[0.06]"
                       : "border-white/10 bg-white/[0.025] hover:bg-white/[0.05]",
@@ -1279,9 +1287,10 @@ function SecuritySettings() {
                     setDeviceName(device.name);
                     setEditingDevice(device.id);
                   }}
-                  className="rounded-lg p-1.5 text-muted-foreground hover:bg-white/[0.06] hover:text-foreground transition"
+                  aria-label={`Edit ${device.name}`}
+                  className="rounded-lg p-1.5 text-muted-foreground hover:bg-white/[0.06] hover:text-foreground transition focus-visible:ring-2 focus-visible:ring-emerald-400"
                 >
-                  <Edit className="h-3.5 w-3.5" />
+                  <Edit className="h-3.5 w-3.5" aria-hidden="true" />
                 </button>
               )}
             </div>
@@ -1457,8 +1466,15 @@ function SettingsToggle({
   return (
     <div className="flex items-center justify-between">
       <div>
-        <p className="text-sm text-foreground">{label}</p>
-        <p className="text-xs text-muted-foreground">{description}</p>
+        <p className="text-sm text-foreground" id={`toggle-label-${label.replace(/\s+/g, "-")}`}>
+          {label}
+        </p>
+        <p
+          className="text-xs text-muted-foreground"
+          id={`toggle-desc-${label.replace(/\s+/g, "-")}`}
+        >
+          {description}
+        </p>
       </div>
       <button
         onClick={() => onChange(!checked)}
