@@ -25,7 +25,7 @@
 node --test tools/v2/team/team-calendar-extraction/tests/calendar-extraction-fixtures.test.mjs
 ```
 
-All tests pass.  No files outside `tools/v2/team/team-calendar-extraction/` were modified.
+All tests pass. No files outside `tools/v2/team/team-calendar-extraction/` were modified.
 
 ---
 
@@ -41,15 +41,15 @@ All tests pass.  No files outside `tools/v2/team/team-calendar-extraction/` were
 
 ## Isolation Guarantee
 
-| What changed | Status |
-|---|---|
+| What changed                              | Status                     |
+| ----------------------------------------- | -------------------------- |
 | `tools/v2/team/team-calendar-extraction/` | ✅ All new files, isolated |
-| Main app shell / routing | ❌ Not touched |
-| Inbox architecture | ❌ Not touched |
-| Wallet / Stellar core | ❌ Not touched |
-| Database schema | ❌ Not touched |
-| Existing design system | ❌ Not touched |
-| CI unit test suite (`tests/unit/`) | ❌ Not touched |
+| Main app shell / routing                  | ❌ Not touched             |
+| Inbox architecture                        | ❌ Not touched             |
+| Wallet / Stellar core                     | ❌ Not touched             |
+| Database schema                           | ❌ Not touched             |
+| Existing design system                    | ❌ Not touched             |
+| CI unit test suite (`tests/unit/`)        | ❌ Not touched             |
 
 ---
 

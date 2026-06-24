@@ -29,21 +29,21 @@ database schema, or existing design system unless a future integration issue exp
 
 ## States
 
-| State | Description |
-|---|---|
-| `confirmed` | Clear invitation language or ICS attachment present |
+| State       | Description                                                     |
+| ----------- | --------------------------------------------------------------- |
+| `confirmed` | Clear invitation language or ICS attachment present             |
 | `tentative` | Contains "tentative", "proposed", "pending", or "maybe" signals |
-| `cancelled` | Contains "cancelled" or "cancellation" signals |
+| `cancelled` | Contains "cancelled" or "cancellation" signals                  |
 
 ---
 
 ## Confidence Levels
 
-| Level | Criteria |
-|---|---|
-| `high` | ICS attachment present **or** two or more strong event keywords in subject/body |
-| `medium` | Exactly one strong event keyword (e.g., "meeting", "interview", "demo") |
-| `low` | No identifiable event keywords |
+| Level    | Criteria                                                                        |
+| -------- | ------------------------------------------------------------------------------- |
+| `high`   | ICS attachment present **or** two or more strong event keywords in subject/body |
+| `medium` | Exactly one strong event keyword (e.g., "meeting", "interview", "demo")         |
+| `low`    | No identifiable event keywords                                                  |
 
 ---
 
@@ -68,7 +68,7 @@ team-calendar-extraction/
 
 ## Running the Tests
 
-No build step or environment variable is required.  Run from the repository root:
+No build step or environment variable is required. Run from the repository root:
 
 ```bash
 node --test tools/v2/team/team-calendar-extraction/tests/calendar-extraction-fixtures.test.mjs
@@ -81,30 +81,30 @@ Expected result: all tests pass, zero failures.
 ## Fixtures
 
 `fixtures/sample-calendar-emails.json` contains 6 synthetic source messages and 6 expected
-events.  The dataset is intentionally small so contributors can reason about expected behaviour
+events. The dataset is intentionally small so contributors can reason about expected behaviour
 without running the main application.
 
-| Message ID | Scenario | Expected status | Confidence |
-|---|---|---|---|
-| `msg-cal-001` | Q3 planning meeting with ICS | `confirmed` | `high` |
-| `msg-cal-002` | Interview confirmation, no ICS | `confirmed` | `medium` |
-| `msg-cal-003` | Cancelled standup | `cancelled` | `medium` |
-| `msg-cal-004` | Proposed/tentative product demo | `tentative` | `medium` |
-| `msg-cal-005` | Mandatory workshop with ICS | `confirmed` | `high` |
-| `msg-cal-006` | Informal sync call | `confirmed` | `medium` |
+| Message ID    | Scenario                        | Expected status | Confidence |
+| ------------- | ------------------------------- | --------------- | ---------- |
+| `msg-cal-001` | Q3 planning meeting with ICS    | `confirmed`     | `high`     |
+| `msg-cal-002` | Interview confirmation, no ICS  | `confirmed`     | `medium`   |
+| `msg-cal-003` | Cancelled standup               | `cancelled`     | `medium`   |
+| `msg-cal-004` | Proposed/tentative product demo | `tentative`     | `medium`   |
+| `msg-cal-005` | Mandatory workshop with ICS     | `confirmed`     | `high`     |
+| `msg-cal-006` | Informal sync call              | `confirmed`     | `medium`   |
 
-All addresses use the `example.test` domain.  No real personal data is included.
+All addresses use the `example.test` domain. No real personal data is included.
 
 ---
 
 ## Documentation Map
 
-| File | Purpose |
-|---|---|
-| `specs.md` | Product contract, contributor scope, and required issue categories |
-| `types.ts` | TypeScript interfaces for CalendarEvent, SourceMessage, and related types |
-| `docs/test-plan.md` | Step-by-step manual and automated review checklist |
-| `docs/review-notes.md` | What was validated and what remains out of scope |
+| File                   | Purpose                                                                   |
+| ---------------------- | ------------------------------------------------------------------------- |
+| `specs.md`             | Product contract, contributor scope, and required issue categories        |
+| `types.ts`             | TypeScript interfaces for CalendarEvent, SourceMessage, and related types |
+| `docs/test-plan.md`    | Step-by-step manual and automated review checklist                        |
+| `docs/review-notes.md` | What was validated and what remains out of scope                          |
 
 ---
 

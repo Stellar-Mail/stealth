@@ -12,23 +12,23 @@ No additional setup, build step, or environment variable is required.
 
 ### What the test covers
 
-| Area | Description |
-|---|---|
-| Fixture contract | Tool identifier, version field, array presence, 1:1 source-to-event mapping, unique IDs |
-| Source message fields | Required strings, valid ISO receivedAt, to/cc arrays, boolean hasIcsAttachment |
-| Expected event fields | Required strings, valid ISO startAt/endAt, endAt ≥ startAt, allowed status values, allowed confidence values, attendee list shape |
-| Fixture coverage | All three status values represented; ICS-backed and non-ICS events both present |
-| `assessConfidence` | ICS attachment → high; two keywords → high; one keyword → medium; no keywords → low |
-| `deriveStatus` | Cancellation keywords → cancelled; tentative/proposed keywords → tentative; plain invite → confirmed |
-| `extractAttendees` | All to/cc addresses included; sender marked organiser; exactly one organiser; deduplication |
-| `isValidIsoDate` | Valid ISO date-times accepted; date-only strings rejected; non-strings rejected |
-| `filterEventsByDateRange` | Events within range returned; empty for out-of-range; exact boundary date inclusive |
-| `groupEventsByStatus` | Each group contains only events with its status; totals sum correctly |
-| `summariseEvents` | Counts match manual counts; high-confidence count correct; all-zero for empty input |
+| Area                      | Description                                                                                                                       |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Fixture contract          | Tool identifier, version field, array presence, 1:1 source-to-event mapping, unique IDs                                           |
+| Source message fields     | Required strings, valid ISO receivedAt, to/cc arrays, boolean hasIcsAttachment                                                    |
+| Expected event fields     | Required strings, valid ISO startAt/endAt, endAt ≥ startAt, allowed status values, allowed confidence values, attendee list shape |
+| Fixture coverage          | All three status values represented; ICS-backed and non-ICS events both present                                                   |
+| `assessConfidence`        | ICS attachment → high; two keywords → high; one keyword → medium; no keywords → low                                               |
+| `deriveStatus`            | Cancellation keywords → cancelled; tentative/proposed keywords → tentative; plain invite → confirmed                              |
+| `extractAttendees`        | All to/cc addresses included; sender marked organiser; exactly one organiser; deduplication                                       |
+| `isValidIsoDate`          | Valid ISO date-times accepted; date-only strings rejected; non-strings rejected                                                   |
+| `filterEventsByDateRange` | Events within range returned; empty for out-of-range; exact boundary date inclusive                                               |
+| `groupEventsByStatus`     | Each group contains only events with its status; totals sum correctly                                                             |
+| `summariseEvents`         | Counts match manual counts; high-confidence count correct; all-zero for empty input                                               |
 
 ### Expected output
 
-All test suites pass with zero failures.  Example output:
+All test suites pass with zero failures. Example output:
 
 ```
 ▶ sample-calendar-emails.json — fixture contract
