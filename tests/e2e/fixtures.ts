@@ -91,6 +91,28 @@ export class ApiHelper {
       data: { status: "refunded" },
     });
   }
+
+  // -----------------------------------------------------------------------
+  // Receipt helpers
+  // -----------------------------------------------------------------------
+  async createReceipt(messageId = MSG_ID, recipient = ACTOR, sender = SENDER) {
+    return this.page.request.post("/api/v1/receipts/", {
+      headers: this.headers(sender),
+      data: { messageId, recipient, sender },
+    });
+  }
+
+  async getReceipt(messageId = MSG_ID, actor = ACTOR) {
+    return this.page.request.get(`/api/v1/receipts/${messageId}`, {
+      headers: this.headers(actor),
+    });
+  }
+
+  async markReceiptRead(messageId = MSG_ID, actor = ACTOR) {
+    return this.page.request.post(`/api/v1/receipts/${messageId}/read`, {
+      headers: this.headers(actor),
+    });
+  }
 }
 
 const demoUiPreferences = {

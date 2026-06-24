@@ -55,7 +55,12 @@ export function DiagnosticsTable({ entries }: { entries: DeliveryEntry[] }) {
         <CardTitle className="text-sm font-medium text-slate-200">Delivery diagnostics</CardTitle>
       </CardHeader>
       <CardContent className="px-0 pb-0">
-        <div className="overflow-x-auto">
+        <div
+          className="overflow-x-auto"
+          tabIndex={0}
+          role="region"
+          aria-label="Delivery diagnostics table"
+        >
           <table className="w-full border-collapse text-left text-sm">
             <thead className="border-b border-[#1e2430] text-xs uppercase tracking-[0.2em] text-slate-500">
               <tr>
@@ -77,7 +82,12 @@ export function DiagnosticsTable({ entries }: { entries: DeliveryEntry[] }) {
                 entries.map((entry) => (
                   <tr key={entry.id} className="border-b border-[#1e2430]/60 last:border-0">
                     <td className="px-5 py-4 font-mono text-slate-200">
-                      {formatTimestamp(entry.timestamp)}
+                      <time
+                        dateTime={entry.timestamp}
+                        aria-label={new Date(entry.timestamp).toLocaleString()}
+                      >
+                        {formatTimestamp(entry.timestamp)}
+                      </time>
                     </td>
                     <td className="px-5 py-4 text-slate-200">{entry.recipientDomain}</td>
                     <td className="px-5 py-4">

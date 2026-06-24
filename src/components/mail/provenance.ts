@@ -156,36 +156,38 @@ export function getEmailProvenance(email: Email): ProvenanceDetails {
           : "N/A",
       },
     ],
-    rawJson: JSON.stringify(
-      {
-        identifier: rawIdentity,
-        resolved_public_key: resolvedKey,
-        protocol: senderProvider,
-        verification_status: isVerified ? "SUCCESS" : "UNRESOLVED_SIGNATURE",
-        federation_metadata: rawIdentity.includes("*")
-          ? {
-              domain: rawIdentity.split("*")[1],
-              memo_type: "id",
-              stellar_address: resolvedKey,
-            }
-          : null,
-        verification_trace: [
-          {
-            step: 1,
-            action: "Lookup domain stellar.toml",
-            status: rawIdentity.includes("*") ? "OK" : "SKIP",
-          },
-          { step: 2, action: "Resolve account alias", status: "OK", result: resolvedKey },
-          {
-            step: 3,
-            action: "Validate cryptographic envelope signature",
-            status: isVerified ? "VALID" : "MISSING",
-          },
-        ],
-      },
-      null,
-      2,
-    ),
+    get rawJson() {
+      return JSON.stringify(
+        {
+          identifier: rawIdentity,
+          resolved_public_key: resolvedKey,
+          protocol: senderProvider,
+          verification_status: isVerified ? "SUCCESS" : "UNRESOLVED_SIGNATURE",
+          federation_metadata: rawIdentity.includes("*")
+            ? {
+                domain: rawIdentity.split("*")[1],
+                memo_type: "id",
+                stellar_address: resolvedKey,
+              }
+            : null,
+          verification_trace: [
+            {
+              step: 1,
+              action: "Lookup domain stellar.toml",
+              status: rawIdentity.includes("*") ? "OK" : "SKIP",
+            },
+            { step: 2, action: "Resolve account alias", status: "OK", result: resolvedKey },
+            {
+              step: 3,
+              action: "Validate cryptographic envelope signature",
+              status: isVerified ? "VALID" : "MISSING",
+            },
+          ],
+        },
+        null,
+        2,
+      );
+    },
   };
 
   // 2. Relay Source
@@ -210,22 +212,24 @@ export function getEmailProvenance(email: Email): ProvenanceDetails {
       { label: "Operator Signature", value: relaySignature, isCode: true },
       { label: "Processing Time", value: relayTimestamp },
     ],
-    rawJson: JSON.stringify(
-      {
-        relay_node_id: relayNodeId,
-        routing_domain: relayDomain,
-        node_signing_key: relayPubkey,
-        routing_signature: relaySignature,
-        timestamp: relayTimestamp,
-        relayed_metadata: {
-          latency_ms: 242,
-          ip_anonymized: "127.0.0.1 (VPN Loopback)",
-          protocol_version: "stealth-v1.4.2",
+    get rawJson() {
+      return JSON.stringify(
+        {
+          relay_node_id: relayNodeId,
+          routing_domain: relayDomain,
+          node_signing_key: relayPubkey,
+          routing_signature: relaySignature,
+          timestamp: relayTimestamp,
+          relayed_metadata: {
+            latency_ms: 242,
+            ip_anonymized: "127.0.0.1 (VPN Loopback)",
+            protocol_version: "stealth-v1.4.2",
+          },
         },
-      },
-      null,
-      2,
-    ),
+        null,
+        2,
+      );
+    },
   };
 
   // 3. Message Hash
@@ -241,24 +245,26 @@ export function getEmailProvenance(email: Email): ProvenanceDetails {
       { label: "Plaintext Hash Digest", value: rawMessageHash, isCode: true },
       { label: "Payload Size", value: `${sizeBytes} bytes` },
     ],
-    rawJson: JSON.stringify(
-      {
-        hash_algorithm: "SHA-256",
-        digest: rawMessageHash,
-        message_properties: {
-          length: email.body.length,
-          size_bytes: sizeBytes,
-          encoding: "UTF-8",
-          has_attachments: !!email.attachments?.length,
+    get rawJson() {
+      return JSON.stringify(
+        {
+          hash_algorithm: "SHA-256",
+          digest: rawMessageHash,
+          message_properties: {
+            length: email.body.length,
+            size_bytes: sizeBytes,
+            encoding: "UTF-8",
+            has_attachments: !!email.attachments?.length,
+          },
+          verification: {
+            recalculated_hash: rawMessageHash,
+            integrity_match: true,
+          },
         },
-        verification: {
-          recalculated_hash: rawMessageHash,
-          integrity_match: true,
-        },
-      },
-      null,
-      2,
-    ),
+        null,
+        2,
+      );
+    },
   };
 
   // 4. Payload Commitment
@@ -274,22 +280,24 @@ export function getEmailProvenance(email: Email): ProvenanceDetails {
       { label: "Commitment Hash", value: rawPayloadCommitment, isCode: true },
       { label: "Ephemeral Session Key", value: ephemeralKey, isCode: true },
     ],
-    rawJson: JSON.stringify(
-      {
-        envelope_type: "X25519-XSalsa20-Poly1305",
-        commitment_hash: rawPayloadCommitment,
-        session_keys: {
-          ephemeral_public_key: ephemeralKey,
-          recipient_identity_key: resolvedKey,
+    get rawJson() {
+      return JSON.stringify(
+        {
+          envelope_type: "X25519-XSalsa20-Poly1305",
+          commitment_hash: rawPayloadCommitment,
+          session_keys: {
+            ephemeral_public_key: ephemeralKey,
+            recipient_identity_key: resolvedKey,
+          },
+          sealed_box: {
+            nonce: getDeterministicHash(seed, "nonce", 48),
+            mac: getDeterministicHash(seed, "mac", 32),
+          },
         },
-        sealed_box: {
-          nonce: getDeterministicHash(seed, "nonce", 48),
-          mac: getDeterministicHash(seed, "mac", 32),
-        },
-      },
-      null,
-      2,
-    ),
+        null,
+        2,
+      );
+    },
   };
 
   // 5. Postage Record
@@ -316,22 +324,24 @@ export function getEmailProvenance(email: Email): ProvenanceDetails {
       { label: "Stellar Tx Hash", value: postageTxHash, isCode: true },
       { label: "Escrow Contract", value: postageEscrow, isCode: true },
     ],
-    rawJson: JSON.stringify(
-      {
-        ledger_entry_type: "postage_escrow",
-        postage_fee: postageAmount,
-        currency: "XLM",
-        status: postageStatus,
-        stellar_transaction: {
-          hash: postageTxHash,
-          ledger_sequence: 61200000 + (parseInt(seed) || 123),
-          source_account: resolvedKey,
-          escrow_contract_id: postageEscrow,
+    get rawJson() {
+      return JSON.stringify(
+        {
+          ledger_entry_type: "postage_escrow",
+          postage_fee: postageAmount,
+          currency: "XLM",
+          status: postageStatus,
+          stellar_transaction: {
+            hash: postageTxHash,
+            ledger_sequence: 61200000 + (parseInt(seed) || 123),
+            source_account: resolvedKey,
+            escrow_contract_id: postageEscrow,
+          },
         },
-      },
-      null,
-      2,
-    ),
+        null,
+        2,
+      );
+    },
   };
 
   // 6. Receipt Record
@@ -350,28 +360,30 @@ export function getEmailProvenance(email: Email): ProvenanceDetails {
       { label: "Soroban Resource Cost", value: "14,820 CPU Instructions" },
       { label: "Settlement Status", value: receiptStatus },
     ],
-    rawJson: JSON.stringify(
-      {
-        smart_contract: {
-          contract_id: receiptContract,
-          standard: "SRC-14 (Delivery Receipt)",
-          function: "verify_and_settle",
+    get rawJson() {
+      return JSON.stringify(
+        {
+          smart_contract: {
+            contract_id: receiptContract,
+            standard: "SRC-14 (Delivery Receipt)",
+            function: "verify_and_settle",
+          },
+          settlement_tx: receiptTxHash,
+          event: {
+            topic: "read_proof",
+            receipt_commitment: getDeterministicHash(seed, "receipt_commitment", 64),
+            recipient_signature: `sig_${getDeterministicHash(seed, "recipient_sig", 64)}`,
+          },
+          execution_cost: {
+            cpu_instructions: 14820,
+            rent_bump_fee_xlm: "0.00002",
+          },
+          status: receiptStatus,
         },
-        settlement_tx: receiptTxHash,
-        event: {
-          topic: "read_proof",
-          receipt_commitment: getDeterministicHash(seed, "receipt_commitment", 64),
-          recipient_signature: `sig_${getDeterministicHash(seed, "recipient_sig", 64)}`,
-        },
-        execution_cost: {
-          cpu_instructions: 14820,
-          rent_bump_fee_xlm: "0.00002",
-        },
-        status: receiptStatus,
-      },
-      null,
-      2,
-    ),
+        null,
+        2,
+      );
+    },
   };
 
   const receiptTimestamp = isSmtpBridge ? "Not requested" : "2026-06-16 14:58:22 UTC";
