@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Archive,
@@ -33,6 +33,8 @@ import { SnoozeBanner } from "@/features/snooze";
 import { ProvenancePanel } from "./ProvenancePanel";
 import { EmailTrustBadges } from "./EmailTrustBadges";
 import type { Email } from "./data";
+import { ActionIcon } from "./ActionIcon";
+import { actionMotions } from "@/lib/action-motions";
 import {
   getRecipientReadiness,
   validateComposeDraft,
@@ -206,46 +208,27 @@ export function EmailView({
                   />
                 )}
                 {actions.onSnooze && (
-                  <motion.button
-                    whileTap={{ scale: 0.9 }}
-                    onClick={() => actions.onSnooze?.(email)}
-                    title="Snooze"
-                    className="inline-flex items-center gap-1.5 rounded-md p-2 text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground"
-                  >
+                  <ActionIcon type="snooze" onClick={() => actions.onSnooze?.(email)} hint="Z">
                     <Clock className="h-4 w-4" />
-                    <ShortcutKey hint="Z" />
-                  </motion.button>
+                  </ActionIcon>
                 )}
-                <motion.button
-                  whileTap={{ scale: 0.9 }}
+                <ActionIcon
+                  type="archive"
                   onClick={() => actions.onArchive?.(email)}
-                  title="Archive"
-                  className="inline-flex items-center gap-1.5 rounded-md p-2 text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground"
+                  hint="E"
                 >
                   <Archive className="h-4 w-4" />
-                  <ShortcutKey hint="E" />
-                </motion.button>
-                <motion.button
-                  whileTap={{ scale: 0.9 }}
-                  onClick={() => actions.onTrash?.(email)}
-                  title="Move to trash"
-                  className="shrink-0 rounded-md p-2 text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground"
-                >
+                </ActionIcon>
+                <ActionIcon type="generic" onClick={() => actions.onTrash?.(email)} tone="danger">
                   <Trash2 className="h-4 w-4" />
-                </motion.button>
-                <motion.button
-                  whileTap={{ scale: 0.9 }}
+                </ActionIcon>
+                <ActionIcon
+                  type={email.starred ? "star" : "unstar"}
+                  active={email.starred}
                   onClick={() => actions.onToggleStar?.(email)}
-                  title={email.starred ? "Unstar" : "Star"}
-                  className={cn(
-                    "shrink-0 rounded-md p-2 transition hover:bg-white/[0.06]",
-                    email.starred
-                      ? "text-amber-300"
-                      : "text-muted-foreground hover:text-foreground",
-                  )}
                 >
                   <Star className={cn("h-4 w-4", email.starred && "fill-current")} />
-                </motion.button>
+                </ActionIcon>
               </div>
             </div>
 
