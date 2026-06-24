@@ -1,41 +1,22 @@
-# Spam Risk Checker
-
-Risk scoring for incoming mail.
-
-## Scope
-
-- Release tier: $(System.Collections.Hashtable.Tier.ToUpperInvariant())
-- Audience: $(System.Collections.Hashtable.Audience)
-- Folder ownership: $dir/
-
-This is a self-contained tooling workspace. Do not wire this tool into the main app, routing, inbox architecture, wallet core, Stellar core, or design system unless a future integration issue explicitly allows it.
-
-Recommended internal structure:
-
-- components/
-- services/
-- hooks/
--     ests/
-- docs/
-  "@ | Set-Content -Path "tools/v1/individual/spam-risk-checker/README.md"
-  @"
-
 # Spam Risk Checker Specs
 
 ## Purpose
 
-Risk scoring for incoming mail.
+Provide a lightweight, folder-local risk scoring helper for incoming message content.
 
 ## Contributor boundary
 
-All work for this tool should stay in:
+All work for this tool should stay inside this folder so it remains isolated from the main application shell and inbox architecture.
 
-$dir/
+## Recommended structure
 
-## Required issue categories
+- services/ for the scoring logic
+- tests/ for local Vitest coverage
+- fixtures for sample inputs
+- docs for setup and review notes
 
-- Architecture
-- Feature
-- UI and accessibility
-- Security and performance
-- Testing and documentation
+## Review focus
+
+- Keep the implementation deterministic and easy to reason about
+- Prefer local fixtures over app-wide test data
+- Avoid integration work unless a dedicated follow-up issue is created
