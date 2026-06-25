@@ -159,6 +159,12 @@ export {
 export {
   TemplatePicker,
   messageTemplates,
+  TEMPLATE_SCENARIOS,
+  getTemplateScenarioForTemplate,
+  TemplateRegistry,
+  TemplateRegistryConflictError,
+  createTemplateRegistry,
+  defaultTemplateRegistry,
   searchTemplates,
   templateToDraft,
   isTemplateInserted,
@@ -168,7 +174,10 @@ export {
   type InsertResult,
   type MessageTemplate,
   type TemplateCategory,
+  type TemplateScenario,
+  type TemplateDemoFixture,
 } from "./templates";
+export { templateFixtures, buildTemplateFixtures } from "./fixtures/templateFixtures";
 
 export type { CampaignSeedExample, CampaignSeedScenario } from "./types/campaignSeed";
 export {
