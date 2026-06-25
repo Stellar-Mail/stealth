@@ -35,6 +35,7 @@ import {
   type MailFolder,
   type MailLocation,
 } from "@/components/mail/data";
+import { useMailbox } from "@/features/mailbox/useMailbox";
 import { usePreferences, useLayoutPreferences } from "@/features/preferences";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { CalendarWorkspace, useCalendar } from "@/features/calendar";
@@ -97,8 +98,16 @@ function delay(ms: number) {
 function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
   const [showSenderJourney, setShowSenderJourney] = useState(false);
   const [folder, setFolder] = useState<MailFolder>("inbox");
+  const mailbox = useMailbox();
   const [emails, setEmails] = useState<Email[]>(initialEmails);
   const [selectedId, setSelectedId] = useState<string | null>(initialEmails[0].id);
+
+  // Sync mailbox messages into local state
+  useEffect(() => {
+    if (mailbox.loadingState === "loaded") {
+      setEmails(mailbox.messages);
+    }
+  }, [mailbox.messages, mailbox.loadingState]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [bulkProgress, setBulkProgress] = useState<BulkProgressState | null>(null);
   const [bulkFailures, setBulkFailures] = useState<BulkFailure[]>([]);
