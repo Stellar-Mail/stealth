@@ -11,6 +11,9 @@ export type { SurfacePadding, SurfaceProps, SurfaceVariant } from "./components/
 export type { FeedbackViewportProps } from "./feedback/feedback-viewport";
 export type { FeedbackItem, FeedbackTone, NotifyOptions } from "./feedback/use-feedback";
 
+export { FolderEmptyState, mailFolderToEmptyType } from "./components/folder-empty-state";
+export type { FolderEmptyStateProps, FolderEmptyCopy, EmptyFolderType } from "./components/folder-empty-state";
+
 export { TrustBadge, TRUST_STATE_META } from "./components/trust-badge";
 export type {
   TrustState,

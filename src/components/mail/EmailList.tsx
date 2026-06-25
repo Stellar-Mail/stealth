@@ -12,6 +12,7 @@ import {
   type MailLocation,
 } from "./data";
 import { cn } from "@/lib/utils";
+import { FolderEmptyState, mailFolderToEmptyType } from "@/features/design-system";
 import { ConvertSenderButton } from "@/features/sender-conversion";
 import { MobileMailCard } from "./MobileMailCard";
 import { EmailTrustBadges } from "./EmailTrustBadges";
@@ -247,9 +248,17 @@ export function EmailList({
           useMobile ? "space-y-2 p-2" : "space-y-2 p-2.5 outline-none",
         )}
       >
-        {filtered.length === 0 && (
+        {filtered.length === 0 && folderEmails.length === 0 && (
+          <li>
+            <FolderEmptyState
+              folder={mailFolderToEmptyType(customFolder ?? folder)}
+              compact
+            />
+          </li>
+        )}
+        {filtered.length === 0 && folderEmails.length > 0 && (
           <li className="px-3 py-10 text-center text-xs text-muted-foreground">
-            No conversations in {folderLabel.toLowerCase()} yet.
+            No {activeTab} conversations in {folderLabel.toLowerCase()}.
           </li>
         )}
         {filtered.length > 0 && (
