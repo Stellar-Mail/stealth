@@ -19,5 +19,4 @@ export type {
   TeamMember,
   WorkloadItem,
   WorkloadMetrics,
-  WorkloadService,
 } from "./types";

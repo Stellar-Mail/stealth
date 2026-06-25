@@ -84,3 +84,29 @@ export const A11Y = {
     ARROW_DOWN: "ArrowDown",
   },
 } as const;
+
+export interface AutoBindingRule {
+  id: string;
+  type: "subject" | "sender" | "body";
+  pattern: string;
+  isActive: boolean;
+}
+
+export interface Project {
+  id: string;
+  name: string;
+  description: string;
+  stellarAddress?: string;
+  stellarAssetCode?: string;
+  members: string[];
+  rules: AutoBindingRule[];
+  createdAt: string;
+}
+
+export interface ProjectMailBinding {
+  projectId: string;
+  emailId: string;
+  boundAt: string;
+  boundBy: string;
+  bindingType: "automatic" | "manual";
+}

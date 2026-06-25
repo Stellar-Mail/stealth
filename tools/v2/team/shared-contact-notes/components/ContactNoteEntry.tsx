@@ -1,6 +1,6 @@
 import { FileText, Clock, User, Archive, Trash2, Edit2 } from "lucide-react";
-import { Button } from "../../../../../src/components/ui/button";
-import { Badge } from "../../../../../src/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import type { Note } from "../types";
 
 interface ContactNoteEntryProps {

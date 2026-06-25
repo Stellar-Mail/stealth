@@ -1,7 +1,7 @@
 import { type FormEvent, useState, useRef, useEffect, useCallback } from "react";
-import { Textarea } from "../../../src/components/ui/textarea";
-import { Button } from "../../../src/components/ui/button";
-import { Label } from "../../../src/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
@@ -9,7 +9,7 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "../../../src/components/ui/card";
+} from "@/components/ui/card";
 import { Mail, Upload } from "lucide-react";
 import { SAMPLE_EMAILS } from "../fixtures/sample-emails.fixtures";
 
