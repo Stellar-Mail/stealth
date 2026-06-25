@@ -37,7 +37,7 @@ export class RuleStorageService {
       name: ValidationService.sanitizeString(validatedInput.name, MAX_RULE_NAME_LENGTH),
       description: ValidationService.sanitizeString(
         validatedInput.description ?? "",
-        MAX_RULE_DESCRIPTION_LENGTH
+        MAX_RULE_DESCRIPTION_LENGTH,
       ),
       enabled: true,
       priority: validatedInput.priority ?? 0,
@@ -81,7 +81,7 @@ export class RuleStorageService {
         ? {
             description: ValidationService.sanitizeString(
               validatedInput.description,
-              MAX_RULE_DESCRIPTION_LENGTH
+              MAX_RULE_DESCRIPTION_LENGTH,
             ),
           }
         : {}),
