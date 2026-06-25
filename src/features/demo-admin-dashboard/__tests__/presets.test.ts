@@ -9,6 +9,7 @@ describe("demo admin dashboard presets", () => {
     expect(ids).toContain("receipt-settlement");
     expect(ids).toContain("paid-sender-request");
     expect(ids).toContain("investor-nurture");
+    expect(ids).toContain("spam-quarantine");
     expect(PRESET_SCENARIOS.length).toBeGreaterThanOrEqual(4);
   });
 
