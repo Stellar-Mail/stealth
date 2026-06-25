@@ -199,10 +199,12 @@ export async function calculateChecksum(file: File): Promise<string> {
     return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
   } catch (error) {
     // Fallback to simple checksum
-    return `${file.size}_${file.lastModified}_${file.type}`.split("").reduce((a, b) => {
-      a = (a << 5) - a + b.charCodeAt(0);
-      return a & a; // Convert to 32bit integer
-    }, 0);
+    return String(
+      `${file.size}_${file.lastModified}_${file.type}`.split("").reduce((a, b) => {
+        a = (a << 5) - a + b.charCodeAt(0);
+        return a & a; // Convert to 32bit integer
+      }, 0),
+    );
   }
 }
 

@@ -439,3 +439,12 @@ These will be handled by **separate follow-up issues** after this UI work is val
 ✅ **Ready for review and testing!**
 
 The Team Payment Approval tool is now a **complete, self-contained, accessible UI** ready for isolated validation and future integration.
+
+---
+
+## Issue Linkage Note
+
+The original delivery PR (#781) merged the full tool, but its description referenced the
+issue with `for #696` rather than a GitHub closing keyword, so the issue was not
+auto-closed or linked on merge. This follow-up records the completed linkage so that
+issue #696 is closed by a merged pull request.

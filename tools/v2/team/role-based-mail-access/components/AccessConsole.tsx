@@ -75,7 +75,7 @@ export function AccessConsole() {
         accessLevel: h.field === "accessLevel" ? (h.value as unknown as string) : "read",
       };
 
-      const res = checkAccessRequest(req, false);
+      const res = await checkAccessRequest(req, false);
       // Wait for it to append to logs synchronously
       if (!res.isAllowed && res.error) {
         blockedCount++;

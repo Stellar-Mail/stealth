@@ -1,5 +1,5 @@
 import { CheckCircle2 } from "lucide-react";
-import { Button } from "../../../src/components/ui/button";
+import { Button } from "@/components/ui/button";
 
 export interface SuccessStateProps {
   contactCount: number;

@@ -187,6 +187,11 @@ export * from "./validation";
 export * from "./validationFixtures";
 export { ValidationResultsPanel } from "./ValidationResultsPanel";
 export type { ValidationResultsPanelProps } from "./ValidationResultsPanel";
+export * from "./publishChecklist-types";
+export * from "./publishChecklist";
+export * from "./publishChecklistFixtures";
+export { PublishChecklist } from "./components/PublishChecklist";
+export type { PublishChecklistProps } from "./components/PublishChecklist";
 
 // Proof record editor, helpers, and formatting
 export { ProofRecordEditor } from "./ProofRecordEditor";
@@ -502,6 +507,24 @@ export type {
   BulkLabelMessageChange,
   BulkLabelOperation,
 } from "./bulkLabelPanel";
+
+// Bulk move panel (issue #204): move selected demo messages between mailbox folders.
+export { BulkMovePanel } from "./components/BulkMovePanel";
+export type { BulkMovePanelProps } from "./components/BulkMovePanel";
+export {
+  applyBulkFolderMove,
+  getMessageFolderLabel,
+  isValidMessageFolder,
+  previewBulkFolderMove,
+  summarizeBulkFolderMove,
+  validateBulkFolderMove,
+} from "./bulkMovePanel";
+export type {
+  BulkMoveAuditSummary,
+  BulkMoveEditResult,
+  BulkMoveMessageChange,
+  BulkMoveValidation,
+} from "./bulkMovePanel";
 
 // Draft dataset JSON import (issue #272): JSON -> safe drafts mapper with error output.
 export { mapImportedDataset, parseDatasetImport } from "./helpers/datasetImport";

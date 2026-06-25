@@ -1,6 +1,6 @@
 import type { ExtractedContact } from "../types";
-import { Badge } from "../../../src/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "../../../src/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { User, AtSign, Phone, Building2 } from "lucide-react";
 
 export interface ExtractedContactListProps {

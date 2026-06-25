@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertTriangle,
@@ -61,36 +61,43 @@ export function CommandPalette({
     setActiveIndex((index) => Math.min(index, Math.max(0, selectable.length - 1)));
   }, [selectable.length]);
 
-  const activate = (row: PaletteRow) => {
-    switch (row.type) {
-      case "command": {
-        if (!row.command.availability.enabled) return;
-        if (row.command.dangerous && row.command.confirm) {
-          setConfirming(row.command);
+  const handleActivate = useCallback(
+    (row: PaletteRow) => {
+      switch (row.type) {
+        case "command": {
+          if (!row.command.availability.enabled) return;
+          if (row.command.dangerous && row.command.confirm) {
+            setConfirming(row.command);
+            return;
+          }
+          onRunCommand(row.command.id);
+          onClose();
           return;
         }
-        onRunCommand(row.command.id);
-        onClose();
-        return;
+        case "folder":
+          onNavigate(row.folder);
+          onClose();
+          return;
+        case "sender":
+          onSelectEmail(row.email);
+          onClose();
+          return;
+        case "proof":
+          onRunCommand("inspect-proof", row.email);
+          onClose();
+          return;
+        case "setting":
+          onOpenSettings(row.setting.id);
+          onClose();
+          return;
       }
-      case "folder":
-        onNavigate(row.folder);
-        onClose();
-        return;
-      case "sender":
-        onSelectEmail(row.email);
-        onClose();
-        return;
-      case "proof":
-        onRunCommand("inspect-proof", row.email);
-        onClose();
-        return;
-      case "setting":
-        onOpenSettings(row.setting.id);
-        onClose();
-        return;
-    }
-  };
+    },
+    [onRunCommand, onClose, onNavigate, onSelectEmail, onOpenSettings],
+  );
+
+  const handleHover = useCallback((index: number) => {
+    setActiveIndex(index);
+  }, []);
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
     if (confirming) {
@@ -123,7 +130,7 @@ export function CommandPalette({
     if (event.key === "Enter") {
       event.preventDefault();
       const row = selectable[activeIndex];
-      if (row) activate(row);
+      if (row) handleActivate(row);
     }
   };
 
@@ -187,8 +194,8 @@ export function CommandPalette({
                       section={section}
                       activeIndex={activeIndex}
                       selectableIndexByKey={selectableIndexByKey}
-                      onHover={setActiveIndex}
-                      onActivate={activate}
+                      onHover={handleHover}
+                      onActivate={handleActivate}
                     />
                   ))}
                 </ul>
@@ -206,7 +213,7 @@ export function CommandPalette({
   );
 }
 
-function PaletteSectionView({
+const PaletteSectionView = memo(function PaletteSectionView({
   section,
   activeIndex,
   selectableIndexByKey,
@@ -232,25 +239,28 @@ function PaletteSectionView({
             key={row.key}
             row={row}
             active={active}
-            onHover={() => selectableIndex !== undefined && onHover(selectableIndex)}
-            onActivate={() => onActivate(row)}
+            selectableIndex={selectableIndex}
+            onHover={onHover}
+            onActivate={onActivate}
           />
         );
       })}
     </>
   );
-}
+});
 
-function RowView({
+const RowView = memo(function RowView({
   row,
   active,
+  selectableIndex,
   onHover,
   onActivate,
 }: {
   row: PaletteRow;
   active: boolean;
-  onHover: () => void;
-  onActivate: () => void;
+  selectableIndex: number | undefined;
+  onHover: (index: number) => void;
+  onActivate: (row: PaletteRow) => void;
 }) {
   const ref = useRef<HTMLButtonElement>(null);
   useEffect(() => {
@@ -264,14 +274,24 @@ function RowView({
       ? row.command.availability.help
       : undefined;
 
+  const handleMouseEnter = () => {
+    if (selectableIndex !== undefined && !active) {
+      onHover(selectableIndex);
+    }
+  };
+
+  const handleActivate = () => {
+    onActivate(row);
+  };
+
   return (
     <li>
       <button
         ref={ref}
         type="button"
         disabled={disabled}
-        onMouseMove={onHover}
-        onClick={onActivate}
+        onMouseEnter={handleMouseEnter}
+        onClick={handleActivate}
         aria-disabled={disabled}
         className={cn(
           "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition",
@@ -309,7 +329,7 @@ function RowView({
       </button>
     </li>
   );
-}
+});
 
 type RowMeta = { Icon: LucideIcon; label: string; sub?: string; hint?: string; danger?: boolean };
 

@@ -28,18 +28,14 @@ export function ShortcutOverlay({ open, onClose }: Props) {
   const shortcuts = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return SHORTCUT_DEFINITIONS;
-    return SHORTCUT_DEFINITIONS.filter((shortcut) =>
-      [
-        shortcut.label,
-        shortcut.description,
-        shortcut.keys.join(" "),
-        shortcut.keywords.join(" "),
-        shortcut.conflict ?? "",
-      ]
-        .join(" ")
-        .toLowerCase()
-        .includes(q),
-    );
+    return SHORTCUT_DEFINITIONS.filter((shortcut) => {
+      if (shortcut.label.toLowerCase().includes(q)) return true;
+      if (shortcut.description.toLowerCase().includes(q)) return true;
+      if (shortcut.keywords.some((k) => k.toLowerCase().includes(q))) return true;
+      if (shortcut.keys.some((k) => k.toLowerCase().includes(q))) return true;
+      if (shortcut.conflict?.toLowerCase().includes(q)) return true;
+      return false;
+    });
   }, [query]);
 
   return (
