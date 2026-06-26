@@ -6,6 +6,9 @@ import {
   hasConvertibleContent,
   resolveStatusMessage,
   suggestDueDate,
+  validateAndSanitizeEmail,
+  MAX_BODY_CHARS_TO_SCAN,
+  MAX_SUBJECT_LENGTH,
   DEFAULT_DUE_DATE_OFFSET_DAYS,
   HIGH_PRIORITY_DUE_DATE_OFFSET_DAYS,
   type NormalizedEmail,
@@ -21,6 +24,57 @@ function baseEmail(overrides: Partial<NormalizedEmail> = {}): NormalizedEmail {
     ...overrides,
   };
 }
+
+describe("validateAndSanitizeEmail", () => {
+  it("rejects non-object payloads", () => {
+    const result = validateAndSanitizeEmail(null);
+    expect(result.isValid).toBe(false);
+    expect(result.sanitizedEmail).toBeNull();
+  });
+
+  it("strips control characters and HTML-like tags from user-controlled text", () => {
+    const result = validateAndSanitizeEmail(
+      baseEmail({
+        subject: "<img src=x onerror=alert(1)> Follow up\u0000",
+        body: "<script>alert(1)</script> Please review",
+      }),
+    );
+
+    expect(result.isValid).toBe(true);
+    expect(result.sanitizedEmail?.subject).toBe("Follow up");
+    expect(result.sanitizedEmail?.body).not.toContain("<script>");
+    expect(buildTaskDraft(result.sanitizedEmail as NormalizedEmail).notes).toBe(
+      "alert(1) Please review",
+    );
+  });
+
+  it("bounds large fields before conversion", () => {
+    const result = validateAndSanitizeEmail(
+      baseEmail({
+        subject: "A".repeat(MAX_SUBJECT_LENGTH + 20),
+        body: "B".repeat(MAX_BODY_CHARS_TO_SCAN + 100),
+      }),
+    );
+
+    expect(result.isValid).toBe(true);
+    expect(result.sanitizedEmail?.subject).toHaveLength(MAX_SUBJECT_LENGTH);
+    expect(result.sanitizedEmail?.body).toHaveLength(MAX_BODY_CHARS_TO_SCAN);
+    expect(result.warnings).toEqual(
+      expect.arrayContaining([
+        "Body was truncated before scanning to avoid excessive work on large emails.",
+        "Subject was truncated to the local display limit.",
+      ]),
+    );
+  });
+
+  it("rejects malformed timestamps when a timestamp is supplied", () => {
+    const result = validateAndSanitizeEmail(baseEmail({ receivedAt: "tomorrow-ish" }));
+    expect(result.isValid).toBe(false);
+    expect(result.errors).toContain(
+      "Received timestamp must be a parseable ISO-8601 value when provided.",
+    );
+  });
+});
 
 describe("detectPriority", () => {
   it("returns high when an urgent keyword is present", () => {
