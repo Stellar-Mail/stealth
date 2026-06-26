@@ -1,6 +1,11 @@
 import { useState, useRef, useEffect, useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
+// src/components/mail/Topbar.tsx
+import { Menu, Search, Settings } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { MobileNavigation } from "./MobileNavigation"; // ← Import new component
+
 import {
   Bell,
   Calendar,
@@ -116,6 +121,39 @@ export function Topbar({
       window.removeEventListener("scroll", onReposition, true);
     };
   }, [filterOpen, accountOpen, helpOpen, notificationsOpen]);
+
+  export function Topbar() {
+    return (
+      <>
+        {/* Desktop Topbar - hidden on mobile */}
+        <header className="hidden md:flex h-14 border-b bg-background px-4 items-center justify-between">
+          <div className="flex items-center gap-4">
+            {/* Desktop logo / app name */}
+            <div className="font-semibold">Stealth</div>
+
+            <div className="relative w-80">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Search mail..."
+                className="w-full bg-muted pl-10 py-2 rounded-md text-sm"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon">
+              <Settings className="h-5 w-5" />
+            </Button>
+            {/* Other desktop actions */}
+          </div>
+        </header>
+
+        {/* Mobile Navigation (already handled in MobileNavigation.tsx) */}
+        <MobileNavigation />
+      </>
+    );
+  }
 
   return (
     <header className="glass relative z-50 m-0 flex h-14 items-center gap-2 overflow-hidden rounded-none border-t-0 px-3">

@@ -21,6 +21,19 @@ import { canDragEmail, DROP_TARGET_FOLDERS, getDropRejectionReason } from "./use
 
 type FilterTab = "all" | "unread" | "flagged";
 
+// src/components/mail/EmailList.tsx
+export function EmailList({ onSelect }: { onSelect: (id: string) => void }) {
+  return (
+    <div className="flex h-full flex-col overflow-hidden">
+      <div className="overflow-y-auto flex-1 px-3 py-2 space-y-1">
+        {emails.map((email) => (
+          <MobileMailCard key={email.id} email={email} onClick={() => onSelect(email.id)} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function EmailList({
   emails,
   selectedId,
