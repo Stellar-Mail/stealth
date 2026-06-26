@@ -31,7 +31,11 @@ export interface GrammarResult {
   changed: boolean;
 }
 
-export type GrammarErrorCode = "empty-body" | "unsupported-input";
+export type GrammarErrorCode =
+  | "empty-body"
+  | "unsupported-input"
+  | "input-too-large"
+  | "unsupported-dataset";
 
 export type GrammarResultStatus =
   | { status: "ok"; result: GrammarResult }
