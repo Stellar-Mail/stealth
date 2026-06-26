@@ -1,4 +1,3 @@
-﻿/* eslint-disable no-control-regex, no-useless-escape */
 /**
  * Example security tests for Team Digest Generator
  * These tests demonstrate how to validate input handling and XSS prevention

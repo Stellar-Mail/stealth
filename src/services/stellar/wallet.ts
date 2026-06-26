@@ -5,11 +5,13 @@
  * (Ed25519). If the user declines the wallet prompt we throw
  * WalletRejectedError so the caller can preserve the draft.
  */
-import {
-  isConnected as freighterIsConnected,
-  requestAccess as freighterRequestAccess,
-  signMessage as freighterSignMessage,
-} from "@stellar/freighter-api";
+import freighterApi from "@stellar/freighter-api";
+
+const {
+  isConnected: freighterIsConnected,
+  requestAccess: freighterRequestAccess,
+  signMessage: freighterSignMessage,
+} = freighterApi;
 
 export class WalletUnavailableError extends Error {
   constructor(message = "Freighter wallet was not detected") {
