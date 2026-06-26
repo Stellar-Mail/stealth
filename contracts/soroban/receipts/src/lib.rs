@@ -4,6 +4,9 @@ use soroban_sdk::{
     contract, contracterror, contractevent, contractimpl, contracttype, symbol_short, Address,
     BytesN, Env,
 };
+use stealth_lifecycle::{
+    LifecycleContractClient, ReceiptState as LifecycleReceiptState,
+};
 
 #[contract]
 pub struct ReceiptsContract;
@@ -36,6 +39,7 @@ pub struct Read {
 
 #[contracttype]
 enum DataKey {
+    Guard,
     Receipt(BytesN<32>),
 }
 
@@ -47,10 +51,28 @@ pub enum Error {
     ReceiptNotFound = 2,
     AlreadyRead = 3,
     CommitmentMismatch = 4,
+    GuardNotConfigured = 5,
+    GuardAlreadyConfigured = 6,
+    LifecycleRejected = 7,
 }
 
 #[contractimpl]
 impl ReceiptsContract {
+    pub fn configure_guard(env: Env, guard: Address) -> Result<(), Error> {
+        if env.storage().instance().has(&DataKey::Guard) {
+            return Err(Error::GuardAlreadyConfigured);
+        }
+        env.storage().instance().set(&DataKey::Guard, &guard);
+        Ok(())
+    }
+
+    pub fn guard(env: Env) -> Result<Address, Error> {
+        env.storage()
+            .instance()
+            .get(&DataKey::Guard)
+            .ok_or(Error::GuardNotConfigured)
+    }
+
     pub fn delivered(
         env: Env,
         message_id: BytesN<32>,
@@ -71,6 +93,20 @@ impl ReceiptsContract {
             }
             return Err(Error::DuplicateReceipt);
         }
+
+        Self::verify_guard(
+            &env,
+            message_id.clone(),
+            &Receipt {
+                message_id: message_id.clone(),
+                payload_hash: payload_hash.clone(),
+                protocol_version,
+                sender: sender.clone(),
+                recipient: recipient.clone(),
+                delivered_at: env.ledger().timestamp(),
+                read_at: None,
+            },
+        )?;
 
         let receipt = Receipt {
             message_id: message_id.clone(),
@@ -103,6 +139,8 @@ impl ReceiptsContract {
             return Err(Error::AlreadyRead);
         }
 
+        Self::verify_guard(&env, message_id.clone(), &receipt)?;
+
         receipt.read_at = Some(env.ledger().timestamp());
         env.storage().persistent().set(&key, &receipt);
         Read {
@@ -118,6 +156,34 @@ impl ReceiptsContract {
             .persistent()
             .get(&DataKey::Receipt(message_id))
             .ok_or(Error::ReceiptNotFound)
+    }
+
+    fn verify_guard(env: &Env, message_id: BytesN<32>, receipt: &Receipt) -> Result<(), Error> {
+        let guard = env
+            .storage()
+            .instance()
+            .get(&DataKey::Guard)
+            .ok_or(Error::GuardNotConfigured)?;
+        let lifecycle_receipt = LifecycleReceiptState {
+            message_id: receipt.message_id.clone(),
+            payload_hash: receipt.payload_hash.clone(),
+            protocol_version: receipt.protocol_version,
+            sender: receipt.sender.clone(),
+            recipient: receipt.recipient.clone(),
+            delivered_at: receipt.delivered_at,
+            read_at: receipt.read_at,
+        };
+        let result = if receipt.read_at.is_some() {
+            LifecycleContractClient::new(env, &guard).try_verify_read(&message_id, &lifecycle_receipt)
+        } else {
+            LifecycleContractClient::new(env, &guard)
+                .try_verify_delivered(&message_id, &lifecycle_receipt)
+        };
+
+        match result {
+            Ok(Ok(_)) => Ok(()),
+            Ok(Err(_)) | Err(_) => Err(Error::LifecycleRejected),
+        }
     }
 }
 

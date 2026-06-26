@@ -4,6 +4,10 @@ use soroban_sdk::{
     contract, contracterror, contractevent, contractimpl, contracttype, symbol_short, token,
     Address, BytesN, Env, MuxedAddress, Symbol,
 };
+use stealth_lifecycle::{
+    LifecycleContractClient, LifecycleTerminal, Postage as LifecyclePostage,
+    PostageStatus as LifecyclePostageStatus,
+};
 
 #[contract]
 pub struct PostageContract;
@@ -56,6 +60,7 @@ pub enum PostageStatus {
 #[contracttype]
 enum DataKey {
     Config,
+    Guard,
     Postage(BytesN<32>),
 }
 
@@ -73,6 +78,8 @@ pub enum Error {
     InvalidWindow = 8,
     NotExpired = 9,
     DisputeUnavailable = 10,
+    GuardNotConfigured = 11,
+    LifecycleRejected = 12,
 }
 
 #[contractimpl]
@@ -111,6 +118,21 @@ impl PostageContract {
             },
         );
         Ok(())
+    }
+
+    pub fn configure_guard(env: Env, guard: Address) -> Result<(), Error> {
+        if env.storage().instance().has(&DataKey::Guard) {
+            return Err(Error::AlreadyInitialized);
+        }
+        env.storage().instance().set(&DataKey::Guard, &guard);
+        Ok(())
+    }
+
+    pub fn guard(env: Env) -> Result<Address, Error> {
+        env.storage()
+            .instance()
+            .get(&DataKey::Guard)
+            .ok_or(Error::GuardNotConfigured)
     }
 
     pub fn config(env: Env) -> Result<EscrowConfig, Error> {
@@ -191,6 +213,13 @@ impl PostageContract {
             return Err(Error::NotExpired);
         }
 
+        Self::verify_guard(
+            &env,
+            message_id.clone(),
+            &postage,
+            LifecycleTerminal::Expired,
+        )?;
+
         postage.status = PostageStatus::Expired;
         env.storage().persistent().set(&key, &postage);
         Self::publish_event(&env, symbol_short!("expire"), message_id, postage.clone());
@@ -198,10 +227,24 @@ impl PostageContract {
     }
 
     pub fn settle(env: Env, message_id: BytesN<32>) -> Result<Postage, Error> {
+        let key = DataKey::Postage(message_id.clone());
+        let postage: Postage = env
+            .storage()
+            .persistent()
+            .get(&key)
+            .ok_or(Error::PostageNotFound)?;
+        Self::verify_guard(&env, message_id.clone(), &postage, LifecycleTerminal::Settled)?;
         Self::resolve(env, message_id, PostageStatus::Settled)
     }
 
     pub fn refund(env: Env, message_id: BytesN<32>) -> Result<Postage, Error> {
+        let key = DataKey::Postage(message_id.clone());
+        let postage: Postage = env
+            .storage()
+            .persistent()
+            .get(&key)
+            .ok_or(Error::PostageNotFound)?;
+        Self::verify_guard(&env, message_id.clone(), &postage, LifecycleTerminal::Refunded)?;
         Self::resolve(env, message_id, PostageStatus::Refunded)
     }
 
@@ -230,6 +273,13 @@ impl PostageContract {
             return Err(Error::DisputeUnavailable);
         }
 
+        Self::verify_guard(
+            &env,
+            message_id.clone(),
+            &postage,
+            LifecycleTerminal::Disputed,
+        )?;
+
         postage.status = PostageStatus::Disputed;
         env.storage().persistent().set(&key, &postage);
         Self::publish_event(&env, symbol_short!("dispute"), message_id, postage.clone());
@@ -253,6 +303,13 @@ impl PostageContract {
         if env.ledger().timestamp() < reclaimable_at {
             return Err(Error::NotExpired);
         }
+
+        Self::verify_guard(
+            &env,
+            message_id.clone(),
+            &postage,
+            LifecycleTerminal::Reclaimed,
+        )?;
 
         let config = Self::read_config(&env)?;
         token::TokenClient::new(&env, &config.asset).transfer(
@@ -338,6 +395,60 @@ impl PostageContract {
             .ok_or(Error::NotInitialized)
     }
 
+    fn verify_guard(
+        env: &Env,
+        message_id: BytesN<32>,
+        postage: &Postage,
+        terminal: LifecycleTerminal,
+    ) -> Result<(), Error> {
+        let guard = env
+            .storage()
+            .instance()
+            .get(&DataKey::Guard)
+            .ok_or(Error::GuardNotConfigured)?;
+        let lifecycle_postage = Self::to_lifecycle_postage(postage);
+        let result = match terminal {
+            LifecycleTerminal::Settled => LifecycleContractClient::new(env, &guard)
+                .try_verify_settle(&message_id, &lifecycle_postage),
+            LifecycleTerminal::Refunded => LifecycleContractClient::new(env, &guard)
+                .try_verify_refund(&message_id, &lifecycle_postage),
+            LifecycleTerminal::Disputed => LifecycleContractClient::new(env, &guard)
+                .try_verify_dispute(&message_id, &lifecycle_postage),
+            LifecycleTerminal::Expired => LifecycleContractClient::new(env, &guard)
+                .try_verify_expire(&message_id, &lifecycle_postage),
+            LifecycleTerminal::Reclaimed => LifecycleContractClient::new(env, &guard)
+                .try_verify_reclaim(&message_id, &lifecycle_postage),
+            LifecycleTerminal::Open
+            | LifecycleTerminal::Delivered
+            | LifecycleTerminal::Read => return Err(Error::LifecycleRejected),
+        };
+
+        match result {
+            Ok(Ok(_)) => Ok(()),
+            Ok(Err(_)) | Err(_) => Err(Error::LifecycleRejected),
+        }
+    }
+
+    fn to_lifecycle_postage(postage: &Postage) -> LifecyclePostage {
+        LifecyclePostage {
+            sender: postage.sender.clone(),
+            recipient: postage.recipient.clone(),
+            amount: postage.amount,
+            fee: postage.fee,
+            created_at: postage.created_at,
+            expires_at: postage.expires_at,
+            dispute_until: postage.dispute_until,
+            status: match postage.status {
+                PostageStatus::Pending => LifecyclePostageStatus::Pending,
+                PostageStatus::Expired => LifecyclePostageStatus::Expired,
+                PostageStatus::Disputed => LifecyclePostageStatus::Disputed,
+                PostageStatus::Settled => LifecyclePostageStatus::Settled,
+                PostageStatus::Refunded => LifecyclePostageStatus::Refunded,
+                PostageStatus::Reclaimed => LifecyclePostageStatus::Reclaimed,
+            },
+        }
+    }
+
     fn checked_deadline(timestamp: u64, seconds: u64) -> Result<u64, Error> {
         timestamp.checked_add(seconds).ok_or(Error::InvalidWindow)
     }
@@ -397,9 +508,18 @@ mod test {
         testutils::{Address as _, AuthorizedFunction, AuthorizedInvocation, Events, Ledger},
         Event, IntoVal,
     };
+    use stealth_lifecycle::LifecycleContractClient;
+    use stealth_lifecycle::LifecycleContract;
+    use stealth_policies::{PoliciesContractClient, MailboxPolicy};
+    use stealth_policies::PoliciesContract;
 
     fn id(env: &Env, byte: u8) -> BytesN<32> {
         BytesN::from_array(env, &[byte; 32])
+    }
+
+    fn bind_lifecycle(env: &Env, lifecycle: &Address, message_id: BytesN<32>, sender: &Address, recipient: &Address, amount: i128) {
+        let lifecycle_client = LifecycleContractClient::new(env, lifecycle);
+        lifecycle_client.bind(&message_id, &recipient.clone(), &sender.clone(), &recipient.clone(), &amount, &false, &false);
     }
 
     struct Setup {
@@ -409,6 +529,9 @@ mod test {
         sender: Address,
         recipient: Address,
         treasury: Address,
+        lifecycle: Address,
+        policies: Address,
+        receipts: Address,
     }
 
     fn setup(fee_bps: u32) -> Setup {
@@ -420,14 +543,39 @@ mod test {
         let token_contract = env.register_stellar_asset_contract_v2(admin.clone());
         let asset = token_contract.address();
         let token_admin = token::StellarAssetClient::new(&env, &asset);
-        let contract_id = env.register(PostageContract, ());
-        let client = PostageContractClient::new(&env, &contract_id);
+
+        // Set up policies contract with permissive default policy
+        let policies = env.register(PoliciesContract, ());
+        let policies_client = PoliciesContractClient::new(&env, &policies);
+
         let sender = Address::generate(&env);
         let recipient = Address::generate(&env);
         let treasury = Address::generate(&env);
 
+        policies_client.set_policy(
+            &recipient.clone(),
+            &MailboxPolicy {
+                allow_unknown: true,
+                require_verified: false,
+                require_receipt: false,
+                minimum_postage: 0,
+            },
+        );
+
+        // Set up lifecycle contract - will be initialized after postage contract is created
+        let receipts = Address::generate(&env);
+        let lifecycle = env.register(LifecycleContract, ());
+        let lifecycle_client = LifecycleContractClient::new(&env, &lifecycle);
+
+        let contract_id = env.register(PostageContract, ());
+        let client = PostageContractClient::new(&env, &contract_id);
+
         token_admin.mint(&sender, &1_000);
         client.initialize(&asset, &treasury, &100, &fee_bps, &86_400, &3_600);
+        client.configure_guard(&lifecycle);
+
+        // Now initialize lifecycle with the actual postage contract address
+        lifecycle_client.initialize(&policies, &contract_id, &receipts);
 
         Setup {
             env,
@@ -436,6 +584,9 @@ mod test {
             sender,
             recipient,
             treasury,
+            lifecycle,
+            policies,
+            receipts,
         }
     }
 
@@ -453,6 +604,8 @@ mod test {
         assert_eq!(postage.fee, 10);
         assert_eq!(token.balance(&setup.sender), 800);
         assert_eq!(token.balance(&setup.contract_id), 200);
+
+        bind_lifecycle(&setup.env, &setup.lifecycle, id(&setup.env, 1), &setup.sender, &setup.recipient, 200);
 
         let settled = client.settle(&id(&setup.env, 1));
         assert_eq!(settled.status, PostageStatus::Settled);
@@ -475,6 +628,7 @@ mod test {
         let token = token::TokenClient::new(&setup.env, &setup.asset);
 
         client.submit(&id(&setup.env, 1), &setup.sender, &setup.recipient, &200);
+        bind_lifecycle(&setup.env, &setup.lifecycle, id(&setup.env, 1), &setup.sender, &setup.recipient, 200);
         let refunded = client.refund(&id(&setup.env, 1));
 
         assert_eq!(refunded.status, PostageStatus::Refunded);
@@ -491,6 +645,7 @@ mod test {
         let client = PostageContractClient::new(&setup.env, &setup.contract_id);
 
         client.submit(&id(&setup.env, 1), &setup.sender, &setup.recipient, &125);
+        bind_lifecycle(&setup.env, &setup.lifecycle, id(&setup.env, 1), &setup.sender, &setup.recipient, 125);
         client.settle(&id(&setup.env, 1));
         client.refund(&id(&setup.env, 1));
     }
@@ -567,6 +722,7 @@ mod test {
             )]
         );
 
+        bind_lifecycle(&setup.env, &setup.lifecycle, id(&setup.env, 1), &setup.sender, &setup.recipient, 125);
         client.settle(&id(&setup.env, 1));
         assert_eq!(
             setup.env.auths(),
@@ -604,15 +760,35 @@ mod test {
         let token_contract = env.register_stellar_asset_contract_v2(admin.clone());
         let asset = token_contract.address();
         let token_admin = token::StellarAssetClient::new(&env, &asset);
-        let contract_id = env.register(PostageContract, ());
-        let client = PostageContractClient::new(&env, &contract_id);
+
+        // Set up policies and lifecycle
+        let policies = env.register(PoliciesContract, ());
+        let policies_client = PoliciesContractClient::new(&env, &policies);
         let sender = Address::generate(&env);
         let recipient = Address::generate(&env);
+        policies_client.set_policy(
+            &recipient.clone(),
+            &MailboxPolicy {
+                allow_unknown: true,
+                require_verified: false,
+                require_receipt: false,
+                minimum_postage: 0,
+            },
+        );
+        let receipts = Address::generate(&env);
+        let lifecycle = env.register(LifecycleContract, ());
+        let lifecycle_client = LifecycleContractClient::new(&env, &lifecycle);
+
+        let contract_id = env.register(PostageContract, ());
+        let client = PostageContractClient::new(&env, &contract_id);
         let treasury = Address::generate(&env);
         let token = token::TokenClient::new(&env, &asset);
 
         token_admin.mint(&sender, &1_000);
         client.initialize(&asset, &treasury, &100, &0, &30, &0);
+        client.configure_guard(&lifecycle);
+        lifecycle_client.initialize(&policies, &contract_id, &receipts);
+
         let postage = client.submit(&id(&env, 1), &sender, &recipient, &125);
         assert_eq!(postage.expires_at, 40);
         assert_eq!(postage.dispute_until, 40);
@@ -632,6 +808,8 @@ mod test {
 
         let postage = client.submit(&id(&setup.env, 1), &setup.sender, &setup.recipient, &125);
         assert_eq!(postage.expires_at, 86_442);
+
+        bind_lifecycle(&setup.env, &setup.lifecycle, id(&setup.env, 1), &setup.sender, &setup.recipient, 125);
 
         setup.env.ledger().set_timestamp(86_441);
         assert_eq!(
@@ -653,6 +831,7 @@ mod test {
         let token = token::TokenClient::new(&setup.env, &setup.asset);
 
         client.submit(&id(&setup.env, 1), &setup.sender, &setup.recipient, &125);
+        bind_lifecycle(&setup.env, &setup.lifecycle, id(&setup.env, 1), &setup.sender, &setup.recipient, 125);
         setup.env.ledger().set_timestamp(86_442);
         let disputed = client.dispute(&id(&setup.env, 1));
         assert_eq!(disputed.status, PostageStatus::Disputed);
@@ -678,6 +857,10 @@ mod test {
 
         client.submit(&id(&setup.env, 1), &setup.sender, &setup.recipient, &125);
         client.submit(&id(&setup.env, 2), &setup.sender, &setup.recipient, &125);
+
+        bind_lifecycle(&setup.env, &setup.lifecycle, id(&setup.env, 1), &setup.sender, &setup.recipient, 125);
+        bind_lifecycle(&setup.env, &setup.lifecycle, id(&setup.env, 2), &setup.sender, &setup.recipient, 125);
+
         setup.env.ledger().set_timestamp(86_442);
         client.expire(&id(&setup.env, 1));
         let disputed = client.dispute(&id(&setup.env, 1));
@@ -697,6 +880,8 @@ mod test {
         let message_id = id(&setup.env, 1);
 
         client.submit(&message_id, &setup.sender, &setup.recipient, &125);
+        bind_lifecycle(&setup.env, &setup.lifecycle, message_id.clone(), &setup.sender, &setup.recipient, 125);
+
         setup.env.ledger().set_timestamp(90_042);
 
         let expired = client.expire(&message_id);

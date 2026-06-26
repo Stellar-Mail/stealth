@@ -1,5 +1,5 @@
 [package]
-name = "stealth-receipts"
+name = "stealth-lifecycle"
 version = "0.1.0"
 edition = "2021"
 publish = false
@@ -10,7 +10,7 @@ doctest = false
 
 [dependencies]
 soroban-sdk = { workspace = true }
-stealth-lifecycle = { path = "../lifecycle" }
+stealth-policies = { path = "../policies" }
 
 [dev-dependencies]
 soroban-sdk = { workspace = true, features = ["testutils"] }
