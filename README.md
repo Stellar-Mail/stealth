@@ -2,70 +2,11 @@
 
 > **Mail on your terms.**
 
-**Stealth is a private, programmable mail protocol built on Stellar. You decide
-who can reach you, what unknown senders must pay, and which delivery claims
-deserve trust.**
+**Stealth is a private, programmable mail protocol built on Stellar. You decide who can reach you, what unknown senders must pay, and which delivery claims deserve trust.**
 
-Email was built to let anyone enter your inbox. That openness became spam,
-phishing, impersonation, and a security model held together by domain
-reputation. Stealth starts with a different rule:
+Email was built to let anyone enter your inbox. That openness became spam, phishing, impersonation, and a security model held together by domain reputation. Stealth starts with a different rule: trusted people should reach you immediately. Everyone else must satisfy the policy you choose: verified identity, minimum postage, explicit approval, or no access at all.
 
-## Find a good one and add.
-
-Trusted people should reach you immediately. Everyone else must satisfy the
-policy you choose: verified identity, minimum postage, explicit approval, or
-no access at all.
-
-## Why Stealth
-
-- **You control access.** Allow, block, or price unknown senders before they
-  enter your inbox.
-- **Identity is verifiable.** Stellar accounts and federation addresses give
-  senders cryptographic identities instead of display-name trust.
-- **Spam has a cost.** Optional micro-postage changes bulk abuse from free to
-  economically measurable.
-- **Delivery has proof.** Message hashes, postage proofs, and receipts create
-  an auditable delivery trail without putting private message bodies on-chain.
-- **Messages stay private.** Encrypted payloads remain off-chain; Stellar
-  anchors identity, policy, payment references, and proof.
-- **Safety stays fast.** Stellar's low-cost settlement keeps verification and
-  anti-spam controls practical for everyday mail.
-
-## The Protocol
-
-1. **Resolve identity** - a human-readable Stealth address resolves to a
-   Stellar account and encryption keys.
-2. **Check mailbox policy** - the sender learns whether they are trusted,
-   blocked, required to verify, or required to attach postage.
-3. **Encrypt and send** - the client encrypts the message body and submits it
-   to a relay or recipient-controlled storage.
-4. **Anchor the proof** - the message hash and payment reference are recorded
-   without exposing message content.
-5. **Verify before rendering** - the client checks sender identity, payload
-   integrity, postage, and delivery state.
-
-## What Is Here
-
-This repository contains the Stealth reference client and the first Soroban
-contract foundations:
-
-- **Policies contract** - mailbox defaults plus per-sender allow and block
-  rules.
-- **Postage contract** - authenticated, non-custodial postage proofs with
-  settle and refund states.
-- **Receipts contract** - sender-authorized delivery records and
-  recipient-authorized read receipts.
-- **Reference mail client** - inbox controls, sender requests, proof status,
-  encrypted compose options, postage, scheduling, OTP detection, and calendar
-  mail.
-
-```text
-contracts/soroban/   Soroban contracts and unit tests
-protocol/            Message, relay, schema, and federation specifications
-src/                 React and TanStack Start reference client
-docs/                Product, architecture, security, and deployment notes
-tests/               Contract, unit, and end-to-end test workspaces
-```
+---
 
 ## Run The Client
 
@@ -80,43 +21,40 @@ Create a production build:
 npm run build
 ```
 
-## Work On The Contracts
+---
 
-The contracts use `soroban-sdk` v26 and live in a Rust workspace.
+## Design Tokens
 
-```bash
-cd contracts/soroban
-cargo test --workspace
-```
+The Stealth client features a design-token system that decouples theme colors from individual components. Design tokens are defined as CSS custom properties under `src/styles/theme.css` and mapped to Tailwind semantic classes via `src/styles/tailwind.css`.
 
-Building and deploying Wasm additionally requires the Stellar CLI and the
-standard Rust/Wasm toolchain described in the
-[Stellar smart contract documentation](https://developers.stellar.org/docs/build/smart-contracts/getting-started/hello-world).
+### Naming Convention
 
-## Current Status
+Design tokens are prefixed with `--theme-` and follow a strict categorical hierarchy:
+`--theme-<category>-<variant>[-subvariant]`
 
-**Pre-alpha. Not audited. Not ready for production funds or sensitive mail.**
+Categories:
+- **`bg`**: Backgrounds, panels, and surfaces (e.g. `--theme-bg-base`, `--theme-bg-surface-card`)
+- **`text`**: Typography colors (e.g. `--theme-text-foreground`, `--theme-text-muted`)
+- **`border`**: Borders and dividers (e.g. `--theme-border-base`)
+- **`brand`**: Brand-related accent colors (e.g. `--theme-brand-base`, `--theme-brand-hover`)
+- **`success` / `warning` / `destructive`**: Status indicator colors
 
-The contract layer currently records authenticated protocol state. Postage is
-non-custodial: relays must verify the referenced Stellar payment. Token
-escrow, expiry, disputes, key recovery, relay federation, and a complete
-security audit remain roadmap work.
+### Usage in Components
 
-## Principles
+Avoid branching on `theme === 'dark'` or embedding hex colors directly. Instead, use semantic Tailwind utility classes corresponding to these tokens:
 
-- Message content never belongs on a public ledger.
-- Mailbox owners define their own access policy.
-- Security claims must be independently verifiable.
-- Protocol economics must not punish legitimate conversation.
-- Interoperability matters; migration from ordinary email should be gradual.
+| Tailwind Class | Token Reference | Purpose |
+|---|---|---|
+| `bg-background` | `--theme-bg-base` | Main application background |
+| `bg-surface-card` | `--theme-bg-surface-card` | Container, card, and modal surfaces |
+| `bg-surface-muted` | `--theme-bg-surface-muted` | Muted accents and background fills |
+| `text-foreground` | `--theme-text-foreground` | Primary text |
+| `text-muted-foreground` | `--theme-text-muted` | Secondary or helper text |
+| `border-border` | `--theme-border-base` | Borders, lines, and dividers |
+| `text-brand` / `bg-brand` | `--theme-brand-base` | Brand theme colors / calls-to-action |
 
-## Contributing
+### Applying Themes
 
-Use the GitHub issue tracker for scoped work. Contract changes should include
-authorization tests and documented state transitions. Client changes should
-preserve keyboard access, responsive behavior, and clear proof states.
-
-## License
-
-A project license has not yet been selected. Do not assume production or
-redistribution rights until one is added.
+Themes are controlled dynamically via the `ThemeProvider` (`src/shared/contexts/ThemeContext.tsx`). Flipped states are propagated to the DOM by:
+1. Injecting the `.dark` class to the `document.documentElement` element to activate dark-mode variant utilities.
+2. Setting the `data-theme` attribute (`data-theme="light" | "dark"`) to support styling rules scoped by attribute selectors.

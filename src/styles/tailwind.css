@@ -1,0 +1,36 @@
+/* src/styles/tailwind.css */
+
+@theme {
+  /* Surface and backgrounds */
+  --color-background: var(--theme-bg-base);
+  --color-surface: var(--theme-bg-surface);
+  --color-surface-card: var(--theme-bg-surface-card);
+  --color-surface-muted: var(--theme-bg-surface-muted);
+  --color-background-overlay: var(--theme-bg-overlay);
+
+  /* Typography */
+  --color-foreground: var(--theme-text-foreground);
+  --color-muted-foreground: var(--theme-text-muted);
+  --color-text-inverse: var(--theme-text-inverse);
+
+  /* Borders */
+  --color-border: var(--theme-border-base);
+
+  /* Brand */
+  --color-brand: var(--theme-brand-base);
+  --color-brand-hover: var(--theme-brand-hover);
+  --color-brand-foreground: var(--theme-brand-foreground);
+
+  /* Status Colors */
+  --color-success: var(--theme-success-base);
+  --color-success-bg: var(--theme-success-bg);
+  --color-success-border: var(--theme-success-border);
+
+  --color-warning: var(--theme-warning-base);
+  --color-warning-bg: var(--theme-warning-bg);
+  --color-warning-border: var(--theme-warning-border);
+
+  --color-destructive: var(--theme-destructive-base);
+  --color-destructive-bg: var(--theme-destructive-bg);
+  --color-destructive-border: var(--theme-destructive-border);
+}

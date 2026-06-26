@@ -1,0 +1,77 @@
+/* src/styles/theme.css */
+
+/*
+ * Design Tokens System
+ * 
+ * Naming convention:
+ * --theme-<category>-<variant>
+ * 
+ * Categories:
+ * - bg: Background and surface colors
+ * - text: Foreground and text colors
+ * - border: Border and divider colors
+ * - brand: Brand identity colors
+ * - success/warning/destructive: Status colors
+ */
+
+:root {
+  /* Light Theme Variant */
+  --theme-bg-base: #fbfaf9;
+  --theme-bg-surface: #f4f2ef;
+  --theme-bg-surface-card: #ffffff;
+  --theme-bg-surface-muted: #e8e4de;
+  --theme-bg-overlay: rgba(26, 22, 18, 0.4);
+
+  --theme-text-foreground: #1a1612;
+  --theme-text-muted: #8b7d6b;
+  --theme-text-inverse: #ffffff;
+
+  --theme-border-base: #e5e0d8;
+
+  --theme-brand-base: #c9983a;
+  --theme-brand-hover: #b3852d;
+  --theme-brand-foreground: #ffffff;
+
+  --theme-success-base: #16a34a;
+  --theme-success-bg: #f0fdf4;
+  --theme-success-border: #bbf7d0;
+
+  --theme-warning-base: #d97706;
+  --theme-warning-bg: #fffbeb;
+  --theme-warning-border: #fde68a;
+
+  --theme-destructive-base: #dc2626;
+  --theme-destructive-bg: #fef2f2;
+  --theme-destructive-border: #fca5a5;
+}
+
+.dark, [data-theme="dark"] {
+  /* Dark Theme Variant */
+  --theme-bg-base: #0a0908;
+  --theme-bg-surface: #12100e;
+  --theme-bg-surface-card: #1a1612;
+  --theme-bg-surface-muted: #27221d;
+  --theme-bg-overlay: rgba(10, 9, 8, 0.7);
+
+  --theme-text-foreground: #f5f3f0;
+  --theme-text-muted: #8b7d6b;
+  --theme-text-inverse: #0a0908;
+
+  --theme-border-base: #27221d;
+
+  --theme-brand-base: #c9983a;
+  --theme-brand-hover: #e5b353;
+  --theme-brand-foreground: #0a0908;
+
+  --theme-success-base: #22c55e;
+  --theme-success-bg: #052e16;
+  --theme-success-border: #14532d;
+
+  --theme-warning-base: #f59e0b;
+  --theme-warning-bg: #451a03;
+  --theme-warning-border: #78350f;
+
+  --theme-destructive-base: #ef4444;
+  --theme-destructive-bg: #450a0a;
+  --theme-destructive-border: #7f1d1d;
+}

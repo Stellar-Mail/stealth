@@ -3,6 +3,8 @@
 @import "./features/design-system/styles/surfaces.css";
 @import "./features/design-system/styles/tokens.css";
 @import "tailwindcss" source(none);
+@import "./styles/theme.css";
+@import "./styles/tailwind.css";
 @source "../src";
 @import "tw-animate-css";
 
