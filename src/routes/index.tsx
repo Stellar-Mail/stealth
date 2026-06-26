@@ -70,6 +70,7 @@ import { useIsMobile } from "@/lib/use-media-query";
 import { RequestsTriageBoard } from "@/features/requests";
 import { ProofInspectorModal } from "@/features/proof-inspector";
 import { SenderJourney } from "@/features/sender-journey";
+import { AccountSwitcherProvider } from "@/features/account-switcher";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -643,6 +644,7 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
 
   return (
     <MotionConfig transition={isTest ? { duration: 0 } : undefined}>
+      <AccountSwitcherProvider>
       <div
         data-hydrated={layoutHydrated && prefHydrated}
         className="relative h-screen overflow-hidden text-foreground"
@@ -963,6 +965,7 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
           senderAddress={selected?.email}
         />
       </div>
+      </AccountSwitcherProvider>
     </MotionConfig>
   );
 }
