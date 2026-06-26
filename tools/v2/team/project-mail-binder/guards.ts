@@ -15,8 +15,7 @@ export const MAX_PROJECTS_PER_BIND = 10;
 export const MAX_SUBJECT_PREVIEW_LEN = 200;
 
 /** UUID v4 format regex. */
-const UUID_REGEX =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 /** Strip HTML tags and null bytes from a string before storage. */
 const HTML_TAG_REGEX = /<[^>]*>/g;
@@ -50,7 +49,7 @@ export function isValidUUID(value: unknown): value is string {
 function requireUUID(value: unknown, fieldName: string): string {
   if (!isValidUUID(value)) {
     throw new BindValidationError(
-      `Invalid ${fieldName}: expected a UUID v4, received ${JSON.stringify(value)}`
+      `Invalid ${fieldName}: expected a UUID v4, received ${JSON.stringify(value)}`,
     );
   }
   return (value as string).trim();
@@ -67,11 +66,7 @@ function requireUUID(value: unknown, fieldName: string): string {
  */
 export function sanitizeDisplayString(raw: unknown, maxLen = MAX_SUBJECT_PREVIEW_LEN): string {
   if (typeof raw !== "string") return "";
-  return raw
-    .replace(HTML_TAG_REGEX, "")
-    .replace(NULL_BYTE_REGEX, "")
-    .trim()
-    .slice(0, maxLen);
+  return raw.replace(HTML_TAG_REGEX, "").replace(NULL_BYTE_REGEX, "").trim().slice(0, maxLen);
 }
 
 // ---------------------------------------------------------------------------
@@ -113,7 +108,7 @@ export function sanitizeBindRequest(raw: unknown): BindRequest {
 
   if (input.threadIds.length > MAX_THREADS_PER_BIND) {
     throw new BindValidationError(
-      `Cannot bind more than ${MAX_THREADS_PER_BIND} threads in a single request.`
+      `Cannot bind more than ${MAX_THREADS_PER_BIND} threads in a single request.`,
     );
   }
 
@@ -129,9 +124,7 @@ export function sanitizeBindRequest(raw: unknown): BindRequest {
   }
 
   const subjectPreview =
-    "subjectPreview" in input
-      ? sanitizeDisplayString(input.subjectPreview)
-      : undefined;
+    "subjectPreview" in input ? sanitizeDisplayString(input.subjectPreview) : undefined;
 
   return { projectId, threadIds, subjectPreview };
 }
@@ -167,7 +160,7 @@ export function sanitizeReverseBindRequest(raw: unknown): {
 
   if (input.projectIds.length > MAX_PROJECTS_PER_BIND) {
     throw new BindValidationError(
-      `Cannot bind a thread to more than ${MAX_PROJECTS_PER_BIND} projects in a single request.`
+      `Cannot bind a thread to more than ${MAX_PROJECTS_PER_BIND} projects in a single request.`,
     );
   }
 
