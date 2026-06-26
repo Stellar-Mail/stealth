@@ -4,9 +4,12 @@ export const GUARD_LIMITS = {
   maxSubjectChars: 200,
   maxBodyChars: 50000,
   maxBodyWords: 8000,
+  maxAttachments: 0,
+  maxTeamMembers: 1,
+  maxHistoryItems: 0,
 } as const;
 
-export type GuardErrorCode = "input-too-large";
+export type GuardErrorCode = "input-too-large" | "unsupported-input" | "unsupported-dataset";
 
 export interface GuardIssue {
   code: GuardErrorCode;
@@ -19,7 +22,16 @@ export type SafeGrammarResult =
 
 // eslint-disable-next-line no-control-regex
 const CONTROL_CHARACTERS = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g;
-const INVISIBLE_CHARACTERS = /[\u200b-\u200d\u2060\ufeff]/g;
+const INVISIBLE_CHARACTERS = /[\u200b-\u200f\u202a-\u202e\u2060-\u2069\ufeff]/g;
+
+const DATASET_FIELDS = [
+  "attachments",
+  "teamMembers",
+  "members",
+  "messageHistory",
+  "threadHistory",
+  "history",
+] as const;
 
 export function sanitizeText(text: string): string {
   return text.normalize("NFC").replace(CONTROL_CHARACTERS, "").replace(INVISIBLE_CHARACTERS, "");
@@ -39,6 +51,58 @@ function hasInspectableFields(value: unknown): value is GrammarInput {
   }
   const candidate = value as Record<string, unknown>;
   return typeof candidate.bodyText === "string";
+}
+
+function fieldLength(value: unknown): number {
+  return Array.isArray(value) ? value.length : 0;
+}
+
+function hasNonArrayDataset(input: Record<string, unknown>, fields: readonly string[]): boolean {
+  return fields.some(
+    (field) => field in input && input[field] !== undefined && !Array.isArray(input[field]),
+  );
+}
+
+export function checkDatasetLimits(input: Record<string, unknown>): GuardIssue | null {
+  if (hasNonArrayDataset(input, DATASET_FIELDS)) {
+    return {
+      code: "unsupported-dataset",
+      message: "Dataset fields must be omitted or passed as arrays within Grammar Cleaner limits.",
+    };
+  }
+
+  if (fieldLength(input.attachments) > GUARD_LIMITS.maxAttachments) {
+    return {
+      code: "unsupported-dataset",
+      message: "Attachments are not accepted by the Grammar Cleaner.",
+    };
+  }
+
+  const teamMemberCount = Math.max(fieldLength(input.teamMembers), fieldLength(input.members));
+  if (teamMemberCount > GUARD_LIMITS.maxTeamMembers) {
+    return {
+      code: "unsupported-dataset",
+      message: "Team member datasets are outside the individual Grammar Cleaner scope.",
+    };
+  }
+
+  const historyCount = Math.max(
+    fieldLength(input.messageHistory),
+    fieldLength(input.threadHistory),
+    fieldLength(input.history),
+  );
+  if (historyCount > GUARD_LIMITS.maxHistoryItems) {
+    return {
+      code: "unsupported-dataset",
+      message: "Message history datasets are not processed by the Grammar Cleaner.",
+    };
+  }
+
+  return null;
+}
+
+function hasDatasetFields(input: Record<string, unknown>): boolean {
+  return DATASET_FIELDS.some((field) => field in input);
 }
 
 export function sanitizeGrammarInput(input: GrammarInput): GrammarInput {
@@ -72,9 +136,30 @@ export function checkInputLimits(input: GrammarInput): GuardIssue | null {
 }
 
 export function safeCleanGrammar(input: unknown): SafeGrammarResult {
-  if (!hasInspectableFields(input)) {
-    return cleanGrammar(input as GrammarInput);
+  if (typeof input !== "object" || input === null) {
+    return {
+      status: "error",
+      code: "unsupported-input",
+      message: "Expected input with a bodyText string field.",
+    };
   }
+
+  const candidate = input as Record<string, unknown>;
+  if (hasDatasetFields(candidate)) {
+    const datasetIssue = checkDatasetLimits(candidate);
+    if (datasetIssue) {
+      return { status: "error", code: datasetIssue.code, message: datasetIssue.message };
+    }
+  }
+
+  if (!hasInspectableFields(input)) {
+    return {
+      status: "error",
+      code: "unsupported-input",
+      message: "Expected input with a bodyText string field.",
+    };
+  }
+
   const sanitized = sanitizeGrammarInput(input);
   const issue = checkInputLimits(sanitized);
   if (issue) {

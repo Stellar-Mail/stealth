@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import type { GrammarInput, GrammarState } from "../services/grammarCleaner";
-import { cleanGrammar, toReadyState } from "../services/grammarCleaner";
+import { toReadyState } from "../services/grammarCleaner";
+import { safeCleanGrammar } from "../services/guards";
 
 export interface UseGrammarCleanerReturn {
   state: GrammarState;
@@ -18,7 +19,7 @@ export function useGrammarCleaner(): UseGrammarCleanerReturn {
     (input?: GrammarInput) => {
       setState({ status: "loading" });
       const payload = input ?? { bodyText: value };
-      const result = cleanGrammar(payload);
+      const result = safeCleanGrammar(payload);
       setState(toReadyState(result));
     },
     [value],
