@@ -1,0 +1,127 @@
+.etr-card {
+  background: #fffdf8;
+  border: 1px solid #eadfc8;
+  border-radius: 16px;
+  color: #2f2a21;
+  display: grid;
+  gap: 1rem;
+  max-width: 48rem;
+  padding: 1.25rem;
+}
+
+.etr-card :focus-visible {
+  outline: 3px solid #7c3aed;
+  outline-offset: 3px;
+}
+
+.etr-header h2,
+.etr-card h2,
+.etr-card h3 {
+  margin: 0;
+}
+
+.etr-header p,
+.etr-card p {
+  margin: 0.25rem 0 0;
+}
+
+.etr-eyebrow {
+  color: #8a5a12;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.etr-field {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.etr-field label,
+.etr-tone-group legend {
+  font-weight: 700;
+}
+
+.etr-field input,
+.etr-field textarea {
+  border: 1px solid #cdbf9f;
+  border-radius: 10px;
+  font: inherit;
+  line-height: 1.5;
+  padding: 0.75rem;
+}
+
+.etr-tone-group {
+  border: 1px solid #eadfc8;
+  border-radius: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0.9rem;
+}
+
+.etr-tone-option {
+  align-items: center;
+  display: inline-flex;
+  gap: 0.4rem;
+}
+
+.etr-card button {
+  background: #4c1d95;
+  border: 1px solid #4c1d95;
+  border-radius: 999px;
+  color: #ffffff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  padding: 0.7rem 1rem;
+  width: fit-content;
+}
+
+.etr-card button:disabled,
+.etr-card button[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.etr-hint,
+.etr-meta,
+.etr-card [aria-label="Preserved key points"] {
+  color: #5f5749;
+  font-size: 0.9rem;
+}
+
+.etr-output {
+  background: #f7f1ff;
+  border: 1px solid #d9c5ff;
+  border-radius: 12px;
+  line-height: 1.6;
+  padding: 1rem;
+  white-space: pre-wrap;
+}
+
+.etr-meta {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.etr-meta div {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.etr-meta dt {
+  font-weight: 700;
+}
+
+.etr-meta dd {
+  margin: 0;
+}
+
+.etr-error {
+  border-color: #f5b5ad;
+  background: #fff7f5;
+}
