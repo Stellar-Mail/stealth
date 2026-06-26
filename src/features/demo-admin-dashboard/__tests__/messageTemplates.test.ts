@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { messageTemplates } from "../templates/messageTemplates";
+import { getTemplateScenarioForTemplate, TEMPLATE_SCENARIOS } from "../templates/templateScenarios";
 
 describe("messageTemplates fixtures", () => {
   it("have unique ids", () => {
@@ -33,5 +34,14 @@ describe("messageTemplates fixtures", () => {
     expect(internalTemplate?.category).toBe("internal");
     expect(internalTemplate?.tags).toContain("campaign");
     expect(internalTemplate?.subject.toLowerCase()).toContain("internal");
+  });
+
+  it("maps every template to a deterministic scenario", () => {
+    for (const template of messageTemplates) {
+      const scenario = getTemplateScenarioForTemplate(template.id);
+      expect(scenario).toBeDefined();
+      expect(scenario?.templateIds).toContain(template.id);
+      expect(TEMPLATE_SCENARIOS.some((entry) => entry.id === scenario?.id)).toBe(true);
+    }
   });
 });

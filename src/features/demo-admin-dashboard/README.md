@@ -26,11 +26,12 @@ Important local files and folders:
 - `fixtures/`, `fixtures.ts`, `validationFixtures.ts`, and `scenarioRegistry.ts` provide deterministic fake records and demo scenarios.
 - `types.ts`, `validation-types.ts`, and nested `types/` files define the dashboard data contracts.
 - `validation.ts` summarizes, sorts, groups, navigates, and validates demo campaign issues.
-- `templates/` maps safe message templates into draft data without mutating production mail.
+- `templates/` maps safe message templates into draft data, plus the reusable
+  registry and scenario metadata used by deterministic demo fixtures.
 - `snooze/` provides deterministic reminder metadata for demo messages.
 - `persistence/`, `reducers/`, `selectors/`, `helpers/`, and `utils/` hold local state, normalization, and review helpers.
 - `docs/`, `AdminSearchBar.md`, `ValidationResultsPanel.md`, and `CONTRIBUTING.md` document existing local behavior and review conventions.
-- `__tests__/` and sibling `*.test.ts` files cover fixture determinism, validation, migrations, message generation, and dashboard helpers.
+- `__tests__/` and sibling `*.test.ts` files cover fixture determinism, validation, migrations, message generation, template libraries, and dashboard helpers.
 
 Key data contracts a reviewer should understand:
 
@@ -154,8 +155,16 @@ the demo inbox.
 - `templates/messageTemplates.ts` — deterministic, fake template fixtures. Recipients use
   the reserved `*stealth.demo` handle or `example.com`/`example.org` domains so nothing
   references real people or live addresses (a test enforces this).
+- `templates/templateScenarios.ts` — scenario metadata that groups templates into
+  reviewer-friendly flows for docs, tests, and fixture generation.
+- `templates/templateRegistry.ts` — a deterministic in-memory registry with duplicate-id
+  checks and scenario-aware lookup helpers.
+- `fixtures/templateFixtures.ts` — deterministic fixture rows derived from templates and
+  scenarios for tests and documentation examples.
 - `templates/templateSearch.ts` — `searchTemplates(templates, query)` is a ranked,
   case-insensitive substring search (name/subject hits outrank tag/description hits).
+- `docs/TEMPLATE_LIBRARY.md` — registry, scenario metadata, and deterministic fixture docs
+  for the reusable demo message template library.
 - `docs/CAMPAIGN_COPY_RULES.md` — campaign copy rules for demo messages and internal
   notes, with examples and a review checklist.
 - `templates/templateToDraft.ts` — pure, non-mutating helpers that map a template onto the

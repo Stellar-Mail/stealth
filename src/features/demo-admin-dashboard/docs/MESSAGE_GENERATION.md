@@ -2,6 +2,9 @@
 
 This utility provides a safe, deterministic way to generate realistic demo email messages for populating the Demo Admin Dashboard UI. It is fully isolated and operates on in-memory data, ensuring it is safe for a public repository.
 
+For reusable template content and scenario metadata, see
+[`TEMPLATE_LIBRARY.md`](./TEMPLATE_LIBRARY.md).
+
 ## Architecture
 
 - **`generateDemoMessages` (`messageGeneration.ts`):** The core function that takes a set of options, including sender personas, message templates, and a seed string, to produce an array of `PresetMail` objects.

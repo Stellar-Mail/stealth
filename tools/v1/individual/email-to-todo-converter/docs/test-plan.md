@@ -1,16 +1,16 @@
 # Email-to-Todo Converter Test Plan
 
-This folder does not contain executable tool code yet, so this document is the
-folder-local test plan for issue #358. Convert each scenario below into unit or
-component tests when the feature implementation lands.
+This folder contains the isolated tool implementation for issue #358, and this
+document is the folder-local test plan for the converter behavior. Use the
+scenarios below as the acceptance contract for unit or component tests.
 
 ## Unit Scenarios
 
 1. Extracts a task title from a direct request in the email subject.
 2. Extracts a task title from the first actionable sentence in the body when the
    subject is generic.
-3. Preserves the source sender, source subject, and received timestamp in task
-   metadata.
+3. Preserves the source email id, sender, subject, and received timestamp in
+   task metadata when available.
 4. Converts explicit due dates such as "by Friday" or "due 2026-07-01" into a
    normalized due-date field.
 5. Leaves the due-date field empty when the email has no deadline.
