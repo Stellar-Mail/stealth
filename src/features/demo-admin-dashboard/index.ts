@@ -32,6 +32,21 @@ export type {
   SenderRecoveryRequestStatus,
 } from "./fixtures/senderRecoveryCampaignPreset";
 
+export {
+  blockedPersonas,
+  getQuarantineSummary,
+  quarantineEntries,
+  spamQuarantineScenarioPreset,
+  spamWarningLabels,
+  validateSpamQuarantinePreset,
+} from "./fixtures/spamQuarantinePreset";
+export type {
+  BlockedPersona,
+  QuarantineEntry,
+  QuarantineEntryStatus,
+  SpamWarningLabel,
+} from "./fixtures/spamQuarantinePreset";
+
 export type {
   AdminDashboardBreakpoint,
   AdminDashboardLayoutCheck,

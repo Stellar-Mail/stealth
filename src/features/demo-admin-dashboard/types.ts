@@ -77,7 +77,8 @@ export type PresetId =
   | "encrypted-provenance"
   | "encrypted-payload"
   | "conference-pass"
-  | "investor-nurture";
+  | "investor-nurture"
+  | "spam-quarantine";
 
 export interface PresetAccount {
   name: string;
