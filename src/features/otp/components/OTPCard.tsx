@@ -5,15 +5,27 @@ import "../styles.css";
 
 export function OTPCard({ code }: { code: string }) {
   const [copied, setCopied] = useState(false);
-  const digits = code.split("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
+
+  const safeCode = (code ?? "").trim();
+  const digits = safeCode ? safeCode.split("") : [];
+  const isEmpty = digits.length === 0;
 
   const handleCopy = async () => {
+    if (!safeCode) return;
+
+    setError(false);
+    setLoading(true);
     try {
-      await navigator.clipboard.writeText(code);
+      await navigator.clipboard?.writeText(safeCode);
       setCopied(true);
       setTimeout(() => setCopied(false), 1600);
     } catch {
-      /* noop */
+      setError(true);
+      setCopied(false);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -48,10 +60,23 @@ export function OTPCard({ code }: { code: string }) {
         </div>
 
         <button
+          type="button"
           onClick={handleCopy}
+          disabled={isEmpty || loading}
           className="otp-copy-btn mt-5 flex h-10 w-full items-center justify-center gap-2 rounded-full text-[13px] font-semibold"
+
         >
-          {copied ? (
+          {loading ? (
+            <>
+              <span className="otp-copy-spinner inline-block h-4 w-4" aria-hidden="true" />
+              Copying…
+            </>
+          ) : error ? (
+            <>
+              <span className="otp-copy-error-dot inline-block h-2.5 w-2.5 rounded-full" aria-hidden="true" />
+              Copy failed
+            </>
+          ) : copied ? (
             <>
               <Check className="h-4 w-4" /> Copied
             </>
@@ -62,8 +87,18 @@ export function OTPCard({ code }: { code: string }) {
           )}
         </button>
 
-        <p className="mt-3 text-center text-[10.5px] text-muted-foreground/80">
-          Code auto-detected from message body
+        <p
+          className={
+            "mt-3 text-center text-[10.5px] " +
+            (error ? "otp-copy-error-text" : "text-muted-foreground/80")
+          }
+          aria-live="polite"
+        >
+          {error
+            ? "Couldn’t access your clipboard. Please copy manually."
+            : isEmpty
+              ? "No code found in this message."
+              : "Code auto-detected from message body"}
         </p>
       </motion.div>
     </div>
@@ -137,3 +172,4 @@ function PadlockIcon() {
     </svg>
   );
 }
+
