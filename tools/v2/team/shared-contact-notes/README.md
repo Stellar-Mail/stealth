@@ -25,8 +25,12 @@ design system from this issue.
 - `service.ts` implements the `NoteService` class with in-memory CRUD.
 - `index.ts` is the public barrel export.
 - `fixtures/notes.ts` provides deterministic seed data for tests.
-- `tests/service.test.ts` contains executable Vitest unit tests.
+- `tests/service.test.ts` contains executable Vitest unit tests (service layer).
+- `tests/components.test.tsx` contains Vitest component tests (UI layer).
 - `tests/test-plan.md` documents all test scenarios.
+- `hooks/useContactNotes.ts` provides React hook wrapping NoteService with `useReducer`.
+- `components/` contains all React UI components with empty, loading, error, and success states.
+- `docs/ACCESSIBILITY.md` documents WCAG 2.1 AA compliance measures.
 - `docs/review-notes.md` gives maintainers a review checklist.
 
 ## Intended Behavior
@@ -48,5 +52,5 @@ immediately but still return Promises, allowing UI layers to always await.
 - No persistence — the store is an in-memory `Map`.
 - No authentication or authorization — any caller can perform any operation.
 - No integration with the main application's contact models.
-- No React components, hooks, or UI.
+- The UI layer is self-contained and not wired into the main app shell or routing.
 - No real-time or multi-user collaboration support.

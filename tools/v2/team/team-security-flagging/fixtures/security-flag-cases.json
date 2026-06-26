@@ -1,0 +1,188 @@
+{
+  "emailSignals": [
+    {
+      "id": "phishing-credential-harvest",
+      "emailId": "email-001",
+      "threadId": "thread-001",
+      "subject": "Urgent: Verify your account to avoid suspension",
+      "senderEmail": "support@secure-login-verify.example.net",
+      "senderName": "Account Security Team",
+      "snippet": "Your account has been flagged for unusual sign-in activity. Verify your account now.",
+      "bodyPreview": "Click here to confirm your credentials before your account is suspended. This is urgent action required.",
+      "hasAttachments": false,
+      "links": ["http://secure-login-verify.example.net/confirm"],
+      "expectedClassification": {
+        "severity": "critical",
+        "category": "phishing",
+        "confidence": "high"
+      }
+    },
+    {
+      "id": "malware-invoice-attachment",
+      "emailId": "email-002",
+      "threadId": "thread-002",
+      "subject": "Invoice payment receipt attached",
+      "senderEmail": "billing@invoices-dept.example.xyz",
+      "senderName": "Billing Department",
+      "snippet": "Please open the attachment and enable macros to view the invoice.",
+      "bodyPreview": "Your invoice is ready. Download the file and run the installer to generate your receipt.",
+      "hasAttachments": true,
+      "links": [],
+      "expectedClassification": {
+        "severity": "critical",
+        "category": "malware",
+        "confidence": "high"
+      }
+    },
+    {
+      "id": "social-engineering-wire-transfer",
+      "emailId": "email-003",
+      "threadId": "thread-003",
+      "subject": "Urgent CEO request wire transfer needed",
+      "senderEmail": "ceo-urgent@company-hq.example.biz",
+      "senderName": "CEO Office",
+      "snippet": "This is an urgent request from your CEO. Please wire transfer funds immediately.",
+      "bodyPreview": "Keep this confidential. Do not share this with anyone. Do not reply to this email.",
+      "hasAttachments": false,
+      "links": [],
+      "expectedClassification": {
+        "severity": "critical",
+        "category": "social-engineering",
+        "confidence": "high"
+      }
+    },
+    {
+      "id": "credential-reset-otp",
+      "emailId": "email-004",
+      "threadId": "thread-004",
+      "subject": "Your one-time authentication code",
+      "senderEmail": "security@example-mail.com",
+      "senderName": "Security Team",
+      "snippet": "Use this one-time code to verify your identity. If you did not request this, reset your password.",
+      "bodyPreview": "Sign in to confirm your account. Two-factor authentication is required for this action.",
+      "hasAttachments": false,
+      "links": [],
+      "expectedClassification": {
+        "severity": "critical",
+        "category": "credential-theft",
+        "confidence": "high"
+      }
+    },
+    {
+      "id": "data-breach-notification",
+      "emailId": "email-005",
+      "threadId": "thread-005",
+      "subject": "Security incident: unauthorized access to your account",
+      "senderEmail": "alerts@platform.example.com",
+      "senderName": "Platform Security",
+      "snippet": "We detected a security incident affecting your account. Your data was exposed.",
+      "bodyPreview": "A breach notification has been issued. Your account was compromised. Please take immediate action.",
+      "hasAttachments": false,
+      "links": [],
+      "expectedClassification": {
+        "severity": "critical",
+        "category": "data-breach",
+        "confidence": "high"
+      }
+    },
+    {
+      "id": "low-risk-newsletter",
+      "emailId": "email-006",
+      "threadId": "thread-006",
+      "subject": "June product digest tips and updates",
+      "senderEmail": "updates@example-product.com",
+      "senderName": "Product Team",
+      "snippet": "This months digest covers improvements and events. Unsubscribe at any time.",
+      "bodyPreview": "Read the full newsletter on our website. No action needed from you.",
+      "hasAttachments": false,
+      "links": ["https://example-product.com/newsletter/june"],
+      "expectedClassification": {
+        "severity": "low",
+        "category": "other",
+        "confidence": "low"
+      }
+    }
+  ],
+  "validFlags": [
+    {
+      "id": "flag-001",
+      "emailId": "email-001",
+      "threadId": "thread-001",
+      "reportedBy": "alice@company.example",
+      "severity": "critical",
+      "category": "phishing",
+      "subject": "Urgent: Verify your account to avoid suspension",
+      "senderEmail": "support@secure-login-verify.example.net",
+      "description": "Email impersonates account security team and requests credential verification via external link.",
+      "evidence": [
+        "External domain does not match any known vendor",
+        "Contains urgent language designed to pressure immediate action",
+        "Link destination differs from displayed text"
+      ]
+    },
+    {
+      "id": "flag-002",
+      "emailId": "email-002",
+      "threadId": "thread-002",
+      "reportedBy": "bob@company.example",
+      "severity": "high",
+      "category": "malware",
+      "subject": "Invoice payment receipt attached",
+      "senderEmail": "billing@invoices-dept.example.xyz",
+      "description": "Attachment with macro-enabled document sent from unknown billing domain.",
+      "evidence": [
+        "Sender domain is not in approved vendor list",
+        "Email requests enabling macros which is a common malware delivery vector"
+      ]
+    },
+    {
+      "id": "flag-003",
+      "emailId": "email-003",
+      "threadId": "thread-003",
+      "reportedBy": "carol@company.example",
+      "severity": "critical",
+      "category": "social-engineering",
+      "subject": "Urgent CEO request wire transfer needed",
+      "senderEmail": "ceo-urgent@company-hq.example.biz",
+      "description": "Classic BEC attempt posing as executive requesting urgent wire transfer.",
+      "evidence": [
+        "CEO email domain does not match corporate domain",
+        "Requests secrecy and bypasses normal approval channels",
+        "No prior email thread with this sender"
+      ]
+    }
+  ],
+  "hostileInputs": [
+    { "field": "email", "value": "@missinglocal.test", "reason": "missing local part" },
+    { "field": "email", "value": "nodomain", "reason": "missing @ sign" },
+    { "field": "email", "value": "", "reason": "empty string" },
+    { "field": "email", "value": "user@", "reason": "missing domain" },
+    { "field": "threadId", "value": "../../../etc/passwd", "reason": "path traversal" },
+    { "field": "threadId", "value": "<script>alert(1)</script>", "reason": "XSS attempt" },
+    { "field": "threadId", "value": "thread 001", "reason": "space in ID" },
+    { "field": "severity", "value": "CRITICAL", "reason": "wrong case" },
+    { "field": "severity", "value": "extreme", "reason": "unknown value" },
+    { "field": "category", "value": "hacking", "reason": "unknown value" },
+    { "field": "status", "value": "pending", "reason": "unknown status value" },
+    { "field": "status", "value": "RESOLVED", "reason": "wrong case" }
+  ],
+  "statusTransitions": {
+    "valid": [
+      { "from": "new", "to": "under-review" },
+      { "from": "new", "to": "dismissed" },
+      { "from": "under-review", "to": "escalated" },
+      { "from": "under-review", "to": "resolved" },
+      { "from": "under-review", "to": "dismissed" },
+      { "from": "escalated", "to": "resolved" },
+      { "from": "escalated", "to": "dismissed" }
+    ],
+    "invalid": [
+      { "from": "new", "to": "escalated", "reason": "cannot skip under-review" },
+      { "from": "new", "to": "resolved", "reason": "cannot skip under-review" },
+      { "from": "resolved", "to": "new", "reason": "terminal status" },
+      { "from": "resolved", "to": "under-review", "reason": "terminal status" },
+      { "from": "dismissed", "to": "new", "reason": "terminal status" },
+      { "from": "dismissed", "to": "escalated", "reason": "terminal status" }
+    ]
+  }
+}

@@ -30,13 +30,9 @@ export const SETTINGS_SHORTCUTS: SettingShortcut[] = [
 ];
 
 /**
- * Subsequence fuzzy score. Returns -1 when the query isn't a subsequence of the
- * text; otherwise higher is better. Rewards consecutive runs and word-boundary
- * hits, and lightly prefers shorter targets. O(text length) — cheap enough to
- * run across the whole dataset on every keystroke.
+ * Internal helper for subsequencing a query that has already been trimmed and lowercased.
  */
-export function fuzzyScore(query: string, text: string): number {
-  const q = query.trim().toLowerCase();
+function fuzzyScorePrepared(q: string, text: string): number {
   if (!q) return 0;
   const t = text.toLowerCase();
 
@@ -64,6 +60,16 @@ export function fuzzyScore(query: string, text: string): number {
   return score - t.length * 0.01;
 }
 
+/**
+ * Subsequence fuzzy score. Returns -1 when the query isn't a subsequence of the
+ * text; otherwise higher is better. Rewards consecutive runs and word-boundary
+ * hits, and lightly prefers shorter targets. O(text length) — cheap enough to
+ * run across the whole dataset on every keystroke.
+ */
+export function fuzzyScore(query: string, text: string): number {
+  return fuzzyScorePrepared(query.trim().toLowerCase(), text);
+}
+
 export type PaletteRow =
   | { type: "command"; key: string; command: ResolvedCommand }
   | { type: "folder"; key: string; folder: MailFolder; label: string }
@@ -78,13 +84,41 @@ const GROUP_ORDER: CommandGroupId[] = ["protocol", "delivery", "message", "navig
 
 const PER_GROUP_CAP = 5;
 
+let lastEmails: Email[] | null = null;
+let cachedUniqueSenders: Email[] = [];
+
+function getUniqueSenders(emails: Email[]): Email[] {
+  if (emails === lastEmails) return cachedUniqueSenders;
+  const seen = new Set<string>();
+  const unique = emails.filter((email) => {
+    if (seen.has(email.email)) return false;
+    seen.add(email.email);
+    return true;
+  });
+  lastEmails = emails;
+  cachedUniqueSenders = unique;
+  return unique;
+}
+
 function rank<T>(items: T[], query: string, toText: (item: T) => string, cap: number): T[] {
-  return items
-    .map((item) => ({ item, score: fuzzyScore(query, toText(item)) }))
-    .filter((entry) => entry.score >= 0)
-    .sort((a, b) => b.score - a.score)
-    .slice(0, cap)
-    .map((entry) => entry.item);
+  const q = query.trim().toLowerCase();
+  const scored: { item: T; score: number }[] = [];
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i];
+    const score = fuzzyScorePrepared(q, toText(item));
+    if (score >= 0) {
+      scored.push({ item, score });
+    }
+  }
+
+  scored.sort((a, b) => b.score - a.score);
+
+  const result: T[] = [];
+  const limit = Math.min(scored.length, cap);
+  for (let i = 0; i < limit; i++) {
+    result.push(scored[i].item);
+  }
+  return result;
 }
 
 /**
@@ -152,12 +186,7 @@ export function buildPaletteModel(
   }
 
   // Unique senders, keyed by address.
-  const seen = new Set<string>();
-  const uniqueSenders = emails.filter((email) => {
-    if (seen.has(email.email)) return false;
-    seen.add(email.email);
-    return true;
-  });
+  const uniqueSenders = getUniqueSenders(emails);
   const senders = rank(uniqueSenders, q, (email) => `${email.from} ${email.email}`, PER_GROUP_CAP);
   if (senders.length) {
     sections.push({
