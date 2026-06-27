@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Example security tests for Team Digest Generator
  * These tests demonstrate how to validate input handling and XSS prevention
  *
