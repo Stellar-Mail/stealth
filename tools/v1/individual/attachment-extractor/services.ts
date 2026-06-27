@@ -54,6 +54,8 @@ export const DEFAULT_CONFIG: ExtractorConfig = {
   extractMetadata: true,
   generateChecksum: false,
   categoryMapping: {},
+  maxFiles: 100,
+  maxTotalSize: 250 * 1024 * 1024, // 250MB batch ceiling
 };
 
 /**
@@ -100,10 +102,21 @@ export function categorizeMimeType(
 /**
  * Generate unique ID for attachment
  */
+export function sanitizeFileName(filename: string): string {
+  const lastSegment = filename.replace(/\\/g, "/").split("/").pop() || "attachment";
+  const withoutControls = lastSegment.replace(/[\u0000-\u001f\u007f]/g, "");
+  const sanitized = withoutControls.replace(/[^a-zA-Z0-9._-]/g, "_").replace(/^\.+/, "");
+  return (sanitized || "attachment").slice(0, 180);
+}
+
+export function normalizeMimeType(mimeType: string): string {
+  return mimeType.split(";")[0].trim().toLowerCase() || "application/octet-stream";
+}
+
 export function generateAttachmentId(filename: string, mimeType: string): string {
   const timestamp = Date.now();
   const random = Math.random().toString(36).substring(2, 9);
-  return `${filename.replace(/\W/g, "_")}_${mimeType.replace(/\//g, "_")}_${timestamp}_${random}`;
+  return `${sanitizeFileName(filename).replace(/\W/g, "_")}_${normalizeMimeType(mimeType).replace(/\//g, "_")}_${timestamp}_${random}`;
 }
 
 /**
@@ -124,16 +137,30 @@ export function validateFile(
   file: File,
   options: ExtractionOptions,
 ): { valid: boolean; error?: ExtractionError } {
-  const maxSize = options.maxFileSize || DEFAULT_CONFIG.maxFileSize;
+  const maxSize = Math.min(options.maxFileSize || DEFAULT_CONFIG.maxFileSize, DEFAULT_CONFIG.maxFileSize);
   const allowedTypes = options.allowedMimeTypes || DEFAULT_CONFIG.allowedMimeTypes;
+  const mimeType = normalizeMimeType(file.type);
+  const filename = sanitizeFileName(file.name);
+
+  if (!file || typeof file.size !== "number" || file.size < 0 || !Number.isFinite(file.size)) {
+    return {
+      valid: false,
+      error: {
+        filename,
+        mimeType,
+        reason: "invalid_data",
+        message: "File object is malformed or has an invalid size",
+      },
+    };
+  }
 
   // Check file size
   if (file.size > maxSize) {
     return {
       valid: false,
       error: {
-        filename: file.name,
-        mimeType: file.type,
+        filename,
+        mimeType,
         reason: "file_too_large",
         message: `File exceeds maximum size of ${formatFileSize(maxSize)}`,
       },
@@ -141,12 +168,12 @@ export function validateFile(
   }
 
   // Check MIME type
-  if (!allowedTypes.includes(file.type)) {
+  if (!allowedTypes.map(normalizeMimeType).includes(mimeType)) {
     return {
       valid: false,
       error: {
-        filename: file.name,
-        mimeType: file.type,
+        filename,
+        mimeType,
         reason: "unsupported_type",
         message: `File type ${file.type} is not supported`,
       },
@@ -221,8 +248,10 @@ export async function processFile(
     return validation.error!;
   }
 
-  const category = categorizeMimeType(file.type, options.categoryMapping);
-  const id = generateAttachmentId(file.name, file.type);
+  const safeName = sanitizeFileName(file.name);
+  const safeMimeType = normalizeMimeType(file.type);
+  const category = categorizeMimeType(safeMimeType, options.categoryMapping);
+  const id = generateAttachmentId(safeName, safeMimeType);
 
   let metadata: AttachmentMetadata | undefined;
   if (options.extractMetadata) {
@@ -236,8 +265,8 @@ export async function processFile(
 
   return {
     id,
-    name: file.name,
-    mimeType: file.type,
+    name: safeName,
+    mimeType: safeMimeType,
     size: file.size,
     category,
     extractedAt: new Date(),
@@ -287,6 +316,28 @@ export async function extractAttachments(
   const attachments: Attachment[] = [];
   const errors: ExtractionError[] = [];
 
+  const maxFiles = options.maxFiles ?? DEFAULT_CONFIG.maxFiles;
+  const maxTotalSize = options.maxTotalSize ?? DEFAULT_CONFIG.maxTotalSize;
+
+  if (files.length > maxFiles) {
+    errors.push({
+      filename: "batch",
+      reason: "too_many_files",
+      message: `Batch contains ${files.length} files; maximum is ${maxFiles}`,
+    });
+    return { success: false, attachments, errors, stats: calculateStats(attachments, errors) };
+  }
+
+  const totalInputSize = files.reduce((sum, file) => sum + (Number.isFinite(file.size) ? file.size : 0), 0);
+  if (totalInputSize > maxTotalSize) {
+    errors.push({
+      filename: "batch",
+      reason: "batch_too_large",
+      message: `Batch size ${formatFileSize(totalInputSize)} exceeds ${formatFileSize(maxTotalSize)}`,
+    });
+    return { success: false, attachments, errors, stats: calculateStats(attachments, errors) };
+  }
+
   // Process each file
   for (const file of files) {
     try {
@@ -301,8 +352,8 @@ export async function extractAttachments(
       }
     } catch (error) {
       errors.push({
-        filename: file.name,
-        mimeType: file.type,
+        filename: sanitizeFileName(file.name),
+        mimeType: normalizeMimeType(file.type),
         reason: "unknown",
         message: error instanceof Error ? error.message : "Unknown error during extraction",
       });

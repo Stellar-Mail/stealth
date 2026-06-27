@@ -35,6 +35,8 @@ export type ExtractionOptions = {
   extractMetadata?: boolean; // Whether to extract metadata
   generateChecksum?: boolean; // Whether to generate file hash
   categoryMapping?: Record<string, FileCategory>; // Custom MIME → category mapping
+  maxFiles?: number; // Max number of files to process in one batch
+  maxTotalSize?: number; // Max combined bytes to inspect in one batch
 };
 
 /** Result of extraction operation */
@@ -49,7 +51,7 @@ export type ExtractionResult = {
 export type ExtractionError = {
   filename: string;
   mimeType?: string;
-  reason: "unsupported_type" | "file_too_large" | "invalid_data" | "unknown";
+  reason: "unsupported_type" | "file_too_large" | "too_many_files" | "batch_too_large" | "invalid_data" | "unknown";
   message: string;
 };
 
@@ -96,4 +98,6 @@ export type ExtractorConfig = {
   extractMetadata: boolean;
   generateChecksum: boolean;
   categoryMapping: Record<string, FileCategory>;
+  maxFiles: number;
+  maxTotalSize: number;
 };

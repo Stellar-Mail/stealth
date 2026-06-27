@@ -57,3 +57,34 @@ describe("Attachment Extractor (V1 Launch Tool)", () => {
     expect(image?.filename).toBe("image_1_.png");
   });
 });
+
+describe("Attachment Extractor - Safety guards", () => {
+  it("should reject raw payloads above the configured parsing budget", async () => {
+    const result = await extractAttachments("x".repeat(128), { maxPayloadBytes: 16 });
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("safe parsing limit");
+  });
+
+  it("should reject multipart payloads with too many parts", async () => {
+    const payload = ['Content-Type: multipart/mixed; boundary="b"', Array.from({ length: 6 }, () => "--b\r\nContent-Type: text/plain\r\n\r\nBody").join("\r\n"), "--b--"].join("\r\n");
+    const result = await extractAttachments(payload, { maxParts: 3 });
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("too many parts");
+  });
+
+  it("should skip oversized attachment parts with a warning", async () => {
+    const payload = [
+      'Content-Type: multipart/mixed; boundary="b"',
+      "--b",
+      'Content-Type: text/plain; name="large.txt"',
+      'Content-Disposition: attachment; filename="large.txt"',
+      "",
+      "0123456789",
+      "--b--",
+    ].join("\r\n");
+    const result = await extractAttachments(payload, { maxAttachmentBytes: 4 });
+    expect(result.success).toBe(true);
+    expect(result.attachments).toHaveLength(0);
+    expect(result.warnings?.[0]).toContain("safe size limit");
+  });
+});
