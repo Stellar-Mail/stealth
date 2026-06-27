@@ -1,7 +1,7 @@
 # Review Notes
 
-This issue is documentation and test-plan work for the isolated
-Email-to-Todo Converter folder.
+This issue covers the isolated Email-to-Todo Converter implementation,
+including docs, deterministic extraction behavior, and test coverage.
 
 ## What Changed
 
@@ -9,9 +9,9 @@ Email-to-Todo Converter folder.
   contract.
 - Added a contributor-facing setup, usage, and limitations section to
   `README.md`.
-- Added `docs/test-plan.md` with unit, component, and non-goal coverage.
-- Added `docs/fixtures.md` with representative email inputs and expected task
-  draft outcomes.
+- Added `docs/test-plan.md`, `docs/API.md`, and `docs/fixtures.md` to document
+  the local contract.
+- Added the deterministic UI helpers and review-first component under `ui/`.
 
 ## Review Checklist
 

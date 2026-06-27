@@ -27,13 +27,9 @@ describe("detectPriority", () => {
     expect(detectPriority(baseEmail({ subject: "URGENT: sign the contract" }))).toBe("high");
   });
 
-  it("returns medium when a soft keyword is present", () => {
-    expect(detectPriority(baseEmail({ subject: "Reminder: timesheet" }))).toBe("medium");
-  });
-
-  it("returns low when no priority keywords are present", () => {
+  it("returns normal when no urgent keyword is present", () => {
     expect(detectPriority(baseEmail({ subject: "Lunch menu", body: "Soup and salad." }))).toBe(
-      "low",
+      "normal",
     );
   });
 });
@@ -45,12 +41,24 @@ describe("suggestDueDate", () => {
   });
 
   it("uses the default offset for lower priorities", () => {
-    expect(suggestDueDate(baseEmail(), "low")).toBe("2026-01-13");
+    expect(suggestDueDate(baseEmail(), "normal")).toBe("2026-01-13");
     expect(DEFAULT_DUE_DATE_OFFSET_DAYS).toBe(3);
   });
 
   it("returns an empty string for an unparseable timestamp", () => {
-    expect(suggestDueDate(baseEmail({ receivedAt: "not-a-date" }), "low")).toBe("");
+    expect(suggestDueDate(baseEmail({ receivedAt: "not-a-date" }), "normal")).toBe("");
+  });
+
+  it("uses an explicit due date when one is present", () => {
+    expect(
+      suggestDueDate(
+        baseEmail({
+          subject: "Please review the invoice by Friday",
+          body: "Please review the attached invoice by Friday and let me know if anything is missing.",
+        }),
+        "normal",
+      ),
+    ).toBe("2026-01-16");
   });
 });
 
@@ -61,14 +69,44 @@ describe("buildTaskDraft", () => {
     const draft = buildTaskDraft(email);
     expect(draft.title).toBe("Project kickoff notes");
     expect(draft.sourceSender).toBe("alex@example.com");
-    expect(draft.suggestedPriority).toBe("low");
+    expect(draft.suggestedPriority).toBe("normal");
   });
 
-  it("falls back to the first body line when the subject is empty", () => {
+  it("preserves the source email id when present", () => {
+    const draft = buildTaskDraft(baseEmail({ id: "email-direct-request" }));
+    expect(draft.sourceEmailId).toBe("email-direct-request");
+  });
+
+  it("extracts a title from a direct request in the subject", () => {
     const draft = buildTaskDraft(
-      baseEmail({ subject: "   ", body: "Call the bank about the invoice." }),
+      baseEmail({
+        subject: "Please review the invoice by Friday",
+        body: "Please review the attached invoice by Friday and let me know if anything is missing.",
+      }),
     );
-    expect(draft.title).toBe("Call the bank about the invoice.");
+    expect(draft.title).toBe("Review the invoice");
+    expect(draft.suggestedDueDate).toBe("2026-01-17");
+  });
+
+  it("uses the first actionable sentence in the body when the subject is generic", () => {
+    const draft = buildTaskDraft(
+      baseEmail({
+        subject: "Weekly product updates",
+        body: "Here are this week's product updates.\nPlease follow up with the partner today.",
+      }),
+    );
+    expect(draft.title).toBe("Follow up with the partner");
+    expect(draft.suggestedDueDate).toBe("2026-01-10");
+  });
+
+  it("strips trailing deadline words from a body-derived title", () => {
+    const draft = buildTaskDraft(
+      baseEmail({
+        subject: "Weekly product updates",
+        body: "Please call the bank today.",
+      }),
+    );
+    expect(draft.title).toBe("Call the bank");
   });
 
   it("falls back to a placeholder when subject and body are empty", () => {
