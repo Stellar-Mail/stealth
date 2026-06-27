@@ -1,3 +1,4 @@
 # Identity Feature
 
-Federation lookup, Stellar account identity, contact verification, and sender trust state.
+Sender profile cards, identity review, trust summaries, and policy confirmation
+for mail senders.
