@@ -210,6 +210,10 @@ export function SettingsModal({
                         aria-controls={`settings-panel-${tab.id}`}
                         tabIndex={isActive ? 0 : -1}
                         onClick={() => setActiveTab(tab.id)}
+                        aria-selected={isActive}
+                        role="tab"
+                        id={`tab-${tab.id}`}
+                        aria-controls={`tabpanel-${tab.id}`}
                         className={cn(
                           "glow-ring flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition active:scale-[0.98]",
                           isActive
@@ -592,20 +596,21 @@ function InboxSettings({
     setPreviewTemplateId(findMailboxPolicyTemplate(preferences)?.id ?? "custom");
   }, [open, preferences]);
 
-  const currentDraft = {
+  const currentDraft = useMemo(() => ({
     unknownSenders: preferences.unknownSenders,
     minimumPostage: preferences.minimumPostage,
-  } as const;
+  }), [preferences.unknownSenders, preferences.minimumPostage]);
 
-  const liveTemplate = findMailboxPolicyTemplate(currentDraft);
+  const liveTemplate = useMemo(() => findMailboxPolicyTemplate(currentDraft), [currentDraft]);
 
-  const selectedPreview =
+  const selectedPreview = useMemo(() => 
     previewTemplateId === "custom"
       ? (savedCustomTemplate ??
         buildCustomMailboxPolicyTemplate(currentDraft, liveTemplate?.id ?? null))
-      : (MAILBOX_POLICY_TEMPLATES.find((template) => template.id === previewTemplateId) ?? null);
+      : (MAILBOX_POLICY_TEMPLATES.find((template) => template.id === previewTemplateId) ?? null),
+  [previewTemplateId, savedCustomTemplate, currentDraft, liveTemplate?.id]);
 
-  const selectedPreferences =
+  const selectedPreferences = useMemo(() => 
     previewTemplateId === "custom"
       ? savedCustomTemplate
         ? savedCustomTemplateToPreferences(savedCustomTemplate)
@@ -614,7 +619,7 @@ function InboxSettings({
         ? templateToPreferences(selectedPreview as MailboxPolicyTemplate)
         : currentDraft;
 
-  const previewMatchesCurrent =
+  const previewMatchesCurrent = useMemo(() => 
     previewTemplateId === "custom"
       ? savedCustomTemplate
         ? savedCustomTemplate.policy.unknownSenders === preferences.unknownSenders &&
@@ -627,16 +632,17 @@ function InboxSettings({
           )
         : false;
 
-  const applyingWillReplaceCurrent =
+  const applyingWillReplaceCurrent = useMemo(() => 
     previewTemplateId === "custom"
       ? !!savedCustomTemplate && !previewMatchesCurrent
-      : !previewMatchesCurrent;
+      : !previewMatchesCurrent,
+  [previewTemplateId, savedCustomTemplate, previewMatchesCurrent]);
 
   const handleTemplateChange = (id: MailboxPolicyTemplateId | "custom") => {
     setPreviewTemplateId(id);
-  };
+  }, []);
 
-  const handleApply = () => {
+  const handleApply = useCallback(() => {
     if (!selectedPreview) return;
 
     if (previewTemplateId === "custom") {
@@ -658,30 +664,30 @@ function InboxSettings({
       ...preferences,
       ...templateToPreferences(selectedPreview as MailboxPolicyTemplate),
     });
-  };
+  }, [selectedPreview, previewTemplateId, savedCustomTemplate, currentDraft, liveTemplate?.id, onChange, preferences]);
 
-  const handleSaveCustom = () => {
+  const handleSaveCustom = useCallback(() => {
     setSavedCustomTemplate(
       buildCustomMailboxPolicyTemplate(currentDraft, liveTemplate?.id ?? null),
     );
     setPreviewTemplateId("custom");
-  };
+  }, [currentDraft, liveTemplate?.id]);
 
-  const updateUnknownSenders = (unknownSenders: UiPreferences["unknownSenders"]) => {
+  const updateUnknownSenders = useCallback((unknownSenders: UiPreferences["unknownSenders"]) => {
     setPreviewTemplateId("custom");
     onChange({
       ...preferences,
       unknownSenders,
     });
-  };
+  }, [onChange, preferences]);
 
-  const updateMinimumPostage = (minimumPostage: string) => {
+  const updateMinimumPostage = useCallback((minimumPostage: string) => {
     setPreviewTemplateId("custom");
     onChange({
       ...preferences,
       minimumPostage,
     });
-  };
+  }, [onChange, preferences]);
 
   return (
     <div className="space-y-6">
