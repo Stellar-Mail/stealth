@@ -1,26 +1,21 @@
-# Review Notes
+# Auto Label Suggestion Review Notes
 
-This contribution prepares the Auto Label Suggestion tool for independent review before
-implementation work starts.
+## Scope checklist
 
-## What To Review
+- All implementation files live under `tools/v1/individual/auto-label-suggestion/`.
+- The tool exposes only a folder-local API through `index.ts`.
+- No app shell, routing, database, authentication, wallet, or mail-rendering files are touched.
+- No live network calls, secrets, analytics, or production data are introduced.
 
-- The tool boundary is explicit and limited to this folder.
-- The taxonomy covers the first practical labels for an individual inbox.
-- Fixtures include positive, mixed, and low-risk examples.
-- The test plan documents privacy and prioritization edge cases.
+## Behavior checklist
 
-## What Is Intentionally Not Included
+- `suggestAutoLabels` returns deterministic `success` and `error` results.
+- Suggestions are capped at three labels and include label, confidence, reason, and evidence.
+- Existing user labels are preserved separately and not duplicated as suggestions.
+- Security and Finance rank ahead of lower-risk Newsletter matches.
 
-- No app route, navigation item, database migration, wallet integration, or shared design
-  system change.
-- No model call, external API, background job, or analytics event.
-- No executable test harness until the first service/hook implementation is introduced.
+## Fixture checklist
 
-## Follow-Up Implementation Shape
-
-A future implementation can add:
-
-- `services/suggestLabels.ts` for deterministic label ranking.
-- `tests/suggestLabels.test.ts` using the fixture file in this folder.
-- A local demo component only if a future UI issue asks for it.
+`fixtures/email-label-cases.json` covers finance, Stellar payment, security, calendar,
+newsletter, and mixed action-required scenarios. The unit test keeps those fixtures as
+the executable baseline for future UI work.
