@@ -1,4 +1,9 @@
 import type { InboxRule, RuleId, CreateRuleInput, UpdateRuleInput, ServiceConfig } from "../types";
+import {
+  ValidationService,
+  MAX_RULE_NAME_LENGTH,
+  MAX_RULE_DESCRIPTION_LENGTH,
+} from "./validation.service";
 
 export class RuleStorageService {
   private rules: Map<RuleId, InboxRule>;
@@ -22,18 +27,26 @@ export class RuleStorageService {
 
   async addRule(input: CreateRuleInput): Promise<InboxRule> {
     await this.delay();
+
+    // Security hardening: Validate and sanitize input
+    const validatedInput = ValidationService.validateCreateRule(input);
     const now = new Date().toISOString();
+
     const rule: InboxRule = {
       id: crypto.randomUUID(),
-      name: input.name.trim(),
-      description: input.description?.trim() ?? "",
+      name: ValidationService.sanitizeString(validatedInput.name, MAX_RULE_NAME_LENGTH),
+      description: ValidationService.sanitizeString(
+        validatedInput.description ?? "",
+        MAX_RULE_DESCRIPTION_LENGTH,
+      ),
       enabled: true,
-      priority: input.priority ?? 0,
-      conditionGroups: input.conditionGroups,
-      actions: input.actions,
+      priority: validatedInput.priority ?? 0,
+      conditionGroups: validatedInput.conditionGroups,
+      actions: validatedInput.actions,
       createdAt: now,
       updatedAt: now,
     };
+
     this.rules.set(rule.id, rule);
     return { ...rule };
   }
@@ -56,14 +69,28 @@ export class RuleStorageService {
     const existing = this.rules.get(id);
     if (!existing) return undefined;
 
+    // Security hardening: Validate and sanitize input
+    const validatedInput = ValidationService.validateUpdateRule(input);
+
     const updated: InboxRule = {
       ...existing,
-      ...(input.name !== undefined ? { name: input.name.trim() } : {}),
-      ...(input.description !== undefined ? { description: input.description.trim() } : {}),
-      ...(input.enabled !== undefined ? { enabled: input.enabled } : {}),
-      ...(input.priority !== undefined ? { priority: input.priority } : {}),
-      ...(input.conditionGroups !== undefined ? { conditionGroups: input.conditionGroups } : {}),
-      ...(input.actions !== undefined ? { actions: input.actions } : {}),
+      ...(validatedInput.name !== undefined
+        ? { name: ValidationService.sanitizeString(validatedInput.name, MAX_RULE_NAME_LENGTH) }
+        : {}),
+      ...(validatedInput.description !== undefined
+        ? {
+            description: ValidationService.sanitizeString(
+              validatedInput.description,
+              MAX_RULE_DESCRIPTION_LENGTH,
+            ),
+          }
+        : {}),
+      ...(validatedInput.enabled !== undefined ? { enabled: validatedInput.enabled } : {}),
+      ...(validatedInput.priority !== undefined ? { priority: validatedInput.priority } : {}),
+      ...(validatedInput.conditionGroups !== undefined
+        ? { conditionGroups: validatedInput.conditionGroups }
+        : {}),
+      ...(validatedInput.actions !== undefined ? { actions: validatedInput.actions } : {}),
       updatedAt: new Date().toISOString(),
     };
 
@@ -106,7 +133,13 @@ export class RuleStorageService {
 
   importRules(rules: InboxRule[]): void {
     for (const rule of rules) {
-      this.rules.set(rule.id, { ...rule });
+      try {
+        // Security hardening: Validate each rule before import
+        const validatedRule = ValidationService.validateRule(rule);
+        this.rules.set(validatedRule.id, { ...validatedRule });
+      } catch (err) {
+        console.error(`Skipping invalid rule during import: ${rule.id}`, err);
+      }
     }
   }
 }
