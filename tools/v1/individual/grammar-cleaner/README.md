@@ -13,6 +13,7 @@ Do not wire this tool into the main app, routing, inbox architecture, wallet cor
 - `specs.md` — module boundaries, dependency rules, hard constraints
 - `docs/architecture.md` — system design, data flow, design principles, extension strategy
 - `tests/README.md` — test plan with unit scope, edge cases, manual checklist
+- `docs/security-performance.md` — threat assumptions, unsafe input handling, and large dataset limits
 
 ## Folder Layout
 
