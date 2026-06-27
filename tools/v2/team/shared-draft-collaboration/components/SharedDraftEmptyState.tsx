@@ -1,6 +1,6 @@
 import React from "react";
 import { FileText } from "lucide-react";
-import { Button } from "../../../src/components/ui/button";
+import { Button } from "@/components/ui/button";
 
 /**
  * SharedDraftEmptyState

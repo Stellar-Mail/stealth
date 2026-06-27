@@ -5,12 +5,14 @@
  * To run: npm test -- tests/security.example.test.ts
  */
 
+import { describe, expect, it } from "vitest";
+
 import {
   validateDigestConfig,
   validateEmail,
   validateTeamMember,
   validateScheduleExpression,
-} from "../../services/inputValidation";
+} from "../services/inputValidation";
 import {
   sanitizeEmailContent,
   sanitizeEmailSubject,
@@ -18,7 +20,7 @@ import {
   sanitizeFilename,
   escapeHtml,
   validateAttachment,
-} from "../../services/contentSanitization";
+} from "../services/contentSanitization";
 import {
   mockTeamMembers,
   mockEmails,

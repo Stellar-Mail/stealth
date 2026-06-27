@@ -60,7 +60,7 @@ export function PaymentApprovalList({
       if (!rows) return;
 
       const currentIndex = Array.from(rows).findIndex(
-        (row) => row.dataset.paymentId === payment.id,
+        (row) => (row as HTMLTableRowElement).dataset.paymentId === payment.id,
       );
 
       switch (e.key) {

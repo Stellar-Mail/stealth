@@ -2,7 +2,7 @@
 
 Self-contained V2 tool for generating daily team email summaries.
 
-## Ownership Boundary
+## Ownership boundary
 
 All work for this tool must stay inside:
 

@@ -50,9 +50,9 @@ export function buildCustomMailboxPolicyTemplate(
     label: "Custom draft",
     summary: "Your current inbox policy draft, saved as a reusable custom template.",
     tradeoff:
-      "This custom policy is a local draft snapshot and won’t overwrite your current settings until applied.",
+      "This custom policy is a local draft snapshot and won't overwrite your current settings until applied.",
     senderExperience:
-      "Your current mailbox policy keeps unknown senders and postage values exactly as you set them.",
+      "Your mailbox follows the exact sender-control and postage values you configured. Review before applying.",
     policy: {
       unknownSenders: preferences.unknownSenders,
       minimumPostage: preferences.minimumPostage,
@@ -95,9 +95,10 @@ export const MAILBOX_POLICY_TEMPLATES: MailboxPolicyTemplate[] = [
     id: "private",
     label: "Private",
     summary: "Low-friction inbox for personal mail and trusted contacts.",
-    tradeoff: "Unknown senders can ask for review, while your inbox stays quiet by default.",
+    tradeoff:
+      "Unknown senders land in a review queue—your inbox stays quiet by default while you decide who gets through.",
     senderExperience:
-      "Trusted contacts arrive normally. Everyone else lands in a review queue unless you approve them.",
+      "Trusted contacts arrive normally. Everyone else waits in a review queue until you explicitly approve them.",
     policy: {
       unknownSenders: "request",
       minimumPostage: "0.0001",
@@ -107,9 +108,10 @@ export const MAILBOX_POLICY_TEMPLATES: MailboxPolicyTemplate[] = [
     id: "public-paid-inbox",
     label: "Public paid inbox",
     summary: "Open inbox for newsletters, communities, and inbound outreach.",
-    tradeoff: "More messages get through, so postage makes noise expensive and discourages spam.",
+    tradeoff:
+      "A small postage floor makes noise expensive—more messages get through, but senders must show intent.",
     senderExperience:
-      "Unknown senders can reach you if they pay postage. This is the easiest path for broad inbound mail.",
+      "Unknown senders can reach you after paying postage. Low-effort or bulk senders are filtered out automatically.",
     policy: {
       unknownSenders: "request",
       minimumPostage: "0.01",
@@ -118,10 +120,11 @@ export const MAILBOX_POLICY_TEMPLATES: MailboxPolicyTemplate[] = [
   {
     id: "investor-inbox",
     label: "Investor inbox",
-    summary: "Tighter inbox for inbound opportunities and high-signal introductions.",
-    tradeoff: "It raises outreach cost and expects verified senders before review.",
+    summary: "Tighter inbox for high-signal inbound opportunities and introductions.",
+    tradeoff:
+      "Verification and meaningful postage raise the bar—only serious senders who can prove identity get in.",
     senderExperience:
-      "Senders must be verified and pay a meaningful postage amount before their message is worth your time.",
+      "Senders must hold a verified cryptographic identity and attach a meaningful postage deposit before their message reaches you.",
     policy: {
       unknownSenders: "verified",
       minimumPostage: "0.1",
@@ -130,11 +133,11 @@ export const MAILBOX_POLICY_TEMPLATES: MailboxPolicyTemplate[] = [
   {
     id: "recruiting-inbox",
     label: "Recruiting inbox",
-    summary: "Structured inbox for hiring, introductions, and candidate screening.",
+    summary: "Structured inbox for hiring, candidate sourcing, and warm introductions.",
     tradeoff:
-      "Forwarding and outreach stay open, but postage keeps casual spam from dominating the queue.",
+      "Postage keeps casual or untargeted outreach out, while still keeping the door open for real candidates.",
     senderExperience:
-      "Potential candidates can still reach you, but low-effort senders are discouraged by the postage floor.",
+      "Motivated candidates and referrals can still reach you. Low-effort senders who skip the postage requirement are filtered automatically.",
     policy: {
       unknownSenders: "request",
       minimumPostage: "0.001",
@@ -143,10 +146,11 @@ export const MAILBOX_POLICY_TEMPLATES: MailboxPolicyTemplate[] = [
   {
     id: "allowlist-only",
     label: "Allowlist only",
-    summary: "Strict inbox for maximum control and minimal surface area.",
-    tradeoff: "Only approved contacts get through, so you trade discoverability for certainty.",
+    summary: "Maximum control — only explicitly approved contacts can reach you.",
+    tradeoff:
+      "Only contacts you trust get through. Unknown senders are rejected immediately, giving you the smallest possible attack surface.",
     senderExperience:
-      "Unknown senders are rejected up front. Only contacts you already trust can deliver mail.",
+      "Unknown senders are turned away at the door. There is no review queue or postage path — your mailbox is only reachable to people you have approved.",
     policy: {
       unknownSenders: "block",
       minimumPostage: "0",

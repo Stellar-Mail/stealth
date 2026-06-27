@@ -72,6 +72,7 @@ describe("Campaign Snapshots Fixtures and Helper logic", () => {
       targetAudience: "General Public",
       tags: ["general", "public"],
       timestamp: "2026-06-16T15:00:00Z",
+      status: "draft",
       drafts: [
         {
           id: "draft-custom-1",
@@ -97,6 +98,7 @@ describe("Campaign Snapshots Fixtures and Helper logic", () => {
         targetAudience: "Aud 1",
         tags: [],
         timestamp: "2026-06-16T10:00:00Z",
+        status: "draft",
         drafts: [],
       },
       {
@@ -106,6 +108,7 @@ describe("Campaign Snapshots Fixtures and Helper logic", () => {
         targetAudience: "Aud 2",
         tags: [],
         timestamp: "2026-06-16T11:00:00Z",
+        status: "draft",
         drafts: [],
       },
     ];
