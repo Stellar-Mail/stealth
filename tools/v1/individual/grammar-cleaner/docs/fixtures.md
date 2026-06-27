@@ -1,3 +1,25 @@
+# Test Fixtures
+
+The Grammar Cleaner tool includes a set of fixtures to ensure consistent behavior across different text scenarios. These are located in `services/fixtures.ts`.
+
+## Fixture Categories
+
+- **Simple Case**: Lowercase text without ending punctuation.
+  - _Input_: `this is a test`
+  - _Expected_: `This is a test.`
+- **Common Typos**: Words frequently misspelled.
+  - _Input_: `i recieved teh package yesterday`
+  - _Expected_: `I received the package yesterday.`
+- **Multiple Sentences**: Handling sentence boundaries.
+  - _Input_: `hello there. how are you today? it is sunny`
+  - _Expected_: `Hello there. How are you today? It is sunny.`
+- **Whitespace**: Cleaning up irregular spacing.
+  - _Input_: `  Too much    space here   `
+  - _Expected_: `Too much space here.`
+- **Case Preservation**: Maintaining capitalization on corrected typos.
+  - _Input_: `Teh adress is wrong`
+  - _Expected_: `The address is wrong.`
+
 # Grammar Cleaner Fixtures
 
 All fixtures are synthetic text samples. None contain real personal data.

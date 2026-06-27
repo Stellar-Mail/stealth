@@ -14,10 +14,19 @@ const sampleInput = SAMPLE_TEXTS[0].input;
 const onChange = () => {};
 const onSubmit = () => {};
 
+<<<<<<< gramma-cleaner
+interface PropsWithChildren {
+  children?: ReactNode;
+  [key: string]: any;
+}
+
+function isElement(n: unknown): n is ReactElement<PropsWithChildren> {
+=======
 /** Local typed shape so `props` is accessible as Record<string, unknown>. */
 type TypedElement = Omit<ReactElement, "props"> & { props: Record<string, unknown> };
 
 function isElement(n: unknown): n is TypedElement {
+>>>>>>> main
   return (
     typeof n === "object" &&
     n !== null &&
@@ -29,8 +38,13 @@ function isElement(n: unknown): n is TypedElement {
 
 function findInTree(
   node: ReactNode,
+<<<<<<< gramma-cleaner
+  predicate: (el: ReactElement<PropsWithChildren>) => boolean,
+): ReactElement<PropsWithChildren> | null {
+=======
   predicate: (el: TypedElement) => boolean,
 ): TypedElement | null {
+>>>>>>> main
   if (!isElement(node)) return null;
   if (predicate(node)) return node;
   const children = node.props.children;
@@ -43,7 +57,14 @@ function findInTree(
   return null;
 }
 
+<<<<<<< gramma-cleaner
+function hasElement(
+  node: ReactNode,
+  predicate: (el: ReactElement<PropsWithChildren>) => boolean,
+): boolean {
+=======
 function hasElement(node: ReactNode, predicate: (el: TypedElement) => boolean): boolean {
+>>>>>>> main
   return findInTree(node, predicate) !== null;
 }
 
