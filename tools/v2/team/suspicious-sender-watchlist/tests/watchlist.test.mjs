@@ -99,19 +99,42 @@ function applyFilter(entries, filter) {
   return result;
 }
 
-let _idCounter = 100;
-function generateId() {
-  return `watch-${String(++_idCounter).padStart(3, "0")}`;
+let _globalIdCounter = 100;
+function resetIdCounter() {
+  _globalIdCounter = 100;
 }
 
-function createService(initialEntries = FIXTURES) {
+function generateId() {
+  return `watch-${String(++_globalIdCounter).padStart(3, "0")}`;
+}
+
+/**
+ * Creates an isolated service instance with optional config.
+ * Mirrors the createWatchlistService factory signature from watchlist.service.ts.
+ */
+function createService(initialEntries = FIXTURES, config = {}) {
+  const { delayMs = 0, failureRate = 0 } = config;
   let entries = initialEntries.map((e) => ({ ...e }));
 
+  function delay() {
+    return delayMs > 0 ? new Promise((r) => setTimeout(r, delayMs)) : Promise.resolve();
+  }
+
+  function maybeThrow() {
+    if (Math.random() < failureRate) {
+      throw new Error("Simulated service failure.");
+    }
+  }
+
   async function getEntries(filter = {}) {
+    await delay();
+    maybeThrow();
     return applyFilter(entries, filter);
   }
 
   async function addEntry(input) {
+    await delay();
+    maybeThrow();
     const entry = {
       id: generateId(),
       senderEmail: input.senderEmail,
@@ -127,6 +150,8 @@ function createService(initialEntries = FIXTURES) {
   }
 
   async function updateRisk(input) {
+    await delay();
+    maybeThrow();
     const idx = entries.findIndex((e) => e.id === input.id);
     if (idx === -1) throw new Error(`Entry ${input.id} not found.`);
     const updated = { ...entries[idx], riskLevel: input.riskLevel };
@@ -135,6 +160,8 @@ function createService(initialEntries = FIXTURES) {
   }
 
   async function dismissEntry(id) {
+    await delay();
+    maybeThrow();
     const idx = entries.findIndex((e) => e.id === id);
     if (idx === -1) throw new Error(`Entry ${id} not found.`);
     const updated = { ...entries[idx], status: "dismissed" };
@@ -143,12 +170,16 @@ function createService(initialEntries = FIXTURES) {
   }
 
   async function removeEntry(id) {
+    await delay();
+    maybeThrow();
     const idx = entries.findIndex((e) => e.id === id);
     if (idx === -1) throw new Error(`Entry ${id} not found.`);
     entries = entries.filter((e) => e.id !== id);
   }
 
   async function getMetrics() {
+    await delay();
+    maybeThrow();
     return computeMetrics(entries);
   }
 
@@ -395,5 +426,184 @@ describe("Suspicious Sender Watchlist — Service", () => {
     const m = await svc.getMetrics();
     assert.strictEqual(m.total, 1);
     assert.strictEqual(m.lowRisk, 1);
+  });
+
+  it("addEntry without notes leaves notes undefined", async () => {
+    const svc = createService([]);
+    const added = await svc.addEntry({
+      senderEmail: "no-notes@example.com",
+      senderName: "No Notes",
+      reason: "Testing notes absence",
+      riskLevel: "high",
+    });
+    assert.strictEqual(added.notes, undefined);
+  });
+
+  it("updateRisk preserves all other fields on the entry", async () => {
+    const svc = createService();
+    const entry = FIXTURES[0];
+    const updated = await svc.updateRisk({ id: entry.id, riskLevel: "low" });
+    // The riskLevel should change but other fields should remain
+    assert.strictEqual(updated.senderEmail, entry.senderEmail);
+    assert.strictEqual(updated.senderName, entry.senderName);
+    assert.strictEqual(updated.reason, entry.reason);
+    assert.strictEqual(updated.riskLevel, "low");
+    assert.strictEqual(updated.status, entry.status);
+    assert.strictEqual(updated.dateAdded, entry.dateAdded);
+    assert.strictEqual(updated.notes, entry.notes);
+  });
+
+  it("dismissEntry on already-dismissed entry succeeds", async () => {
+    const svc = createService();
+    // watch-006 is already dismissed
+    const result = await svc.dismissEntry("watch-006");
+    assert.strictEqual(result.status, "dismissed");
+  });
+
+  it("removeEntry from middle of list works", async () => {
+    const svc = createService();
+    await svc.removeEntry("watch-003");
+    const entries = await svc.getEntries();
+    assert.strictEqual(entries.length, 5);
+    // Remaining entries should still be in order
+    assert.strictEqual(entries[2].id, "watch-004");
+  });
+
+  it("removing last entry results in empty list", async () => {
+    const svc = createService();
+    // Remove all entries one by one
+    for (const entry of FIXTURES) {
+      await svc.removeEntry(entry.id);
+    }
+    const entries = await svc.getEntries();
+    assert.strictEqual(entries.length, 0);
+    const m = await svc.getMetrics();
+    assert.strictEqual(m.total, 0);
+  });
+
+  it("sequential mutations track state correctly", async () => {
+    const svc = createService([]);
+
+    // Add entries
+    const e1 = await svc.addEntry({
+      senderEmail: "first@example.com",
+      senderName: "First",
+      reason: "Test 1",
+      riskLevel: "high",
+    });
+    const e2 = await svc.addEntry({
+      senderEmail: "second@example.com",
+      senderName: "Second",
+      reason: "Test 2",
+      riskLevel: "medium",
+    });
+    assert.strictEqual((await svc.getEntries()).length, 2);
+
+    // Update risk
+    await svc.updateRisk({ id: e2.id, riskLevel: "high" });
+    const highRisk = await svc.getEntries({ riskLevel: "high" });
+    assert.strictEqual(highRisk.length, 2);
+
+    // Dismiss one
+    await svc.dismissEntry(e1.id);
+    const active = await svc.getEntries({ status: "active" });
+    assert.strictEqual(active.length, 1);
+    assert.strictEqual(active[0].id, e2.id);
+
+    // Remove the active entry (e2)
+    await svc.removeEntry(e2.id);
+    // e1 is still present but dismissed
+    let remaining = await svc.getEntries();
+    assert.strictEqual(remaining.length, 1);
+    assert.strictEqual(remaining[0].id, e1.id);
+    assert.strictEqual(remaining[0].status, "dismissed");
+
+    // Remove the dismissed entry too
+    await svc.removeEntry(e1.id);
+    assert.strictEqual((await svc.getEntries()).length, 0);
+
+    // Metrics reflect final state
+    const m = await svc.getMetrics();
+    assert.strictEqual(m.total, 0);
+  });
+
+  it("service with delayMs config works", async () => {
+    const svc = createService([], { delayMs: 10 });
+    const start = Date.now();
+    await svc.addEntry({
+      senderEmail: "delayed@example.com",
+      senderName: "Delayed",
+      reason: "Testing delay config",
+      riskLevel: "low",
+    });
+    const elapsed = Date.now() - start;
+    assert.ok(elapsed >= 5, `expected delay >= 5ms, got ${elapsed}ms`);
+    const entries = await svc.getEntries();
+    assert.strictEqual(entries.length, 1);
+  });
+
+  it("service with failureRate=1 always throws", async () => {
+    const svc = createService([], { failureRate: 1 });
+    await assert.rejects(() => svc.getEntries(), /Simulated service failure/);
+    await assert.rejects(
+      () =>
+        svc.addEntry({
+          senderEmail: "fail@example.com",
+          senderName: "Fail",
+          reason: "Should not succeed",
+          riskLevel: "low",
+        }),
+      /Simulated service failure/,
+    );
+    await assert.rejects(() => svc.getMetrics(), /Simulated service failure/);
+  });
+});
+
+describe("Suspicious Sender Watchlist — Edge Cases", () => {
+  it("applyFilter with undefined filter fields returns all entries", () => {
+    const result = applyFilter(FIXTURES, { riskLevel: undefined, status: undefined, search: undefined });
+    assert.strictEqual(result.length, 6);
+  });
+
+  it("applyFilter with null-like values returns all entries", () => {
+    // Treat null as no filter — the inline logic checks truthiness
+    const result = applyFilter(FIXTURES, { riskLevel: null, status: null, search: null });
+    assert.strictEqual(result.length, 6);
+  });
+
+  it("applyFilter combines riskLevel + status + search", () => {
+    // high-risk AND active AND search for "phishing" → watch-001
+    const result = applyFilter(FIXTURES, {
+      riskLevel: "high",
+      status: "active",
+      search: "phishing",
+    });
+    assert.strictEqual(result.length, 1);
+    assert.strictEqual(result[0].id, "watch-001");
+  });
+
+  it("applyFilter with combined filter that matches nothing", () => {
+    // high-risk AND dismissed AND search for "phishing" → no match (dismissed is watch-006 which doesn't match phishing)
+    const result = applyFilter(FIXTURES, {
+      riskLevel: "high",
+      status: "dismissed",
+      search: "phishing",
+    });
+    assert.strictEqual(result.length, 0);
+  });
+
+  it("computeMetrics counts only high-risk active entries", () => {
+    const m = computeMetrics(FIXTURES);
+    const highActive = FIXTURES.filter((e) => e.riskLevel === "high" && e.status === "active");
+    assert.strictEqual(highActive.length, 2);
+    assert.strictEqual(m.highRisk, 3); // includes dismissed
+    assert.strictEqual(m.active, 5);
+  });
+
+  it("rejects with descriptive error message for missing entry", async () => {
+    const svc = createService();
+    await assert.rejects(() => svc.updateRisk({ id: "nonexistent", riskLevel: "high" }), /Entry nonexistent not found/);
+    await assert.rejects(() => svc.dismissEntry("nonexistent"), /Entry nonexistent not found/);
+    await assert.rejects(() => svc.removeEntry("nonexistent"), /Entry nonexistent not found/);
   });
 });
