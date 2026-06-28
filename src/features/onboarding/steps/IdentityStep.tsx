@@ -38,7 +38,7 @@ export function IdentityStep({ freighter, onAdvance }: Props) {
 
       <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 space-y-3">
         <div className="flex items-start gap-3">
-          <Wallet className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+          <Wallet className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
           <div className="space-y-1">
             <p className="text-sm font-medium text-foreground">What Stealth will read</p>
             <p className="text-xs text-muted-foreground">
@@ -59,7 +59,7 @@ export function IdentityStep({ freighter, onAdvance }: Props) {
             rel="noreferrer"
             className="mt-2 inline-flex items-center gap-1.5 text-xs text-amber-300 underline underline-offset-2 hover:text-amber-200"
           >
-            Get Freighter <ExternalLink className="h-3 w-3" />
+            Get Freighter <ExternalLink className="h-3 w-3" aria-hidden="true" />
           </a>
         </div>
       )}
@@ -90,14 +90,14 @@ export function IdentityStep({ freighter, onAdvance }: Props) {
       >
         {isConnecting ? (
           <>
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
             Waiting for Freighter…
           </>
         ) : state.status === "connected" ? (
           "Connected"
         ) : (
           <>
-            <Wallet className="h-4 w-4" />
+            <Wallet className="h-4 w-4" aria-hidden="true" />
             Connect with Freighter
           </>
         )}

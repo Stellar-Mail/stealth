@@ -60,6 +60,7 @@ export function UnknownSenderRulesStep({ draft, onUpdate, onAdvance, onRetreat }
             <button
               key={policy.value}
               onClick={() => onUpdate({ unknownSenderRule: policy.value })}
+              aria-pressed={isSelected}
               className={cn(
                 "relative rounded-xl border p-4 text-left transition",
                 isSelected
