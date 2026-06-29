@@ -6,6 +6,7 @@
  * WalletRejectedError so the caller can preserve the draft.
  */
 import pkg from "@stellar/freighter-api";
+
 const {
   isConnected: freighterIsConnected,
   requestAccess: freighterRequestAccess,

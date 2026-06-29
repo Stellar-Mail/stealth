@@ -40,8 +40,8 @@ export default tseslint.config(
   },
   {
     // Allow non-component exports and pragmatic `any` usage across source
-    // and tool files to reduce noisy warnings during CI checks. These are
-    // deliberate relaxations to match the current codebase patterns.
+    // files to reduce noisy warnings during CI checks. These are deliberate
+    // relaxations to match the current codebase patterns.
     files: ["src/**/*.{ts,tsx}", "tools/**/*.{ts,tsx}"],
     rules: {
       "react-refresh/only-export-components": "off",
