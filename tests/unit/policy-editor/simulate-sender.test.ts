@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   simulateSenderAdmission,
   type PolicyControls,
-} from "../../../src/routes/policy-editor/simulate-sender";
+} from "../../../src/routes/policy-editor/-simulate-sender";
 
 // A permissive baseline: unknown senders allowed, no verification, no postage.
 const openPolicy: PolicyControls = {

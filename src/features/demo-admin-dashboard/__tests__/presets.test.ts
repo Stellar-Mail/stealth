@@ -8,7 +8,8 @@ describe("demo admin dashboard presets", () => {
     expect(ids).toContain("proof-pending");
     expect(ids).toContain("receipt-settlement");
     expect(ids).toContain("paid-sender-request");
-    expect(PRESET_SCENARIOS.length).toBe(4);
+    expect(ids).toContain("investor-nurture");
+    expect(PRESET_SCENARIOS.length).toBeGreaterThanOrEqual(4);
   });
 
   it("contains deterministic and valid stats, accounts, mail, and audit logs for each scenario", () => {

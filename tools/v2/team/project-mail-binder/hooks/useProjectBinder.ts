@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Project, ProjectMailBinding } from "../implementation.md";
+import { Project, ProjectMailBinding } from "../types";
 import { ProjectBinderService } from "../services/projectBinderService";
 import type { Email } from "@/components/mail/data";
 

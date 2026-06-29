@@ -1,6 +1,6 @@
 import * as React from "react";
 import { FolderPlus, Check, Plus } from "lucide-react";
-import { Project } from "../implementation.md";
+import { Project } from "../types";
 
 export interface ProjectSelectorProps {
   projects: Project[];

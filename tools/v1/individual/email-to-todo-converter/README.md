@@ -22,6 +22,8 @@ as the launch contract:
 - `docs/test-plan.md` lists the acceptance scenarios that future tests should
   cover.
 - `docs/fixtures.md` describes the fixture emails and expected task outputs.
+- `docs/security-and-performance.md` documents threat assumptions, unsafe inputs, and
+  local work limits.
 - `REVIEW_NOTES.md` gives reviewers a quick checklist for this isolated work.
 
 ## Intended Usage
@@ -31,9 +33,14 @@ implementation should accept a normalized email object, extract the task title,
 due date, priority, source metadata, and completion state, then return a
 reviewable task draft without mutating the mailbox or main application state.
 
+## Security and Performance Boundary
+
+The local converter treats normalized email payloads as untrusted. It validates
+object shape, strips unsafe text characters and HTML-like tags, rejects malformed
+supplied timestamps, and caps body scanning before building a task draft. See
+`docs/security-and-performance.md` for the threat model and large-input notes.
+
 ## Known Limitations
 
-- No production code is present in this folder yet.
-- The documented tests are a plan, not an executable suite.
 - Main app routing, inbox integration, and persistence are intentionally out of
   scope until a future integration issue allows them.

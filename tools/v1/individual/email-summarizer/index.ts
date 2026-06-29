@@ -5,5 +5,6 @@
 
 export * from "./services/emailSummarizer";
 export * from "./services/fixtures";
+export * from "./services/security";
 export * from "./hooks";
 export * from "./components";

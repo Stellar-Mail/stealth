@@ -1,4 +1,204 @@
-import { describe, expect, it } from "vitest";
+// @vitest-environment jsdom
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { createElement } from "react";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+
+import type { Email } from "../../../src/components/mail/data";
+
+vi.mock("framer-motion", async () => {
+  const React = await import("react");
+
+  const stripMotionProps = (props: Record<string, any>) => {
+    const domProps = { ...props };
+    for (const key of [
+      "animate",
+      "exit",
+      "initial",
+      "layout",
+      "transition",
+      "variants",
+      "whileHover",
+      "whileTap",
+    ]) {
+      delete domProps[key];
+    }
+    return domProps;
+  };
+
+  const createMotionComponent = (tag: string) =>
+    React.forwardRef<HTMLElement, Record<string, any>>(({ children, ...props }, ref) =>
+      React.createElement(tag, { ...stripMotionProps(props), ref }, children),
+    );
+
+  return {
+    AnimatePresence: ({ children }: { children?: React.ReactNode }) =>
+      React.createElement(React.Fragment, null, children),
+    motion: new Proxy(
+      {},
+      {
+        get: (_target, tag: string) => createMotionComponent(tag),
+      },
+    ),
+  };
+});
+
+let RequestsTriageBoard: typeof import("../../../src/features/requests/RequestsTriageBoard").RequestsTriageBoard;
+
+const makeRequestEmail = (overrides: Partial<Email> = {}): Email => ({
+  id: "request-1",
+  from: "Unknown Founder",
+  email: "founder*example.test",
+  subject: "Paid intro request",
+  preview: "I attached postage for a short intro.",
+  body: "Hello, this is a fake deterministic request fixture.",
+  time: "Now",
+  unread: true,
+  starred: false,
+  folder: "requests",
+  labels: ["Request", "Paid", "Design"],
+  avatarColor: "#64748b",
+  postageAmount: "15000000",
+  verifiedSender: false,
+  ...overrides,
+});
+
+const makeInboxEmail = (): Email => ({
+  id: "inbox-1",
+  from: "Known Contact",
+  email: "known*example.test",
+  subject: "Existing inbox mail",
+  preview: "This message should not appear on the requests board.",
+  body: "Already accepted mail.",
+  time: "9:00 AM",
+  unread: false,
+  starred: false,
+  folder: "inbox",
+  labels: ["Trusted"],
+  avatarColor: "#475569",
+});
+
+describe("RequestsTriageBoard regression coverage", () => {
+  beforeAll(async () => {
+    Object.defineProperty(window, "matchMedia", {
+      writable: true,
+      value: vi.fn().mockImplementation((query: string) => ({
+        matches: false,
+        media: query,
+        onchange: null,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      })),
+    });
+
+    ({ RequestsTriageBoard } = await import("../../../src/features/requests/RequestsTriageBoard"));
+  });
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  it("approves a paid sender request and finalizes it as trusted inbox mail", async () => {
+    const onUpdateEmail = vi.fn();
+    const onShowToast = vi.fn();
+
+    render(
+      createElement(RequestsTriageBoard, {
+        emails: [makeRequestEmail(), makeInboxEmail()],
+        onUpdateEmail,
+        onShowToast,
+      }),
+    );
+
+    expect(screen.getByText("1 pending")).toBeTruthy();
+    expect(screen.getByText("Paid intro request")).toBeTruthy();
+    expect(screen.queryByText("Existing inbox mail")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Approve" }));
+
+    expect(screen.getByText("Approving sender and settling postage...")).toBeTruthy();
+
+    await act(async () => {
+      vi.advanceTimersByTime(800);
+    });
+
+    expect(screen.getByText("Sender Approved")).toBeTruthy();
+    expect(screen.getByText("Messages from Unknown Founder will go to Inbox.")).toBeTruthy();
+    expect(onShowToast).toHaveBeenCalledWith(
+      "Optimistic approve registered. Reviewing details...",
+      { tone: "neutral" },
+    );
+    expect(onUpdateEmail).not.toHaveBeenCalled();
+
+    await act(async () => {
+      vi.advanceTimersByTime(3100);
+    });
+
+    expect(onUpdateEmail).toHaveBeenCalledWith("request-1", {
+      folder: "inbox",
+      senderPolicy: "allow",
+      labels: ["Design", "Trusted"],
+    });
+    expect(onShowToast).toHaveBeenLastCalledWith(
+      "Unknown Founder added to Trusted Contacts. Mail moved to Inbox.",
+      { tone: "success" },
+    );
+  });
+
+  it("surfaces a network failure and leaves the request unchanged until cancelled", async () => {
+    const onUpdateEmail = vi.fn();
+    const onShowToast = vi.fn();
+
+    render(
+      createElement(RequestsTriageBoard, {
+        emails: [makeRequestEmail()],
+        onUpdateEmail,
+        onShowToast,
+      }),
+    );
+
+    fireEvent.click(screen.getByLabelText("Simulate network failure"));
+    fireEvent.click(screen.getByRole("button", { name: "Refund" }));
+
+    expect(screen.getByText("Refunding postage amount...")).toBeTruthy();
+
+    await act(async () => {
+      vi.advanceTimersByTime(800);
+    });
+
+    expect(screen.getByText("Action Failed")).toBeTruthy();
+    expect(
+      screen.getByText(
+        "Could not resolve the transaction on the Stellar network. Please try again.",
+      ),
+    ).toBeTruthy();
+    expect(onShowToast).toHaveBeenCalledWith("Stellar transaction failed for refund", {
+      tone: "danger",
+    });
+    expect(onUpdateEmail).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.getByText("Reverting policy changes...")).toBeTruthy();
+
+    await act(async () => {
+      vi.advanceTimersByTime(600);
+    });
+
+    expect(screen.getByRole("button", { name: "Refund" })).toBeTruthy();
+    expect(onShowToast).toHaveBeenLastCalledWith("Changes reverted successfully", {
+      tone: "success",
+    });
+    expect(onUpdateEmail).not.toHaveBeenCalled();
+  });
+});
 
 // Simple test for requests logic and formatting
 describe("Requests triage board unit helpers", () => {

@@ -33,6 +33,10 @@ if (result.success) {
 
 When implementing the core behavior, place mock email payloads inside `tools/v1/individual/attachment-extractor/__fixtures__/`. Do not rely on global app fixtures (`src/fixtures`) to ensure this tool remains 100% isolated.
 
+## Security and performance hardening
+
+See `SECURITY_AND_PERFORMANCE.md` for the folder-local threat assumptions, unsafe input handling, and performance constraints for large messages, attachments, and future mailbox histories.
+
 ## Known Limitations
 
 - Currently only supports parsing metadata (filename, content-type, size). Full binary extraction of multi-part payloads is pending implementation.

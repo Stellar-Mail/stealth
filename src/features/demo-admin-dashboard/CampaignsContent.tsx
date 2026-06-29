@@ -32,9 +32,10 @@ export function CampaignsContent() {
             <button
               key={tab.key}
               type="button"
+              aria-current={isActive ? "page" : undefined}
               onClick={() => setCampaignSubView(tab.key)}
               className={cn(
-                "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition",
+                "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20",
                 isActive
                   ? "bg-white/[0.08] text-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground hover:bg-white/[0.04]",

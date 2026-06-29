@@ -1,5 +1,5 @@
 import * as React from "react";
-import type { BinderState } from "../types";
+import type { BinderState, Project } from "../types";
 import { A11Y } from "../types";
 import { EmptyState } from "./EmptyState";
 import { LoadingState } from "./LoadingState";
@@ -20,12 +20,12 @@ import { ProjectDetail } from "./ProjectDetail";
  */
 export function ProjectMailBinder({ initialState }: { initialState: BinderState }) {
   const [state, setState] = React.useState<BinderState>(initialState);
-  const [selectedProjectId, setSelectedProjectId] = React.useState<string | null>(null);
+  const [selectedProjectId, setSelectedProjectId] = React.useState<string | undefined>(undefined);
 
   // Sync if initialState prop changes (useful for testing/storybook)
   React.useEffect(() => {
     setState(initialState);
-    setSelectedProjectId(null);
+    setSelectedProjectId(undefined);
   }, [initialState]);
 
   const handleRetry = React.useCallback(() => {
@@ -43,9 +43,9 @@ export function ProjectMailBinder({ initialState }: { initialState: BinderState 
 
   const handleKeyDown = React.useCallback(
     (e: React.KeyboardEvent) => {
-      if (e.key === A11Y.keys.ESCAPE && selectedProjectId !== null) {
+      if (e.key === A11Y.keys.ESCAPE && selectedProjectId !== undefined) {
         e.preventDefault();
-        setSelectedProjectId(null);
+        setSelectedProjectId(undefined);
       }
     },
     [selectedProjectId],
@@ -54,8 +54,8 @@ export function ProjectMailBinder({ initialState }: { initialState: BinderState 
   // Derive detail data when a project is selected
   const selectedProject =
     state.status === "success"
-      ? (state.projects.find((p) => p.id === selectedProjectId) ?? null)
-      : null;
+      ? (state.projects.find((p) => p.id === selectedProjectId) ?? undefined)
+      : undefined;
 
   const selectedMails =
     state.status === "success" && selectedProjectId
@@ -99,7 +99,8 @@ export function ProjectMailBinder({ initialState }: { initialState: BinderState 
 
         {state.status === "success" && !selectedProject && (
           <ProjectList
-            projects={state.projects}
+            projects={state.projects as unknown as Project[]}
+            getMailCountForProject={(id) => state.projects.find((p) => p.id === id)?.mailCount ?? 0}
             selectedProjectId={selectedProjectId}
             onSelectProject={setSelectedProjectId}
           />
@@ -109,7 +110,7 @@ export function ProjectMailBinder({ initialState }: { initialState: BinderState 
           <ProjectDetail
             project={selectedProject}
             mails={selectedMails}
-            onClose={() => setSelectedProjectId(null)}
+            onClose={() => setSelectedProjectId(undefined)}
           />
         )}
       </div>

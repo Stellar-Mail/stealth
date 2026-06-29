@@ -13,6 +13,16 @@ tools/v1/individual/important-email-pinning/
 
 Do not wire this tool into the main app, routing, inbox architecture, wallet core, Stellar core, database schema, or existing design system unless a future integration issue explicitly allows it.
 
+## Architecture Contract
+
+This mini-product is governed by folder-local architecture notes:
+
+- `MODULE_BOUNDARIES.md` defines the component, service, hook, test, and docs boundaries.
+- `DATA_OWNERSHIP.md` defines owned pin metadata, borrowed message summaries, derived data, and persistence limits.
+- `INTEGRATION_CONSTRAINTS.md` defines what future contributors may and may not connect to the host app.
+
+Future contributors should update these files before adding implementation code so the folder remains reviewable as an isolated launch tool.
+
 ## Intended Use
 
 - Let a user pin emails that need persistent attention.

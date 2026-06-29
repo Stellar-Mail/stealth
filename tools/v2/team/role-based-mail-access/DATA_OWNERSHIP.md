@@ -6,7 +6,7 @@ This document details data structures, storage parameters, state lifecycles, and
 
 ## 1. Domain Entities & Data Model
 
-We declare the core structures in [types/index.ts](file:///home/henry/projects/open-source/stealth/tools/v2/team/role-based-mail-access/types/index.ts):
+We declare the core structures in [types/index.ts](types/index.ts):
 
 ```typescript
 export interface VerifyAccessRequest {

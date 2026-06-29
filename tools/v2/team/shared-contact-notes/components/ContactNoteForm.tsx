@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Send, X } from "lucide-react";
-import { Button } from "../../../../../src/components/ui/button";
+import { Button } from "@/components/ui/button";
 
 interface ContactNoteFormProps {
   initialContent?: string;

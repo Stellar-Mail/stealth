@@ -153,12 +153,13 @@
 ```
 
 **Test:** Category colors
-| Category | Bg Color | Text Color | Border | Hover |
-|----------|----------|-----------|--------|-------|
-| UI | sky-400 | sky-300 | sky-400/20 | bg-sky-400/20 |
-| API | violet-400 | violet-300 | violet-400/20 | bg-violet-400/20 |
-| Protocol | amber-400 | amber-300 | amber-400/20 | bg-amber-400/20 |
-| Security | rose-400 | rose-300 | rose-400/20 | bg-rose-400/20 |
+
+| Category | Bg Color   | Text Color | Border        | Hover            |
+| -------- | ---------- | ---------- | ------------- | ---------------- |
+| UI       | sky-400    | sky-300    | sky-400/20    | bg-sky-400/20    |
+| API      | violet-400 | violet-300 | violet-400/20 | bg-violet-400/20 |
+| Protocol | amber-400  | amber-300  | amber-400/20  | bg-amber-400/20  |
+| Security | rose-400   | rose-300   | rose-400/20   | bg-rose-400/20   |
 
 ### 2.3 Scroll and Layout
 

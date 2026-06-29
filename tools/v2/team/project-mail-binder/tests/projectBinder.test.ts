@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { ProjectBinderService } from "../services/projectBinderService";
-import { Project } from "../implementation.md";
+import { Project } from "../types";
 import type { Email } from "@/components/mail/data";
 
 const testProject: Project = {

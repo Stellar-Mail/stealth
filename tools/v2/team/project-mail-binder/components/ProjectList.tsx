@@ -1,6 +1,6 @@
 import * as React from "react";
 import { FolderGit2, Users, Coins } from "lucide-react";
-import { Project } from "../implementation.md";
+import { Project } from "../types";
 
 export interface ProjectListProps {
   projects: Project[];

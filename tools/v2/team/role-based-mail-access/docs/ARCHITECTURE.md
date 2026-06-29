@@ -21,7 +21,7 @@ RoleBasedMailAccessDemo (demo.tsx)
 
 ## Data Models
 
-The structures defined in [types/index.ts](file:///home/henry/projects/open-source/stealth/tools/v2/team/role-based-mail-access/types/index.ts) are:
+The structures defined in [../types/index.ts](../types/index.ts) are:
 
 ### `VerifyAccessRequest`
 

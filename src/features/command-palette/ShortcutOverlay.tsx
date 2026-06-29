@@ -19,14 +19,16 @@ export function ShortcutOverlay({ open, onClose }: Props) {
   }, [open]);
 
   const shortcuts = useMemo(() => {
-    if (!query.trim()) return SHORTCUT_DEFINITIONS;
-    const q = query.toLowerCase();
-    return SHORTCUT_DEFINITIONS.filter(
-      (s) =>
-        s.label.toLowerCase().includes(q) ||
-        s.description.toLowerCase().includes(q) ||
-        s.id.toLowerCase().includes(q),
-    );
+    const q = query.trim().toLowerCase();
+    if (!q) return SHORTCUT_DEFINITIONS;
+    return SHORTCUT_DEFINITIONS.filter((shortcut) => {
+      if (shortcut.label.toLowerCase().includes(q)) return true;
+      if (shortcut.description.toLowerCase().includes(q)) return true;
+      if (shortcut.keywords.some((k) => k.toLowerCase().includes(q))) return true;
+      if (shortcut.keys.some((k) => k.toLowerCase().includes(q))) return true;
+      if (shortcut.conflict?.toLowerCase().includes(q)) return true;
+      return false;
+    });
   }, [query]);
 
   return (

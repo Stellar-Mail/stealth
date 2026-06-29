@@ -3,6 +3,7 @@ import {
   buildTaskDraft,
   describeConverter,
   hasConvertibleContent,
+  validateAndSanitizeEmail,
   type ConverterStatus,
   type EmailToTodoConverterProps,
   type TaskDraft,
@@ -64,14 +65,28 @@ export function EmailToTodoConverter(props: EmailToTodoConverterProps) {
 
   const handleConvert = useCallback(() => {
     if (!hasConvertibleContent(email)) {
-      dispatch({ type: "convert-error", message: "Select an email with a subject or body first." });
+      dispatch({
+        type: "convert-error",
+        message: "Select an email with a subject or body first.",
+      });
       return;
     }
     dispatch({ type: "convert-start" });
+    const validation = validateAndSanitizeEmail(email);
+    if (!validation.isValid || !validation.sanitizedEmail) {
+      dispatch({
+        type: "convert-error",
+        message: validation.errors[0] || "The selected email is not safe to convert.",
+      });
+      return;
+    }
     try {
-      dispatch({ type: "convert-success", draft: buildTaskDraft(email) });
+      dispatch({ type: "convert-success", draft: buildTaskDraft(validation.sanitizedEmail) });
     } catch {
-      dispatch({ type: "convert-error", message: "Conversion failed. Please try another email." });
+      dispatch({
+        type: "convert-error",
+        message: "Conversion failed. Please try another email.",
+      });
     }
   }, [email]);
 
