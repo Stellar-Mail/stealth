@@ -2,8 +2,8 @@
 
 ## Purpose
 
-Define a self-contained review contract for team email performance analytics
-before any future dashboard, inbox, or notification integration.
+Define the local architecture contract for Team Analytics Dashboard before any
+future dashboard, inbox, or notification integration.
 
 ## Release Scope
 
@@ -18,7 +18,7 @@ before any future dashboard, inbox, or notification integration.
 - Distinguish healthy teams from watch, attention, and blocked states.
 - Represent missing source data without attempting live aggregation.
 - Provide fixture coverage for each local analytics status.
-- Give reviewers a single local test command.
+- Keep module boundaries documented for future contributors.
 
 ## Out-of-Scope Behavior
 
@@ -28,7 +28,7 @@ before any future dashboard, inbox, or notification integration.
 - Notification delivery or role-permission enforcement
 - Real user productivity scoring
 
-## Analytics Snapshot Contract
+## Local Snapshot Contract
 
 Each expected analytics snapshot should include:
 
@@ -49,6 +49,14 @@ Each expected analytics snapshot should include:
 - high backlog snapshots should not be healthy
 - healthy snapshots need positive source data and no review requirement
 - every snapshot must map back to a source report
+
+## Module Boundaries
+
+- `components/`: future UI-only pieces
+- `services/`: future local analytics and normalization logic
+- `hooks/`: future view-state and data-access hooks
+- `tests/`: local contract and fixture tests
+- `docs/`: architecture, review, and test documentation
 
 ## Required Issue Categories
 

@@ -1,12 +1,14 @@
 # Team Analytics Dashboard
 
-A self-contained V2 team tool that surfaces per-member performance metrics — email volume, response times, SLA breaches, and workload balance — across a configurable time period.
+Team Analytics Dashboard is a self-contained V2 team tool contract. It defines
+the isolated data model, review notes, and local test fixture used to describe
+the dashboard before any product integration exists.
 
 ## Ownership Boundary
 
 All work for this tool must stay inside:
 
-```
+```text
 tools/v2/team/team-analytics-dashboard/
 ```
 
@@ -14,10 +16,18 @@ Do not wire this tool into the main app, routing, inbox architecture, wallet
 core, Stellar core, database schema, or shared design system unless a future
 integration issue explicitly allows it.
 
-## Folder Structure
+## Folder Layout
 
-```
+```text
 team-analytics-dashboard/
+|-- components/        # future UI module boundaries
+|-- docs/              # local architecture, review, and test notes
+|-- fixtures/          # synthetic analytics snapshots
+|-- hooks/             # future state and query helpers
+|-- services/          # future data shaping and aggregation logic
+|-- tests/             # zero-dependency contract tests
+|-- specs.md
+`-- README.md
 ├── fixtures/
 │   ├── sample-analytics-data.json       # local contract fixture (4 members, 1 week)
 │   └── sample-team-analytics.json       # snapshot review fixture (4 teams)
@@ -34,31 +44,36 @@ team-analytics-dashboard/
 └── README.md
 ```
 
-## Data Contract
+## Current Contract
 
-The fixture (`fixtures/sample-analytics-data.json`) defines the shape the dashboard consumes:
+The current fixture contract is defined by `fixtures/sample-analytics-data.json`
+and validated by the Node test suite.
 
-| Field                             | Type            | Notes                                                         |
-| --------------------------------- | --------------- | ------------------------------------------------------------- |
-| `tool`                            | string          | must equal `"team-analytics-dashboard"`                       |
-| `period.start` / `period.end`     | ISO date string | `YYYY-MM-DD`                                                  |
-| `members[].memberId`              | string          | stable, unique                                                |
-| `members[].status`                | enum            | `active` / `overloaded` / `underutilized` / `away`            |
-| `members[].avgResponseTimeHours`  | number \| null  | null when status is `away`                                    |
-| `members[].slaBreaches`           | integer         | count of threads that exceeded the 4-hour SLA                 |
-| `summary.reviewRequiredMemberIds` | string[]        | populated for any member with slaBreaches > 0                 |
-| `summary.topPerformerId`          | string          | active member with lowest response time and zero SLA breaches |
-| `summary.bottleneckMemberId`      | string          | member with the highest open-thread count                     |
+| Field | Type | Notes |
+| --- | --- | --- |
+| `tool` | string | Must equal `team-analytics-dashboard` |
+| `version` | integer | Positive local contract version |
+| `period.start` / `period.end` | ISO date string | `YYYY-MM-DD` and in order |
+| `period.label` | string | Human-readable reporting label |
+| `teamId` | string | Stable team identifier local to the fixture |
+| `members[].memberId` | string | Stable, unique member identifier |
+| `members[].status` | enum | `active`, `overloaded`, `underutilized`, or `away` |
+| `members[].avgResponseTimeHours` | number or null | Null only when status is `away` |
+| `members[].slaBreaches` | integer | Count of items exceeding the 4 hour SLA |
+| `summary.reviewRequiredMemberIds` | string[] | Includes every member with SLA breaches |
+| `summary.topPerformerId` | string | Active member with zero breaches and best response time |
+| `summary.bottleneckMemberId` | string | Member with the highest open thread count |
 
-## Running the Tests
+## Local Test
 
-No install step required. Run from the repository root:
+Run from the repository root:
 
 ```bash
 node --test tools/v2/team/team-analytics-dashboard/tests/analytics-dashboard-fixtures.test.mjs
 ```
 
-Expected output: 10 passing tests, 0 failures.
+The suite checks the fixture, status coverage, threshold rules, and summary
+consistency.
 
 Also run the snapshot fixture tests:
 
@@ -96,20 +111,22 @@ The snapshot service (`generateSnapshots`) classifies team source reports into d
 
 The fixture includes one member for each workload archetype:
 
-| Member       | Status        | Scenario                                                          |
-| ------------ | ------------- | ----------------------------------------------------------------- |
-| Aisha Mensah | active        | Healthy contributor — low response time, no SLA breaches          |
-| Ben Torres   | overloaded    | High open-thread count and SLA breaches — surfaces in review list |
-| Clara Osei   | underutilized | All threads resolved — has available capacity                     |
-| David Yun    | away          | No activity this period — null response time                      |
+| Member | Status | Scenario |
+| --- | --- | --- |
+| Aisha Mensah | active | Healthy contributor with low response time and no breaches |
+| Ben Torres | overloaded | High open-thread count and SLA breaches, so review is required |
+| Clara Osei | underutilized | All threads resolved and capacity available |
+| David Yun | away | No activity this period and no response-time value |
 
-## Known Limitations
+## Known Limits
 
 - No live data aggregation yet; the fixture is a static snapshot.
-- SLA threshold (4 hours) and overload thresholds are constants in the test file — update them if the product definition changes.
-- `avgResponseTimeHours` is the raw arithmetic mean; future implementation may weight by thread complexity.
-- Away members have null response time; UI rendering N/A instead of 0 is a required behaviour enforced by the test.
+- The 4 hour SLA and overload thresholds are encoded in the local test file.
+- `avgResponseTimeHours` is a simple arithmetic mean for now.
+- Away members intentionally render with `avgResponseTimeHours: null`.
 
-## Review
+## Review Pointers
 
-See `docs/test-plan.md` for the full manual review checklist and `docs/review-notes.md` for contributor scope and follow-up issues.
+See `docs/ARCHITECTURE.md` for the folder-local module boundary, `docs/test-plan.md`
+for verification steps, and `docs/review-notes.md` for what future contributors
+may and may not change.
