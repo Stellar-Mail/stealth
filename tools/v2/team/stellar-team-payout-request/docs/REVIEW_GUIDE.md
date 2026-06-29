@@ -167,6 +167,9 @@ This document helps reviewers validate the Stellar Team Payout Request tool subm
 - [ ] `docs/SETUP.md` - Development setup
 - [ ] `docs/API.md` - Component/Service/Hook APIs
 - [ ] `docs/KNOWN_ISSUES.md` - Limitations and workarounds
+- [ ] `docs/SECURITY_THREAT_MODEL.md` - Security threat assumptions and unsafe inputs
+- [ ] `docs/VALIDATION_HELPERS.md` - Validation, sanitization, and guard helpers
+- [ ] `docs/PERFORMANCE_CONSTRAINTS.md` - Performance notes for large datasets
 - [ ] Root `README.md` - Tool overview
 - [ ] Root `specs.md` - Issue specifications
 

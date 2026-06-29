@@ -208,3 +208,5 @@ When reviewing test additions:
 - [ ] Error messages are descriptive
 - [ ] Tests use local mocks, not real APIs
 - [ ] Test file is co-located with implementation
+- [ ] Security validation tests are included (see docs/SECURITY_THREAT_MODEL.md)
+- [ ] Performance tests for large datasets are included (see docs/PERFORMANCE_CONSTRAINTS.md)
