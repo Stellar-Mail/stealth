@@ -10,6 +10,13 @@ Define important-email pinning behavior in a V1 individual workspace.
 
 This is a self-contained tooling workspace. Do not wire this tool into the main app, routing, inbox architecture, wallet core, Stellar core, or design system unless a future integration issue explicitly allows it.
 
+## Architecture Deliverables
+
+- Internal module boundaries are documented in `MODULE_BOUNDARIES.md`.
+- Data ownership and persistence limits are documented in `DATA_OWNERSHIP.md`.
+- Host application integration constraints are documented in `INTEGRATION_CONSTRAINTS.md`.
+- Test and fixture expectations remain folder-local under `docs/`.
+
 ## Purpose
 
 Help an individual user keep critical emails visible through explicit,

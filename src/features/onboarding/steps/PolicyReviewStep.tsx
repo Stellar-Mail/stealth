@@ -55,7 +55,10 @@ export function PolicyReviewStep({ draft, isSubmitting, submitError, onSubmit, o
       </div>
 
       {submitError && (
-        <div className="flex items-start gap-2 rounded-xl border border-red-400/20 bg-red-400/[0.06] p-4">
+        <div
+          role="alert"
+          className="flex items-start gap-2 rounded-xl border border-red-400/20 bg-red-400/[0.06] p-4"
+        >
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-400" />
           <div className="space-y-1">
             <p className="text-sm text-red-300">{submitError}</p>
@@ -76,20 +79,23 @@ export function PolicyReviewStep({ draft, isSubmitting, submitError, onSubmit, o
 
       <div className="flex gap-3">
         <button
+          type="button"
           onClick={onRetreat}
           disabled={isSubmitting}
           className={cn(
-            "flex-1 rounded-xl border border-white/10 px-4 py-2.5 text-sm text-muted-foreground transition",
+            "flex-1 rounded-xl border border-white/10 px-4 py-2.5 text-sm text-muted-foreground transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 active:scale-[0.99]",
             isSubmitting ? "opacity-40" : "hover:bg-white/[0.04] hover:text-foreground",
           )}
         >
           Back
         </button>
         <button
+          type="button"
           onClick={onSubmit}
           disabled={isSubmitting}
+          aria-busy={isSubmitting}
           className={cn(
-            "flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold transition",
+            "flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60 active:scale-[0.99]",
             isSubmitting
               ? "cursor-not-allowed bg-white/10 text-muted-foreground"
               : "bg-foreground text-background hover:opacity-90",

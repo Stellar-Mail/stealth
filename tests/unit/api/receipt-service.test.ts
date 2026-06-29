@@ -50,4 +50,14 @@ describe("receipt service", () => {
     ).resolves.toMatchObject({ readAt: "2026-06-14T12:30:00.000Z" });
     await expect(markReceiptRead(repository, messageId)).rejects.toMatchObject({ status: 409 });
   });
+
+  it("throws 404 when getting a non-existent receipt", async () => {
+    const repository = new MemoryApiRepository();
+    await expect(getReceipt(repository, "nonexistent")).rejects.toMatchObject({ status: 404 });
+  });
+
+  it("throws 404 when marking read on a non-existent receipt", async () => {
+    const repository = new MemoryApiRepository();
+    await expect(markReceiptRead(repository, "nonexistent")).rejects.toMatchObject({ status: 404 });
+  });
 });

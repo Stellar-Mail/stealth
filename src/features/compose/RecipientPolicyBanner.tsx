@@ -49,7 +49,7 @@ function getBannerConfig(quoteState: PostageQuoteState): BannerConfig | null {
       Icon: Loader2,
       label: "Checking recipient policy…",
       containerClass: "border-blue-300/20 bg-blue-300/[0.05] text-blue-200",
-      iconClass: "animate-spin text-blue-400",
+      iconClass: "motion-safe:animate-spin text-blue-400",
     };
   }
 
@@ -128,7 +128,10 @@ function getBannerConfig(quoteState: PostageQuoteState): BannerConfig | null {
  *
  * Error states are dismissible and do not block send.
  */
-export function RecipientPolicyBanner({ quoteState, className }: RecipientPolicyBannerProps) {
+export function RecipientPolicyBanner({
+  quoteState,
+  className,
+}: Readonly<RecipientPolicyBannerProps>) {
   const [dismissed, setDismissed] = useState(false);
 
   const config = getBannerConfig(quoteState);
@@ -162,7 +165,7 @@ export function RecipientPolicyBanner({ quoteState, className }: RecipientPolicy
           type="button"
           onClick={() => setDismissed(true)}
           aria-label="Dismiss policy error"
-          className="shrink-0 rounded p-0.5 opacity-60 transition hover:opacity-100"
+          className="shrink-0 rounded p-0.5 opacity-60 transition hover:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
         >
           <X className="h-3 w-3" />
         </button>

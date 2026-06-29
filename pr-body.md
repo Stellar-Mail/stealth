@@ -1,56 +1,53 @@
 ## Summary
 
-Closes #685
-
-Builds the **Team Digest Generator** tool's core feature inside its isolated folder `tools/v2/team/team-digest-generator/`.
+This PR implements the local user interface surface for the **Multi-Agent Assignment** tool with built-in accessibility (a11y) and comprehensive state handling (loading, empty, error, and success). All changes are fully isolated within `tools/v2/team/multi-agent-assignment/`.
 
 ## Deliverables
 
-### Core Logic (`services/digest-generator.service.mjs`)
+### 1. `AssignmentConsole.tsx`
 
-- `generateDigest(activity, date, generatedAt)` — transforms raw team activity into a structured daily digest
-- `classifyItem(email)` — classifies emails into digest item types: `new_message`, `pending_item`, `completed_item`, `team_summary`
-- `inferPriority(email)` — assigns priority (`low`, `medium`, `high`) based on content signals
-- `requiresAttention(email)` — flags items needing human intervention
-- `buildSummary(items)` — produces aggregate statistics (total items, attention count, distinct team members)
+- **Initial Loading State:** Introduced an `isInitializing` loading spinner overlay with a simulated startup delay to model real-world API data fetching.
+- **Accessibility Enhancements:**
+  - Added semantic `role="main"` and descriptive labeling (`aria-label`, `aria-describedby`).
+  - Implemented `aria-live="polite"` and `aria-atomic="true"` on the simulator notification banners to ensure real-time outcomes of simulated emails/auto-routing are announced to assistive technologies.
+  - Added `role="log"` and `aria-live="polite"` on the activity log console to announce routed/resolved events instantly.
+  - Linked keyboard toggle triggers with proper `aria-expanded` and `aria-controls` properties.
 
-### Fixtures (`fixtures/sample-team-activity.json`)
+### 2. `ThreadList.tsx`
 
-- 6 sample team emails spanning multiple team members, threads, and scenarios
-- Expected digest items covering all 4 digest types
-- Summary statistics matching the expected output
-- Review notes documenting fixture assumptions
+- **Interactive Empty State:** Created a premium empty state fallback layout (`role="status"` and `aria-live="polite"`) showing when the queue is clean or when no search results match.
+- **Accessibility Enhancements:**
+  - Upgraded filter tab bar to a compliant `role="tablist"`/`role="tab"` widget.
+  - Added `aria-label`s for the search bar, auto-route buttons, and resolve buttons.
+  - Implemented correct keyboard focus rings (`focus:ring-2 focus:ring-sky-500/50`) and structured threads inside a clean semantic hierarchy (`role="list"` and `role="listitem"`).
+  - Wired correct listbox aria properties to manual agent assignment selectors.
 
-### Tests (`tests/digest-fixtures.test.mjs`)
+### 3. `AgentList.tsx`
 
-- Validates fixture structure, required fields, enum values, and cross-references
-- Validates that the service produces output matching the expected digest contract
-- Zero-dependency Node.js test (`node:test`)
-
-### Documentation
-
-- `docs/test-plan.md` — automated and manual review steps, edge cases
-- `docs/review-notes.md` — validation summary, reviewer focus areas, follow-up work
-
-### Upstream Fix
-
-- Cleaned up PowerShell artifact placeholders in `specs.md`
+- **Dynamic State Support:** Implemented empty rosters support and interactive agent list displays.
+- **Accessibility Enhancements:**
+  - Wrapped elements in a semantic listing component using `role="list"` and `role="listitem"`.
+  - Decorated agent status dropdown triggers with descriptive aria labels detailing exactly which agent is being modified.
+  - Configured high-contrast status pills and robust visual focus rings.
 
 ## Verification
 
+### 1. Automated Syntax & Formatting Verification
+
+The codebase formatting has been strictly audited and aligned using Prettier:
+
 ```bash
-node --test tools/v2/team/team-digest-generator/tests/digest-fixtures.test.mjs
+node node_modules/prettier/bin/prettier.cjs --check .
 ```
 
-Both tests pass:
+_Result: Clean checkout, 0 formatting errors._
 
-- Sample fixture follows the local digest contract
-- Digest generator service produces matching output from fixture input
+### 2. Manual Accessibility & Keyboard Audit
+
+- Verified keyboard tab order through the control console, simulation panel, filters, search inputs, status switches, and action buttons.
+- Screen reader tests successfully pick up incoming support threads and assignment logs via `aria-live="polite"`.
 
 ## Boundary Compliance
 
-- All changes stay inside `tools/v2/team/team-digest-generator/`
-- No modification to main app shell, routing, inbox, wallet, Stellar core, database, or design system
-- No live network calls, secrets, or production data
-- Deterministic fixtures replace external dependencies
-- Folder-local API surface for future UI work
+- All modifications are strictly contained within `tools/v2/team/multi-agent-assignment/components/`.
+- Zero changes to global layout, authentication, routing, mail engines, databases, or main styles.

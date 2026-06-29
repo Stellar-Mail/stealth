@@ -1,41 +1,46 @@
-# Collision Detection
+# Collision Detection Specs
 
-Prevent duplicate responses.
+## Goal
+
+Prevent duplicate team responses by preparing a folder-local collision-detection
+workspace with explicit security and performance constraints.
 
 ## Scope
 
-- Release tier: $(System.Collections.Hashtable.Tier.ToUpperInvariant())
-- Audience: $(System.Collections.Hashtable.Audience)
-- Folder ownership: $dir/
+- Release tier: V1
+- Audience: Team
+- Folder ownership: `tools/v1/team/collision-detection/`
+- Integration status: isolated until a future issue explicitly wires it into
+  the main mail app.
 
-This is a self-contained tooling workspace. Do not wire this tool into the main app, routing, inbox architecture, wallet core, Stellar core, or design system unless a future integration issue explicitly allows it.
+Do not modify the main application shell, dashboard layout, navigation system,
+authentication, wallet core, mail rendering engine, existing inbox
+architecture, routing, Stellar integration core, database schema, or existing
+design system for this issue.
 
-Recommended internal structure:
+## Current Deliverables
 
-- components/
-- services/
-- hooks/
--     ests/
-- docs/
-  "@ | Set-Content -Path "tools/v1/team/collision-detection/README.md"
-  @"
+- Document threat assumptions and unsafe inputs.
+- Add folder-local guard helpers for malformed or hostile payloads.
+- Add performance notes and limits for large emails, attachments, team
+  histories, and candidate sets.
+- Add folder-local tests that can run without live mail, network calls, secrets,
+  private keys, or customer data.
 
-# Collision Detection Specs
+## Guard Contract
 
-## Purpose
+`prepareCollisionInput` accepts an unknown payload and returns:
 
-Prevent duplicate responses.
+- `ok: false` with validation errors when the top-level payload is malformed.
+- sanitized candidates when the payload can be inspected safely.
+- warnings for skipped candidates, truncated histories, body truncation, or
+  attachment caps.
+- stable fingerprints for duplicate-response comparisons after sanitization.
 
-## Contributor boundary
+## Acceptance Checklist
 
-All work for this tool should stay in:
-
-$dir/
-
-## Required issue categories
-
-- Architecture
-- Feature
-- UI and accessibility
-- Security and performance
-- Testing and documentation
+- The tool explicitly handles malformed or hostile input.
+- The tool avoids unnecessary work on large histories through `maxItems`.
+- Attachment counts and aggregate bytes are bounded before future analysis.
+- Files changed by this work stay inside `tools/v1/team/collision-detection/`.
+- The contribution remains a self-contained mini-product change.

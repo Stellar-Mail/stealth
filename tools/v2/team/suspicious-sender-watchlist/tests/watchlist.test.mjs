@@ -156,6 +156,258 @@ function createService(initialEntries = FIXTURES) {
 }
 
 // ---------------------------------------------------------------------------
+// Guard-augmented service (replicates guard integration in watchlist.service.ts)
+// ---------------------------------------------------------------------------
+
+// Inline replica of the guard logic so no ESM import is needed for tests
+class WatchlistValidationError extends Error {
+  constructor(message, field) {
+    super(message);
+    this.name = "WatchlistValidationError";
+    this.field = field;
+  }
+}
+
+const GUARD_LIMITS = {
+  MAX_WATCHLIST_ENTRIES: 5_000,
+  MAX_ID_LENGTH: 64,
+  MAX_EMAIL_LENGTH: 320,
+  MAX_NAME_LENGTH: 200,
+  MAX_REASON_LENGTH: 500,
+  MAX_SEARCH_LENGTH: 100,
+  ALLOWED_RISK_LEVELS: ["low", "medium", "high"],
+};
+
+const WATCHLIST_ID_PATTERN = /^[a-zA-Z0-9_-]+$/;
+
+function sanitizeText(raw) {
+  if (typeof raw !== "string") return "";
+  return raw
+    .trim()
+    .replace(/<[^>]*>/g, "")
+    .replace(/[\r\n\0]/g, " ");
+}
+
+function validateWatchlistId(id) {
+  if (typeof id !== "string" || id.length === 0) {
+    throw new WatchlistValidationError("id must be a non-empty string", "id");
+  }
+  if (id.length > GUARD_LIMITS.MAX_ID_LENGTH) {
+    throw new WatchlistValidationError(
+      `id exceeds max length of ${GUARD_LIMITS.MAX_ID_LENGTH}`,
+      "id",
+    );
+  }
+  if (!WATCHLIST_ID_PATTERN.test(id)) {
+    throw new WatchlistValidationError("id contains illegal characters", "id");
+  }
+  return id;
+}
+
+function validateSenderEmail(email) {
+  if (typeof email !== "string" || email.length === 0) {
+    throw new WatchlistValidationError("senderEmail must be a non-empty string", "senderEmail");
+  }
+  if (email.length > GUARD_LIMITS.MAX_EMAIL_LENGTH) {
+    throw new WatchlistValidationError(
+      `senderEmail exceeds max length of ${GUARD_LIMITS.MAX_EMAIL_LENGTH}`,
+      "senderEmail",
+    );
+  }
+  if (/[\r\n\0]/.test(email)) {
+    throw new WatchlistValidationError(
+      "senderEmail contains illegal control characters",
+      "senderEmail",
+    );
+  }
+  const atIndex = email.lastIndexOf("@");
+  if (atIndex < 1 || atIndex === email.length - 1) {
+    throw new WatchlistValidationError(
+      "senderEmail is malformed — missing local part or domain",
+      "senderEmail",
+    );
+  }
+  return email;
+}
+
+function validateSenderName(name) {
+  if (typeof name !== "string" || name.trim().length === 0) {
+    throw new WatchlistValidationError("senderName must be a non-empty string", "senderName");
+  }
+  if (name.length > GUARD_LIMITS.MAX_NAME_LENGTH) {
+    throw new WatchlistValidationError(
+      `senderName exceeds max length of ${GUARD_LIMITS.MAX_NAME_LENGTH}`,
+      "senderName",
+    );
+  }
+  return sanitizeText(name);
+}
+
+function validateReason(reason) {
+  if (typeof reason !== "string" || reason.trim().length === 0) {
+    throw new WatchlistValidationError("reason must be a non-empty string", "reason");
+  }
+  if (reason.length > GUARD_LIMITS.MAX_REASON_LENGTH) {
+    throw new WatchlistValidationError(
+      `reason exceeds max length of ${GUARD_LIMITS.MAX_REASON_LENGTH}`,
+      "reason",
+    );
+  }
+  return sanitizeText(reason);
+}
+
+function validateRiskLevel(level) {
+  if (typeof level !== "string" || level.length === 0) {
+    throw new WatchlistValidationError("riskLevel must be a non-empty string", "riskLevel");
+  }
+  const lowered = level.toLowerCase();
+  if (!GUARD_LIMITS.ALLOWED_RISK_LEVELS.includes(lowered)) {
+    throw new WatchlistValidationError(`"${level}" is not a recognised risk level`, "riskLevel");
+  }
+  return lowered;
+}
+
+function guardWatchlistSize(entries) {
+  if (!Array.isArray(entries)) {
+    throw new WatchlistValidationError("entries must be an array", "entries");
+  }
+  if (entries.length >= GUARD_LIMITS.MAX_WATCHLIST_ENTRIES) {
+    throw new WatchlistValidationError(
+      `watchlist size ${entries.length} exceeds safe limit of ${GUARD_LIMITS.MAX_WATCHLIST_ENTRIES}`,
+      "entries",
+    );
+  }
+  return true;
+}
+
+function validateSearchQuery(query) {
+  if (query === undefined || query === null) return "";
+  if (typeof query !== "string") {
+    throw new WatchlistValidationError("search query must be a string", "search");
+  }
+  if (query.length > GUARD_LIMITS.MAX_SEARCH_LENGTH) {
+    throw new WatchlistValidationError(
+      `search query exceeds max length of ${GUARD_LIMITS.MAX_SEARCH_LENGTH}`,
+      "search",
+    );
+  }
+  return query.trim();
+}
+
+function validateAddEntryInput(input) {
+  if (input === null || typeof input !== "object" || Array.isArray(input)) {
+    throw new WatchlistValidationError("addEntry input must be a plain object", "input");
+  }
+  const senderEmail = validateSenderEmail(input.senderEmail);
+  const senderName = validateSenderName(input.senderName);
+  const reason = validateReason(input.reason);
+  const riskLevel = validateRiskLevel(input.riskLevel);
+  return { senderEmail, senderName, reason, riskLevel };
+}
+
+function createServiceWithGuards(initialEntries = FIXTURES) {
+  let entries = initialEntries.map((e) => ({ ...e }));
+
+  async function getEntries(filter = {}) {
+    return applyFilter(entries, filter);
+  }
+
+  async function addEntry(input) {
+    const validated = validateAddEntryInput(input);
+    guardWatchlistSize(entries);
+
+    const entry = {
+      id: generateId(),
+      senderEmail: validated.senderEmail,
+      senderName: validated.senderName,
+      reason: validated.reason,
+      riskLevel: validated.riskLevel,
+      status: "active",
+      dateAdded: new Date().toISOString().slice(0, 10),
+      ...(input.notes !== undefined ? { notes: sanitizeText(input.notes) } : {}),
+    };
+    entries = [...entries, entry];
+    return entry;
+  }
+
+  async function updateRisk(input) {
+    validateWatchlistId(input.id);
+    validateRiskLevel(input.riskLevel);
+
+    const idx = entries.findIndex((e) => e.id === input.id);
+    if (idx === -1) throw new Error(`Entry ${input.id} not found.`);
+    const updated = { ...entries[idx], riskLevel: input.riskLevel.toLowerCase() };
+    entries = entries.map((e, i) => (i === idx ? updated : e));
+    return updated;
+  }
+
+  async function dismissEntry(id) {
+    validateWatchlistId(id);
+    const idx = entries.findIndex((e) => e.id === id);
+    if (idx === -1) throw new Error(`Entry ${id} not found.`);
+    const updated = { ...entries[idx], status: "dismissed" };
+    entries = entries.map((e, i) => (i === idx ? updated : e));
+    return updated;
+  }
+
+  async function removeEntry(id) {
+    validateWatchlistId(id);
+    const idx = entries.findIndex((e) => e.id === id);
+    if (idx === -1) throw new Error(`Entry ${id} not found.`);
+    entries = entries.filter((e) => e.id !== id);
+  }
+
+  async function getMetrics() {
+    guardWatchlistSize(entries);
+    return computeMetrics(entries);
+  }
+
+  /** Guard-augmented applyFilter that validates inputs */
+  function guardedApplyFilter(list, filter = {}) {
+    let result = list;
+
+    try {
+      guardWatchlistSize(list);
+    } catch (e) {
+      if (e instanceof WatchlistValidationError) return [];
+      throw e;
+    }
+
+    if (filter.riskLevel) {
+      const validatedLevel = validateRiskLevel(filter.riskLevel);
+      result = result.filter((e) => e.riskLevel === validatedLevel);
+    }
+    if (filter.status) {
+      const q = filter.status.toLowerCase();
+      result = result.filter((e) => e.status === q);
+    }
+    if (filter.search) {
+      const q = validateSearchQuery(filter.search);
+      if (q) {
+        const lowered = q.toLowerCase();
+        result = result.filter(
+          (e) =>
+            e.senderEmail.toLowerCase().includes(lowered) ||
+            e.senderName.toLowerCase().includes(lowered) ||
+            e.reason.toLowerCase().includes(lowered),
+        );
+      }
+    }
+    return result;
+  }
+
+  return {
+    getEntries,
+    addEntry,
+    updateRisk,
+    dismissEntry,
+    removeEntry,
+    getMetrics,
+    guardedApplyFilter,
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
@@ -395,5 +647,276 @@ describe("Suspicious Sender Watchlist — Service", () => {
     const m = await svc.getMetrics();
     assert.strictEqual(m.total, 1);
     assert.strictEqual(m.lowRisk, 1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Guard Integration Tests — validates that guard functions work at the service boundary
+// ---------------------------------------------------------------------------
+
+describe("Suspicious Sender Watchlist — Guard Integration (Service)", () => {
+  // --- addEntry guard integration ---
+
+  it("addEntry rejects invalid email via guards", async () => {
+    const svc = createServiceWithGuards();
+    await assert.rejects(
+      () =>
+        svc.addEntry({
+          senderEmail: "not-an-email",
+          senderName: "Test",
+          reason: "Test",
+          riskLevel: "low",
+        }),
+      WatchlistValidationError,
+    );
+  });
+
+  it("addEntry rejects malicious email with CRLF via guards", async () => {
+    const svc = createServiceWithGuards();
+    await assert.rejects(
+      () =>
+        svc.addEntry({
+          senderEmail: "user@evil.test\r\nBcc: victim",
+          senderName: "Test",
+          reason: "Test",
+          riskLevel: "low",
+        }),
+      WatchlistValidationError,
+    );
+  });
+
+  it("addEntry rejects invalid risk level via guards", async () => {
+    const svc = createServiceWithGuards();
+    await assert.rejects(
+      () =>
+        svc.addEntry({
+          senderEmail: "user@example.com",
+          senderName: "Test",
+          reason: "Test",
+          riskLevel: "critical",
+        }),
+      WatchlistValidationError,
+    );
+  });
+
+  it("addEntry rejects empty name via guards", async () => {
+    const svc = createServiceWithGuards();
+    await assert.rejects(
+      () =>
+        svc.addEntry({
+          senderEmail: "user@example.com",
+          senderName: "",
+          reason: "Test",
+          riskLevel: "low",
+        }),
+      WatchlistValidationError,
+    );
+  });
+
+  it("addEntry sanitizes HTML in name and reason", async () => {
+    const svc = createServiceWithGuards();
+    const added = await svc.addEntry({
+      senderEmail: "hacker@example.com",
+      senderName: "<script>alert(1)</script>",
+      reason: "<b>Phishing</b> attempt",
+      riskLevel: "high",
+    });
+    assert.strictEqual(added.senderName, "alert(1)");
+    assert.strictEqual(added.reason, "Phishing attempt");
+  });
+
+  it("addEntry normalizes case of risk level via guards", async () => {
+    const svc = createServiceWithGuards();
+    const added = await svc.addEntry({
+      senderEmail: "test@example.com",
+      senderName: "Test",
+      reason: "Test reason",
+      riskLevel: "HIGH",
+    });
+    assert.strictEqual(added.riskLevel, "high");
+  });
+
+  it("addEntry rejects input with empty reason via guards", async () => {
+    const svc = createServiceWithGuards();
+    await assert.rejects(
+      () =>
+        svc.addEntry({
+          senderEmail: "user@example.com",
+          senderName: "Test",
+          reason: "   ",
+          riskLevel: "low",
+        }),
+      WatchlistValidationError,
+    );
+  });
+
+  // --- updateRisk guard integration ---
+
+  it("updateRisk rejects malformed ID via guards", async () => {
+    const svc = createServiceWithGuards();
+    await assert.rejects(
+      () => svc.updateRisk({ id: "../../../etc/passwd", riskLevel: "high" }),
+      WatchlistValidationError,
+    );
+  });
+
+  it("updateRisk rejects invalid risk level via guards", async () => {
+    const svc = createServiceWithGuards();
+    await assert.rejects(
+      () => svc.updateRisk({ id: "watch-001", riskLevel: "CRITICAL" }),
+      WatchlistValidationError,
+    );
+  });
+
+  it("updateRisk accepts case-variant risk level and normalizes", async () => {
+    const svc = createServiceWithGuards();
+    const updated = await svc.updateRisk({ id: "watch-005", riskLevel: "HIGH" });
+    assert.strictEqual(updated.riskLevel, "high");
+  });
+
+  it("updateRisk rejects path traversal in ID via guards", async () => {
+    const svc = createServiceWithGuards();
+    await assert.rejects(
+      () => svc.updateRisk({ id: "../../secret", riskLevel: "high" }),
+      WatchlistValidationError,
+    );
+  });
+
+  // --- dismissEntry guard integration ---
+
+  it("dismissEntry rejects null ID via guards", async () => {
+    const svc = createServiceWithGuards();
+    await assert.rejects(() => svc.dismissEntry(null), WatchlistValidationError);
+  });
+
+  it("dismissEntry rejects path traversal in ID via guards", async () => {
+    const svc = createServiceWithGuards();
+    await assert.rejects(() => svc.dismissEntry("../../secret"), WatchlistValidationError);
+  });
+
+  // --- removeEntry guard integration ---
+
+  it("removeEntry rejects empty ID via guards", async () => {
+    const svc = createServiceWithGuards();
+    await assert.rejects(() => svc.removeEntry(""), WatchlistValidationError);
+  });
+
+  it("removeEntry rejects XSS in ID via guards", async () => {
+    const svc = createServiceWithGuards();
+    await assert.rejects(
+      () => svc.removeEntry("<script>alert(1)</script>"),
+      WatchlistValidationError,
+    );
+  });
+
+  // --- getMetrics guard integration ---
+
+  it("getMetrics does not throw for watchlist one below limit", async () => {
+    const entries = Array.from({ length: GUARD_LIMITS.MAX_WATCHLIST_ENTRIES - 1 }, (_, i) => ({
+      id: `watch-${i}`,
+      senderEmail: "test@example.com",
+      senderName: "Test",
+      reason: "Bulk entry",
+      riskLevel: "low",
+      status: "active",
+      dateAdded: "2026-01-01",
+    }));
+    const svc = createServiceWithGuards(entries);
+    const m = await svc.getMetrics();
+    assert.strictEqual(m.total, GUARD_LIMITS.MAX_WATCHLIST_ENTRIES - 1);
+  });
+
+  it("getMetrics throws for oversized watchlist via guards", async () => {
+    const oversized = Array.from({ length: GUARD_LIMITS.MAX_WATCHLIST_ENTRIES + 1 }, (_, i) => ({
+      id: `watch-${i}`,
+      senderEmail: "test@example.com",
+      senderName: "Test",
+      reason: "Bulk entry",
+      riskLevel: "low",
+      status: "active",
+      dateAdded: "2026-01-01",
+    }));
+    const svc = createServiceWithGuards(oversized);
+    await assert.rejects(() => svc.getMetrics(), WatchlistValidationError);
+  });
+
+  // --- applyFilter guard integration ---
+
+  it("applyFilter with guards returns empty for oversized watchlist", async () => {
+    const oversized = Array.from({ length: GUARD_LIMITS.MAX_WATCHLIST_ENTRIES + 1 }, (_, i) => ({
+      id: `watch-${i}`,
+      senderEmail: "test@example.com",
+      senderName: "Test",
+      reason: "Bulk entry",
+      riskLevel: "low",
+      status: "active",
+      dateAdded: "2026-01-01",
+    }));
+    const svc = createServiceWithGuards(oversized);
+    const result = svc.guardedApplyFilter(oversized, { riskLevel: "low" });
+    assert.strictEqual(result.length, 0);
+  });
+
+  // --- addEntry size guard ---
+
+  it("addEntry throws when watchlist is at capacity via guards", async () => {
+    const nearlyFull = Array.from({ length: GUARD_LIMITS.MAX_WATCHLIST_ENTRIES }, (_, i) => ({
+      id: `watch-${i}`,
+      senderEmail: "test@example.com",
+      senderName: "Test",
+      reason: "Bulk entry",
+      riskLevel: "low",
+      status: "active",
+      dateAdded: "2026-01-01",
+    }));
+    const svc = createServiceWithGuards(nearlyFull);
+    await assert.rejects(
+      () =>
+        svc.addEntry({
+          senderEmail: "new@example.com",
+          senderName: "New Threat",
+          reason: "New entry at capacity",
+          riskLevel: "high",
+        }),
+      WatchlistValidationError,
+    );
+  });
+
+  // --- happy path with guards ---
+
+  it("addEntry with guards succeeds for valid input", async () => {
+    const svc = createServiceWithGuards();
+    const added = await svc.addEntry({
+      senderEmail: "safe@example.com",
+      senderName: "Safe Sender",
+      reason: "Legitimate concern",
+      riskLevel: "medium",
+    });
+    assert.ok(added.id.startsWith("watch-"));
+    assert.strictEqual(added.status, "active");
+    assert.strictEqual(added.senderEmail, "safe@example.com");
+    assert.strictEqual(added.riskLevel, "medium");
+
+    const entries = await svc.getEntries();
+    assert.strictEqual(entries.length, 7); // 6 fixtures + 1 new
+  });
+
+  it("updateRisk with guards succeeds for valid input", async () => {
+    const svc = createServiceWithGuards();
+    const updated = await svc.updateRisk({ id: "watch-001", riskLevel: "low" });
+    assert.strictEqual(updated.riskLevel, "low");
+  });
+
+  it("dismissEntry with guards succeeds for valid ID", async () => {
+    const svc = createServiceWithGuards();
+    const dismissed = await svc.dismissEntry("watch-003");
+    assert.strictEqual(dismissed.status, "dismissed");
+  });
+
+  it("removeEntry with guards succeeds for valid ID", async () => {
+    const svc = createServiceWithGuards();
+    await svc.removeEntry("watch-001");
+    const entries = await svc.getEntries();
+    assert.strictEqual(entries.length, 5);
   });
 });

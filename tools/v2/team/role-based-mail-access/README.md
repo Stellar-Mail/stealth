@@ -1,50 +1,57 @@
 # Role-Based Mail Access
 
-A self-contained V2 team tool that enforces which team members can read, write, assign, delete, or manage mail threads based on a declared role. This contribution adds the safety and performance guard layer, dynamic policy configuring tables, verification controls form, boundaries limit checks, and real-time audit logs.
+Release tier: V2
+Audience: team
 
-## Ownership Boundary
+Role-Based Mail Access is an isolated tool for checking whether a team member can read, write, assign, delete, or manage mail threads based on a declared role policy.
 
-All work for this tool must stay inside:
+## Isolation Boundary
 
-```text
-tools/v2/team/role-based-mail-access/
-```
+All work for this issue stays inside `tools/v2/team/role-based-mail-access/`.
 
-Do not wire this tool into the main app, routing, inbox architecture, wallet core, Stellar core, database schema, or existing design system unless a future integration issue explicitly allows it.
+Do not connect this tool to the main application shell, dashboard layout, navigation, authentication, wallet core, mail rendering engine, inbox architecture, routing, Stellar integration, database schema, or design system.
 
----
+## What Lives Here
 
-## Workspace Structure
+- [types/index.ts](types/index.ts): shared request, policy, and log types.
+- [fixtures/sample-access-requests.json](fixtures/sample-access-requests.json): local fixture data with valid requests and hostile inputs.
+- [guards/access-guards.mjs](guards/access-guards.mjs): validation, sanitization, and size guards.
+- [services/access.service.ts](services/access.service.ts): in-memory policy and audit-log service.
+- [hooks/use-role-based-access.ts](hooks/use-role-based-access.ts): React wrapper around the service.
+- [components/](components): presentational matrix, verifier, and console UI.
+- [demo.tsx](demo.tsx): isolated preview entry.
+- [tests/](tests): folder-local guard and service coverage plus the test plan.
+- [docs/](docs): contributor docs, architecture notes, accessibility guidance, and reviewer notes.
 
-- **[types/index.ts](file:///home/henry/projects/open-source/stealth/tools/v2/team/role-based-mail-access/types/index.ts)**: Domain TypeScript definitions.
-- **[fixtures/sample-access-requests.json](file:///home/henry/projects/open-source/stealth/tools/v2/team/role-based-mail-access/fixtures/sample-access-requests.json)**: JSON datasets holding valid clearance templates and 19 hostile threat injection vectors.
-- **[guards/access-guards.mjs](file:///home/henry/projects/open-source/stealth/tools/v2/team/role-based-mail-access/guards/access-guards.mjs)**: Schema validators, sanitizers, and size limit checks.
-- **[services/access.service.ts](file:///home/henry/projects/open-source/stealth/tools/v2/team/role-based-mail-access/services/access.service.ts)**: Core state manager handling policy configurations and limit verifiers.
-- **[hooks/use-role-based-access.ts](file:///home/henry/projects/open-source/stealth/tools/v2/team/role-based-mail-access/hooks/use-role-based-access.ts)**: Custom React state synchronization hook.
-- **[components/](file:///home/henry/projects/open-source/stealth/tools/v2/team/role-based-mail-access/components/)**: Dynamic matrix grids, verifier form cards, and logs.
-- **[demo.tsx](file:///home/henry/projects/open-source/stealth/tools/v2/team/role-based-mail-access/demo.tsx)**: Preview development wrapper.
+## Setup
 
----
+1. Install the repo dependencies from the project root if they are not already present.
+2. Keep changes inside this tool folder so the issue remains reviewable on its own.
 
-## Detailed Documentation
+## Usage
 
-- **[Visual Style and States Guide](file:///home/henry/projects/open-source/stealth/tools/v2/team/role-based-mail-access/docs/README.md)**: Details empty, loading, granted, denied, and error warning states.
-- **[Technical Architecture Spec](file:///home/henry/projects/open-source/stealth/tools/v2/team/role-based-mail-access/docs/ARCHITECTURE.md)**: Domain schema definitions and threat scan loop.
-- **[Accessibility (a11y) Guide](file:///home/henry/projects/open-source/stealth/tools/v2/team/role-based-mail-access/docs/ACCESSIBILITY.md)**: Aria tags, focus ring controls, and screen-readers checklist.
-- **[OSS Reviewer Validation Guide](file:///home/henry/projects/open-source/stealth/tools/v2/team/role-based-mail-access/docs/review-notes.md)**: Step-by-step verification guide.
-
----
-
-## Running the Tests
-
-### Running UI Service Tests (Vitest)
-
-```bash
-npx vitest -c tools/v2/team/role-based-mail-access/vitest.config.ts run
-```
-
-### Running Native Guard Tests (Node.js)
+Run the local checks from the repository root:
 
 ```bash
 node --test tools/v2/team/role-based-mail-access/tests/access-guards.test.mjs
+npx vitest -c tools/v2/team/role-based-mail-access/vitest.config.ts run
 ```
+
+For a quick contributor checklist, start with [tests/test-plan.md](tests/test-plan.md) and then read [docs/review-notes.md](docs/review-notes.md).
+
+## Fixtures
+
+The fixture set is intentionally small and reviewable:
+
+- 5 valid requests that cover every role and a mix of allowed and denied actions
+- 19 hostile inputs that exercise the guard layer
+- boundary limits for team size, attachment count, role length, thread ID length, and email length
+
+See [fixtures/sample-access-requests.json](fixtures/sample-access-requests.json) for the exact payloads.
+
+## Known Limitations
+
+- The tool is in-memory only; there is no persistence layer.
+- The tool does not integrate with the main mail app yet.
+- There is no mailbox routing, wallet, Stellar, or database work in this issue.
+- Future app wiring should be handled in a separate follow-up issue.

@@ -3,6 +3,7 @@
  *
  * Pure service factory. No network calls, no secrets.
  * All state is held in memory and seeded from the local fixtures.
+ * Input validation is delegated to guards/watchlist-guards.mjs.
  *
  * Inputs:
  *   getEntries(filter?)      → WatchlistEntry[]
@@ -23,6 +24,14 @@ import type {
   WatchlistMetrics,
 } from "../types";
 import { WATCHLIST_FIXTURES } from "../fixtures/watchlist.fixtures";
+import {
+  validateAddEntryInput,
+  validateWatchlistId,
+  validateRiskLevel,
+  validateSearchQuery,
+  guardWatchlistSize,
+  WatchlistValidationError,
+} from "../guards/watchlist-guards.mjs";
 
 let _idCounter = 100;
 function generateId(): string {
@@ -60,16 +69,37 @@ export function createWatchlistService(config: WatchlistServiceConfig = {}) {
 
   function applyFilter(list: WatchlistEntry[], filter: WatchlistFilter): WatchlistEntry[] {
     let result = list;
-    if (filter.riskLevel) result = result.filter((e) => e.riskLevel === filter.riskLevel);
-    if (filter.status) result = result.filter((e) => e.status === filter.status);
+
+    // Guard against oversized input before iteration
+    try {
+      guardWatchlistSize(list);
+    } catch (e) {
+      if (e instanceof WatchlistValidationError) {
+        // Silently return empty for oversized — caller is expected to paginate
+        return [];
+      }
+      throw e;
+    }
+
+    if (filter.riskLevel) {
+      const validatedLevel = validateRiskLevel(filter.riskLevel);
+      result = result.filter((e) => e.riskLevel === validatedLevel);
+    }
+    if (filter.status) {
+      const q = filter.status.toLowerCase();
+      result = result.filter((e) => e.status === q);
+    }
     if (filter.search) {
-      const q = filter.search.toLowerCase();
-      result = result.filter(
-        (e) =>
-          e.senderEmail.toLowerCase().includes(q) ||
-          e.senderName.toLowerCase().includes(q) ||
-          e.reason.toLowerCase().includes(q),
-      );
+      const q = validateSearchQuery(filter.search);
+      if (q) {
+        const lowered = q.toLowerCase();
+        result = result.filter(
+          (e) =>
+            e.senderEmail.toLowerCase().includes(lowered) ||
+            e.senderName.toLowerCase().includes(lowered) ||
+            e.reason.toLowerCase().includes(lowered),
+        );
+      }
     }
     return result;
   }
@@ -98,20 +128,31 @@ export function createWatchlistService(config: WatchlistServiceConfig = {}) {
 
   /**
    * Adds a new entry and returns it.
+   * Guards: validates input via validateAddEntryInput, checks watchlist size.
    * Output: WatchlistEntry with generated id and today's dateAdded.
+   * Error state: throws WatchlistValidationError on invalid input.
    */
   async function addEntry(input: AddEntryInput): Promise<WatchlistEntry> {
     await delay();
     maybeThrow();
+
+    // Validate and sanitize input via guards
+    const validated = validateAddEntryInput(input as any);
+
+    // Guard against oversized watchlist
+    guardWatchlistSize(entries);
+
     const entry: WatchlistEntry = {
       id: generateId(),
-      senderEmail: input.senderEmail,
-      senderName: input.senderName,
-      reason: input.reason,
-      riskLevel: input.riskLevel,
+      senderEmail: validated.senderEmail,
+      senderName: validated.senderName,
+      reason: validated.reason,
+      riskLevel: validated.riskLevel as WatchlistEntry["riskLevel"],
       status: "active",
       dateAdded: today(),
-      ...(input.notes !== undefined ? { notes: input.notes } : {}),
+      ...(validated.notes !== undefined && validated.notes !== ""
+        ? { notes: validated.notes }
+        : {}),
     };
     entries = [...entries, entry];
     return entry;
@@ -119,27 +160,41 @@ export function createWatchlistService(config: WatchlistServiceConfig = {}) {
 
   /**
    * Updates the risk level of an existing entry.
-   * Error state: throws if entry not found.
+   * Guards: validates id and riskLevel via guards.
+   * Error state: throws if entry not found or validation fails.
    */
   async function updateRisk(input: UpdateRiskInput): Promise<WatchlistEntry> {
     await delay();
     maybeThrow();
-    const idx = entries.findIndex((e) => e.id === input.id);
-    if (idx === -1) throw new Error(`Entry ${input.id} not found.`);
-    const updated: WatchlistEntry = { ...entries[idx], riskLevel: input.riskLevel };
+
+    // Validate inputs via guards
+    const validatedId = validateWatchlistId(input.id);
+    const validatedLevel = validateRiskLevel(input.riskLevel);
+
+    const idx = entries.findIndex((e) => e.id === validatedId);
+    if (idx === -1) throw new Error(`Entry ${validatedId} not found.`);
+    const updated: WatchlistEntry = {
+      ...entries[idx],
+      riskLevel: validatedLevel as WatchlistEntry["riskLevel"],
+    };
     entries = entries.map((e, i) => (i === idx ? updated : e));
     return updated;
   }
 
   /**
    * Marks an entry as dismissed.
+   * Guards: validates id via guards.
    * Error state: throws if entry not found.
    */
   async function dismissEntry(id: string): Promise<WatchlistEntry> {
     await delay();
     maybeThrow();
-    const idx = entries.findIndex((e) => e.id === id);
-    if (idx === -1) throw new Error(`Entry ${id} not found.`);
+
+    // Validate input via guards
+    const validatedId = validateWatchlistId(id);
+
+    const idx = entries.findIndex((e) => e.id === validatedId);
+    if (idx === -1) throw new Error(`Entry ${validatedId} not found.`);
     const updated: WatchlistEntry = { ...entries[idx], status: "dismissed" };
     entries = entries.map((e, i) => (i === idx ? updated : e));
     return updated;
@@ -147,23 +202,30 @@ export function createWatchlistService(config: WatchlistServiceConfig = {}) {
 
   /**
    * Permanently removes an entry from the in-memory store.
+   * Guards: validates id via guards.
    * Error state: throws if entry not found.
    */
   async function removeEntry(id: string): Promise<void> {
     await delay();
     maybeThrow();
-    const idx = entries.findIndex((e) => e.id === id);
-    if (idx === -1) throw new Error(`Entry ${id} not found.`);
-    entries = entries.filter((e) => e.id !== id);
+
+    // Validate input via guards
+    const validatedId = validateWatchlistId(id);
+
+    const idx = entries.findIndex((e) => e.id === validatedId);
+    if (idx === -1) throw new Error(`Entry ${validatedId} not found.`);
+    entries = entries.filter((e) => e.id !== validatedId);
   }
 
   /**
    * Returns aggregated metrics over all current entries.
+   * Guards: checks watchlist size before iteration.
    * Output: WatchlistMetrics
    */
   async function getMetrics(): Promise<WatchlistMetrics> {
     await delay();
     maybeThrow();
+    guardWatchlistSize(entries);
     return computeMetrics(entries);
   }
 

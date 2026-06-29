@@ -1,7 +1,7 @@
 import React from "react";
 import { AlertCircle } from "lucide-react";
-import { Button } from "../../../src/components/ui/button";
-import { Alert, AlertDescription, AlertTitle } from "../../../src/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface SharedDraftErrorStateProps {
   error: string;

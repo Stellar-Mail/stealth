@@ -66,8 +66,8 @@ export {
 } from "./constants/displayTokens";
 
 export { CampaignTagManager } from "./components/CampaignTagManager";
-export { CampaignListTable } from "./components/CampaignListTable";
-export type { CampaignListTableProps } from "./components/CampaignListTable";
+export { CampaignEditorPanel } from "./components/CampaignEditorPanel";
+export type { CampaignEditorPanelProps } from "./components/CampaignEditorPanel";
 export { MockPublishPanel } from "./components/MockPublishPanel";
 export type { MockPublishPanelProps } from "./components/MockPublishPanel";
 export { CampaignDiffPanel } from "./components/CampaignDiffPanel";
@@ -88,6 +88,21 @@ export type {
   CampaignListSortDirection,
   CampaignListSortKey,
 } from "./campaignListTable";
+export {
+  campaignEditorStateToSnapshot,
+  campaignToEditorState,
+  emptyCampaignEditorState,
+  getCampaignEditorEmptyState,
+  hasAnyCampaignEditorContent,
+  normalizeCampaignEditorTags,
+  validateCampaignEditorState,
+} from "./campaignEditor";
+export type {
+  CampaignEditorEmptyState,
+  CampaignEditorState,
+  CampaignEditorStatus,
+  CampaignEditorValidationResult,
+} from "./campaignEditor";
 export {
   canRetryMockPublish,
   canRollbackMockPublish,
@@ -172,6 +187,11 @@ export * from "./validation";
 export * from "./validationFixtures";
 export { ValidationResultsPanel } from "./ValidationResultsPanel";
 export type { ValidationResultsPanelProps } from "./ValidationResultsPanel";
+export * from "./publishChecklist-types";
+export * from "./publishChecklist";
+export * from "./publishChecklistFixtures";
+export { PublishChecklist } from "./components/PublishChecklist";
+export type { PublishChecklistProps } from "./components/PublishChecklist";
 
 // Proof record editor, helpers, and formatting
 export { ProofRecordEditor } from "./ProofRecordEditor";
@@ -473,10 +493,60 @@ export {
 export { demoLabels, labeledDemoMessages } from "./labels/labelFixtures";
 export { LabelManager } from "./labels/LabelManager";
 
+// Bulk label panel (issue #40): add/remove labels across selected demo messages.
+export { BulkLabelPanel, calculateLabelState } from "./components/BulkLabelPanel";
+export type { BulkLabelPanelProps } from "./components/BulkLabelPanel";
+export {
+  applyBulkLabelEdit,
+  normalizeLabelsForBulk,
+  summarizeBulkLabelEdit,
+} from "./bulkLabelPanel";
+export type {
+  BulkLabelAuditSummary,
+  BulkLabelEditResult,
+  BulkLabelMessageChange,
+  BulkLabelOperation,
+} from "./bulkLabelPanel";
+
+// Bulk move panel (issue #204): move selected demo messages between mailbox folders.
+export { BulkMovePanel } from "./components/BulkMovePanel";
+export type { BulkMovePanelProps } from "./components/BulkMovePanel";
+export {
+  applyBulkFolderMove,
+  getMessageFolderLabel,
+  isValidMessageFolder,
+  previewBulkFolderMove,
+  summarizeBulkFolderMove,
+  validateBulkFolderMove,
+} from "./bulkMovePanel";
+export type {
+  BulkMoveAuditSummary,
+  BulkMoveEditResult,
+  BulkMoveMessageChange,
+  BulkMoveValidation,
+} from "./bulkMovePanel";
+
 // Draft dataset JSON import (issue #272): JSON -> safe drafts mapper with error output.
 export { mapImportedDataset, parseDatasetImport } from "./helpers/datasetImport";
 export type { DatasetImportIssue, DatasetImportResult } from "./types/datasetImport";
 
+// Validation quick-fix framework (issue #221): one-click fixes for demo-data validation issues.
+export {
+  applyQuickFix,
+  createQuickFixRegistry,
+  defaultQuickFixRegistry,
+  quickFixKindForIssue,
+  toSafeRecipient,
+  SAFE_BODY,
+  SAFE_RECIPIENT,
+  SAFE_SUBJECT,
+} from "./helpers/quickFixRegistry";
+export type {
+  QuickFix,
+  QuickFixApplication,
+  QuickFixKind,
+  QuickFixRegistry,
+} from "./types/quickFix";
 // Scenario registry and loader (issue #216): load demo scenarios into draft state.
 export {
   createScenarioRegistry,
@@ -484,3 +554,30 @@ export {
   loadScenarioIntoDraft,
 } from "./helpers/scenarioRegistry";
 export type { DemoScenario, ScenarioLoadMode, ScenarioRegistry } from "./types/scenario";
+
+// Demo Inbox Preview Components (issue #24): folder-local preview without live integration
+export { DemoInboxPreview } from "./components/DemoInboxPreview";
+export { DemoInboxList } from "./components/DemoInboxList";
+export { DemoMailReader } from "./components/DemoMailReader";
+
+// Demo Inbox Data Fixtures (issue #24): safe demo data for inbox preview
+export {
+  createDemoInboxData,
+  getDemoMessagesByLabel,
+  getUnreadDemoMessages,
+  getStarredDemoMessages,
+  getDemoMessagesWithAttachments,
+  getDemoMessagesWithEvents,
+} from "./fixtures/demoInboxData";
+
+// Demo Data Validation (issue #24): safety compliance helpers
+export {
+  validateDemoDataset,
+  validateDemoMessage,
+  validateDemoSender,
+  validateSafeEmailAddress,
+  validateTextContent,
+  generateComplianceReport,
+  assertDemoDataSafety,
+} from "./helpers/demoDataValidator";
+export type { ValidationIssue, ValidationResult } from "./helpers/demoDataValidator";
