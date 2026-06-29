@@ -28,6 +28,7 @@ import {
 import { cn } from "@/lib/utils";
 import type { MailFolder } from "./data";
 import { DROP_TARGET_FOLDERS } from "./useDragDrop";
+import { useAccountSwitcher } from "@/features/account-switcher";
 
 type SidebarItem = { key: MailFolder; label: string; icon: LucideIcon };
 
@@ -104,6 +105,7 @@ export function Sidebar({
   onDrop?: (emailIds: string[], target: MailFolder) => void;
   onOpenSenderJourney?: () => void;
 }) {
+  const { activeAccount } = useAccountSwitcher();
   const [folders, setFolders] = useState(defaultFolders);
   const [isAddingFolder, setIsAddingFolder] = useState(false);
 
@@ -265,21 +267,34 @@ export function Sidebar({
         )}
       >
         <div
-          className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full"
-          style={{ background: "linear-gradient(135deg, #4d5560, #232326)" }}
+          className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full text-xs font-medium text-white/90"
+          style={{
+            background: activeAccount?.avatarColor ?? "linear-gradient(135deg, #4d5560, #232326)",
+          }}
         >
-          <span className="absolute inset-0 flex items-center justify-center text-xs font-medium text-white/90">
-            EN
-          </span>
+          {activeAccount?.avatarInitials ?? "?"}
         </div>
-        {!collapsed && (
+        {!collapsed && activeAccount && (
           <div className="min-w-0 flex-1 leading-tight">
-            <div className="truncate text-xs font-medium text-foreground">Uthaimin</div>
-            <div className="truncate text-[11px] text-muted-foreground">kryputh@stealth.me</div>
+            <div className="truncate text-xs font-medium text-foreground">{activeAccount.label}</div>
+            <div className="truncate text-[11px] text-muted-foreground">
+              {activeAccount.federationAddress ?? activeAccount.address}
+            </div>
           </div>
         )}
         {!collapsed && (
-          <span className="pulse-dot ml-auto h-1.5 w-1.5 rounded-full bg-[oklch(0.85_0.005_270)]" />
+          <span
+            className={cn(
+              "ml-auto h-1.5 w-1.5 rounded-full",
+              activeAccount?.syncState === "synced"
+                ? "bg-emerald-400"
+                : activeAccount?.syncState === "syncing"
+                  ? "bg-blue-400 animate-pulse"
+                  : activeAccount?.syncState === "error"
+                    ? "bg-red-400"
+                    : "bg-[oklch(0.85_0.005_270)]",
+            )}
+          />
         )}
       </div>
     </motion.aside>
