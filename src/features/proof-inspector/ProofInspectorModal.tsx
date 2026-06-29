@@ -17,6 +17,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useFocusTrap } from "@/hooks/use-focus-trap";
 import type { Email } from "@/components/mail/data";
 import { motionPresets } from "@/lib/motion-presets";
 import {
@@ -50,6 +51,7 @@ export function ProofInspectorModal({
     text: string;
     type: "success" | "warning" | "error" | null;
   }>({ text: "", type: null });
+  const containerRef = useFocusTrap(open, onClose);
 
   // Reset state when opening/closing
   useEffect(() => {
@@ -98,10 +100,12 @@ export function ProofInspectorModal({
 
           {/* Modal Container */}
           <motion.div
+            ref={containerRef}
             {...motionPresets.patterns.modal.content}
             role="dialog"
             aria-modal="true"
             aria-label="Cryptographic proof inspector"
+            aria-describedby="proof-inspector-description"
             className="glass-strong fixed left-1/2 top-1/2 z-[101] w-[min(640px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl border border-white/10"
           >
             {/* Header */}
@@ -109,8 +113,13 @@ export function ProofInspectorModal({
               <div className="flex items-center gap-2">
                 <Database className="h-4 w-4 text-[oklch(0.85_0.005_270)]" />
                 <div>
-                  <h3 className="text-sm font-bold text-foreground">Stealth Proof Inspector</h3>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                  <h3 className="text-sm font-bold text-foreground" id="proof-inspector-title">
+                    Stealth Proof Inspector
+                  </h3>
+                  <p
+                    id="proof-inspector-description"
+                    className="text-[11px] text-muted-foreground mt-0.5"
+                  >
                     Search and audit smart contract ledger proofs and payment preimages.
                   </p>
                 </div>
@@ -232,298 +241,298 @@ export function ProofInspectorModal({
                 </div>
               )}
 
-              {/* Loading State */}
-              <AnimatePresence mode="wait">
-                {isSearching && (
-                  <motion.div
-                    key="loading-state"
-                    {...motionPresets.entrance.fadeIn()}
-                    className="space-y-4 pt-2"
-                  >
-                    <div className="h-16 w-full animate-pulse rounded-xl bg-white/[0.03] border border-white/[0.05]" />
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                      <div className="h-[120px] w-full animate-pulse rounded-xl bg-white/[0.03] border border-white/[0.05]" />
-                      <div className="h-[120px] w-full animate-pulse rounded-xl bg-white/[0.03] border border-white/[0.05]" />
-                      <div className="h-[120px] w-full animate-pulse rounded-xl bg-white/[0.03] border border-white/[0.05]" />
-                      <div className="h-[120px] w-full animate-pulse rounded-xl bg-white/[0.03] border border-white/[0.05]" />
-                    </div>
-                    <div className="h-10 w-full animate-pulse rounded-xl bg-white/[0.03] border border-white/[0.05]" />
-                  </motion.div>
-                )}
+              <div aria-live="polite" aria-atomic="true">
+                <AnimatePresence mode="wait">
+                  {isSearching && (
+                    <motion.div
+                      key="loading-state"
+                      {...motionPresets.entrance.fadeIn()}
+                      className="space-y-4 pt-2"
+                    >
+                      <div className="h-16 w-full animate-pulse rounded-xl bg-white/[0.03] border border-white/[0.05]" />
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div className="h-[120px] w-full animate-pulse rounded-xl bg-white/[0.03] border border-white/[0.05]" />
+                        <div className="h-[120px] w-full animate-pulse rounded-xl bg-white/[0.03] border border-white/[0.05]" />
+                        <div className="h-[120px] w-full animate-pulse rounded-xl bg-white/[0.03] border border-white/[0.05]" />
+                        <div className="h-[120px] w-full animate-pulse rounded-xl bg-white/[0.03] border border-white/[0.05]" />
+                      </div>
+                      <div className="h-10 w-full animate-pulse rounded-xl bg-white/[0.03] border border-white/[0.05]" />
+                    </motion.div>
+                  )}
 
-                {/* Search Result display */}
-                {hasSearched && !isSearching && (
-                  <motion.div key="result-state" {...motionPresets.entrance.fadeIn()}>
-                    {searchResults.length === 0 ? (
-                      /* MISSING RECORDS / NEXT STEPS GUIDE */
-                      <div className="rounded-xl border border-rose-500/20 bg-rose-500/[0.01] p-4 space-y-4">
-                        <div className="flex items-start gap-3">
-                          <span className="grid h-7 w-7 place-items-center rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20 shrink-0">
-                            <ShieldAlert className="h-4 w-4" />
-                          </span>
-                          <div className="min-w-0">
-                            <h4 className="text-xs font-semibold text-foreground">
-                              Proof Record Not Found
-                            </h4>
-                            <p className="text-[11px] text-muted-foreground mt-0.5">
-                              No local cryptographic delivery or payment proofs match your search
-                              query.
+                  {hasSearched && !isSearching && (
+                    <motion.div key="result-state" {...motionPresets.entrance.fadeIn()}>
+                      {searchResults.length === 0 ? (
+                        <div className="rounded-xl border border-rose-500/20 bg-rose-500/[0.01] p-4 space-y-4">
+                          <div className="flex items-start gap-3">
+                            <span className="grid h-7 w-7 place-items-center rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20 shrink-0">
+                              <ShieldAlert className="h-4 w-4" />
+                            </span>
+                            <div className="min-w-0">
+                              <h4 className="text-xs font-semibold text-foreground">
+                                Proof Record Not Found
+                              </h4>
+                              <p className="text-[11px] text-muted-foreground mt-0.5">
+                                No local cryptographic delivery or payment proofs match your search
+                                query.
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="border-t border-white/5 pt-3.5 space-y-2.5">
+                            <h5 className="text-[10px] uppercase tracking-wider text-rose-400/90 font-semibold flex items-center gap-1.5">
+                              <Terminal className="h-3 w-3" />
+                              Recommended Next Steps
+                            </h5>
+                            <ul className="space-y-2 text-xs">
+                              <li className="flex items-start gap-2">
+                                <span className="text-[10px] font-semibold text-muted-foreground mt-0.5">
+                                  1.
+                                </span>
+                                <p className="text-muted-foreground leading-normal">
+                                  <strong className="text-foreground/90 block">
+                                    Verify on Stellar Explorer
+                                  </strong>
+                                  Search the transaction hash on{" "}
+                                  <a
+                                    href="https://stellar.expert"
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="text-emerald-400 hover:underline inline-flex items-center gap-0.5"
+                                  >
+                                    Stellar.Expert
+                                    <ExternalLink className="h-2.5 w-2.5" />
+                                  </a>{" "}
+                                  or the Stellar Laboratory to verify if the payment settled.
+                                </p>
+                              </li>
+                              <li className="flex items-start gap-2">
+                                <span className="text-[10px] font-semibold text-muted-foreground mt-0.5">
+                                  2.
+                                </span>
+                                <p className="text-muted-foreground leading-normal">
+                                  <strong className="text-foreground/90 block">
+                                    Check Postage Preimage Settle State
+                                  </strong>
+                                  Ensure the recipient's mailbox contract has settled the postage
+                                  preimage. Unsettled postages automatically return to the sender
+                                  after 7 days.
+                                </p>
+                              </li>
+                              <li className="flex items-start gap-2">
+                                <span className="text-[10px] font-semibold text-muted-foreground mt-0.5">
+                                  3.
+                                </span>
+                                <p className="text-muted-foreground leading-normal">
+                                  <strong className="text-foreground/90 block">
+                                    Inspect Relay Node Diagnostics
+                                  </strong>
+                                  Ping the relay server node (`relay-us-east-1.stealth.network`) to
+                                  check routing logs.
+                                </p>
+                              </li>
+                            </ul>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          {/* Security Alert: Sensitive payload notice */}
+                          <div className="flex items-start gap-2.5 rounded-lg bg-white/[0.02] border border-white/[0.04] p-3 text-xs text-muted-foreground leading-normal">
+                            <Info className="h-3.5 w-3.5 text-[oklch(0.85_0.005_270)] shrink-0 mt-0.5" />
+                            <p>
+                              <span className="font-semibold text-foreground/80">
+                                Diagnostic Mode:
+                              </span>{" "}
+                              Plaintext payload body and sensitive email attachments are omitted for
+                              privacy. Use the "Open Message" button to view and decrypt the message
+                              content securely.
                             </p>
                           </div>
-                        </div>
 
-                        <div className="border-t border-white/5 pt-3.5 space-y-2.5">
-                          <h5 className="text-[10px] uppercase tracking-wider text-rose-400/90 font-semibold flex items-center gap-1.5">
-                            <Terminal className="h-3 w-3" />
-                            Recommended Next Steps
-                          </h5>
-                          <ul className="space-y-2 text-xs">
-                            <li className="flex items-start gap-2">
-                              <span className="text-[10px] font-semibold text-muted-foreground mt-0.5">
-                                1.
+                          {/* Header overview */}
+                          <div className="flex items-center justify-between rounded-xl bg-white/[0.02] border border-white/5 p-3 text-xs">
+                            <div>
+                              <span className="text-muted-foreground">
+                                Subject (Omitted preview)
                               </span>
-                              <p className="text-muted-foreground leading-normal">
-                                <strong className="text-foreground/90 block">
-                                  Verify on Stellar Explorer
-                                </strong>
-                                Search the transaction hash on{" "}
-                                <a
-                                  href="https://stellar.expert"
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="text-emerald-400 hover:underline inline-flex items-center gap-0.5"
-                                >
-                                  Stellar.Expert
-                                  <ExternalLink className="h-2.5 w-2.5" />
-                                </a>{" "}
-                                or the Stellar Laboratory to verify if the payment settled.
-                              </p>
-                            </li>
-                            <li className="flex items-start gap-2">
-                              <span className="text-[10px] font-semibold text-muted-foreground mt-0.5">
-                                2.
+                              <span className="font-semibold text-foreground block mt-0.5">
+                                {selectedRecord.email.subject.replace(/./g, (c, i) =>
+                                  i > 4 && i < 20 ? "•" : c,
+                                )}
                               </span>
-                              <p className="text-muted-foreground leading-normal">
-                                <strong className="text-foreground/90 block">
-                                  Check Postage Preimage Settle State
-                                </strong>
-                                Ensure the recipient's mailbox contract has settled the postage
-                                preimage. Unsettled postages automatically return to the sender
-                                after 7 days.
-                              </p>
-                            </li>
-                            <li className="flex items-start gap-2">
-                              <span className="text-[10px] font-semibold text-muted-foreground mt-0.5">
-                                3.
+                            </div>
+                            <div className="text-right">
+                              <span className="text-muted-foreground">Verification State</span>
+                              <span className="inline-flex items-center gap-1 text-emerald-400 font-semibold block mt-0.5">
+                                <CheckCircle className="h-3.5 w-3.5" />
+                                Ledger Verified
                               </span>
-                              <p className="text-muted-foreground leading-normal">
-                                <strong className="text-foreground/90 block">
-                                  Inspect Relay Node Diagnostics
-                                </strong>
-                                Ping the relay server node (`relay-us-east-1.stealth.network`) to
-                                check routing logs.
-                              </p>
-                            </li>
-                          </ul>
-                        </div>
-                      </div>
-                    ) : (
-                      /* RECORD FOUND & DETAILED SECTIONS */
-                      <div className="space-y-4">
-                        {/* Security Alert: Sensitive payload notice */}
-                        <div className="flex items-start gap-2.5 rounded-lg bg-white/[0.02] border border-white/[0.04] p-3 text-xs text-muted-foreground leading-normal">
-                          <Info className="h-3.5 w-3.5 text-[oklch(0.85_0.005_270)] shrink-0 mt-0.5" />
-                          <p>
-                            <span className="font-semibold text-foreground/80">
-                              Diagnostic Mode:
-                            </span>{" "}
-                            Plaintext payload body and sensitive email attachments are omitted for
-                            privacy. Use the "Open Message" button to view and decrypt the message
-                            content securely.
-                          </p>
-                        </div>
-
-                        {/* Header overview */}
-                        <div className="flex items-center justify-between rounded-xl bg-white/[0.02] border border-white/5 p-3 text-xs">
-                          <div>
-                            <span className="text-muted-foreground">Subject (Omitted preview)</span>
-                            <span className="font-semibold text-foreground block mt-0.5">
-                              {selectedRecord.email.subject.replace(/./g, (c, i) =>
-                                i > 4 && i < 20 ? "•" : c,
-                              )}
-                            </span>
+                            </div>
                           </div>
-                          <div className="text-right">
-                            <span className="text-muted-foreground">Verification State</span>
-                            <span className="inline-flex items-center gap-1 text-emerald-400 font-semibold block mt-0.5">
-                              <CheckCircle className="h-3.5 w-3.5" />
-                              Ledger Verified
-                            </span>
-                          </div>
-                        </div>
 
-                        {/* Structured Details Sections Grid */}
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                          {/* Section 1: Policy Info */}
-                          <div className="rounded-xl border border-white/5 bg-white/[0.01] p-3 space-y-2">
-                            <h5 className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold border-b border-white/5 pb-1">
-                              Policy Metadata
-                            </h5>
-                            <div className="space-y-1.5 text-xs">
-                              <div className="flex justify-between">
-                                <span className="text-muted-foreground">Sender Rule:</span>
-                                <span className="font-mono text-foreground capitalize">
-                                  {selectedRecord.senderRule}
-                                </span>
+                          {/* Structured Details Sections Grid */}
+                          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                            {/* Section 1: Policy Info */}
+                            <div className="rounded-xl border border-white/5 bg-white/[0.01] p-3 space-y-2">
+                              <h5 className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold border-b border-white/5 pb-1">
+                                Policy Metadata
+                              </h5>
+                              <div className="space-y-1.5 text-xs">
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">Sender Rule:</span>
+                                  <span className="font-mono text-foreground capitalize">
+                                    {selectedRecord.senderRule}
+                                  </span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">
+                                    Cryptographic Contact:
+                                  </span>
+                                  <span className="text-foreground font-medium">Yes</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">Postage Required:</span>
+                                  <span className="text-foreground font-medium">Yes</span>
+                                </div>
                               </div>
-                              <div className="flex justify-between">
-                                <span className="text-muted-foreground">
-                                  Cryptographic Contact:
-                                </span>
-                                <span className="text-foreground font-medium">Yes</span>
+                            </div>
+
+                            {/* Section 2: Postage Info */}
+                            <div className="rounded-xl border border-white/5 bg-white/[0.01] p-3 space-y-2">
+                              <h5 className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold border-b border-white/5 pb-1">
+                                Postage details
+                              </h5>
+                              <div className="space-y-1.5 text-xs">
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">Postage Amount:</span>
+                                  <span className="font-semibold text-foreground">
+                                    {Number(selectedRecord.postageAmount) / 10_000_000} XLM
+                                  </span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">Postage Status:</span>
+                                  <span
+                                    className={cn(
+                                      "font-semibold uppercase text-[9px] px-1 rounded",
+                                      selectedRecord.postageStatus === "settled" &&
+                                        "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
+                                      selectedRecord.postageStatus === "pending" &&
+                                        "bg-amber-500/10 text-amber-400 border border-amber-500/20",
+                                      selectedRecord.postageStatus === "refunded" &&
+                                        "bg-red-500/10 text-red-400 border border-red-500/20",
+                                    )}
+                                  >
+                                    {selectedRecord.postageStatus}
+                                  </span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                  <span className="text-muted-foreground">Payment Hash:</span>
+                                  <button
+                                    onClick={() =>
+                                      copyToClipboard(selectedRecord.paymentHash, "Payment Hash")
+                                    }
+                                    className="font-mono text-[10px] text-emerald-400 hover:underline flex items-center gap-1"
+                                  >
+                                    {selectedRecord.paymentHash.slice(0, 8)}...
+                                    <Copy className="h-2.5 w-2.5" />
+                                  </button>
+                                </div>
                               </div>
-                              <div className="flex justify-between">
-                                <span className="text-muted-foreground">Postage Required:</span>
-                                <span className="text-foreground font-medium">Yes</span>
+                            </div>
+
+                            {/* Section 3: Receipt Info */}
+                            <div className="rounded-xl border border-white/5 bg-white/[0.01] p-3 space-y-2">
+                              <h5 className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold border-b border-white/5 pb-1">
+                                Receipt details
+                              </h5>
+                              <div className="space-y-1.5 text-xs">
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">Delivered At:</span>
+                                  <span className="text-foreground">
+                                    {selectedRecord.deliveredAt}
+                                  </span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">Read Receipt:</span>
+                                  <span className="text-foreground">
+                                    {selectedRecord.readAt ?? "Pending read confirmation"}
+                                  </span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                  <span className="text-muted-foreground">Sender Key:</span>
+                                  <button
+                                    onClick={() =>
+                                      copyToClipboard(selectedRecord.email.email, "Sender address")
+                                    }
+                                    className="font-mono text-[9px] text-foreground/80 hover:underline flex items-center gap-0.5"
+                                  >
+                                    {selectedRecord.email.email.slice(0, 12)}...
+                                    <Copy className="h-2.5 w-2.5" />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Section 4: Relay Metadata */}
+                            <div className="rounded-xl border border-white/5 bg-white/[0.01] p-3 space-y-2">
+                              <h5 className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold border-b border-white/5 pb-1">
+                                Relay metadata
+                              </h5>
+                              <div className="space-y-1.5 text-xs">
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">Relay Node:</span>
+                                  <span className="text-foreground font-mono text-[10px]">
+                                    {selectedRecord.relayNode}
+                                  </span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">Routing Latency:</span>
+                                  <span className="text-foreground font-semibold">
+                                    {selectedRecord.latency}
+                                  </span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                  <span className="text-muted-foreground">Relay Diag ID:</span>
+                                  <button
+                                    onClick={() =>
+                                      copyToClipboard(selectedRecord.diagnosticId, "Diagnostic ID")
+                                    }
+                                    className="font-mono text-[9px] text-foreground/80 hover:underline flex items-center gap-0.5"
+                                  >
+                                    {selectedRecord.diagnosticId.slice(0, 12)}...
+                                    <Copy className="h-2.5 w-2.5" />
+                                  </button>
+                                </div>
                               </div>
                             </div>
                           </div>
 
-                          {/* Section 2: Postage Info */}
-                          <div className="rounded-xl border border-white/5 bg-white/[0.01] p-3 space-y-2">
-                            <h5 className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold border-b border-white/5 pb-1">
-                              Postage details
-                            </h5>
-                            <div className="space-y-1.5 text-xs">
-                              <div className="flex justify-between">
-                                <span className="text-muted-foreground">Postage Amount:</span>
-                                <span className="font-semibold text-foreground">
-                                  {Number(selectedRecord.postageAmount) / 10_000_000} XLM
-                                </span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span className="text-muted-foreground">Postage Status:</span>
-                                <span
-                                  className={cn(
-                                    "font-semibold uppercase text-[9px] px-1 rounded",
-                                    selectedRecord.postageStatus === "settled" &&
-                                      "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
-                                    selectedRecord.postageStatus === "pending" &&
-                                      "bg-amber-500/10 text-amber-400 border border-amber-500/20",
-                                    selectedRecord.postageStatus === "refunded" &&
-                                      "bg-red-500/10 text-red-400 border border-red-500/20",
-                                  )}
-                                >
-                                  {selectedRecord.postageStatus}
-                                </span>
-                              </div>
-                              <div className="flex justify-between items-center">
-                                <span className="text-muted-foreground">Payment Hash:</span>
-                                <button
-                                  onClick={() =>
-                                    copyToClipboard(selectedRecord.paymentHash, "Payment Hash")
-                                  }
-                                  className="font-mono text-[10px] text-emerald-400 hover:underline flex items-center gap-1"
-                                >
-                                  {selectedRecord.paymentHash.slice(0, 8)}...
-                                  <Copy className="h-2.5 w-2.5" />
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Section 3: Receipt Info */}
-                          <div className="rounded-xl border border-white/5 bg-white/[0.01] p-3 space-y-2">
-                            <h5 className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold border-b border-white/5 pb-1">
-                              Receipt details
-                            </h5>
-                            <div className="space-y-1.5 text-xs">
-                              <div className="flex justify-between">
-                                <span className="text-muted-foreground">Delivered At:</span>
-                                <span className="text-foreground">
-                                  {selectedRecord.deliveredAt}
-                                </span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span className="text-muted-foreground">Read Receipt:</span>
-                                <span className="text-foreground">
-                                  {selectedRecord.readAt ?? "Pending read confirmation"}
-                                </span>
-                              </div>
-                              <div className="flex justify-between items-center">
-                                <span className="text-muted-foreground">Sender Key:</span>
-                                <button
-                                  onClick={() =>
-                                    copyToClipboard(selectedRecord.email.email, "Sender address")
-                                  }
-                                  className="font-mono text-[9px] text-foreground/80 hover:underline flex items-center gap-0.5"
-                                >
-                                  {selectedRecord.email.email.slice(0, 12)}...
-                                  <Copy className="h-2.5 w-2.5" />
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Section 4: Relay Metadata */}
-                          <div className="rounded-xl border border-white/5 bg-white/[0.01] p-3 space-y-2">
-                            <h5 className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold border-b border-white/5 pb-1">
-                              Relay metadata
-                            </h5>
-                            <div className="space-y-1.5 text-xs">
-                              <div className="flex justify-between">
-                                <span className="text-muted-foreground">Relay Node:</span>
-                                <span className="text-foreground font-mono text-[10px]">
-                                  {selectedRecord.relayNode}
-                                </span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span className="text-muted-foreground">Routing Latency:</span>
-                                <span className="text-foreground font-semibold">
-                                  {selectedRecord.latency}
-                                </span>
-                              </div>
-                              <div className="flex justify-between items-center">
-                                <span className="text-muted-foreground">Relay Diag ID:</span>
-                                <button
-                                  onClick={() =>
-                                    copyToClipboard(selectedRecord.diagnosticId, "Diagnostic ID")
-                                  }
-                                  className="font-mono text-[9px] text-foreground/80 hover:underline flex items-center gap-0.5"
-                                >
-                                  {selectedRecord.diagnosticId.slice(0, 12)}...
-                                  <Copy className="h-2.5 w-2.5" />
-                                </button>
-                              </div>
-                            </div>
-                          </div>
+                          {/* Diagnostic JSON Copy report */}
+                          <button
+                            onClick={() =>
+                              copyToClipboard(
+                                JSON.stringify(
+                                  {
+                                    ...selectedRecord,
+                                    email: undefined, // exclude sensitive email object
+                                  },
+                                  null,
+                                  2,
+                                ),
+                                "Proof diagnostic report",
+                              )
+                            }
+                            className="w-full inline-flex items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.02] py-2 text-xs font-semibold text-foreground transition hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-white/10"
+                          >
+                            <Copy className="h-3.5 w-3.5" />
+                            Copy Proof Diagnostic Report
+                          </button>
                         </div>
-
-                        {/* Diagnostic JSON Copy report */}
-                        <button
-                          onClick={() =>
-                            copyToClipboard(
-                              JSON.stringify(
-                                {
-                                  ...selectedRecord,
-                                  email: undefined, // exclude sensitive email object
-                                },
-                                null,
-                                2,
-                              ),
-                              "Proof diagnostic report",
-                            )
-                          }
-                          className="w-full inline-flex items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.02] py-2 text-xs font-semibold text-foreground transition hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-white/10"
-                        >
-                          <Copy className="h-3.5 w-3.5" />
-                          Copy Proof Diagnostic Report
-                        </button>
-                      </div>
-                    )}
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
 
             {/* Modal Footer CTAs */}

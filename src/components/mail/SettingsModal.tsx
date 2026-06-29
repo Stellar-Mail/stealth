@@ -19,9 +19,16 @@ import {
   User,
   X,
 } from "lucide-react";
-import { useState, useEffect, useRef, type CSSProperties } from "react";
+import {
+  useState,
+  useEffect,
+  useRef,
+  type CSSProperties,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from "react";
 import { Surface } from "@/features/design-system";
 import { cn } from "@/lib/utils";
+
 import { SHORTCUT_DEFINITIONS } from "@/features/command-palette";
 import type { ReceiptPreference, UiPreferences, LayoutPreferences } from "@/features/preferences";
 import {
@@ -102,7 +109,7 @@ export function SettingsModal({
       }
       if (e.key !== "Tab" || !panel) return;
       const focusables = Array.from(panel.querySelectorAll<HTMLElement>(focusableSelector)).filter(
-        (el) => el.offsetParent !== null,
+        (el: HTMLElement) => el.offsetParent !== null,
       );
       if (focusables.length === 0) return;
       const first = focusables[0];
@@ -124,7 +131,7 @@ export function SettingsModal({
     };
   }, [open, dismiss]);
 
-  const onTabListKeyDown = (e: React.KeyboardEvent<HTMLElement>) => {
+  const onTabListKeyDown = (e: ReactKeyboardEvent<HTMLElement>) => {
     const ids = tabs.map((t) => t.id);
     const current = ids.indexOf(activeTab);
     let next = current;
@@ -190,10 +197,11 @@ export function SettingsModal({
             >
               {/* Sidebar tabs */}
               <div className="w-48 border-r border-white/5 p-3">
-                <nav
+                <div
                   role="tablist"
                   aria-orientation="vertical"
                   aria-label="Settings sections"
+                  tabIndex={0}
                   onKeyDown={onTabListKeyDown}
                   className="space-y-1"
                 >
@@ -225,7 +233,7 @@ export function SettingsModal({
                       </button>
                     );
                   })}
-                </nav>
+                </div>
               </div>
 
               {/* Content */}
@@ -424,7 +432,7 @@ function SegmentedSetting({
   onSelect: (value: string) => void;
 }) {
   const groupId = `seg-${label.replace(/\s+/g, "-").toLowerCase()}`;
-  const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+  const onKeyDown = (e: ReactKeyboardEvent<HTMLDivElement>) => {
     const idx = options.findIndex(([v]) => v === value);
     let next = idx;
     if (e.key === "ArrowRight" || e.key === "ArrowDown") next = (idx + 1) % options.length;
@@ -445,6 +453,7 @@ function SegmentedSetting({
       <div
         role="radiogroup"
         aria-labelledby={groupId}
+        tabIndex={0}
         onKeyDown={onKeyDown}
         className="mt-2 flex flex-wrap gap-2"
       >
@@ -1409,12 +1418,18 @@ function SecuritySettings() {
 
       {/* Confirmation Dialog */}
       {confirmDialog && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm">
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-label={confirmDialog.title}
+        >
           <div className="glass-strong w-full max-w-sm rounded-2xl p-5 space-y-4">
             <h4 className="text-sm font-medium text-foreground">{confirmDialog.title}</h4>
             <p className="text-xs text-muted-foreground">{confirmDialog.description}</p>
             <div className="flex gap-2 pt-2">
               <button
+                autoFocus
                 onClick={() => setConfirmDialog(null)}
                 className="flex-1 rounded-lg border border-white/10 px-4 py-2 text-xs text-foreground hover:bg-white/[0.06] transition"
               >

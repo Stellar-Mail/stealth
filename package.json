@@ -18,7 +18,8 @@
     "local:teardown": "powershell -ExecutionPolicy Bypass -File scripts/setup-local-env/teardown.ps1",
     "local:setup:unix": "bash scripts/setup-local-env/setup.sh",
     "local:teardown:unix": "bash scripts/setup-local-env/teardown.sh",
-    "generate:bindings": "node scripts/generate-contract-bindings.mjs"
+    "generate:bindings": "node scripts/generate-contract-bindings.mjs",
+    "postinstall": "node scripts/apply-entities-patch.cjs"
   },
   "overrides": {
     "ws": "8.21.0"
@@ -82,6 +83,7 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.3",
     "@eslint/js": "^9.32.0",
     "@playwright/test": "^1.49.1",
     "@testing-library/jest-dom": "^6.9.1",
@@ -93,11 +95,12 @@
     "@vitejs/plugin-react": "^5.0.4",
     "eslint": "^9.32.0",
     "eslint-config-prettier": "^10.1.1",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
     "eslint-plugin-prettier": "^5.2.6",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^15.15.0",
-    "jsdom": "^29.1.1",
+    "jsdom": "^26.1.0",
     "prettier": "^3.7.3",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.56.1",

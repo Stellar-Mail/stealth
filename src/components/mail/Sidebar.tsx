@@ -149,6 +149,7 @@ export function Sidebar({
         whileHover={{ y: -1 }}
         whileTap={{ scale: 0.97 }}
         onClick={onCompose}
+        aria-label={collapsed ? "Compose" : undefined}
         className={cn(
           "group glow-ring mt-3 flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium",
           "border border-white/10 bg-white/5 text-foreground",
@@ -170,6 +171,7 @@ export function Sidebar({
           whileHover={{ y: -1 }}
           whileTap={{ scale: 0.97 }}
           onClick={onOpenSenderJourney}
+          aria-label={collapsed ? "Sender Journey" : undefined}
           className={cn(
             "group glow-ring mt-2 flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium",
             "border border-white/10 bg-emerald-500/10 text-emerald-300",
@@ -182,7 +184,7 @@ export function Sidebar({
         </motion.button>
       )}
 
-      <nav className="scrollbar-thin mt-4 flex-1 overflow-y-auto pr-1">
+      <nav aria-label="Mail folders" className="scrollbar-thin mt-4 flex-1 overflow-y-auto pr-1">
         {sections.map((section, sectionIndex) => (
           <div key={section.title ?? "mail"} className={sectionIndex === 0 ? "" : "mt-5"}>
             {section.title && !collapsed && (
@@ -360,30 +362,8 @@ function FolderButton({
     <motion.button
       whileTap={{ scale: 0.98 }}
       onClick={onSelect}
-      onDragOver={
-        onDrop
-          ? (e) => {
-              e.preventDefault();
-              e.dataTransfer.dropEffect = "move";
-              setIsOver(true);
-            }
-          : undefined
-      }
-      onDragLeave={onDrop ? () => setIsOver(false) : undefined}
-      onDrop={
-        onDrop
-          ? (e) => {
-              e.preventDefault();
-              setIsOver(false);
-              try {
-                const ids: string[] = JSON.parse(e.dataTransfer.getData("text/plain"));
-                if (Array.isArray(ids) && ids.length > 0) onDrop(ids);
-              } catch {
-                /* ignore */
-              }
-            }
-          : undefined
-      }
+      aria-label={collapsed ? item.label : undefined}
+      aria-current={active ? "page" : undefined}
       className={cn(
         "glow-ring relative flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition",
         "text-muted-foreground hover:bg-white/[0.04] hover:text-foreground",
