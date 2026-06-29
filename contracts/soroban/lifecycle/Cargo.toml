@@ -8,6 +8,10 @@ publish = false
 crate-type = ["cdylib", "rlib"]
 doctest = false
 
+[features]
+default = ["contract"]
+contract = []
+
 [dependencies]
 soroban-sdk = { workspace = true }
 stealth-policies = { path = "../policies" }

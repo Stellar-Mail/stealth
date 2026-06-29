@@ -1,13 +1,59 @@
 #![no_std]
 
 use soroban_sdk::{
-    contract, contracterror, contractevent, contractimpl, contracttype, symbol_short, Address,
-    BytesN, Env, Symbol,
+    contract, contractclient, contracterror, contractevent, contractimpl, contracttype,
+    symbol_short, Address, BytesN, Env, Symbol,
 };
 use stealth_policies::{PoliciesContractClient, PolicyDecision, PolicyReason};
 
+#[cfg(feature = "contract")]
 #[contract]
 pub struct LifecycleContract;
+
+#[cfg(not(feature = "contract"))]
+#[contractclient(name = "LifecycleContractClient")]
+pub trait LifecycleContractInterface {
+    fn initialize(policies: Address, postage: Address, receipts: Address) -> Result<(), Error>;
+    fn config() -> Result<LifecycleConfig, Error>;
+    fn bind(
+        message_id: BytesN<32>,
+        owner: Address,
+        sender: Address,
+        recipient: Address,
+        amount: i128,
+        verified: bool,
+        receipt_required: bool,
+    ) -> Result<LifecycleRecord, Error>;
+    fn verify_settle(
+        message_id: BytesN<32>,
+        postage: Postage,
+    ) -> Result<LifecycleRecord, Error>;
+    fn verify_refund(
+        message_id: BytesN<32>,
+        postage: Postage,
+    ) -> Result<LifecycleRecord, Error>;
+    fn verify_dispute(
+        message_id: BytesN<32>,
+        postage: Postage,
+    ) -> Result<LifecycleRecord, Error>;
+    fn verify_expire(
+        message_id: BytesN<32>,
+        postage: Postage,
+    ) -> Result<LifecycleRecord, Error>;
+    fn verify_reclaim(
+        message_id: BytesN<32>,
+        postage: Postage,
+    ) -> Result<LifecycleRecord, Error>;
+    fn verify_delivered(
+        message_id: BytesN<32>,
+        receipt: ReceiptState,
+    ) -> Result<LifecycleRecord, Error>;
+    fn verify_read(
+        message_id: BytesN<32>,
+        receipt: ReceiptState,
+    ) -> Result<LifecycleRecord, Error>;
+    fn get(message_id: BytesN<32>) -> Result<LifecycleRecord, Error>;
+}
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -120,6 +166,7 @@ pub enum Error {
     AlreadyRead = 12,
 }
 
+#[cfg(feature = "contract")]
 #[contractimpl]
 impl LifecycleContract {
     pub fn initialize(
