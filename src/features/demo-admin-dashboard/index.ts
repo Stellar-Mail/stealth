@@ -581,3 +581,24 @@ export {
   assertDemoDataSafety,
 } from "./helpers/demoDataValidator";
 export type { ValidationIssue, ValidationResult } from "./helpers/demoDataValidator";
+
+// Event Campaign Fixture (issue #17): types, fixtures, helpers, and validation.
+export type {
+  EventCampaignConfig,
+  EventCampaignFixture,
+  EventCampaignKind,
+  EventCampaignMessage,
+  EventCampaignTimelinePhase,
+} from "./types/eventCampaign";
+export {
+  EVENT_CAMPAIGN_FIXTURES,
+  EVENT_CAMPAIGN_KINDS,
+  getEventCampaignFixtureById,
+  getEventCampaignFixturesByKind,
+} from "./fixtures/eventCampaignFixture";
+export {
+  buildEventCampaignSummary,
+  validateEventCampaignConfig,
+  validateEventCampaignFixture,
+  type EventCampaignValidationIssue,
+} from "./utils/eventCampaignHelpers";
