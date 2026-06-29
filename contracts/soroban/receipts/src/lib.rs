@@ -139,9 +139,12 @@ impl ReceiptsContract {
             return Err(Error::AlreadyRead);
         }
 
-        Self::verify_guard(&env, message_id.clone(), &receipt)?;
+        let read_at = env.ledger().timestamp();
+        let mut lifecycle_receipt = receipt.clone();
+        lifecycle_receipt.read_at = Some(read_at);
+        Self::verify_guard(&env, message_id.clone(), &lifecycle_receipt)?;
 
-        receipt.read_at = Some(env.ledger().timestamp());
+        receipt.read_at = Some(read_at);
         env.storage().persistent().set(&key, &receipt);
         Read {
             message_id,
