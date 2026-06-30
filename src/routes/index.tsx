@@ -42,12 +42,11 @@ import { FeedbackViewport } from "@/features/design-system/feedback/feedback-vie
 import { useFeedback } from "@/features/design-system/feedback/use-feedback";
 import { ContactMigrationDialog } from "@/features/contacts";
 import {
-  SenderConversionDialog,
   resolveSenderConversion,
-  useSenderConversion,
   type SenderConversionTarget,
   type SenderPolicyChoice,
 } from "@/features/sender-conversion";
+import { SenderIdentityDialog, useSenderIdentity } from "@/features/identity";
 import {
   CommandPalette,
   ShortcutOverlay,
@@ -123,7 +122,7 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
   const [calendarEventId, setCalendarEventId] = useState<string | null>(null);
   const [calendarCreateRequest, setCalendarCreateRequest] = useState(0);
   const [settingsSnapshot, setSettingsSnapshot] = useState<typeof preferences | null>(null);
-  const senderConversion = useSenderConversion();
+  const senderIdentity = useSenderIdentity();
   const snooze = useSnooze();
   const isMobile = useIsMobile();
   const [previewAttachment, setPreviewAttachment] = useState<{
@@ -196,8 +195,8 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
 
   // Opening the flow is inert — it only puts the sender in focus. No policy
   // changes until the user explicitly confirms a choice in the dialog.
-  const openSenderConversion = (e: Email) =>
-    senderConversion.open({
+  const openSenderIdentity = (e: Email) =>
+    senderIdentity.open({
       emailId: e.id,
       sender: e.from,
       address: e.email,
@@ -315,7 +314,8 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
       updateEmail(e.id, { starred: !e.starred });
       showToast(e.starred ? "Removed star" : "Starred");
     },
-    onConvertSender: openSenderConversion,
+    onConvertSender: openSenderIdentity,
+    onOpenSenderIdentity: openSenderIdentity,
     onSnooze: openSnooze,
     onUnsnooze: handleUnsnooze,
     onShowToast: showToast,
@@ -771,7 +771,7 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
                         onBulkAction={handleBulkActionRequest}
                         bulkProgress={bulkProgress}
                         bulkFailures={bulkFailures}
-                        onConvertSender={openSenderConversion}
+                        onOpenSenderIdentity={openSenderIdentity}
                         folder={folder}
                         filters={filters}
                         customFolder={customFolder}
@@ -801,7 +801,8 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
                           <RightPanel
                             email={selected}
                             onAction={handleContextAction}
-                            onConvertSender={openSenderConversion}
+                            onConvertSender={openSenderIdentity}
+                            onOpenSenderIdentity={openSenderIdentity}
                             onSnooze={openSnooze}
                             calendarEvents={calendar.visibleEvents}
                             calendars={calendar.calendars}
@@ -942,10 +943,11 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
           }
         />
 
-        <SenderConversionDialog
-          target={senderConversion.target}
+        <SenderIdentityDialog
+          target={senderIdentity.target}
+          emails={emails}
           onConfirm={handleConvertSender}
-          onClose={senderConversion.close}
+          onClose={senderIdentity.close}
         />
 
         <SnoozeDialog

@@ -3,6 +3,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import { CheckCircle, FileText, HelpCircle, ShieldCheck, Users, X } from "lucide-react";
 import type { Email } from "@/components/mail/data";
 import { motionPresets } from "@/lib/motion-presets";
+import { SenderIdentityDialog } from "@/features/identity";
+import { resolveSenderConversion, type SenderPolicyChoice } from "@/features/sender-conversion";
 import { RequestCard } from "./RequestCard";
 import type { CardStatus, RequestCardState, TriageAction } from "./types";
 
@@ -106,6 +108,18 @@ export function RequestsTriageBoard({
       delete next[emailId];
       return next;
     });
+  };
+
+  const handleIdentityConfirm = (target: Email, choice: SenderPolicyChoice) => {
+    const result = resolveSenderConversion(target, choice);
+    onUpdateEmail(target.id, result.patch);
+    onShowToast(result.toast.message, { tone: result.toast.tone });
+  };
+
+  const handleIdentityConfirmById = (emailId: string, choice: SenderPolicyChoice) => {
+    const target = emails.find((email) => email.id === emailId);
+    if (!target) return;
+    handleIdentityConfirm(target, choice);
   };
 
   return (
