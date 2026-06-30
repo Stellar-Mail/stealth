@@ -2,6 +2,7 @@ import type { PresetScenario } from "../types";
 import { encryptedCampaignPreset } from "./encryptedCampaignPreset";
 import { conferenceCampaignPreset } from "./conferenceCampaignPreset";
 import { investorNurtureCampaignPreset } from "./investorNurtureCampaignPreset";
+import { spamQuarantineScenarioPreset } from "./spamQuarantinePreset";
 
 export const PRESET_SCENARIOS: PresetScenario[] = [
   {
@@ -532,4 +533,5 @@ export const PRESET_SCENARIOS: PresetScenario[] = [
     ],
   },
   investorNurtureCampaignPreset,
+  spamQuarantineScenarioPreset,
 ];
