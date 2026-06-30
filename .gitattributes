@@ -17,6 +17,7 @@
 *.woff2 binary
 *.eot binary
 *.ttf binary
+*.otf binary
 *.wasm binary
 *.zip binary
 *.tar binary

@@ -20,6 +20,13 @@ export type AuditEventKind =
   | "session.ended"
   | "identity.resolved"
   | "identity.verification_failed"
+  | "device.registered"
+  | "device.renamed"
+  | "device.revoked"
+  | "device.trust_toggled"
+  | "device.key_rotated"
+  | "device.recovery_activated"
+  | "device.suspicious_login"
   // Billing
   | "postage.attached"
   | "postage.settled"
@@ -37,6 +44,13 @@ export const CATEGORY_FOR_KIND: Record<AuditEventKind, AuditCategory> = {
   "session.ended": "security",
   "identity.resolved": "security",
   "identity.verification_failed": "security",
+  "device.registered": "security",
+  "device.renamed": "security",
+  "device.revoked": "security",
+  "device.trust_toggled": "security",
+  "device.key_rotated": "security",
+  "device.recovery_activated": "security",
+  "device.suspicious_login": "security",
   "postage.attached": "billing",
   "postage.settled": "billing",
   "postage.refunded": "billing",

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Keyboard, Search, Slash } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useFocusTrap } from "@/hooks/use-focus-trap";
 import { SHORTCUT_DEFINITIONS } from "./shortcuts";
 
 type Props = {
@@ -11,19 +12,11 @@ type Props = {
 
 export function ShortcutOverlay({ open, onClose }: Props) {
   const [query, setQuery] = useState("");
+  const containerRef = useFocusTrap(open, onClose);
 
   useEffect(() => {
     if (!open) setQuery("");
   }, [open]);
-
-  useEffect(() => {
-    if (!open) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [onClose, open]);
 
   const shortcuts = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -31,6 +24,7 @@ export function ShortcutOverlay({ open, onClose }: Props) {
     return SHORTCUT_DEFINITIONS.filter((shortcut) => {
       if (shortcut.label.toLowerCase().includes(q)) return true;
       if (shortcut.description.toLowerCase().includes(q)) return true;
+      if (shortcut.id.toLowerCase().includes(q)) return true;
       if (shortcut.keywords.some((k) => k.toLowerCase().includes(q))) return true;
       if (shortcut.keys.some((k) => k.toLowerCase().includes(q))) return true;
       if (shortcut.conflict?.toLowerCase().includes(q)) return true;
@@ -50,9 +44,11 @@ export function ShortcutOverlay({ open, onClose }: Props) {
             className="fixed inset-0 z-[170] bg-black/55 backdrop-blur-md"
           />
           <motion.section
+            ref={containerRef}
             role="dialog"
             aria-modal="true"
             aria-label="Keyboard shortcuts"
+            aria-describedby="shortcuts-description"
             initial={{ opacity: 0, y: 16, scale: 0.985 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 12, scale: 0.99 }}
@@ -65,8 +61,10 @@ export function ShortcutOverlay({ open, onClose }: Props) {
                   <Keyboard className="h-4.5 w-4.5 text-foreground/85" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <h2 className="text-sm font-semibold text-foreground">Keyboard shortcuts</h2>
-                  <p className="mt-1 text-xs text-muted-foreground">
+                  <h2 className="text-sm font-semibold text-foreground" id="shortcuts-title">
+                    Keyboard shortcuts
+                  </h2>
+                  <p id="shortcuts-description" className="mt-1 text-xs text-muted-foreground">
                     Search every shortcut in one place. Shortcuts pause automatically while typing
                     in inputs, editors, and custom text fields.
                   </p>

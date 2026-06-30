@@ -46,9 +46,9 @@ export const WatchlistList: React.FC<WatchlistListProps> = ({ entries, onRemove,
         </Button>
       </div>
 
-      <ul className="space-y-3" role="list" aria-label="Suspicious senders watchlist">
+      <ul className="space-y-3" aria-label="Suspicious senders watchlist">
         {entries.map((entry) => (
-          <li key={entry.id} role="listitem">
+          <li key={entry.id}>
             <WatchlistEntry {...entry} onRemove={onRemove} />
           </li>
         ))}
