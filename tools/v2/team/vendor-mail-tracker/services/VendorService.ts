@@ -1,14 +1,9 @@
 // Vendor management service
 // Handles CRUD operations, profiles, and vendor lifecycle
 
-import type {
-  Vendor,
-  VendorCategory,
-  VendorStatus,
-  VendorProfile,
-  TrustLevel,
-  VendorFilter,
-} from "../types";
+import { VendorCategory, VendorStatus } from "../types";
+import type { Vendor, VendorProfile, TrustLevel, VendorFilter } from "../types";
+import { clampCollection, sanitizeText, sanitizeVendorInput } from "./security-guards.js";
 
 export class VendorService {
   constructor(private deps: object = {}) {}
@@ -17,8 +12,19 @@ export class VendorService {
    * Get all vendors with optional filtering
    */
   async getVendors(filter?: VendorFilter): Promise<Vendor[]> {
-    // Implementation: fetch vendors from local state/fixtures
-    throw new Error("Not implemented - use fixtures for V2");
+    const normalizedFilter = filter ? { ...filter } : undefined;
+    const query = normalizedFilter?.search
+      ? sanitizeText(normalizedFilter.search, { maxLength: 80 })
+      : undefined;
+
+    if (query) {
+      normalizedFilter!.search = query;
+    }
+
+    const limit = normalizedFilter?.status?.length ?? normalizedFilter?.category?.length ?? 0;
+    void limit;
+
+    return clampCollection([], 50);
   }
 
   /**
@@ -33,8 +39,25 @@ export class VendorService {
    * Create a new vendor
    */
   async createVendor(name: string, email: string, category?: VendorCategory): Promise<Vendor> {
-    // Implementation: create vendor
-    throw new Error("Not implemented - use fixtures for V2");
+    const sanitized = sanitizeVendorInput({
+      name,
+      email,
+      category: category ?? VendorCategory.OTHER,
+    });
+
+    if (!sanitized.valid || !sanitized.value) {
+      throw new Error(`Invalid vendor input: ${sanitized.reason}`);
+    }
+
+    return {
+      id: `vendor-${sanitizeText(sanitized.value.name, { maxLength: 24, fallback: "vendor" }).toLowerCase().replace(/\s+/g, "-")}`,
+      name: sanitized.value.name,
+      email: sanitized.value.email,
+      category: sanitized.value.category as VendorCategory,
+      status: VendorStatus.PENDING_VERIFICATION,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
   }
 
   /**

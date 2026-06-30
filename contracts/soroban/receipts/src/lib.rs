@@ -1,12 +1,106 @@
 #![no_std]
 
 use soroban_sdk::{
-    contract, contracterror, contractevent, contractimpl, contracttype, symbol_short, Address,
+    contract, contractclient, contracterror, contractevent, contractimpl, contracttype, Address,
     BytesN, Env,
 };
 
 #[contract]
 pub struct ReceiptsContract;
+
+mod lifecycle_guard {
+    use super::*;
+
+    #[contracttype]
+    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+    pub enum PolicyReason {
+        SenderAllowed,
+        SenderBlocked,
+        UnknownSendersDisabled,
+        VerificationRequired,
+        ReceiptRequired,
+        InsufficientPostage,
+        PolicySatisfied,
+        TierSatisfied,
+    }
+
+    #[contracttype]
+    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+    pub enum LifecycleTerminal {
+        Open,
+        Delivered,
+        Read,
+        Settled,
+        Refunded,
+        Disputed,
+        Expired,
+        Reclaimed,
+    }
+
+    #[contracttype]
+    #[derive(Clone, Debug, Eq, PartialEq)]
+    pub struct LifecycleRecord {
+        pub message_id: BytesN<32>,
+        pub owner: Address,
+        pub sender: Address,
+        pub recipient: Address,
+        pub amount: i128,
+        pub verified: bool,
+        pub receipt_required: bool,
+        pub policy_version: u32,
+        pub decision_reason: PolicyReason,
+        pub payload_hash: Option<BytesN<32>>,
+        pub protocol_version: Option<u32>,
+        pub delivered_at: Option<u64>,
+        pub read_at: Option<u64>,
+        pub terminal: LifecycleTerminal,
+        pub bound_at: u64,
+    }
+
+    #[contracttype]
+    #[derive(Clone, Debug, Eq, PartialEq)]
+    pub struct ReceiptState {
+        pub message_id: BytesN<32>,
+        pub payload_hash: BytesN<32>,
+        pub protocol_version: u32,
+        pub sender: Address,
+        pub recipient: Address,
+        pub delivered_at: u64,
+        pub read_at: Option<u64>,
+    }
+
+    #[contracterror]
+    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+    #[repr(u32)]
+    pub enum LifecycleError {
+        AlreadyInitialized = 1,
+        NotInitialized = 2,
+        UnauthorizedContract = 3,
+        PolicyRejected = 4,
+        PolicyVersionMismatch = 5,
+        PostageMismatch = 6,
+        ReceiptMismatch = 7,
+        MissingLifecycle = 8,
+        TerminalStateMismatch = 9,
+        DuplicateLifecycle = 10,
+        AlreadyDelivered = 11,
+        AlreadyRead = 12,
+    }
+
+    #[contractclient(name = "LifecycleContractClient")]
+    pub trait LifecycleContractInterface {
+        fn verify_delivered(
+            message_id: BytesN<32>,
+            receipt: ReceiptState,
+        ) -> Result<LifecycleRecord, LifecycleError>;
+        fn verify_read(
+            message_id: BytesN<32>,
+            receipt: ReceiptState,
+        ) -> Result<LifecycleRecord, LifecycleError>;
+    }
+}
+
+use lifecycle_guard::{LifecycleContractClient, ReceiptState as LifecycleReceiptState};
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -36,6 +130,7 @@ pub struct Read {
 
 #[contracttype]
 enum DataKey {
+    Guard,
     Receipt(BytesN<32>),
 }
 
@@ -47,10 +142,28 @@ pub enum Error {
     ReceiptNotFound = 2,
     AlreadyRead = 3,
     CommitmentMismatch = 4,
+    GuardNotConfigured = 5,
+    GuardAlreadyConfigured = 6,
+    LifecycleRejected = 7,
 }
 
 #[contractimpl]
 impl ReceiptsContract {
+    pub fn configure_guard(env: Env, guard: Address) -> Result<(), Error> {
+        if env.storage().instance().has(&DataKey::Guard) {
+            return Err(Error::GuardAlreadyConfigured);
+        }
+        env.storage().instance().set(&DataKey::Guard, &guard);
+        Ok(())
+    }
+
+    pub fn guard(env: Env) -> Result<Address, Error> {
+        env.storage()
+            .instance()
+            .get(&DataKey::Guard)
+            .ok_or(Error::GuardNotConfigured)
+    }
+
     pub fn delivered(
         env: Env,
         message_id: BytesN<32>,
@@ -71,6 +184,20 @@ impl ReceiptsContract {
             }
             return Err(Error::DuplicateReceipt);
         }
+
+        Self::verify_guard(
+            &env,
+            message_id.clone(),
+            &Receipt {
+                message_id: message_id.clone(),
+                payload_hash: payload_hash.clone(),
+                protocol_version,
+                sender: sender.clone(),
+                recipient: recipient.clone(),
+                delivered_at: env.ledger().timestamp(),
+                read_at: None,
+            },
+        )?;
 
         let receipt = Receipt {
             message_id: message_id.clone(),
@@ -103,7 +230,12 @@ impl ReceiptsContract {
             return Err(Error::AlreadyRead);
         }
 
-        receipt.read_at = Some(env.ledger().timestamp());
+        let read_at = env.ledger().timestamp();
+        let mut lifecycle_receipt = receipt.clone();
+        lifecycle_receipt.read_at = Some(read_at);
+        Self::verify_guard(&env, message_id.clone(), &lifecycle_receipt)?;
+
+        receipt.read_at = Some(read_at);
         env.storage().persistent().set(&key, &receipt);
         Read {
             message_id,
@@ -119,6 +251,34 @@ impl ReceiptsContract {
             .get(&DataKey::Receipt(message_id))
             .ok_or(Error::ReceiptNotFound)
     }
+
+    fn verify_guard(env: &Env, message_id: BytesN<32>, receipt: &Receipt) -> Result<(), Error> {
+        let guard = env
+            .storage()
+            .instance()
+            .get(&DataKey::Guard)
+            .ok_or(Error::GuardNotConfigured)?;
+        let lifecycle_receipt = LifecycleReceiptState {
+            message_id: receipt.message_id.clone(),
+            payload_hash: receipt.payload_hash.clone(),
+            protocol_version: receipt.protocol_version,
+            sender: receipt.sender.clone(),
+            recipient: receipt.recipient.clone(),
+            delivered_at: receipt.delivered_at,
+            read_at: receipt.read_at,
+        };
+        let result = if receipt.read_at.is_some() {
+            LifecycleContractClient::new(env, &guard).try_verify_read(&message_id, &lifecycle_receipt)
+        } else {
+            LifecycleContractClient::new(env, &guard)
+                .try_verify_delivered(&message_id, &lifecycle_receipt)
+        };
+
+        match result {
+            Ok(Ok(_)) => Ok(()),
+            Ok(Err(_)) | Err(_) => Err(Error::LifecycleRejected),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -126,11 +286,48 @@ mod test {
     use super::*;
     use soroban_sdk::{
         testutils::{Address as _, AuthorizedFunction, AuthorizedInvocation, Ledger},
-        IntoVal,
+        symbol_short, IntoVal,
     };
+    use stealth_lifecycle::{LifecycleContract, LifecycleContractClient};
+    use stealth_policies::{MailboxPolicy, PoliciesContract, PoliciesContractClient};
 
     fn hash(env: &Env, byte: u8) -> BytesN<32> {
         BytesN::from_array(env, &[byte; 32])
+    }
+
+    fn configure_lifecycle(
+        env: &Env,
+        receipts: &Address,
+        message_id: &BytesN<32>,
+        sender: &Address,
+        recipient: &Address,
+    ) {
+        let policies = env.register(PoliciesContract, ());
+        let policies_client = PoliciesContractClient::new(env, &policies);
+        policies_client.set_policy(
+            &recipient.clone(),
+            &MailboxPolicy {
+                allow_unknown: true,
+                require_verified: false,
+                require_receipt: false,
+                minimum_postage: 0,
+            },
+        );
+
+        let postage = Address::generate(env);
+        let lifecycle = env.register(LifecycleContract, ());
+        let lifecycle_client = LifecycleContractClient::new(env, &lifecycle);
+        lifecycle_client.initialize(&policies, &postage, receipts);
+        ReceiptsContractClient::new(env, receipts).configure_guard(&lifecycle);
+        lifecycle_client.bind(
+            message_id,
+            &recipient.clone(),
+            &sender.clone(),
+            &recipient.clone(),
+            &0_i128,
+            &false,
+            &true,
+        );
     }
 
     #[test]
@@ -143,6 +340,7 @@ mod test {
         let recipient = Address::generate(&env);
         let message_id = hash(&env, 7);
         let payload_hash = hash(&env, 8);
+        configure_lifecycle(&env, &contract_id, &message_id, &sender, &recipient);
 
         env.ledger().set_timestamp(10);
         let delivered = client.delivered(&message_id, &payload_hash, &1, &sender, &recipient);
@@ -167,6 +365,7 @@ mod test {
         let sender = Address::generate(&env);
         let recipient = Address::generate(&env);
         let message_id = hash(&env, 7);
+        configure_lifecycle(&env, &contract_id, &message_id, &sender, &recipient);
 
         client.delivered(&message_id, &hash(&env, 8), &1, &sender, &recipient);
         assert_eq!(
@@ -188,6 +387,7 @@ mod test {
         let recipient = Address::generate(&env);
         let message_id = hash(&env, 7);
         let payload_hash = hash(&env, 8);
+        configure_lifecycle(&env, &contract_id, &message_id, &sender, &recipient);
 
         client.delivered(&message_id, &payload_hash, &1, &sender, &recipient);
         assert_eq!(
@@ -209,6 +409,7 @@ mod test {
         let recipient = Address::generate(&env);
         let message_id = hash(&env, 7);
         let payload_hash = hash(&env, 8);
+        configure_lifecycle(&env, &contract_id, &message_id, &sender, &recipient);
 
         env.ledger().set_timestamp(10);
         client.delivered(&message_id, &payload_hash, &1, &sender, &recipient);
@@ -229,6 +430,7 @@ mod test {
         let recipient = Address::generate(&env);
         let message_id = hash(&env, 7);
         let payload_hash = hash(&env, 8);
+        configure_lifecycle(&env, &contract_id, &message_id, &sender, &recipient);
 
         client.delivered(&message_id, &payload_hash, &1, &sender, &recipient);
         assert_eq!(
