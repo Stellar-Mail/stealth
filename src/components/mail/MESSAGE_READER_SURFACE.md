@@ -21,6 +21,7 @@ The reader surface accepts a single selected `Email` object. It does not fetch d
 - **Postage & Receipts:** The UI displays current postage status (e.g., disputed, refunded) and read receipt states (`pending`, `sent`, `none`).
 
 ### Important UI States
+
 - **Empty State:** When no email is selected, `EmailView` presents a clean fallback (`No conversation selected`).
 - **Header Actions:** Quick replies, snooze, star, archive, and trash operations trigger upward callbacks (`EmailViewActions`).
 - **Inline Composer:** Activating a reply mode swaps in an inline form (`InlineReplyComposer`) checking for recipient block policies and minimum postage readiness.
