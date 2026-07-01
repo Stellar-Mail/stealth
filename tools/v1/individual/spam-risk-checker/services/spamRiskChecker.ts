@@ -13,7 +13,8 @@ export interface SpamRiskInput {
 }
 
 const URGENCY_PATTERN = /\b(urgent|immediately|act now|click now|limited time|final notice)\b/i;
-const SPAM_BAIT_PATTERN = /\b(free|winner|prize|cash|guaranteed|claim now|verify your account|reset your password)\b/i;
+const SPAM_BAIT_PATTERN =
+  /\b(free|winner|prize|cash|guaranteed|claim now|verify your account|reset your password)\b/i;
 const FINANCE_PATTERN = /\b(crypto|bitcoin|investment|make money|earn money)\b/i;
 const SHORTENED_LINK_PATTERN = /\b(bit\.ly|tinyurl|t\.co|ow\.ly)\b/i;
 const EXTERNAL_LINK_PATTERN = /https?:\/\/\S+/i;
@@ -39,7 +40,8 @@ function classifyScore(score: number): SpamRiskLevel {
 }
 
 export function analyzeSpamRisk(input: string | SpamRiskInput): SpamRiskAnalysis {
-  const text = typeof input === "string" ? input : [input.subject, input.body].map(normalizeText).join("\n");
+  const text =
+    typeof input === "string" ? input : [input.subject, input.body].map(normalizeText).join("\n");
   const trimmedText = normalizeText(text);
 
   if (!trimmedText) {
@@ -86,7 +88,8 @@ export function analyzeSpamRisk(input: string | SpamRiskInput): SpamRiskAnalysis
   }
 
   const level = classifyScore(score);
-  const verb = level === "high" ? "looks suspicious" : level === "medium" ? "needs caution" : "looks ordinary";
+  const verb =
+    level === "high" ? "looks suspicious" : level === "medium" ? "needs caution" : "looks ordinary";
 
   return {
     score,
