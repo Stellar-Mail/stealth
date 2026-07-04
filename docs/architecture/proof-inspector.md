@@ -8,15 +8,15 @@
 
 ## 1. Files a Contributor Must Understand
 
-| File | Role |
-|---|---|
-| `src/features/proof-inspector/ProofInspectorModal.tsx` | Full-screen modal that lets a user search for, browse, and copy cryptographic proof records (message hash, payment hash, diagnostic ID, contract address). |
-| `src/features/proof-inspector/index.ts` | Barrel re-export — only public surface: `ProofInspectorModal`. |
-| `src/components/mail/provenance.ts` | Pure data layer. Exports `getEmailProvenance(email)` which assembles the full `ProvenanceDetails` object, and all related TypeScript interfaces. No React. |
-| `src/components/mail/ProvenanceInspector.tsx` | Small modal that renders a single `ProvenanceItemDetails` record (title, key-value pairs, raw JSON viewer, copy-JSON button). Opened from `ProvenancePanel`. |
-| `src/components/mail/trust-state.ts` | Derives ordered `TrustState[]` from an `Email` object. Shared logic used on every surface that renders sender badges. |
-| `src/components/mail/trust-state.test.ts` | Vitest unit tests for `getTrustStates` and `getPrimaryTrustState`. The only existing automated test file for this area. |
-| `src/components/mail/data.ts` | `Email` type and all enum literals (`MailFolder`, `SenderPolicy`, `PayloadStatus`, etc.) that the proof/provenance layer depends on. |
+| File                                                   | Role                                                                                                                                                         |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `src/features/proof-inspector/ProofInspectorModal.tsx` | Full-screen modal that lets a user search for, browse, and copy cryptographic proof records (message hash, payment hash, diagnostic ID, contract address).   |
+| `src/features/proof-inspector/index.ts`                | Barrel re-export — only public surface: `ProofInspectorModal`.                                                                                               |
+| `src/components/mail/provenance.ts`                    | Pure data layer. Exports `getEmailProvenance(email)` which assembles the full `ProvenanceDetails` object, and all related TypeScript interfaces. No React.   |
+| `src/components/mail/ProvenanceInspector.tsx`          | Small modal that renders a single `ProvenanceItemDetails` record (title, key-value pairs, raw JSON viewer, copy-JSON button). Opened from `ProvenancePanel`. |
+| `src/components/mail/trust-state.ts`                   | Derives ordered `TrustState[]` from an `Email` object. Shared logic used on every surface that renders sender badges.                                        |
+| `src/components/mail/trust-state.test.ts`              | Vitest unit tests for `getTrustStates` and `getPrimaryTrustState`. The only existing automated test file for this area.                                      |
+| `src/components/mail/data.ts`                          | `Email` type and all enum literals (`MailFolder`, `SenderPolicy`, `PayloadStatus`, etc.) that the proof/provenance layer depends on.                         |
 
 ---
 
@@ -26,16 +26,16 @@
 
 Key fields consumed by proof/provenance:
 
-| Field | Type | Used for |
-|---|---|---|
-| `id` | `string` | Deterministic seed for all mock hashes and addresses |
-| `email` | `string` | Raw sender identifier; may be a Stellar address (`G…`), a federated address (`user*domain`), or a plain email |
-| `folder` | `MailFolder` | Drives `postageStatus`, `isVerified`, SMTP-bridge detection |
-| `senderPolicy` | `SenderPolicy \| undefined` | Highest-priority trust signal; `undefined` = sender never converted |
-| `postageAmount` | `string \| undefined` | Used as `paid` trust signal and for XLM display |
-| `verifiedSender` | `boolean \| undefined` | Explicit verification flag |
-| `labels` | `string[] \| undefined` | Secondary signals: `"Bridge"`, `"Bridged"`, `"Paid"`, `"Encrypted"` |
-| `unread` | `boolean` | Read-receipt state in `MockProofRecord.readAt` |
+| Field            | Type                        | Used for                                                                                                      |
+| ---------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `id`             | `string`                    | Deterministic seed for all mock hashes and addresses                                                          |
+| `email`          | `string`                    | Raw sender identifier; may be a Stellar address (`G…`), a federated address (`user*domain`), or a plain email |
+| `folder`         | `MailFolder`                | Drives `postageStatus`, `isVerified`, SMTP-bridge detection                                                   |
+| `senderPolicy`   | `SenderPolicy \| undefined` | Highest-priority trust signal; `undefined` = sender never converted                                           |
+| `postageAmount`  | `string \| undefined`       | Used as `paid` trust signal and for XLM display                                                               |
+| `verifiedSender` | `boolean \| undefined`      | Explicit verification flag                                                                                    |
+| `labels`         | `string[] \| undefined`     | Secondary signals: `"Bridge"`, `"Bridged"`, `"Paid"`, `"Encrypted"`                                           |
+| `unread`         | `boolean`                   | Read-receipt state in `MockProofRecord.readAt`                                                                |
 
 ### `ProvenanceDetails` (assembled in `provenance.ts`)
 
@@ -122,21 +122,21 @@ unavailable. Do not add a DOM-based fallback outside React's lifecycle.
 
 ### `ProofInspectorModal` states
 
-| State | Trigger | What renders |
-|---|---|---|
-| **Idle / shortcuts** | `!hasSearched` | Quick-shortcut grid of first 4 proof records |
-| **Found** | `hasSearched && searchResults.length > 0` | 4-section detail grid + footer CTAs |
-| **Not found** | `hasSearched && searchResults.length === 0` | Rose-bordered panel with 3 next-step actions |
-| **Validation hint** | query has content | Inline `<p>` below search bar (success / warning / error) |
+| State                | Trigger                                     | What renders                                              |
+| -------------------- | ------------------------------------------- | --------------------------------------------------------- |
+| **Idle / shortcuts** | `!hasSearched`                              | Quick-shortcut grid of first 4 proof records              |
+| **Found**            | `hasSearched && searchResults.length > 0`   | 4-section detail grid + footer CTAs                       |
+| **Not found**        | `hasSearched && searchResults.length === 0` | Rose-bordered panel with 3 next-step actions              |
+| **Validation hint**  | query has content                           | Inline `<p>` below search bar (success / warning / error) |
 
 Only `searchResults[0]` (first match) is displayed. Multi-result display is not implemented.
 
 ### `ProvenanceInspector` states
 
-| State | Trigger |
-|---|---|
-| Renders nothing | `!open` or `!details` |
-| Full modal | `open && details !== null` |
+| State           | Trigger                    |
+| --------------- | -------------------------- |
+| Renders nothing | `!open` or `!details`      |
+| Full modal      | `open && details !== null` |
 
 Stateless except for the 2-second `copied` flash on the JSON copy button.
 
@@ -144,11 +144,11 @@ Stateless except for the 2-second `copied` flash on the JSON copy button.
 
 Derived in `ProofInspectorModal` from `email.folder`:
 
-| Folder | `postageStatus` |
-|---|---|
-| `"requests"` | `"pending"` |
-| `"spam"` | `"refunded"` |
-| anything else | `"settled"` |
+| Folder        | `postageStatus` |
+| ------------- | --------------- |
+| `"requests"`  | `"pending"`     |
+| `"spam"`      | `"refunded"`    |
+| anything else | `"settled"`     |
 
 `provenance.ts` uses the same `isSmtpBridge` / `isRequest` flags for its `postageStatus`
 text. Keep the two derivations in sync if you change folder logic.
