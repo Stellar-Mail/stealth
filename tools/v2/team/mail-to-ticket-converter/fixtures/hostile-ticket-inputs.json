@@ -1,0 +1,55 @@
+{
+  "tool": "mail-to-ticket-converter",
+  "cases": [
+    {
+      "name": "script and secret-like body",
+      "input": {
+        "id": "hostile-001",
+        "subject": "Please convert this <script>alert(1)</script>",
+        "body": "password=cleartext token:abc123 <img width=\"1\" height=\"1\" src=\"https://tracker.example/pixel\">",
+        "sender": "Customer@Example.com",
+        "recipients": ["support@example.com"],
+        "queue": "support",
+        "attachments": []
+      },
+      "expectedWarnings": [
+        "active_content_removed",
+        "tracking_pixel_hint",
+        "secret_like_text_detected"
+      ]
+    },
+    {
+      "name": "invalid sender",
+      "input": {
+        "id": "hostile-002",
+        "subject": "Need help",
+        "body": "Create a support ticket from this mail.",
+        "sender": "not-an-email",
+        "recipients": ["support@example.com"]
+      },
+      "expectedErrors": ["invalid_sender"]
+    },
+    {
+      "name": "oversized and risky attachments",
+      "input": {
+        "id": "hostile-003",
+        "subject": "Attachment review",
+        "body": "This mail includes several attachments.",
+        "sender": "sender@example.com",
+        "attachments": [
+          {
+            "fileName": "invoice.pdf",
+            "contentType": "application/pdf",
+            "byteSize": 250000
+          },
+          {
+            "fileName": "run-me.exe",
+            "contentType": "application/octet-stream",
+            "byteSize": 52428800
+          }
+        ]
+      },
+      "expectedWarnings": ["risky_attachment_extension", "oversized_attachment"]
+    }
+  ]
+}
