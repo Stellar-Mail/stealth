@@ -1,0 +1,39 @@
+{
+  "tool": "mail-to-ticket-converter",
+  "states": ["loading", "error", "empty", "success"],
+  "items": [
+    {
+      "id": "draft-mtc-001",
+      "subject": "Enterprise onboarding mailbox cannot receive invites",
+      "sender": "ops-lead@example.com",
+      "queue": "Customer Support",
+      "priority": "high",
+      "status": "ready",
+      "summary": "The sender reports that onboarding invitations are bouncing for a managed enterprise mailbox and needs support before the next rollout window.",
+      "recommendedAssignee": "Tier 2 Support",
+      "receivedAt": "2026-07-07T08:15:00Z"
+    },
+    {
+      "id": "draft-mtc-002",
+      "subject": "Billing export missing invoice attachments",
+      "sender": "finance@example.com",
+      "queue": "Billing Operations",
+      "priority": "normal",
+      "status": "needs-triage",
+      "summary": "A finance contact asks for help because invoice attachments were not included in a recent export and downstream reconciliation is blocked.",
+      "recommendedAssignee": "Billing Ops",
+      "receivedAt": "2026-07-07T09:40:00Z"
+    },
+    {
+      "id": "draft-mtc-003",
+      "subject": "Security review request for shared inbox forwarding",
+      "sender": "security@example.com",
+      "queue": "Security",
+      "priority": "urgent",
+      "status": "blocked",
+      "summary": "The security team requests a review before shared inbox forwarding rules are enabled for a new partner domain.",
+      "recommendedAssignee": "Security Review",
+      "receivedAt": "2026-07-07T10:25:00Z"
+    }
+  ]
+}
