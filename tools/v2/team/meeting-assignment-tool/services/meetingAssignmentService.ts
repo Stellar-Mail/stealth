@@ -22,7 +22,7 @@ import sampleMembers from "../fixtures/team-members.json";
  *   2. For each meeting find members whose skill set is a superset of the
  *      meeting's requiredSkills.
  *   3. Among skill-matching members, discard those whose remaining capacity
- *      (weeklyCapacity − currentMeetingLoad) is less than the meeting effort.
+ *      (weeklyCapacity - currentMeetingLoad) is less than the meeting effort.
  *   4. Pick the eligible member with the lowest current load; on a tie prefer
  *      the one with the higher capacity.
  *   5. Mutate a local load counter so subsequent meetings see updated loads.
@@ -30,8 +30,8 @@ import sampleMembers from "../fixtures/team-members.json";
  * Inputs, outputs, and error states
  * ----------------------------------
  * Input:
- *   - `teamMembers` — snapshot of team members with current loads.
- *   - `meetings`    — list of meetings that need to be assigned.
+ *   - `teamMembers` - snapshot of team members with current loads.
+ *   - `meetings`    - list of meetings that need to be assigned.
  *
  * Output:  AssignmentResult { assignments[], summary }
  *
@@ -154,7 +154,7 @@ export interface MeetingAssignmentServiceConfig {
   simulateDelay?: boolean;
   /** Delay in ms. Default: 600. */
   delayMs?: number;
-  /** Probability (0–1) of a simulated failure. Default: 0. */
+  /** Probability (0-1) of a simulated failure. Default: 0. */
   failureRate?: number;
 }
 
