@@ -1,0 +1,83 @@
+{
+  "tool": "deadline-detector",
+  "version": 1,
+  "validMessages": [
+    {
+      "id": "msg-safe-001",
+      "type": "email",
+      "sender": "sender@example.test",
+      "subject": "Submit report by 2026-06-20",
+      "body": "The report is due by 2026-06-20 at 15:00.",
+      "receivedAt": "2026-06-18T09:00:00Z",
+      "containsPersonalData": false,
+      "userTimezone": "UTC"
+    }
+  ],
+  "hostileMessages": [
+    {
+      "id": "bad-id-path",
+      "field": "id",
+      "reason": "path traversal in message id",
+      "patch": {
+        "id": "../../mailbox"
+      }
+    },
+    {
+      "id": "bad-type",
+      "field": "type",
+      "reason": "unsupported source type",
+      "patch": {
+        "type": "live-inbox"
+      }
+    },
+    {
+      "id": "bad-sender-header",
+      "field": "sender",
+      "reason": "CRLF sender injection",
+      "patch": {
+        "sender": "attacker@example.test\r\nBcc: victim@example.test"
+      }
+    },
+    {
+      "id": "bad-received-at",
+      "field": "receivedAt",
+      "reason": "invalid timestamp",
+      "patch": {
+        "receivedAt": "not-a-date"
+      }
+    },
+    {
+      "id": "bad-timezone",
+      "field": "userTimezone",
+      "reason": "timezone control characters",
+      "patch": {
+        "userTimezone": "UTC\r\nX-Timezone: injected"
+      }
+    },
+    {
+      "id": "bad-personal-flag",
+      "field": "containsPersonalData",
+      "reason": "personal data marker must be boolean",
+      "patch": {
+        "containsPersonalData": "false"
+      }
+    }
+  ],
+  "sanitizationCases": [
+    {
+      "field": "subject",
+      "input": "  <script>alert(1)</script> Renewal\u0000 due\u200b tomorrow  ",
+      "expected": "alert(1) Renewal due tomorrow"
+    },
+    {
+      "field": "body",
+      "input": "<b>Submit</b>\u0007 by 2026-06-20",
+      "expected": "Submit by 2026-06-20"
+    },
+    {
+      "field": "attachmentName",
+      "input": "<img src=x>proposal.pdf\u0000",
+      "expected": "proposal.pdf"
+    }
+  ]
+}
