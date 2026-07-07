@@ -97,7 +97,7 @@ function assignMeetings({ teamMembers: members, meetings }) {
 // Tests
 // ---------------------------------------------------------------------------
 
-describe("Meeting Assignment Tool — assignMeetings()", () => {
+describe("Meeting Assignment Tool - assignMeetings()", () => {
   it("returns 7 assignments for 7 fixture meetings", () => {
     const { assignments, summary } = assignMeetings({ teamMembers, meetings: sampleMeetings });
     assert.strictEqual(assignments.length, 7);
@@ -216,7 +216,7 @@ describe("Meeting Assignment Tool — assignMeetings()", () => {
   });
 });
 
-describe("Meeting Assignment Tool — fixtures", () => {
+describe("Meeting Assignment Tool - fixtures", () => {
   it("team-members.json has 4 members with required fields", () => {
     assert.strictEqual(teamMembers.length, 4);
     for (const m of teamMembers) {
