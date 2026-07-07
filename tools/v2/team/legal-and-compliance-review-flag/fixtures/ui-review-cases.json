@@ -1,0 +1,37 @@
+{
+  "tool": "legal-and-compliance-review-flag",
+  "source": "synthetic-ui-fixture",
+  "states": ["loading", "error", "empty", "success"],
+  "items": [
+    {
+      "id": "legal-flag-001",
+      "subject": "Contract clause needs data retention review",
+      "requester": "Jordan Lee",
+      "department": "Sales Ops",
+      "severity": "high",
+      "status": "needs-review",
+      "reason": "The proposed clause references customer data retention terms that need compliance review before reply.",
+      "receivedAt": "2026-07-01T09:00:00.000Z"
+    },
+    {
+      "id": "legal-flag-002",
+      "subject": "Marketing claim requires approval",
+      "requester": "Mira Patel",
+      "department": "Marketing",
+      "severity": "medium",
+      "status": "pending",
+      "reason": "The draft includes a regulated performance claim and should be reviewed before campaign distribution.",
+      "receivedAt": "2026-07-01T11:30:00.000Z"
+    },
+    {
+      "id": "legal-flag-003",
+      "subject": "Blocked export language",
+      "requester": "Noah Kim",
+      "department": "Support",
+      "severity": "critical",
+      "status": "blocked",
+      "reason": "The message references export controlled material and should stay blocked until legal clearance.",
+      "receivedAt": "2026-07-01T14:15:00.000Z"
+    }
+  ]
+}
