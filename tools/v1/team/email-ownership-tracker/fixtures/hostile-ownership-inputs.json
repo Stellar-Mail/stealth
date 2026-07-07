@@ -1,0 +1,111 @@
+{
+  "validEvents": [
+    {
+      "eventId": "evt-001",
+      "messageId": "msg-2026-001@example.test",
+      "action": "claim",
+      "actorEmail": "lead@example.test",
+      "ownerEmail": "owner@example.test",
+      "ownerDisplayName": "Case Owner",
+      "createdAt": "2026-07-01T09:00:00.000Z",
+      "reason": "Initial ownership claim for a shared inbox message.",
+      "teamId": "support-team-1",
+      "tags": ["vip", "billing", "vip"],
+      "attachments": [
+        {
+          "name": "contract.pdf",
+          "contentType": "application/pdf",
+          "sizeBytes": 1024
+        }
+      ]
+    },
+    {
+      "eventId": "evt-002",
+      "messageId": "msg-2026-001@example.test",
+      "action": "release",
+      "actorEmail": "owner@example.test",
+      "createdAt": "2026-07-01T10:00:00.000Z",
+      "reason": "Released after triage."
+    }
+  ],
+  "hostileFields": [
+    {
+      "id": "path-like-event-id",
+      "field": "eventId",
+      "value": "../../etc/passwd",
+      "reason": "reject path traversal in event identifiers"
+    },
+    {
+      "id": "angle-message-id",
+      "field": "messageId",
+      "value": "<script>alert(1)</script>",
+      "reason": "reject HTML-like message identifiers"
+    },
+    {
+      "id": "unsupported-action",
+      "field": "action",
+      "value": "delete-everything",
+      "reason": "reject actions outside the ownership allowlist"
+    },
+    {
+      "id": "header-injection-actor",
+      "field": "actorEmail",
+      "value": "actor@example.test\r\nBcc: victim@example.test",
+      "reason": "reject CRLF header injection in actor email"
+    },
+    {
+      "id": "missing-owner",
+      "field": "ownerEmail",
+      "value": "",
+      "reason": "require an owner email for ownership-setting actions"
+    },
+    {
+      "id": "bad-created-at",
+      "field": "createdAt",
+      "value": "not-a-date",
+      "reason": "reject timestamps that cannot be parsed"
+    },
+    {
+      "id": "unsafe-tag-shape",
+      "field": "tags",
+      "value": ["finance", "../private"],
+      "reason": "reject unsafe tag characters"
+    },
+    {
+      "id": "bad-attachment-size",
+      "field": "attachments",
+      "value": [
+        {
+          "name": "invoice.pdf",
+          "contentType": "application/pdf",
+          "sizeBytes": -10
+        }
+      ],
+      "reason": "reject negative attachment sizes"
+    }
+  ],
+  "textCases": [
+    {
+      "id": "html-display-name",
+      "input": "<b>Alice</b>\u0000 Smith",
+      "expected": "Alice Smith"
+    },
+    {
+      "id": "long-reason",
+      "inputLength": 1400,
+      "expectedLength": 1200
+    }
+  ],
+  "teamMembers": [
+    {
+      "id": "member-1",
+      "email": "Lead@Example.Test",
+      "displayName": "Lead Reviewer"
+    },
+    {
+      "id": "member-2",
+      "email": "backup@example.test",
+      "displayName": "<i>Backup</i> Reviewer"
+    }
+  ]
+}
