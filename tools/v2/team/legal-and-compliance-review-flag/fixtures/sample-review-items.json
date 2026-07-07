@@ -1,0 +1,42 @@
+[
+  {
+    "id": "mail-legal-001",
+    "subject": "Vendor DPA and contract addendum",
+    "body": "The vendor asks us to approve the data processing addendum before renewal terms are finalized.",
+    "requestedAction": "Approve updated contract language",
+    "containsExternalData": true,
+    "contractValue": 125000,
+    "attachments": [
+      {
+        "name": "vendor-dpa.pdf",
+        "type": "application/pdf"
+      }
+    ]
+  },
+  {
+    "id": "mail-compliance-002",
+    "subject": "Customer export with PII",
+    "body": "Support needs to send a customer export that may include personal data and GDPR regulated data.",
+    "requestedAction": "Confirm whether export can be shared",
+    "containsExternalData": true,
+    "complianceOwner": "Avery Singh",
+    "contractValue": 0
+  },
+  {
+    "id": "mail-export-003",
+    "subject": "Restricted country resale question",
+    "body": "A reseller asks whether our dual-use component can be sent to a restricted country under export control rules.",
+    "requestedAction": "Reply to reseller",
+    "containsExternalData": false,
+    "contractValue": 35000
+  },
+  {
+    "id": "mail-clear-004",
+    "subject": "Team lunch schedule",
+    "body": "Please confirm the team lunch headcount for Friday.",
+    "requestedAction": "Confirm attendance",
+    "containsExternalData": false,
+    "contractValue": 0,
+    "reviewer": "Team Coordinator"
+  }
+]
