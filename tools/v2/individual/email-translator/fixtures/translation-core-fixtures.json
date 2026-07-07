@@ -1,0 +1,47 @@
+{
+  "tool": "email-translator",
+  "runContext": {
+    "now": "2026-07-01T00:00:00.000Z",
+    "source": "synthetic-folder-local-fixture"
+  },
+  "sourceRequests": [
+    {
+      "id": "translation-en-es-001",
+      "sourceLanguage": "en",
+      "targetLanguage": "es",
+      "sourceText": "Hello team,\n\nPlease review the meeting notes and send the invoice tomorrow.\n\nThank you"
+    },
+    {
+      "id": "translation-en-fr-002",
+      "sourceLanguage": "auto",
+      "targetLanguage": "fr",
+      "sourceText": "Good morning,\n\nPlease confirm the next steps for the project update."
+    },
+    {
+      "id": "translation-es-en-003",
+      "sourceLanguage": "auto",
+      "targetLanguage": "en",
+      "sourceText": "Hola equipo,\n\nPor favor revise la factura y el plazo."
+    }
+  ],
+  "expectedOutcomes": [
+    {
+      "id": "translation-en-es-001",
+      "sourceLanguage": "en",
+      "targetLanguage": "es",
+      "requiredText": ["Hola", "equipo", "factura"]
+    },
+    {
+      "id": "translation-en-fr-002",
+      "sourceLanguage": "en",
+      "targetLanguage": "fr",
+      "requiredText": ["Bonjour", "Veuillez confirmer", "prochaines etapes"]
+    },
+    {
+      "id": "translation-es-en-003",
+      "sourceLanguage": "es",
+      "targetLanguage": "en",
+      "requiredText": ["Hello", "Please review", "invoice", "deadline"]
+    }
+  ]
+}
