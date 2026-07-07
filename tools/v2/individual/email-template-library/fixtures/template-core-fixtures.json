@@ -1,0 +1,111 @@
+{
+  "metadata": {
+    "tool": "email-template-library",
+    "fixtureVersion": 1,
+    "scope": "folder-local",
+    "dataPolicy": [
+      "Synthetic email templates only.",
+      "No real recipients, credentials, wallet values, or production mail content.",
+      "No live network references are required to run tests."
+    ]
+  },
+  "categories": [
+    {
+      "id": "cat-follow-up",
+      "name": "Follow-up"
+    },
+    {
+      "id": "cat-billing",
+      "name": "Billing"
+    },
+    {
+      "id": "cat-support",
+      "name": "Support"
+    }
+  ],
+  "templates": [
+    {
+      "id": "tmpl-follow-up",
+      "name": "Polite follow-up",
+      "categoryId": "cat-follow-up",
+      "subject": "Following up on {{topic}}",
+      "body": "Hi {{firstName}}, I wanted to follow up on {{topic}}. Please let me know if you have any questions.",
+      "variables": [
+        {
+          "key": "firstName",
+          "label": "First name"
+        },
+        {
+          "key": "topic",
+          "label": "Topic"
+        }
+      ],
+      "tags": ["follow-up", "customer", "polite"],
+      "updatedAt": "2026-06-02"
+    },
+    {
+      "id": "tmpl-invoice-copy",
+      "name": "Invoice copy request",
+      "categoryId": "cat-billing",
+      "subject": "Invoice copy for {{invoiceMonth}}",
+      "body": "Hi {{firstName}}, I attached the invoice copy for {{invoiceMonth}}. Reply here if anything looks off.",
+      "variables": [
+        {
+          "key": "firstName",
+          "label": "First name"
+        },
+        {
+          "key": "invoiceMonth",
+          "label": "Invoice month"
+        }
+      ],
+      "tags": ["invoice", "billing", "receipt"],
+      "updatedAt": "2026-06-04"
+    },
+    {
+      "id": "tmpl-support-resolution",
+      "name": "Support resolution",
+      "categoryId": "cat-support",
+      "subject": "Resolution for {{caseId}}",
+      "body": "Hi {{firstName}}, we resolved case {{caseId}}. The fix was applied and no further action is needed.",
+      "variables": [
+        {
+          "key": "firstName",
+          "label": "First name"
+        },
+        {
+          "key": "caseId",
+          "label": "Case ID"
+        }
+      ],
+      "tags": ["support", "case", "resolution"],
+      "updatedAt": "2026-06-06"
+    }
+  ],
+  "searchCases": [
+    {
+      "id": "search-billing",
+      "input": {
+        "query": "invoice receipt",
+        "limit": 2
+      },
+      "expectedFirstId": "tmpl-invoice-copy"
+    },
+    {
+      "id": "search-follow-up",
+      "input": {
+        "query": "polite customer follow up",
+        "limit": 2
+      },
+      "expectedFirstId": "tmpl-follow-up"
+    },
+    {
+      "id": "search-empty",
+      "input": {
+        "query": "banana telescope",
+        "limit": 2
+      },
+      "expectedFirstId": null
+    }
+  ]
+}
