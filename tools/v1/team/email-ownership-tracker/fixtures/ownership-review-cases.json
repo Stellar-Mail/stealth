@@ -1,0 +1,69 @@
+{
+  "tool": "email-ownership-tracker",
+  "runContext": {
+    "now": "2026-07-01T00:00:00.000Z",
+    "source": "synthetic-folder-local-fixture"
+  },
+  "cases": [
+    {
+      "id": "ownership-001",
+      "threadId": "thread-renewal-owner",
+      "subject": "Renewal follow-up has active owner",
+      "currentOwner": "Jordan Lee",
+      "previousOwner": null,
+      "department": "Customer Success",
+      "lastChangedAt": "2026-06-30T16:00:00.000Z",
+      "ageHours": 8,
+      "signals": ["owner-present", "recent-change"],
+      "ownershipStatus": "owned",
+      "reviewRequired": false,
+      "nextAction": "Keep the current owner attached and monitor the thread.",
+      "containsProductionData": false
+    },
+    {
+      "id": "ownership-002",
+      "threadId": "thread-unassigned-implementation",
+      "subject": "Implementation question needs owner",
+      "currentOwner": "",
+      "previousOwner": null,
+      "department": "Implementation",
+      "lastChangedAt": "2026-06-29T10:00:00.000Z",
+      "ageHours": 38,
+      "signals": ["missing-owner", "customer-waiting"],
+      "ownershipStatus": "needs-owner",
+      "reviewRequired": true,
+      "nextAction": "Assign a named implementation owner before the next reply.",
+      "containsProductionData": false
+    },
+    {
+      "id": "ownership-003",
+      "threadId": "thread-transfer-support",
+      "subject": "Support thread moving to billing owner",
+      "currentOwner": "Mira Patel",
+      "previousOwner": "Noah Kim",
+      "department": "Billing",
+      "lastChangedAt": "2026-06-30T11:00:00.000Z",
+      "ageHours": 13,
+      "signals": ["handoff-requested", "department-change"],
+      "ownershipStatus": "transfer-pending",
+      "reviewRequired": true,
+      "nextAction": "Confirm the handoff and add an internal ownership note.",
+      "containsProductionData": false
+    },
+    {
+      "id": "ownership-004",
+      "threadId": "thread-stale-escalation",
+      "subject": "Escalation has stale owner",
+      "currentOwner": "Avery Stone",
+      "previousOwner": null,
+      "department": "Support",
+      "lastChangedAt": "2026-06-27T09:00:00.000Z",
+      "ageHours": 87,
+      "signals": ["stale-owner", "sla-risk"],
+      "ownershipStatus": "stale",
+      "reviewRequired": true,
+      "nextAction": "Review whether the owner is still accountable or reassign.",
+      "containsProductionData": false
+    }
+  ]
+}
