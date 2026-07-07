@@ -1,0 +1,34 @@
+{
+  "tool": "legal-and-compliance-review-flag",
+  "source": "synthetic-security-performance-fixtures",
+  "cases": [
+    {
+      "id": "malformed-input",
+      "input": "not-an-object",
+      "expectedErrors": ["input-must-be-object"]
+    },
+    {
+      "id": "secret-redaction",
+      "input": {
+        "subject": "Vendor contract password=plain-text-secret",
+        "body": "Please review this clause. apiKey=abc123 should never leak.",
+        "attachments": [],
+        "history": []
+      },
+      "expectedWarnings": ["secret-like-values-redacted"]
+    },
+    {
+      "id": "large-email",
+      "input": {
+        "subject": "Large regulatory review",
+        "bodyRepeat": {
+          "value": "Long compliance paragraph. ",
+          "count": 900
+        },
+        "attachmentsRepeat": 40,
+        "historyRepeat": 80
+      },
+      "expectedWarnings": ["body-truncated", "attachments-truncated", "history-truncated"]
+    }
+  ]
+}
