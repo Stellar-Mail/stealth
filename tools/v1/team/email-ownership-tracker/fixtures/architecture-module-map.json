@@ -1,0 +1,94 @@
+{
+  "tool": "Email Ownership Tracker",
+  "root": "tools/v1/team/email-ownership-tracker/",
+  "releaseTier": "V1",
+  "audience": "team",
+  "modules": [
+    {
+      "name": "public-api",
+      "path": "index.ts",
+      "owner": "tool boundary",
+      "responsibility": "Re-export stable contracts only.",
+      "allowedImports": ["types", "services", "guards"],
+      "forbiddenImports": ["src/routes", "src/features", "wallet", "stellar", "database"]
+    },
+    {
+      "name": "types",
+      "path": "types/",
+      "owner": "data model",
+      "responsibility": "Define serializable ownership event and summary shapes.",
+      "allowedImports": [],
+      "forbiddenImports": ["src/", "services/", "components/"]
+    },
+    {
+      "name": "services",
+      "path": "services/",
+      "owner": "ownership logic",
+      "responsibility": "Derive current owners from guarded history events.",
+      "allowedImports": ["types", "guards"],
+      "forbiddenImports": ["src/", "wallet", "stellar", "database", "notification"]
+    },
+    {
+      "name": "guards",
+      "path": "guards/",
+      "owner": "input boundary",
+      "responsibility": "Reject malformed or hostile ownership inputs.",
+      "allowedImports": [],
+      "forbiddenImports": ["src/", "network", "database", "wallet"]
+    },
+    {
+      "name": "hooks",
+      "path": "hooks/",
+      "owner": "ui state bridge",
+      "responsibility": "Expose local state transitions around folder-local services.",
+      "allowedImports": ["types", "services", "guards"],
+      "forbiddenImports": ["src/routes", "src/features", "app stores", "wallet"]
+    },
+    {
+      "name": "components",
+      "path": "components/",
+      "owner": "isolated UI",
+      "responsibility": "Render tracker states without app-shell integration.",
+      "allowedImports": ["types", "hooks", "services", "fixtures"],
+      "forbiddenImports": ["src/routes", "src/features", "mail rendering", "database"]
+    },
+    {
+      "name": "fixtures",
+      "path": "fixtures/",
+      "owner": "review data",
+      "responsibility": "Provide deterministic synthetic data.",
+      "allowedImports": [],
+      "forbiddenImports": ["production data", "network", "secrets"]
+    },
+    {
+      "name": "tests",
+      "path": "tests/",
+      "owner": "contract verification",
+      "responsibility": "Verify architecture, data, and behavior contracts locally.",
+      "allowedImports": ["types", "services", "guards", "fixtures", "docs"],
+      "forbiddenImports": ["src/routes", "wallet", "stellar", "database"]
+    },
+    {
+      "name": "docs",
+      "path": "docs/",
+      "owner": "handoff notes",
+      "responsibility": "Document architecture, data ownership, and integration limits.",
+      "allowedImports": [],
+      "forbiddenImports": ["production credentials", "external provider setup"]
+    }
+  ],
+  "forbiddenChangeAreas": [
+    "src/",
+    "app shell",
+    "dashboard layout",
+    "navigation",
+    "routing",
+    "inbox architecture",
+    "mail rendering",
+    "authentication",
+    "wallet core",
+    "Stellar core",
+    "database schema",
+    "shared design system"
+  ]
+}
