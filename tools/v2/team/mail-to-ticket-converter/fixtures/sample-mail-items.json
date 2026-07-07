@@ -1,0 +1,59 @@
+[
+  {
+    "id": "mail-001",
+    "threadId": "thread-access-001",
+    "subject": "Re: Urgent login access blocked",
+    "body": "A VIP customer cannot access the admin portal after password reset. They are blocked before a launch deadline.",
+    "senderName": "Jordan Lee",
+    "senderEmail": "jordan@example.com",
+    "receivedAt": "2026-07-01T09:00:00.000Z",
+    "labels": ["VIP", "Customer Support"],
+    "isVip": true
+  },
+  {
+    "id": "mail-002",
+    "threadId": "thread-security-002",
+    "subject": "Production down after suspected security incident",
+    "body": "The team reports a production down outage and possible breach after suspicious login activity.",
+    "senderName": "Ops Desk",
+    "senderEmail": "ops@example.com",
+    "receivedAt": "2026-07-01T09:15:00.000Z",
+    "labels": ["Incident"],
+    "attachments": [
+      {
+        "name": "incident-notes.txt",
+        "type": "text/plain"
+      }
+    ]
+  },
+  {
+    "id": "mail-003",
+    "threadId": "thread-billing-003",
+    "subject": "Invoice refund question",
+    "body": "The customer asks whether a duplicate invoice charge can be refunded this week.",
+    "senderName": "Billing Contact",
+    "senderEmail": "billing@example.com",
+    "receivedAt": "2026-07-01T10:00:00.000Z",
+    "labels": ["Billing"]
+  },
+  {
+    "id": "mail-004",
+    "threadId": "thread-feature-004",
+    "subject": "Feature request for export filters",
+    "body": "Can the roadmap include an improvement for saved export filters?",
+    "senderName": "Product User",
+    "senderEmail": "product@example.com",
+    "receivedAt": "2026-07-01T10:30:00.000Z",
+    "labels": ["Product Feedback"]
+  },
+  {
+    "id": "mail-005",
+    "threadId": "thread-routine-005",
+    "subject": "Weekly partner update",
+    "body": "Sharing the weekly partner update for visibility.",
+    "senderName": "Partner Team",
+    "senderEmail": "partners@example.com",
+    "receivedAt": "2026-07-01T11:00:00.000Z",
+    "labels": ["FYI"]
+  }
+]
