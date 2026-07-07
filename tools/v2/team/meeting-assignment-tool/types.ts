@@ -38,9 +38,9 @@ export interface MeetingAssignment {
   status: "assigned" | "unassigned";
   /**
    * Short machine-readable reason:
-   *   "matched"        — member had the skills and capacity
-   *   "capacity"       — skill match found but all eligible members were at capacity
-   *   "skill_mismatch" — no member had the required skills
+   *   "matched"        - member had the skills and capacity
+   *   "capacity"       - skill match found but all eligible members were at capacity
+   *   "skill_mismatch" - no member had the required skills
    */
   reason: "matched" | "capacity" | "skill_mismatch";
   scheduledAt: string;
@@ -54,7 +54,7 @@ export interface AssignmentSummary {
   total: number;
   assigned: number;
   unassigned: number;
-  /** Percentage of meetings that were successfully assigned (0–100). */
+  /** Percentage of meetings that were successfully assigned (0-100). */
   coveragePercent: number;
   /** Per-member breakdown of how many meetings were assigned. */
   memberLoad: Record<string, number>;
