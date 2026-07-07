@@ -1,0 +1,147 @@
+{
+  "metadata": {
+    "tool": "legal-and-compliance-review-flag",
+    "fixtureVersion": 1,
+    "scope": "folder-local",
+    "dataPolicy": [
+      "Synthetic review examples only.",
+      "No real customers, contracts, credentials, wallets, or legal advice.",
+      "All email addresses use reserved example domains."
+    ]
+  },
+  "reviewItems": [
+    {
+      "id": "legal-review-001",
+      "threadId": "thread-vendor-dpa-001",
+      "emailId": "email-vendor-dpa-001",
+      "subject": "Vendor DPA update for approval",
+      "sender": "contracts@example.com",
+      "requester": "ops-lead@example.com",
+      "jurisdiction": "US",
+      "riskArea": "privacy",
+      "severity": "high",
+      "status": "needs-legal-review",
+      "signals": [
+        "Mentions a data processing addendum before vendor onboarding.",
+        "Requests approval before customer data can be shared."
+      ],
+      "recommendedAction": "Route to legal review before the vendor onboarding thread continues."
+    },
+    {
+      "id": "legal-review-002",
+      "threadId": "thread-regulatory-disclosure-002",
+      "emailId": "email-regulatory-disclosure-002",
+      "subject": "Question about required product disclosure",
+      "sender": "program-manager@example.net",
+      "requester": "product-owner@example.com",
+      "jurisdiction": "EU",
+      "riskArea": "regulatory",
+      "severity": "critical",
+      "status": "needs-compliance-review",
+      "signals": [
+        "Mentions a required disclosure deadline.",
+        "Asks whether a user-facing notice can be omitted.",
+        "References a market launch date in the same thread."
+      ],
+      "recommendedAction": "Escalate to compliance review and block launch approval until the decision is recorded."
+    },
+    {
+      "id": "legal-review-003",
+      "threadId": "thread-contract-redline-003",
+      "emailId": "email-contract-redline-003",
+      "subject": "Customer redlines to liability terms",
+      "sender": "sales@example.org",
+      "requester": "account-owner@example.com",
+      "jurisdiction": "US",
+      "riskArea": "contract",
+      "severity": "medium",
+      "status": "needs-legal-review",
+      "signals": [
+        "Customer proposes changes to liability language.",
+        "Deal team asks whether the change can be accepted."
+      ],
+      "recommendedAction": "Ask legal to review the redline before the account owner replies."
+    },
+    {
+      "id": "legal-review-004",
+      "threadId": "thread-marketing-claims-004",
+      "emailId": "email-marketing-claims-004",
+      "subject": "Homepage copy using guaranteed results claim",
+      "sender": "marketing@example.com",
+      "requester": "campaign-owner@example.net",
+      "jurisdiction": "Global",
+      "riskArea": "marketing",
+      "severity": "high",
+      "status": "needs-compliance-review",
+      "signals": [
+        "Uses a guaranteed results claim.",
+        "Requests same-day publication without review."
+      ],
+      "recommendedAction": "Send to compliance review and require approved replacement wording before publication."
+    },
+    {
+      "id": "legal-review-005",
+      "threadId": "thread-employment-records-005",
+      "emailId": "email-employment-records-005",
+      "subject": "Retention question for hiring records",
+      "sender": "people-team@example.org",
+      "requester": "recruiting-lead@example.com",
+      "jurisdiction": "US",
+      "riskArea": "employment",
+      "severity": "medium",
+      "status": "monitoring",
+      "signals": [
+        "Asks how long hiring notes should be retained.",
+        "Mentions internal candidate records."
+      ],
+      "recommendedAction": "Track for legal review if the team proposes deletion or external sharing."
+    },
+    {
+      "id": "legal-review-006",
+      "threadId": "thread-finance-terms-006",
+      "emailId": "email-finance-terms-006",
+      "subject": "Unusual payment term request",
+      "sender": "finance@example.net",
+      "requester": "vendor-manager@example.com",
+      "jurisdiction": "US",
+      "riskArea": "finance",
+      "severity": "low",
+      "status": "approved-with-notes",
+      "signals": [
+        "Payment timing differs from the standard template.",
+        "No personal data, regulated claim, or contract redline is included."
+      ],
+      "recommendedAction": "Allow the team to continue after finance notes are attached to the thread."
+    }
+  ],
+  "routingRules": [
+    {
+      "id": "privacy-high-to-legal",
+      "riskArea": "privacy",
+      "minimumSeverity": "high",
+      "reviewOwner": "legal",
+      "expectedStatus": "needs-legal-review"
+    },
+    {
+      "id": "regulatory-critical-to-compliance",
+      "riskArea": "regulatory",
+      "minimumSeverity": "critical",
+      "reviewOwner": "compliance",
+      "expectedStatus": "needs-compliance-review"
+    },
+    {
+      "id": "contract-medium-to-legal",
+      "riskArea": "contract",
+      "minimumSeverity": "medium",
+      "reviewOwner": "legal",
+      "expectedStatus": "needs-legal-review"
+    },
+    {
+      "id": "marketing-high-to-compliance",
+      "riskArea": "marketing",
+      "minimumSeverity": "high",
+      "reviewOwner": "compliance",
+      "expectedStatus": "needs-compliance-review"
+    }
+  ]
+}
