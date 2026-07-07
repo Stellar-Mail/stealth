@@ -1,0 +1,87 @@
+{
+  "events": [
+    {
+      "eventId": "evt-001",
+      "messageId": "msg-001@example.test",
+      "action": "claim",
+      "actorEmail": "alice@example.test",
+      "ownerEmail": "alice@example.test",
+      "subject": "Enterprise billing renewal",
+      "reason": "Alice starts the first customer response.",
+      "createdAt": "2026-07-01T09:00:00.000Z"
+    },
+    {
+      "eventId": "evt-002",
+      "messageId": "msg-002@example.test",
+      "action": "claim",
+      "actorEmail": "bob@example.test",
+      "ownerEmail": "bob@example.test",
+      "subject": "Support escalation",
+      "reason": "Bob handles the escalation thread.",
+      "createdAt": "2026-07-01T09:05:00.000Z"
+    },
+    {
+      "eventId": "evt-003",
+      "messageId": "msg-001@example.test",
+      "action": "claim",
+      "actorEmail": "carol@example.test",
+      "ownerEmail": "carol@example.test",
+      "reason": "Carol attempts to claim an already owned thread.",
+      "createdAt": "2026-07-01T09:10:00.000Z"
+    },
+    {
+      "eventId": "evt-004",
+      "messageId": "msg-002@example.test",
+      "action": "transfer",
+      "actorEmail": "bob@example.test",
+      "ownerEmail": "bob@example.test",
+      "nextOwnerEmail": "dana@example.test",
+      "reason": "Dana takes over the escalation.",
+      "createdAt": "2026-07-01T09:15:00.000Z"
+    },
+    {
+      "eventId": "evt-005",
+      "messageId": "msg-001@example.test",
+      "action": "release",
+      "actorEmail": "alice@example.test",
+      "ownerEmail": "alice@example.test",
+      "reason": "Alice releases after handoff.",
+      "createdAt": "2026-07-01T09:20:00.000Z"
+    }
+  ],
+  "invalidEvents": [
+    {
+      "id": "bad-message-id",
+      "event": {
+        "eventId": "evt-bad-001",
+        "messageId": "../private",
+        "action": "claim",
+        "actorEmail": "alice@example.test",
+        "createdAt": "2026-07-01T09:00:00.000Z"
+      },
+      "code": "invalid-id"
+    },
+    {
+      "id": "bad-email",
+      "event": {
+        "eventId": "evt-bad-002",
+        "messageId": "msg-003@example.test",
+        "action": "claim",
+        "actorEmail": "alice@example.test\r\nBcc: victim@example.test",
+        "createdAt": "2026-07-01T09:00:00.000Z"
+      },
+      "code": "invalid-email"
+    },
+    {
+      "id": "bad-action",
+      "event": {
+        "eventId": "evt-bad-003",
+        "messageId": "msg-004@example.test",
+        "action": "steal",
+        "actorEmail": "alice@example.test",
+        "createdAt": "2026-07-01T09:00:00.000Z"
+      },
+      "code": "invalid-action"
+    }
+  ]
+}
