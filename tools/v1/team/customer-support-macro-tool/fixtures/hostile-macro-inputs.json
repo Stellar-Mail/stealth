@@ -1,0 +1,94 @@
+{
+  "tool": "customer-support-macro-tool",
+  "version": 1,
+  "validMacro": {
+    "id": "macro_safe_001",
+    "title": "Refund status update",
+    "body": "Hi {{customer_name}}, your refund for order {{order_id}} is being reviewed.",
+    "category": "refund",
+    "tags": ["Refund", " Status "],
+    "createdAt": "2026-06-18T09:00:00.000Z",
+    "updatedAt": "2026-06-18T09:00:00.000Z",
+    "usageCount": 3,
+    "isFavorite": false
+  },
+  "hostileMacros": [
+    {
+      "id": "bad-id-path",
+      "field": "id",
+      "reason": "path traversal in macro id",
+      "patch": {
+        "id": "../../macros"
+      }
+    },
+    {
+      "id": "bad-category",
+      "field": "category",
+      "reason": "unsupported category",
+      "patch": {
+        "category": "live-inbox"
+      }
+    },
+    {
+      "id": "bad-title-empty",
+      "field": "title",
+      "reason": "title has no visible text",
+      "patch": {
+        "title": "   "
+      }
+    },
+    {
+      "id": "bad-tags-shape",
+      "field": "tags",
+      "reason": "tags must be an array",
+      "patch": {
+        "tags": "urgent"
+      }
+    },
+    {
+      "id": "bad-created-at",
+      "field": "createdAt",
+      "reason": "invalid timestamp",
+      "patch": {
+        "createdAt": "not-a-date"
+      }
+    },
+    {
+      "id": "bad-usage-count",
+      "field": "usageCount",
+      "reason": "usage count must be finite and non-negative",
+      "patch": {
+        "usageCount": -1
+      }
+    },
+    {
+      "id": "bad-favorite",
+      "field": "isFavorite",
+      "reason": "favorite flag must be boolean",
+      "patch": {
+        "isFavorite": "false"
+      }
+    }
+  ],
+  "sanitizationCases": [
+    {
+      "field": "title",
+      "input": "  <script>alert(1)</script> Refund\u0000 update\u200b  ",
+      "expected": "alert(1) Refund update"
+    },
+    {
+      "field": "body",
+      "input": "<b>Hi</b> {{customer_name}}\u0007, refund is approved.",
+      "expected": "Hi {{customer_name}}, refund is approved."
+    },
+    {
+      "field": "attachmentName",
+      "input": "<img src=x>macro-export.csv\u0000",
+      "expected": "macro-export.csv"
+    }
+  ],
+  "validVariables": {
+    "customer_name": "Avery\u0000 Stone",
+    "order_id": "ORD-123"
+  }
+}
