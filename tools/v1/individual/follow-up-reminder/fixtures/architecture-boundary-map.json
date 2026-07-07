@@ -1,0 +1,74 @@
+{
+  "tool": "Follow-up Reminder",
+  "root": "tools/v1/individual/follow-up-reminder/",
+  "releaseTier": "V1",
+  "audience": "individual",
+  "modules": [
+    {
+      "name": "public-api",
+      "path": "index.ts",
+      "owns": "stable exports",
+      "mayImport": ["services/followUpReminder", "services/guards", "services/fixtures"],
+      "mustNotImport": ["src/routes", "src/features", "wallet", "stellar", "database"]
+    },
+    {
+      "name": "engine",
+      "path": "services/followUpReminder.ts",
+      "owns": "reminder review model derivation",
+      "mayImport": [],
+      "mustNotImport": ["react", "network", "calendar", "notifications", "database"]
+    },
+    {
+      "name": "guards",
+      "path": "services/guards.ts",
+      "owns": "input validation and sanitization",
+      "mayImport": ["services/followUpReminder"],
+      "mustNotImport": ["src/", "network", "secrets", "provider clients"]
+    },
+    {
+      "name": "fixtures",
+      "path": "services/fixtures.ts",
+      "owns": "synthetic review data",
+      "mayImport": [],
+      "mustNotImport": ["production data", "network", "secrets"]
+    },
+    {
+      "name": "components",
+      "path": "components/",
+      "owns": "isolated visual states",
+      "mayImport": ["index.ts", "services/followUpReminder", "services/fixtures"],
+      "mustNotImport": ["src/routes", "inbox internals", "wallet", "database"]
+    },
+    {
+      "name": "tests",
+      "path": "tests/",
+      "owns": "contract verification",
+      "mayImport": ["services", "components", "docs", "fixtures"],
+      "mustNotImport": ["app shell", "production data", "provider clients"]
+    },
+    {
+      "name": "docs",
+      "path": "docs/",
+      "owns": "architecture, threat, fixture, and review notes",
+      "mayImport": [],
+      "mustNotImport": ["credentials", "external setup secrets"]
+    }
+  ],
+  "forbiddenIntegrationAreas": [
+    "main app shell",
+    "dashboard layout",
+    "navigation",
+    "routing",
+    "inbox architecture",
+    "mail rendering",
+    "authentication",
+    "wallet core",
+    "Stellar core",
+    "database schema",
+    "notifications",
+    "calendar writes",
+    "shared design system"
+  ],
+  "allowedStates": ["draft", "no_action"],
+  "uiOwnedStates": ["loading", "empty", "error", "review"]
+}
