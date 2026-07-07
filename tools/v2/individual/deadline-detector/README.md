@@ -69,9 +69,14 @@ No real sender, mailbox, or personal data is used.
 ## Documentation Map
 
 - `specs.md` defines scope, status rules, and the local detection contract.
+- `docs/ARCHITECTURE.md` defines module boundaries, dependency rules, and
+  future integration constraints.
+- `docs/DATA_OWNERSHIP.md` defines fixture ownership, runtime state, privacy
+  rules, and adapter boundaries.
 - `docs/ACCESSIBILITY.md` documents keyboard, focus, and screen-reader behavior.
 - `docs/VISUAL_STYLE.md` documents the local visual treatment.
 - `docs/TEST_PLAN.md` lists automated and manual review checks.
+- `tests/architecture-contract.test.mjs` validates the architecture contract.
 - `tests/deadline-fixtures.test.mjs` validates the fixture contract.
 
 ## Known Limitations
