@@ -1,0 +1,62 @@
+{
+  "tool": "draft-improver",
+  "runContext": {
+    "now": "2026-07-01T00:00:00.000Z",
+    "source": "synthetic-folder-local-fixture"
+  },
+  "sourceRequests": [
+    {
+      "id": "draft-clarity-001",
+      "subject": "",
+      "goal": "clarity",
+      "audience": "Jordan",
+      "senderName": "Mira",
+      "deadline": "Friday",
+      "channel": "email",
+      "context": "Follow up on an internal project plan.",
+      "body": "just wanted to circle back on the migration plan. i think maybe we should approve the staging checklist and share owners for the launch items"
+    },
+    {
+      "id": "draft-concise-002",
+      "subject": "Requesting the updated launch copy",
+      "goal": "concise",
+      "audience": "Avery",
+      "senderName": "Noah",
+      "deadline": "2026-07-05",
+      "channel": "email",
+      "context": "Ask for a shorter launch copy update.",
+      "body": "Hi Avery,\n\nI am really writing in order to ask whether you can very quickly send the updated launch copy. It is very important for the review packet and we really need it by the requested date.\n\nThanks,\nNoah"
+    },
+    {
+      "id": "draft-friendly-003",
+      "subject": "Invoice attachment",
+      "goal": "friendly",
+      "audience": "Sam",
+      "senderName": "Riley",
+      "deadline": "",
+      "channel": "email",
+      "context": "Make a direct request warmer.",
+      "body": "Please send the invoice attachment again. The file did not come through on my side."
+    }
+  ],
+  "expectedOutcomes": [
+    {
+      "id": "draft-clarity-001",
+      "status": "improved",
+      "requiredChangeTypes": ["subject", "wording", "structure", "action"],
+      "expectedSubjectPrefix": "Draft"
+    },
+    {
+      "id": "draft-concise-002",
+      "status": "improved",
+      "requiredChangeTypes": ["concise"],
+      "expectedSubjectPrefix": "Requesting"
+    },
+    {
+      "id": "draft-friendly-003",
+      "status": "improved",
+      "requiredChangeTypes": ["tone", "structure"],
+      "expectedSubjectPrefix": "Invoice"
+    }
+  ]
+}
