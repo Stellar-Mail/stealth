@@ -1,0 +1,162 @@
+{
+  "metadata": {
+    "tool": "knowledge-base-suggestion",
+    "fixtureVersion": 1,
+    "scope": "folder-local",
+    "dataPolicy": [
+      "Synthetic article and request examples only.",
+      "No production inbox data, real users, credentials, wallet values, or secrets.",
+      "No live network references are required to run tests."
+    ]
+  },
+  "articles": [
+    {
+      "id": "kb-password-reset",
+      "title": "Reset a team member password",
+      "summary": "Steps for password reset, sign-in recovery, and login verification.",
+      "body": "Use the account recovery form, confirm the member identity, and send the password reset link. If multi-factor authentication is enabled, ask the member to verify the new session.",
+      "category": "account",
+      "status": "published",
+      "url": "/kb/account/password-reset",
+      "productAreas": ["login", "accounts"],
+      "tags": ["password", "login", "account"],
+      "keywords": ["reset password", "forgot password", "sign in", "login recovery"],
+      "relatedQuestions": [
+        "How do I reset my password?",
+        "A team member cannot sign in."
+      ],
+      "updatedAt": "2026-06-01"
+    },
+    {
+      "id": "kb-download-invoices",
+      "title": "Download invoices and receipts",
+      "summary": "Where billing admins can find invoices, receipts, and payment history.",
+      "body": "Open billing settings, choose the invoices tab, then download the monthly invoice or receipt. Only billing admins can access invoice history.",
+      "category": "billing",
+      "status": "published",
+      "url": "/kb/billing/download-invoices",
+      "productAreas": ["billing"],
+      "tags": ["invoice", "receipt", "billing"],
+      "keywords": ["download invoice", "payment history", "billing admin", "receipt"],
+      "relatedQuestions": [
+        "Where can I download an invoice?",
+        "How do I find a receipt?"
+      ],
+      "updatedAt": "2026-06-05"
+    },
+    {
+      "id": "kb-recover-two-factor",
+      "title": "Recover two-factor authentication access",
+      "summary": "Recovery process when a team member loses an authenticator device.",
+      "body": "Verify identity with an admin, use backup codes when available, and reset the two-factor authentication requirement only after approval.",
+      "category": "security",
+      "status": "published",
+      "url": "/kb/security/recover-two-factor",
+      "productAreas": ["login", "security"],
+      "tags": ["2fa", "security", "authenticator"],
+      "keywords": ["two factor", "2fa", "backup codes", "lost phone", "authenticator"],
+      "relatedQuestions": [
+        "What if I lost my authenticator?",
+        "How do backup codes work?"
+      ],
+      "updatedAt": "2026-06-08"
+    },
+    {
+      "id": "kb-track-delivery",
+      "title": "Track delivery status for shipped items",
+      "summary": "How support teams explain shipment tracking, delivery delays, and carrier updates.",
+      "body": "Use the shipment page to confirm carrier status, tracking number, and delivery estimate. For delayed packages, open a delivery investigation.",
+      "category": "delivery",
+      "status": "published",
+      "url": "/kb/delivery/track-status",
+      "productAreas": ["shipping"],
+      "tags": ["shipment", "delivery", "tracking"],
+      "keywords": ["track shipment", "delivery delay", "tracking number", "carrier"],
+      "relatedQuestions": [
+        "Where is my package?",
+        "Why is delivery delayed?"
+      ],
+      "updatedAt": "2026-05-28"
+    },
+    {
+      "id": "kb-data-retention",
+      "title": "Customer data retention policy",
+      "summary": "Explains retention windows, deletion requests, and policy review boundaries.",
+      "body": "Support can explain standard retention windows and route deletion requests to the policy review queue. Do not promise deletion before policy review is complete.",
+      "category": "policy",
+      "status": "published",
+      "url": "/kb/policy/data-retention",
+      "productAreas": ["compliance"],
+      "tags": ["data", "retention", "deletion"],
+      "keywords": ["data retention", "delete data", "policy review", "retention window"],
+      "relatedQuestions": [
+        "How long do you retain data?",
+        "Can a customer request deletion?"
+      ],
+      "updatedAt": "2026-05-20"
+    },
+    {
+      "id": "kb-legacy-signin",
+      "title": "Legacy sign-in troubleshooting",
+      "summary": "Archived article for the old login system.",
+      "body": "This article is archived and should not be suggested for current login recovery workflows.",
+      "category": "account",
+      "status": "archived",
+      "url": "/kb/archive/legacy-signin",
+      "productAreas": ["login"],
+      "tags": ["login", "legacy"],
+      "keywords": ["old login", "legacy sign in"],
+      "relatedQuestions": ["How did legacy sign in work?"],
+      "updatedAt": "2025-12-01"
+    }
+  ],
+  "requests": [
+    {
+      "id": "request-password",
+      "input": {
+        "query": "A team member forgot their password and cannot sign in",
+        "threadId": "thread-support-001",
+        "category": "account",
+        "productArea": "login",
+        "tags": ["password", "login"],
+        "maxResults": 3
+      },
+      "expectedTopArticleId": "kb-password-reset"
+    },
+    {
+      "id": "request-billing",
+      "input": {
+        "query": "Customer needs a receipt and invoice for payment history",
+        "threadId": "thread-billing-002",
+        "category": "billing",
+        "productArea": "billing",
+        "tags": ["invoice"],
+        "maxResults": 2
+      },
+      "expectedTopArticleId": "kb-download-invoices"
+    },
+    {
+      "id": "request-security",
+      "input": {
+        "query": "User lost phone with authenticator and needs 2fa backup codes",
+        "threadId": "thread-security-003",
+        "category": "security",
+        "productArea": "security",
+        "tags": ["2fa"],
+        "maxResults": 2
+      },
+      "expectedTopArticleId": "kb-recover-two-factor"
+    },
+    {
+      "id": "request-empty",
+      "input": {
+        "query": "banana telescope garden question",
+        "threadId": "thread-empty-004",
+        "category": "other",
+        "tags": ["unmatched"],
+        "maxResults": 3
+      },
+      "expectedTopArticleId": null
+    }
+  ]
+}
