@@ -1,0 +1,49 @@
+{
+  "tool": "email-translator",
+  "runContext": {
+    "now": "2026-07-01T00:00:00.000Z",
+    "source": "synthetic-folder-local-fixture"
+  },
+  "scenarios": [
+    {
+      "id": "translate-review-001",
+      "sourceLanguage": "en",
+      "targetLanguage": "es",
+      "sourceText": "Hello team, please review the project update before Friday.",
+      "expectedState": "ready-for-translation",
+      "reviewRequired": false,
+      "riskFlags": [],
+      "containsProductionData": false
+    },
+    {
+      "id": "translate-review-002",
+      "sourceLanguage": "auto",
+      "targetLanguage": "fr",
+      "sourceText": "Good morning, please confirm the invoice note and next steps.",
+      "expectedState": "needs-source-review",
+      "reviewRequired": true,
+      "riskFlags": ["auto-detect-source"],
+      "containsProductionData": false
+    },
+    {
+      "id": "translate-review-003",
+      "sourceLanguage": "en",
+      "targetLanguage": "zz",
+      "sourceText": "Please translate this internal update for a future locale.",
+      "expectedState": "unsupported-language",
+      "reviewRequired": true,
+      "riskFlags": ["unsupported-target-language"],
+      "containsProductionData": false
+    },
+    {
+      "id": "translate-review-004",
+      "sourceLanguage": "en",
+      "targetLanguage": "de",
+      "sourceText": "Please review this message before sending: javascript:alert test marker.",
+      "expectedState": "blocked-input",
+      "reviewRequired": true,
+      "riskFlags": ["active-content-marker"],
+      "containsProductionData": false
+    }
+  ]
+}
