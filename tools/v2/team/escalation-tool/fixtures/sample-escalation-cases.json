@@ -1,0 +1,61 @@
+{
+  "tool": "escalation-tool",
+  "runContext": {
+    "now": "2026-07-01T00:00:00.000Z",
+    "source": "synthetic-folder-local-fixture"
+  },
+  "cases": [
+    {
+      "id": "esc-001",
+      "threadId": "thread-renewal-sla",
+      "subject": "Renewal blocker needs same-day decision",
+      "owner": "Jordan Lee",
+      "department": "Customer Success",
+      "ageHours": 7,
+      "riskLevel": "critical",
+      "signals": ["sla-risk", "customer-blocked", "decision-needed"],
+      "recommendedStatus": "urgent-escalation",
+      "nextAction": "Escalate to the customer success lead and confirm the decision owner.",
+      "containsProductionData": false
+    },
+    {
+      "id": "esc-002",
+      "threadId": "thread-missing-owner",
+      "subject": "Implementation question without a clear owner",
+      "owner": "",
+      "department": "Implementation",
+      "ageHours": 28,
+      "riskLevel": "medium",
+      "signals": ["missing-owner", "stale-thread"],
+      "recommendedStatus": "needs-owner",
+      "nextAction": "Assign a named owner before the next customer reply.",
+      "containsProductionData": false
+    },
+    {
+      "id": "esc-003",
+      "threadId": "thread-approval-needed",
+      "subject": "Discount approval requested by sales",
+      "owner": "Mira Patel",
+      "department": "Sales",
+      "ageHours": 11,
+      "riskLevel": "high",
+      "signals": ["approval-needed", "revenue-impact"],
+      "recommendedStatus": "manager-review",
+      "nextAction": "Route the thread to the sales manager for approval guidance.",
+      "containsProductionData": false
+    },
+    {
+      "id": "esc-004",
+      "threadId": "thread-status-watch",
+      "subject": "Routine follow-up remains on track",
+      "owner": "Noah Kim",
+      "department": "Support",
+      "ageHours": 4,
+      "riskLevel": "low",
+      "signals": ["recent-response", "owner-present"],
+      "recommendedStatus": "monitor",
+      "nextAction": "Monitor the thread and keep the current owner attached.",
+      "containsProductionData": false
+    }
+  ]
+}
