@@ -1,0 +1,65 @@
+{
+  "tool": "invoice-approval-workflow",
+  "runContext": {
+    "now": "2026-07-01T00:00:00.000Z",
+    "source": "synthetic-folder-local-fixture"
+  },
+  "cases": [
+    {
+      "id": "approval-001",
+      "invoiceId": "INV-SYN-1001",
+      "vendor": "Northstar Supplies",
+      "amount": 1850,
+      "currency": "USD",
+      "department": "Operations",
+      "requestedBy": "Jordan Lee",
+      "riskFlags": [],
+      "approvalStatus": "ready-for-approval",
+      "reviewRequired": false,
+      "nextAction": "Queue the invoice for department approval.",
+      "containsProductionData": false
+    },
+    {
+      "id": "approval-002",
+      "invoiceId": "INV-SYN-1002",
+      "vendor": "Harbor Design Studio",
+      "amount": 9200,
+      "currency": "USD",
+      "department": "Marketing",
+      "requestedBy": "Mira Patel",
+      "riskFlags": ["large-amount", "manager-threshold"],
+      "approvalStatus": "needs-review",
+      "reviewRequired": true,
+      "nextAction": "Route to a marketing manager before approving.",
+      "containsProductionData": false
+    },
+    {
+      "id": "approval-003",
+      "invoiceId": "INV-SYN-1003",
+      "vendor": "Summit Hosting",
+      "amount": 4100,
+      "currency": "USD",
+      "department": "Engineering",
+      "requestedBy": "Noah Kim",
+      "riskFlags": ["missing-purchase-order", "missing-receipt"],
+      "approvalStatus": "blocked",
+      "reviewRequired": true,
+      "nextAction": "Request the purchase order and receipt before review.",
+      "containsProductionData": false
+    },
+    {
+      "id": "approval-004",
+      "invoiceId": "INV-SYN-1004",
+      "vendor": "Northstar Supplies",
+      "amount": 1850,
+      "currency": "USD",
+      "department": "Operations",
+      "requestedBy": "Jordan Lee",
+      "riskFlags": ["duplicate-invoice"],
+      "approvalStatus": "rejected",
+      "reviewRequired": true,
+      "nextAction": "Reject the duplicate invoice and reference the approved copy.",
+      "containsProductionData": false
+    }
+  ]
+}
