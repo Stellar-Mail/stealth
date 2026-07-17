@@ -54,7 +54,7 @@ async function initDB(): Promise<IDBDatabase> {
         length: 256,
       },
       true,
-      ["encrypt", "decrypt"]
+      ["encrypt", "decrypt"],
     );
   }
 
@@ -64,7 +64,10 @@ async function initDB(): Promise<IDBDatabase> {
 /**
  * Encrypt a string using AES-GCM
  */
-async function encryptText(text: string, key: CryptoKey): Promise<{ iv: Uint8Array; ciphertext: ArrayBuffer }> {
+async function encryptText(
+  text: string,
+  key: CryptoKey,
+): Promise<{ iv: Uint8Array; ciphertext: ArrayBuffer }> {
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const encoder = new TextEncoder();
   const ciphertext = await crypto.subtle.encrypt(
@@ -73,7 +76,7 @@ async function encryptText(text: string, key: CryptoKey): Promise<{ iv: Uint8Arr
       iv: iv as BufferSource,
     },
     key,
-    encoder.encode(text)
+    encoder.encode(text),
   );
   return { iv, ciphertext };
 }
@@ -81,14 +84,18 @@ async function encryptText(text: string, key: CryptoKey): Promise<{ iv: Uint8Arr
 /**
  * Decrypt ciphertext using AES-GCM
  */
-async function decryptText(ciphertext: ArrayBuffer, iv: Uint8Array, key: CryptoKey): Promise<string> {
+async function decryptText(
+  ciphertext: ArrayBuffer,
+  iv: Uint8Array,
+  key: CryptoKey,
+): Promise<string> {
   const decrypted = await crypto.subtle.decrypt(
     {
       name: "AES-GCM",
       iv: iv as BufferSource,
     },
     key,
-    ciphertext
+    ciphertext,
   );
   const decoder = new TextDecoder();
   return decoder.decode(decrypted);
@@ -235,25 +242,29 @@ export async function searchEmails(query: string): Promise<Email[]> {
   }
 
   const duration = performance.now() - start;
-  console.log(`[Search Index] Query "${query}" completed in ${duration.toFixed(2)}ms, found ${results.length} matches`);
+  console.log(
+    `[Search Index] Query "${query}" completed in ${duration.toFixed(2)}ms, found ${results.length} matches`,
+  );
   return results;
 }
 
 /**
  * Automatically loads and decrypts all records from IndexedDB into memory on initial load.
- * This populates the in-memory cache for fast querying.
+ * This populates the in-memory cache for fast querying.\
  */
 export async function loadIndexFromDB(): Promise<void> {
   const db = await initDB();
   if (!ephemeralKey) throw new Error("Security context uninitialized");
 
-  const records: { id: string; iv: Uint8Array; ciphertext: ArrayBuffer }[] = await new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, "readonly");
-    const store = tx.objectStore(STORE_NAME);
-    const request = store.getAll();
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
+  const records: { id: string; iv: Uint8Array; ciphertext: ArrayBuffer }[] = await new Promise(
+    (resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, "readonly");
+      const store = tx.objectStore(STORE_NAME);
+      const request = store.getAll();
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    },
+  );
 
   indexDocs.clear();
 
@@ -268,7 +279,9 @@ export async function loadIndexFromDB(): Promise<void> {
       });
     } catch (err) {
       // If decryption fails (e.g. key changed between sessions), delete stale record
-      console.warn(`[Search Index] Decryption failed for message ${record.id}, purging stale record.`);
+      console.warn(
+        `[Search Index] Decryption failed for message ${record.id}, purging stale record.`,
+      );
       await deleteFromDB(record.id);
     }
   }
