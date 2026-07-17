@@ -1,78 +1,57 @@
 # Role-Based Mail Access
 
-A self-contained V2 team tool that enforces which team members can read, write, assign, delete, or manage mail threads based on a declared role. This contribution adds the safety and performance guard layer — validation, sanitisation, and size caps — before any future integration work begins.
+Release tier: V2
+Audience: team
 
-## Ownership Boundary
+Role-Based Mail Access is an isolated tool for checking whether a team member can read, write, assign, delete, or manage mail threads based on a declared role policy.
 
-All work for this tool must stay inside:
+## Isolation Boundary
 
-```
-tools/v2/team/role-based-mail-access/
-```
+All work for this issue stays inside `tools/v2/team/role-based-mail-access/`.
 
-Do not wire this tool into the main app, routing, inbox architecture, wallet core, Stellar core, database schema, or existing design system unless a future integration issue explicitly allows it.
+Do not connect this tool to the main application shell, dashboard layout, navigation, authentication, wallet core, mail rendering engine, inbox architecture, routing, Stellar integration, database schema, or design system.
 
-## Folder Structure
+## What Lives Here
 
-```
-role-based-mail-access/
-├── guards/
-│   └── access-guards.mjs            # validation, sanitisation, and performance guard helpers
-├── fixtures/
-│   └── sample-access-requests.json  # valid requests + 19 named hostile inputs
-├── tests/
-│   └── access-guards.test.mjs       # 33-test Node suite covering guards and fixture
-├── docs/
-│   ├── threat-model.md              # trust boundary, attack categories, out-of-scope threats
-│   ├── performance-notes.md         # O(n) risks, size caps, future guidance
-│   └── review-notes.md              # scope, reviewer focus, follow-up issues
-├── specs.md
-└── README.md
-```
+- [types/index.ts](types/index.ts): shared request, policy, and log types.
+- [fixtures/sample-access-requests.json](fixtures/sample-access-requests.json): local fixture data with valid requests and hostile inputs.
+- [guards/access-guards.mjs](guards/access-guards.mjs): validation, sanitization, and size guards.
+- [services/access.service.ts](services/access.service.ts): in-memory policy and audit-log service.
+- [hooks/use-role-based-access.ts](hooks/use-role-based-access.ts): React wrapper around the service.
+- [components/](components): presentational matrix, verifier, and console UI.
+- [demo.tsx](demo.tsx): isolated preview entry.
+- [tests/](tests): folder-local guard and service coverage plus the test plan.
+- [docs/](docs): contributor docs, architecture notes, accessibility guidance, and reviewer notes.
 
-## Running the Tests
+## Setup
 
-No install step required. Run from the repository root:
+1. Install the repo dependencies from the project root if they are not already present.
+2. Keep changes inside this tool folder so the issue remains reviewable on its own.
+
+## Usage
+
+Run the local checks from the repository root:
 
 ```bash
 node --test tools/v2/team/role-based-mail-access/tests/access-guards.test.mjs
+npx vitest -c tools/v2/team/role-based-mail-access/vitest.config.ts run
 ```
 
-Expected output: 33 passing tests, 0 failures.
+For a quick contributor checklist, start with [tests/test-plan.md](tests/test-plan.md) and then read [docs/review-notes.md](docs/review-notes.md).
 
-## Guard API
+## Fixtures
 
-All helpers live in `guards/access-guards.mjs` and throw `AccessValidationError` on invalid input.
+The fixture set is intentionally small and reviewable:
 
-| Export                              | Purpose                                                                  |
-| ----------------------------------- | ------------------------------------------------------------------------ |
-| `sanitizeRole(raw)`                 | Trims, lowercases, strips non-alphanumeric chars — use before validation |
-| `validateRole(role)`                | Allowlist check against 5 known roles                                    |
-| `validateAccessLevel(level)`        | Allowlist check against 5 known access levels                            |
-| `validateEmailAddress(email)`       | Rejects CRLF injection, null bytes, missing local/domain parts           |
-| `validateThreadId(threadId)`        | Rejects path traversal, spaces, special chars                            |
-| `validateAccessRequest(req)`        | Full object validation — calls all four field validators                 |
-| `checkAccess(role, level, policy)`  | O(1) Set-based policy lookup — returns boolean                           |
-| `guardTeamSize(members)`            | Rejects arrays > 500 before any role scan                                |
-| `guardAttachmentCount(attachments)` | Rejects arrays > 100 before any filter pass                              |
-| `LIMITS`                            | Exported constants for all thresholds                                    |
+- 5 valid requests that cover every role and a mix of allowed and denied actions
+- 19 hostile inputs that exercise the guard layer
+- boundary limits for team size, attachment count, role length, thread ID length, and email length
 
-## Roles and Access Levels
-
-| Role      | read | write | assign | delete | manage |
-| --------- | ---- | ----- | ------ | ------ | ------ |
-| `admin`   | ✓    | ✓     | ✓      | ✓      | ✓      |
-| `manager` | ✓    | ✓     | ✓      |        |        |
-| `agent`   | ✓    | ✓     |        |        |        |
-| `viewer`  | ✓    |       |        |        |        |
-| `guest`   |      |       |        |        |        |
+See [fixtures/sample-access-requests.json](fixtures/sample-access-requests.json) for the exact payloads.
 
 ## Known Limitations
 
-- The guard module validates shape and allowlist membership only — it does not verify that the caller actually holds the declared role (authentication is a future issue).
-- `checkAccess` builds a `Set` on every call; callers checking access in a tight loop should pre-index the policy as `Map<role, Set<level>>` to avoid repeated construction.
-- Size caps (`MAX_TEAM_SIZE=500`, `MAX_ATTACHMENT_COUNT=100`) are conservative starting values — adjust them in `access-guards.mjs` if product requirements change, and update the corresponding fixture `performanceLimits` object.
-
-## Review
-
-See `docs/threat-model.md` for the full attack-surface analysis and `docs/review-notes.md` for contributor scope and follow-up issues.
+- The tool is in-memory only; there is no persistence layer.
+- The tool does not integrate with the main mail app yet.
+- There is no mailbox routing, wallet, Stellar, or database work in this issue.
+- Future app wiring should be handled in a separate follow-up issue.

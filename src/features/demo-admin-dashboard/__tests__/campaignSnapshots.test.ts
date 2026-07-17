@@ -1,4 +1,3 @@
-/* eslint-disable */
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { defaultCampaignSnapshots } from "../fixtures/campaignSnapshotFixtures";
 import { CampaignSnapshot } from "../types/campaignSnapshot";
@@ -73,6 +72,7 @@ describe("Campaign Snapshots Fixtures and Helper logic", () => {
       targetAudience: "General Public",
       tags: ["general", "public"],
       timestamp: "2026-06-16T15:00:00Z",
+      status: "draft",
       drafts: [
         {
           id: "draft-custom-1",
@@ -98,6 +98,7 @@ describe("Campaign Snapshots Fixtures and Helper logic", () => {
         targetAudience: "Aud 1",
         tags: [],
         timestamp: "2026-06-16T10:00:00Z",
+        status: "draft",
         drafts: [],
       },
       {
@@ -107,6 +108,7 @@ describe("Campaign Snapshots Fixtures and Helper logic", () => {
         targetAudience: "Aud 2",
         tags: [],
         timestamp: "2026-06-16T11:00:00Z",
+        status: "draft",
         drafts: [],
       },
     ];

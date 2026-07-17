@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, expect, it } from "vitest";
 import { getShortcutAction, isEditableTarget } from "../../../src/features/command-palette";
 
@@ -53,5 +54,20 @@ describe("shortcut guards", () => {
     expect(getShortcutAction({ key: "n", metaKey: true, target: null })).toBe("compose");
     expect(getShortcutAction({ key: "?", shiftKey: true, target: null })).toBe("open-shortcuts");
     expect(getShortcutAction({ key: ",", target: null })).toBe("open-settings");
+  });
+
+  it("suppresses global shortcuts when a dialog is open in the DOM, except for open-palette", () => {
+    const dialog = document.createElement("div");
+    dialog.setAttribute("role", "dialog");
+    document.body.appendChild(dialog);
+
+    try {
+      expect(getShortcutAction({ key: "k", ctrlKey: true, target: null })).toBe("open-palette");
+      expect(getShortcutAction({ key: "n", metaKey: true, target: null })).toBeNull();
+      expect(getShortcutAction({ key: "?", shiftKey: true, target: null })).toBeNull();
+      expect(getShortcutAction({ key: ",", target: null })).toBeNull();
+    } finally {
+      document.body.removeChild(dialog);
+    }
   });
 });

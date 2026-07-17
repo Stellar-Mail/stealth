@@ -38,7 +38,7 @@ export function IdentityStep({ freighter, onAdvance }: Props) {
 
       <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 space-y-3">
         <div className="flex items-start gap-3">
-          <Wallet className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+          <Wallet className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
           <div className="space-y-1">
             <p className="text-sm font-medium text-foreground">What Stealth will read</p>
             <p className="text-xs text-muted-foreground">
@@ -49,7 +49,10 @@ export function IdentityStep({ freighter, onAdvance }: Props) {
       </div>
 
       {state.status === "unavailable" && (
-        <div className="rounded-xl border border-amber-400/20 bg-amber-400/[0.06] p-4">
+        <div
+          role="status"
+          className="rounded-xl border border-amber-400/20 bg-amber-400/[0.06] p-4"
+        >
           <p className="text-sm text-amber-300">
             Freighter wallet extension not found. Install it, then return here.
           </p>
@@ -57,32 +60,37 @@ export function IdentityStep({ freighter, onAdvance }: Props) {
             href="https://freighter.app"
             target="_blank"
             rel="noreferrer"
-            className="mt-2 inline-flex items-center gap-1.5 text-xs text-amber-300 underline underline-offset-2 hover:text-amber-200"
+            className="mt-2 inline-flex items-center gap-1.5 rounded-sm text-xs text-amber-300 underline underline-offset-2 hover:text-amber-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300/50"
           >
-            Get Freighter <ExternalLink className="h-3 w-3" />
+            Get Freighter <ExternalLink className="h-3 w-3" aria-hidden="true" />
           </a>
         </div>
       )}
 
       {state.status === "error" && (
-        <div className="rounded-xl border border-red-400/20 bg-red-400/[0.06] p-4">
+        <div role="alert" className="rounded-xl border border-red-400/20 bg-red-400/[0.06] p-4">
           <p className="text-sm text-red-300">{state.message}</p>
           <p className="mt-1 text-xs text-muted-foreground">You can try again below.</p>
         </div>
       )}
 
       {state.status === "connected" && (
-        <div className="rounded-xl border border-emerald-400/20 bg-emerald-400/[0.06] p-4">
+        <div
+          role="status"
+          className="rounded-xl border border-emerald-400/20 bg-emerald-400/[0.06] p-4"
+        >
           <p className="text-xs font-mono text-emerald-300 break-all">{state.address}</p>
           <p className="mt-1 text-xs text-muted-foreground">Wallet connected. Continuing…</p>
         </div>
       )}
 
       <button
+        type="button"
         onClick={handleConnect}
         disabled={isConnecting || state.status === "connected"}
+        aria-busy={isConnecting}
         className={cn(
-          "flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition",
+          "flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60 active:scale-[0.99]",
           isConnecting || state.status === "connected"
             ? "cursor-not-allowed bg-white/10 text-muted-foreground"
             : "bg-foreground text-background hover:opacity-90",
@@ -90,14 +98,14 @@ export function IdentityStep({ freighter, onAdvance }: Props) {
       >
         {isConnecting ? (
           <>
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
             Waiting for Freighter…
           </>
         ) : state.status === "connected" ? (
           "Connected"
         ) : (
           <>
-            <Wallet className="h-4 w-4" />
+            <Wallet className="h-4 w-4" aria-hidden="true" />
             Connect with Freighter
           </>
         )}

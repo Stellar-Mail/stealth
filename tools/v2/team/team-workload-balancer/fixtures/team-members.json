@@ -1,0 +1,34 @@
+[
+  {
+    "id": "mem-001",
+    "name": "Alex Chen",
+    "capacity": 10,
+    "currentLoad": 4,
+    "roles": ["developer", "senior"],
+    "skills": ["typescript", "react", "node"]
+  },
+  {
+    "id": "mem-002",
+    "name": "Jordan Taylor",
+    "capacity": 8,
+    "currentLoad": 5,
+    "roles": ["developer", "mid"],
+    "skills": ["python", "react", "docker"]
+  },
+  {
+    "id": "mem-003",
+    "name": "Morgan Singh",
+    "capacity": 6,
+    "currentLoad": 2,
+    "roles": ["designer", "senior"],
+    "skills": ["figma", "css", "react"]
+  },
+  {
+    "id": "mem-004",
+    "name": "Casey Rivera",
+    "capacity": 12,
+    "currentLoad": 8,
+    "roles": ["developer", "lead"],
+    "skills": ["typescript", "go", "aws", "kubernetes"]
+  }
+]

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { ArrowUpDown, ChevronUp, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -24,7 +24,7 @@ interface AdminDataTableProps<T> {
 /**
  * Pure helper function to sort data based on a key and direction.
  */
-/* eslint-disable-next-line react-refresh/only-export-components */
+
 export function sortData<T>(
   data: T[],
   sortKey: string | null,
@@ -34,9 +34,8 @@ export function sortData<T>(
   if (!sortKey) return data;
 
   return [...data].sort((a, b) => {
-    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
     let valA: any = column?.sortValue ? column.sortValue(a) : (a as any)[sortKey];
-    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+
     let valB: any = column?.sortValue ? column.sortValue(b) : (b as any)[sortKey];
 
     if (valA === undefined || valA === null) valA = "";
@@ -69,14 +68,17 @@ export function AdminDataTable<T>({
   const [sortKey, setSortKey] = useState<string | null>(defaultSortKey || null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">(defaultSortDirection);
 
-  const handleSort = (key: string) => {
-    if (sortKey === key) {
-      setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
-    } else {
-      setSortKey(key);
-      setSortDirection("asc");
-    }
-  };
+  const handleSort = useCallback(
+    (key: string) => {
+      if (sortKey === key) {
+        setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+      } else {
+        setSortKey(key);
+        setSortDirection("asc");
+      }
+    },
+    [sortKey],
+  );
 
   const sortedData = useMemo(() => {
     const col = columns.find((c) => c.key === sortKey);
@@ -98,15 +100,24 @@ export function AdminDataTable<T>({
               return (
                 <th
                   key={col.key}
-                  onClick={() => col.sortable && handleSort(col.key)}
-                  className={cn(
-                    "px-4 py-3 font-medium text-muted-foreground select-none",
-                    col.sortable ? "cursor-pointer hover:text-foreground transition-colors" : "",
-                  )}
+                  aria-sort={
+                    !col.sortable
+                      ? undefined
+                      : !isSorted
+                        ? "none"
+                        : sortDirection === "asc"
+                          ? "ascending"
+                          : "descending"
+                  }
+                  className="px-4 py-3 font-medium text-muted-foreground select-none"
                 >
-                  <div className="flex items-center gap-1">
-                    <span>{col.header}</span>
-                    {col.sortable && (
+                  {col.sortable ? (
+                    <button
+                      type="button"
+                      onClick={() => handleSort(col.key)}
+                      className="flex items-center gap-1 hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 rounded-sm"
+                    >
+                      <span>{col.header}</span>
                       <span className="inline-flex text-muted-foreground/60">
                         {!isSorted ? (
                           <ArrowUpDown className="h-3 w-3" />
@@ -116,8 +127,12 @@ export function AdminDataTable<T>({
                           <ChevronDown className="h-3.5 w-3.5 text-amber-400" />
                         )}
                       </span>
-                    )}
-                  </div>
+                    </button>
+                  ) : (
+                    <div className="flex items-center gap-1">
+                      <span>{col.header}</span>
+                    </div>
+                  )}
                 </th>
               );
             })}
@@ -137,16 +152,26 @@ export function AdminDataTable<T>({
               return (
                 <tr
                   key={i}
-                  onClick={() => onRowClick && onRowClick(row)}
+                  onClick={() => onRowClick?.(row)}
+                  onKeyDown={(e) => {
+                    if (isClickable && (e.key === "Enter" || e.key === " ")) {
+                      e.preventDefault();
+                      onRowClick?.(row);
+                    }
+                  }}
+                  tabIndex={isClickable ? 0 : undefined}
+                  aria-selected={isSelected ? "true" : undefined}
                   className={cn(
                     "border-b border-white/[0.04] last:border-0 transition-colors",
-                    isClickable ? "cursor-pointer hover:bg-white/[0.02]" : "",
+                    isClickable
+                      ? "cursor-pointer hover:bg-white/[0.02] focus-visible:outline-none focus-visible:bg-white/[0.02] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/20"
+                      : "",
                     isSelected ? "bg-white/[0.04]" : "",
                   )}
                 >
                   {columns.map((col) => (
                     <td key={col.key} className="px-4 py-3 text-foreground align-middle">
-                      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                      {}
                       {col.render ? col.render(row) : String((row as any)[col.key] ?? "")}
                     </td>
                   ))}

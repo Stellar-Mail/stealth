@@ -1,41 +1,51 @@
-# Contact Extractor
-
-Extract and save contacts.
+# Contact Extractor Specs
 
 ## Scope
 
-- Release tier: $(System.Collections.Hashtable.Tier.ToUpperInvariant())
-- Audience: $(System.Collections.Hashtable.Audience)
-- Folder ownership: $dir/
+Extract contact information from email messages and save it to a structured local store for individual use.
 
-This is a self-contained tooling workspace. Do not wire this tool into the main app, routing, inbox architecture, wallet core, Stellar core, or design system unless a future integration issue explicitly allows it.
+## Objectives
 
-Recommended internal structure:
+- Parse email headers and body for contact data (name, email address, phone number, organization)
+- Provide a review interface for extracted contacts before saving
+- Deduplicate and merge contacts when the same person appears across multiple messages
+- Store contacts in a deterministic, portable format
+- Keep all functionality isolated within the tool workspace
 
-- components/
-- services/
-- hooks/
--     ests/
-- docs/
-  "@ | Set-Content -Path "tools/v1/individual/contact-extractor/README.md"
-  @"
+## Non-goals
 
-# Contact Extractor Specs
+- Integration with the main Stealth inbox or routing system
+- On-chain Stellar contact storage or wallet functionality
+- Database schema changes or persistent storage outside the tool
+- Social graph, contact discovery, or network crawling
+- Automatic contact syncing with external providers
+- Encryption or key management (beyond what the platform provides)
 
-## Purpose
+## Folder Ownership Rules
 
-Extract and save contacts.
+- All work must stay inside `tools/v1/individual/contact-extractor/`
+- No modifications to files outside this directory
+- No imports from or dependencies on internal application modules
+- All test data must be fake, deterministic, and safe for public review
 
-## Contributor boundary
+## Independent Review Requirements
 
-All work for this tool should stay in:
+- Every file must be reviewable without knowledge of other parts of the codebase
+- Documentation must explain the purpose and usage of each component
+- Test plans must be self-contained and executable in isolation
+- No secrets, private keys, or real user data may appear in this folder
 
-$dir/
+## High-level Architecture
 
-## Required issue categories
+The Contact Extractor will be organized as a self-contained tool with the following suggested structure:
 
-- Architecture
-- Feature
-- UI and accessibility
-- Security and performance
-- Testing and documentation
+- `components/` — UI components for contact review and editing
+- `services/` — Extraction logic, parsing, and storage
+- `hooks/` — State management and side-effect hooks
+- `tests/` — Unit tests and fixture-based validation
+- `docs/` — Setup, usage, and contributor documentation
+- `fixtures/` — Sample messages and expected extraction output
+
+## Future Integration Note
+
+This tool is currently documentation-only. No source code has been implemented. When implementation begins, all work must remain inside the designated folder. Any future integration with the main application requires a separate, dedicated issue that explicitly authorizes the integration boundary.

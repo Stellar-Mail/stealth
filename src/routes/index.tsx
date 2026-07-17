@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { BulkConfirmDialog } from "@/components/mail/BulkConfirmDialog";
 import { Sidebar } from "@/components/mail/Sidebar";
 import { Topbar } from "@/components/mail/Topbar";
+import { BottomNavigation } from "@/components/mail/BottomNavigation";
 import { EmailList } from "@/components/mail/EmailList";
 import { EmailView } from "@/components/mail/EmailView";
 import { Compose } from "@/components/mail/Compose";
@@ -39,7 +40,7 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/componen
 import { CalendarWorkspace, useCalendar } from "@/features/calendar";
 import { FeedbackViewport } from "@/features/design-system/feedback/feedback-viewport";
 import { useFeedback } from "@/features/design-system/feedback/use-feedback";
-import { ImportWizard, type ImportedContact } from "@/features/contacts";
+import { ContactMigrationDialog } from "@/features/contacts";
 import {
   SenderConversionDialog,
   resolveSenderConversion,
@@ -76,6 +77,7 @@ import type { SnoozeState } from "@/components/mail/data";
 import { useIsMobile } from "@/lib/use-media-query";
 import { RequestsTriageBoard } from "@/features/requests";
 import { ProofInspectorModal } from "@/features/proof-inspector";
+import { SenderJourney } from "@/features/sender-journey";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -101,6 +103,7 @@ function delay(ms: number) {
 }
 
 function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
+  const [showSenderJourney, setShowSenderJourney] = useState(false);
   const [folder, setFolder] = useState<MailFolder>("inbox");
   const [emails, setEmails] = useState<Email[]>(initialEmails);
   const [selectedId, setSelectedId] = useState<string | null>(initialEmails[0].id);
@@ -169,9 +172,11 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
   const { dismiss: dismissFeedback, items: feedbackItems, notify: showToast } = useFeedback();
 
   const handleImportSave = useCallback(
-    (contacts: ImportedContact[]) => {
+    (result: { writes: number; rows: Array<{ name: string; address: string }> }) => {
       setImportOpen(false);
-      showToast(`${contacts.length} contact${contacts.length !== 1 ? "s" : ""} imported`);
+      showToast(
+        `${result.writes} sender rule${result.writes !== 1 ? "s" : ""} written for ${result.rows.length} contact${result.rows.length !== 1 ? "s" : ""}`,
+      );
     },
     [showToast],
   );
@@ -655,6 +660,20 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
 
   const isTest = typeof window !== "undefined" && !!window.navigator.webdriver;
 
+  if (showSenderJourney) {
+    return (
+      <div className="h-screen">
+        <SenderJourney />
+        <button
+          onClick={() => setShowSenderJourney(false)}
+          className="fixed top-4 left-4 rounded-lg border border-white/10 bg-black/50 px-4 py-2 text-xs text-white/80 hover:bg-black/70 z-50"
+        >
+          Back to app
+        </button>
+      </div>
+    );
+  }
+
   return (
     <MotionConfig transition={isTest ? { duration: 0 } : undefined}>
       <div
@@ -702,7 +721,7 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
           )}
 
           <ResizablePanel defaultSize={isMobile ? 100 : 100 - layout.sidebarWidth}>
-            <div className="flex h-full flex-col min-w-0">
+            <div className="flex h-full flex-col min-w-0 pb-[72px] md:pb-0">
               <Topbar
                 onOpenPalette={() => setPaletteOpen(true)}
                 onOpenSettings={openSettings}

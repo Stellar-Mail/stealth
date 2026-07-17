@@ -2,7 +2,7 @@
 
 A self-contained team tool for visually building and managing automated inbox rules.
 
-## Ownership Boundary
+## Ownership boundary
 
 All work for this tool must stay inside:
 

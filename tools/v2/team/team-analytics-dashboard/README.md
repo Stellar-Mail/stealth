@@ -19,9 +19,14 @@ integration issue explicitly allows it.
 ```
 team-analytics-dashboard/
 ├── fixtures/
-│   └── sample-analytics-data.json   # local contract fixture (4 members, 1 week)
+│   ├── sample-analytics-data.json       # local contract fixture (4 members, 1 week)
+│   └── sample-team-analytics.json       # snapshot review fixture (4 teams)
+├── services/
+│   ├── analytics-dashboard.service.mjs  # core dashboard report generator
+│   └── analytics-snapshot.service.mjs   # team snapshot classifier
 ├── tests/
-│   └── analytics-dashboard-fixtures.test.mjs   # zero-dependency Node test suite
+│   ├── analytics-dashboard-fixtures.test.mjs   # fixture + service test suite
+│   └── analytics-fixtures.test.mjs             # snapshot fixture + service test suite
 ├── docs/
 │   ├── test-plan.md      # how to run and manually validate the tests
 │   └── review-notes.md   # scope, reviewer focus, and follow-up work
@@ -54,6 +59,38 @@ node --test tools/v2/team/team-analytics-dashboard/tests/analytics-dashboard-fix
 ```
 
 Expected output: 10 passing tests, 0 failures.
+
+Also run the snapshot fixture tests:
+
+```bash
+node --test tools/v2/team/team-analytics-dashboard/tests/analytics-fixtures.test.mjs
+```
+
+Expected output: 2 passing tests, 0 failures.
+
+Or run all dashboard tests together:
+
+```bash
+node --test tools/v2/team/team-analytics-dashboard/tests/
+```
+
+## Core Services
+
+### `services/analytics-dashboard.service.mjs`
+
+The dashboard report generator (`generateDashboardReport`) transforms raw member data into a structured analytics report:
+
+- **`classifyMemberStatus(member)`** — determines workload status (`active`, `overloaded`, `underutilized`, or `away`) based on open threads, SLA breaches, and resolved volume.
+- **`findTopPerformer(members)`** — identifies the active member with the lowest response time and zero SLA breaches.
+- **`findBottleneck(members)`** — identifies the member with the highest open-thread count.
+- **`generateDashboardReport(data)`** — orchestrates the full transform and returns a complete report with member snapshots and team summary.
+
+### `services/analytics-snapshot.service.mjs`
+
+The snapshot service (`generateSnapshots`) classifies team source reports into dashboard-ready snapshots:
+
+- **`computeSnapshotStatus(report)`** — maps a source report to one of `healthy`, `watch`, `needs-attention`, or `blocked` based on backlog size, response time, and data completeness.
+- **`generateSnapshots(sourceReports)`** — transforms an array of source reports into an array of analytics snapshots with computed status and review flags.
 
 ## Fixture Scenarios
 

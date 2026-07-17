@@ -1550,6 +1550,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
+name = "stealth-lifecycle"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+ "stealth-policies",
+]
+
+[[package]]
 name = "stealth-policies"
 version = "0.1.0"
 dependencies = [
@@ -1563,6 +1571,8 @@ name = "stealth-postage"
 version = "0.1.0"
 dependencies = [
  "soroban-sdk",
+ "stealth-lifecycle",
+ "stealth-policies",
 ]
 
 [[package]]
@@ -1570,6 +1580,7 @@ name = "stealth-receipts"
 version = "0.1.0"
 dependencies = [
  "soroban-sdk",
+ "stealth-lifecycle",
 ]
 
 [[package]]

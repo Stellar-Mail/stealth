@@ -13,8 +13,9 @@ interface UsePaymentRequestsOptions {
 }
 
 export function usePaymentRequests(options: UsePaymentRequestsOptions = {}) {
-  const [payments, setPayments] = useState<PaymentRequest[]>(options.initialPayments || []);
-  const [isLoading, setIsLoading] = useState(!options.initialPayments);
+  const { initialPayments, onFetch } = options;
+  const [payments, setPayments] = useState<PaymentRequest[]>(initialPayments || []);
+  const [isLoading, setIsLoading] = useState(!initialPayments);
   const [error, setError] = useState<string | null>(null);
 
   const fetch = useCallback(async () => {
@@ -22,8 +23,8 @@ export function usePaymentRequests(options: UsePaymentRequestsOptions = {}) {
     setError(null);
 
     try {
-      if (options.onFetch) {
-        const data = await options.onFetch();
+      if (onFetch) {
+        const data = await onFetch();
         setPayments(data);
       }
     } catch (err) {
@@ -32,14 +33,14 @@ export function usePaymentRequests(options: UsePaymentRequestsOptions = {}) {
     } finally {
       setIsLoading(false);
     }
-  }, [options]);
+  }, [onFetch]);
 
   // Fetch on mount if onFetch is provided
   useEffect(() => {
-    if (options.onFetch && !options.initialPayments) {
+    if (onFetch && !initialPayments) {
       fetch();
     }
-  }, [options.onFetch, options.initialPayments, fetch]);
+  }, [onFetch, initialPayments, fetch]);
 
   const filterByStatus = useCallback(
     (status: string) => {

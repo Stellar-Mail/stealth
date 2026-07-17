@@ -1,6 +1,6 @@
 import React from "react";
 import { AlertCircle } from "lucide-react";
-import { Button } from "../../../src/components/ui/button";
+import { Button } from "@/components/ui/button";
 
 /**
  * WatchlistEmptyState
