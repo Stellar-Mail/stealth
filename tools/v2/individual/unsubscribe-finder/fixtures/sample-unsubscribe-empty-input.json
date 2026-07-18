@@ -1,0 +1,13 @@
+{
+  "tool": "unsubscribe-finder",
+  "version": 1,
+  "sourceMessages": [],
+  "expectedError": {
+    "code": "EMPTY_SOURCE_MESSAGES",
+    "message": "At least one source message is required."
+  },
+  "reviewNotes": [
+    "Empty requests are rejected before any candidate classification starts.",
+    "The service contract must report a stable error code for callers."
+  ]
+}
