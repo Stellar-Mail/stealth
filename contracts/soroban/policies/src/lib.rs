@@ -788,4 +788,62 @@ mod test {
             )
             .is_ok());
     }
+
+    #[test]
+    fn negative_path_coverage() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let contract_id = env.register(PoliciesContract, ());
+        let client = PoliciesContractClient::new(&env, &contract_id);
+        let owner = Address::generate(&env);
+        let sender = Address::generate(&env);
+        let rando = Address::generate(&env);
+
+        // Negative path: unauthorized actor tries to set policy
+        assert_eq!(
+            client.try_set_policy_as(
+                &owner,
+                &rando,
+                &MailboxPolicy {
+                    allow_unknown: true,
+                    require_verified: false,
+                    require_receipt: false,
+                    minimum_postage: 0,
+                },
+            ),
+            Err(Ok(Error::UnauthorizedDelegate))
+        );
+
+        // Negative path: unauthorized actor tries to set sender rule
+        assert_eq!(
+            client.try_set_sender_rule_as(&owner, &rando, &sender, &SenderRule::Allow),
+            Err(Ok(Error::UnauthorizedDelegate))
+        );
+
+        // Negative path: unauthorized actor tries to set sender tier
+        assert_eq!(
+            client.try_set_sender_tier_as(&owner, &rando, &sender, &10),
+            Err(Ok(Error::UnauthorizedDelegate))
+        );
+
+        // Negative path: invalid postage (< 0) when setting policy
+        assert_eq!(
+            client.try_set_policy(
+                &owner,
+                &MailboxPolicy {
+                    allow_unknown: true,
+                    require_verified: false,
+                    require_receipt: false,
+                    minimum_postage: -1,
+                }
+            ),
+            Err(Ok(Error::InvalidPostage))
+        );
+
+        // Negative path: invalid postage (< 0) when setting sender tier
+        assert_eq!(
+            client.try_set_sender_tier(&owner, &sender, &-1),
+            Err(Ok(Error::InvalidPostage))
+        );
+    }
 }
