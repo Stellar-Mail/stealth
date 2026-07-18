@@ -86,6 +86,7 @@ enum DataKey {
 pub enum Error {
     InvalidPostage = 1,
     UnauthorizedDelegate = 2,
+    VersionOverflow = 3,
 }
 
 #[contractimpl]
@@ -102,7 +103,7 @@ impl PoliciesContract {
     ) -> Result<(), Error> {
         Self::authorize_policy_mutation(&env, &owner, &actor)?;
         Self::validate_policy(policy)?;
-        let version = Self::bump_version(&env, &owner);
+        let version = Self::bump_version(&env, &owner)?;
         env.storage()
             .persistent()
             .set(&DataKey::Policy(owner.clone()), &policy);
@@ -190,7 +191,7 @@ impl PoliciesContract {
             env.storage().persistent().set(&key, &rule);
         }
         env.storage().persistent().remove(&tier_key);
-        let version = Self::bump_version(&env, &owner);
+        let version = Self::bump_version(&env, &owner)?;
         env.events()
             .publish((symbol_short!("sender"), owner, sender), (rule, version));
         Ok(())
@@ -224,7 +225,7 @@ impl PoliciesContract {
             &DataKey::Rule(owner.clone(), sender.clone()),
             &SenderRule::Default,
         );
-        let version = Self::bump_version(&env, &owner);
+        let version = Self::bump_version(&env, &owner)?;
         env.events().publish(
             (symbol_short!("tier"), owner, sender),
             (minimum_postage, version),
@@ -383,12 +384,13 @@ impl PoliciesContract {
         }
     }
 
-    fn bump_version(env: &Env, owner: &Address) -> u32 {
-        let version = Self::policy_version(env.clone(), owner.clone()) + 1;
+    fn bump_version(env: &Env, owner: &Address) -> Result<u32, Error> {
+        let current = Self::policy_version(env.clone(), owner.clone());
+        let version = current.checked_add(1).ok_or(Error::VersionOverflow)?;
         env.storage()
             .persistent()
             .set(&DataKey::PolicyVersion(owner.clone()), &version);
-        version
+        Ok(version)
     }
 }
 
@@ -796,6 +798,109 @@ mod test {
                 },
             )
             .is_ok());
+    }
+}
+
+#[cfg(test)]
+mod panic_free_tests {
+    use super::*;
+    use soroban_sdk::testutils::Address as _;
+
+    #[test]
+    fn bump_version_overflow_returns_error() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let contract_id = env.register(PoliciesContract, ());
+        let client = PoliciesContractClient::new(&env, &contract_id);
+        let owner = Address::generate(&env);
+
+        // Set version to u32::MAX - 1
+        env.storage()
+            .persistent()
+            .set(&DataKey::PolicyVersion(owner.clone()), &(u32::MAX - 1));
+
+        // Next bump should succeed (to u32::MAX)
+        client.set_policy(
+            &owner,
+            &MailboxPolicy {
+                allow_unknown: true,
+                require_verified: false,
+                require_receipt: false,
+                minimum_postage: 0,
+            },
+        );
+        assert_eq!(client.policy_version(&owner), u32::MAX);
+
+        // Next bump should fail with VersionOverflow
+        let result = client.try_set_policy(
+            &owner,
+            &MailboxPolicy {
+                allow_unknown: false,
+                require_verified: true,
+                require_receipt: false,
+                minimum_postage: 0,
+            },
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn negative_postage_rejected() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let contract_id = env.register(PoliciesContract, ());
+        let client = PoliciesContractClient::new(&env, &contract_id);
+        let owner = Address::generate(&env);
+        let sender = Address::generate(&env);
+
+        // Negative minimum_postage in policy
+        let result = client.try_set_policy(
+            &owner,
+            &MailboxPolicy {
+                allow_unknown: true,
+                require_verified: false,
+                require_receipt: false,
+                minimum_postage: -1,
+            },
+        );
+        assert!(result.is_err());
+
+        // Negative tier postage
+        let result = client.try_set_sender_tier(&owner, &sender, &-100);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn unscoped_delegate_cannot_mutate() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let contract_id = env.register(PoliciesContract, ());
+        let client = PoliciesContractClient::new(&env, &contract_id);
+        let owner = Address::generate(&env);
+        let rando = Address::generate(&env);
+        let sender = Address::generate(&env);
+
+        // Random address with no delegate scope should fail
+        assert!(client
+            .try_set_policy_as(
+                &owner,
+                &rando,
+                &MailboxPolicy {
+                    allow_unknown: true,
+                    require_verified: false,
+                    require_receipt: false,
+                    minimum_postage: 0,
+                },
+            )
+            .is_err());
+
+        assert!(client
+            .try_set_sender_rule_as(&owner, &rando, &sender, &SenderRule::Allow)
+            .is_err());
+
+        assert!(client
+            .try_set_sender_tier_as(&owner, &rando, &sender, &100)
+            .is_err());
     }
 }
 
