@@ -12,6 +12,11 @@ export type {
 } from "./types";
 export { validateCreateNote, validateUpdateNote } from "./validation";
 
+// Non-UI execution contract
+export { createNotesContract } from "./contract";
+export { NoteErrorCode, ok, fail } from "./contract";
+export type { NotesContract, NotesOperation, NotesContractOutput, NotesResult } from "./contract";
+
 // Hook
 export { useContactNotes } from "./hooks/useContactNotes";
 
