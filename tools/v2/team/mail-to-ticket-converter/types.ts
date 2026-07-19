@@ -1,8 +1,8 @@
-export type Priority = "low" | "medium" | "high" | "critical";
+export type Priority = 'low' | 'medium' | 'high' | 'critical';
 
-export type TicketStatus = "open" | "in-progress" | "resolved" | "closed";
+export type TicketStatus = 'open' | 'in-progress' | 'resolved' | 'closed';
 
-export type TicketCategory = "bug" | "feature-request" | "support" | "billing" | "other";
+export type TicketCategory = 'bug' | 'feature-request' | 'support' | 'billing' | 'other';
 
 export interface EmailSender {
   name: string;
@@ -69,10 +69,10 @@ export interface MailToTicketServiceConfig {
 }
 
 export type FetchState<T> =
-  | { status: "loading" }
-  | { status: "empty" }
-  | { status: "error"; message: string }
-  | { status: "success"; data: T };
+  | { status: 'loading' }
+  | { status: 'empty' }
+  | { status: 'error'; message: string }
+  | { status: 'success'; data: T };
 
 export interface IMailToTicketService {
   getEmails(): Promise<Email[]>;
@@ -83,3 +83,13 @@ export interface IMailToTicketService {
   assignTicket(ticketId: string, memberId: string): Promise<Ticket>;
   getMetrics(): Promise<TicketMetrics>;
 }
+
+// Execution contract exports
+export type {
+  MailToTicketErrorCode,
+  MailToTicketInput,
+  MailToTicketOutput,
+  MailToTicketError,
+  MailToTicketResult,
+  ExecuteMailToTicket,
+} from './execution';
