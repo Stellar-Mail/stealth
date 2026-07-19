@@ -754,7 +754,10 @@ impl PostageContract {
         let token = token::TokenClient::new(&env, &config.asset);
         match status {
             PostageStatus::Settled => {
-                let recipient_amount = postage.amount - postage.fee;
+                let recipient_amount = postage
+                    .amount
+                    .checked_sub(postage.fee)
+                    .ok_or(Error::InvalidAmount)?;
                 if recipient_amount > 0 {
                     token.transfer(
                         &escrow,
@@ -1709,14 +1712,7 @@ mod test {
     fn initialize_fails_if_already_initialized() {
         let setup = setup(0);
         let client = PostageContractClient::new(&setup.env, &setup.contract_id);
-        let res = client.try_initialize(
-            &setup.asset,
-            &setup.treasury,
-            &100,
-            &0,
-            &86_400,
-            &3_600,
-        );
+        let res = client.try_initialize(&setup.asset, &setup.treasury, &100, &0, &86_400, &3_600);
         assert_eq!(res, Err(Ok(Error::AlreadyInitialized)));
     }
 
@@ -1767,10 +1763,7 @@ mod test {
         let treasury = Address::generate(&env);
         client.initialize(&asset, &treasury, &100, &0, &86_400, &3_600);
 
-        assert_eq!(
-            client.try_guard(),
-            Err(Ok(Error::GuardNotConfigured))
-        );
+        assert_eq!(client.try_guard(), Err(Ok(Error::GuardNotConfigured)));
     }
 
     #[test]
@@ -1782,7 +1775,14 @@ mod test {
         assert!(client.try_config().is_err());
         assert!(client.try_minimum().is_err());
         assert!(client.try_quote(&false).is_err());
-        assert!(client.try_submit(&id(&env, 1), &Address::generate(&env), &Address::generate(&env), &100).is_err());
+        assert!(client
+            .try_submit(
+                &id(&env, 1),
+                &Address::generate(&env),
+                &Address::generate(&env),
+                &100
+            )
+            .is_err());
     }
 
     #[test]
@@ -1813,11 +1813,26 @@ mod test {
         let missing_id = id(&setup.env, 99);
 
         assert_eq!(client.try_get(&missing_id), Err(Ok(Error::PostageNotFound)));
-        assert_eq!(client.try_expire(&missing_id), Err(Ok(Error::PostageNotFound)));
-        assert_eq!(client.try_settle(&missing_id), Err(Ok(Error::PostageNotFound)));
-        assert_eq!(client.try_refund(&missing_id), Err(Ok(Error::PostageNotFound)));
-        assert_eq!(client.try_dispute(&missing_id), Err(Ok(Error::PostageNotFound)));
-        assert_eq!(client.try_reclaim(&missing_id), Err(Ok(Error::PostageNotFound)));
+        assert_eq!(
+            client.try_expire(&missing_id),
+            Err(Ok(Error::PostageNotFound))
+        );
+        assert_eq!(
+            client.try_settle(&missing_id),
+            Err(Ok(Error::PostageNotFound))
+        );
+        assert_eq!(
+            client.try_refund(&missing_id),
+            Err(Ok(Error::PostageNotFound))
+        );
+        assert_eq!(
+            client.try_dispute(&missing_id),
+            Err(Ok(Error::PostageNotFound))
+        );
+        assert_eq!(
+            client.try_reclaim(&missing_id),
+            Err(Ok(Error::PostageNotFound))
+        );
     }
 
     #[test]
@@ -1895,13 +1910,13 @@ mod test {
         let env = Env::default();
         let contract_id = env.register(PostageContract, ());
         let client = PostageContractClient::new(&env, &contract_id);
-        
+
         let admin = Address::generate(&env);
         let token_contract = env.register_stellar_asset_contract_v2(admin.clone());
         let asset = token_contract.address();
         let token_admin = token::StellarAssetClient::new(&env, &asset);
         let treasury = Address::generate(&env);
-        
+
         client.initialize(&asset, &treasury, &100, &0, &86_400, &3_600);
 
         env.mock_all_auths();
@@ -1915,6 +1930,117 @@ mod test {
         assert_eq!(
             client.try_expire(&id(&env, 1)),
             Err(Ok(Error::GuardNotConfigured))
+        );
+    }
+
+    #[test]
+    fn audit_panic_free_error_handling_invalid_inputs_and_uninitialized() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let client = PostageContractClient::new(&env, &env.register(PostageContract, ()));
+        let dummy_id = id(&env, 1);
+
+        assert_eq!(client.try_config(), Err(Ok(Error::NotInitialized)));
+        assert_eq!(client.try_minimum(), Err(Ok(Error::NotInitialized)));
+        assert_eq!(client.try_quote(&false), Err(Ok(Error::NotInitialized)));
+        assert_eq!(
+            client.try_submit(
+                &dummy_id,
+                &Address::generate(&env),
+                &Address::generate(&env),
+                &100
+            ),
+            Err(Ok(Error::NotInitialized))
+        );
+
+        let env2 = Env::default();
+        env2.mock_all_auths();
+        let client2 = PostageContractClient::new(&env2, &env2.register(PostageContract, ()));
+        let admin2 = Address::generate(&env2);
+        let asset2 = env2.register_stellar_asset_contract_v2(admin2).address();
+        client2.initialize(&asset2, &Address::generate(&env2), &100, &0, &3600, &0);
+        assert_eq!(client2.try_guard(), Err(Ok(Error::GuardNotConfigured)));
+    }
+
+    #[test]
+    fn audit_panic_free_error_handling_overflow_and_invalid_amounts() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let admin = Address::generate(&env);
+        let asset = env.register_stellar_asset_contract_v2(admin).address();
+        let client = PostageContractClient::new(&env, &env.register(PostageContract, ()));
+        let treasury = Address::generate(&env);
+
+        client.initialize(&asset, &treasury, &100, &500, &86400, &3600);
+
+        let sender = Address::generate(&env);
+        let recipient = Address::generate(&env);
+        assert_eq!(
+            client.try_submit(&id(&env, 1), &sender, &recipient, &99),
+            Err(Ok(Error::InvalidAmount))
+        );
+
+        let token_admin = token::StellarAssetClient::new(&env, &asset);
+        token_admin.mint(&sender, &10_000);
+        assert!(client
+            .try_submit(&id(&env, 1), &sender, &recipient, &200)
+            .is_ok());
+        assert_eq!(
+            client.try_submit(&id(&env, 1), &sender, &recipient, &200),
+            Err(Ok(Error::DuplicateMessage))
+        );
+
+        let unknown_id = id(&env, 99);
+        assert_eq!(client.try_get(&unknown_id), Err(Ok(Error::PostageNotFound)));
+        assert_eq!(
+            client.try_expire(&unknown_id),
+            Err(Ok(Error::PostageNotFound))
+        );
+        assert_eq!(
+            client.try_settle(&unknown_id),
+            Err(Ok(Error::PostageNotFound))
+        );
+        assert_eq!(
+            client.try_refund(&unknown_id),
+            Err(Ok(Error::PostageNotFound))
+        );
+        assert_eq!(
+            client.try_dispute(&unknown_id),
+            Err(Ok(Error::PostageNotFound))
+        );
+        assert_eq!(
+            client.try_reclaim(&unknown_id),
+            Err(Ok(Error::PostageNotFound))
+        );
+    }
+
+    #[test]
+    fn audit_panic_free_error_handling_guard_failures() {
+        let setup = setup(0);
+        let client = PostageContractClient::new(&setup.env, &setup.contract_id);
+
+        let msg_id = id(&setup.env, 1);
+        client.submit(&msg_id, &setup.sender, &setup.recipient, &125);
+
+        assert_eq!(
+            client.try_settle(&msg_id),
+            Err(Ok(Error::LifecycleRejected))
+        );
+        assert_eq!(
+            client.try_refund(&msg_id),
+            Err(Ok(Error::LifecycleRejected))
+        );
+
+        setup.env.ledger().set_timestamp(86_442);
+        assert_eq!(
+            client.try_expire(&msg_id),
+            Err(Ok(Error::LifecycleRejected))
+        );
+
+        setup.env.ledger().set_timestamp(90_042);
+        assert_eq!(
+            client.try_reclaim(&msg_id),
+            Err(Ok(Error::LifecycleRejected))
         );
     }
 }
@@ -1937,6 +2063,7 @@ mod event_schema {
     extern crate std;
 
     use super::*;
+    use soroban_sdk::token;
     use soroban_sdk::{
         testutils::{Address as _, Events, Ledger},
         Event,
@@ -1945,7 +2072,6 @@ mod event_schema {
     use stealth_lifecycle::LifecycleContractClient;
     use stealth_policies::PoliciesContract;
     use stealth_policies::{MailboxPolicy, PoliciesContractClient};
-    use soroban_sdk::token;
 
     fn mid(env: &Env) -> BytesN<32> {
         BytesN::from_array(env, &[0x42u8; 32])
@@ -1993,10 +2119,20 @@ mod event_schema {
         token_admin.mint(&sender, &10_000);
         client.initialize(&asset, &treasury, &100, &fee_bps, &3_600, &dispute_seconds);
         client.configure_guard(&lifecycle);
-        LifecycleContractClient::new(&env, &lifecycle)
-            .initialize(&policies, &contract_id, &receipts);
+        LifecycleContractClient::new(&env, &lifecycle).initialize(
+            &policies,
+            &contract_id,
+            &receipts,
+        );
 
-        Setup { env, contract_id, asset, sender, recipient, lifecycle }
+        Setup {
+            env,
+            contract_id,
+            asset,
+            sender,
+            recipient,
+            lifecycle,
+        }
     }
 
     fn bind(env: &Env, lifecycle: &Address, sender: &Address, recipient: &Address, amount: i128) {
@@ -2186,12 +2322,20 @@ mod event_schema {
 
         // Now reclaim; dispute_until == expires_at so reclaim is already valid.
         let postage = client.reclaim(&message_id);
-        assert_eq!(postage.status, PostageStatus::Reclaimed,
-            "reclaim must transition status to Reclaimed");
-        assert_eq!(postage.amount, 200,
-            "amount in reclaimed snapshot must equal submission amount");
-        assert_eq!(token.balance(&s.sender), 10_000,
-            "full amount must be returned to sender on reclaim");
+        assert_eq!(
+            postage.status,
+            PostageStatus::Reclaimed,
+            "reclaim must transition status to Reclaimed"
+        );
+        assert_eq!(
+            postage.amount, 200,
+            "amount in reclaimed snapshot must equal submission amount"
+        );
+        assert_eq!(
+            token.balance(&s.sender),
+            10_000,
+            "full amount must be returned to sender on reclaim"
+        );
         // The action symbol and XDR structure of the reclaim event is covered by
         // the existing test::expiry_and_reclaim_emit_typed_events test which uses
         // the same filter_by_contract/to_xdr pattern and passes reliably.
@@ -2213,10 +2357,14 @@ mod event_schema {
         bind(&s.env, &s.lifecycle, &s.sender, &s.recipient, 400);
 
         let settled = client.settle(&message_id);
-        assert_eq!(settled.fee, submitted.fee,
-            "fee in settle snapshot must equal fee computed at submission");
-        assert_eq!(settled.amount, submitted.amount,
-            "amount in settle snapshot must equal amount locked at submission");
+        assert_eq!(
+            settled.fee, submitted.fee,
+            "fee in settle snapshot must equal fee computed at submission"
+        );
+        assert_eq!(
+            settled.amount, submitted.amount,
+            "amount in settle snapshot must equal amount locked at submission"
+        );
 
         // Event XDR must carry the same postage snapshot.
         assert_eq!(
@@ -2245,12 +2393,18 @@ mod event_schema {
         let disputed = client.dispute(&message_id);
 
         // Timestamps must be identical to what was recorded at submission.
-        assert_eq!(disputed.created_at, submitted.created_at,
-            "created_at must be fixed at submission");
-        assert_eq!(disputed.expires_at, submitted.expires_at,
-            "expires_at must be fixed at submission");
-        assert_eq!(disputed.dispute_until, submitted.dispute_until,
-            "dispute_until must be fixed at submission");
+        assert_eq!(
+            disputed.created_at, submitted.created_at,
+            "created_at must be fixed at submission"
+        );
+        assert_eq!(
+            disputed.expires_at, submitted.expires_at,
+            "expires_at must be fixed at submission"
+        );
+        assert_eq!(
+            disputed.dispute_until, submitted.dispute_until,
+            "dispute_until must be fixed at submission"
+        );
 
         // The event XDR must carry the same snapshot.
         assert_eq!(
@@ -2276,10 +2430,14 @@ mod event_schema {
         bind(&s.env, &s.lifecycle, &s.sender, &s.recipient, 200);
         let refunded = client.refund(&message_id);
 
-        assert_eq!(refunded.sender, s.sender,
-            "sender in refund snapshot must match submission sender");
-        assert_eq!(refunded.recipient, s.recipient,
-            "recipient in refund snapshot must match submission recipient");
+        assert_eq!(
+            refunded.sender, s.sender,
+            "sender in refund snapshot must match submission sender"
+        );
+        assert_eq!(
+            refunded.recipient, s.recipient,
+            "recipient in refund snapshot must match submission recipient"
+        );
 
         assert_eq!(
             s.env.events().all().filter_by_contract(&s.contract_id),
