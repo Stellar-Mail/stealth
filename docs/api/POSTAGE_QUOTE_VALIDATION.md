@@ -30,15 +30,16 @@ Both `recipient` and `sender` must be valid Stellar G-addresses conforming to:
 ### Normalization
 
 The endpoint automatically normalizes valid addresses:
+
 - **Whitespace**: Leading and trailing whitespace is trimmed
 - **Case**: Lowercase letters are converted to uppercase
 
 ```javascript
 // These are all normalized to the same address:
-"GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-"gaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-"  GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA  "
-"  gaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa  "
+"GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+"gaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+"  GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA  ";
+"  gaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa  ";
 ```
 
 ## Error Responses
@@ -54,9 +55,7 @@ Invalid identifiers return a 422 status code with the `validation_error` code:
     "message": "Request validation failed",
     "details": {
       "fieldErrors": {
-        "recipient": [
-          "Expected a Stellar G-address"
-        ]
+        "recipient": ["Expected a Stellar G-address"]
       },
       "formErrors": []
     }
@@ -141,32 +140,32 @@ The following inputs trigger validation errors:
 
 ```javascript
 // ✅ Valid - exactly 56 characters
-"GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" // 56 chars
+"GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"; // 56 chars
 
 // ❌ Invalid - 55 characters (one below boundary)
-"GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" // 55 chars
+"GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"; // 55 chars
 
 // ❌ Invalid - 57 characters (one above boundary)
-"GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" // 57 chars
+"GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"; // 57 chars
 ```
 
 ### Base32 Character Validation
 
 ```javascript
 // ✅ Valid - all valid base32 characters (A-Z, 2-7)
-"GAAAAAAAAAAAAAAAAAAA234567234567234567234567234567234567"
+"GAAAAAAAAAAAAAAAAAAA234567234567234567234567234567234567";
 
 // ❌ Invalid - contains '0'
-"G00000000000000000000000000000000000000000000000000000"
+"G00000000000000000000000000000000000000000000000000000";
 
 // ❌ Invalid - contains '1'
-"G11111111111111111111111111111111111111111111111111111"
+"G11111111111111111111111111111111111111111111111111111";
 
 // ❌ Invalid - contains '8'
-"G88888888888888888888888888888888888888888888888888888"
+"G88888888888888888888888888888888888888888888888888888";
 
 // ❌ Invalid - contains '9'
-"G99999999999999999999999999999999999999999999999999999"
+"G99999999999999999999999999999999999999999999999999999";
 ```
 
 ### Stress Testing
@@ -175,7 +174,7 @@ The validation handles extremely large inputs efficiently:
 
 ```javascript
 // ❌ Invalid - 1 million+ character string is rejected promptly
-"G" + "A".repeat(1000000)
+"G" + "A".repeat(1000000);
 ```
 
 ## Valid Request Example
@@ -191,6 +190,7 @@ Content-Type: application/json
 ```
 
 **Response (200 OK)**:
+
 ```json
 {
   "data": {
@@ -213,10 +213,10 @@ Valid requests maintain the existing response structure:
 ```typescript
 interface QuoteResponse {
   data: {
-    amount: string;        // Stroop amount as decimal string
-    eligible: boolean;     // Whether sender can send to recipient
+    amount: string; // Stroop amount as decimal string
+    eligible: boolean; // Whether sender can send to recipient
     reason: "trusted_sender" | "mailbox_minimum" | "sender_blocked";
-    trusted: boolean;      // Whether sender is on recipient's allow list
+    trusted: boolean; // Whether sender is on recipient's allow list
   };
   meta: {
     requestId: string;
@@ -288,6 +288,7 @@ The validation is covered by comprehensive tests:
 - **Domain tests**: `tests/unit/api/domain.test.ts`
 
 Test categories:
+
 - Empty and whitespace inputs
 - Invalid prefixes and lengths
 - Invalid character sets
@@ -350,12 +351,12 @@ const quote1 = await getQuote({
 });
 
 const quote2 = await getQuote({
-  recipient: "gaaaa...",  // lowercase normalized
+  recipient: "gaaaa...", // lowercase normalized
   sender: "gbbbb...",
 });
 
 const quote3 = await getQuote({
-  recipient: "  GAAAA...  ",  // whitespace trimmed
+  recipient: "  GAAAA...  ", // whitespace trimmed
   sender: "  GBBBB...  ",
 });
 ```

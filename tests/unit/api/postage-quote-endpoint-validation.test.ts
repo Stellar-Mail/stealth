@@ -281,8 +281,12 @@ describe("Postage Quote Endpoint Validation", () => {
     });
 
     it("accepts addresses with all valid base32 characters", () => {
-      const validBase32Recipient = "GAAAAAAAAAAAAAAAAAAAAAAAAA234567234567234567234567234567";
-      const validBase32Sender = "G234567234567234567234567234567234567234567234567234567";
+      // Base32 uses A-Z and 2-7 (no 0, 1, 8, 9)
+      const validBase32Recipient = "GABCDEFGHIJKLMNOPQRSTUVWXYZ234567ABCDEFGHIJKLMNOPQR2";
+      const validBase32Sender = "G234567ABCDEFGHIJKLMNOPQRSTUVWXYZ234567ABCDEFGHIJKL3";
+
+      expect(validBase32Recipient.length).toBe(56);
+      expect(validBase32Sender.length).toBe(56);
 
       const result = quoteSchema.parse({
         recipient: validBase32Recipient,
