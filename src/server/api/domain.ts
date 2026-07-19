@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ApiError } from "./errors";
 
 export const stellarAddressSchema = z
   .string()
@@ -63,3 +64,66 @@ export const idempotencyRecordSchema = z.object({
 });
 
 export type IdempotencyRecord = z.infer<typeof idempotencyRecordSchema>;
+
+// ---------------------------------------------------------------------------
+// Postage state machine
+// ---------------------------------------------------------------------------
+
+/**
+ * Single source of truth for legal postage status transitions.
+ *
+ *   pending  → settled   (payment confirmed)
+ *   pending  → refunded  (payment rejected / expired)
+ *
+ * `settled` and `refunded` are terminal states; no outbound transitions exist.
+ */
+export const POSTAGE_TRANSITIONS: Readonly<
+  Record<PostageStatus, ReadonlySet<PostageStatus>>
+> = {
+  pending: new Set<PostageStatus>(["settled", "refunded"]),
+  settled: new Set<PostageStatus>(),
+  refunded: new Set<PostageStatus>(),
+};
+
+/**
+ * Apply a status transition to a postage record, enforcing the documented
+ * state machine.  Returns the updated postage on success.
+ *
+ * @throws {ApiError} 409 `conflict`        – postage is already in a terminal state
+ * @throws {ApiError} 422 `validation_error` – transition is not in the documented matrix
+ */
+export function transitionPostage(postage: Postage, next: PostageStatus): Postage {
+  const allowed = POSTAGE_TRANSITIONS[postage.status];
+
+  if (postage.status === next) {
+    // Requesting the same terminal state twice is still an error: the caller
+    // must not assume idempotent re-resolution of settled/refunded postage.
+    if (allowed.size === 0) {
+      throw new ApiError(409, "conflict", "Postage has already been resolved", {
+        current: postage.status,
+        requested: next,
+      });
+    }
+    return postage;
+  }
+
+  if (!allowed.has(next)) {
+    if (allowed.size === 0) {
+      // Terminal state — no further transitions are ever possible.
+      throw new ApiError(409, "conflict", "Postage has already been resolved", {
+        current: postage.status,
+        requested: next,
+      });
+    }
+
+    // Non-terminal state but still an undocumented transition.
+    throw new ApiError(
+      422,
+      "validation_error",
+      `Invalid postage transition: ${postage.status} \u2192 ${next}`,
+      { current: postage.status, requested: next },
+    );
+  }
+
+  return { ...postage, status: next };
+}

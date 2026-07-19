@@ -1,4 +1,5 @@
 import type { Postage } from "./domain";
+import { transitionPostage } from "./domain";
 import { ApiError } from "./errors";
 import {
   checkAccountLimit,
@@ -171,12 +172,6 @@ export async function resolvePostage(
   status: "refunded" | "settled",
 ) {
   const postage = await getPostage(repository, messageId);
-
-  if (postage.status !== "pending") {
-    throw new ApiError(409, "conflict", "Postage has already been resolved", {
-      status: postage.status,
-    });
-  }
-
-  return repository.setPostage({ ...postage, status });
+  const updated = transitionPostage(postage, status);
+  return repository.setPostage(updated);
 }
