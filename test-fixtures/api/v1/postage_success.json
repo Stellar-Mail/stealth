@@ -9,6 +9,7 @@
     "data": {
       "amount": "0",
       "eligible": true,
+      "reason": "trusted_sender",
       "trusted": true
     },
     "meta": {
