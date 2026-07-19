@@ -17,6 +17,7 @@ The Shared Contact Notes tool is a **V2 later-release tool** — it is a complet
 - No synchronization with external storage (database, API, localStorage).
 
 **Workaround for Development:**
+
 - Use test fixtures (`fixtures/notes.ts`) for deterministic seed data
 - For demo/UI development, consider a future persistence layer issue
 
@@ -51,6 +52,7 @@ The Shared Contact Notes tool is a **V2 later-release tool** — it is a complet
 **Reason:** This is an isolated **later-release tool**. Integration is intentionally deferred to a separate issue to keep the initial implementation small and testable.
 
 **Future Resolution:** A follow-up "Integration Issue" will:
+
 - Add the tool to the main app's routing (`src/routes/`)
 - Render the UI component in the contact detail panel
 - Connect to the main app's contact models and services
@@ -84,6 +86,7 @@ The Shared Contact Notes tool is a **V2 later-release tool** — it is a complet
 **Workaround for Development:** The `authorId` and timestamp fields (`createdAt`, `updatedAt`, `archivedAt`) can be used to track changes. For comprehensive auditing, a future issue will implement an audit log.
 
 **Future Resolution:** A follow-up issue will add:
+
 - Complete audit trail (create, update, delete, archive events with actor and timestamp)
 - Version history (ability to view and restore previous note content)
 - Compliance logging integration
@@ -102,6 +105,7 @@ The Shared Contact Notes tool is a **V2 later-release tool** — it is a complet
 **Workaround:** Implement additional validation in UI layers or extend `validation.ts` with custom rules.
 
 **Future Resolution:** A follow-up issue will add:
+
 - Content length and format validation
 - Sensitive data detection
 - Rate limiting and spam prevention
@@ -120,6 +124,7 @@ The Shared Contact Notes tool is a **V2 later-release tool** — it is a complet
 **Workaround for Testing:** Tests use small, deterministic fixture sets (5 notes by default).
 
 **Future Resolution:** A follow-up issue will add:
+
 - Pagination support (`getByContact(contactId, limit, offset)`)
 - Query optimization and indexing
 - Backend persistence layer for scalability
@@ -137,6 +142,7 @@ The Shared Contact Notes tool is a **V2 later-release tool** — it is a complet
 **Workaround:** Follow WCAG 2.1 AA guidelines in component implementation (see [ACCESSIBILITY.md](./ACCESSIBILITY.md)).
 
 **Future Resolution:** A follow-up issue will include:
+
 - Accessibility testing with real assistive technologies
 - Enhanced keyboard navigation
 - Compliance audit against WCAG 2.1 AAA
@@ -154,6 +160,7 @@ The Shared Contact Notes tool is a **V2 later-release tool** — it is a complet
 **Workaround:** UI layers can implement client-side filtering and sorting.
 
 **Future Resolution:** A follow-up issue will add:
+
 - Full-text search on note content
 - Filter by author, date range, archive status
 - Sort options (newest, oldest, recently updated)
@@ -172,6 +179,7 @@ The Shared Contact Notes tool is a **V2 later-release tool** — it is a complet
 **Workaround:** Use note content as a freeform text field (user can type `@alice` or ticket numbers manually).
 
 **Future Resolution:** A follow-up issue will add:
+
 - Mention/tag system with notifications
 - File attachments
 - Comment threads within notes
@@ -191,6 +199,7 @@ The Shared Contact Notes tool is a **V2 later-release tool** — it is a complet
 **Workaround:** Manual testing and fixture-based unit tests provide adequate coverage for isolated development.
 
 **Future Resolution:** A follow-up issue will add:
+
 - E2E tests with real persistence layer
 - Concurrent/multi-user scenarios
 - Load and performance tests
@@ -200,6 +209,7 @@ The Shared Contact Notes tool is a **V2 later-release tool** — it is a complet
 ## Integration Path
 
 ### Phase 1: Current (V2 Isolated Tool)
+
 - ✓ Core service logic (CRUD, validation, errors)
 - ✓ Contract layer (non-UI execution contract)
 - ✓ React UI components
@@ -207,18 +217,21 @@ The Shared Contact Notes tool is a **V2 later-release tool** — it is a complet
 - ✓ Documentation and fixtures
 
 ### Phase 2: Persistence Integration (Future Issue)
+
 - Add localStorage / IndexedDB storage adapter
 - Add backend API endpoints
 - Migrate from in-memory to persistent storage
 - Add migrations/schema versioning
 
 ### Phase 3: Main App Integration (Future Issue)
+
 - Add routing and navigation
 - Render in contact detail panel
 - Connect to main app's authentication
 - Integrate with main app's styling and design system
 
 ### Phase 4: Advanced Features (Future Issues)
+
 - Real-time collaboration
 - Audit trail and versioning
 - Search and filtering

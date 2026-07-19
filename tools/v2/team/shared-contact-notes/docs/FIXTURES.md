@@ -21,13 +21,13 @@ import { seedNotes } from "../fixtures/notes";
 
 ### Fixture Details
 
-| ID           | Contact       | Content                                      | Author        | Status    |
-| ------------ | ------------- | -------------------------------------------- | ------------- | --------- |
-| note-alice-1 | contact-alice | "Alice prefers email communication..."       | user-current  | Active    |
-| note-alice-2 | contact-alice | "Follow up on Q2 proposal..."                | user-colleague| Active    |
-| note-bob-1   | contact-bob   | "Bob is the technical contact..."            | user-current  | Archived  |
-| note-carol-1 | contact-carol | "Carol shared her public key..."             | user-current  | Active    |
-| note-dave-1  | contact-dave  | "Dave requested pricing for enterprise..."   | user-sales    | Active    |
+| ID           | Contact       | Content                                    | Author         | Status   |
+| ------------ | ------------- | ------------------------------------------ | -------------- | -------- |
+| note-alice-1 | contact-alice | "Alice prefers email communication..."     | user-current   | Active   |
+| note-alice-2 | contact-alice | "Follow up on Q2 proposal..."              | user-colleague | Active   |
+| note-bob-1   | contact-bob   | "Bob is the technical contact..."          | user-current   | Archived |
+| note-carol-1 | contact-carol | "Carol shared her public key..."           | user-current   | Active   |
+| note-dave-1  | contact-dave  | "Dave requested pricing for enterprise..." | user-sales     | Active   |
 
 ### Fixture Characteristics
 
@@ -48,25 +48,25 @@ describe("getByContact", () => {
   it("should return all notes for a contact", async () => {
     // Initialize service with fixture data
     const service = new NoteService(seedNotes, { delayMs: 0 });
-    
+
     // Query notes for Alice (who has 2 notes)
     const notes = await service.getByContact("contact-alice");
-    
+
     expect(notes).toHaveLength(2);
-    expect(notes.map(n => n.id).sort()).toEqual(["note-alice-1", "note-alice-2"]);
+    expect(notes.map((n) => n.id).sort()).toEqual(["note-alice-1", "note-alice-2"]);
   });
 
   it("should return empty array for unknown contact", async () => {
     const service = new NoteService(seedNotes, { delayMs: 0 });
     const notes = await service.getByContact("contact-unknown");
-    
+
     expect(notes).toEqual([]);
   });
 
   it("should include archived notes", async () => {
     const service = new NoteService(seedNotes, { delayMs: 0 });
     const notes = await service.getByContact("contact-bob");
-    
+
     // Bob has 1 archived note
     expect(notes).toHaveLength(1);
     expect(notes[0].archivedAt).not.toBeNull();
@@ -86,7 +86,7 @@ describe("SharedContactNotes", () => {
   it("displays notes for a contact", async () => {
     const service = new NoteService(seedNotes, { delayMs: 0 });
     render(<SharedContactNotes contactId="contact-alice" service={service} />);
-    
+
     // Alice's notes appear in the UI
     expect(screen.getByText(/Alice prefers email/)).toBeDefined();
     expect(screen.getByText(/Follow up on Q2/)).toBeDefined();
@@ -211,10 +211,7 @@ function createFixture(): FixtureBuilder {
 }
 
 // Usage:
-const customNote = createFixture()
-  .withContact("contact-special")
-  .withAuthor("user-vip")
-  .build();
+const customNote = createFixture().withContact("contact-special").withAuthor("user-vip").build();
 ```
 
 ## Fixture Naming Conventions
@@ -296,7 +293,7 @@ it("should not change archivedAt when archiving already archived note", async ()
   const service = new NoteService(archiveTestFixture, { delayMs: 0 });
   const original = await service.getById("note-archived-archive-test");
   const result = await service.archive("note-archived-archive-test");
-  
+
   expect(result.archivedAt).toBe(original.archivedAt);
 });
 ```
@@ -307,7 +304,7 @@ When modifying fixtures, ensure you deep copy to avoid mutation:
 
 ```typescript
 // Good: Creates a new array with copied note objects
-const customFixture = seedNotes.map(note => ({ ...note }));
+const customFixture = seedNotes.map((note) => ({ ...note }));
 
 // Avoid: Shares references with original
 const badCopy = seedNotes;

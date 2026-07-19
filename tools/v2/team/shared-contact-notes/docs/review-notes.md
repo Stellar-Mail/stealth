@@ -60,13 +60,13 @@ git diff --name-only origin/main | grep -v "tools/v2/team/shared-contact-notes"
 **Verify:**
 
 ```typescript
-import { 
-  NoteService, 
-  ValidationError, 
+import {
+  NoteService,
+  ValidationError,
   NoteNotFoundError,
   createNotesContract,
-  type Note, 
-  type CreateNoteInput 
+  type Note,
+  type CreateNoteInput,
 } from "tools/v2/team/shared-contact-notes";
 ```
 
@@ -101,7 +101,7 @@ bun test tools/v2/team/shared-contact-notes/tests
 ```typescript
 import { seedNotes } from "tools/v2/team/shared-contact-notes/fixtures/notes";
 console.log(seedNotes.length); // Should be 5
-console.log(seedNotes.filter(n => n.archivedAt).length); // Should be 1
+console.log(seedNotes.filter((n) => n.archivedAt).length); // Should be 1
 ```
 
 ### Documentation ✓
