@@ -54,8 +54,8 @@ async function checkStorage(
   return withTimeout(
     repository
       .getPolicy(HEALTH_POLICY_OWNER)
-      .then(() => ({ name: "storage", status: "ok" }) as const)
-      .catch(() => ({ name: "storage", status: "unavailable" }) as const),
+      .then(() => ({ name: "storage", status: "ok" } as const))
+      .catch(() => ({ name: "storage", status: "unavailable" } as const)),
     timeoutMs,
     () => timeoutResult("storage"),
   );
@@ -68,23 +68,21 @@ async function checkCoordinator(
   return withTimeout(
     repository
       .getCounter(HEALTH_COORDINATOR_KEY)
-      .then(() => ({ name: "coordinator", status: "ok" }) as const)
-      .catch(() => ({ name: "coordinator", status: "unavailable" }) as const),
+      .then(() => ({ name: "coordinator", status: "ok" } as const))
+      .catch(() => ({ name: "coordinator", status: "unavailable" } as const)),
     timeoutMs,
     () => timeoutResult("coordinator"),
   );
 }
 
-export async function checkApiReadiness(
-  options: ReadinessOptions = {},
-): Promise<ReadinessResult> {
+export async function checkApiReadiness(options: ReadinessOptions = {}): Promise<ReadinessResult> {
   const timeoutMs = options.timeoutMs ?? DEFAULT_READINESS_TIMEOUT_MS;
   const contextResult = await withTimeout(
     (options.getContext ?? getApiContext)()
-      .then((context) => ({ status: "ok", repository: context.repository }) as const)
-      .catch(() => ({ status: "unavailable", repository: null }) as const),
+      .then((context) => ({ status: "ok", repository: context.repository } as const))
+      .catch(() => ({ status: "unavailable", repository: null } as const)),
     timeoutMs,
-    () => ({ status: "timeout", repository: null }) as const,
+    () => ({ status: "timeout", repository: null } as const),
   );
 
   if (!contextResult.repository) {

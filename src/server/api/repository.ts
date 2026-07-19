@@ -10,7 +10,10 @@ export interface ApiRepository {
   getReceipt(messageId: string): Promise<Receipt | null>;
   setReceipt(receipt: Receipt): Promise<Receipt>;
   createReceiptIfAbsent(receipt: Receipt): Promise<{ created: boolean; receipt: Receipt }>;
-  markReceiptRead(messageId: string, readAt: string): Promise<{
+  markReceiptRead(
+    messageId: string,
+    readAt: string,
+  ): Promise<{
     receipt: Receipt;
     updated: boolean;
   } | null>;

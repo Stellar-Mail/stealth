@@ -288,7 +288,9 @@ describe("abuse service", () => {
       }
     }
 
-    await expect(checkProofFailureLimit(new TimeoutRepository("getCounter"), sender)).resolves.toMatchObject({
+    await expect(
+      checkProofFailureLimit(new TimeoutRepository("getCounter"), sender),
+    ).resolves.toMatchObject({
       allowed: false,
       outage: {
         check: "proof_failure",

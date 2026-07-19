@@ -4,9 +4,7 @@ import { checkApiReadiness } from "@/server/api/health";
 import { apiSuccess, handleApiRequest } from "@/server/api/response";
 
 function requestedCheck(request: Request) {
-  return new URL(request.url).searchParams.get("check") === "readiness"
-    ? "readiness"
-    : "liveness";
+  return new URL(request.url).searchParams.get("check") === "readiness" ? "readiness" : "liveness";
 }
 
 export const Route = createFileRoute("/api/v1/health")({

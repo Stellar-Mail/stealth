@@ -76,15 +76,15 @@ Receipt publication delegation is not supported. A delivery publisher must exact
 
 All failures use the standard error envelope from `src/server/api/response.ts`, so callers can branch on `error.code`.
 
-| Scenario                                                      | HTTP status | `error.code`       |
-| ------------------------------------------------------------- | ----------- | ------------------ |
-| Missing or invalid `x-stealth-address` header                 | 401         | `unauthorized`     |
-| Creating a receipt where the actor is not the `sender`        | 403         | `forbidden`        |
-| Marking a receipt read where the actor is not the `recipient` | 403         | `forbidden`        |
-| Reading a receipt as a non-participant                        | 403         | `forbidden`        |
-| Reading a receipt that does not exist                         | 404         | `not_found`        |
-| Creating a duplicate receipt for the same `messageId` with different participants | 409 | `conflict` |
-| `messageId`, `sender`, or `recipient` fails schema validation | 422         | `validation_error` |
+| Scenario                                                                          | HTTP status | `error.code`       |
+| --------------------------------------------------------------------------------- | ----------- | ------------------ |
+| Missing or invalid `x-stealth-address` header                                     | 401         | `unauthorized`     |
+| Creating a receipt where the actor is not the `sender`                            | 403         | `forbidden`        |
+| Marking a receipt read where the actor is not the `recipient`                     | 403         | `forbidden`        |
+| Reading a receipt as a non-participant                                            | 403         | `forbidden`        |
+| Reading a receipt that does not exist                                             | 404         | `not_found`        |
+| Creating a duplicate receipt for the same `messageId` with different participants | 409         | `conflict`         |
+| `messageId`, `sender`, or `recipient` fails schema validation                     | 422         | `validation_error` |
 
 Non-participant read (`403 forbidden`):
 
