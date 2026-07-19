@@ -1,0 +1,60 @@
+{
+  "$schema": null,
+  "description": "Machine-readable API error code catalogue.  Auto-generated from src/server/api/errors.ts.",
+  "codes": [
+    {
+      "code": "bad_request",
+      "status": 400,
+      "message": "The request body is malformed or missing required fields.",
+      "retryable": false
+    },
+    {
+      "code": "conflict",
+      "status": 409,
+      "message": "The request conflicts with the current resource state.",
+      "retryable": false
+    },
+    {
+      "code": "forbidden",
+      "status": 403,
+      "message": "The authenticated principal is not authorized for this action.",
+      "retryable": false
+    },
+    {
+      "code": "internal_error",
+      "status": 500,
+      "message": "An unexpected server error occurred.",
+      "retryable": true
+    },
+    {
+      "code": "method_not_allowed",
+      "status": 405,
+      "message": "The HTTP method is not supported for this resource.",
+      "retryable": false
+    },
+    {
+      "code": "not_found",
+      "status": 404,
+      "message": "The requested resource does not exist.",
+      "retryable": false
+    },
+    {
+      "code": "too_many_requests",
+      "status": 429,
+      "message": "Rate limit exceeded; retry after the indicated delay.",
+      "retryable": true
+    },
+    {
+      "code": "unauthorized",
+      "status": 401,
+      "message": "Valid authentication credentials are required.",
+      "retryable": false
+    },
+    {
+      "code": "validation_error",
+      "status": 422,
+      "message": "Request validation failed.",
+      "retryable": false
+    }
+  ]
+}
