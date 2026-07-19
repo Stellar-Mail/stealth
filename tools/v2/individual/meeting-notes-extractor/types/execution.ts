@@ -5,12 +5,12 @@
 
 /** Error codes for meeting notes extraction failures */
 export type MeetingNotesErrorCode =
-  | 'INVALID_INPUT'
-  | 'EMPTY_TRANSCRIPT'
-  | 'EXTRACTION_FAILED'
-  | 'FORMAT_UNSUPPORTED'
-  | 'PERSISTENCE_FAILED'
-  | 'INTERNAL_ERROR';
+  | "INVALID_INPUT"
+  | "EMPTY_TRANSCRIPT"
+  | "EXTRACTION_FAILED"
+  | "FORMAT_UNSUPPORTED"
+  | "PERSISTENCE_FAILED"
+  | "INTERNAL_ERROR";
 
 /** Input for meeting notes extraction */
 export interface MeetingNotesInput {
@@ -23,7 +23,7 @@ export interface MeetingNotesInput {
   /** Attendees list */
   attendees: string[];
   /** Preferred output format */
-  format: 'markdown' | 'plain-text' | 'json';
+  format: "markdown" | "plain-text" | "json";
   /** Whether to extract action items */
   extractActionItems: boolean;
   /** Whether to extract key decisions */
@@ -61,7 +61,7 @@ export interface MeetingNotesOutput {
   /** Extracted decisions */
   decisions: Decision[];
   /** Output format used */
-  format: 'markdown' | 'plain-text' | 'json';
+  format: "markdown" | "plain-text" | "json";
   /** When notes were generated */
   generatedAt: string;
 }
@@ -76,8 +76,7 @@ export interface MeetingNotesError {
 
 /** Discriminated union result type */
 export type MeetingNotesResult =
-  | { ok: true; data: MeetingNotesOutput }
-  | { ok: false; error: MeetingNotesError };
+  { ok: true; data: MeetingNotesOutput } | { ok: false; error: MeetingNotesError };
 
 /** Execution function type signature */
 export type ExecuteMeetingNotesExtractor = (
