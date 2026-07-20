@@ -202,6 +202,12 @@
             "description": "2^127 — one over the maximum Soroban i128 value.",
             "input": "170141183460469231731687303715884105728",
             "expected": { "valid": false, "error": "Amount exceeds Soroban i128" }
+          },
+          {
+            "id": "primitives/amount/invalid/too-long",
+            "description": "40-digit string — pre-parse length guard fires before BigInt conversion.",
+            "input": "1000000000000000000000000000000000000000",
+            "expected": { "valid": false, "error": "Amount exceeds Soroban i128" }
           }
         ]
       }
@@ -535,6 +541,13 @@
           "schema": "stroopAmount",
           "input": "100.0",
           "expected": { "valid": false, "error": "Expected a non-negative integer string" }
+        },
+        {
+          "id": "tampered/amount/too-long",
+          "description": "40-digit string — pre-parse length guard fires before BigInt conversion.",
+          "schema": "stroopAmount",
+          "input": "1000000000000000000000000000000000000000",
+          "expected": { "valid": false, "error": "Amount exceeds Soroban i128" }
         }
       ]
     },

@@ -12,17 +12,59 @@ export const hash32Schema = z
   .toLowerCase()
   .regex(/^[a-f0-9]{64}$/, "Expected a 32-byte lowercase hexadecimal hash");
 
+/**
+ * Maximum number of decimal digits in a valid Soroban i128 amount.
+ * 2^127-1 = 170141183460469231731687303715884105727 has 39 digits.
+ * Any string longer than this can be rejected before BigInt conversion.
+ */
+const SOROBAN_I128_MAX_DIGITS = 39;
+const SOROBAN_I128_MAX = 2n ** 127n - 1n;
+
 export const stroopAmountSchema = z
   .string()
   .trim()
   .regex(/^(0|[1-9]\d*)$/, "Expected a non-negative integer string")
-  .refine((value) => {
-    try {
-      return BigInt(value) <= 2n ** 127n - 1n;
-    } catch {
-      return false;
-    }
-  }, "Amount exceeds Soroban i128");
+  .refine(
+    (value) => {
+      if (!/^(0|[1-9]\d*)$/.test(value)) return true;
+      return value.length <= SOROBAN_I128_MAX_DIGITS;
+    },
+    "Amount exceeds Soroban i128",
+  )
+  .refine(
+    (value) => {
+      if (!/^(0|[1-9]\d*)$/.test(value)) return true;
+      try {
+        return BigInt(value) <= SOROBAN_I128_MAX;
+      } catch {
+        return false;
+      }
+    },
+    "Amount exceeds Soroban i128",
+  );
+
+/**
+ * Creates a stroop-amount schema that additionally enforces a business-level
+ * maximum (expressed as a decimal string).  The business cap must itself be
+ * a valid i128 amount; violations produce a stable, distinct error message so
+ * callers can distinguish them from the type-level i128 bound.
+ *
+ * @param max - Maximum allowed amount as a decimal string, e.g. "5000000000".
+ */
+export function makeStroopAmountSchema(max: string) {
+  const maxBigInt = BigInt(max);
+  return stroopAmountSchema.refine(
+    (value) => {
+      if (!/^(0|[1-9]\d*)$/.test(value)) return true;
+      try {
+        return BigInt(value) <= maxBigInt;
+      } catch {
+        return false;
+      }
+    },
+    "Amount exceeds business maximum",
+  );
+}
 
 export const senderRuleSchema = z.enum(["default", "allow", "block"]);
 export const postageStatusSchema = z.enum(["pending", "settled", "refunded"]);

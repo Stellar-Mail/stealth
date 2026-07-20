@@ -4,6 +4,7 @@ import {
   POSTAGE_TRANSITIONS,
   hash32Schema,
   mailboxPolicySchema,
+  makeStroopAmountSchema,
   postageStatusSchema,
   stellarAddressSchema,
   stroopAmountSchema,
@@ -48,6 +49,66 @@ describe("API domain schemas", () => {
   it("keeps Soroban i128 amounts as decimal strings", () => {
     expect(stroopAmountSchema.parse("9007199254740993")).toBe("9007199254740993");
     expect(() => stroopAmountSchema.parse("-1")).toThrow();
+  });
+
+  describe("stroopAmountSchema — boundary conditions", () => {
+    const MAX_I128 = "170141183460469231731687303715884105727"; // 2^127-1, 39 digits
+    const OVERFLOW_I128 = "170141183460469231731687303715884105728"; // 2^127, 39 digits
+    const OVERFLOW_LONG = "1" + "0".repeat(39); // 41 chars — pre-parse length guard fires
+
+    it("accepts zero — minimum valid amount", () => {
+      expect(stroopAmountSchema.parse("0")).toBe("0");
+    });
+
+    it("accepts max i128 (2^127-1) — type-level ceiling", () => {
+      expect(stroopAmountSchema.parse(MAX_I128)).toBe(MAX_I128);
+    });
+
+    it("rejects strings longer than 39 digits before BigInt conversion", () => {
+      const result = stroopAmountSchema.safeParse(OVERFLOW_LONG);
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0].message).toBe("Amount exceeds Soroban i128");
+      }
+    });
+
+    it("rejects 2^127 (40-digit overflow) with stable i128 error", () => {
+      const result = stroopAmountSchema.safeParse(OVERFLOW_I128);
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0].message).toBe("Amount exceeds Soroban i128");
+      }
+    });
+  });
+
+  describe("makeStroopAmountSchema — business maximum", () => {
+    const cap = "5000000000"; // 50 XLM in stroops
+    const capped = makeStroopAmountSchema(cap);
+
+    it("accepts zero under the business cap", () => {
+      expect(capped.parse("0")).toBe("0");
+    });
+
+    it("accepts the exact business cap", () => {
+      expect(capped.parse(cap)).toBe(cap);
+    });
+
+    it("rejects one stroop over the business cap with stable code", () => {
+      const result = capped.safeParse("5000000001");
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0].message).toBe("Amount exceeds business maximum");
+      }
+    });
+
+    it("still rejects values above i128 even with a business cap", () => {
+      const result = capped.safeParse("170141183460469231731687303715884105728");
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        // i128 check fires first
+        expect(result.error.issues[0].message).toBe("Amount exceeds Soroban i128");
+      }
+    });
   });
 });
 
