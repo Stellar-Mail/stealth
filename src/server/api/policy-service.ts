@@ -1,6 +1,7 @@
 import type { MailboxPolicy, SenderRule } from "./domain";
 import type { ApiRepository } from "./repository";
 import { defaultMailboxPolicy } from "./repository";
+import { logPolicyAuditEvent, type AuditEventContext } from "./audit-service";
 
 export async function getMailboxPolicy(repository: ApiRepository, owner: string) {
   const stored = await repository.getPolicy(owner);
@@ -15,12 +16,51 @@ export async function setMailboxPolicy(
   repository: ApiRepository,
   owner: string,
   policy: MailboxPolicy,
+  ctx?: AuditEventContext,
 ) {
-  return {
-    owner,
-    policy: await repository.setPolicy(owner, policy),
-    source: "configured" as const,
-  };
+  let beforeState: MailboxPolicy | null = null;
+  try {
+    const existing = await repository.getPolicy(owner);
+    beforeState = existing ?? defaultMailboxPolicy;
+  } catch {
+    // Gracefully fallback if pre-fetch fails
+  }
+
+  try {
+    const updatedPolicy = await repository.setPolicy(owner, policy);
+    
+    if (ctx) {
+      logPolicyAuditEvent({
+        ctx,
+        owner,
+        action: "update_mailbox_policy",
+        targetType: "mailbox_policy",
+        before: beforeState,
+        after: updatedPolicy,
+        status: "success",
+      });
+    }
+
+    return {
+      owner,
+      policy: updatedPolicy,
+      source: "configured" as const,
+    };
+  } catch (error) {
+    if (ctx) {
+      logPolicyAuditEvent({
+        ctx,
+        owner,
+        action: "update_mailbox_policy",
+        targetType: "mailbox_policy",
+        before: beforeState,
+        after: null,
+        status: "failure",
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+    throw error;
+  }
 }
 
 export async function getSenderRule(repository: ApiRepository, owner: string, sender: string) {
@@ -36,12 +76,55 @@ export async function setSenderRule(
   owner: string,
   sender: string,
   rule: SenderRule,
+  ctx?: AuditEventContext,
 ) {
-  return {
-    owner,
-    rule: await repository.setSenderRule(owner, sender, rule),
-    sender,
-  };
+  let beforeRule: SenderRule = "default";
+  try {
+    beforeRule = await repository.getSenderRule(owner, sender);
+  } catch {
+    // Gracefully fallback if pre-fetch fails
+  }
+
+  const isDelete = rule === "default";
+  const actionName = isDelete ? "delete_sender_rule" : "update_sender_rule";
+
+  try {
+    const updatedRule = await repository.setSenderRule(owner, sender, rule);
+
+    if (ctx) {
+      logPolicyAuditEvent({
+        ctx,
+        owner,
+        action: actionName,
+        targetType: "sender_rule",
+        sender,
+        before: beforeRule,
+        after: updatedRule,
+        status: "success",
+      });
+    }
+
+    return {
+      owner,
+      rule: updatedRule,
+      sender,
+    };
+  } catch (error) {
+    if (ctx) {
+      logPolicyAuditEvent({
+        ctx,
+        owner,
+        action: actionName,
+        targetType: "sender_rule",
+        sender,
+        before: beforeRule,
+        after: null,
+        status: "failure",
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+    throw error;
+  }
 }
 
 export async function evaluateMailboxPolicy(

@@ -19,9 +19,12 @@ export const Route = createFileRoute("/api/v1/policies/$owner")({
       PUT: ({ request, params }) =>
         handleApiRequest(request, async () => {
           const owner = stellarAddressSchema.parse(params.owner);
-          requireActorMatches(request, owner);
+          const actor = requireActorMatches(request, owner);
           const policy = await parseJsonBody(request, mailboxPolicySchema);
-          const result = await setMailboxPolicy(getApiContext().repository, owner, policy);
+          const result = await setMailboxPolicy(getApiContext().repository, owner, policy, {
+            request,
+            actor,
+          });
           return apiSuccess(request, result);
         }),
     },

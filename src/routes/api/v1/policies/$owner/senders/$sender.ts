@@ -26,21 +26,27 @@ export const Route = createFileRoute("/api/v1/policies/$owner/senders/$sender")(
         handleApiRequest(request, async () => {
           const owner = stellarAddressSchema.parse(params.owner);
           const sender = stellarAddressSchema.parse(params.sender);
-          requireActorMatches(request, owner);
+          const actor = requireActorMatches(request, owner);
           const { rule } = await parseJsonBody(request, ruleBodySchema);
           return apiSuccess(
             request,
-            await setSenderRule(getApiContext().repository, owner, sender, rule),
+            await setSenderRule(getApiContext().repository, owner, sender, rule, {
+              request,
+              actor,
+            }),
           );
         }),
       DELETE: ({ request, params }) =>
         handleApiRequest(request, async () => {
           const owner = stellarAddressSchema.parse(params.owner);
           const sender = stellarAddressSchema.parse(params.sender);
-          requireActorMatches(request, owner);
+          const actor = requireActorMatches(request, owner);
           return apiSuccess(
             request,
-            await setSenderRule(getApiContext().repository, owner, sender, "default"),
+            await setSenderRule(getApiContext().repository, owner, sender, "default", {
+              request,
+              actor,
+            }),
           );
         }),
     },
