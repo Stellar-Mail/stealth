@@ -5,13 +5,13 @@
 
 /** Error codes for mail-to-ticket execution failures */
 export type MailToTicketErrorCode =
-  | 'INVALID_INPUT'
-  | 'EMAIL_NOT_FOUND'
-  | 'DUPLICATE_TICKET'
-  | 'ASSIGNMENT_FAILED'
-  | 'STATUS_TRANSITION_INVALID'
-  | 'PERSISTENCE_FAILED'
-  | 'INTERNAL_ERROR';
+  | "INVALID_INPUT"
+  | "EMAIL_NOT_FOUND"
+  | "DUPLICATE_TICKET"
+  | "ASSIGNMENT_FAILED"
+  | "STATUS_TRANSITION_INVALID"
+  | "PERSISTENCE_FAILED"
+  | "INTERNAL_ERROR";
 
 /** Input for converting an email to a ticket */
 export interface MailToTicketInput {
@@ -22,9 +22,9 @@ export interface MailToTicketInput {
   /** Ticket description */
   description: string;
   /** Priority level */
-  priority: 'low' | 'medium' | 'high' | 'critical';
+  priority: "low" | "medium" | "high" | "critical";
   /** Ticket category */
-  category: 'bug' | 'feature-request' | 'support' | 'billing' | 'other';
+  category: "bug" | "feature-request" | "support" | "billing" | "other";
   /** Optional team member to assign */
   assignedTo?: string;
   /** Identity creating the ticket */
@@ -42,11 +42,11 @@ export interface MailToTicketOutput {
   /** Ticket description */
   description: string;
   /** Priority level */
-  priority: 'low' | 'medium' | 'high' | 'critical';
+  priority: "low" | "medium" | "high" | "critical";
   /** Current status */
-  status: 'open' | 'in-progress' | 'resolved' | 'closed';
+  status: "open" | "in-progress" | "resolved" | "closed";
   /** Ticket category */
-  category: 'bug' | 'feature-request' | 'support' | 'billing' | 'other';
+  category: "bug" | "feature-request" | "support" | "billing" | "other";
   /** Assigned team member id */
   assignedTo: string | null;
   /** Creator identity */
@@ -69,10 +69,7 @@ export interface MailToTicketError {
 
 /** Discriminated union result type */
 export type MailToTicketResult =
-  | { ok: true; data: MailToTicketOutput }
-  | { ok: false; error: MailToTicketError };
+  { ok: true; data: MailToTicketOutput } | { ok: false; error: MailToTicketError };
 
 /** Execution function type signature */
-export type ExecuteMailToTicket = (
-  input: MailToTicketInput,
-) => Promise<MailToTicketResult>;
+export type ExecuteMailToTicket = (input: MailToTicketInput) => Promise<MailToTicketResult>;
