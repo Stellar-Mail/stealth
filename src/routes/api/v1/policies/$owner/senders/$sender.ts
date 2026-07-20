@@ -3,7 +3,8 @@ import { z } from "zod";
 
 import { requireActorMatches } from "@/server/api/actor";
 import { getApiContext } from "@/server/api/context";
-import { senderRuleSchema, stellarAddressSchema } from "@/server/api/domain";
+import { senderRuleSchema } from "@/server/api/domain";
+import { parsePolicyOwnerRouteParam, parsePolicySenderRouteParam } from "@/server/api/route-params";
 import { getSenderRule, setSenderRule } from "@/server/api/policy-service";
 import { parseJsonBody } from "@/server/api/request";
 import { apiSuccess, handleApiRequest } from "@/server/api/response";
@@ -15,8 +16,8 @@ export const Route = createFileRoute("/api/v1/policies/$owner/senders/$sender")(
     handlers: {
       GET: ({ request, params }) =>
         handleApiRequest(request, async () => {
-          const owner = stellarAddressSchema.parse(params.owner);
-          const sender = stellarAddressSchema.parse(params.sender);
+          const owner = parsePolicyOwnerRouteParam(params.owner);
+          const sender = parsePolicySenderRouteParam(params.sender);
           return apiSuccess(
             request,
             await getSenderRule((await getApiContext()).repository, owner, sender),
@@ -24,8 +25,8 @@ export const Route = createFileRoute("/api/v1/policies/$owner/senders/$sender")(
         }),
       PUT: ({ request, params }) =>
         handleApiRequest(request, async () => {
-          const owner = stellarAddressSchema.parse(params.owner);
-          const sender = stellarAddressSchema.parse(params.sender);
+          const owner = parsePolicyOwnerRouteParam(params.owner);
+          const sender = parsePolicySenderRouteParam(params.sender);
           requireActorMatches(request, owner);
           const { rule } = await parseJsonBody(request, ruleBodySchema);
           return apiSuccess(
@@ -35,8 +36,8 @@ export const Route = createFileRoute("/api/v1/policies/$owner/senders/$sender")(
         }),
       DELETE: ({ request, params }) =>
         handleApiRequest(request, async () => {
-          const owner = stellarAddressSchema.parse(params.owner);
-          const sender = stellarAddressSchema.parse(params.sender);
+          const owner = parsePolicyOwnerRouteParam(params.owner);
+          const sender = parsePolicySenderRouteParam(params.sender);
           requireActorMatches(request, owner);
           return apiSuccess(
             request,
