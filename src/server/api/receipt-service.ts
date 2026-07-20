@@ -2,19 +2,25 @@ import type { Receipt } from "./domain";
 import { ApiError } from "./errors";
 import type { ApiRepository } from "./repository";
 
+const MAX_SKEW_MS = 5 * 60 * 1000; // 5 minutes
+
 export async function createDeliveryReceipt(
   repository: ApiRepository,
-  input: Pick<Receipt, "messageId" | "recipient" | "sender">,
+  input: Pick<Receipt, "messageId" | "recipient" | "sender"> & { claimedAt?: string },
   now = new Date(),
 ) {
   if (await repository.getReceipt(input.messageId)) {
     throw new ApiError(409, "conflict", "A delivery receipt already exists for this message");
   }
 
+  validateTimestampSkew(input.claimedAt, now, "claimedAt");
+
   return repository.setReceipt({
     ...input,
     deliveredAt: now.toISOString(),
+    serverDeliveredAt: now.toISOString(),
     readAt: null,
+    serverReadAt: null,
   });
 }
 
@@ -47,5 +53,22 @@ export async function markReceiptRead(
   return repository.setReceipt({
     ...receipt,
     readAt: now.toISOString(),
+    serverReadAt: now.toISOString(),
   });
+}
+
+function validateTimestampSkew(claimed: string | undefined, now: Date, field: string) {
+  if (!claimed) return;
+  const claimedDate = new Date(claimed);
+  if (isNaN(claimedDate.getTime())) {
+    throw new ApiError(422, "validation_error", ${field} is not a valid ISO timestamp);
+  }
+  const skew = Math.abs(now.getTime() - claimedDate.getTime());
+  if (skew > MAX_SKEW_MS) {
+    throw new ApiError(
+      422,
+      "validation_error",
+      ${field} skew of s exceeds maximum of s,
+    );
+  }
 }
