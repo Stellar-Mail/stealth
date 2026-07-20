@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { createPayoutContract, PayoutErrorCode } from "../contract";
-import type { PayoutFormData } from "../types";
+import { createPayoutContract, PayoutErrorCode } from "../../tools/v2/team/stellar-team-payout-request/contract";
+import type { PayoutFormData } from "../../tools/v2/team/stellar-team-payout-request/types";
 
 function isPayoutOutput(output: any): output is { type: "payout"; payout: any } {
   return output.type === "payout";
