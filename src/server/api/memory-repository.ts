@@ -7,6 +7,7 @@ function key(owner: string, sender: string) {
 
 export class MemoryApiRepository implements ApiRepository {
   private readonly policies = new Map<string, MailboxPolicy>();
+  private readonly policyVersions = new Map<string, number>();
   private readonly postage = new Map<string, Postage>();
   private readonly receipts = new Map<string, Receipt>();
   private readonly senderRules = new Map<string, SenderRule>();
@@ -19,7 +20,12 @@ export class MemoryApiRepository implements ApiRepository {
 
   async setPolicy(owner: string, policy: MailboxPolicy) {
     this.policies.set(owner, structuredClone(policy));
+    this.policyVersions.set(owner, (this.policyVersions.get(owner) ?? 0) + 1);
     return structuredClone(policy);
+  }
+
+  async getPolicyVersion(owner: string) {
+    return this.policyVersions.get(owner) ?? 0;
   }
 
   async getSenderRule(owner: string, sender: string) {
@@ -95,6 +101,7 @@ export class MemoryApiRepository implements ApiRepository {
 
   reset() {
     this.policies.clear();
+    this.policyVersions.clear();
     this.postage.clear();
     this.receipts.clear();
     this.senderRules.clear();

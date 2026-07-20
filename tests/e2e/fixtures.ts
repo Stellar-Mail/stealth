@@ -58,10 +58,10 @@ export class ApiHelper {
     });
   }
 
-  async quotePostage(recipient = ACTOR, sender = SENDER) {
+  async quotePostage(recipient = ACTOR, sender = SENDER, messageId = MSG_ID) {
     return this.page.request.post("/api/v1/postage/quote", {
       headers: this.headers(sender),
-      data: { recipient, sender },
+      data: { recipient, sender, messageId },
     });
   }
 
