@@ -1,23 +1,33 @@
-# Invoice Approval Workflow (V2 Tool)
+# Invoice Approval Workflow — Review Notes
 
-Welcome to the **Invoice Approval Workflow** module. This is a V2 later-release tool designed for the team audience. It is being built as a completely isolated mini-product to prevent regressions in the core application during development.
+Isolated V2 "team" tool. All review material for this tool lives in this folder.
+The production logic is in `engine.ts` / `types.ts`; the UI shell is
+`InvoiceApprovalWorkflow.tsx`.
 
-## 📖 Architecture & Guidelines
+## What to review
 
-Before contributing to this folder, **you must read the [Architecture Contract](./architecture.md)**.
+1. **Pure logic** — `engine.ts`:
+   - `canProcessInvoice(invoice)` — only `PENDING` invoices are actionable.
+   - `processInvoiceAction(invoice, action)` — immutable approve/reject reducer
+     returning a `WorkflowResult<Invoice>` (never throws).
+   - `calculatePendingTotal(invoices, currency)` — outstanding exposure per currency.
+2. **Types** — `types.ts` (`Invoice`, `ApprovalAction`, `InvoiceStatus`, `WorkflowResult`).
+3. **Fixtures** — `__fixtures__/mockInvoices.ts` (pending / approved / rejected / list).
+4. **Tests** — `__tests__/engine.test.ts` (vitest).
 
-## 🚀 Quick Start for Contributors
+## How to run the tests
 
-1. **Stay Local:** All components, services, and hooks must be created inside `src/tools/v2/team/invoice-approval-workflow/`.
-2. **Use Fixtures:** Do not connect to the real database or the main app's authentication state. Create local mock files for testing.
-3. **No Global Mutations:** Do not modify the existing routing tree, dashboard layout, main mail rendering engine, or the shared design system.
+```sh
+# from repo root
+npm install
+npx vitest run src/tools/v2/team/invoice-approval-workflow
+```
 
-## 🛠 Features (In Progress)
+Expected: all `engine.test.ts` cases green (canProcess, process approve/reject,
+immutability, mismatch/non-pending/no-reason errors, pending-total math).
 
-This tool will handle:
+## Known limitations
 
-- Submission of internal or external vendor invoices.
-- Establishing an approval queue for designated team members.
-- Tracking approval states (PENDING, APPROVED, REJECTED) in an isolated context.
-
-_Note: For questions regarding future integration with the global Stellar-Mail application shell, refer to the follow-up integration issues in the main repository tracker._
+- `InvoiceApprovalWorkflow.tsx` is a presentational shell only; no state wiring.
+- No persistence / auth layer — this is the isolated logic contract.
+- Date fields are ISO strings; no timezone normalization is performed here.

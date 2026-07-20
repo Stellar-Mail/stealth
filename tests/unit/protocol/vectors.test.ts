@@ -293,7 +293,7 @@ describe("relay_submission", () => {
 
   for (const c of (vectors.categories as any).relay_submission.cases) {
     it(c.id, async () => {
-      const context = getApiContext();
+      const context = await getApiContext();
       (context.repository as any).reset();
 
       // For the policy block case, we need to pre-configure a blocked rule.

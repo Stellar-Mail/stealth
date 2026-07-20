@@ -26,7 +26,7 @@ export const Route = createFileRoute("/api/v1/postage/")({
           const input = await parseJsonBody(request, submissionSchema);
           requireActorMatches(request, input.sender);
 
-          const repo = getApiContext().repository;
+          const repo = (await getApiContext()).repository;
           const rawIdempotencyKey = request.headers.get("x-idempotency-key");
           if (rawIdempotencyKey) {
             const existing = await checkIdempotency(repo, input.sender, rawIdempotencyKey);

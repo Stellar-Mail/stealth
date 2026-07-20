@@ -20,7 +20,7 @@ export const Route = createFileRoute("/api/v1/policies/evaluate")({
       POST: ({ request }) =>
         handleApiRequest(request, async () => {
           const input = await parseJsonBody(request, evaluationSchema);
-          const result = await evaluateMailboxPolicy(getApiContext().repository, input);
+          const result = await evaluateMailboxPolicy((await getApiContext()).repository, input);
           return apiSuccess(request, result);
         }),
     },

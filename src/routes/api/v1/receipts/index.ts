@@ -24,7 +24,7 @@ export const Route = createFileRoute("/api/v1/receipts/")({
           const input = await parseJsonBody(request, deliverySchema);
           const principal = requireActor(request);
           assertCanPublishDeliveryReceipt(principal, input);
-          const receipt = await createDeliveryReceipt(getApiContext().repository, input);
+          const receipt = await createDeliveryReceipt((await getApiContext()).repository, input);
           return apiSuccess(request, receipt, { status: 201 });
         }),
     },
