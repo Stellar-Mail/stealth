@@ -358,7 +358,7 @@
             "error": {
               "code": "conflict",
               "status": 409,
-              "message": "Postage has already been resolved"
+              "message": "Postage has already been settled. The escrow was previously released to the recipient."
             }
           }
         },

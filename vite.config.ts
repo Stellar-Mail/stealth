@@ -24,6 +24,12 @@ export default defineConfig(({ command }) => ({
       "@tanstack/query-core",
     ],
   },
+  // cloudflare:workers is a virtual module provided by workerd at runtime only.
+  // Exclude it from Vite's dep pre-bundler (dev) and SSR bundler so it is never
+  // resolved as a real package in either vite dev or e2e (playwright + vite dev).
+  optimizeDeps: {
+    exclude: ["cloudflare:workers"],
+  },
   plugins: [
     tailwindcss(),
     tsConfigPaths({ projects: ["./tsconfig.json"] }),

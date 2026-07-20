@@ -13,6 +13,7 @@
     "test:watch": "vitest tests/unit",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
+    "test:load": "bun run tests/load/scenarios.ts",
     "format": "prettier --write .",
     "local:setup": "powershell -ExecutionPolicy Bypass -File scripts/setup-local-env/setup.ps1",
     "local:teardown": "powershell -ExecutionPolicy Bypass -File scripts/setup-local-env/teardown.ps1",
