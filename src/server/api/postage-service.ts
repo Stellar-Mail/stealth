@@ -172,6 +172,25 @@ export async function resolvePostage(
   status: "refunded" | "settled",
 ) {
   const postage = await getPostage(repository, messageId);
-  const updated = transitionPostage(postage, status);
-  return repository.setPostage(updated);
+
+  if (postage.status !== "pending") {
+    // Provide detailed explanations for terminal states to aid debugging and retry logic
+    const explanations: Record<string, string> = {
+      settled:
+        "Postage has already been settled. The escrow was previously released to the recipient.",
+      refunded:
+        "Postage has already been refunded. The escrow was previously returned to the sender.",
+    };
+
+    const explanation =
+      explanations[postage.status] || `Postage is in terminal state: ${postage.status}`;
+
+    throw new ApiError(409, "conflict", explanation, {
+      currentStatus: postage.status,
+      attemptedStatus: status,
+      messageId,
+    });
+  }
+
+  return repository.setPostage({ ...postage, status });
 }

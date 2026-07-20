@@ -4,6 +4,7 @@ import { ApiError } from "./errors";
 export const stellarAddressSchema = z
   .string()
   .trim()
+  .toUpperCase()
   .regex(/^G[A-Z2-7]{55}$/, "Expected a Stellar G-address");
 
 export const hash32Schema = z
