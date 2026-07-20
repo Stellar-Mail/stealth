@@ -10,6 +10,7 @@ import {
 import { getMailboxPolicy } from "./policy-service";
 import * as metrics from "./metrics";
 import type { ApiRepository } from "./repository";
+import { signPostageQuote, verifyPostageQuote } from "./postage-quote";
 
 export type SubmitPostageContext = {
   actorId?: string;
@@ -21,27 +22,44 @@ export type SubmitPostageContext = {
 
 export async function quotePostage(
   repository: ApiRepository,
-  input: { recipient: string; sender: string },
+  input: { recipient: string; sender: string; messageId: string },
 ) {
   const rule = await repository.getSenderRule(input.recipient, input.sender);
   const { policy } = await getMailboxPolicy(repository, input.recipient);
+  const policyVersion = await repository.getPolicyVersion(input.recipient);
 
   if (rule === "block") {
+    const amount = policy.minimumPostage;
     return {
-      amount: policy.minimumPostage,
+      amount,
       eligible: false,
       reason: "sender_blocked" as const,
       trusted: false,
+      quote: signPostageQuote({
+        sender: input.sender,
+        recipient: input.recipient,
+        messageId: input.messageId,
+        amount,
+        policyVersion,
+      }),
     };
   }
 
   const trusted = rule === "allow";
+  const amount = trusted ? "0" : policy.minimumPostage;
 
   return {
-    amount: trusted ? "0" : policy.minimumPostage,
+    amount,
     eligible: true,
     reason: trusted ? ("trusted_sender" as const) : ("mailbox_minimum" as const),
     trusted,
+    quote: signPostageQuote({
+      sender: input.sender,
+      recipient: input.recipient,
+      messageId: input.messageId,
+      amount,
+      policyVersion,
+    }),
   };
 }
 
@@ -50,6 +68,7 @@ export async function submitPostage(
   input: Omit<Postage, "createdAt" | "status">,
   now = new Date(),
   context: SubmitPostageContext = {},
+  quoteToken?: string,
 ) {
   const actorId = context.actorId ?? "unknown";
 
@@ -135,6 +154,20 @@ export async function submitPostage(
   }
 
   const { policy } = await getMailboxPolicy(repository, input.recipient);
+
+  if (quoteToken) {
+    const policyVersion = await repository.getPolicyVersion(input.recipient);
+    // Integrity/authorization check before the business-rule check below:
+    // a tampered or stale quote should never fall through to a minimum-
+    // postage error that leaks policy details to an unbound caller.
+    verifyPostageQuote(quoteToken, {
+      sender: input.sender,
+      recipient: input.recipient,
+      messageId: input.messageId,
+      amount: input.amount,
+      policyVersion,
+    });
+  }
 
   if (BigInt(input.amount) < BigInt(policy.minimumPostage)) {
     throw new ApiError(422, "validation_error", "Postage is below the mailbox minimum", {

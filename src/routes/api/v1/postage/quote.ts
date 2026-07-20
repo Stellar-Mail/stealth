@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 
 import { getApiContext } from "@/server/api/context";
-import { stellarAddressSchema } from "@/server/api/domain";
+import { hash32Schema, stellarAddressSchema } from "@/server/api/domain";
 import { quotePostage } from "@/server/api/postage-service";
 import { parseJsonBody } from "@/server/api/request";
 import { apiSuccess, handleApiRequest } from "@/server/api/response";
@@ -56,6 +56,7 @@ import { apiSuccess, handleApiRequest } from "@/server/api/response";
  * ```
  */
 const quoteSchema = z.object({
+  messageId: hash32Schema,
   recipient: stellarAddressSchema,
   sender: stellarAddressSchema,
 });

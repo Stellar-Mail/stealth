@@ -3,6 +3,13 @@ import type { IdempotencyRecord, MailboxPolicy, Postage, Receipt, SenderRule } f
 export interface ApiRepository {
   getPolicy(owner: string): Promise<MailboxPolicy | null>;
   setPolicy(owner: string, policy: MailboxPolicy): Promise<MailboxPolicy>;
+  /**
+   * Issue #1544: monotonically increasing version for an owner's mailbox
+   * policy. Bumped every time `setPolicy` is called so postage quotes can be
+   * bound to the exact policy that priced them. Returns 0 when no policy has
+   * ever been set for the owner (the default policy applies).
+   */
+  getPolicyVersion(owner: string): Promise<number>;
   getSenderRule(owner: string, sender: string): Promise<SenderRule>;
   setSenderRule(owner: string, sender: string, rule: SenderRule): Promise<SenderRule>;
   getPostage(messageId: string): Promise<Postage | null>;

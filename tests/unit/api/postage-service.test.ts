@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { MemoryApiRepository } from "../../../src/server/api/memory-repository";
 import * as metrics from "../../../src/server/api/metrics";
@@ -14,6 +14,14 @@ const recipient = `G${"A".repeat(55)}`;
 const sender = `G${"B".repeat(55)}`;
 
 describe("postage service", () => {
+  beforeEach(() => {
+    process.env.STEALTH_POSTAGE_QUOTE_SECRET = "test-postage-quote-secret";
+  });
+
+  afterEach(() => {
+    delete process.env.STEALTH_POSTAGE_QUOTE_SECRET;
+  });
+
   it("returns zero postage for explicitly allowed senders", async () => {
     const repository = new MemoryApiRepository();
     await repository.setPolicy(recipient, {
@@ -23,7 +31,9 @@ describe("postage service", () => {
     });
     await repository.setSenderRule(recipient, sender, "allow");
 
-    await expect(quotePostage(repository, { recipient, sender })).resolves.toMatchObject({
+    await expect(
+      quotePostage(repository, { recipient, sender, messageId: "a".repeat(64) }),
+    ).resolves.toMatchObject({
       amount: "0",
       eligible: true,
       trusted: true,
@@ -34,7 +44,9 @@ describe("postage service", () => {
     const repository = new MemoryApiRepository();
     await repository.setSenderRule(recipient, sender, "block");
 
-    await expect(quotePostage(repository, { recipient, sender })).resolves.toMatchObject({
+    await expect(
+      quotePostage(repository, { recipient, sender, messageId: "a".repeat(64) }),
+    ).resolves.toMatchObject({
       eligible: false,
       reason: "sender_blocked",
     });

@@ -14,6 +14,7 @@ const submissionSchema = z.object({
   amount: stroopAmountSchema,
   messageId: hash32Schema,
   paymentHash: hash32Schema,
+  quote: z.string().optional(),
   recipient: stellarAddressSchema,
   sender: stellarAddressSchema,
 });
@@ -65,7 +66,8 @@ export const Route = createFileRoute("/api/v1/postage/")({
             relayId,
             sender: input.sender,
           };
-          const postage = await submitPostage(repo, input, new Date(), context);
+          const { quote: quoteToken, ...postageInput } = input;
+          const postage = await submitPostage(repo, postageInput, new Date(), context, quoteToken);
 
           if (rawIdempotencyKey) {
             await recordIdempotency(repo, input.sender, rawIdempotencyKey, 201, postage);

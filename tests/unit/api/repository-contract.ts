@@ -60,6 +60,40 @@ export function runRepositoryContractTests(
       });
     });
 
+    describe("policy versioning (issue #1544)", () => {
+      it("returns version 0 when no policy has ever been set", async () => {
+        await expect(repo.getPolicyVersion(owner)).resolves.toBe(0);
+      });
+
+      it("bumps the version on every setPolicy call", async () => {
+        await repo.setPolicy(owner, {
+          allowUnknown: true,
+          minimumPostage: "100",
+          requireVerified: false,
+        });
+        await expect(repo.getPolicyVersion(owner)).resolves.toBe(1);
+
+        await repo.setPolicy(owner, {
+          allowUnknown: false,
+          minimumPostage: "200",
+          requireVerified: true,
+        });
+        await expect(repo.getPolicyVersion(owner)).resolves.toBe(2);
+      });
+
+      it("isolates policy versions per owner", async () => {
+        const otherOwner = `G${"C".repeat(55)}`;
+        await repo.setPolicy(owner, {
+          allowUnknown: true,
+          minimumPostage: "100",
+          requireVerified: false,
+        });
+
+        await expect(repo.getPolicyVersion(owner)).resolves.toBe(1);
+        await expect(repo.getPolicyVersion(otherOwner)).resolves.toBe(0);
+      });
+    });
+
     describe("sender rules", () => {
       it("defaults to 'default' when no rule exists", async () => {
         await expect(repo.getSenderRule(owner, sender)).resolves.toBe("default");

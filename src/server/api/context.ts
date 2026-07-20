@@ -22,6 +22,7 @@ export interface ApiConfig {
   kvBinding?: unknown;
   coordinatorBinding?: unknown;
   cursorSecret?: string;
+  postageQuoteSecret?: string;
   supportedVersions: readonly string[];
 }
 
@@ -38,6 +39,12 @@ export function validateApiConfig(config: ApiConfig): void {
     if (!config.cursorSecret) {
       // Never echo the secret value — only that it is missing.
       throw new Error("Configuration error: STEALTH_CURSOR_SECRET is required in production.");
+    }
+    if (!config.postageQuoteSecret) {
+      // Never echo the secret value — only that it is missing.
+      throw new Error(
+        "Configuration error: STEALTH_POSTAGE_QUOTE_SECRET is required in production.",
+      );
     }
   }
 
@@ -64,12 +71,15 @@ export async function getApiContext(): Promise<ApiContext> {
   // the cursor secret is read defensively so an undeclared secret fails the
   // validation gate rather than a type error.
   const cursorSecret = (env as Record<string, string | undefined>).STEALTH_CURSOR_SECRET;
+  const postageQuoteSecret = (env as Record<string, string | undefined>)
+    .STEALTH_POSTAGE_QUOTE_SECRET;
 
   validateApiConfig({
     isProd: true,
     kvBinding: env.STEALTH_KV,
     coordinatorBinding: env.STEALTH_COORDINATOR,
     cursorSecret,
+    postageQuoteSecret,
     supportedVersions: ["v1"],
   });
 

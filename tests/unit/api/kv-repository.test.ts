@@ -60,6 +60,36 @@ describe("HybridApiRepository - KV Operations", () => {
     expect(retrieved).toBeNull();
   });
 
+  it("returns version 0 for a policy that was never set", async () => {
+    expect(await repo.getPolicyVersion(owner)).toBe(0);
+  });
+
+  it("bumps the policy version on every setPolicy call", async () => {
+    const policy: MailboxPolicy = {
+      allowUnknown: true,
+      minimumPostage: "100",
+      requireVerified: false,
+    };
+    await repo.setPolicy(owner, policy);
+    expect(await repo.getPolicyVersion(owner)).toBe(1);
+    await repo.setPolicy(owner, { ...policy, minimumPostage: "200" });
+    expect(await repo.getPolicyVersion(owner)).toBe(2);
+  });
+
+  it("treats a pre-versioning (unversioned) stored policy as version 1", async () => {
+    // Simulate a policy record written before versioning existed: a bare
+    // MailboxPolicy with no __version field.
+    const legacyPolicy: MailboxPolicy = {
+      allowUnknown: false,
+      minimumPostage: "50",
+      requireVerified: true,
+    };
+    kv.store.set(`policy:${owner}`, JSON.stringify(legacyPolicy));
+
+    expect(await repo.getPolicyVersion(owner)).toBe(1);
+    expect(await repo.getPolicy(owner)).toEqual(legacyPolicy);
+  });
+
   it("persists, retrieves, and deletes sender rules", async () => {
     expect(await repo.getSenderRule(owner, sender)).toBe("default");
 
