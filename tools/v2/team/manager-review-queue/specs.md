@@ -1,38 +1,50 @@
 # Manager Review Queue
 
-Manager approvals.
+Manager Review Queue gives team leads a local queue for approving, rejecting,
+or escalating review requests. This folder is a self-contained mini-product
+workspace for the V2 later-release tool.
 
 ## Scope
 
-- Release tier: $(System.Collections.Hashtable.Tier.ToUpperInvariant())
-- Audience: $(System.Collections.Hashtable.Audience)
-- Folder ownership: $dir/
+- Release tier: V2
+- Audience: Team
+- Folder ownership: `tools/v2/team/manager-review-queue/`
 
-This is a self-contained tooling workspace. Do not wire this tool into the main app, routing, inbox architecture, wallet core, Stellar core, or design system unless a future integration issue explicitly allows it.
+This is a self-contained tooling workspace. Do not wire this tool into the main
+app, routing, inbox architecture, wallet core, Stellar core, database schema, or
+design system unless a future integration issue explicitly allows it.
 
-Recommended internal structure:
+## Internal Structure
 
 - components/
 - services/
 - hooks/
--     ests/
+- tests/
 - docs/
-  "@ | Set-Content -Path "tools/v2/team/manager-review-queue/README.md"
-  @"
+- fixtures/
+- guards/
 
-# Manager Review Queue Specs
+## Core Behavior
 
-## Purpose
+- Show review items from local deterministic fixtures.
+- Support folder-local filtering by review status and minimum risk score.
+- Support simple offset/limit pagination for review lists.
+- Allow isolated status updates against the in-memory store.
+- Provide a reset helper for deterministic local tests.
+- Validate hostile review payloads through the guard layer before future
+  integration work consumes external input.
 
-Manager approvals.
+## Review Requirements
 
-## Contributor boundary
+- Tests or test plans must live inside this folder.
+- Documentation must explain setup, fixtures, usage, review notes, and known
+  limitations.
+- Changes must remain isolated from app-wide tests unless a future integration
+  issue allows it.
+- No production mail, wallet, routing, authentication, or database code should
+  be touched for this tool.
 
-All work for this tool should stay in:
-
-$dir/
-
-## Required issue categories
+## Issue Categories
 
 - Architecture
 - Feature
