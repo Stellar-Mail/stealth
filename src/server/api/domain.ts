@@ -60,6 +60,7 @@ export const idempotencyRecordSchema = z.object({
   status: z.number(),
   body: z.unknown(),
   createdAt: z.string().datetime(),
+  expiresAt: z.string().datetime().optional(),
 });
 
 export type IdempotencyRecord = z.infer<typeof idempotencyRecordSchema>;

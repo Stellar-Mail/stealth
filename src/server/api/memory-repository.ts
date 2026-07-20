@@ -93,6 +93,27 @@ export class MemoryApiRepository implements ApiRepository {
     this.idempotency.set(key, structuredClone(record));
   }
 
+  async deleteExpiredIdempotencyRecords(nowString: string = new Date().toISOString()) {
+    const now = new Date(nowString).getTime();
+    let purgedCount = 0;
+    let activeSkippedCount = 0;
+
+    for (const [key, record] of this.idempotency.entries()) {
+      // Exclude active / in-flight operations (e.g. status 0 or 102 Processing)
+      if (record.status === 0 || record.status === 102) {
+        activeSkippedCount++;
+        continue;
+      }
+
+      if (record.expiresAt && new Date(record.expiresAt).getTime() <= now) {
+        this.idempotency.delete(key);
+        purgedCount++;
+      }
+    }
+
+    return { purgedCount, activeSkippedCount };
+  }
+
   reset() {
     this.policies.clear();
     this.postage.clear();
