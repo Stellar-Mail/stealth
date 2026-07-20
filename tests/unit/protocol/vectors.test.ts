@@ -8,6 +8,7 @@
  * Space/time: O(n) over the number of vector cases — each case is exercised
  * exactly once with an isolated MemoryApiRepository, so no shared state leaks.
  */
+import { Keypair } from "@stellar/stellar-sdk";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -24,7 +25,9 @@ import {
 import { submitPostage, resolvePostage } from "../../../src/server/api/postage-service";
 import { createDeliveryReceipt, markReceiptRead } from "../../../src/server/api/receipt-service";
 import { ApiError } from "../../../src/server/api/errors";
+import { resetActorReplayCache } from "../../../src/server/api/actor";
 import type { MailboxPolicy, SenderRule } from "../../../src/server/api/domain";
+import { createSignedRequest } from "../api/signed-request";
 
 import vectors from "../../../protocol/vectors/vectors.json";
 
@@ -290,62 +293,75 @@ import { getApiContext } from "../../../src/server/api/context";
 
 describe("relay_submission", () => {
   const handler = (Route.options as any).server?.handlers?.POST;
+  const senderSigner = Keypair.random();
+  const recipientSigner = Keypair.random();
+  const otherSigner = Keypair.random();
+
+  async function relayRequest(c: any, input: any) {
+    const url = "https://stealth.test/api/v1/postage";
+    const headers = {
+      "content-type": "application/json",
+      ...(c.headers["x-idempotency-key"]
+        ? { "x-idempotency-key": c.headers["x-idempotency-key"] }
+        : {}),
+    };
+    const init = { method: "POST", headers, body: JSON.stringify(input) };
+
+    if (c.id === "relay/auth/missing-header") return new Request(url, init);
+    if (c.id === "relay/auth/invalid-address") {
+      return new Request(url, {
+        ...init,
+        headers: { ...headers, "x-stealth-address": "invalid-address" },
+      });
+    }
+
+    return createSignedRequest(
+      c.id === "relay/auth/actor-mismatch" ? otherSigner : senderSigner,
+      url,
+      init,
+    );
+  }
 
   for (const c of (vectors.categories as any).relay_submission.cases) {
     it(c.id, async () => {
       const context = await getApiContext();
       (context.repository as any).reset();
+      resetActorReplayCache();
+      const input = {
+        ...c.input,
+        recipient: recipientSigner.publicKey(),
+        sender: senderSigner.publicKey(),
+      };
 
       // For the policy block case, we need to pre-configure a blocked rule.
       if (c.id === "relay/policy/blocked-no-mailbox-leak") {
-        await context.repository.setSenderRule(c.input.recipient, c.input.sender, "block");
+        await context.repository.setSenderRule(input.recipient, input.sender, "block");
       }
 
       // For the idempotency case, we want to run twice, checking the second response is replayed.
       if (c.id === "relay/idempotency/duplicate-key-returns-original") {
         // First, configure recipient policy to accept mail so that we get a 201 success.
-        await context.repository.setPolicy(c.input.recipient, {
+        await context.repository.setPolicy(input.recipient, {
           allowUnknown: true,
           minimumPostage: "0",
           requireVerified: false,
         });
 
-        const req1 = new Request("https://stealth.test/api/v1/postage", {
-          method: "POST",
-          headers: {
-            "content-type": "application/json",
-            ...c.headers,
-          },
-          body: JSON.stringify(c.input),
-        });
+        const req1 = await relayRequest(c, input);
         const res1 = await handler!({ request: req1 });
         expect(res1.status).toBe(201);
         expect(res1.headers.get("x-idempotency-replayed")).toBeNull();
         const body1 = await res1.json();
 
         // Second request with same key
-        const req2 = new Request("https://stealth.test/api/v1/postage", {
-          method: "POST",
-          headers: {
-            "content-type": "application/json",
-            ...c.headers,
-          },
-          body: JSON.stringify(c.input),
-        });
+        const req2 = await relayRequest(c, input);
         const res2 = await handler!({ request: req2 });
         expect(res2.status).toBe(201);
         expect(res2.headers.get("x-idempotency-replayed")).toBe("true");
         const body2 = await res2.json();
         expect(body2.data).toEqual(body1.data);
       } else {
-        const req = new Request("https://stealth.test/api/v1/postage", {
-          method: "POST",
-          headers: {
-            "content-type": "application/json",
-            ...c.headers,
-          },
-          body: JSON.stringify(c.input),
-        });
+        const req = await relayRequest(c, input);
         const res = await handler!({ request: req });
         expect(res.status).toBe(c.expected.status);
         if (c.expected.code) {

@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 
-import { requireActorMatches } from "@/server/api/actor";
+import { assertActorMatches, requireActor } from "@/server/api/actor";
 import { getApiContext } from "@/server/api/context";
 import { senderRuleSchema, stellarAddressSchema } from "@/server/api/domain";
 import { getSenderRule, setSenderRule } from "@/server/api/policy-service";
@@ -24,9 +24,10 @@ export const Route = createFileRoute("/api/v1/policies/$owner/senders/$sender")(
         }),
       PUT: ({ request, params }) =>
         handleApiRequest(request, async () => {
+          const actor = await requireActor(request);
           const owner = stellarAddressSchema.parse(params.owner);
           const sender = stellarAddressSchema.parse(params.sender);
-          requireActorMatches(request, owner);
+          assertActorMatches(actor, owner);
           const { rule } = await parseJsonBody(request, ruleBodySchema);
           return apiSuccess(
             request,
@@ -35,9 +36,10 @@ export const Route = createFileRoute("/api/v1/policies/$owner/senders/$sender")(
         }),
       DELETE: ({ request, params }) =>
         handleApiRequest(request, async () => {
+          const actor = await requireActor(request);
           const owner = stellarAddressSchema.parse(params.owner);
           const sender = stellarAddressSchema.parse(params.sender);
-          requireActorMatches(request, owner);
+          assertActorMatches(actor, owner);
           return apiSuccess(
             request,
             await setSenderRule((await getApiContext()).repository, owner, sender, "default"),

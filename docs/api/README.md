@@ -32,19 +32,38 @@ Endpoints enforce strict validation for Stellar addresses and other identifiers:
 See [POSTAGE_QUOTE_VALIDATION.md](./POSTAGE_QUOTE_VALIDATION.md) for comprehensive documentation on
 validation rules, error responses, and boundary cases.
 
-## Development identity
+## Signed request authentication
 
-Protected endpoints require `x-stealth-address` with the Stellar address acting on the request.
-This header only preserves authorization boundaries during development. It is not authentication.
-Production must derive the actor from a verified wallet challenge or signed session and must ignore
-caller-supplied identity headers at the public edge.
+Protected endpoints derive their principal from a Stellar Ed25519 signature. A bare
+`x-stealth-address` header is never sufficient. Clients send all four headers:
 
-```bash
-curl -X PUT http://localhost:8080/api/v1/policies/GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA \
-  -H "content-type: application/json" \
-  -H "x-stealth-address: GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" \
-  -d '{"allowUnknown":true,"requireVerified":true,"minimumPostage":"10000000"}'
+| Header                | Value                                     |
+| --------------------- | ----------------------------------------- |
+| `x-stealth-address`   | Stellar G-address for the signing account |
+| `x-stealth-timestamp` | Current Unix timestamp in seconds         |
+| `x-stealth-nonce`     | Unique 16-128 character URL-safe value    |
+| `x-stealth-signature` | Base64-encoded 64-byte Ed25519 signature  |
+
+The signature covers this UTF-8 payload, with fields separated by a single newline:
+
+```text
+stealth-mail-api-request-v1
+<stellar address>
+<timestamp>
+<nonce>
+<uppercase HTTP method>
+<URL pathname and query>
+<lowercase SHA-256 hash of the exact request body>
 ```
+
+Method, route/query, and body binding prevents a valid signature from authorizing a
+different operation. Requests outside the five-minute clock window and repeated
+address/nonce pairs are rejected. Clients must create a fresh nonce and signature
+for every retry, including an idempotent retry.
+
+The current replay cache is process-local. A durable, atomic nonce adapter is still
+required before horizontally scaled production deployment so a nonce consumed by
+one worker cannot be replayed against another worker.
 
 ## Persistence and chain integration
 
@@ -54,5 +73,5 @@ The production postage adapter must verify `paymentHash` against Stellar before 
 and mutations must submit or reconcile with the Soroban contracts rather than treating memory state
 as chain truth.
 
-Rate limiting, replay-resistant signed authentication, idempotency keys, durable persistence, and
-contract event reconciliation remain required production gates.
+Rate limiting, durable nonce persistence, durable API persistence, and contract event reconciliation
+remain required production gates.

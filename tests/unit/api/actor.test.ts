@@ -1,32 +1,36 @@
-import { describe, expect, it } from "vitest";
+import { Keypair } from "@stellar/stellar-sdk";
+import { beforeEach, describe, expect, it } from "vitest";
 
-import { ACTOR_HEADER, requireActor, requireActorMatches } from "../../../src/server/api/actor";
-
-const owner = `G${"A".repeat(55)}`;
-const sender = `G${"B".repeat(55)}`;
+import {
+  ACTOR_HEADER,
+  assertActorMatches,
+  requireActor,
+  resetActorReplayCache,
+} from "../../../src/server/api/actor";
+import { createSignedRequest } from "./signed-request";
 
 describe("API actor guard", () => {
-  it("requires a valid actor header", () => {
-    expect(() => requireActor(new Request("https://stealth.test/api"))).toThrowError(
-      expect.objectContaining({ status: 401 }),
-    );
-  });
+  beforeEach(resetActorReplayCache);
 
-  it("rejects an actor that does not own the resource", () => {
+  it("requires all signed actor headers", async () => {
+    const signer = Keypair.random();
     const request = new Request("https://stealth.test/api", {
-      headers: { [ACTOR_HEADER]: sender },
+      headers: { [ACTOR_HEADER]: signer.publicKey() },
     });
 
-    expect(() => requireActorMatches(request, owner)).toThrowError(
-      expect.objectContaining({ status: 403 }),
-    );
+    await expect(requireActor(request)).rejects.toMatchObject({ status: 401 });
   });
 
-  it("returns the matching owner", () => {
-    const request = new Request("https://stealth.test/api", {
-      headers: { [ACTOR_HEADER]: owner },
-    });
+  it("returns the principal from a valid signed request", async () => {
+    const signer = Keypair.random();
+    const request = await createSignedRequest(signer, "https://stealth.test/api");
 
-    expect(requireActorMatches(request, owner)).toBe(owner);
+    await expect(requireActor(request)).resolves.toBe(signer.publicKey());
+  });
+
+  it("rejects a principal that does not own the resource", () => {
+    expect(() =>
+      assertActorMatches(Keypair.random().publicKey(), Keypair.random().publicKey()),
+    ).toThrowError(expect.objectContaining({ status: 403 }));
   });
 });

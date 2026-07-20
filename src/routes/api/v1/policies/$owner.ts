@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { requireActorMatches } from "@/server/api/actor";
+import { assertActorMatches, requireActor } from "@/server/api/actor";
 import { mailboxPolicySchema, stellarAddressSchema } from "@/server/api/domain";
 import { getApiContext } from "@/server/api/context";
 import { getMailboxPolicy, setMailboxPolicy } from "@/server/api/policy-service";
@@ -18,8 +18,9 @@ export const Route = createFileRoute("/api/v1/policies/$owner")({
         }),
       PUT: ({ request, params }) =>
         handleApiRequest(request, async () => {
+          const actor = await requireActor(request);
           const owner = stellarAddressSchema.parse(params.owner);
-          requireActorMatches(request, owner);
+          assertActorMatches(actor, owner);
           const policy = await parseJsonBody(request, mailboxPolicySchema);
           const result = await setMailboxPolicy((await getApiContext()).repository, owner, policy);
           return apiSuccess(request, result);

@@ -1,18 +1,26 @@
 import { expect, test as base, type Page } from "@playwright/test";
+import { Keypair } from "@stellar/stellar-sdk";
 
-// ---------------------------------------------------------------------------
-// Deterministic Stellar addresses used across all tests
-// ---------------------------------------------------------------------------
-export const ACTOR = `G${"A".repeat(55)}`;
-export const SENDER = `G${"B".repeat(55)}`;
+import { buildActorSignaturePayload } from "../../src/server/api/actor";
 
-// A deterministic 32-byte hex hash
+export type TestIdentity = {
+  address: string;
+  keypair: Keypair;
+};
+
+export function createIdentity(): TestIdentity {
+  const keypair = Keypair.random();
+  return { address: keypair.publicKey(), keypair };
+}
+
+export const ACTOR_IDENTITY = createIdentity();
+export const SENDER_IDENTITY = createIdentity();
+export const ACTOR = ACTOR_IDENTITY.address;
+export const SENDER = SENDER_IDENTITY.address;
+
 export const MSG_ID = "a".repeat(64);
 export const PAYMENT_HASH = "b".repeat(64);
 
-// ---------------------------------------------------------------------------
-// API helpers – thin wrappers around page.request so tests stay readable
-// ---------------------------------------------------------------------------
 export class ApiHelper {
   private page: Page;
 
@@ -20,48 +28,63 @@ export class ApiHelper {
     this.page = page;
   }
 
-  private headers(actor = ACTOR) {
-    return {
-      "Content-Type": "application/json",
-      "user-agent": `stealth-e2e-${actor.slice(1, 12)}`,
-      "x-stealth-address": actor,
-      "x-stealth-relay-id": `relay-${actor.slice(1, 12)}`,
-    };
+  async request(
+    method: string,
+    path: string,
+    identity: TestIdentity,
+    data?: Record<string, unknown>,
+  ) {
+    const body = data === undefined ? undefined : JSON.stringify(data);
+    const timestamp = Math.floor(Date.now() / 1000).toString();
+    const nonce = crypto.randomUUID().replaceAll("-", "");
+    const request = new Request(new URL(path, "http://localhost"), {
+      method,
+      headers: body === undefined ? undefined : { "Content-Type": "application/json" },
+      body,
+    });
+    const payload = await buildActorSignaturePayload(request, identity.address, timestamp, nonce);
+
+    return this.page.request.fetch(path, {
+      method,
+      headers: {
+        ...(body === undefined ? {} : { "Content-Type": "application/json" }),
+        "user-agent": `stealth-e2e-${identity.address.slice(1, 12)}`,
+        "x-stealth-address": identity.address,
+        "x-stealth-nonce": nonce,
+        "x-stealth-relay-id": `relay-${identity.address.slice(1, 12)}`,
+        "x-stealth-signature": Buffer.from(identity.keypair.sign(payload)).toString("base64"),
+        "x-stealth-timestamp": timestamp,
+      },
+      data: body,
+    });
   }
 
   async putPolicy(
-    actor = ACTOR,
+    actor = ACTOR_IDENTITY,
     policy = { allowUnknown: true, minimumPostage: "0", requireVerified: false },
   ) {
-    return this.page.request.put(`/api/v1/policies/${actor}`, {
-      headers: this.headers(actor),
-      data: policy,
-    });
+    return this.request("PUT", `/api/v1/policies/${actor.address}`, actor, policy);
   }
 
-  async getPolicy(owner = ACTOR) {
-    return this.page.request.get(`/api/v1/policies/${owner}`, {
-      headers: this.headers(),
-    });
+  async getPolicy(owner = ACTOR_IDENTITY, actor = owner) {
+    return this.request("GET", `/api/v1/policies/${owner.address}`, actor);
   }
 
-  async setSenderRule(owner = ACTOR, sender = SENDER, rule: "allow" | "block" | "default") {
-    if (rule === "default") {
-      return this.page.request.delete(`/api/v1/policies/${owner}/senders/${sender}`, {
-        headers: this.headers(owner),
-      });
-    }
-
-    return this.page.request.put(`/api/v1/policies/${owner}/senders/${sender}`, {
-      headers: this.headers(owner),
-      data: { rule },
-    });
+  async setSenderRule(
+    owner = ACTOR_IDENTITY,
+    sender = SENDER_IDENTITY,
+    rule: "allow" | "block" | "default",
+  ) {
+    const path = `/api/v1/policies/${owner.address}/senders/${sender.address}`;
+    return rule === "default"
+      ? this.request("DELETE", path, owner)
+      : this.request("PUT", path, owner, { rule });
   }
 
-  async quotePostage(recipient = ACTOR, sender = SENDER) {
-    return this.page.request.post("/api/v1/postage/quote", {
-      headers: this.headers(sender),
-      data: { recipient, sender },
+  async quotePostage(recipient = ACTOR_IDENTITY, sender = SENDER_IDENTITY) {
+    return this.request("POST", "/api/v1/postage/quote", sender, {
+      recipient: recipient.address,
+      sender: sender.address,
     });
   }
 
@@ -69,49 +92,40 @@ export class ApiHelper {
     messageId = MSG_ID,
     paymentHash = PAYMENT_HASH,
     amount = "100",
-    recipient = ACTOR,
-    sender = SENDER,
+    recipient = ACTOR_IDENTITY,
+    sender = SENDER_IDENTITY,
   ) {
-    return this.page.request.post("/api/v1/postage/", {
-      headers: this.headers(sender),
-      data: { amount, messageId, paymentHash, recipient, sender },
+    return this.request("POST", "/api/v1/postage/", sender, {
+      amount,
+      messageId,
+      paymentHash,
+      recipient: recipient.address,
+      sender: sender.address,
     });
   }
 
-  async settlePostage(messageId = MSG_ID) {
-    return this.page.request.patch(`/api/v1/postage/${messageId}`, {
-      headers: this.headers(ACTOR),
-      data: { status: "settled" },
+  async settlePostage(messageId = MSG_ID, recipient = ACTOR_IDENTITY) {
+    return this.request("POST", `/api/v1/postage/${messageId}/settle`, recipient);
+  }
+
+  async refundPostage(messageId = MSG_ID, recipient = ACTOR_IDENTITY) {
+    return this.request("POST", `/api/v1/postage/${messageId}/refund`, recipient);
+  }
+
+  async createReceipt(messageId = MSG_ID, recipient = ACTOR_IDENTITY, sender = SENDER_IDENTITY) {
+    return this.request("POST", "/api/v1/receipts/", sender, {
+      messageId,
+      recipient: recipient.address,
+      sender: sender.address,
     });
   }
 
-  async refundPostage(messageId = MSG_ID) {
-    return this.page.request.patch(`/api/v1/postage/${messageId}`, {
-      headers: this.headers(ACTOR),
-      data: { status: "refunded" },
-    });
+  async getReceipt(messageId = MSG_ID, actor = ACTOR_IDENTITY) {
+    return this.request("GET", `/api/v1/receipts/${messageId}`, actor);
   }
 
-  // -----------------------------------------------------------------------
-  // Receipt helpers
-  // -----------------------------------------------------------------------
-  async createReceipt(messageId = MSG_ID, recipient = ACTOR, sender = SENDER) {
-    return this.page.request.post("/api/v1/receipts/", {
-      headers: this.headers(sender),
-      data: { messageId, recipient, sender },
-    });
-  }
-
-  async getReceipt(messageId = MSG_ID, actor = ACTOR) {
-    return this.page.request.get(`/api/v1/receipts/${messageId}`, {
-      headers: this.headers(actor),
-    });
-  }
-
-  async markReceiptRead(messageId = MSG_ID, actor = ACTOR) {
-    return this.page.request.post(`/api/v1/receipts/${messageId}/read`, {
-      headers: this.headers(actor),
-    });
+  async markReceiptRead(messageId = MSG_ID, actor = ACTOR_IDENTITY) {
+    return this.request("POST", `/api/v1/receipts/${messageId}/read`, actor);
   }
 }
 
@@ -165,9 +179,6 @@ export async function openDemoMailbox(page: Page) {
   await page.waitForFunction(() => Boolean(document.documentElement.dataset.theme));
 }
 
-// ---------------------------------------------------------------------------
-// Extended test fixture that exposes the API helper and pre-loads the app
-// ---------------------------------------------------------------------------
 type Fixtures = { api: ApiHelper };
 
 export const test = base.extend<Fixtures>({
