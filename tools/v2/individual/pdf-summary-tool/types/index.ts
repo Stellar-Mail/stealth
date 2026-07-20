@@ -36,9 +36,9 @@ export interface Summary {
 /** Configuration for summary generation */
 export interface SummarySettings {
   /** How long the summary should be */
-  length: 'short' | 'medium' | 'long';
+  length: "short" | "medium" | "long";
   /** Output format for the summary */
-  style: 'bullet-points' | 'paragraph';
+  style: "bullet-points" | "paragraph";
   /** Whether to extract and include keywords */
   includeKeywords: boolean;
   /** Language code for processing (e.g., 'en', 'es', 'fr') */
@@ -98,4 +98,4 @@ export type {
   PdfSummaryError,
   PdfSummaryResult,
   ExecutePdfSummary,
-} from './execution';
+} from "./execution";

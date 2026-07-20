@@ -5,13 +5,13 @@
 
 /** Error codes for PDF summary execution failures */
 export type PdfSummaryErrorCode =
-  | 'INVALID_INPUT'
-  | 'FILE_TOO_LARGE'
-  | 'UNSUPPORTED_FORMAT'
-  | 'TEXT_EXTRACTION_FAILED'
-  | 'SUMMARIZATION_FAILED'
-  | 'PERSISTENCE_FAILED'
-  | 'INTERNAL_ERROR';
+  | "INVALID_INPUT"
+  | "FILE_TOO_LARGE"
+  | "UNSUPPORTED_FORMAT"
+  | "TEXT_EXTRACTION_FAILED"
+  | "SUMMARIZATION_FAILED"
+  | "PERSISTENCE_FAILED"
+  | "INTERNAL_ERROR";
 
 /** Input for PDF summary execution */
 export interface PdfSummaryInput {
@@ -28,9 +28,9 @@ export interface PdfSummaryInput {
 /** Settings for summary generation */
 export interface PdfSummaryExecutionSettings {
   /** How long the summary should be */
-  length: 'short' | 'medium' | 'long';
+  length: "short" | "medium" | "long";
   /** Output format */
-  style: 'bullet-points' | 'paragraph';
+  style: "bullet-points" | "paragraph";
   /** Whether to include keywords */
   includeKeywords: boolean;
   /** Language code */
@@ -63,10 +63,7 @@ export interface PdfSummaryError {
 
 /** Discriminated union result type */
 export type PdfSummaryResult =
-  | { ok: true; data: PdfSummaryOutput }
-  | { ok: false; error: PdfSummaryError };
+  { ok: true; data: PdfSummaryOutput } | { ok: false; error: PdfSummaryError };
 
 /** Execution function type signature */
-export type ExecutePdfSummary = (
-  input: PdfSummaryInput,
-) => Promise<PdfSummaryResult>;
+export type ExecutePdfSummary = (input: PdfSummaryInput) => Promise<PdfSummaryResult>;
