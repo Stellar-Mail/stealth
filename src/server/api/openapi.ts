@@ -41,59 +41,178 @@ export const openApiDocument = {
           requireVerified: { type: "boolean" },
         },
       },
+      ValidationErrorItem: {
+        type: "object",
+        required: ["path", "rule", "message"],
+        additionalProperties: false,
+        properties: {
+          path: {
+            type: "string",
+            description:
+              "Safe request field path using dot and bracket notation; root errors use $.",
+            examples: ["recipient", "tags[0]", "$"],
+          },
+          rule: {
+            type: "string",
+            description:
+              "Application-owned validation rule code, independent of validator libraries.",
+            enum: [
+              "invalid_type",
+              "format",
+              "min_length",
+              "max_length",
+              "minimum",
+              "maximum",
+              "missing",
+              "unknown_field",
+              "invalid_value",
+            ],
+          },
+          message: {
+            type: "string",
+            description:
+              "Human-readable validation guidance. Rejected input values are never echoed.",
+          },
+        },
+      },
+      ValidationErrorDetails: {
+        type: "object",
+        required: ["validationErrors"],
+        additionalProperties: false,
+        properties: {
+          validationErrors: {
+            type: "array",
+            items: { $ref: "#/components/schemas/ValidationErrorItem" },
+          },
+        },
+      },
     },
   },
   paths: {
     "/health": {
+      get: { operationId: "getHealth", summary: "Read service health", "x-stability": "stable" },
+    },
+    "/protocol": {
       get: {
-        summary: "Read service liveness or dependency readiness",
-        parameters: [
-          {
-            name: "check",
-            in: "query",
-            required: false,
-            schema: { type: "string", enum: ["liveness", "readiness"] },
-          },
-        ],
+        operationId: "getProtocol",
+        summary: "Discover protocol capabilities",
+        "x-stability": "stable",
       },
     },
-    "/protocol": { get: { summary: "Discover protocol capabilities" } },
-    "/openapi.json": { get: { summary: "Read this OpenAPI document" } },
+    "/openapi.json": {
+      get: {
+        operationId: "getOpenApi",
+        summary: "Read this OpenAPI document",
+        "x-stability": "stable",
+      },
+    },
     "/policies/{owner}": {
-      get: { summary: "Read mailbox policy" },
-      put: { summary: "Replace mailbox policy", security: actorSecurity },
+      get: {
+        operationId: "getMailboxPolicy",
+        summary: "Read mailbox policy",
+        "x-stability": "stable",
+      },
+      put: {
+        operationId: "replaceMailboxPolicy",
+        summary: "Replace mailbox policy",
+        security: actorSecurity,
+        "x-stability": "stable",
+      },
     },
     "/policies/{owner}/senders/{sender}": {
-      get: { summary: "Read a sender override" },
-      put: { summary: "Set a sender override", security: actorSecurity },
-      delete: { summary: "Reset a sender override", security: actorSecurity },
+      get: {
+        operationId: "getSenderOverride",
+        summary: "Read a sender override",
+        "x-stability": "stable",
+      },
+      put: {
+        operationId: "setSenderOverride",
+        summary: "Set a sender override",
+        security: actorSecurity,
+        "x-stability": "stable",
+      },
+      delete: {
+        operationId: "resetSenderOverride",
+        summary: "Reset a sender override",
+        security: actorSecurity,
+        "x-stability": "stable",
+      },
     },
     "/policies/evaluate": {
-      post: { summary: "Evaluate whether a sender can mail a recipient" },
+      post: {
+        operationId: "evaluateMailboxPolicy",
+        summary: "Evaluate whether a sender can mail a recipient",
+        "x-stability": "stable",
+      },
     },
     "/postage": {
-      post: { summary: "Submit a postage proof", security: actorSecurity },
+      post: {
+        operationId: "submitPostageProof",
+        summary: "Submit a postage proof",
+        security: actorSecurity,
+        "x-stability": "stable",
+      },
     },
     "/postage/quote": {
-      post: { summary: "Quote recipient postage requirements" },
+      post: {
+        operationId: "quotePostage",
+        summary: "Quote recipient postage requirements",
+        "x-stability": "stable",
+      },
     },
     "/postage/{messageId}": {
-      get: { summary: "Read participant postage state", security: actorSecurity },
+      get: {
+        operationId: "getPostageState",
+        summary: "Read participant postage state",
+        security: actorSecurity,
+        "x-stability": "stable",
+      },
     },
     "/postage/{messageId}/settle": {
-      post: { summary: "Settle pending postage", security: actorSecurity },
+      post: {
+        operationId: "settlePostage",
+        summary: "Settle pending postage",
+        security: actorSecurity,
+        "x-stability": "stable",
+      },
     },
     "/postage/{messageId}/refund": {
-      post: { summary: "Mark pending postage for refund", security: actorSecurity },
+      post: {
+        operationId: "refundPostage",
+        summary: "Mark pending postage for refund",
+        security: actorSecurity,
+        "x-stability": "stable",
+      },
     },
     "/receipts": {
-      post: { summary: "Record message delivery", security: actorSecurity },
+      post: {
+        operationId: "recordDelivery",
+        summary: "Record message delivery",
+        security: actorSecurity,
+        "x-stability": "stable",
+      },
     },
     "/receipts/{messageId}": {
-      get: { summary: "Read participant receipt state", security: actorSecurity },
+      get: {
+        operationId: "getReceiptState",
+        summary: "Read participant receipt state",
+        security: actorSecurity,
+        "x-stability": "stable",
+      },
     },
     "/receipts/{messageId}/read": {
-      post: { summary: "Record recipient read acknowledgment", security: actorSecurity },
+      post: {
+        operationId: "recordReadAcknowledgment",
+        summary: "Record recipient read acknowledgment",
+        security: actorSecurity,
+        "x-stability": "deprecated",
+        deprecated: true,
+        "x-deprecation": {
+          reason: "Replaced by delivery-receipts streaming.",
+          sunset: "2026-12-31",
+          migration: "/receipts/{messageId}",
+        },
+      },
     },
   },
 } as const;

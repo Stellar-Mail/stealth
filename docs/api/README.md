@@ -23,6 +23,15 @@ retry behavior during network failures or race conditions. Currently supported:
 See [SETTLEMENT_IDEMPOTENCY.md](./SETTLEMENT_IDEMPOTENCY.md) for detailed documentation on
 idempotency semantics, retry scenarios, and client best practices.
 
+## Input Validation
+
+Endpoints enforce strict validation for Stellar addresses and other identifiers:
+
+- `POST /api/v1/postage/quote` - Quote request validation
+
+See [POSTAGE_QUOTE_VALIDATION.md](./POSTAGE_QUOTE_VALIDATION.md) for comprehensive documentation on
+validation rules, error responses, and boundary cases.
+
 ## Development identity
 
 Protected endpoints require `x-stealth-address` with the Stellar address acting on the request.

@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { checkApiReadiness } from "@/server/api/health";
 import { apiSuccess, handleApiRequest } from "@/server/api/response";
+import { getVersionInfo } from "@/server/api/version";
 
 function requestedCheck(request: Request) {
   return new URL(request.url).searchParams.get("check") === "readiness" ? "readiness" : "liveness";
@@ -37,8 +38,9 @@ export const Route = createFileRoute("/api/v1/health")({
             service: "stealth-mail-api",
             status: "ok",
             version: "v1",
-          });
-        }),
+            versions: getVersionInfo(),
+          }),
+        ),
     },
   },
 });

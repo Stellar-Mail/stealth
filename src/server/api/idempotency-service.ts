@@ -1,9 +1,17 @@
 import { createHash } from "node:crypto";
 import type { ApiRepository } from "./repository";
 import type { IdempotencyRecord } from "./domain";
+import { canonicalize } from "./envelope";
 
-export function hashIdempotencyKey(actor: string, rawKey: string): string {
-  return createHash("sha256").update(`${actor}:${rawKey}`).digest("hex");
+/**
+ * Issue #1501: canonicalize request bodies before computing idempotency
+ * digests so semantically identical JSON (different key order) hashes the same,
+ * while genuinely different values still conflict. Array order, numeric/string
+ * distinctions, and the actor scope all remain significant.
+ */
+export function hashIdempotencyKey(actor: string, rawKey: unknown): string {
+  const canonical = canonicalize(rawKey);
+  return createHash("sha256").update(`${actor}:${canonical}`).digest("hex");
 }
 
 export async function checkIdempotency(
