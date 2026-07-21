@@ -2,11 +2,18 @@
  * index.ts — Invoice Approval Workflow
  *
  * Folder-local API surface. Exports the non-UI execution contract, its types,
- * and the service factory. Nothing in this file imports from the main app.
+ * security helpers, and the service factory. Nothing in this file imports from the main app.
  */
 
 // Types
-export type { Invoice, InvoiceInput, InvoiceStatus, ApprovalDecision } from "./types";
+export type {
+  Invoice,
+  InvoiceInput,
+  InvoiceStatus,
+  ApprovalDecision,
+  InvoiceAttachmentMeta,
+  PaginationOptions,
+} from "./types";
 
 // Contract + service
 export { createInvoiceApprovalContract } from "./services/invoice-approval.service";
@@ -14,6 +21,8 @@ export {
   InvoiceErrorCode,
   applyInvoiceOperation,
   validateInvoiceInput,
+  sanitizeString,
+  hasPrototypePollutionKey,
   ok,
   fail,
 } from "./contract";
