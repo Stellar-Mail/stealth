@@ -14,7 +14,7 @@ vi.mock("cloudflare:workers", () => {
 });
 
 import { StealthCoordinator } from "../../../src/server/api/stealth-coordinator";
-import type { IdempotencyRecord } from "../../../src/server/api/domain";
+import type { IdempotencyRecord, Postage } from "../../../src/server/api/domain";
 
 class MockDurableObjectState {
   public id = { toString: () => "mock-do-id" };
@@ -78,5 +78,58 @@ describe("StealthCoordinator - Durable Object Operations", () => {
     expect(await coordinator.getCounter("limiter-1")).toBe(2);
 
     dateSpy.mockRestore();
+  });
+
+  describe("postage settlement transitions", () => {
+    const recipient = `G${"A".repeat(55)}`;
+    const sender = `G${"B".repeat(55)}`;
+    const messageId = "a".repeat(64);
+
+    const pendingPostage: Postage = {
+      amount: "100",
+      createdAt: "2026-01-01T00:00:00.000Z",
+      messageId,
+      paymentHash: "c".repeat(64),
+      recipient,
+      sender,
+      status: "pending",
+    };
+
+    it("round-trips postage via get/set", async () => {
+      expect(await coordinator.getPostage(messageId)).toBeNull();
+      await coordinator.setPostage(pendingPostage);
+      expect(await coordinator.getPostage(messageId)).toEqual(pendingPostage);
+    });
+
+    it("returns not-found when transitioning a record that was never set", async () => {
+      expect(await coordinator.transitionPostage(messageId, "pending", "settled")).toEqual({
+        outcome: "not-found",
+      });
+    });
+
+    it("applies a valid pending -> settled transition exactly once", async () => {
+      await coordinator.setPostage(pendingPostage);
+
+      const applied = await coordinator.transitionPostage(messageId, "pending", "settled");
+      expect(applied).toMatchObject({ outcome: "applied", postage: { status: "settled" } });
+
+      // A second attempt with the same expected status is now a conflict,
+      // not a second settlement.
+      const conflict = await coordinator.transitionPostage(messageId, "pending", "settled");
+      expect(conflict).toMatchObject({ outcome: "conflict", postage: { status: "settled" } });
+    });
+
+    it("only lets one of two concurrent settlement calls win", async () => {
+      await coordinator.setPostage(pendingPostage);
+
+      const [first, second] = await Promise.all([
+        coordinator.transitionPostage(messageId, "pending", "settled"),
+        coordinator.transitionPostage(messageId, "pending", "settled"),
+      ]);
+
+      const outcomes = [first.outcome, second.outcome].sort();
+      expect(outcomes).toEqual(["applied", "conflict"]);
+      expect(await coordinator.getPostage(messageId)).toMatchObject({ status: "settled" });
+    });
   });
 });

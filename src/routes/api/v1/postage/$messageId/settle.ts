@@ -5,7 +5,8 @@ import { getApiContext } from "@/server/api/context";
 import { hash32Schema } from "@/server/api/domain";
 import { getPostage, resolvePostage } from "@/server/api/postage-service";
 import { apiSuccess, handleApiRequest } from "@/server/api/response";
-import { checkIdempotency, recordIdempotency } from "@/server/api/idempotency-service";
+import { acquireIdempotency, recordIdempotency } from "@/server/api/idempotency-service";
+import { ApiError } from "@/server/api/errors";
 
 /**
  * POST /api/v1/postage/:messageId/settle
@@ -52,15 +53,20 @@ export const Route = createFileRoute("/api/v1/postage/$messageId/settle")({
           // Check for idempotency key to enable safe retries
           const rawIdempotencyKey = request.headers.get("x-idempotency-key");
           if (rawIdempotencyKey) {
-            const existing = await checkIdempotency(
+            const result = await acquireIdempotency(
               repository,
               current.recipient,
               rawIdempotencyKey,
             );
-            if (existing) {
+
+            if (result.status === "in_progress") {
+              throw new ApiError(409, "conflict", "Request is already in progress");
+            }
+
+            if (result.status === "completed") {
               // Replay the previous response (success or failure)
-              return apiSuccess(request, existing.body, {
-                status: existing.status,
+              return apiSuccess(request, result.record.body, {
+                status: result.record.status,
                 headers: { "x-idempotency-replayed": "true" },
               });
             }
