@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { requireActor, requireActorMatches } from "@/server/api/actor";
+import { assertActorMatches, requireActor } from "@/server/api/actor";
 import { getApiContext } from "@/server/api/context";
 import { hash32Schema } from "@/server/api/domain";
 import { getPostage, resolvePostage } from "@/server/api/postage-service";
@@ -44,10 +44,10 @@ export const Route = createFileRoute("/api/v1/postage/$messageId/settle")({
           const repository = (await getApiContext()).repository;
           // Authenticate before loading so unauthenticated callers cannot
           // probe whether a message id exists.
-          requireActor(request);
+          const actor = await requireActor(request);
           const messageId = hash32Schema.parse(params.messageId);
           const current = await getPostage(repository, messageId);
-          requireActorMatches(request, current.recipient);
+          assertActorMatches(actor, current.recipient);
 
           // Check for idempotency key to enable safe retries
           const rawIdempotencyKey = request.headers.get("x-idempotency-key");

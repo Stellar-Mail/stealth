@@ -13,8 +13,8 @@ const handler = (PolicyRoute.options as any).server?.handlers?.PUT;
 const policy = { allowUnknown: true, minimumPostage: "1000", requireVerified: true };
 const replacementPolicy = { ...policy, minimumPostage: "9000" };
 
-function repository() {
-  return getApiContext().repository as MemoryApiRepository;
+async function repository() {
+  return (await getApiContext()).repository as MemoryApiRepository;
 }
 
 function policyUrl(pathOwner = owner.publicKey()) {
@@ -30,8 +30,8 @@ function jsonInit(body = policy): RequestInit {
 }
 
 describe("public API authentication regressions", () => {
-  beforeEach(() => {
-    repository().reset();
+  beforeEach(async () => {
+    (await repository()).reset();
     resetActorReplayCache();
   });
 
@@ -43,7 +43,7 @@ describe("public API authentication regressions", () => {
     const response = await handler({ request, params: { owner: owner.publicKey() } });
 
     expect(response.status).toBe(401);
-    await expect(repository().getPolicy(owner.publicKey())).resolves.toBeNull();
+    await expect((await repository()).getPolicy(owner.publicKey())).resolves.toBeNull();
   });
 
   it("rejects an exact replay of a valid signature", async () => {
@@ -55,7 +55,7 @@ describe("public API authentication regressions", () => {
 
     expect(first.status).toBe(200);
     expect(second.status).toBe(401);
-    await expect(repository().getPolicy(owner.publicKey())).resolves.toEqual(policy);
+    await expect((await repository()).getPolicy(owner.publicKey())).resolves.toEqual(policy);
   });
 
   it("rejects a signature moved to another route", async () => {
@@ -69,7 +69,7 @@ describe("public API authentication regressions", () => {
     const response = await handler({ request: substituted, params: { owner: owner.publicKey() } });
 
     expect(response.status).toBe(401);
-    await expect(repository().getPolicy(owner.publicKey())).resolves.toBeNull();
+    await expect((await repository()).getPolicy(owner.publicKey())).resolves.toBeNull();
   });
 
   it("rejects a signature moved to another body", async () => {
@@ -83,7 +83,7 @@ describe("public API authentication regressions", () => {
     const response = await handler({ request: substituted, params: { owner: owner.publicKey() } });
 
     expect(response.status).toBe(401);
-    await expect(repository().getPolicy(owner.publicKey())).resolves.toBeNull();
+    await expect((await repository()).getPolicy(owner.publicKey())).resolves.toBeNull();
   });
 
   it("rejects a valid non-owner signature before mutation", async () => {
@@ -92,7 +92,7 @@ describe("public API authentication regressions", () => {
     const response = await handler({ request, params: { owner: owner.publicKey() } });
 
     expect(response.status).toBe(403);
-    await expect(repository().getPolicy(owner.publicKey())).resolves.toBeNull();
+    await expect((await repository()).getPolicy(owner.publicKey())).resolves.toBeNull();
   });
 
   it("allows the verified owner to mutate the protected resource", async () => {
@@ -101,6 +101,6 @@ describe("public API authentication regressions", () => {
     const response = await handler({ request, params: { owner: owner.publicKey() } });
 
     expect(response.status).toBe(200);
-    await expect(repository().getPolicy(owner.publicKey())).resolves.toEqual(policy);
+    await expect((await repository()).getPolicy(owner.publicKey())).resolves.toEqual(policy);
   });
 });

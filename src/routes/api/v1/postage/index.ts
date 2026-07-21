@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 
-import { requireActorMatches } from "@/server/api/actor";
+import { assertActorMatches, requireActor } from "@/server/api/actor";
 import { getApiContext } from "@/server/api/context";
 import { hash32Schema, stellarAddressSchema, stroopAmountSchema } from "@/server/api/domain";
 import { buildDeviceFingerprint } from "@/server/api/abuse-service";
@@ -23,8 +23,9 @@ export const Route = createFileRoute("/api/v1/postage/")({
     handlers: {
       POST: ({ request }) =>
         handleApiRequest(request, async () => {
+          const actor = await requireActor(request);
           const input = await parseJsonBody(request, submissionSchema);
-          requireActorMatches(request, input.sender);
+          assertActorMatches(actor, input.sender);
 
           const repo = (await getApiContext()).repository;
           const rawIdempotencyKey = request.headers.get("x-idempotency-key");
