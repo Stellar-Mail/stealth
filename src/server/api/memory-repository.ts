@@ -85,6 +85,34 @@ export class MemoryApiRepository implements ApiRepository {
     return filtered.length;
   }
 
+  async acquireIdempotencyRecord(
+    key: string,
+    leaseMs: number,
+  ): Promise<import("./repository").AcquireIdempotencyResult> {
+    const existing = this.idempotency.get(key);
+    const now = Date.now();
+
+    if (existing) {
+      if (existing.state === "completed") {
+        return { status: "completed", record: structuredClone(existing) };
+      }
+
+      // existing is in_progress. Check if lease expired
+      if (now < new Date(existing.recoveryExpiryAt).getTime()) {
+        return { status: "in_progress" };
+      }
+    }
+
+    // Acquire the lock
+    this.idempotency.set(key, {
+      state: "in_progress",
+      createdAt: new Date(now).toISOString(),
+      recoveryExpiryAt: new Date(now + leaseMs).toISOString(),
+    });
+
+    return { status: "acquired" };
+  }
+
   async getIdempotencyRecord(key: string) {
     return structuredClone(this.idempotency.get(key) ?? null);
   }

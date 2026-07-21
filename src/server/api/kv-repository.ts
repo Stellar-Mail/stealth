@@ -66,6 +66,13 @@ export class HybridApiRepository implements ApiRepository {
     return this.getStub().getIdempotencyRecord(key);
   }
 
+  async acquireIdempotencyRecord(
+    key: string,
+    leaseMs: number,
+  ): Promise<import("./repository").AcquireIdempotencyResult> {
+    return this.getStub().acquireIdempotencyRecord(key, leaseMs);
+  }
+
   async setIdempotencyRecord(key: string, record: IdempotencyRecord): Promise<void> {
     await this.getStub().setIdempotencyRecord(key, record);
   }

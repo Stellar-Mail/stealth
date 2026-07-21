@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { MemoryApiRepository } from "../../../src/server/api/memory-repository";
 import {
   hashIdempotencyKey,
-  checkIdempotency,
+  acquireIdempotency,
   recordIdempotency,
 } from "../../../src/server/api/idempotency-service";
 
@@ -27,25 +27,51 @@ describe("Idempotency Service", () => {
     expect(hashA1).not.toBe(hashA2);
   });
 
-  it("checks and records idempotency records properly in repository", async () => {
+  it("acquires lease and blocks concurrent followers", async () => {
     const repository = new MemoryApiRepository();
 
-    // initially empty
-    const check1 = await checkIdempotency(repository, actor1, rawKey);
-    expect(check1).toBeNull();
+    // First request acquires successfully
+    const acquire1 = await acquireIdempotency(repository, actor1, rawKey);
+    expect(acquire1.status).toBe("acquired");
 
+    // Second concurrent request gets blocked
+    const acquire2 = await acquireIdempotency(repository, actor1, rawKey);
+    expect(acquire2.status).toBe("in_progress");
+
+    // Different actor can acquire their own
+    const acquireOther = await acquireIdempotency(repository, actor2, rawKey);
+    expect(acquireOther.status).toBe("acquired");
+  });
+
+  it("returns cached response after completion", async () => {
+    const repository = new MemoryApiRepository();
+
+    // Acquire lock
+    await acquireIdempotency(repository, actor1, rawKey);
+
+    // Complete it
     const responseBody = { success: true, test: "data" };
     await recordIdempotency(repository, actor1, rawKey, 201, responseBody);
 
-    // check after recording
-    const check2 = await checkIdempotency(repository, actor1, rawKey);
-    expect(check2).not.toBeNull();
-    expect(check2?.status).toBe(201);
-    expect(check2?.body).toEqual(responseBody);
-    expect(check2?.createdAt).toBeDefined();
+    // Follower sees completed response
+    const acquire2 = await acquireIdempotency(repository, actor1, rawKey);
+    expect(acquire2.status).toBe("completed");
+    if (acquire2.status === "completed") {
+      expect(acquire2.record.status).toBe(201);
+      expect(acquire2.record.body).toEqual(responseBody);
+      expect(acquire2.record.state).toBe("completed");
+    }
+  });
 
-    // check other actor does not see the same key
-    const checkOther = await checkIdempotency(repository, actor2, rawKey);
-    expect(checkOther).toBeNull();
+  it("recovers abandoned leases after expiry", async () => {
+    const repository = new MemoryApiRepository();
+
+    // Acquire lock with 0ms lease (expires instantly)
+    const acquire1 = await acquireIdempotency(repository, actor1, rawKey, -100);
+    expect(acquire1.status).toBe("acquired");
+
+    // Because it expired in the past, a follower should immediately acquire it
+    const acquire2 = await acquireIdempotency(repository, actor1, rawKey, 30000);
+    expect(acquire2.status).toBe("acquired");
   });
 });
