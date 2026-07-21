@@ -33,6 +33,21 @@ export const mailboxPolicySchema = z.object({
   requireVerified: z.boolean(),
 });
 
+export const policyEvaluationRequestSchema = z.object({
+  owner: stellarAddressSchema,
+  postage: stroopAmountSchema,
+  sender: stellarAddressSchema,
+  verified: z.boolean(),
+});
+
+export const postageSubmissionSchema = z.object({
+  amount: stroopAmountSchema,
+  messageId: hash32Schema,
+  paymentHash: hash32Schema,
+  recipient: stellarAddressSchema,
+  sender: stellarAddressSchema,
+});
+
 export const postageSchema = z.object({
   amount: stroopAmountSchema,
   createdAt: z.string().datetime(),
@@ -52,6 +67,8 @@ export const receiptSchema = z.object({
 });
 
 export type MailboxPolicy = z.infer<typeof mailboxPolicySchema>;
+export type PolicyEvaluationRequest = z.infer<typeof policyEvaluationRequestSchema>;
+export type PostageSubmission = z.infer<typeof postageSubmissionSchema>;
 export type Postage = z.infer<typeof postageSchema>;
 export type PostageStatus = z.infer<typeof postageStatusSchema>;
 export type Receipt = z.infer<typeof receiptSchema>;
