@@ -55,6 +55,9 @@ export interface ApiRepository {
   acquireIdempotencyRecord(key: string, leaseMs: number): Promise<AcquireIdempotencyResult>;
   getIdempotencyRecord(key: string): Promise<IdempotencyRecord | null>;
   setIdempotencyRecord(key: string, record: IdempotencyRecord): Promise<void>;
+  deleteExpiredIdempotencyRecords(
+    now?: string,
+  ): Promise<{ purgedCount: number; activeSkippedCount: number }>;
 
   getRelayQueueDepth(relayId: string): Promise<number>;
   getRelayRetryCount(relayId: string): Promise<number>;

@@ -57,6 +57,14 @@ export type PostageStatus = z.infer<typeof postageStatusSchema>;
 export type Receipt = z.infer<typeof receiptSchema>;
 export type SenderRule = z.infer<typeof senderRuleSchema>;
 
+<<<<<<< HEAD
+export const idempotencyRecordSchema = z.object({
+  status: z.number(),
+  body: z.unknown(),
+  createdAt: z.string().datetime(),
+  expiresAt: z.string().datetime().optional(),
+});
+=======
 export const idempotencyRecordSchema = z.discriminatedUnion("state", [
   z.object({
     state: z.literal("in_progress"),
@@ -71,5 +79,6 @@ export const idempotencyRecordSchema = z.discriminatedUnion("state", [
     completedAt: z.string().datetime(),
   }),
 ]);
+>>>>>>> upstream/main
 
 export type IdempotencyRecord = z.infer<typeof idempotencyRecordSchema>;

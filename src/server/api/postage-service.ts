@@ -1,15 +1,8 @@
 import type { Postage } from "./domain";
 import { ApiError } from "./errors";
-import {
-  checkAccountLimit,
-  checkDeviceLimit,
-  checkIpLimit,
-  checkRelayLimit,
-  checkSenderRecipientLimit,
-} from "./abuse-service";
 import { getMailboxPolicy } from "./policy-service";
-import * as metrics from "./metrics";
 import type { ApiRepository } from "./repository";
+import { withAbuseProtection } from "./with-abuse-protection";
 
 export type SubmitPostageContext = {
   actorId?: string;
@@ -18,6 +11,13 @@ export type SubmitPostageContext = {
   relayId?: string;
   sender?: string;
 };
+
+export async function getPostage(
+  repository: ApiRepository,
+  messageId: string,
+): Promise<Postage | null> {
+  return repository.getPostage(messageId);
+}
 
 export async function quotePostage(
   repository: ApiRepository,
@@ -51,130 +51,56 @@ export async function submitPostage(
   now = new Date(),
   context: SubmitPostageContext = {},
 ) {
-  const actorId = context.actorId ?? "unknown";
+  const policy = {
+    checkAccount: true,
+    checkIp: true,
+    checkDevice: true,
+    checkSenderRecipient: true,
+    checkRelay: true,
+  };
 
-  const accountLimit = await checkAccountLimit(repository, input.sender);
-  if (!accountLimit.allowed) {
-    metrics.incrementCounter("postage_limit_rejected", {
-      actorId,
-      limit: "account",
+  const abuseContext = {
+    actorId: context.actorId,
+    sender: input.sender,
+    recipient: input.recipient,
+    ip: context.ip || "unknown",
+    fingerprint: context.fingerprint || "",
+    relayId: context.relayId?.trim() || "unknown",
+  };
+
+  return withAbuseProtection(repository, policy, abuseContext, async () => {
+    if (await repository.getPostage(input.messageId)) {
+      throw new ApiError(409, "conflict", "Postage already exists for this message");
+    }
+
+    const rule = await repository.getSenderRule(input.recipient, input.sender);
+
+    if (rule === "block") {
+      throw new ApiError(403, "forbidden", "The recipient has blocked this sender");
+    }
+
+    const { policy: mailboxPolicy } = await getMailboxPolicy(repository, input.recipient);
+
+    if (BigInt(input.amount) < BigInt(mailboxPolicy.minimumPostage)) {
+      throw new ApiError(422, "validation_error", "Postage is below the mailbox minimum", {
+        minimumPostage: mailboxPolicy.minimumPostage,
+      });
+    }
+
+    return repository.setPostage({
+      ...input,
+      createdAt: now.toISOString(),
+      status: "pending",
     });
-
-    throw new ApiError(429, "too_many_requests", "Account limit exceeded", {
-      retryAfterSeconds: accountLimit.retryAfterSeconds,
-    });
-  }
-
-  const ip = context.ip ?? "unknown";
-  const ipLimit = await checkIpLimit(repository, ip);
-  if (!ipLimit.allowed) {
-    metrics.incrementCounter("postage_limit_rejected", {
-      ip,
-      limit: "ip",
-    });
-
-    throw new ApiError(429, "too_many_requests", "IP limit exceeded", {
-      retryAfterSeconds: ipLimit.retryAfterSeconds,
-    });
-  }
-
-  const fingerprint = context.fingerprint ?? "";
-  const deviceLimit = await checkDeviceLimit(repository, fingerprint);
-  if (!deviceLimit.allowed) {
-    metrics.incrementCounter("postage_limit_rejected", {
-      fingerprint: fingerprint || "unknown",
-      limit: "device",
-    });
-
-    throw new ApiError(429, "too_many_requests", "Device limit exceeded", {
-      retryAfterSeconds: deviceLimit.retryAfterSeconds,
-    });
-  }
-
-  const senderRecipientLimit = await checkSenderRecipientLimit(
-    repository,
-    input.sender,
-    input.recipient,
-  );
-
-  if (!senderRecipientLimit.allowed) {
-    const sender = context.sender ?? input.sender;
-
-    metrics.incrementCounter("postage_limit_rejected", {
-      limit: "sender_recipient",
-      sender,
-    });
-
-    throw new ApiError(429, "too_many_requests", "Sender-recipient limit exceeded", {
-      retryAfterSeconds: senderRecipientLimit.retryAfterSeconds,
-    });
-  }
-
-  const relayId = context.relayId?.trim() || "unknown";
-  const relayLimit = await checkRelayLimit(repository, relayId);
-
-  if (!relayLimit.allowed) {
-    metrics.incrementCounter("postage_limit_rejected", {
-      limit: "relay",
-      relayId,
-    });
-
-    throw new ApiError(429, "too_many_requests", "Relay limit exceeded", {
-      retryAfterSeconds: relayLimit.retryAfterSeconds,
-    });
-  }
-
-  if (await repository.getPostage(input.messageId)) {
-    throw new ApiError(409, "conflict", "Postage already exists for this message");
-  }
-
-  const rule = await repository.getSenderRule(input.recipient, input.sender);
-
-  if (rule === "block") {
-    throw new ApiError(403, "forbidden", "The recipient has blocked this sender");
-  }
-
-  const { policy } = await getMailboxPolicy(repository, input.recipient);
-
-  if (BigInt(input.amount) < BigInt(policy.minimumPostage)) {
-    throw new ApiError(422, "validation_error", "Postage is below the mailbox minimum", {
-      minimumPostage: policy.minimumPostage,
-    });
-  }
-
-  return repository.setPostage({
-    ...input,
-    createdAt: now.toISOString(),
-    status: "pending",
   });
-}
-
-export async function getPostage(repository: ApiRepository, messageId: string) {
-  const postage = await repository.getPostage(messageId);
-
-  if (!postage) {
-    throw new ApiError(404, "not_found", "Postage was not found");
-  }
-
-  return postage;
-}
-
-export function assertPostageParticipant(postage: Postage, actor: string) {
-  if (actor !== postage.sender && actor !== postage.recipient) {
-    throw new ApiError(403, "forbidden", "Only message participants can read this postage");
-  }
 }
 
 export async function resolvePostage(
   repository: ApiRepository,
   messageId: string,
-  status: "refunded" | "settled",
+  resolution: "settled" | "refunded",
 ) {
-  // Use an atomic compare-and-swap instead of get-then-set: two concurrent
-  // settle/refund requests for the same message must not both succeed, and
-  // every loser must observe the same deterministic terminal state rather
-  // than racing to overwrite each other.
-  const result = await repository.transitionPostage(messageId, "pending", status);
+  const result = await repository.transitionPostage(messageId, "pending", resolution);
 
   if (result.outcome === "not-found") {
     throw new ApiError(404, "not_found", "Postage was not found");
@@ -183,7 +109,6 @@ export async function resolvePostage(
   if (result.outcome === "conflict") {
     const { postage } = result;
 
-    // Provide detailed explanations for terminal states to aid debugging and retry logic
     const explanations: Record<string, string> = {
       settled:
         "Postage has already been settled. The escrow was previously released to the recipient.",
@@ -196,7 +121,7 @@ export async function resolvePostage(
 
     throw new ApiError(409, "conflict", explanation, {
       currentStatus: postage.status,
-      attemptedStatus: status,
+      attemptedStatus: resolution,
       messageId,
     });
   }
