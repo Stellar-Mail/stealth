@@ -177,7 +177,7 @@ export function validatePrivateNoteOptions(options: unknown): {
 
 export function sanitizePrivateNoteInput(
   input: PrivateNoteAttachmentInput,
-  stripHtml: boolean = true
+  stripHtml: boolean = true,
 ): PrivateNoteAttachmentInput {
   const cleanNoteText = sanitizeText(input.noteText, stripHtml);
   const cleanSubject = input.emailSubject ? sanitizeText(input.emailSubject, stripHtml) : undefined;
@@ -185,7 +185,12 @@ export function sanitizePrivateNoteInput(
 
   const cleanTags = input.tags
     ? input.tags
-        .map((tag) => tag.trim().toLowerCase().replace(/[^a-z0-9_-]/g, ""))
+        .map((tag) =>
+          tag
+            .trim()
+            .toLowerCase()
+            .replace(/[^a-z0-9_-]/g, ""),
+        )
         .filter((tag) => tag.length > 0)
     : undefined;
 
@@ -202,8 +207,13 @@ export function sanitizePrivateNoteInput(
 
 export function checkPrivateNoteInputLimits(
   input: PrivateNoteAttachmentInput,
-  options?: PrivateNoteAttachmentOptions
-): { ok: boolean; code?: PrivateNoteErrorCode; message?: string; issues?: PrivateNoteValidationIssue[] } {
+  options?: PrivateNoteAttachmentOptions,
+): {
+  ok: boolean;
+  code?: PrivateNoteErrorCode;
+  message?: string;
+  issues?: PrivateNoteValidationIssue[];
+} {
   const maxLen = options?.maxNoteLength ?? PRIVATE_NOTE_LIMITS.DEFAULT_MAX_NOTE_LENGTH;
   const maxTags = options?.maxTags ?? PRIVATE_NOTE_LIMITS.DEFAULT_MAX_TAGS;
 

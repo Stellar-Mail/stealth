@@ -25,7 +25,7 @@ describe("Private Note on Email - Non-UI Execution Contract", () => {
         expect.arrayContaining([
           expect.objectContaining({ field: "requestId" }),
           expect.objectContaining({ field: "emailId" }),
-        ])
+        ]),
       );
     });
 

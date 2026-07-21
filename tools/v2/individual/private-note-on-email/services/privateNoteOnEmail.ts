@@ -46,7 +46,7 @@ function extractAutoKeywords(text: string): string[] {
 
 export function attachPrivateNote(
   input: PrivateNoteAttachmentInput,
-  options?: PrivateNoteAttachmentOptions
+  options?: PrivateNoteAttachmentOptions,
 ): PrivateNoteAttachmentOutput {
   const stripHtml = options?.stripHtml ?? true;
   const sanitizedInput = sanitizePrivateNoteInput(input, stripHtml);
@@ -68,7 +68,7 @@ export function attachPrivateNote(
 
   // Deduplicate and trim tags
   finalTags = Array.from(new Set(finalTags.map((t) => t.trim().toLowerCase()))).filter(
-    (t) => t.length > 0
+    (t) => t.length > 0,
   );
 
   const words = sanitizedInput.noteText.split(/\s+/).filter((w) => w.length > 0);
@@ -79,7 +79,9 @@ export function attachPrivateNote(
   const noteId = `note_${sanitizedInput.emailId}_${contentHash}`;
 
   const nowIso = new Date().toISOString();
-  const reminderAt = sanitizedInput.reminderAt ? new Date(sanitizedInput.reminderAt).toISOString() : null;
+  const reminderAt = sanitizedInput.reminderAt
+    ? new Date(sanitizedInput.reminderAt).toISOString()
+    : null;
 
   const subjectSnippet = sanitizedInput.emailSubject
     ? sanitizedInput.emailSubject.length > 60
@@ -107,10 +109,7 @@ export function attachPrivateNote(
   };
 }
 
-export function safeAttachPrivateNote(
-  input: unknown,
-  options?: unknown
-): SafePrivateNoteResult {
+export function safeAttachPrivateNote(input: unknown, options?: unknown): SafePrivateNoteResult {
   const inputValidation = validatePrivateNoteInput(input);
   if (!inputValidation.valid) {
     return {

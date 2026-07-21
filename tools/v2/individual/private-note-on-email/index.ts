@@ -1,7 +1,4 @@
-export {
-  attachPrivateNote,
-  safeAttachPrivateNote,
-} from "./services/privateNoteOnEmail";
+export { attachPrivateNote, safeAttachPrivateNote } from "./services/privateNoteOnEmail";
 
 export {
   PRIVATE_NOTE_LIMITS,
