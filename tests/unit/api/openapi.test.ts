@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
+import { z } from "zod";
 
-import { openApiDocument } from "../../../src/server/api/openapi";
+import { mailboxPolicySchema, stellarAddressSchema, stroopAmountSchema } from "../../../src/server/api/domain";
+import { openApiDocument, toOpenApiSchema } from "../../../src/server/api/openapi";
 
 describe("OpenAPI document", () => {
   it("publishes every v1 endpoint family", () => {
@@ -39,5 +41,41 @@ describe("OpenAPI document", () => {
     expect(openApiDocument.paths["/health"].get).not.toHaveProperty("security");
     expect(openApiDocument.paths["/policies/{owner}"].get).not.toHaveProperty("security");
     expect(openApiDocument.paths["/postage/quote"].post).not.toHaveProperty("security");
+  });
+
+  it("derives documented schemas from shared runtime Zod definitions", () => {
+    expect(openApiDocument.components.schemas.MailboxPolicy).toMatchObject({
+      type: "object",
+      required: ["allowUnknown", "minimumPostage", "requireVerified"],
+      properties: {
+        minimumPostage: { $ref: "#/components/schemas/StroopAmount" },
+      },
+    });
+
+    expect(openApiDocument.components.schemas.StroopAmount).toMatchObject({
+      type: "string",
+      pattern: "^(0|[1-9]\\d*)$",
+    });
+  });
+
+  it("converts shared runtime schemas into deterministic OpenAPI schemas", () => {
+    const first = JSON.stringify(toOpenApiSchema(mailboxPolicySchema));
+    const second = JSON.stringify(toOpenApiSchema(mailboxPolicySchema));
+
+    expect(first).toBe(second);
+    expect(toOpenApiSchema(stellarAddressSchema)).toMatchObject({
+      type: "string",
+      pattern: "^G[A-Z2-7]{55}$",
+    });
+    expect(toOpenApiSchema(stroopAmountSchema)).toMatchObject({
+      type: "string",
+      pattern: "^(0|[1-9]\\d*)$",
+    });
+  });
+
+  it("fails clearly for unsupported Zod constructs", () => {
+    expect(() => toOpenApiSchema(z.string().transform((value) => value))).toThrow(
+      /Unsupported Zod construct/i,
+    );
   });
 });

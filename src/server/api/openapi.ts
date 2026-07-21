@@ -1,4 +1,159 @@
+import { z, type ZodTypeAny } from "zod";
+
+import {
+  hash32Schema,
+  mailboxPolicySchema,
+  policyEvaluationRequestSchema,
+  postageSchema,
+  postageSubmissionSchema,
+  stellarAddressSchema,
+  stroopAmountSchema,
+} from "./domain";
+
 const signedRequestSecurity = [{ StellarSignedRequest: [] }];
+
+const sharedSchemaDefinitions = [
+  ["StellarAddress", stellarAddressSchema],
+  ["Hash32", hash32Schema],
+  ["StroopAmount", stroopAmountSchema],
+  ["MailboxPolicy", mailboxPolicySchema],
+  ["PolicyEvaluationRequest", policyEvaluationRequestSchema],
+  ["PostageSubmission", postageSubmissionSchema],
+  ["Postage", postageSchema],
+] as const;
+
+function isSchemaReferenceCandidate(
+  schema: ZodTypeAny,
+  sharedSchemaMap: Map<ZodTypeAny, string>,
+  skipSchema?: ZodTypeAny,
+) {
+  return skipSchema !== schema && sharedSchemaMap.has(schema);
+}
+
+function convertStringSchema(schema: ZodTypeAny): Record<string, unknown> {
+  const def = schema._def as { checks?: Array<{ kind: string; regex?: RegExp; value?: number }> };
+  const out: Record<string, unknown> = { type: "string" };
+  for (const check of def.checks ?? []) {
+    switch (check.kind) {
+      case "regex":
+        out.pattern = check.regex?.source;
+        break;
+      case "min":
+        out.minLength = check.value;
+        break;
+      case "max":
+        out.maxLength = check.value;
+        break;
+      case "email":
+        out.format = "email";
+        break;
+      case "url":
+        out.format = "uri";
+        break;
+      case "uuid":
+        out.format = "uuid";
+        break;
+      case "datetime":
+        out.format = "date-time";
+        break;
+      default:
+        break;
+    }
+  }
+  return out;
+}
+
+export function toOpenApiSchema(
+  schema: ZodTypeAny,
+  sharedSchemaMap: Map<ZodTypeAny, string> = new Map(),
+  skipSchema?: ZodTypeAny,
+): Record<string, unknown> {
+  if (isSchemaReferenceCandidate(schema, sharedSchemaMap, skipSchema)) {
+    const name = sharedSchemaMap.get(schema);
+    return { $ref: `#/components/schemas/${name}` };
+  }
+
+  const def = schema._def as Record<string, unknown> & { typeName?: string };
+  switch (def.typeName) {
+    case z.ZodFirstPartyTypeKind.ZodString: {
+      return convertStringSchema(schema);
+    }
+    case z.ZodFirstPartyTypeKind.ZodNumber: {
+      return { type: "number" };
+    }
+    case z.ZodFirstPartyTypeKind.ZodBoolean: {
+      return { type: "boolean" };
+    }
+    case z.ZodFirstPartyTypeKind.ZodEnum: {
+      return {
+        type: "string",
+        enum: (def.values as unknown[]).slice(),
+      };
+    }
+    case z.ZodFirstPartyTypeKind.ZodLiteral: {
+      const value = def.value as unknown;
+      return { enum: [value] };
+    }
+    case z.ZodFirstPartyTypeKind.ZodOptional:
+    case z.ZodFirstPartyTypeKind.ZodNullable:
+    case z.ZodFirstPartyTypeKind.ZodDefault: {
+      return toOpenApiSchema(def.innerType as ZodTypeAny, sharedSchemaMap, skipSchema);
+    }
+    case z.ZodFirstPartyTypeKind.ZodEffects: {
+      const effectType = (def as { effect?: { type?: string } }).effect?.type;
+      if (effectType === "transform" || effectType === "preprocess") {
+        throw new Error(`Unsupported Zod construct: ${effectType}`);
+      }
+      const innerType = (def as { schema?: ZodTypeAny }).schema ?? (def as { innerType?: ZodTypeAny }).innerType;
+      if (!innerType) {
+        throw new Error(`Unsupported Zod construct: ${def.typeName ?? "unknown"}`);
+      }
+      return toOpenApiSchema(innerType, sharedSchemaMap, skipSchema);
+    }
+    case z.ZodFirstPartyTypeKind.ZodObject: {
+      const shape = (schema as z.ZodObject<any>).shape;
+      const properties: Record<string, Record<string, unknown>> = {};
+      const required: string[] = [];
+      for (const [key, value] of Object.entries(shape)) {
+        const propertySchema = toOpenApiSchema(value as ZodTypeAny, sharedSchemaMap, skipSchema);
+        properties[key] = propertySchema;
+        if (!(value as ZodTypeAny).isOptional()) {
+          required.push(key);
+        }
+      }
+      return {
+        type: "object",
+        properties,
+        required,
+      };
+    }
+    case z.ZodFirstPartyTypeKind.ZodArray: {
+      return {
+        type: "array",
+        items: toOpenApiSchema(def.type as ZodTypeAny, sharedSchemaMap, skipSchema),
+      };
+    }
+    default: {
+      throw new Error(`Unsupported Zod construct: ${def.typeName ?? "unknown"}`);
+    }
+  }
+}
+
+const sharedSchemaMap = new Map(sharedSchemaDefinitions.map(([name, schema]) => [schema, name]));
+
+const baseComponentSchemas = {
+  StellarAddress: toOpenApiSchema(stellarAddressSchema, sharedSchemaMap, stellarAddressSchema),
+  Hash32: toOpenApiSchema(hash32Schema, sharedSchemaMap, hash32Schema),
+  StroopAmount: toOpenApiSchema(stroopAmountSchema, sharedSchemaMap, stroopAmountSchema),
+  MailboxPolicy: toOpenApiSchema(mailboxPolicySchema, sharedSchemaMap, mailboxPolicySchema),
+  PolicyEvaluationRequest: toOpenApiSchema(
+    policyEvaluationRequestSchema,
+    sharedSchemaMap,
+    policyEvaluationRequestSchema,
+  ),
+  PostageSubmission: toOpenApiSchema(postageSubmissionSchema, sharedSchemaMap, postageSubmissionSchema),
+  Postage: toOpenApiSchema(postageSchema, sharedSchemaMap, postageSchema),
+};
 
 export const openApiDocument = {
   openapi: "3.1.0",
@@ -37,27 +192,7 @@ export const openApiDocument = {
       },
     },
     schemas: {
-      StellarAddress: {
-        type: "string",
-        pattern: "^G[A-Z2-7]{55}$",
-      },
-      Hash32: {
-        type: "string",
-        pattern: "^[a-f0-9]{64}$",
-      },
-      StroopAmount: {
-        type: "string",
-        pattern: "^(0|[1-9][0-9]*)$",
-      },
-      MailboxPolicy: {
-        type: "object",
-        required: ["allowUnknown", "minimumPostage", "requireVerified"],
-        properties: {
-          allowUnknown: { type: "boolean" },
-          minimumPostage: { $ref: "#/components/schemas/StroopAmount" },
-          requireVerified: { type: "boolean" },
-        },
-      },
+      ...baseComponentSchemas,
       ValidationErrorItem: {
         type: "object",
         required: ["path", "rule", "message"],
@@ -187,6 +322,14 @@ export const openApiDocument = {
         operationId: "evaluateMailboxPolicy",
         summary: "Evaluate whether a sender can mail a recipient",
         "x-stability": "stable",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/PolicyEvaluationRequest" },
+            },
+          },
+        },
         responses: {
           "200": {
             description: "Policy evaluation decision",
@@ -205,6 +348,24 @@ export const openApiDocument = {
         summary: "Submit a postage proof",
         security: signedRequestSecurity,
         "x-stability": "stable",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/PostageSubmission" },
+            },
+          },
+        },
+        responses: {
+          "201": {
+            description: "Postage proof accepted",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/Postage" },
+              },
+            },
+          },
+        },
       },
     },
     "/postage/quote": {
