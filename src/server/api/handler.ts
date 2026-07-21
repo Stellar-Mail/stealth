@@ -45,7 +45,7 @@ export function createRouteHandler<
     try {
       // 1. Authentication
       if (config.requireAuth) {
-        actorId = requireActor(request);
+        actorId = await requireActor(request);
       }
 
       // 2. Rate Limiting
