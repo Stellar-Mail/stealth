@@ -1,5 +1,20 @@
 import { MemoryApiRepository } from "./memory-repository";
+import { ValidatedApiRepository, registerRecordSchema } from "./repository";
 import type { ApiRepository } from "./repository";
+import {
+  mailboxPolicySchema,
+  senderRuleSchema,
+  postageSchema,
+  receiptSchema,
+  idempotencyRecordSchema,
+} from "./domain";
+
+// Register schemas once at module init for Issue #1508 record validation
+registerRecordSchema("mailboxPolicy", mailboxPolicySchema);
+registerRecordSchema("senderRule", senderRuleSchema);
+registerRecordSchema("postage", postageSchema);
+registerRecordSchema("receipt", receiptSchema);
+registerRecordSchema("idempotencyRecord", idempotencyRecordSchema);
 
 interface ApiContext {
   repository: ApiRepository;
@@ -50,7 +65,7 @@ export function validateApiConfig(config: ApiConfig): void {
 
 export async function getApiContext(): Promise<ApiContext> {
   if (!import.meta.env.PROD) {
-    globalApi.__stealthApiRepository ??= new MemoryApiRepository();
+    globalApi.__stealthApiRepository ??= new ValidatedApiRepository(new MemoryApiRepository());
     return { repository: globalApi.__stealthApiRepository };
   }
 
@@ -80,7 +95,9 @@ export async function getApiContext(): Promise<ApiContext> {
   }
 
   const { HybridApiRepository } = await import("./kv-repository");
-  const repo = new HybridApiRepository(env.STEALTH_KV, env.STEALTH_COORDINATOR);
+  const repo = new ValidatedApiRepository(
+    new HybridApiRepository(env.STEALTH_KV, env.STEALTH_COORDINATOR),
+  );
   globalApi.__stealthApiRepository = repo;
   return { repository: repo };
 }
