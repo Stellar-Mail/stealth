@@ -72,12 +72,13 @@ const messageId = "a".repeat(64);
 
 describe("HybridApiRepository - KV Operations", () => {
   let kv: MockKVNamespace;
+  let coordinator: MockDurableObjectNamespace;
   let repo: HybridApiRepository;
 
   beforeEach(() => {
     kv = new MockKVNamespace();
-    const coordinator = new MockDurableObjectNamespace() as any;
-    repo = new HybridApiRepository(kv as any, coordinator);
+    coordinator = new MockDurableObjectNamespace();
+    repo = new HybridApiRepository(kv as any, coordinator as any);
   });
 
   it("persists and retrieves mailbox policy", async () => {
@@ -144,5 +145,55 @@ describe("HybridApiRepository - KV Operations", () => {
     expect(await repo.getRelayLastSuccessfulDelivery("relay-1")).toBeNull();
     expect(await repo.getRelayLastFailedDelivery("relay-1")).toBeNull();
     expect(await repo.getRelayDeadLetterCount("relay-1")).toBe(0);
+  });
+
+  describe("transitionPostage - atomic settlement", () => {
+    it("delegates to the coordinator and mirrors the applied result back into KV", async () => {
+      const postage: Postage = {
+        amount: "200",
+        createdAt: new Date().toISOString(),
+        messageId,
+        paymentHash: "b".repeat(64),
+        recipient: owner,
+        sender,
+        status: "pending",
+      };
+      await repo.setPostage(postage);
+
+      const result = await repo.transitionPostage(messageId, "pending", "settled");
+
+      expect(result).toMatchObject({ outcome: "applied", postage: { status: "settled" } });
+      // KV read path reflects the coordinator's authoritative outcome.
+      await expect(repo.getPostage(messageId)).resolves.toMatchObject({ status: "settled" });
+    });
+
+    it("returns not-found when there is no coordinator record", async () => {
+      const result = await repo.transitionPostage(messageId, "pending", "settled");
+      expect(result).toEqual({ outcome: "not-found" });
+    });
+
+    it("only allows one of two concurrent settlement attempts to succeed", async () => {
+      const postage: Postage = {
+        amount: "300",
+        createdAt: new Date().toISOString(),
+        messageId,
+        paymentHash: "c".repeat(64),
+        recipient: owner,
+        sender,
+        status: "pending",
+      };
+      await repo.setPostage(postage);
+
+      const [first, second] = await Promise.all([
+        repo.transitionPostage(messageId, "pending", "settled"),
+        repo.transitionPostage(messageId, "pending", "settled"),
+      ]);
+
+      const outcomes = [first.outcome, second.outcome].sort();
+      expect(outcomes).toEqual(["applied", "conflict"]);
+
+      // Only one settlement side effect occurred; state is deterministic.
+      await expect(repo.getPostage(messageId)).resolves.toMatchObject({ status: "settled" });
+    });
   });
 });

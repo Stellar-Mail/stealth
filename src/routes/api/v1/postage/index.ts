@@ -8,7 +8,8 @@ import { buildDeviceFingerprint } from "@/server/api/abuse-service";
 import { submitPostage, type SubmitPostageContext } from "@/server/api/postage-service";
 import { parseJsonBody } from "@/server/api/request";
 import { apiSuccess, handleApiRequest } from "@/server/api/response";
-import { checkIdempotency, recordIdempotency } from "@/server/api/idempotency-service";
+import { acquireIdempotency, recordIdempotency } from "@/server/api/idempotency-service";
+import { ApiError } from "@/server/api/errors";
 
 const submissionSchema = z.object({
   amount: stroopAmountSchema,
@@ -29,12 +30,15 @@ export const Route = createFileRoute("/api/v1/postage/")({
           const repo = (await getApiContext()).repository;
           const rawIdempotencyKey = request.headers.get("x-idempotency-key");
           if (rawIdempotencyKey) {
-            const existing = await checkIdempotency(repo, input.sender, rawIdempotencyKey);
-            if (existing) {
-              return apiSuccess(request, existing.body, {
-                status: existing.status,
+            const result = await acquireIdempotency(repo, input.sender, rawIdempotencyKey);
+            if (result.status === "completed") {
+              return apiSuccess(request, result.record.body, {
+                status: result.record.status,
                 headers: { "x-idempotency-replayed": "true" },
               });
+            }
+            if (result.status === "in_progress") {
+              throw new ApiError(409, "conflict", "Request is already in progress");
             }
           }
 

@@ -80,9 +80,7 @@ export async function getApiContext(): Promise<ApiContext> {
   }
 
   const { HybridApiRepository } = await import("./kv-repository");
-  globalApi.__stealthApiRepository = new HybridApiRepository(
-    env.STEALTH_KV,
-    env.STEALTH_COORDINATOR,
-  );
-  return { repository: globalApi.__stealthApiRepository };
+  const repo = new HybridApiRepository(env.STEALTH_KV, env.STEALTH_COORDINATOR);
+  globalApi.__stealthApiRepository = repo;
+  return { repository: repo };
 }
