@@ -11,6 +11,18 @@ function assertJsonContentType(request: Request) {
   }
 }
 
+function validateContentLength(request: Request, maxBytes: number): void {
+  const raw = request.headers.get("content-length");
+  if (raw === null) return;
+  const declaredLength = Number(raw);
+  if (!Number.isInteger(declaredLength) || declaredLength < 0) {
+    throw new ApiError(400, "bad_request", "Content-Length must be a non-negative integer");
+  }
+  if (declaredLength > maxBytes) {
+    throw new ApiError(413, "bad_request", `Request body exceeds ${maxBytes} bytes`);
+  }
+}
+
 export async function parseJsonBody<T>(
   request: Request,
   schema: ZodType<T>,
@@ -18,12 +30,14 @@ export async function parseJsonBody<T>(
 ): Promise<T> {
   assertJsonContentType(request);
 
-  const declaredLength = Number(request.headers.get("content-length") ?? 0);
-  if (declaredLength > maxBytes) {
-    throw new ApiError(413, "bad_request", `Request body exceeds ${maxBytes} bytes`);
-  }
+  validateContentLength(request, maxBytes);
 
   const body = await request.text();
+
+  if (!body.trim()) {
+    throw new ApiError(400, "bad_request", "Request body must not be empty");
+  }
+
   if (new TextEncoder().encode(body).byteLength > maxBytes) {
     throw new ApiError(413, "bad_request", `Request body exceeds ${maxBytes} bytes`);
   }
@@ -38,8 +52,31 @@ export async function parseJsonBody<T>(
   }
 }
 
+const MULTI_VALUED_SCALARS = new Set<string>();
+
 export function parseSearchParams<T>(request: Request, schema: ZodType<T>): T {
-  const params = Object.fromEntries(new URL(request.url).searchParams.entries());
+  const url = new URL(request.url);
+  const seen = new Map<string, string[]>();
+  for (const [key, value] of url.searchParams.entries()) {
+    if (MULTI_VALUED_SCALARS.has(key)) {
+      continue;
+    }
+    const prev = seen.get(key) ?? [];
+    prev.push(value);
+    seen.set(key, prev);
+  }
+
+  for (const [key, values] of seen) {
+    if (values.length > 1) {
+      throw new ApiError(
+        400,
+        "bad_request",
+        `Duplicate query parameter: ${key}. Expected a single value for '${key}'.`,
+      );
+    }
+  }
+
+  const params = Object.fromEntries(url.searchParams.entries());
   return schema.parse(params);
 }
 
