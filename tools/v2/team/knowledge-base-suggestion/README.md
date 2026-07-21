@@ -4,7 +4,7 @@ This folder is the isolated workspace for the Knowledge Base Suggestion tool —
 presentation-free service that matches a query to internal documentation
 articles and ranks them by relevance.
 
-## Ownership Boundary
+## Status
 
 All work for this tool must stay inside:
 `tools/v2/team/knowledge-base-suggestion/`

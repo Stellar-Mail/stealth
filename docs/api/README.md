@@ -12,6 +12,26 @@ The TanStack Start worker exposes versioned endpoints under `/api/v1`.
 Amounts are decimal strings in stroops because Soroban uses i128 values that can exceed JavaScript's
 safe integer range. Message IDs and payment hashes are lowercase 32-byte hexadecimal strings.
 
+## Idempotency
+
+Certain endpoints support idempotency via the optional `X-Idempotency-Key` header to ensure safe
+retry behavior during network failures or race conditions. Currently supported:
+
+- `POST /api/v1/postage/` - Postage submission
+- `POST /api/v1/postage/:messageId/settle` - Postage settlement
+
+See [SETTLEMENT_IDEMPOTENCY.md](./SETTLEMENT_IDEMPOTENCY.md) for detailed documentation on
+idempotency semantics, retry scenarios, and client best practices.
+
+## Input Validation
+
+Endpoints enforce strict validation for Stellar addresses and other identifiers:
+
+- `POST /api/v1/postage/quote` - Quote request validation
+
+See [POSTAGE_QUOTE_VALIDATION.md](./POSTAGE_QUOTE_VALIDATION.md) for comprehensive documentation on
+validation rules, error responses, and boundary cases.
+
 ## Development identity
 
 Protected endpoints require `x-stealth-address` with the Stellar address acting on the request.

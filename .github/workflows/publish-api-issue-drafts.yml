@@ -1,0 +1,108 @@
+name: Publish API issue drafts
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/publish-api-issue-drafts.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: publish-api-issue-drafts
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Validate draft file
+        run: |
+          node -e '
+            const fs = require("fs");
+            const data = JSON.parse(fs.readFileSync("stealth-api-100-issue-drafts.json", "utf8"));
+            if (!Array.isArray(data.issues) || data.issues.length !== 100) throw new Error(`Expected exactly 100 issues, found ${data.issues?.length ?? "none"}`);
+            const titles = data.issues.map(issue => issue.title);
+            if (new Set(titles).size !== titles.length) throw new Error("Duplicate titles exist in the draft JSON");
+            for (const issue of data.issues) {
+              if (!issue.title || !issue.description || !Array.isArray(issue.labels)) throw new Error(`Malformed issue: ${issue.draft_id ?? issue.title ?? "unknown"}`);
+            }
+          '
+
+      - name: Create missing issues without duplicates
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const data = JSON.parse(fs.readFileSync('stealth-api-100-issue-drafts.json', 'utf8'));
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+            const existingItems = await github.paginate(github.rest.issues.listForRepo, { owner, repo, state: 'all', per_page: 100 });
+            const existingTitles = new Set(existingItems.map(item => item.title.trim()));
+
+            const existingLabels = await github.paginate(github.rest.issues.listLabelsForRepo, { owner, repo, per_page: 100 });
+            const labelNames = new Set(existingLabels.map(label => label.name));
+            const requiredLabelDefinitions = {
+              'Maybe Rewarded': { color: 'fbca04', description: 'Potentially rewardable contributor issue' },
+              'GrantFox OSS': { color: '5319e7', description: 'GrantFox open-source contribution issue' },
+              'Official Campaign | FWC26': { color: 'fbca04', description: 'Official FWC26 campaign issue.' },
+              'api': { color: '1d76db', description: 'API and integration work.' },
+            };
+
+            for (const [name, definition] of Object.entries(requiredLabelDefinitions)) {
+              if (!labelNames.has(name)) {
+                await github.rest.issues.createLabel({ owner, repo, name, ...definition });
+                labelNames.add(name);
+              }
+            }
+
+            async function createWithRetry(payload) {
+              for (let attempt = 1; attempt <= 6; attempt++) {
+                try {
+                  return await github.rest.issues.create(payload);
+                } catch (error) {
+                  if (![403, 429, 502, 503, 504].includes(error.status) || attempt === 6) throw error;
+                  const waitMs = Math.min(60000, 5000 * attempt);
+                  core.warning(`Create attempt ${attempt} failed with ${error.status}; waiting ${waitMs}ms before retry.`);
+                  await sleep(waitMs);
+                }
+              }
+            }
+
+            let created = 0;
+            let skipped = 0;
+            const createdIssues = [];
+            for (const draft of data.issues) {
+              const title = draft.title.trim();
+              if (existingTitles.has(title)) {
+                core.info(`Skipping existing issue: ${title}`);
+                skipped += 1;
+                continue;
+              }
+
+              const labels = [...new Set([...draft.labels, 'Maybe Rewarded', 'GrantFox OSS', 'Official Campaign | FWC26', 'api'])];
+              const response = await createWithRetry({ owner, repo, title, body: draft.description, labels });
+              existingTitles.add(title);
+              created += 1;
+              createdIssues.push(`#${response.data.number} ${title}`);
+              core.info(`Created #${response.data.number}: ${title}`);
+              await sleep(1500);
+            }
+
+            await core.summary
+              .addHeading('API issue publication complete')
+              .addRaw(`Drafts in JSON: ${data.issues.length}\n\n`)
+              .addRaw(`Created: ${created}\n\n`)
+              .addRaw(`Skipped because the exact title already existed: ${skipped}\n\n`)
+              .addHeading('Created issues', 2)
+              .addList(createdIssues.length ? createdIssues : ['No new issues were required.'])
+              .write();
