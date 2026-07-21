@@ -6,6 +6,7 @@ import { stellarAddressSchema, stroopAmountSchema } from "@/server/api/domain";
 import { evaluateMailboxPolicy } from "@/server/api/policy-service";
 import { parseJsonBody } from "@/server/api/request";
 import { apiSuccess, handleApiRequest } from "@/server/api/response";
+import { methodGuard } from "@/server/api/methodGuard";
 
 const evaluationSchema = z.object({
   owner: stellarAddressSchema,
@@ -16,7 +17,7 @@ const evaluationSchema = z.object({
 
 export const Route = createFileRoute("/api/v1/policies/evaluate")({
   server: {
-    handlers: {
+    handlers: methodGuard({
       POST: ({ request }) =>
         handleApiRequest(request, async () => {
           const input = await parseJsonBody(request, evaluationSchema);
@@ -39,6 +40,6 @@ export const Route = createFileRoute("/api/v1/policies/evaluate")({
 
           return apiSuccess(request, decision);
         }),
-    },
+    }),
   },
 });

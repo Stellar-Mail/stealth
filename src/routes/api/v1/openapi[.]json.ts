@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { openApiDocument } from "@/server/api/openapi";
+import { methodGuard } from "@/server/api/methodGuard";
 
 export const Route = createFileRoute("/api/v1/openapi.json")({
   server: {
-    handlers: {
+    handlers: methodGuard({
       GET: () =>
         new Response(JSON.stringify(openApiDocument), {
           headers: {
@@ -12,6 +13,6 @@ export const Route = createFileRoute("/api/v1/openapi.json")({
             "content-type": "application/json; charset=utf-8",
           },
         }),
-    },
+    }),
   },
 });
