@@ -12,6 +12,13 @@ export type SubmitPostageContext = {
   sender?: string;
 };
 
+export async function getPostage(
+  repository: ApiRepository,
+  messageId: string,
+): Promise<Postage | null> {
+  return repository.getPostage(messageId);
+}
+
 export async function quotePostage(
   repository: ApiRepository,
   input: { recipient: string; sender: string },
@@ -88,39 +95,13 @@ export async function submitPostage(
   });
 }
 
-export async function getPostage(repository: ApiRepository, messageId: string) {
-  const postage = await repository.getPostage(messageId);
-
-  if (!postage) {
-    throw new ApiError(404, "not_found", "Postage was not found");
-  }
-
-  return postage;
-}
-
-export function assertPostageParticipant(postage: Postage, actorAddress: string) {
-  if (postage.sender !== actorAddress && postage.recipient !== actorAddress) {
-    throw new ApiError(403, "forbidden", "Actor is not a participant in this transaction");
-  }
-}
-
 export async function resolvePostage(
   repository: ApiRepository,
   messageId: string,
   resolution: "settled" | "refunded",
 ) {
-  // Use an atomic compare-and-swap instead of get-then-set: two concurrent
-  // settle/refund requests for the same message must not both succeed, and
-  // every loser must observe the same deterministic terminal state rather
-  // than racing to overwrite each other.
-  const result = await repository.transitionPostage(messageId, "pending", status);
+  const result = await repository.transitionPostage(messageId, "pending", resolution);
 
-<<<<<<< HEAD
-  return repository.setPostage({
-    ...postage,
-    status: resolution,
-  });
-=======
   if (result.outcome === "not-found") {
     throw new ApiError(404, "not_found", "Postage was not found");
   }
@@ -128,7 +109,6 @@ export async function resolvePostage(
   if (result.outcome === "conflict") {
     const { postage } = result;
 
-    // Provide detailed explanations for terminal states to aid debugging and retry logic
     const explanations: Record<string, string> = {
       settled:
         "Postage has already been settled. The escrow was previously released to the recipient.",
@@ -141,11 +121,10 @@ export async function resolvePostage(
 
     throw new ApiError(409, "conflict", explanation, {
       currentStatus: postage.status,
-      attemptedStatus: status,
+      attemptedStatus: resolution,
       messageId,
     });
   }
 
   return result.postage;
->>>>>>> upstream/main
 }
