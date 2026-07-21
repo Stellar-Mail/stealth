@@ -47,5 +47,5 @@ export async function markReceiptRead(
   return repository.setReceipt({
     ...receipt,
     readAt: now.toISOString(),
-  });
+  }, receipt.version);
 }

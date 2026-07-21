@@ -19,7 +19,7 @@ describe("receipt service", () => {
 
     await expect(
       createDeliveryReceipt(repository, input, new Date("2026-06-14T12:00:00.000Z")),
-    ).resolves.toEqual({
+    ).resolves.toMatchObject({
       deliveredAt: "2026-06-14T12:00:00.000Z",
       messageId,
       readAt: null,

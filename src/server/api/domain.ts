@@ -31,6 +31,7 @@ export const mailboxPolicySchema = z.object({
   allowUnknown: z.boolean(),
   minimumPostage: stroopAmountSchema,
   requireVerified: z.boolean(),
+  version: z.string().optional(),
 });
 
 export const postageSchema = z.object({
@@ -41,6 +42,7 @@ export const postageSchema = z.object({
   recipient: stellarAddressSchema,
   sender: stellarAddressSchema,
   status: postageStatusSchema,
+  version: z.string().optional(),
 });
 
 export const receiptSchema = z.object({
@@ -49,6 +51,7 @@ export const receiptSchema = z.object({
   readAt: z.string().datetime().nullable(),
   recipient: stellarAddressSchema,
   sender: stellarAddressSchema,
+  version: z.string().optional(),
 });
 
 export type MailboxPolicy = z.infer<typeof mailboxPolicySchema>;

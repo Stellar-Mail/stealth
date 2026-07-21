@@ -21,12 +21,48 @@ class MockKVNamespace {
   }
 }
 
+class MockStealthCoordinator {
+  private storage = new Map<string, any>();
+
+  async getIdempotencyRecord(key: string) {
+    return this.storage.get(`idempotency:${key}`) ?? null;
+  }
+  async setIdempotencyRecord(key: string, record: any) {
+    this.storage.set(`idempotency:${key}`, record);
+  }
+  async getCounter(key: string) {
+    const ts = this.storage.get(`counter:${key}`) ?? [];
+    return ts.length;
+  }
+  async incrementCounter(key: string, windowSeconds: number) {
+    const now = Date.now();
+    const ts = this.storage.get(`counter:${key}`) ?? [];
+    const filtered = [...ts, now].filter(t => now - t <= windowSeconds * 1000);
+    this.storage.set(`counter:${key}`, filtered);
+    return filtered.length;
+  }
+  async checkAndSetVersion(key: string, expectedVersion: string | undefined, nextVersion: string) {
+    const current = this.storage.get(`version:${key}`);
+    if (expectedVersion !== undefined) {
+      if (current !== expectedVersion) {
+        // Throw an error that acts/looks like ApiError (or we can just throw standard Error with properties)
+        const err: any = new Error("Concurrency conflict: version mismatch");
+        err.status = 409;
+        err.code = "conflict";
+        throw err;
+      }
+    }
+    this.storage.set(`version:${key}`, nextVersion);
+  }
+}
+
 class MockDurableObjectNamespace {
+  private readonly stub = new MockStealthCoordinator();
   idFromName(name: string) {
     return { toString: () => name };
   }
   get(id: any) {
-    return {};
+    return this.stub;
   }
 }
 
@@ -52,7 +88,8 @@ describe("HybridApiRepository - KV Operations", () => {
     };
     await repo.setPolicy(owner, policy);
     const retrieved = await repo.getPolicy(owner);
-    expect(retrieved).toEqual(policy);
+    expect(retrieved).toMatchObject(policy);
+    expect(retrieved?.version).toBeDefined();
   });
 
   it("returns null for non-existent policy", async () => {
@@ -83,7 +120,8 @@ describe("HybridApiRepository - KV Operations", () => {
     };
     await repo.setPostage(postage);
     const retrieved = await repo.getPostage(messageId);
-    expect(retrieved).toEqual(postage);
+    expect(retrieved).toMatchObject(postage);
+    expect(retrieved?.version).toBeDefined();
   });
 
   it("persists and retrieves receipt", async () => {
@@ -96,7 +134,8 @@ describe("HybridApiRepository - KV Operations", () => {
     };
     await repo.setReceipt(receipt);
     const retrieved = await repo.getReceipt(messageId);
-    expect(retrieved).toEqual(receipt);
+    expect(retrieved).toMatchObject(receipt);
+    expect(retrieved?.version).toBeDefined();
   });
 
   it("returns defaults/0 for relay stubs", async () => {

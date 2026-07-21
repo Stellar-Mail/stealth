@@ -191,5 +191,5 @@ export async function resolvePostage(
     });
   }
 
-  return repository.setPostage({ ...postage, status });
+  return repository.setPostage({ ...postage, status }, postage.version);
 }

@@ -1,4 +1,5 @@
 import type { IdempotencyRecord } from "./domain";
+import { ApiError } from "./errors";
 
 const DurableObjectBase: any = import.meta.env.PROD
   ? (await import("cloudflare:workers")).DurableObject
@@ -46,5 +47,19 @@ export class StealthCoordinator extends DurableObjectBase {
 
     await this.ctx.storage.put(`counter:${key}`, filtered);
     return filtered.length;
+  }
+
+  async checkAndSetVersion(
+    key: string,
+    expectedVersion: string | undefined,
+    nextVersion: string,
+  ): Promise<void> {
+    const currentVersion = (await this.ctx.storage.get(`version:${key}`)) as string | undefined;
+    if (expectedVersion !== undefined) {
+      if (currentVersion !== expectedVersion) {
+        throw new ApiError(409, "conflict", "Concurrency conflict: version mismatch");
+      }
+    }
+    await this.ctx.storage.put(`version:${key}`, nextVersion);
   }
 }
