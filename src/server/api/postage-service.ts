@@ -105,12 +105,12 @@ export function assertPostageParticipant(postage: Postage, actorAddress: string)
 }
 
 export async function resolvePostage(
-  repository: ApiRepository, 
-  messageId: string, 
-  resolution: "settled" | "refunded"
+  repository: ApiRepository,
+  messageId: string,
+  resolution: "settled" | "refunded",
 ) {
   const postage = await getPostage(repository, messageId);
-  
+
   return repository.setPostage({
     ...postage,
     status: resolution,

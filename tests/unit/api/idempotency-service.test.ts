@@ -50,7 +50,7 @@ describe("Idempotency Service", () => {
 
   it("respects TTL configuration and environment defaults", () => {
     expect(getIdempotencyTtlSeconds({ ttlSeconds: 3600 })).toBe(3600);
-    
+
     process.env.IDEMPOTENCY_TTL_SECONDS = "7200";
     expect(getIdempotencyTtlSeconds()).toBe(7200);
     delete process.env.IDEMPOTENCY_TTL_SECONDS;
@@ -63,7 +63,14 @@ describe("Idempotency Service", () => {
 
     // Record with 1 hour TTL
     await recordIdempotency(repository, actor1, "key-old", 200, { ok: true }, { ttlSeconds: 3600 });
-    await recordIdempotency(repository, actor1, "key-fresh", 200, { ok: true }, { ttlSeconds: 86400 });
+    await recordIdempotency(
+      repository,
+      actor1,
+      "key-fresh",
+      200,
+      { ok: true },
+      { ttlSeconds: 86400 },
+    );
 
     // Fast forward 2 hours
     const futureTime = new Date(Date.now() + 7200 * 1000).toISOString();

@@ -21,7 +21,7 @@ export async function withAbuseProtection<T>(
   repository: ApiRepository,
   policy: AbusePolicy,
   context: AbuseContext,
-  handler: () => Promise<T>
+  handler: () => Promise<T>,
 ): Promise<T> {
   // Execute rate-limiting/abuse validation rules here if needed...
   return handler();
