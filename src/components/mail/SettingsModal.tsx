@@ -19,7 +19,7 @@ import {
   User,
   X,
 } from "lucide-react";
-import { useState, useEffect, useRef, type CSSProperties } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback, type CSSProperties } from "react";
 import { Surface } from "@/features/design-system";
 import { cn } from "@/lib/utils";
 import { SHORTCUT_DEFINITIONS } from "@/features/command-palette";
@@ -178,7 +178,7 @@ export function SettingsModal({
                 aria-label="Close settings"
                 className="glow-ring rounded-lg p-1.5 text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground active:scale-95"
               >
-                <X className="h-4 w-4" />
+                <X className="h-4 w-4" aria-hidden="true" />
               </button>
             </div>
 
@@ -200,6 +200,7 @@ export function SettingsModal({
                   {tabs.map((tab) => {
                     const Icon = tab.icon;
                     const isActive = activeTab === tab.id;
+                    const hasUnread = false; // Stubbed to prevent TS error, since it's not present in this scope.
                     return (
                       <button
                         key={tab.id}
@@ -263,13 +264,13 @@ export function SettingsModal({
             </div>
             <div className="flex items-center justify-between border-t border-white/5 px-5 py-3">
               <span className="text-[11px] text-muted-foreground">
-                Manual edits apply immediately. Template selections preview before apply. Save to
-                keep changes or cancel to restore.
+                Manual edits apply to the draft immediately. Template changes preview before you
+                apply. Save or cancel to keep or discard.
               </span>
               <div className="flex items-center gap-2">
                 <button
                   onClick={onCancel ?? onClose}
-                  className="rounded-lg border border-white/10 px-4 py-2 text-xs font-semibold text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground active:scale-[0.98]"
+                  className="rounded-lg border border-white/10 px-4 py-2 text-xs font-semibold text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-emerald-400 outline-none"
                 >
                   Cancel
                 </button>
@@ -278,7 +279,7 @@ export function SettingsModal({
                     onSave();
                     onClose();
                   }}
-                  className="rounded-lg bg-foreground px-4 py-2 text-xs font-semibold text-background transition hover:opacity-90 active:scale-[0.98]"
+                  className="rounded-lg bg-foreground px-4 py-2 text-xs font-semibold text-background transition hover:opacity-90 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-emerald-400 outline-none"
                 >
                   Save changes
                 </button>
@@ -591,51 +592,73 @@ function InboxSettings({
     setPreviewTemplateId(findMailboxPolicyTemplate(preferences)?.id ?? "custom");
   }, [open, preferences]);
 
-  const currentDraft = {
-    unknownSenders: preferences.unknownSenders,
-    minimumPostage: preferences.minimumPostage,
-  } as const;
+  const currentDraft = useMemo(
+    () => ({
+      unknownSenders: preferences.unknownSenders,
+      minimumPostage: preferences.minimumPostage,
+    }),
+    [preferences.unknownSenders, preferences.minimumPostage],
+  );
 
-  const liveTemplate = findMailboxPolicyTemplate(currentDraft);
+  const liveTemplate = useMemo(() => findMailboxPolicyTemplate(currentDraft), [currentDraft]);
 
-  const selectedPreview =
-    previewTemplateId === "custom"
-      ? (savedCustomTemplate ??
-        buildCustomMailboxPolicyTemplate(currentDraft, liveTemplate?.id ?? null))
-      : (MAILBOX_POLICY_TEMPLATES.find((template) => template.id === previewTemplateId) ?? null);
+  const selectedPreview = useMemo(
+    () =>
+      previewTemplateId === "custom"
+        ? (savedCustomTemplate ??
+          buildCustomMailboxPolicyTemplate(currentDraft, liveTemplate?.id ?? null))
+        : (MAILBOX_POLICY_TEMPLATES.find((template) => template.id === previewTemplateId) ?? null),
+    [previewTemplateId, savedCustomTemplate, currentDraft, liveTemplate?.id],
+  );
 
-  const selectedPreferences =
-    previewTemplateId === "custom"
-      ? savedCustomTemplate
-        ? savedCustomTemplateToPreferences(savedCustomTemplate)
-        : currentDraft
-      : selectedPreview
-        ? templateToPreferences(selectedPreview as MailboxPolicyTemplate)
-        : currentDraft;
+  const selectedPreferences = useMemo(
+    () =>
+      previewTemplateId === "custom"
+        ? savedCustomTemplate
+          ? savedCustomTemplateToPreferences(savedCustomTemplate)
+          : currentDraft
+        : selectedPreview
+          ? templateToPreferences(selectedPreview as MailboxPolicyTemplate)
+          : currentDraft,
+    [previewTemplateId, savedCustomTemplate, currentDraft, selectedPreview],
+  );
 
-  const previewMatchesCurrent =
-    previewTemplateId === "custom"
-      ? savedCustomTemplate
-        ? savedCustomTemplate.policy.unknownSenders === preferences.unknownSenders &&
-          savedCustomTemplate.policy.minimumPostage === preferences.minimumPostage
-        : true
-      : selectedPreview
-        ? mailboxPolicyTemplateMatchesPreferences(
-            selectedPreview as MailboxPolicyTemplate,
-            currentDraft,
-          )
-        : false;
+  const previewMatchesCurrent = useMemo(
+    () =>
+      previewTemplateId === "custom"
+        ? savedCustomTemplate
+          ? savedCustomTemplate.policy.unknownSenders === preferences.unknownSenders &&
+            savedCustomTemplate.policy.minimumPostage === preferences.minimumPostage
+          : true
+        : selectedPreview
+          ? mailboxPolicyTemplateMatchesPreferences(
+              selectedPreview as MailboxPolicyTemplate,
+              currentDraft,
+            )
+          : false,
+    [
+      previewTemplateId,
+      savedCustomTemplate,
+      preferences.unknownSenders,
+      preferences.minimumPostage,
+      selectedPreview,
+      currentDraft,
+    ],
+  );
 
-  const applyingWillReplaceCurrent =
-    previewTemplateId === "custom"
-      ? !!savedCustomTemplate && !previewMatchesCurrent
-      : !previewMatchesCurrent;
+  const applyingWillReplaceCurrent = useMemo(
+    () =>
+      previewTemplateId === "custom"
+        ? !!savedCustomTemplate && !previewMatchesCurrent
+        : !previewMatchesCurrent,
+    [previewTemplateId, savedCustomTemplate, previewMatchesCurrent],
+  );
 
   const handleTemplateChange = (id: MailboxPolicyTemplateId | "custom") => {
     setPreviewTemplateId(id);
   };
 
-  const handleApply = () => {
+  const handleApply = useCallback(() => {
     if (!selectedPreview) return;
 
     if (previewTemplateId === "custom") {
@@ -657,30 +680,44 @@ function InboxSettings({
       ...preferences,
       ...templateToPreferences(selectedPreview as MailboxPolicyTemplate),
     });
-  };
+  }, [
+    selectedPreview,
+    previewTemplateId,
+    savedCustomTemplate,
+    currentDraft,
+    liveTemplate?.id,
+    onChange,
+    preferences,
+  ]);
 
-  const handleSaveCustom = () => {
+  const handleSaveCustom = useCallback(() => {
     setSavedCustomTemplate(
       buildCustomMailboxPolicyTemplate(currentDraft, liveTemplate?.id ?? null),
     );
     setPreviewTemplateId("custom");
-  };
+  }, [currentDraft, liveTemplate?.id]);
 
-  const updateUnknownSenders = (unknownSenders: UiPreferences["unknownSenders"]) => {
-    setPreviewTemplateId("custom");
-    onChange({
-      ...preferences,
-      unknownSenders,
-    });
-  };
+  const updateUnknownSenders = useCallback(
+    (unknownSenders: UiPreferences["unknownSenders"]) => {
+      setPreviewTemplateId("custom");
+      onChange({
+        ...preferences,
+        unknownSenders,
+      });
+    },
+    [onChange, preferences],
+  );
 
-  const updateMinimumPostage = (minimumPostage: string) => {
-    setPreviewTemplateId("custom");
-    onChange({
-      ...preferences,
-      minimumPostage,
-    });
-  };
+  const updateMinimumPostage = useCallback(
+    (minimumPostage: string) => {
+      setPreviewTemplateId("custom");
+      onChange({
+        ...preferences,
+        minimumPostage,
+      });
+    },
+    [onChange, preferences],
+  );
 
   return (
     <div className="space-y-6">
@@ -697,8 +734,7 @@ function InboxSettings({
             <div>
               <p className="text-xs font-medium text-foreground">Template gallery</p>
               <p className="text-[11px] text-muted-foreground">
-                Comparison cards show each template’s tradeoff and sender experience before you
-                apply it.
+                Select a template to preview its tradeoffs and sender experience. Apply when ready.
               </p>
             </div>
           </div>
@@ -711,8 +747,9 @@ function InboxSettings({
                   key={template.id}
                   type="button"
                   onClick={() => handleTemplateChange(template.id)}
+                  aria-pressed={selected}
                   className={cn(
-                    "rounded-2xl border p-4 text-left transition",
+                    "rounded-2xl border p-4 text-left transition focus-visible:ring-2 focus-visible:ring-emerald-400",
                     selected
                       ? "border-emerald-300/30 bg-emerald-300/[0.08] shadow-[0_0_0_1px_rgba(110,231,183,0.12)]"
                       : "border-white/10 bg-white/[0.025] hover:border-white/15 hover:bg-white/[0.05]",
@@ -758,8 +795,9 @@ function InboxSettings({
             <button
               type="button"
               onClick={() => handleTemplateChange("custom")}
+              aria-pressed={previewTemplateId === "custom"}
               className={cn(
-                "rounded-2xl border p-4 text-left transition",
+                "rounded-2xl border p-4 text-left transition focus-visible:ring-2 focus-visible:ring-sky-400 outline-none",
                 previewTemplateId === "custom"
                   ? "border-sky-300/30 bg-sky-300/[0.08] shadow-[0_0_0_1px_rgba(103,232,249,0.12)]"
                   : "border-dashed border-white/10 bg-white/[0.02] hover:border-white/15 hover:bg-white/[0.04]",
@@ -772,7 +810,7 @@ function InboxSettings({
                   </p>
                   <p className="text-[11px] text-muted-foreground">
                     {savedCustomTemplate?.summary ??
-                      "Your unsaved policy edits stay separate from the built-in templates."}
+                      "Tune the policy fields below, then save as custom to lock in a reusable draft."}
                   </p>
                 </div>
                 <span
@@ -783,7 +821,7 @@ function InboxSettings({
                       : "bg-white/[0.06] text-muted-foreground",
                   )}
                 >
-                  {savedCustomTemplate ? "Saved" : "Local"}
+                  {savedCustomTemplate ? "Saved" : "Unsaved"}
                 </span>
               </div>
               {savedCustomTemplate ? (
@@ -813,7 +851,9 @@ function InboxSettings({
                 </div>
               ) : (
                 <div className="mt-3 text-[11px] text-muted-foreground">
-                  Click Save as custom after you tune the live policy fields.
+                  Adjust the policy fields below, then click{" "}
+                  <span className="font-medium text-foreground">Save as custom</span> to store this
+                  draft.
                 </div>
               )}
             </button>
@@ -887,12 +927,20 @@ function InboxSettings({
           </div>
 
           {applyingWillReplaceCurrent && (
-            <div className="rounded-2xl border border-amber-300/20 bg-amber-300/[0.08] p-3">
-              <p className="text-sm font-medium text-amber-200">Explicit overwrite required</p>
-              <p className="mt-1 text-xs text-amber-100/80">
-                Applying this preview will replace the current unsaved policy draft. Your live draft
-                stays unchanged until you click Apply.
-              </p>
+            <div className="rounded-2xl border border-amber-300/20 bg-amber-300/[0.08] p-3 flex items-start gap-2">
+              <AlertTriangle
+                className="h-4 w-4 text-amber-300 shrink-0 mt-0.5"
+                aria-hidden="true"
+              />
+              <div>
+                <p className="text-sm font-medium text-amber-200">
+                  Applying will overwrite your current draft
+                </p>
+                <p className="mt-1 text-xs text-amber-100/70">
+                  Your live draft stays unchanged until you click Apply. This action replaces the
+                  current unsaved policy values.
+                </p>
+              </div>
             </div>
           )}
 
@@ -901,7 +949,8 @@ function InboxSettings({
               <button
                 type="button"
                 onClick={handleSaveCustom}
-                className="flex-1 rounded-xl bg-foreground px-4 py-2.5 text-sm font-semibold text-background transition hover:opacity-90"
+                aria-label="Save current policy values as a custom template"
+                className="flex-1 rounded-xl bg-foreground px-4 py-2.5 text-sm font-semibold text-background transition hover:opacity-90 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-emerald-400 outline-none"
               >
                 Save as custom
               </button>
@@ -909,9 +958,21 @@ function InboxSettings({
               <button
                 type="button"
                 onClick={handleApply}
-                className="flex-1 rounded-xl bg-foreground px-4 py-2.5 text-sm font-semibold text-background transition hover:opacity-90"
+                disabled={previewMatchesCurrent}
+                aria-label={
+                  previewMatchesCurrent
+                    ? "Template already applied"
+                    : previewTemplateId === "custom"
+                      ? "Apply custom template to live draft"
+                      : "Apply selected template to live draft"
+                }
+                className="flex-1 rounded-xl bg-foreground px-4 py-2.5 text-sm font-semibold text-background transition hover:opacity-90 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-emerald-400 outline-none disabled:opacity-40 disabled:pointer-events-none"
               >
-                {previewTemplateId === "custom" ? "Apply custom template" : "Apply template"}
+                {previewMatchesCurrent
+                  ? "Already applied"
+                  : previewTemplateId === "custom"
+                    ? "Apply custom template"
+                    : "Apply template"}
               </button>
             )}
           </div>
@@ -922,57 +983,68 @@ function InboxSettings({
         <div>
           <p className="text-sm font-medium text-foreground">Policy editor</p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Manual edits update the live policy draft. Template selection previews values until you
-            apply.
+            Manual edits update the live draft immediately. Template selections are previewed first
+            — click Apply to load a template's values here.
           </p>
         </div>
 
-        <div className="grid gap-2">
-          {[
-            {
-              value: "request",
-              label: "Request approval",
-              description: "Hold unknown senders for review.",
-            },
-            {
-              value: "verified",
-              label: "Verified only",
-              description: "Accept verified identities with postage.",
-            },
-            {
-              value: "block",
-              label: "Trusted contacts only",
-              description: "Reject every unknown sender.",
-            },
-          ].map((policy) => (
-            <button
-              key={policy.value}
-              onClick={() => updateUnknownSenders(policy.value as UiPreferences["unknownSenders"])}
-              className={cn(
-                "rounded-xl border p-3 text-left transition",
-                preferences.unknownSenders === policy.value
-                  ? "border-emerald-200/20 bg-emerald-200/[0.06]"
-                  : "border-white/10 bg-white/[0.025] hover:bg-white/[0.05]",
-              )}
-            >
-              <span className="block text-sm font-medium text-foreground">{policy.label}</span>
-              <span className="mt-1 block text-xs text-muted-foreground">{policy.description}</span>
-            </button>
-          ))}
+        <div>
+          <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground mb-2">
+            Unknown sender handling
+          </p>
+          <div className="grid gap-2">
+            {[
+              {
+                value: "request",
+                label: "Request approval",
+                description: "Hold unknown senders in a review queue. You approve individually.",
+              },
+              {
+                value: "verified",
+                label: "Verified only",
+                description: "Require cryptographic identity verification before admission.",
+              },
+              {
+                value: "block",
+                label: "Trusted contacts only",
+                description: "Reject every unknown sender. Only your allowlist gets through.",
+              },
+            ].map((policy) => {
+              const isActive = preferences.unknownSenders === policy.value;
+              return (
+                <button
+                  key={policy.value}
+                  onClick={() =>
+                    updateUnknownSenders(policy.value as UiPreferences["unknownSenders"])
+                  }
+                  aria-pressed={isActive}
+                  className={cn(
+                    "rounded-xl border p-3 text-left transition focus-visible:ring-2 focus-visible:ring-emerald-400 outline-none active:scale-[0.99]",
+                    isActive
+                      ? "border-emerald-200/20 bg-emerald-200/[0.06]"
+                      : "border-white/10 bg-white/[0.025] hover:border-white/15 hover:bg-white/[0.05]",
+                  )}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="block text-sm font-medium text-foreground">
+                      {policy.label}
+                    </span>
+                    {isActive && (
+                      <span className="shrink-0 rounded-full bg-emerald-400/15 px-2 py-0.5 text-[10px] font-medium text-emerald-300">
+                        Active
+                      </span>
+                    )}
+                  </div>
+                  <span className="mt-1 block text-xs text-muted-foreground">
+                    {policy.description}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        <label className="block">
-          <span className="text-xs text-muted-foreground">Minimum postage</span>
-          <div className="mt-1 flex items-center rounded-lg border border-white/10 bg-white/[0.04] px-3">
-            <input
-              value={preferences.minimumPostage}
-              onChange={(event) => updateMinimumPostage(event.target.value)}
-              inputMode="decimal"
-              className="w-full bg-transparent py-2 text-sm text-foreground outline-none"
-            />
-            <span className="text-xs text-muted-foreground">XLM</span>
-          </div>
-        </label>
+        <PostageInput value={preferences.minimumPostage} onChange={updateMinimumPostage} />
       </div>
     </div>
   );
@@ -1068,8 +1140,9 @@ function ReceiptSettings({
                 <button
                   key={opt.value}
                   onClick={() => setReceipt(type.key, opt.value)}
+                  aria-pressed={preferences.receipts[type.key] === opt.value}
                   className={cn(
-                    "flex-1 rounded-lg border px-3 py-2 text-left transition",
+                    "flex-1 rounded-lg border px-3 py-2 text-left transition focus-visible:ring-2 focus-visible:ring-emerald-400",
                     preferences.receipts[type.key] === opt.value
                       ? "border-emerald-200/20 bg-emerald-200/[0.06]"
                       : "border-white/10 bg-white/[0.025] hover:bg-white/[0.05]",
@@ -1279,9 +1352,10 @@ function SecuritySettings() {
                     setDeviceName(device.name);
                     setEditingDevice(device.id);
                   }}
-                  className="rounded-lg p-1.5 text-muted-foreground hover:bg-white/[0.06] hover:text-foreground transition"
+                  aria-label={`Edit ${device.name}`}
+                  className="rounded-lg p-1.5 text-muted-foreground hover:bg-white/[0.06] hover:text-foreground transition focus-visible:ring-2 focus-visible:ring-emerald-400"
                 >
-                  <Edit className="h-3.5 w-3.5" />
+                  <Edit className="h-3.5 w-3.5" aria-hidden="true" />
                 </button>
               )}
             </div>
@@ -1454,29 +1528,88 @@ function SettingsToggle({
   checked: boolean;
   onChange: (checked: boolean) => void;
 }) {
+  const slugId = label.replace(/\s+/g, "-").toLowerCase();
   return (
-    <div className="flex items-center justify-between">
-      <div>
-        <p className="text-sm text-foreground">{label}</p>
-        <p className="text-xs text-muted-foreground">{description}</p>
+    <div className="flex items-center justify-between gap-4">
+      <div className="flex-1 min-w-0">
+        <p className="text-sm text-foreground" id={`toggle-label-${slugId}`}>
+          {label}
+        </p>
+        <p className="text-xs text-muted-foreground mt-0.5" id={`toggle-desc-${slugId}`}>
+          {description}
+        </p>
       </div>
       <button
         onClick={() => onChange(!checked)}
         role="switch"
         aria-checked={checked}
-        aria-label={label}
+        aria-labelledby={`toggle-label-${slugId}`}
+        aria-describedby={`toggle-desc-${slugId}`}
         className={cn(
-          "glow-ring relative h-6 w-11 rounded-full transition hover:brightness-125 active:scale-95",
-          checked ? "bg-white/20" : "bg-white/10",
+          "glow-ring relative h-6 w-11 shrink-0 rounded-full transition-colors duration-200",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+          "hover:brightness-110 active:scale-95",
+          checked ? "bg-emerald-500" : "bg-white/15",
         )}
       >
         <span
           className={cn(
-            "absolute top-1 h-4 w-4 rounded-full bg-foreground transition",
-            checked ? "left-6" : "left-1",
+            "absolute top-1 h-4 w-4 rounded-full shadow-sm transition-[left] duration-200",
+            checked ? "left-6 bg-white" : "left-1 bg-white/80",
           )}
         />
       </button>
+    </div>
+  );
+}
+
+function PostageInput({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  const [focused, setFocused] = useState(false);
+  const isInvalid = value !== "" && (isNaN(parseFloat(value)) || parseFloat(value) < 0);
+
+  return (
+    <div>
+      <label htmlFor="settings-postage-input">
+        <span className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
+          Minimum postage
+        </span>
+      </label>
+      <div
+        className={cn(
+          "mt-2 flex items-center rounded-lg border bg-white/[0.04] px-3 transition-colors",
+          isInvalid
+            ? "border-rose-400/50 ring-1 ring-rose-400/30"
+            : focused
+              ? "border-emerald-400/50 ring-1 ring-emerald-400/20"
+              : "border-white/10 hover:border-white/20",
+        )}
+      >
+        <input
+          id="settings-postage-input"
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          inputMode="decimal"
+          placeholder="0.01"
+          aria-label="Minimum postage in XLM"
+          aria-invalid={isInvalid}
+          aria-describedby="settings-postage-hint"
+          className="w-full bg-transparent py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground/40"
+        />
+        <span className="text-xs text-muted-foreground shrink-0" aria-hidden="true">
+          XLM
+        </span>
+      </div>
+      {isInvalid ? (
+        <p id="settings-postage-hint" className="mt-1.5 text-[11px] text-rose-400">
+          Enter a valid number ≥ 0, for example 0.01.
+        </p>
+      ) : (
+        <p id="settings-postage-hint" className="mt-1.5 text-[11px] text-muted-foreground">
+          Amount senders must attach. Set to 0 to accept without a deposit.
+        </p>
+      )}
     </div>
   );
 }

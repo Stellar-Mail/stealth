@@ -1,0 +1,121 @@
+{
+  "tool": "team-task-board-from-emails",
+  "version": 1,
+  "description": "Invalid and malformed inputs that the execution contract must reject. Each case lists the payload and the TaskBoardError code the executor/guards must raise. Consumed by tests/task-board-contract.test.mjs to cover the failure paths.",
+  "invalidInputCases": [
+    {
+      "name": "null payload",
+      "input": null,
+      "expectedErrorCode": "INVALID_INPUT"
+    },
+    {
+      "name": "missing email object",
+      "input": { "context": { "requesterId": "u1", "role": "agent" } },
+      "expectedErrorCode": "INVALID_EMAIL"
+    },
+    {
+      "name": "email is not an object",
+      "input": { "email": "not-an-email" },
+      "expectedErrorCode": "INVALID_EMAIL"
+    },
+    {
+      "name": "context missing role",
+      "input": {
+        "email": {
+          "id": "e1",
+          "threadId": "t1",
+          "from": "a@b.test",
+          "to": [],
+          "subject": "s",
+          "receivedAt": "2026-06-15T09:15:00Z",
+          "body": "b"
+        },
+        "context": { "requesterId": "u1" }
+      },
+      "expectedErrorCode": "INVALID_INPUT"
+    }
+  ],
+  "malformedEmailCases": [
+    {
+      "name": "missing id",
+      "input": {
+        "email": {
+          "threadId": "t1",
+          "from": "a@b.test",
+          "to": [],
+          "subject": "s",
+          "receivedAt": "2026-06-15T09:15:00Z",
+          "body": "b"
+        }
+      },
+      "expectedErrorCode": "MALFORMED_EMAIL",
+      "expectedField": "id"
+    },
+    {
+      "name": "empty from",
+      "input": {
+        "email": {
+          "id": "e1",
+          "threadId": "t1",
+          "from": "   ",
+          "to": [],
+          "subject": "s",
+          "receivedAt": "2026-06-15T09:15:00Z",
+          "body": "b"
+        }
+      },
+      "expectedErrorCode": "MALFORMED_EMAIL",
+      "expectedField": "from"
+    },
+    {
+      "name": "to is not an array",
+      "input": {
+        "email": {
+          "id": "e1",
+          "threadId": "t1",
+          "from": "a@b.test",
+          "to": "ops",
+          "subject": "s",
+          "receivedAt": "2026-06-15T09:15:00Z",
+          "body": "b"
+        }
+      },
+      "expectedErrorCode": "MALFORMED_EMAIL",
+      "expectedField": "to"
+    },
+    {
+      "name": "invalid receivedAt",
+      "input": {
+        "email": {
+          "id": "e1",
+          "threadId": "t1",
+          "from": "a@b.test",
+          "to": [],
+          "subject": "s",
+          "receivedAt": "not-a-date",
+          "body": "b"
+        }
+      },
+      "expectedErrorCode": "MALFORMED_EMAIL",
+      "expectedField": "receivedAt"
+    }
+  ],
+  "authorizationCases": [
+    {
+      "name": "viewer role is not authorized",
+      "input": {
+        "email": {
+          "id": "e1",
+          "threadId": "t1",
+          "from": "a@b.test",
+          "to": [],
+          "subject": "s",
+          "receivedAt": "2026-06-15T09:15:00Z",
+          "body": "b"
+        },
+        "context": { "requesterId": "viewer-1", "role": "viewer" }
+      },
+      "expectedErrorCode": "UNAUTHORIZED"
+    }
+  ]
+}

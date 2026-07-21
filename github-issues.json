@@ -1,0 +1,1762 @@
+[
+  {
+    "title": "Harden postage quote validation for malformed message identifiers",
+    "description": "Improve src/routes/api/v1/postage/quote.ts by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "Postage quote requests need explicit validation for missing, malformed, or oversized message identifiers to prevent ambiguous downstream behavior.",
+    "proposed_implementation": "Add schema-level validation, deterministic error responses, and tests for invalid identifiers and boundary-length values.",
+    "acceptance_criteria": [
+      "Invalid identifiers return 400 with a stable error code",
+      "Boundary tests cover empty, malformed, and oversized values",
+      "Valid requests keep the existing response shape"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api", "postage"],
+    "priority": "High",
+    "estimated_complexity": "Medium",
+    "repository_area": "src/routes/api/v1/postage/quote.ts"
+  },
+  {
+    "title": "Add idempotency coverage for postage settlement endpoints",
+    "description": "Improve src/routes/api/v1/postage/$messageId/settle.ts by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "Settlement retries can happen during network failures and should not double-resolve escrow state or produce conflicting responses.",
+    "proposed_implementation": "Document and test idempotency semantics, add request correlation handling if missing, and verify repeated settlement attempts are safe.",
+    "acceptance_criteria": [
+      "Repeated settlement calls for the same message are deterministic",
+      "Tests cover retry-after-success and retry-after-terminal-state cases",
+      "Response bodies explain terminal-state outcomes"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api", "payments"],
+    "priority": "High",
+    "estimated_complexity": "Medium",
+    "repository_area": "src/routes/api/v1/postage/$messageId/settle.ts"
+  },
+  {
+    "title": "Add idempotency coverage for postage refund endpoints",
+    "description": "Improve src/routes/api/v1/postage/$messageId/refund.ts by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "Refund retries should be safe across client timeouts, worker retries, and duplicate webhook-like invocations.",
+    "proposed_implementation": "Define refund idempotency behavior, add tests around duplicate refund attempts, and ensure terminal-state errors are typed.",
+    "acceptance_criteria": [
+      "Duplicate refunds cannot create inconsistent state",
+      "Tests cover success, duplicate, and invalid-state refunds",
+      "Errors include stable machine-readable codes"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api", "payments"],
+    "priority": "High",
+    "estimated_complexity": "Medium",
+    "repository_area": "src/routes/api/v1/postage/$messageId/refund.ts"
+  },
+  {
+    "title": "Document postage API error contract",
+    "description": "Improve src/routes/api/v1/postage/README.md by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "Postage integrations need consistent error-code documentation for quotes, submission, settlement, refund, dispute, and reclaim flows.",
+    "proposed_implementation": "Expand the README with status codes, error bodies, retry guidance, and examples for each postage endpoint.",
+    "acceptance_criteria": [
+      "README lists all postage endpoint error codes",
+      "Retryable vs non-retryable failures are documented",
+      "Examples match implemented route behavior"
+    ],
+    "labels": [
+      "Maybe Rewarded",
+      "GrantFox OSS",
+      "Official Campaign | FWC26",
+      "documentation",
+      "api"
+    ],
+    "priority": "Medium",
+    "estimated_complexity": "Small",
+    "repository_area": "src/routes/api/v1/postage/README.md"
+  },
+  {
+    "title": "Add receipt read-state validation tests",
+    "description": "Improve src/routes/api/v1/receipts/$messageId/read.ts by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "Read receipt publishing must reject invalid actor, timestamp, or duplicate-read inputs consistently.",
+    "proposed_implementation": "Add route-level tests for invalid read receipt payloads, unauthorized readers, duplicates, and stale timestamps.",
+    "acceptance_criteria": [
+      "Tests cover invalid payloads and unauthorized actors",
+      "Duplicate read receipt behavior is deterministic",
+      "Error responses use stable codes"
+    ],
+    "labels": [
+      "Maybe Rewarded",
+      "GrantFox OSS",
+      "Official Campaign | FWC26",
+      "receipts",
+      "testing"
+    ],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "src/routes/api/v1/receipts/$messageId/read.ts"
+  },
+  {
+    "title": "Document receipts API authorization expectations",
+    "description": "Improve src/routes/api/v1/receipts/README.md by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "Receipt clients need clear guidance on sender vs recipient authority boundaries.",
+    "proposed_implementation": "Update receipts API documentation with authorization requirements, expected signatures, and sample failure responses.",
+    "acceptance_criteria": [
+      "Sender and recipient permissions are documented",
+      "Failure examples include status and error code",
+      "Docs include delivery and read receipt examples"
+    ],
+    "labels": [
+      "Maybe Rewarded",
+      "GrantFox OSS",
+      "Official Campaign | FWC26",
+      "documentation",
+      "authorization"
+    ],
+    "priority": "Medium",
+    "estimated_complexity": "Small",
+    "repository_area": "src/routes/api/v1/receipts/README.md"
+  },
+  {
+    "title": "Add OpenAPI examples for policy evaluation failures",
+    "description": "Improve src/routes/api/v1/openapi[.]json.ts by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The OpenAPI document should help integrators understand policy-denied and malformed-policy responses.",
+    "proposed_implementation": "Add examples and schemas for policy evaluation failures without changing runtime behavior.",
+    "acceptance_criteria": [
+      "OpenAPI includes policy-denied examples",
+      "Malformed request examples are included",
+      "Generated JSON remains valid"
+    ],
+    "labels": [
+      "Maybe Rewarded",
+      "GrantFox OSS",
+      "Official Campaign | FWC26",
+      "api",
+      "documentation"
+    ],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "src/routes/api/v1/openapi[.]json.ts"
+  },
+  {
+    "title": "Validate policy owner route parameters consistently",
+    "description": "Improve src/routes/api/v1/policies/$owner.ts by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "Owner route parameters can be malformed, leading to unclear policy lookup behavior.",
+    "proposed_implementation": "Introduce shared owner-address validation and tests across policy read/write routes.",
+    "acceptance_criteria": [
+      "Malformed owners return 400",
+      "Valid owners retain existing behavior",
+      "Shared validation is reused by nested sender routes"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api", "policies"],
+    "priority": "High",
+    "estimated_complexity": "Medium",
+    "repository_area": "src/routes/api/v1/policies/$owner.ts"
+  },
+  {
+    "title": "Add audit trail coverage for policy sender mutations",
+    "description": "Improve src/routes/api/v1/policies/$owner/senders/$sender.ts by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "Sender allow/block mutations should be auditable for security and compliance workflows.",
+    "proposed_implementation": "Ensure mutations emit structured audit events and add tests covering allow, block, update, and delete paths.",
+    "acceptance_criteria": [
+      "Mutations produce structured audit records",
+      "Tests verify audit metadata fields",
+      "No sensitive payloads are logged"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "audit", "security"],
+    "priority": "High",
+    "estimated_complexity": "Medium",
+    "repository_area": "src/routes/api/v1/policies/$owner/senders/$sender.ts"
+  },
+  {
+    "title": "Add deterministic policy evaluation vector tests",
+    "description": "Improve src/routes/api/v1/policies/evaluate.ts by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "Policy evaluation is central to mail admission and needs regression vectors for edge cases.",
+    "proposed_implementation": "Add table-driven tests for trusted senders, blocked senders, required postage, missing policy, and delegate cases.",
+    "acceptance_criteria": [
+      "Tests cover core policy branches",
+      "Expected decisions are snapshot or fixture based",
+      "Failures identify the mismatched decision branch"
+    ],
+    "labels": [
+      "Maybe Rewarded",
+      "GrantFox OSS",
+      "Official Campaign | FWC26",
+      "testing",
+      "policies"
+    ],
+    "priority": "High",
+    "estimated_complexity": "Medium",
+    "repository_area": "src/routes/api/v1/policies/evaluate.ts"
+  },
+  {
+    "title": "Implement non-UI execution contract for response-time-tracker",
+    "description": "Improve tools/v2/team/response-time-tracker by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The response-time-tracker tool needs a stable backend-facing execution contract so it can run independently of presentation concerns.",
+    "proposed_implementation": "Define typed inputs, outputs, error codes, fixtures, and service boundaries inside tools/v2/team/response-time-tracker; avoid visual or layout changes.",
+    "acceptance_criteria": [
+      "Typed input and output contract is documented",
+      "Non-UI service entry point is exported",
+      "Fixtures cover success and failure cases",
+      "No styling or layout files are changed"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "tooling", "non-ui"],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "tools/v2/team/response-time-tracker"
+  },
+  {
+    "title": "Implement non-UI execution contract for audit-log-viewer",
+    "description": "Improve tools/v2/team/audit-log-viewer by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The audit-log-viewer tool needs a stable backend-facing execution contract so it can run independently of presentation concerns.",
+    "proposed_implementation": "Define typed inputs, outputs, error codes, fixtures, and service boundaries inside tools/v2/team/audit-log-viewer; avoid visual or layout changes.",
+    "acceptance_criteria": [
+      "Typed input and output contract is documented",
+      "Non-UI service entry point is exported",
+      "Fixtures cover success and failure cases",
+      "No styling or layout files are changed"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "tooling", "non-ui"],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "tools/v2/team/audit-log-viewer"
+  },
+  {
+    "title": "Implement non-UI execution contract for suspicious-sender-watchlist",
+    "description": "Improve tools/v2/team/suspicious-sender-watchlist by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The suspicious-sender-watchlist tool needs a stable backend-facing execution contract so it can run independently of presentation concerns.",
+    "proposed_implementation": "Define typed inputs, outputs, error codes, fixtures, and service boundaries inside tools/v2/team/suspicious-sender-watchlist; avoid visual or layout changes.",
+    "acceptance_criteria": [
+      "Typed input and output contract is documented",
+      "Non-UI service entry point is exported",
+      "Fixtures cover success and failure cases",
+      "No styling or layout files are changed"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "tooling", "non-ui"],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "tools/v2/team/suspicious-sender-watchlist"
+  },
+  {
+    "title": "Implement non-UI execution contract for docs",
+    "description": "Improve tools/v2/team/suspicious-sender-watchlist/docs by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The docs tool needs a stable backend-facing execution contract so it can run independently of presentation concerns.",
+    "proposed_implementation": "Define typed inputs, outputs, error codes, fixtures, and service boundaries inside tools/v2/team/suspicious-sender-watchlist/docs; avoid visual or layout changes.",
+    "acceptance_criteria": [
+      "Typed input and output contract is documented",
+      "Non-UI service entry point is exported",
+      "Fixtures cover success and failure cases",
+      "No styling or layout files are changed"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "tooling", "non-ui"],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "tools/v2/team/suspicious-sender-watchlist/docs"
+  },
+  {
+    "title": "Implement non-UI execution contract for legal-and-compliance-review-flag",
+    "description": "Improve tools/v2/team/legal-and-compliance-review-flag by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The legal-and-compliance-review-flag tool needs a stable backend-facing execution contract so it can run independently of presentation concerns.",
+    "proposed_implementation": "Define typed inputs, outputs, error codes, fixtures, and service boundaries inside tools/v2/team/legal-and-compliance-review-flag; avoid visual or layout changes.",
+    "acceptance_criteria": [
+      "Typed input and output contract is documented",
+      "Non-UI service entry point is exported",
+      "Fixtures cover success and failure cases",
+      "No styling or layout files are changed"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "tooling", "non-ui"],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "tools/v2/team/legal-and-compliance-review-flag"
+  },
+  {
+    "title": "Implement non-UI execution contract for department-labels",
+    "description": "Improve tools/v2/team/department-labels by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The department-labels tool needs a stable backend-facing execution contract so it can run independently of presentation concerns.",
+    "proposed_implementation": "Define typed inputs, outputs, error codes, fixtures, and service boundaries inside tools/v2/team/department-labels; avoid visual or layout changes.",
+    "acceptance_criteria": [
+      "Typed input and output contract is documented",
+      "Non-UI service entry point is exported",
+      "Fixtures cover success and failure cases",
+      "No styling or layout files are changed"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "tooling", "non-ui"],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "tools/v2/team/department-labels"
+  },
+  {
+    "title": "Implement non-UI execution contract for meeting-assignment-tool",
+    "description": "Improve tools/v2/team/meeting-assignment-tool by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The meeting-assignment-tool tool needs a stable backend-facing execution contract so it can run independently of presentation concerns.",
+    "proposed_implementation": "Define typed inputs, outputs, error codes, fixtures, and service boundaries inside tools/v2/team/meeting-assignment-tool; avoid visual or layout changes.",
+    "acceptance_criteria": [
+      "Typed input and output contract is documented",
+      "Non-UI service entry point is exported",
+      "Fixtures cover success and failure cases",
+      "No styling or layout files are changed"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "tooling", "non-ui"],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "tools/v2/team/meeting-assignment-tool"
+  },
+  {
+    "title": "Implement non-UI execution contract for knowledge-base-suggestion",
+    "description": "Improve tools/v2/team/knowledge-base-suggestion by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The knowledge-base-suggestion tool needs a stable backend-facing execution contract so it can run independently of presentation concerns.",
+    "proposed_implementation": "Define typed inputs, outputs, error codes, fixtures, and service boundaries inside tools/v2/team/knowledge-base-suggestion; avoid visual or layout changes.",
+    "acceptance_criteria": [
+      "Typed input and output contract is documented",
+      "Non-UI service entry point is exported",
+      "Fixtures cover success and failure cases",
+      "No styling or layout files are changed"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "tooling", "non-ui"],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "tools/v2/team/knowledge-base-suggestion"
+  },
+  {
+    "title": "Implement non-UI execution contract for team-task-board-from-emails",
+    "description": "Improve tools/v2/team/team-task-board-from-emails by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The team-task-board-from-emails tool needs a stable backend-facing execution contract so it can run independently of presentation concerns.",
+    "proposed_implementation": "Define typed inputs, outputs, error codes, fixtures, and service boundaries inside tools/v2/team/team-task-board-from-emails; avoid visual or layout changes.",
+    "acceptance_criteria": [
+      "Typed input and output contract is documented",
+      "Non-UI service entry point is exported",
+      "Fixtures cover success and failure cases",
+      "No styling or layout files are changed"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "tooling", "non-ui"],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "tools/v2/team/team-task-board-from-emails"
+  },
+  {
+    "title": "Implement non-UI execution contract for team-payment-approval",
+    "description": "Improve tools/v2/team/team-payment-approval by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The team-payment-approval tool needs a stable backend-facing execution contract so it can run independently of presentation concerns.",
+    "proposed_implementation": "Define typed inputs, outputs, error codes, fixtures, and service boundaries inside tools/v2/team/team-payment-approval; avoid visual or layout changes.",
+    "acceptance_criteria": [
+      "Typed input and output contract is documented",
+      "Non-UI service entry point is exported",
+      "Fixtures cover success and failure cases",
+      "No styling or layout files are changed"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "tooling", "non-ui"],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "tools/v2/team/team-payment-approval"
+  },
+  {
+    "title": "Implement non-UI execution contract for project-mail-binder",
+    "description": "Improve tools/v2/team/project-mail-binder by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The project-mail-binder tool needs a stable backend-facing execution contract so it can run independently of presentation concerns.",
+    "proposed_implementation": "Define typed inputs, outputs, error codes, fixtures, and service boundaries inside tools/v2/team/project-mail-binder; avoid visual or layout changes.",
+    "acceptance_criteria": [
+      "Typed input and output contract is documented",
+      "Non-UI service entry point is exported",
+      "Fixtures cover success and failure cases",
+      "No styling or layout files are changed"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "tooling", "non-ui"],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "tools/v2/team/project-mail-binder"
+  },
+  {
+    "title": "Implement non-UI execution contract for mail-to-ticket-converter",
+    "description": "Improve tools/v2/team/mail-to-ticket-converter by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The mail-to-ticket-converter tool needs a stable backend-facing execution contract so it can run independently of presentation concerns.",
+    "proposed_implementation": "Define typed inputs, outputs, error codes, fixtures, and service boundaries inside tools/v2/team/mail-to-ticket-converter; avoid visual or layout changes.",
+    "acceptance_criteria": [
+      "Typed input and output contract is documented",
+      "Non-UI service entry point is exported",
+      "Fixtures cover success and failure cases",
+      "No styling or layout files are changed"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "tooling", "non-ui"],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "tools/v2/team/mail-to-ticket-converter"
+  },
+  {
+    "title": "Implement non-UI execution contract for shared-draft-collaboration",
+    "description": "Improve tools/v2/team/shared-draft-collaboration by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The shared-draft-collaboration tool needs a stable backend-facing execution contract so it can run independently of presentation concerns.",
+    "proposed_implementation": "Define typed inputs, outputs, error codes, fixtures, and service boundaries inside tools/v2/team/shared-draft-collaboration; avoid visual or layout changes.",
+    "acceptance_criteria": [
+      "Typed input and output contract is documented",
+      "Non-UI service entry point is exported",
+      "Fixtures cover success and failure cases",
+      "No styling or layout files are changed"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "tooling", "non-ui"],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "tools/v2/team/shared-draft-collaboration"
+  },
+  {
+    "title": "Implement non-UI execution contract for docs",
+    "description": "Improve tools/v2/team/shared-draft-collaboration/docs by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The docs tool needs a stable backend-facing execution contract so it can run independently of presentation concerns.",
+    "proposed_implementation": "Define typed inputs, outputs, error codes, fixtures, and service boundaries inside tools/v2/team/shared-draft-collaboration/docs; avoid visual or layout changes.",
+    "acceptance_criteria": [
+      "Typed input and output contract is documented",
+      "Non-UI service entry point is exported",
+      "Fixtures cover success and failure cases",
+      "No styling or layout files are changed"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "tooling", "non-ui"],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "tools/v2/team/shared-draft-collaboration/docs"
+  },
+  {
+    "title": "Implement non-UI execution contract for manager-review-queue",
+    "description": "Improve tools/v2/team/manager-review-queue by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The manager-review-queue tool needs a stable backend-facing execution contract so it can run independently of presentation concerns.",
+    "proposed_implementation": "Define typed inputs, outputs, error codes, fixtures, and service boundaries inside tools/v2/team/manager-review-queue; avoid visual or layout changes.",
+    "acceptance_criteria": [
+      "Typed input and output contract is documented",
+      "Non-UI service entry point is exported",
+      "Fixtures cover success and failure cases",
+      "No styling or layout files are changed"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "tooling", "non-ui"],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "tools/v2/team/manager-review-queue"
+  },
+  {
+    "title": "Implement non-UI execution contract for team-digest-generator",
+    "description": "Improve tools/v2/team/team-digest-generator by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The team-digest-generator tool needs a stable backend-facing execution contract so it can run independently of presentation concerns.",
+    "proposed_implementation": "Define typed inputs, outputs, error codes, fixtures, and service boundaries inside tools/v2/team/team-digest-generator; avoid visual or layout changes.",
+    "acceptance_criteria": [
+      "Typed input and output contract is documented",
+      "Non-UI service entry point is exported",
+      "Fixtures cover success and failure cases",
+      "No styling or layout files are changed"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "tooling", "non-ui"],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "tools/v2/team/team-digest-generator"
+  },
+  {
+    "title": "Implement non-UI execution contract for services",
+    "description": "Improve tools/v2/team/team-digest-generator/services by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The services tool needs a stable backend-facing execution contract so it can run independently of presentation concerns.",
+    "proposed_implementation": "Define typed inputs, outputs, error codes, fixtures, and service boundaries inside tools/v2/team/team-digest-generator/services; avoid visual or layout changes.",
+    "acceptance_criteria": [
+      "Typed input and output contract is documented",
+      "Non-UI service entry point is exported",
+      "Fixtures cover success and failure cases",
+      "No styling or layout files are changed"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "tooling", "non-ui"],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "tools/v2/team/team-digest-generator/services"
+  },
+  {
+    "title": "Implement non-UI execution contract for hooks",
+    "description": "Improve tools/v2/team/team-digest-generator/hooks by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The hooks tool needs a stable backend-facing execution contract so it can run independently of presentation concerns.",
+    "proposed_implementation": "Define typed inputs, outputs, error codes, fixtures, and service boundaries inside tools/v2/team/team-digest-generator/hooks; avoid visual or layout changes.",
+    "acceptance_criteria": [
+      "Typed input and output contract is documented",
+      "Non-UI service entry point is exported",
+      "Fixtures cover success and failure cases",
+      "No styling or layout files are changed"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "tooling", "non-ui"],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "tools/v2/team/team-digest-generator/hooks"
+  },
+  {
+    "title": "Implement non-UI execution contract for components",
+    "description": "Improve tools/v2/team/team-digest-generator/components by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The components tool needs a stable backend-facing execution contract so it can run independently of presentation concerns.",
+    "proposed_implementation": "Define typed inputs, outputs, error codes, fixtures, and service boundaries inside tools/v2/team/team-digest-generator/components; avoid visual or layout changes.",
+    "acceptance_criteria": [
+      "Typed input and output contract is documented",
+      "Non-UI service entry point is exported",
+      "Fixtures cover success and failure cases",
+      "No styling or layout files are changed"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "tooling", "non-ui"],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "tools/v2/team/team-digest-generator/components"
+  },
+  {
+    "title": "Implement non-UI execution contract for tests",
+    "description": "Improve tools/v2/team/team-digest-generator/tests by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The tests tool needs a stable backend-facing execution contract so it can run independently of presentation concerns.",
+    "proposed_implementation": "Define typed inputs, outputs, error codes, fixtures, and service boundaries inside tools/v2/team/team-digest-generator/tests; avoid visual or layout changes.",
+    "acceptance_criteria": [
+      "Typed input and output contract is documented",
+      "Non-UI service entry point is exported",
+      "Fixtures cover success and failure cases",
+      "No styling or layout files are changed"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "tooling", "non-ui"],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "tools/v2/team/team-digest-generator/tests"
+  },
+  {
+    "title": "Implement non-UI execution contract for docs",
+    "description": "Improve tools/v2/team/team-digest-generator/docs by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The docs tool needs a stable backend-facing execution contract so it can run independently of presentation concerns.",
+    "proposed_implementation": "Define typed inputs, outputs, error codes, fixtures, and service boundaries inside tools/v2/team/team-digest-generator/docs; avoid visual or layout changes.",
+    "acceptance_criteria": [
+      "Typed input and output contract is documented",
+      "Non-UI service entry point is exported",
+      "Fixtures cover success and failure cases",
+      "No styling or layout files are changed"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "tooling", "non-ui"],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "tools/v2/team/team-digest-generator/docs"
+  },
+  {
+    "title": "Implement non-UI execution contract for stellar-team-payout-request",
+    "description": "Improve tools/v2/team/stellar-team-payout-request by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The stellar-team-payout-request tool needs a stable backend-facing execution contract so it can run independently of presentation concerns.",
+    "proposed_implementation": "Define typed inputs, outputs, error codes, fixtures, and service boundaries inside tools/v2/team/stellar-team-payout-request; avoid visual or layout changes.",
+    "acceptance_criteria": [
+      "Typed input and output contract is documented",
+      "Non-UI service entry point is exported",
+      "Fixtures cover success and failure cases",
+      "No styling or layout files are changed"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "tooling", "non-ui"],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "tools/v2/team/stellar-team-payout-request"
+  },
+  {
+    "title": "Implement non-UI execution contract for multi-agent-assignment",
+    "description": "Improve tools/v2/team/multi-agent-assignment by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The multi-agent-assignment tool needs a stable backend-facing execution contract so it can run independently of presentation concerns.",
+    "proposed_implementation": "Define typed inputs, outputs, error codes, fixtures, and service boundaries inside tools/v2/team/multi-agent-assignment; avoid visual or layout changes.",
+    "acceptance_criteria": [
+      "Typed input and output contract is documented",
+      "Non-UI service entry point is exported",
+      "Fixtures cover success and failure cases",
+      "No styling or layout files are changed"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "tooling", "non-ui"],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "tools/v2/team/multi-agent-assignment"
+  },
+  {
+    "title": "Implement non-UI execution contract for docs",
+    "description": "Improve tools/v2/team/multi-agent-assignment/docs by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The docs tool needs a stable backend-facing execution contract so it can run independently of presentation concerns.",
+    "proposed_implementation": "Define typed inputs, outputs, error codes, fixtures, and service boundaries inside tools/v2/team/multi-agent-assignment/docs; avoid visual or layout changes.",
+    "acceptance_criteria": [
+      "Typed input and output contract is documented",
+      "Non-UI service entry point is exported",
+      "Fixtures cover success and failure cases",
+      "No styling or layout files are changed"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "tooling", "non-ui"],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "tools/v2/team/multi-agent-assignment/docs"
+  },
+  {
+    "title": "Implement non-UI execution contract for team-analytics-dashboard",
+    "description": "Improve tools/v2/team/team-analytics-dashboard by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The team-analytics-dashboard tool needs a stable backend-facing execution contract so it can run independently of presentation concerns.",
+    "proposed_implementation": "Define typed inputs, outputs, error codes, fixtures, and service boundaries inside tools/v2/team/team-analytics-dashboard; avoid visual or layout changes.",
+    "acceptance_criteria": [
+      "Typed input and output contract is documented",
+      "Non-UI service entry point is exported",
+      "Fixtures cover success and failure cases",
+      "No styling or layout files are changed"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "tooling", "non-ui"],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "tools/v2/team/team-analytics-dashboard"
+  },
+  {
+    "title": "Implement non-UI execution contract for invoice-approval-workflow",
+    "description": "Improve tools/v2/team/invoice-approval-workflow by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The invoice-approval-workflow tool needs a stable backend-facing execution contract so it can run independently of presentation concerns.",
+    "proposed_implementation": "Define typed inputs, outputs, error codes, fixtures, and service boundaries inside tools/v2/team/invoice-approval-workflow; avoid visual or layout changes.",
+    "acceptance_criteria": [
+      "Typed input and output contract is documented",
+      "Non-UI service entry point is exported",
+      "Fixtures cover success and failure cases",
+      "No styling or layout files are changed"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "tooling", "non-ui"],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "tools/v2/team/invoice-approval-workflow"
+  },
+  {
+    "title": "Implement non-UI execution contract for shared-contact-notes",
+    "description": "Improve tools/v2/team/shared-contact-notes by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The shared-contact-notes tool needs a stable backend-facing execution contract so it can run independently of presentation concerns.",
+    "proposed_implementation": "Define typed inputs, outputs, error codes, fixtures, and service boundaries inside tools/v2/team/shared-contact-notes; avoid visual or layout changes.",
+    "acceptance_criteria": [
+      "Typed input and output contract is documented",
+      "Non-UI service entry point is exported",
+      "Fixtures cover success and failure cases",
+      "No styling or layout files are changed"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "tooling", "non-ui"],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "tools/v2/team/shared-contact-notes"
+  },
+  {
+    "title": "Implement non-UI execution contract for team-security-flagging",
+    "description": "Improve tools/v2/team/team-security-flagging by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The team-security-flagging tool needs a stable backend-facing execution contract so it can run independently of presentation concerns.",
+    "proposed_implementation": "Define typed inputs, outputs, error codes, fixtures, and service boundaries inside tools/v2/team/team-security-flagging; avoid visual or layout changes.",
+    "acceptance_criteria": [
+      "Typed input and output contract is documented",
+      "Non-UI service entry point is exported",
+      "Fixtures cover success and failure cases",
+      "No styling or layout files are changed"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "tooling", "non-ui"],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "tools/v2/team/team-security-flagging"
+  },
+  {
+    "title": "Implement non-UI execution contract for escalation-tool",
+    "description": "Improve tools/v2/team/escalation-tool by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The escalation-tool tool needs a stable backend-facing execution contract so it can run independently of presentation concerns.",
+    "proposed_implementation": "Define typed inputs, outputs, error codes, fixtures, and service boundaries inside tools/v2/team/escalation-tool; avoid visual or layout changes.",
+    "acceptance_criteria": [
+      "Typed input and output contract is documented",
+      "Non-UI service entry point is exported",
+      "Fixtures cover success and failure cases",
+      "No styling or layout files are changed"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "tooling", "non-ui"],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "tools/v2/team/escalation-tool"
+  },
+  {
+    "title": "Implement non-UI execution contract for team-workload-balancer",
+    "description": "Improve tools/v2/team/team-workload-balancer by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The team-workload-balancer tool needs a stable backend-facing execution contract so it can run independently of presentation concerns.",
+    "proposed_implementation": "Define typed inputs, outputs, error codes, fixtures, and service boundaries inside tools/v2/team/team-workload-balancer; avoid visual or layout changes.",
+    "acceptance_criteria": [
+      "Typed input and output contract is documented",
+      "Non-UI service entry point is exported",
+      "Fixtures cover success and failure cases",
+      "No styling or layout files are changed"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "tooling", "non-ui"],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "tools/v2/team/team-workload-balancer"
+  },
+  {
+    "title": "Implement non-UI execution contract for approval-chain-builder",
+    "description": "Improve tools/v2/team/approval-chain-builder by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The approval-chain-builder tool needs a stable backend-facing execution contract so it can run independently of presentation concerns.",
+    "proposed_implementation": "Define typed inputs, outputs, error codes, fixtures, and service boundaries inside tools/v2/team/approval-chain-builder; avoid visual or layout changes.",
+    "acceptance_criteria": [
+      "Typed input and output contract is documented",
+      "Non-UI service entry point is exported",
+      "Fixtures cover success and failure cases",
+      "No styling or layout files are changed"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "tooling", "non-ui"],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "tools/v2/team/approval-chain-builder"
+  },
+  {
+    "title": "Implement non-UI execution contract for role-based-mail-access",
+    "description": "Improve tools/v2/team/role-based-mail-access by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The role-based-mail-access tool needs a stable backend-facing execution contract so it can run independently of presentation concerns.",
+    "proposed_implementation": "Define typed inputs, outputs, error codes, fixtures, and service boundaries inside tools/v2/team/role-based-mail-access; avoid visual or layout changes.",
+    "acceptance_criteria": [
+      "Typed input and output contract is documented",
+      "Non-UI service entry point is exported",
+      "Fixtures cover success and failure cases",
+      "No styling or layout files are changed"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "tooling", "non-ui"],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "tools/v2/team/role-based-mail-access"
+  },
+  {
+    "title": "Implement non-UI execution contract for docs",
+    "description": "Improve tools/v2/team/role-based-mail-access/docs by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The docs tool needs a stable backend-facing execution contract so it can run independently of presentation concerns.",
+    "proposed_implementation": "Define typed inputs, outputs, error codes, fixtures, and service boundaries inside tools/v2/team/role-based-mail-access/docs; avoid visual or layout changes.",
+    "acceptance_criteria": [
+      "Typed input and output contract is documented",
+      "Non-UI service entry point is exported",
+      "Fixtures cover success and failure cases",
+      "No styling or layout files are changed"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "tooling", "non-ui"],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "tools/v2/team/role-based-mail-access/docs"
+  },
+  {
+    "title": "Implement non-UI execution contract for client-priority-scoring",
+    "description": "Improve tools/v2/team/client-priority-scoring by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The client-priority-scoring tool needs a stable backend-facing execution contract so it can run independently of presentation concerns.",
+    "proposed_implementation": "Define typed inputs, outputs, error codes, fixtures, and service boundaries inside tools/v2/team/client-priority-scoring; avoid visual or layout changes.",
+    "acceptance_criteria": [
+      "Typed input and output contract is documented",
+      "Non-UI service entry point is exported",
+      "Fixtures cover success and failure cases",
+      "No styling or layout files are changed"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "tooling", "non-ui"],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "tools/v2/team/client-priority-scoring"
+  },
+  {
+    "title": "Implement non-UI execution contract for deal-lead-mail-tracker",
+    "description": "Improve tools/v2/team/deal-lead-mail-tracker by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The deal-lead-mail-tracker tool needs a stable backend-facing execution contract so it can run independently of presentation concerns.",
+    "proposed_implementation": "Define typed inputs, outputs, error codes, fixtures, and service boundaries inside tools/v2/team/deal-lead-mail-tracker; avoid visual or layout changes.",
+    "acceptance_criteria": [
+      "Typed input and output contract is documented",
+      "Non-UI service entry point is exported",
+      "Fixtures cover success and failure cases",
+      "No styling or layout files are changed"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "tooling", "non-ui"],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "tools/v2/team/deal-lead-mail-tracker"
+  },
+  {
+    "title": "Implement non-UI execution contract for vendor-mail-tracker",
+    "description": "Improve tools/v2/team/vendor-mail-tracker by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The vendor-mail-tracker tool needs a stable backend-facing execution contract so it can run independently of presentation concerns.",
+    "proposed_implementation": "Define typed inputs, outputs, error codes, fixtures, and service boundaries inside tools/v2/team/vendor-mail-tracker; avoid visual or layout changes.",
+    "acceptance_criteria": [
+      "Typed input and output contract is documented",
+      "Non-UI service entry point is exported",
+      "Fixtures cover success and failure cases",
+      "No styling or layout files are changed"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "tooling", "non-ui"],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "tools/v2/team/vendor-mail-tracker"
+  },
+  {
+    "title": "Implement non-UI execution contract for tests",
+    "description": "Improve tools/v2/team/vendor-mail-tracker/tests by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The tests tool needs a stable backend-facing execution contract so it can run independently of presentation concerns.",
+    "proposed_implementation": "Define typed inputs, outputs, error codes, fixtures, and service boundaries inside tools/v2/team/vendor-mail-tracker/tests; avoid visual or layout changes.",
+    "acceptance_criteria": [
+      "Typed input and output contract is documented",
+      "Non-UI service entry point is exported",
+      "Fixtures cover success and failure cases",
+      "No styling or layout files are changed"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "tooling", "non-ui"],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "tools/v2/team/vendor-mail-tracker/tests"
+  },
+  {
+    "title": "Implement non-UI execution contract for team-inbox-rules-builder",
+    "description": "Improve tools/v2/team/team-inbox-rules-builder by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The team-inbox-rules-builder tool needs a stable backend-facing execution contract so it can run independently of presentation concerns.",
+    "proposed_implementation": "Define typed inputs, outputs, error codes, fixtures, and service boundaries inside tools/v2/team/team-inbox-rules-builder; avoid visual or layout changes.",
+    "acceptance_criteria": [
+      "Typed input and output contract is documented",
+      "Non-UI service entry point is exported",
+      "Fixtures cover success and failure cases",
+      "No styling or layout files are changed"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "tooling", "non-ui"],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "tools/v2/team/team-inbox-rules-builder"
+  },
+  {
+    "title": "Implement non-UI execution contract for docs",
+    "description": "Improve tools/v2/team/team-inbox-rules-builder/docs by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The docs tool needs a stable backend-facing execution contract so it can run independently of presentation concerns.",
+    "proposed_implementation": "Define typed inputs, outputs, error codes, fixtures, and service boundaries inside tools/v2/team/team-inbox-rules-builder/docs; avoid visual or layout changes.",
+    "acceptance_criteria": [
+      "Typed input and output contract is documented",
+      "Non-UI service entry point is exported",
+      "Fixtures cover success and failure cases",
+      "No styling or layout files are changed"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "tooling", "non-ui"],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "tools/v2/team/team-inbox-rules-builder/docs"
+  },
+  {
+    "title": "Implement non-UI execution contract for client-thread-timeline",
+    "description": "Improve tools/v2/team/client-thread-timeline by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The client-thread-timeline tool needs a stable backend-facing execution contract so it can run independently of presentation concerns.",
+    "proposed_implementation": "Define typed inputs, outputs, error codes, fixtures, and service boundaries inside tools/v2/team/client-thread-timeline; avoid visual or layout changes.",
+    "acceptance_criteria": [
+      "Typed input and output contract is documented",
+      "Non-UI service entry point is exported",
+      "Fixtures cover success and failure cases",
+      "No styling or layout files are changed"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "tooling", "non-ui"],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "tools/v2/team/client-thread-timeline"
+  },
+  {
+    "title": "Implement non-UI execution contract for personal-crm-reminder",
+    "description": "Improve tools/v2/individual/personal-crm-reminder by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The personal-crm-reminder tool needs a stable backend-facing execution contract so it can run independently of presentation concerns.",
+    "proposed_implementation": "Define typed inputs, outputs, error codes, fixtures, and service boundaries inside tools/v2/individual/personal-crm-reminder; avoid visual or layout changes.",
+    "acceptance_criteria": [
+      "Typed input and output contract is documented",
+      "Non-UI service entry point is exported",
+      "Fixtures cover success and failure cases",
+      "No styling or layout files are changed"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "tooling", "non-ui"],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "tools/v2/individual/personal-crm-reminder"
+  },
+  {
+    "title": "Implement non-UI execution contract for meeting-notes-extractor",
+    "description": "Improve tools/v2/individual/meeting-notes-extractor by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The meeting-notes-extractor tool needs a stable backend-facing execution contract so it can run independently of presentation concerns.",
+    "proposed_implementation": "Define typed inputs, outputs, error codes, fixtures, and service boundaries inside tools/v2/individual/meeting-notes-extractor; avoid visual or layout changes.",
+    "acceptance_criteria": [
+      "Typed input and output contract is documented",
+      "Non-UI service entry point is exported",
+      "Fixtures cover success and failure cases",
+      "No styling or layout files are changed"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "tooling", "non-ui"],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "tools/v2/individual/meeting-notes-extractor"
+  },
+  {
+    "title": "Implement non-UI execution contract for unsubscribe-finder",
+    "description": "Improve tools/v2/individual/unsubscribe-finder by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The unsubscribe-finder tool needs a stable backend-facing execution contract so it can run independently of presentation concerns.",
+    "proposed_implementation": "Define typed inputs, outputs, error codes, fixtures, and service boundaries inside tools/v2/individual/unsubscribe-finder; avoid visual or layout changes.",
+    "acceptance_criteria": [
+      "Typed input and output contract is documented",
+      "Non-UI service entry point is exported",
+      "Fixtures cover success and failure cases",
+      "No styling or layout files are changed"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "tooling", "non-ui"],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "tools/v2/individual/unsubscribe-finder"
+  },
+  {
+    "title": "Implement non-UI execution contract for pdf-summary-tool",
+    "description": "Improve tools/v2/individual/pdf-summary-tool by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The pdf-summary-tool tool needs a stable backend-facing execution contract so it can run independently of presentation concerns.",
+    "proposed_implementation": "Define typed inputs, outputs, error codes, fixtures, and service boundaries inside tools/v2/individual/pdf-summary-tool; avoid visual or layout changes.",
+    "acceptance_criteria": [
+      "Typed input and output contract is documented",
+      "Non-UI service entry point is exported",
+      "Fixtures cover success and failure cases",
+      "No styling or layout files are changed"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "tooling", "non-ui"],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "tools/v2/individual/pdf-summary-tool"
+  },
+  {
+    "title": "Implement non-UI execution contract for services",
+    "description": "Improve tools/v2/individual/pdf-summary-tool/services by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The services tool needs a stable backend-facing execution contract so it can run independently of presentation concerns.",
+    "proposed_implementation": "Define typed inputs, outputs, error codes, fixtures, and service boundaries inside tools/v2/individual/pdf-summary-tool/services; avoid visual or layout changes.",
+    "acceptance_criteria": [
+      "Typed input and output contract is documented",
+      "Non-UI service entry point is exported",
+      "Fixtures cover success and failure cases",
+      "No styling or layout files are changed"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "tooling", "non-ui"],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "tools/v2/individual/pdf-summary-tool/services"
+  },
+  {
+    "title": "Implement non-UI execution contract for hooks",
+    "description": "Improve tools/v2/individual/pdf-summary-tool/hooks by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The hooks tool needs a stable backend-facing execution contract so it can run independently of presentation concerns.",
+    "proposed_implementation": "Define typed inputs, outputs, error codes, fixtures, and service boundaries inside tools/v2/individual/pdf-summary-tool/hooks; avoid visual or layout changes.",
+    "acceptance_criteria": [
+      "Typed input and output contract is documented",
+      "Non-UI service entry point is exported",
+      "Fixtures cover success and failure cases",
+      "No styling or layout files are changed"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "tooling", "non-ui"],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "tools/v2/individual/pdf-summary-tool/hooks"
+  },
+  {
+    "title": "Implement non-UI execution contract for components",
+    "description": "Improve tools/v2/individual/pdf-summary-tool/components by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The components tool needs a stable backend-facing execution contract so it can run independently of presentation concerns.",
+    "proposed_implementation": "Define typed inputs, outputs, error codes, fixtures, and service boundaries inside tools/v2/individual/pdf-summary-tool/components; avoid visual or layout changes.",
+    "acceptance_criteria": [
+      "Typed input and output contract is documented",
+      "Non-UI service entry point is exported",
+      "Fixtures cover success and failure cases",
+      "No styling or layout files are changed"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "tooling", "non-ui"],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "tools/v2/individual/pdf-summary-tool/components"
+  },
+  {
+    "title": "Implement non-UI execution contract for tests",
+    "description": "Improve tools/v2/individual/pdf-summary-tool/tests by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The tests tool needs a stable backend-facing execution contract so it can run independently of presentation concerns.",
+    "proposed_implementation": "Define typed inputs, outputs, error codes, fixtures, and service boundaries inside tools/v2/individual/pdf-summary-tool/tests; avoid visual or layout changes.",
+    "acceptance_criteria": [
+      "Typed input and output contract is documented",
+      "Non-UI service entry point is exported",
+      "Fixtures cover success and failure cases",
+      "No styling or layout files are changed"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "tooling", "non-ui"],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "tools/v2/individual/pdf-summary-tool/tests"
+  },
+  {
+    "title": "Implement non-UI execution contract for docs",
+    "description": "Improve tools/v2/individual/pdf-summary-tool/docs by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The docs tool needs a stable backend-facing execution contract so it can run independently of presentation concerns.",
+    "proposed_implementation": "Define typed inputs, outputs, error codes, fixtures, and service boundaries inside tools/v2/individual/pdf-summary-tool/docs; avoid visual or layout changes.",
+    "acceptance_criteria": [
+      "Typed input and output contract is documented",
+      "Non-UI service entry point is exported",
+      "Fixtures cover success and failure cases",
+      "No styling or layout files are changed"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "tooling", "non-ui"],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "tools/v2/individual/pdf-summary-tool/docs"
+  },
+  {
+    "title": "Implement non-UI execution contract for utils",
+    "description": "Improve tools/v2/individual/pdf-summary-tool/utils by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The utils tool needs a stable backend-facing execution contract so it can run independently of presentation concerns.",
+    "proposed_implementation": "Define typed inputs, outputs, error codes, fixtures, and service boundaries inside tools/v2/individual/pdf-summary-tool/utils; avoid visual or layout changes.",
+    "acceptance_criteria": [
+      "Typed input and output contract is documented",
+      "Non-UI service entry point is exported",
+      "Fixtures cover success and failure cases",
+      "No styling or layout files are changed"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "tooling", "non-ui"],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "tools/v2/individual/pdf-summary-tool/utils"
+  },
+  {
+    "title": "Implement non-UI execution contract for types",
+    "description": "Improve tools/v2/individual/pdf-summary-tool/types by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The types tool needs a stable backend-facing execution contract so it can run independently of presentation concerns.",
+    "proposed_implementation": "Define typed inputs, outputs, error codes, fixtures, and service boundaries inside tools/v2/individual/pdf-summary-tool/types; avoid visual or layout changes.",
+    "acceptance_criteria": [
+      "Typed input and output contract is documented",
+      "Non-UI service entry point is exported",
+      "Fixtures cover success and failure cases",
+      "No styling or layout files are changed"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "tooling", "non-ui"],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "tools/v2/individual/pdf-summary-tool/types"
+  },
+  {
+    "title": "Implement non-UI execution contract for fixtures",
+    "description": "Improve tools/v2/individual/pdf-summary-tool/fixtures by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The fixtures tool needs a stable backend-facing execution contract so it can run independently of presentation concerns.",
+    "proposed_implementation": "Define typed inputs, outputs, error codes, fixtures, and service boundaries inside tools/v2/individual/pdf-summary-tool/fixtures; avoid visual or layout changes.",
+    "acceptance_criteria": [
+      "Typed input and output contract is documented",
+      "Non-UI service entry point is exported",
+      "Fixtures cover success and failure cases",
+      "No styling or layout files are changed"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "tooling", "non-ui"],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "tools/v2/individual/pdf-summary-tool/fixtures"
+  },
+  {
+    "title": "Implement non-UI execution contract for config",
+    "description": "Improve tools/v2/individual/pdf-summary-tool/config by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The config tool needs a stable backend-facing execution contract so it can run independently of presentation concerns.",
+    "proposed_implementation": "Define typed inputs, outputs, error codes, fixtures, and service boundaries inside tools/v2/individual/pdf-summary-tool/config; avoid visual or layout changes.",
+    "acceptance_criteria": [
+      "Typed input and output contract is documented",
+      "Non-UI service entry point is exported",
+      "Fixtures cover success and failure cases",
+      "No styling or layout files are changed"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "tooling", "non-ui"],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "tools/v2/individual/pdf-summary-tool/config"
+  },
+  {
+    "title": "Implement non-UI execution contract for draft-improver",
+    "description": "Improve tools/v2/individual/draft-improver by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The draft-improver tool needs a stable backend-facing execution contract so it can run independently of presentation concerns.",
+    "proposed_implementation": "Define typed inputs, outputs, error codes, fixtures, and service boundaries inside tools/v2/individual/draft-improver; avoid visual or layout changes.",
+    "acceptance_criteria": [
+      "Typed input and output contract is documented",
+      "Non-UI service entry point is exported",
+      "Fixtures cover success and failure cases",
+      "No styling or layout files are changed"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "tooling", "non-ui"],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "tools/v2/individual/draft-improver"
+  },
+  {
+    "title": "Implement non-UI execution contract for invoice-detector",
+    "description": "Improve tools/v2/individual/invoice-detector by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The invoice-detector tool needs a stable backend-facing execution contract so it can run independently of presentation concerns.",
+    "proposed_implementation": "Define typed inputs, outputs, error codes, fixtures, and service boundaries inside tools/v2/individual/invoice-detector; avoid visual or layout changes.",
+    "acceptance_criteria": [
+      "Typed input and output contract is documented",
+      "Non-UI service entry point is exported",
+      "Fixtures cover success and failure cases",
+      "No styling or layout files are changed"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "tooling", "non-ui"],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "tools/v2/individual/invoice-detector"
+  },
+  {
+    "title": "Implement non-UI execution contract for email-template-library",
+    "description": "Improve tools/v2/individual/email-template-library by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The email-template-library tool needs a stable backend-facing execution contract so it can run independently of presentation concerns.",
+    "proposed_implementation": "Define typed inputs, outputs, error codes, fixtures, and service boundaries inside tools/v2/individual/email-template-library; avoid visual or layout changes.",
+    "acceptance_criteria": [
+      "Typed input and output contract is documented",
+      "Non-UI service entry point is exported",
+      "Fixtures cover success and failure cases",
+      "No styling or layout files are changed"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "tooling", "non-ui"],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "tools/v2/individual/email-template-library"
+  },
+  {
+    "title": "Implement non-UI execution contract for follow-up-sequence-builder",
+    "description": "Improve tools/v2/individual/follow-up-sequence-builder by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The follow-up-sequence-builder tool needs a stable backend-facing execution contract so it can run independently of presentation concerns.",
+    "proposed_implementation": "Define typed inputs, outputs, error codes, fixtures, and service boundaries inside tools/v2/individual/follow-up-sequence-builder; avoid visual or layout changes.",
+    "acceptance_criteria": [
+      "Typed input and output contract is documented",
+      "Non-UI service entry point is exported",
+      "Fixtures cover success and failure cases",
+      "No styling or layout files are changed"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "tooling", "non-ui"],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "tools/v2/individual/follow-up-sequence-builder"
+  },
+  {
+    "title": "Implement non-UI execution contract for private-note-on-email",
+    "description": "Improve tools/v2/individual/private-note-on-email by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The private-note-on-email tool needs a stable backend-facing execution contract so it can run independently of presentation concerns.",
+    "proposed_implementation": "Define typed inputs, outputs, error codes, fixtures, and service boundaries inside tools/v2/individual/private-note-on-email; avoid visual or layout changes.",
+    "acceptance_criteria": [
+      "Typed input and output contract is documented",
+      "Non-UI service entry point is exported",
+      "Fixtures cover success and failure cases",
+      "No styling or layout files are changed"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "tooling", "non-ui"],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "tools/v2/individual/private-note-on-email"
+  },
+  {
+    "title": "Implement non-UI execution contract for readability-improver",
+    "description": "Improve tools/v2/individual/readability-improver by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The readability-improver tool needs a stable backend-facing execution contract so it can run independently of presentation concerns.",
+    "proposed_implementation": "Define typed inputs, outputs, error codes, fixtures, and service boundaries inside tools/v2/individual/readability-improver; avoid visual or layout changes.",
+    "acceptance_criteria": [
+      "Typed input and output contract is documented",
+      "Non-UI service entry point is exported",
+      "Fixtures cover success and failure cases",
+      "No styling or layout files are changed"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "tooling", "non-ui"],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "tools/v2/individual/readability-improver"
+  },
+  {
+    "title": "Implement non-UI execution contract for cold-email-writer",
+    "description": "Improve tools/v2/individual/cold-email-writer by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The cold-email-writer tool needs a stable backend-facing execution contract so it can run independently of presentation concerns.",
+    "proposed_implementation": "Define typed inputs, outputs, error codes, fixtures, and service boundaries inside tools/v2/individual/cold-email-writer; avoid visual or layout changes.",
+    "acceptance_criteria": [
+      "Typed input and output contract is documented",
+      "Non-UI service entry point is exported",
+      "Fixtures cover success and failure cases",
+      "No styling or layout files are changed"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "tooling", "non-ui"],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "tools/v2/individual/cold-email-writer"
+  },
+  {
+    "title": "Implement non-UI execution contract for task-extractor",
+    "description": "Improve tools/v2/individual/task-extractor by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The task-extractor tool needs a stable backend-facing execution contract so it can run independently of presentation concerns.",
+    "proposed_implementation": "Define typed inputs, outputs, error codes, fixtures, and service boundaries inside tools/v2/individual/task-extractor; avoid visual or layout changes.",
+    "acceptance_criteria": [
+      "Typed input and output contract is documented",
+      "Non-UI service entry point is exported",
+      "Fixtures cover success and failure cases",
+      "No styling or layout files are changed"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "tooling", "non-ui"],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "tools/v2/individual/task-extractor"
+  },
+  {
+    "title": "Implement non-UI execution contract for sentiment-detector",
+    "description": "Improve tools/v2/individual/sentiment-detector by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The sentiment-detector tool needs a stable backend-facing execution contract so it can run independently of presentation concerns.",
+    "proposed_implementation": "Define typed inputs, outputs, error codes, fixtures, and service boundaries inside tools/v2/individual/sentiment-detector; avoid visual or layout changes.",
+    "acceptance_criteria": [
+      "Typed input and output contract is documented",
+      "Non-UI service entry point is exported",
+      "Fixtures cover success and failure cases",
+      "No styling or layout files are changed"
+    ],
+    "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "tooling", "non-ui"],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "tools/v2/individual/sentiment-detector"
+  },
+  {
+    "title": "Add authorization boundary tests for Soroban policies contract",
+    "description": "Improve contracts/soroban/policies/src/lib.rs by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The policies Soroban contract needs stronger authorization boundary tests to reduce ledger integration risk.",
+    "proposed_implementation": "Review contracts/soroban/policies/src/lib.rs, add focused tests/docs as appropriate, and keep public contract semantics backward compatible.",
+    "acceptance_criteria": [
+      "Authorization boundary tests is covered for policies",
+      "Existing tests continue to pass",
+      "Contract-facing behavior is documented where relevant"
+    ],
+    "labels": [
+      "Maybe Rewarded",
+      "GrantFox OSS",
+      "Official Campaign | FWC26",
+      "soroban",
+      "smart-contracts"
+    ],
+    "priority": "High",
+    "estimated_complexity": "Medium",
+    "repository_area": "contracts/soroban/policies/src/lib.rs"
+  },
+  {
+    "title": "Add event schema documentation for Soroban policies contract",
+    "description": "Improve contracts/soroban/policies/src/lib.rs by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The policies Soroban contract needs stronger event schema documentation to reduce ledger integration risk.",
+    "proposed_implementation": "Review contracts/soroban/policies/src/lib.rs, add focused tests/docs as appropriate, and keep public contract semantics backward compatible.",
+    "acceptance_criteria": [
+      "Event schema documentation is covered for policies",
+      "Existing tests continue to pass",
+      "Contract-facing behavior is documented where relevant"
+    ],
+    "labels": [
+      "Maybe Rewarded",
+      "GrantFox OSS",
+      "Official Campaign | FWC26",
+      "soroban",
+      "smart-contracts"
+    ],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "contracts/soroban/policies/src/lib.rs"
+  },
+  {
+    "title": "Add storage key migration notes for Soroban policies contract",
+    "description": "Improve contracts/soroban/policies/src/lib.rs by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The policies Soroban contract needs stronger storage key migration notes to reduce ledger integration risk.",
+    "proposed_implementation": "Review contracts/soroban/policies/src/lib.rs, add focused tests/docs as appropriate, and keep public contract semantics backward compatible.",
+    "acceptance_criteria": [
+      "Storage key migration notes is covered for policies",
+      "Existing tests continue to pass",
+      "Contract-facing behavior is documented where relevant"
+    ],
+    "labels": [
+      "Maybe Rewarded",
+      "GrantFox OSS",
+      "Official Campaign | FWC26",
+      "soroban",
+      "smart-contracts"
+    ],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "contracts/soroban/policies/src/lib.rs"
+  },
+  {
+    "title": "Add property-style invariant tests for Soroban policies contract",
+    "description": "Improve contracts/soroban/policies/src/lib.rs by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The policies Soroban contract needs stronger property-style invariant tests to reduce ledger integration risk.",
+    "proposed_implementation": "Review contracts/soroban/policies/src/lib.rs, add focused tests/docs as appropriate, and keep public contract semantics backward compatible.",
+    "acceptance_criteria": [
+      "Property-style invariant tests is covered for policies",
+      "Existing tests continue to pass",
+      "Contract-facing behavior is documented where relevant"
+    ],
+    "labels": [
+      "Maybe Rewarded",
+      "GrantFox OSS",
+      "Official Campaign | FWC26",
+      "soroban",
+      "smart-contracts"
+    ],
+    "priority": "High",
+    "estimated_complexity": "Medium",
+    "repository_area": "contracts/soroban/policies/src/lib.rs"
+  },
+  {
+    "title": "Add negative-path snapshot coverage for Soroban policies contract",
+    "description": "Improve contracts/soroban/policies/src/lib.rs by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The policies Soroban contract needs stronger negative-path snapshot coverage to reduce ledger integration risk.",
+    "proposed_implementation": "Review contracts/soroban/policies/src/lib.rs, add focused tests/docs as appropriate, and keep public contract semantics backward compatible.",
+    "acceptance_criteria": [
+      "Negative-path snapshot coverage is covered for policies",
+      "Existing tests continue to pass",
+      "Contract-facing behavior is documented where relevant"
+    ],
+    "labels": [
+      "Maybe Rewarded",
+      "GrantFox OSS",
+      "Official Campaign | FWC26",
+      "soroban",
+      "smart-contracts"
+    ],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "contracts/soroban/policies/src/lib.rs"
+  },
+  {
+    "title": "Add contract spec regeneration check for Soroban policies contract",
+    "description": "Improve contracts/soroban/policies/src/lib.rs by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The policies Soroban contract needs stronger contract spec regeneration check to reduce ledger integration risk.",
+    "proposed_implementation": "Review contracts/soroban/policies/src/lib.rs, add focused tests/docs as appropriate, and keep public contract semantics backward compatible.",
+    "acceptance_criteria": [
+      "Contract spec regeneration check is covered for policies",
+      "Existing tests continue to pass",
+      "Contract-facing behavior is documented where relevant"
+    ],
+    "labels": [
+      "Maybe Rewarded",
+      "GrantFox OSS",
+      "Official Campaign | FWC26",
+      "soroban",
+      "smart-contracts"
+    ],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "contracts/soroban/policies/src/lib.rs"
+  },
+  {
+    "title": "Add panic-free error handling audit for Soroban policies contract",
+    "description": "Improve contracts/soroban/policies/src/lib.rs by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The policies Soroban contract needs stronger panic-free error handling audit to reduce ledger integration risk.",
+    "proposed_implementation": "Review contracts/soroban/policies/src/lib.rs, add focused tests/docs as appropriate, and keep public contract semantics backward compatible.",
+    "acceptance_criteria": [
+      "Panic-free error handling audit is covered for policies",
+      "Existing tests continue to pass",
+      "Contract-facing behavior is documented where relevant"
+    ],
+    "labels": [
+      "Maybe Rewarded",
+      "GrantFox OSS",
+      "Official Campaign | FWC26",
+      "soroban",
+      "smart-contracts"
+    ],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "contracts/soroban/policies/src/lib.rs"
+  },
+  {
+    "title": "Add authorization boundary tests for Soroban postage contract",
+    "description": "Improve contracts/soroban/postage/src/lib.rs by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The postage Soroban contract needs stronger authorization boundary tests to reduce ledger integration risk.",
+    "proposed_implementation": "Review contracts/soroban/postage/src/lib.rs, add focused tests/docs as appropriate, and keep public contract semantics backward compatible.",
+    "acceptance_criteria": [
+      "Authorization boundary tests is covered for postage",
+      "Existing tests continue to pass",
+      "Contract-facing behavior is documented where relevant"
+    ],
+    "labels": [
+      "Maybe Rewarded",
+      "GrantFox OSS",
+      "Official Campaign | FWC26",
+      "soroban",
+      "smart-contracts"
+    ],
+    "priority": "High",
+    "estimated_complexity": "Medium",
+    "repository_area": "contracts/soroban/postage/src/lib.rs"
+  },
+  {
+    "title": "Add event schema documentation for Soroban postage contract",
+    "description": "Improve contracts/soroban/postage/src/lib.rs by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The postage Soroban contract needs stronger event schema documentation to reduce ledger integration risk.",
+    "proposed_implementation": "Review contracts/soroban/postage/src/lib.rs, add focused tests/docs as appropriate, and keep public contract semantics backward compatible.",
+    "acceptance_criteria": [
+      "Event schema documentation is covered for postage",
+      "Existing tests continue to pass",
+      "Contract-facing behavior is documented where relevant"
+    ],
+    "labels": [
+      "Maybe Rewarded",
+      "GrantFox OSS",
+      "Official Campaign | FWC26",
+      "soroban",
+      "smart-contracts"
+    ],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "contracts/soroban/postage/src/lib.rs"
+  },
+  {
+    "title": "Add storage key migration notes for Soroban postage contract",
+    "description": "Improve contracts/soroban/postage/src/lib.rs by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The postage Soroban contract needs stronger storage key migration notes to reduce ledger integration risk.",
+    "proposed_implementation": "Review contracts/soroban/postage/src/lib.rs, add focused tests/docs as appropriate, and keep public contract semantics backward compatible.",
+    "acceptance_criteria": [
+      "Storage key migration notes is covered for postage",
+      "Existing tests continue to pass",
+      "Contract-facing behavior is documented where relevant"
+    ],
+    "labels": [
+      "Maybe Rewarded",
+      "GrantFox OSS",
+      "Official Campaign | FWC26",
+      "soroban",
+      "smart-contracts"
+    ],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "contracts/soroban/postage/src/lib.rs"
+  },
+  {
+    "title": "Add property-style invariant tests for Soroban postage contract",
+    "description": "Improve contracts/soroban/postage/src/lib.rs by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The postage Soroban contract needs stronger property-style invariant tests to reduce ledger integration risk.",
+    "proposed_implementation": "Review contracts/soroban/postage/src/lib.rs, add focused tests/docs as appropriate, and keep public contract semantics backward compatible.",
+    "acceptance_criteria": [
+      "Property-style invariant tests is covered for postage",
+      "Existing tests continue to pass",
+      "Contract-facing behavior is documented where relevant"
+    ],
+    "labels": [
+      "Maybe Rewarded",
+      "GrantFox OSS",
+      "Official Campaign | FWC26",
+      "soroban",
+      "smart-contracts"
+    ],
+    "priority": "High",
+    "estimated_complexity": "Medium",
+    "repository_area": "contracts/soroban/postage/src/lib.rs"
+  },
+  {
+    "title": "Add negative-path snapshot coverage for Soroban postage contract",
+    "description": "Improve contracts/soroban/postage/src/lib.rs by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The postage Soroban contract needs stronger negative-path snapshot coverage to reduce ledger integration risk.",
+    "proposed_implementation": "Review contracts/soroban/postage/src/lib.rs, add focused tests/docs as appropriate, and keep public contract semantics backward compatible.",
+    "acceptance_criteria": [
+      "Negative-path snapshot coverage is covered for postage",
+      "Existing tests continue to pass",
+      "Contract-facing behavior is documented where relevant"
+    ],
+    "labels": [
+      "Maybe Rewarded",
+      "GrantFox OSS",
+      "Official Campaign | FWC26",
+      "soroban",
+      "smart-contracts"
+    ],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "contracts/soroban/postage/src/lib.rs"
+  },
+  {
+    "title": "Add contract spec regeneration check for Soroban postage contract",
+    "description": "Improve contracts/soroban/postage/src/lib.rs by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The postage Soroban contract needs stronger contract spec regeneration check to reduce ledger integration risk.",
+    "proposed_implementation": "Review contracts/soroban/postage/src/lib.rs, add focused tests/docs as appropriate, and keep public contract semantics backward compatible.",
+    "acceptance_criteria": [
+      "Contract spec regeneration check is covered for postage",
+      "Existing tests continue to pass",
+      "Contract-facing behavior is documented where relevant"
+    ],
+    "labels": [
+      "Maybe Rewarded",
+      "GrantFox OSS",
+      "Official Campaign | FWC26",
+      "soroban",
+      "smart-contracts"
+    ],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "contracts/soroban/postage/src/lib.rs"
+  },
+  {
+    "title": "Add panic-free error handling audit for Soroban postage contract",
+    "description": "Improve contracts/soroban/postage/src/lib.rs by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The postage Soroban contract needs stronger panic-free error handling audit to reduce ledger integration risk.",
+    "proposed_implementation": "Review contracts/soroban/postage/src/lib.rs, add focused tests/docs as appropriate, and keep public contract semantics backward compatible.",
+    "acceptance_criteria": [
+      "Panic-free error handling audit is covered for postage",
+      "Existing tests continue to pass",
+      "Contract-facing behavior is documented where relevant"
+    ],
+    "labels": [
+      "Maybe Rewarded",
+      "GrantFox OSS",
+      "Official Campaign | FWC26",
+      "soroban",
+      "smart-contracts"
+    ],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "contracts/soroban/postage/src/lib.rs"
+  },
+  {
+    "title": "Add authorization boundary tests for Soroban receipts contract",
+    "description": "Improve contracts/soroban/receipts/src/lib.rs by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The receipts Soroban contract needs stronger authorization boundary tests to reduce ledger integration risk.",
+    "proposed_implementation": "Review contracts/soroban/receipts/src/lib.rs, add focused tests/docs as appropriate, and keep public contract semantics backward compatible.",
+    "acceptance_criteria": [
+      "Authorization boundary tests is covered for receipts",
+      "Existing tests continue to pass",
+      "Contract-facing behavior is documented where relevant"
+    ],
+    "labels": [
+      "Maybe Rewarded",
+      "GrantFox OSS",
+      "Official Campaign | FWC26",
+      "soroban",
+      "smart-contracts"
+    ],
+    "priority": "High",
+    "estimated_complexity": "Medium",
+    "repository_area": "contracts/soroban/receipts/src/lib.rs"
+  },
+  {
+    "title": "Add event schema documentation for Soroban receipts contract",
+    "description": "Improve contracts/soroban/receipts/src/lib.rs by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The receipts Soroban contract needs stronger event schema documentation to reduce ledger integration risk.",
+    "proposed_implementation": "Review contracts/soroban/receipts/src/lib.rs, add focused tests/docs as appropriate, and keep public contract semantics backward compatible.",
+    "acceptance_criteria": [
+      "Event schema documentation is covered for receipts",
+      "Existing tests continue to pass",
+      "Contract-facing behavior is documented where relevant"
+    ],
+    "labels": [
+      "Maybe Rewarded",
+      "GrantFox OSS",
+      "Official Campaign | FWC26",
+      "soroban",
+      "smart-contracts"
+    ],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "contracts/soroban/receipts/src/lib.rs"
+  },
+  {
+    "title": "Add storage key migration notes for Soroban receipts contract",
+    "description": "Improve contracts/soroban/receipts/src/lib.rs by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The receipts Soroban contract needs stronger storage key migration notes to reduce ledger integration risk.",
+    "proposed_implementation": "Review contracts/soroban/receipts/src/lib.rs, add focused tests/docs as appropriate, and keep public contract semantics backward compatible.",
+    "acceptance_criteria": [
+      "Storage key migration notes is covered for receipts",
+      "Existing tests continue to pass",
+      "Contract-facing behavior is documented where relevant"
+    ],
+    "labels": [
+      "Maybe Rewarded",
+      "GrantFox OSS",
+      "Official Campaign | FWC26",
+      "soroban",
+      "smart-contracts"
+    ],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "contracts/soroban/receipts/src/lib.rs"
+  },
+  {
+    "title": "Add property-style invariant tests for Soroban receipts contract",
+    "description": "Improve contracts/soroban/receipts/src/lib.rs by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The receipts Soroban contract needs stronger property-style invariant tests to reduce ledger integration risk.",
+    "proposed_implementation": "Review contracts/soroban/receipts/src/lib.rs, add focused tests/docs as appropriate, and keep public contract semantics backward compatible.",
+    "acceptance_criteria": [
+      "Property-style invariant tests is covered for receipts",
+      "Existing tests continue to pass",
+      "Contract-facing behavior is documented where relevant"
+    ],
+    "labels": [
+      "Maybe Rewarded",
+      "GrantFox OSS",
+      "Official Campaign | FWC26",
+      "soroban",
+      "smart-contracts"
+    ],
+    "priority": "High",
+    "estimated_complexity": "Medium",
+    "repository_area": "contracts/soroban/receipts/src/lib.rs"
+  },
+  {
+    "title": "Add negative-path snapshot coverage for Soroban receipts contract",
+    "description": "Improve contracts/soroban/receipts/src/lib.rs by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The receipts Soroban contract needs stronger negative-path snapshot coverage to reduce ledger integration risk.",
+    "proposed_implementation": "Review contracts/soroban/receipts/src/lib.rs, add focused tests/docs as appropriate, and keep public contract semantics backward compatible.",
+    "acceptance_criteria": [
+      "Negative-path snapshot coverage is covered for receipts",
+      "Existing tests continue to pass",
+      "Contract-facing behavior is documented where relevant"
+    ],
+    "labels": [
+      "Maybe Rewarded",
+      "GrantFox OSS",
+      "Official Campaign | FWC26",
+      "soroban",
+      "smart-contracts"
+    ],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "contracts/soroban/receipts/src/lib.rs"
+  },
+  {
+    "title": "Add contract spec regeneration check for Soroban receipts contract",
+    "description": "Improve contracts/soroban/receipts/src/lib.rs by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The receipts Soroban contract needs stronger contract spec regeneration check to reduce ledger integration risk.",
+    "proposed_implementation": "Review contracts/soroban/receipts/src/lib.rs, add focused tests/docs as appropriate, and keep public contract semantics backward compatible.",
+    "acceptance_criteria": [
+      "Contract spec regeneration check is covered for receipts",
+      "Existing tests continue to pass",
+      "Contract-facing behavior is documented where relevant"
+    ],
+    "labels": [
+      "Maybe Rewarded",
+      "GrantFox OSS",
+      "Official Campaign | FWC26",
+      "soroban",
+      "smart-contracts"
+    ],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "contracts/soroban/receipts/src/lib.rs"
+  },
+  {
+    "title": "Add panic-free error handling audit for Soroban receipts contract",
+    "description": "Improve contracts/soroban/receipts/src/lib.rs by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The receipts Soroban contract needs stronger panic-free error handling audit to reduce ledger integration risk.",
+    "proposed_implementation": "Review contracts/soroban/receipts/src/lib.rs, add focused tests/docs as appropriate, and keep public contract semantics backward compatible.",
+    "acceptance_criteria": [
+      "Panic-free error handling audit is covered for receipts",
+      "Existing tests continue to pass",
+      "Contract-facing behavior is documented where relevant"
+    ],
+    "labels": [
+      "Maybe Rewarded",
+      "GrantFox OSS",
+      "Official Campaign | FWC26",
+      "soroban",
+      "smart-contracts"
+    ],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "contracts/soroban/receipts/src/lib.rs"
+  },
+  {
+    "title": "Add authorization boundary tests for Soroban lifecycle contract",
+    "description": "Improve contracts/soroban/lifecycle/src/lib.rs by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The lifecycle Soroban contract needs stronger authorization boundary tests to reduce ledger integration risk.",
+    "proposed_implementation": "Review contracts/soroban/lifecycle/src/lib.rs, add focused tests/docs as appropriate, and keep public contract semantics backward compatible.",
+    "acceptance_criteria": [
+      "Authorization boundary tests is covered for lifecycle",
+      "Existing tests continue to pass",
+      "Contract-facing behavior is documented where relevant"
+    ],
+    "labels": [
+      "Maybe Rewarded",
+      "GrantFox OSS",
+      "Official Campaign | FWC26",
+      "soroban",
+      "smart-contracts"
+    ],
+    "priority": "High",
+    "estimated_complexity": "Medium",
+    "repository_area": "contracts/soroban/lifecycle/src/lib.rs"
+  },
+  {
+    "title": "Add event schema documentation for Soroban lifecycle contract",
+    "description": "Improve contracts/soroban/lifecycle/src/lib.rs by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The lifecycle Soroban contract needs stronger event schema documentation to reduce ledger integration risk.",
+    "proposed_implementation": "Review contracts/soroban/lifecycle/src/lib.rs, add focused tests/docs as appropriate, and keep public contract semantics backward compatible.",
+    "acceptance_criteria": [
+      "Event schema documentation is covered for lifecycle",
+      "Existing tests continue to pass",
+      "Contract-facing behavior is documented where relevant"
+    ],
+    "labels": [
+      "Maybe Rewarded",
+      "GrantFox OSS",
+      "Official Campaign | FWC26",
+      "soroban",
+      "smart-contracts"
+    ],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "contracts/soroban/lifecycle/src/lib.rs"
+  },
+  {
+    "title": "Add storage key migration notes for Soroban lifecycle contract",
+    "description": "Improve contracts/soroban/lifecycle/src/lib.rs by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The lifecycle Soroban contract needs stronger storage key migration notes to reduce ledger integration risk.",
+    "proposed_implementation": "Review contracts/soroban/lifecycle/src/lib.rs, add focused tests/docs as appropriate, and keep public contract semantics backward compatible.",
+    "acceptance_criteria": [
+      "Storage key migration notes is covered for lifecycle",
+      "Existing tests continue to pass",
+      "Contract-facing behavior is documented where relevant"
+    ],
+    "labels": [
+      "Maybe Rewarded",
+      "GrantFox OSS",
+      "Official Campaign | FWC26",
+      "soroban",
+      "smart-contracts"
+    ],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "contracts/soroban/lifecycle/src/lib.rs"
+  },
+  {
+    "title": "Add property-style invariant tests for Soroban lifecycle contract",
+    "description": "Improve contracts/soroban/lifecycle/src/lib.rs by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The lifecycle Soroban contract needs stronger property-style invariant tests to reduce ledger integration risk.",
+    "proposed_implementation": "Review contracts/soroban/lifecycle/src/lib.rs, add focused tests/docs as appropriate, and keep public contract semantics backward compatible.",
+    "acceptance_criteria": [
+      "Property-style invariant tests is covered for lifecycle",
+      "Existing tests continue to pass",
+      "Contract-facing behavior is documented where relevant"
+    ],
+    "labels": [
+      "Maybe Rewarded",
+      "GrantFox OSS",
+      "Official Campaign | FWC26",
+      "soroban",
+      "smart-contracts"
+    ],
+    "priority": "High",
+    "estimated_complexity": "Medium",
+    "repository_area": "contracts/soroban/lifecycle/src/lib.rs"
+  },
+  {
+    "title": "Add negative-path snapshot coverage for Soroban lifecycle contract",
+    "description": "Improve contracts/soroban/lifecycle/src/lib.rs by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The lifecycle Soroban contract needs stronger negative-path snapshot coverage to reduce ledger integration risk.",
+    "proposed_implementation": "Review contracts/soroban/lifecycle/src/lib.rs, add focused tests/docs as appropriate, and keep public contract semantics backward compatible.",
+    "acceptance_criteria": [
+      "Negative-path snapshot coverage is covered for lifecycle",
+      "Existing tests continue to pass",
+      "Contract-facing behavior is documented where relevant"
+    ],
+    "labels": [
+      "Maybe Rewarded",
+      "GrantFox OSS",
+      "Official Campaign | FWC26",
+      "soroban",
+      "smart-contracts"
+    ],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "contracts/soroban/lifecycle/src/lib.rs"
+  },
+  {
+    "title": "Add contract spec regeneration check for Soroban lifecycle contract",
+    "description": "Improve contracts/soroban/lifecycle/src/lib.rs by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The lifecycle Soroban contract needs stronger contract spec regeneration check to reduce ledger integration risk.",
+    "proposed_implementation": "Review contracts/soroban/lifecycle/src/lib.rs, add focused tests/docs as appropriate, and keep public contract semantics backward compatible.",
+    "acceptance_criteria": [
+      "Contract spec regeneration check is covered for lifecycle",
+      "Existing tests continue to pass",
+      "Contract-facing behavior is documented where relevant"
+    ],
+    "labels": [
+      "Maybe Rewarded",
+      "GrantFox OSS",
+      "Official Campaign | FWC26",
+      "soroban",
+      "smart-contracts"
+    ],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "contracts/soroban/lifecycle/src/lib.rs"
+  },
+  {
+    "title": "Add panic-free error handling audit for Soroban lifecycle contract",
+    "description": "Improve contracts/soroban/lifecycle/src/lib.rs by addressing a concrete non-UI reliability, security, integration, documentation, or developer-experience gap.",
+    "problem": "The lifecycle Soroban contract needs stronger panic-free error handling audit to reduce ledger integration risk.",
+    "proposed_implementation": "Review contracts/soroban/lifecycle/src/lib.rs, add focused tests/docs as appropriate, and keep public contract semantics backward compatible.",
+    "acceptance_criteria": [
+      "Panic-free error handling audit is covered for lifecycle",
+      "Existing tests continue to pass",
+      "Contract-facing behavior is documented where relevant"
+    ],
+    "labels": [
+      "Maybe Rewarded",
+      "GrantFox OSS",
+      "Official Campaign | FWC26",
+      "soroban",
+      "smart-contracts"
+    ],
+    "priority": "Medium",
+    "estimated_complexity": "Medium",
+    "repository_area": "contracts/soroban/lifecycle/src/lib.rs"
+  }
+]

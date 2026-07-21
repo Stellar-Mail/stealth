@@ -142,6 +142,38 @@ validateStatusTransition("resolved", "new"); // throws SecurityFlagError
 
 ---
 
+## Non-UI Execution Contract
+
+`executeSecurityFlagging(input, dependencies)` is the stable backend-facing
+entry point. Its typed input, success record, error envelope, and injected
+service boundaries are declared in `contract/execution-contract.d.ts` and
+exported through `index.ts`. It has no React, DOM, styling, or layout concerns.
+
+```js
+import { executeSecurityFlagging } from "./services/security-flagging-execution.service.mjs";
+
+const outcome = await executeSecurityFlagging(input, {
+  authorizeReporter: (email) => authorizationService.canReport(email),
+  findActiveFlag: ({ emailId, threadId }) => repository.findActive(emailId, threadId),
+  persistFlag: (record) => repository.insert(record),
+  generateId: () => crypto.randomUUID(),
+  now: () => new Date(),
+});
+```
+
+Expected failures return a discriminated `{ ok: false, error }` result with one
+of these stable codes: `INVALID_INPUT`, `UNAUTHORIZED_REPORTER`,
+`DUPLICATE_FLAG`, `PERSISTENCE_FAILED`, or `INTERNAL_ERROR`. Callers should
+branch on `error.code`, not the human-readable message.
+
+Authorization, duplicate lookup, persistence, ID generation, and time are
+caller-supplied service boundaries. This makes execution deterministic in tests
+and independent of databases, transports, and presentation code.
+
+The companion `fixtures/execution-contract-cases.json` covers deterministic
+success plus validation, authorization, duplicate, persistence, and unexpected
+dependency failures.
+
 ## Fixtures
 
 `fixtures/security-flag-cases.json` contains:

@@ -31,3 +31,27 @@ deterministic: block, allow, tier, then mailbox default.
 2. Allow always admits the sender.
 3. Tier applies sender-specific postage after verification and receipt requirements.
 4. Mailbox default applies to unknown/default senders.
+
+## Authorization boundaries
+
+- Owner mutations (`set_policy`, `set_sender_rule`, `set_sender_tier`) require
+  the owner's authorization, bound to the exact invocation arguments; a
+  signature from any other party is rejected before anything is written.
+- `set_delegate` accepts only the owner's authorization. A delegate cannot
+  grant, upgrade, or extend their own scope, even with a valid signature over
+  the call.
+- The `*_as` variants authorize the acting delegate's own signature — the
+  owner's is not required at call time — then enforce scope: an actor without
+  the matching capability receives the typed `UnauthorizedDelegate` error,
+  never a silent write. Scopes are not transitive: `can_set_senders` does not
+  imply `can_set_policy`, and vice versa.
+- Revoking a delegate (both scope flags false) removes their authority
+  immediately; subsequent delegated mutations fail with
+  `UnauthorizedDelegate`.
+- Failed mutations never bump the policy version and never write sender rules
+  or tiers, so the version is a reliable change marker for cached readers.
+- All reads (`get_policy`, `get_versioned_policy`, `policy_version`,
+  `delegate_scope`, `sender_rule`, `sender_tier`) and the decision functions
+  (`evaluate`, `can_mail`) are public and require no authorization.
+
+These boundaries are pinned by the `auth_boundaries` tests in `src/lib.rs`.

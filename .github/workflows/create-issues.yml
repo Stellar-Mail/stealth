@@ -1,0 +1,160 @@
+name: Create campaign issues
+
+on:
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  create-issues:
+    name: Create GitHub issues from github-issues.json
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Create required labels and issues
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+
+            const issuesPath = 'github-issues.json';
+            const requiredLabels = [
+              { name: 'Maybe Rewarded', color: '7057ff', description: 'Issue may be eligible for contributor rewards.' },
+              { name: 'GrantFox OSS', color: '0e8a16', description: 'GrantFox open source campaign issue.' },
+              { name: 'Official Campaign | FWC26', color: 'fbca04', description: 'Official FWC26 campaign issue.' },
+            ];
+
+            const raw = fs.readFileSync(issuesPath, 'utf8');
+            const issues = JSON.parse(raw);
+
+            if (!Array.isArray(issues)) {
+              throw new Error(`${issuesPath} must contain a JSON array.`);
+            }
+
+            if (issues.length !== 100) {
+              throw new Error(`${issuesPath} must contain exactly 100 issues; found ${issues.length}.`);
+            }
+
+            const labelDefaults = new Map([
+              ...requiredLabels.map((label) => [label.name, label]),
+              ['api', { name: 'api', color: '1d76db', description: 'API and integration work.' }],
+              ['postage', { name: 'postage', color: '5319e7', description: 'Postage and escrow functionality.' }],
+              ['payments', { name: 'payments', color: '006b75', description: 'Payment processing and settlement work.' }],
+              ['documentation', { name: 'documentation', color: '0075ca', description: 'Documentation improvements.' }],
+              ['receipts', { name: 'receipts', color: 'bfdadc', description: 'Delivery and read receipt work.' }],
+              ['testing', { name: 'testing', color: 'c2e0c6', description: 'Testing and quality assurance.' }],
+              ['authorization', { name: 'authorization', color: 'd93f0b', description: 'Authentication and authorization work.' }],
+              ['policies', { name: 'policies', color: 'b60205', description: 'Policy engine and policy APIs.' }],
+              ['audit', { name: 'audit', color: 'fbca04', description: 'Auditability and traceability.' }],
+              ['security', { name: 'security', color: 'ee0701', description: 'Security and privacy hardening.' }],
+              ['tooling', { name: 'tooling', color: '5319e7', description: 'Developer and product tooling.' }],
+              ['non-ui', { name: 'non-ui', color: '0e8a16', description: 'Non-visual implementation work.' }],
+              ['soroban', { name: 'soroban', color: '5319e7', description: 'Soroban contract and Stellar work.' }],
+              ['smart-contracts', { name: 'smart-contracts', color: '5319e7', description: 'Smart contract implementation and verification.' }],
+              ['ci', { name: 'ci', color: '0e8a16', description: 'Continuous integration and automation.' }],
+              ['code-quality', { name: 'code-quality', color: 'c5def5', description: 'Refactoring and maintainability.' }],
+              ['configuration', { name: 'configuration', color: 'fef2c0', description: 'Configuration and environment management.' }],
+              ['logging', { name: 'logging', color: 'bfd4f2', description: 'Logging and monitoring work.' }],
+            ]);
+
+            const labelsToEnsure = new Map(labelDefaults);
+            for (const issue of issues) {
+              for (const labelName of issue.labels || []) {
+                if (!labelsToEnsure.has(labelName)) {
+                  labelsToEnsure.set(labelName, {
+                    name: labelName,
+                    color: 'ededed',
+                    description: 'Campaign issue classification.',
+                  });
+                }
+              }
+            }
+
+            for (const label of labelsToEnsure.values()) {
+              try {
+                await github.rest.issues.getLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  name: label.name,
+                });
+                core.info(`Label already exists: ${label.name}`);
+              } catch (error) {
+                if (error.status !== 404) {
+                  throw error;
+                }
+
+                await github.rest.issues.createLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  ...label,
+                });
+                core.info(`Created label: ${label.name}`);
+              }
+            }
+
+            const existing = await github.paginate(github.rest.issues.listForRepo, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'all',
+              per_page: 100,
+            });
+
+            const existingTitles = new Set(
+              existing
+                .filter((issue) => !issue.pull_request)
+                .map((issue) => issue.title.trim().toLowerCase()),
+            );
+
+            let created = 0;
+            let skipped = 0;
+
+            for (const [index, issue] of issues.entries()) {
+              const missingLabels = requiredLabels
+                .map((label) => label.name)
+                .filter((label) => !issue.labels?.includes(label));
+
+              if (missingLabels.length > 0) {
+                throw new Error(`Issue ${index + 1} is missing required labels: ${missingLabels.join(', ')}`);
+              }
+
+              const normalizedTitle = issue.title.trim().toLowerCase();
+              if (existingTitles.has(normalizedTitle)) {
+                core.info(`Skipping existing issue: ${issue.title}`);
+                skipped += 1;
+                continue;
+              }
+
+              const body = [
+                issue.description,
+                '',
+                '## Problem',
+                issue.problem,
+                '',
+                '## Proposed implementation',
+                issue.proposed_implementation,
+                '',
+                '## Acceptance criteria',
+                ...issue.acceptance_criteria.map((criterion) => `- [ ] ${criterion}`),
+                '',
+                '## Metadata',
+                `- Priority: ${issue.priority}`,
+                `- Estimated complexity: ${issue.estimated_complexity}`,
+                `- Repository area: ${issue.repository_area}`,
+              ].join('\n');
+
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: issue.title,
+                body,
+                labels: issue.labels,
+              });
+              existingTitles.add(normalizedTitle);
+              created += 1;
+            }
+
+            core.info(`Issue creation complete. Created: ${created}; skipped existing: ${skipped}.`);

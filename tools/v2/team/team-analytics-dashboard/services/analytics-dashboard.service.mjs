@@ -53,6 +53,10 @@ function findReviewRequired(members) {
   return members.filter((m) => m.slaBreaches > 0).map((m) => m.memberId);
 }
 
+/**
+ * @param {import("../contract/analytics-contract").DashboardInput} data
+ * @returns {import("../contract/analytics-contract").DashboardReport}
+ */
 export function generateDashboardReport(data) {
   validateDashboardData(data);
 

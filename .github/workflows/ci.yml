@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   client-checks:
@@ -44,6 +45,7 @@ jobs:
         with:
           name: client-dist
           path: dist/
+          retention-days: 1
 
   contract-checks:
     name: Contract Checks
@@ -94,6 +96,7 @@ jobs:
         with:
           name: contract-wasm
           path: contracts/soroban/target/wasm32v1-none/release/*.wasm
+          retention-days: 1
 
   e2e:
     name: E2E Tests
@@ -161,6 +164,9 @@ jobs:
 
       - name: Download all artifacts
         uses: actions/download-artifact@v4
+        with:
+          path: ./artifacts
+        continue-on-error: true
 
       - name: Generate SHA-256 Hashes
         run: |

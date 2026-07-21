@@ -1,83 +1,24 @@
-# Reviewer Validation Guide - Role-Based Mail Access UI
+# Reviewer Validation Notes
 
-This guide assists reviewers and OSS contributors in testing the Role-Based Mail Access Control Plane user interface.
+This guide is for OSS contributors validating the isolated Role-Based Mail Access tool.
 
----
+## Fast Checks
 
-## 1. Quick Verification Checklist
+- Run [../tests/test-plan.md](../tests/test-plan.md) from top to bottom.
+- Confirm `node --test tools/v2/team/role-based-mail-access/tests/access-guards.test.mjs` passes.
+- Confirm `npx vitest -c tools/v2/team/role-based-mail-access/vitest.config.ts run` passes when dependencies are installed.
+- Check that no file outside `tools/v2/team/role-based-mail-access/` changed for this issue.
 
-- [ ] Node.js guard tests pass (`node --test tools/v2/team/role-based-mail-access/tests/access-guards.test.mjs`).
-- [ ] Vitest service tests pass (`npx vitest -c tools/v2/team/role-based-mail-access/vitest.config.ts run`).
-- [ ] Prettier formatting is clean.
-- [ ] Verification form catches malformed inputs (invalid email format, special chars in threadIds).
-- [ ] Matrix checks dynamically grant or block requests.
-- [ ] Threat Scan correctly identifies and rejects all 19 hostile payloads.
-- [ ] Team size and attachment bounds limits trigger limit checks.
+## What To Review
 
----
+1. The guard suite should reject every hostile payload in `fixtures/sample-access-requests.json`.
+2. The service tests should show that policies, logs, and size limits behave independently of the main app.
+3. The docs should explain setup, usage, fixture scope, and known limitations without referencing the main app shell.
+4. The folder should remain easy to remove or refactor later because nothing is wired into app-wide routing or state.
 
-## 2. Running the Test Suites
+## Expected Results
 
-### Unit Guard Tests (Node.js)
-
-```bash
-node --test tools/v2/team/role-based-mail-access/tests/access-guards.test.mjs
-```
-
-_Expected: 32 tests passed._
-
-### UI Service State Tests (Vitest)
-
-```bash
-npx vitest -c tools/v2/team/role-based-mail-access/vitest.config.ts run
-```
-
-_Expected: 12 tests passed._
-
----
-
-## 3. Interactive Walkthrough Validation (UI/UX)
-
-If testing the demo harness visually in your local sandboxed app, check the following interactive paths:
-
-### A. Simulating Access Requests (Presets)
-
-1. Click the preset card `req-001` (Role: manager, Action: assign).
-2. Observe:
-   - Form fields auto-fill.
-   - A pulsing "Evaluating..." state is displayed for 800ms.
-   - An alert shows: `✓ Access Authorization Succeeded` (granted outcome).
-   - An entry is logged in the "Clearance Check Audit Trail".
-3. Click the preset card `req-003` (Role: viewer, Action: write).
-4. Observe:
-   - A pulsing "Evaluating..." state is displayed for 800ms.
-   - An alert shows: `✕ Access Authorization Denied` (since viewers cannot write).
-   - An audit entry is appended.
-
-### B. Dynamically Modifying Access Policies
-
-1. Select the preset `req-003` (viewer, write) and check that access is denied.
-2. Go to the **Access Level Control Matrix** table.
-3. Check the box under row **viewer**, column **write**.
-4. Submit the verifier form again with `viewer` and `write`.
-5. Observe:
-   - The result shifts to **Granted**, proving permission policies bind dynamically.
-
-### C. Threat Scan Verification
-
-1. Click the red button **🛡 Run Threat Scan** in the console header.
-2. Observe:
-   - A loading scanner status pulse starts, evaluating the 19 hostile vectors.
-   - An alert appears: `✓ Threat Scanning Validation Succeeded`.
-   - The text confirms that all 19 hostile vectors (e.g. CRLF header injects, null-byte hacks, path traversals) were successfully blocked and logged.
-
-### D. Size Limits Guard Check
-
-1. Locate the **Boundary Limit Verifiers** panel.
-2. Increase the "Simulated Team Size" field to `501`.
-3. Observe:
-   - The status badge shifts from "Safe" to "Limit Exceeded".
-   - A validation message appears: `team size 501 exceeds safe limit of 500`.
-4. Increase "Simulated Attachment Count" to `101`.
-5. Observe:
-   - The status badge shifts to "Limit Exceeded" with: `attachment count 101 exceeds safe limit of 100`.
+- The Node guard suite covers sanitization, validation, limits, and fixture contract checks.
+- The Vitest suite covers core service behavior, log order, policy updates, and isolation boundaries.
+- The fixture file remains local and readable.
+- The tool stays a self-contained mini-product until a future integration issue is approved.

@@ -1,15 +1,26 @@
 # Mail-to-Ticket Converter
 
-This folder is the isolated workspace for the Mail-to-Ticket Converter tool.
+Folder-local architecture contract for the V2 Mail-to-Ticket Converter team tool.
+The tool will turn normalized mail data into reviewable ticket drafts, but this
+issue does not implement or integrate that behavior.
 
-## Ownership Boundary
+## Status
 
-All work for this tool must stay inside:
+- Release tier: V2 later-release tool
+- Audience: Team
+- Integration status: Isolated and not mounted in the main application
+- Owned path: `tools/v2/team/mail-to-ticket-converter/`
 
-`text
-.\tools\v2\team\mail-to-ticket-converter\
-`
+## Documents
 
-Do not wire this tool into the main app, routing, inbox architecture, wallet core, Stellar core, database schema, or existing design system unless a future integration issue explicitly allows it.
+- [Architecture](ARCHITECTURE.md) defines module responsibilities and dependency
+  direction.
+- [Specification](specs.md) defines the future tool contract and non-goals.
+- [Data ownership](docs/data-ownership.md) defines input, derived, and persisted
+  data boundaries.
+- [Integration constraints](docs/integration-constraints.md) defines allowed and
+  forbidden dependencies.
+- [Test plan](tests/test-plan.md) defines future contract-level coverage.
 
-See specs.md for the issue categories and contributor expectations.
+All future work for this tool must remain inside this directory until a separate
+integration issue explicitly authorizes changes elsewhere.

@@ -15,3 +15,6 @@ export type { ErrorStateProps } from "./error-state";
 
 export { SuccessState } from "./success-state";
 export type { SuccessStateProps } from "./success-state";
+
+export { TeamPaymentApprovalTool } from "./team-payment-approval-tool";
+export type { TeamPaymentApprovalToolProps } from "./team-payment-approval-tool";

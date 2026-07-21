@@ -1,0 +1,76 @@
+{
+  "successCases": [
+    {
+      "input": {
+        "action": "UPDATE_CONFIG",
+        "payload": {
+          "summarySettings": {
+            "length": "short",
+            "style": "bullet_points"
+          }
+        }
+      },
+      "expectedOutput": {
+        "success": true,
+        "data": {
+          "summarySettings": {
+            "length": "short",
+            "style": "bullet_points",
+            "includeKeywords": false,
+            "language": "en"
+          },
+          "processingLimits": {
+            "maxFileSizeBytes": 52428800,
+            "supportedMimeTypes": ["application/pdf"]
+          }
+        }
+      }
+    },
+    {
+      "input": {
+        "action": "GET_CONFIG"
+      },
+      "expectedOutput": {
+        "success": true,
+        "data": {
+          "summarySettings": {
+            "length": "medium",
+            "style": "paragraph",
+            "includeKeywords": false,
+            "language": "en"
+          },
+          "processingLimits": {
+            "maxFileSizeBytes": 52428800,
+            "supportedMimeTypes": ["application/pdf"]
+          }
+        }
+      }
+    }
+  ],
+  "failureCases": [
+    {
+      "input": {
+        "action": "UPDATE_CONFIG"
+      },
+      "expectedOutput": {
+        "success": false,
+        "error": {
+          "code": "VALIDATION_ERROR",
+          "message": "summarySettings are required for UPDATE_CONFIG"
+        }
+      }
+    },
+    {
+      "input": {
+        "action": "UNKNOWN_ACTION"
+      },
+      "expectedOutput": {
+        "success": false,
+        "error": {
+          "code": "ACTION_NOT_SUPPORTED",
+          "message": "Action UNKNOWN_ACTION is not supported"
+        }
+      }
+    }
+  ]
+}

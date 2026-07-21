@@ -115,6 +115,33 @@ describe("buildCommands availability", () => {
     ).toBe(false);
   });
 
+  it("disables archive when thread is in trash", () => {
+    expect(
+      availability(ctxOf({ email: email({ folder: "trash" }) })).get("archive-thread")?.enabled,
+    ).toBe(false);
+    expect(
+      availability(ctxOf({ email: email({ folder: "trash" }) })).get("archive-thread")?.help,
+    ).toBe("This thread is in the trash.");
+  });
+
+  it("enables/disables refund based on paid labels or folder states", () => {
+    // Paid request: enabled
+    expect(
+      availability(ctxOf({ email: email({ folder: "requests", labels: ["Paid"] }) })).get(
+        "refund-postage",
+      )?.enabled,
+    ).toBe(true);
+    // Free inbox message: disabled
+    expect(
+      availability(ctxOf({ email: email({ folder: "inbox", labels: [] }) })).get("refund-postage")
+        ?.enabled,
+    ).toBe(false);
+    // Spam message: enabled (can refund senders turned away)
+    expect(
+      availability(ctxOf({ email: email({ folder: "spam" }) })).get("refund-postage")?.enabled,
+    ).toBe(true);
+  });
+
   it("marks block and refund as dangerous with confirmation copy", () => {
     const commands = buildCommands(ctxOf({ email: email({ folder: "requests" }) }));
     const block = commands.find((c) => c.id === "block-sender")!;
@@ -144,6 +171,27 @@ describe("fuzzyScore", () => {
   it("rewards word-boundary matches", () => {
     expect(fuzzyScore("send", "Approve sender")).toBeGreaterThan(0);
   });
+
+  it("matches case-insensitively", () => {
+    expect(fuzzyScore("COMPOSE", "Compose new email")).toBeGreaterThan(0);
+    expect(fuzzyScore("COMPOSE", "Compose new email")).toEqual(
+      fuzzyScore("compose", "Compose new email"),
+    );
+  });
+
+  it("ignores leading and trailing whitespace", () => {
+    expect(fuzzyScore("  compose  ", "Compose new email")).toEqual(
+      fuzzyScore("compose", "Compose new email"),
+    );
+  });
+
+  it("returns -1 when the query is longer than the target text", () => {
+    expect(fuzzyScore("compose new email with more words", "compose")).toBe(-1);
+  });
+
+  it("prefers shorter matching targets", () => {
+    expect(fuzzyScore("comp", "Compose")).toBeGreaterThan(fuzzyScore("comp", "Compose new email"));
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -151,8 +199,15 @@ describe("fuzzyScore", () => {
 // ---------------------------------------------------------------------------
 describe("buildPaletteModel", () => {
   const emails = [
-    email({ id: "1", from: "Lina Park", email: "lina*vantage.studio" }),
-    email({ id: "5", from: "Unknown Sender", email: "GCKN...N4XQ", folder: "requests" }),
+    email({ id: "1", from: "Lina Park", email: "lina*vantage.studio", subject: "Design Sync" }),
+    email({
+      id: "5",
+      from: "Unknown Sender",
+      email: "GCKN...N4XQ",
+      folder: "requests",
+      subject: "Postage Due",
+    }),
+    email({ id: "6", from: "Lina Park", email: "lina*vantage.studio", subject: "Re: Design Sync" }),
   ];
 
   it("shows contextual command groups for an empty query", () => {
@@ -175,6 +230,30 @@ describe("buildPaletteModel", () => {
     expect(senders?.rows.some((r) => r.type === "sender")).toBe(true);
   });
 
+  it("fuzzy-finds settings by label or keywords", () => {
+    const sections = buildPaletteModel(ctxOf(), "theme", emails);
+    const settings = sections.find((s) => s.id === "settings");
+    expect(settings?.rows.some((r) => r.type === "setting" && r.setting.id === "appearance")).toBe(
+      true,
+    );
+  });
+
+  it("filters out duplicate senders by email address", () => {
+    const sections = buildPaletteModel(ctxOf(), "lina", emails);
+    const senders = sections.find((s) => s.id === "senders")?.rows || [];
+    // Should only have one unique Lina Park sender row, not two.
+    expect(senders.length).toBe(1);
+    expect(senders[0].type).toBe("sender");
+    if (senders[0].type === "sender") {
+      expect(senders[0].email.id).toBe("1");
+    }
+  });
+
+  it("returns no sections when nothing matches", () => {
+    const sections = buildPaletteModel(ctxOf(), "completelymatchingnothing12345", emails);
+    expect(sections.length).toBe(0);
+  });
+
   it("excludes disabled commands from keyboard-selectable rows", () => {
     const sections = buildPaletteModel(ctxOf({ email: null }), "", emails);
     const selectable = selectableRows(sections);
@@ -182,5 +261,13 @@ describe("buildPaletteModel", () => {
       (row) => row.type === "command" && !row.command.availability.enabled,
     );
     expect(hasDisabled).toBe(false);
+  });
+
+  it("includes all other active rows in selectableRows", () => {
+    const sections = buildPaletteModel(ctxOf({ email: emails[0] }), "lina", emails);
+    const selectable = selectableRows(sections);
+    // Should have both command and sender rows if they match.
+    expect(selectable.length).toBeGreaterThan(0);
+    expect(selectable.some((r) => r.type === "sender")).toBe(true);
   });
 });

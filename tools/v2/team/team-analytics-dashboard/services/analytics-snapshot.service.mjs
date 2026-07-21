@@ -48,6 +48,10 @@ function buildSnapshot(report) {
   };
 }
 
+/**
+ * @param {import("../contract/analytics-contract").SourceReport[]} sourceReports
+ * @returns {import("../contract/analytics-contract").AnalyticsSnapshot[]}
+ */
 export function generateSnapshots(sourceReports) {
   validateSourceReports(sourceReports);
   return sourceReports.map(buildSnapshot);

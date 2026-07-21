@@ -61,6 +61,15 @@ pub struct PolicyDecision {
     pub version: u32,
 }
 
+/// Storage Key Migration Notes:
+///
+/// The `DataKey` enum defines the keys for persistent storage in the Soroban environment.
+/// - When introducing new variants, **ALWAYS append them to the end** of this enum to preserve
+///   backward compatibility with Soroban's underlying XDR serialization.
+/// - **NEVER reorder or remove existing variants**. Doing so will corrupt the contract's ability
+///   to read previously written data from the ledger, leading to catastrophic failure.
+/// - If a variant's inner types must be changed or a key structure is deprecated, leave the old
+///   variant intact and append a new one (e.g., `PolicyV2(Address)`).
 #[contracttype]
 #[derive(Clone)]
 enum DataKey {
@@ -787,5 +796,503 @@ mod test {
                 },
             )
             .is_ok());
+    }
+
+    #[test]
+    fn negative_path_coverage() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let contract_id = env.register(PoliciesContract, ());
+        let client = PoliciesContractClient::new(&env, &contract_id);
+        let owner = Address::generate(&env);
+        let sender = Address::generate(&env);
+        let rando = Address::generate(&env);
+
+        // Negative path: unauthorized actor tries to set policy
+        assert_eq!(
+            client.try_set_policy_as(
+                &owner,
+                &rando,
+                &MailboxPolicy {
+                    allow_unknown: true,
+                    require_verified: false,
+                    require_receipt: false,
+                    minimum_postage: 0,
+                },
+            ),
+            Err(Ok(Error::UnauthorizedDelegate))
+        );
+
+        // Negative path: unauthorized actor tries to set sender rule
+        assert_eq!(
+            client.try_set_sender_rule_as(&owner, &rando, &sender, &SenderRule::Allow),
+            Err(Ok(Error::UnauthorizedDelegate))
+        );
+
+        // Negative path: unauthorized actor tries to set sender tier
+        assert_eq!(
+            client.try_set_sender_tier_as(&owner, &rando, &sender, &10),
+            Err(Ok(Error::UnauthorizedDelegate))
+        );
+
+        // Negative path: invalid postage (< 0) when setting policy
+        assert_eq!(
+            client.try_set_policy(
+                &owner,
+                &MailboxPolicy {
+                    allow_unknown: true,
+                    require_verified: false,
+                    require_receipt: false,
+                    minimum_postage: -1,
+                }
+            ),
+            Err(Ok(Error::InvalidPostage))
+        );
+
+        // Negative path: invalid postage (< 0) when setting sender tier
+        assert_eq!(
+            client.try_set_sender_tier(&owner, &sender, &-1),
+            Err(Ok(Error::InvalidPostage))
+        );
+    }
+}
+
+#[cfg(test)]
+mod proptests {
+    use super::*;
+    use proptest::prelude::*;
+    use soroban_sdk::testutils::Address as _;
+    use soroban_sdk::Env;
+
+    proptest! {
+        #[test]
+        fn property_blocked_sender_is_never_allowed(
+            postage in 0i128..10_000_000_000i128,
+            verified in any::<bool>(),
+            receipt in any::<bool>(),
+            allow_unknown in any::<bool>(),
+            require_verified in any::<bool>(),
+            require_receipt in any::<bool>(),
+            minimum_postage in 0i128..10_000i128,
+            has_tier in any::<bool>(),
+            tier_postage in 0i128..10_000i128,
+        ) {
+            let env = Env::default();
+            env.mock_all_auths();
+            let contract_id = env.register(PoliciesContract, ());
+            let client = PoliciesContractClient::new(&env, &contract_id);
+            let owner = Address::generate(&env);
+            let sender = Address::generate(&env);
+
+            client.set_policy(
+                &owner,
+                &MailboxPolicy {
+                    allow_unknown,
+                    require_verified,
+                    require_receipt,
+                    minimum_postage,
+                },
+            );
+
+            if has_tier {
+                client.set_sender_tier(&owner, &sender, &tier_postage);
+            }
+            client.set_sender_rule(&owner, &sender, &SenderRule::Block);
+
+            let decision = client.evaluate(&owner, &sender, &verified, &postage, &receipt);
+            prop_assert!(!decision.allowed);
+            prop_assert_eq!(decision.reason, PolicyReason::SenderBlocked);
+        }
+
+        #[test]
+        fn property_allowed_sender_is_always_allowed(
+            postage in 0i128..10_000_000_000i128,
+            verified in any::<bool>(),
+            receipt in any::<bool>(),
+            allow_unknown in any::<bool>(),
+            require_verified in any::<bool>(),
+            require_receipt in any::<bool>(),
+            minimum_postage in 0i128..10_000i128,
+            has_tier in any::<bool>(),
+            tier_postage in 0i128..10_000i128,
+        ) {
+            let env = Env::default();
+            env.mock_all_auths();
+            let contract_id = env.register(PoliciesContract, ());
+            let client = PoliciesContractClient::new(&env, &contract_id);
+            let owner = Address::generate(&env);
+            let sender = Address::generate(&env);
+
+            client.set_policy(
+                &owner,
+                &MailboxPolicy {
+                    allow_unknown,
+                    require_verified,
+                    require_receipt,
+                    minimum_postage,
+                },
+            );
+
+            if has_tier {
+                client.set_sender_tier(&owner, &sender, &tier_postage);
+            }
+            client.set_sender_rule(&owner, &sender, &SenderRule::Allow);
+
+            let decision = client.evaluate(&owner, &sender, &verified, &postage, &receipt);
+            prop_assert!(decision.allowed);
+            prop_assert_eq!(decision.reason, PolicyReason::SenderAllowed);
+        }
+
+        #[test]
+        fn property_tier_satisfaction_trumps_default_policy(
+            postage in 0i128..10_000_000_000i128,
+            verified in any::<bool>(),
+            receipt in any::<bool>(),
+            allow_unknown in any::<bool>(),
+            require_verified in any::<bool>(),
+            require_receipt in any::<bool>(),
+            minimum_postage in 0i128..10_000i128,
+            tier_postage in 0i128..10_000_000_000i128,
+        ) {
+            let env = Env::default();
+            env.mock_all_auths();
+            let contract_id = env.register(PoliciesContract, ());
+            let client = PoliciesContractClient::new(&env, &contract_id);
+            let owner = Address::generate(&env);
+            let sender = Address::generate(&env);
+
+            client.set_policy(
+                &owner,
+                &MailboxPolicy {
+                    allow_unknown,
+                    require_verified,
+                    require_receipt,
+                    minimum_postage,
+                },
+            );
+
+            // Using tier implies SenderRule::Default is active
+            client.set_sender_tier(&owner, &sender, &tier_postage);
+
+            // Tier evaluation happens after verification & receipt checks.
+            let decision = client.evaluate(&owner, &sender, &verified, &postage, &receipt);
+
+            if require_verified && !verified {
+                prop_assert!(!decision.allowed);
+                prop_assert_eq!(decision.reason, PolicyReason::VerificationRequired);
+            } else if require_receipt && !receipt {
+                prop_assert!(!decision.allowed);
+                prop_assert_eq!(decision.reason, PolicyReason::ReceiptRequired);
+            } else {
+                if postage >= tier_postage {
+                    prop_assert!(decision.allowed);
+                    prop_assert_eq!(decision.reason, PolicyReason::TierSatisfied);
+                } else {
+                    prop_assert!(!decision.allowed);
+                    prop_assert_eq!(decision.reason, PolicyReason::InsufficientPostage);
+                }
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod auth_boundaries {
+    use super::*;
+    use soroban_sdk::{
+        testutils::{
+            Address as _, AuthorizedFunction, AuthorizedInvocation, MockAuth, MockAuthInvoke,
+        },
+        IntoVal, Symbol,
+    };
+
+    fn permissive_policy() -> MailboxPolicy {
+        MailboxPolicy {
+            allow_unknown: true,
+            require_verified: false,
+            require_receipt: false,
+            minimum_postage: 5,
+        }
+    }
+
+    fn senders_scope() -> DelegateScope {
+        DelegateScope {
+            can_set_policy: false,
+            can_set_senders: true,
+        }
+    }
+
+    #[test]
+    fn set_policy_fails_without_owner_authorization() {
+        let env = Env::default();
+        let contract_id = env.register(PoliciesContract, ());
+        let client = PoliciesContractClient::new(&env, &contract_id);
+        let owner = Address::generate(&env);
+
+        env.set_auths(&[]);
+        assert!(client.try_set_policy(&owner, &permissive_policy()).is_err());
+
+        // Nothing was written: defaults still apply and the version is unbumped.
+        assert_eq!(client.get_policy(&owner).allow_unknown, false);
+        assert_eq!(client.policy_version(&owner), 0);
+    }
+
+    #[test]
+    fn set_policy_fails_when_another_party_authorizes() {
+        let env = Env::default();
+        let contract_id = env.register(PoliciesContract, ());
+        let client = PoliciesContractClient::new(&env, &contract_id);
+        let owner = Address::generate(&env);
+        let stranger = Address::generate(&env);
+        let policy = permissive_policy();
+
+        env.mock_auths(&[MockAuth {
+            address: &stranger,
+            invoke: &MockAuthInvoke {
+                contract: &contract_id,
+                fn_name: "set_policy",
+                args: (owner.clone(), policy).into_val(&env),
+                sub_invokes: &[],
+            },
+        }]);
+        assert!(client.try_set_policy(&owner, &policy).is_err());
+        assert_eq!(client.policy_version(&owner), 0);
+    }
+
+    #[test]
+    fn owner_authorization_is_bound_to_exact_arguments() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let contract_id = env.register(PoliciesContract, ());
+        let client = PoliciesContractClient::new(&env, &contract_id);
+        let owner = Address::generate(&env);
+        let policy = permissive_policy();
+
+        client.set_policy(&owner, &policy);
+        assert_eq!(
+            env.auths(),
+            [(
+                owner.clone(),
+                AuthorizedInvocation {
+                    function: AuthorizedFunction::Contract((
+                        contract_id,
+                        Symbol::new(&env, "set_policy"),
+                        (owner.clone(), policy).into_val(&env),
+                    )),
+                    sub_invocations: [].into(),
+                }
+            )]
+        );
+    }
+
+    #[test]
+    fn set_delegate_requires_owner_not_delegate() {
+        let env = Env::default();
+        let contract_id = env.register(PoliciesContract, ());
+        let client = PoliciesContractClient::new(&env, &contract_id);
+        let owner = Address::generate(&env);
+        let delegate = Address::generate(&env);
+        let scope = senders_scope();
+
+        // A delegate cannot grant themselves scope with only their own auth.
+        env.mock_auths(&[MockAuth {
+            address: &delegate,
+            invoke: &MockAuthInvoke {
+                contract: &contract_id,
+                fn_name: "set_delegate",
+                args: (owner.clone(), delegate.clone(), scope).into_val(&env),
+                sub_invokes: &[],
+            },
+        }]);
+        assert!(client.try_set_delegate(&owner, &delegate, &scope).is_err());
+
+        env.set_auths(&[]);
+        assert!(client.try_set_delegate(&owner, &delegate, &scope).is_err());
+
+        env.mock_all_auths();
+        let stored = client.delegate_scope(&owner, &delegate);
+        assert!(!stored.can_set_policy && !stored.can_set_senders);
+    }
+
+    #[test]
+    fn unscoped_actor_is_rejected_with_unauthorized_delegate() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let contract_id = env.register(PoliciesContract, ());
+        let client = PoliciesContractClient::new(&env, &contract_id);
+        let owner = Address::generate(&env);
+        let actor = Address::generate(&env);
+        let sender = Address::generate(&env);
+
+        // Even with the actor's own authorization present, no scope means the
+        // typed contract error — not a silent write.
+        assert_eq!(
+            client
+                .try_set_policy_as(&owner, &actor, &permissive_policy())
+                .unwrap_err()
+                .unwrap(),
+            Error::UnauthorizedDelegate
+        );
+        assert_eq!(
+            client
+                .try_set_sender_rule_as(&owner, &actor, &sender, &SenderRule::Block)
+                .unwrap_err()
+                .unwrap(),
+            Error::UnauthorizedDelegate
+        );
+        assert_eq!(
+            client
+                .try_set_sender_tier_as(&owner, &actor, &sender, &10)
+                .unwrap_err()
+                .unwrap(),
+            Error::UnauthorizedDelegate
+        );
+
+        // Failed mutations must not bump the version or write any state.
+        assert_eq!(client.policy_version(&owner), 0);
+        assert_eq!(client.sender_rule(&owner, &sender), SenderRule::Default);
+        assert_eq!(client.sender_tier(&owner, &sender), None);
+    }
+
+    #[test]
+    fn delegate_scope_is_not_transitive_across_capabilities() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let contract_id = env.register(PoliciesContract, ());
+        let client = PoliciesContractClient::new(&env, &contract_id);
+        let owner = Address::generate(&env);
+        let sender_delegate = Address::generate(&env);
+        let policy_delegate = Address::generate(&env);
+        let sender = Address::generate(&env);
+
+        client.set_delegate(&owner, &sender_delegate, &senders_scope());
+        client.set_delegate(
+            &owner,
+            &policy_delegate,
+            &DelegateScope {
+                can_set_policy: true,
+                can_set_senders: false,
+            },
+        );
+
+        // Sender scope does not imply policy scope, and vice versa.
+        assert_eq!(
+            client
+                .try_set_policy_as(&owner, &sender_delegate, &permissive_policy())
+                .unwrap_err()
+                .unwrap(),
+            Error::UnauthorizedDelegate
+        );
+        assert_eq!(
+            client
+                .try_set_sender_tier_as(&owner, &policy_delegate, &sender, &10)
+                .unwrap_err()
+                .unwrap(),
+            Error::UnauthorizedDelegate
+        );
+    }
+
+    #[test]
+    fn delegated_mutation_requires_only_the_actors_authorization() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let contract_id = env.register(PoliciesContract, ());
+        let client = PoliciesContractClient::new(&env, &contract_id);
+        let owner = Address::generate(&env);
+        let delegate = Address::generate(&env);
+        let sender = Address::generate(&env);
+
+        client.set_delegate(&owner, &delegate, &senders_scope());
+
+        // The delegate acts with their own signature; the owner's is not needed.
+        env.mock_auths(&[MockAuth {
+            address: &delegate,
+            invoke: &MockAuthInvoke {
+                contract: &contract_id,
+                fn_name: "set_sender_rule_as",
+                args: (
+                    owner.clone(),
+                    delegate.clone(),
+                    sender.clone(),
+                    SenderRule::Allow,
+                )
+                    .into_val(&env),
+                sub_invokes: &[],
+            },
+        }]);
+        assert!(client
+            .try_set_sender_rule_as(&owner, &delegate, &sender, &SenderRule::Allow)
+            .is_ok());
+
+        // Without any authorization the same delegated call fails.
+        env.set_auths(&[]);
+        assert!(client
+            .try_set_sender_rule_as(&owner, &delegate, &sender, &SenderRule::Block)
+            .is_err());
+
+        env.mock_all_auths();
+        assert_eq!(client.sender_rule(&owner, &sender), SenderRule::Allow);
+    }
+
+    #[test]
+    fn revoked_delegate_loses_authority() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let contract_id = env.register(PoliciesContract, ());
+        let client = PoliciesContractClient::new(&env, &contract_id);
+        let owner = Address::generate(&env);
+        let delegate = Address::generate(&env);
+        let sender = Address::generate(&env);
+
+        client.set_delegate(&owner, &delegate, &senders_scope());
+        assert!(client
+            .try_set_sender_rule_as(&owner, &delegate, &sender, &SenderRule::Allow)
+            .is_ok());
+
+        client.set_delegate(
+            &owner,
+            &delegate,
+            &DelegateScope {
+                can_set_policy: false,
+                can_set_senders: false,
+            },
+        );
+        assert_eq!(
+            client
+                .try_set_sender_rule_as(&owner, &delegate, &sender, &SenderRule::Block)
+                .unwrap_err()
+                .unwrap(),
+            Error::UnauthorizedDelegate
+        );
+        assert_eq!(client.sender_rule(&owner, &sender), SenderRule::Allow);
+    }
+
+    #[test]
+    fn reads_and_evaluation_require_no_authorization() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let contract_id = env.register(PoliciesContract, ());
+        let client = PoliciesContractClient::new(&env, &contract_id);
+        let owner = Address::generate(&env);
+        let delegate = Address::generate(&env);
+        let sender = Address::generate(&env);
+
+        client.set_policy(&owner, &permissive_policy());
+        client.set_delegate(&owner, &delegate, &senders_scope());
+        client.set_sender_tier(&owner, &sender, &7);
+
+        env.set_auths(&[]);
+        assert_eq!(client.get_policy(&owner).minimum_postage, 5);
+        assert_eq!(client.get_versioned_policy(&owner).version, 2);
+        assert_eq!(client.policy_version(&owner), 2);
+        assert!(client.delegate_scope(&owner, &delegate).can_set_senders);
+        assert_eq!(client.sender_rule(&owner, &sender), SenderRule::Default);
+        assert_eq!(client.sender_tier(&owner, &sender), Some(7));
+        assert!(client.can_mail(&owner, &sender, &false, &7, &false));
+        assert_eq!(
+            client.evaluate(&owner, &sender, &false, &7, &false).reason,
+            PolicyReason::TierSatisfied
+        );
+        assert_eq!(env.auths(), []);
     }
 }

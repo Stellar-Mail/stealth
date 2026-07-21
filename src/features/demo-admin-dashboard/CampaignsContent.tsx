@@ -1,13 +1,14 @@
 import { useState } from "react";
-import { GitMerge, Target } from "lucide-react";
+import { GitMerge, PenLine, Target } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Draft } from "./types/draft";
 import { CampaignMessageAssignmentPanel } from "./components/CampaignMessageAssignmentPanel";
 import { CampaignSnapshots } from "./components/CampaignSnapshots";
+import { CampaignEditorPanel } from "./components/CampaignEditorPanel";
 import { defaultCampaignSnapshots } from "./fixtures/campaignSnapshotFixtures";
 
 export function CampaignsContent() {
-  const [campaignSubView, setCampaignSubView] = useState<"assignments" | "snapshots">(
+  const [campaignSubView, setCampaignSubView] = useState<"assignments" | "snapshots" | "editor">(
     "assignments",
   );
   const [campaignDraftDataset, setCampaignDraftDataset] = useState<Draft[]>(
@@ -22,6 +23,7 @@ export function CampaignsContent() {
           [
             { key: "assignments" as const, label: "Assignments", icon: Target },
             { key: "snapshots" as const, label: "Merge & Snapshots", icon: GitMerge },
+            { key: "editor" as const, label: "Editor", icon: PenLine },
           ] as const
         ).map((tab) => {
           const TabIcon = tab.icon;
@@ -30,9 +32,10 @@ export function CampaignsContent() {
             <button
               key={tab.key}
               type="button"
+              aria-current={isActive ? "page" : undefined}
               onClick={() => setCampaignSubView(tab.key)}
               className={cn(
-                "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition",
+                "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20",
                 isActive
                   ? "bg-white/[0.08] text-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground hover:bg-white/[0.04]",
@@ -52,6 +55,7 @@ export function CampaignsContent() {
           onRestoreDataset={setCampaignDraftDataset}
         />
       )}
+      {campaignSubView === "editor" && <CampaignEditorPanel />}
     </div>
   );
 }

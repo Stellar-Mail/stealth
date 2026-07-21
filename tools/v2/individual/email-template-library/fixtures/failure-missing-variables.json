@@ -1,0 +1,13 @@
+{
+  "request": {
+    "tool": "email-template-library",
+    "version": 1,
+    "operation": "render",
+    "templateId": "template-follow-up",
+    "values": { "firstName": "Avery" }
+  },
+  "expectedError": {
+    "code": "MISSING_VARIABLES",
+    "missingVariables": ["topic"]
+  }
+}

@@ -1,0 +1,11 @@
+[
+  {
+    "id": "mtg-ec-001",
+    "title": "Single Member Meeting",
+    "scheduledAt": "2026-07-03T09:00:00Z",
+    "durationMinutes": 30,
+    "requiredSkills": [],
+    "effort": 1,
+    "priority": 1
+  }
+]

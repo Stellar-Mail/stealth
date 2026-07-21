@@ -19,6 +19,12 @@ import {
 import { cn } from "@/lib/utils";
 import type { Email } from "@/components/mail/data";
 import { motionPresets } from "@/lib/motion-presets";
+import {
+  generateMockProofRecords,
+  validateProofQuery,
+  searchProofRecords,
+  type MockProofRecord,
+} from "./utils";
 
 interface ProofInspectorModalProps {
   open: boolean;
@@ -28,53 +34,6 @@ interface ProofInspectorModalProps {
   onShowToast: (message: string, options?: { tone: "success" | "neutral" | "danger" }) => void;
   initialQuery?: string;
 }
-
-interface MockProofRecord {
-  emailId: string;
-  messageHash: string;
-  paymentHash: string;
-  diagnosticId: string;
-  contractAddress: string;
-  relayNode: string;
-  latency: string;
-  signature: string;
-  deliveredAt: string;
-  readAt: string | null;
-  postageAmount: string;
-  postageStatus: "pending" | "settled" | "refunded";
-  senderRule: "allow" | "block" | "default";
-  email: Email;
-}
-
-const generateMockProofRecord = (email: Email): MockProofRecord => {
-  // Message ID SHA-256 mock
-  const messageHash = `0x${email.id.repeat(16).padEnd(64, "a")}d8c7e9`;
-  // Payment Preimage Hash mock
-  const paymentHash = `0x${(email.id + "pay").repeat(12).padEnd(64, "b")}f12a3d`;
-  // Relay diagnostic ID UUID
-  const diagnosticId = `d1f038c7-4b1d-44a6-8968-3e5f492305${email.id.padStart(2, "0")}`;
-  // Contract address
-  const contractAddress = `CB${email.id.repeat(10).toUpperCase().padEnd(54, "9")}`;
-
-  return {
-    emailId: email.id,
-    messageHash,
-    paymentHash,
-    diagnosticId,
-    contractAddress,
-    relayNode: "relay-us-east-1.stealth.network",
-    latency: `${20 + (email.from.length % 5) * 6}ms`,
-    signature: `Ed25519 [0x${email.id.repeat(8).padEnd(32, "7")}f31b]`,
-    deliveredAt:
-      email.time.includes("AM") || email.time.includes("PM") ? "Today, " + email.time : email.time,
-    readAt: email.unread ? null : "Delivered + Read",
-    postageAmount: email.postageAmount ?? "10000000",
-    postageStatus:
-      email.folder === "requests" ? "pending" : email.folder === "spam" ? "refunded" : "settled",
-    senderRule: email.senderPolicy === "verify" ? "default" : (email.senderPolicy ?? "default"),
-    email,
-  };
-};
 
 export function ProofInspectorModal({
   open,
@@ -106,86 +65,18 @@ export function ProofInspectorModal({
     }
   }, [open, initialQuery]);
 
-  // Generate deterministic mock proof records ONLY for shortcuts
-  const recentShortcuts = useMemo<MockProofRecord[]>(() => {
-    return emails.slice(0, 4).map(generateMockProofRecord);
+  const proofRecords = useMemo<MockProofRecord[]>(() => {
+    return generateMockProofRecords(emails);
   }, [emails]);
 
-  // Real-time query format validation
   useEffect(() => {
-    const trimmed = query.trim();
-    if (!trimmed) {
-      setValidationMsg({ text: "", type: null });
-      return;
-    }
-
-    // Check G-address or C-address format: 56 chars, starts with G or C
-    const addressRegex = /^[GC][A-Z2-7]{55}$/i;
-    // Check 32-byte hex hash format: 64 hex characters (optional 0x prefix = 66 characters)
-    const hashRegex = /^(0x)?[a-f0-9]{64}$/i;
-    // UUID format check
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-    if (addressRegex.test(trimmed)) {
-      setValidationMsg({ text: "✓ Valid Stellar address format", type: "success" });
-    } else if (hashRegex.test(trimmed)) {
-      setValidationMsg({ text: "✓ Valid 32-byte hash format", type: "success" });
-    } else if (uuidRegex.test(trimmed)) {
-      setValidationMsg({ text: "✓ Valid Relay diagnostic ID format", type: "success" });
-    } else if (
-      trimmed.length > 5 &&
-      (trimmed.startsWith("G") || trimmed.startsWith("C")) &&
-      trimmed.length !== 56
-    ) {
-      setValidationMsg({
-        text: `✗ Invalid address length (${trimmed.length}/56 characters)`,
-        type: "error",
-      });
-    } else if (
-      trimmed.length > 10 &&
-      trimmed.match(/^[0-9a-f]+$/i) &&
-      trimmed.length !== 64 &&
-      !trimmed.startsWith("0x")
-    ) {
-      setValidationMsg({
-        text: `✗ Invalid hash length (${trimmed.length}/64 hex characters)`,
-        type: "error",
-      });
-    } else {
-      setValidationMsg({ text: "ⓘ Searching by sender name / subject keywords", type: "warning" });
-    }
+    setValidationMsg(validateProofQuery(query));
   }, [query]);
 
-  // Search execution & results
   const searchResults = useMemo(() => {
     if (!hasSearched) return [];
-    const trimmed = query.trim().toLowerCase();
-    if (!trimmed) return [];
-
-    const matchedEmails = emails.filter((email) => {
-      // Basic checks
-      if (email.email.toLowerCase().includes(trimmed)) return true;
-      if (email.from.toLowerCase().includes(trimmed)) return true;
-      if (email.subject.toLowerCase().includes(trimmed)) return true;
-
-      // Derived hash checks
-      const messageHash = `0x${email.id.repeat(16).padEnd(64, "a")}d8c7e9`;
-      if (messageHash.toLowerCase().includes(trimmed)) return true;
-
-      const paymentHash = `0x${(email.id + "pay").repeat(12).padEnd(64, "b")}f12a3d`;
-      if (paymentHash.toLowerCase().includes(trimmed)) return true;
-
-      const diagnosticId = `d1f038c7-4b1d-44a6-8968-3e5f492305${email.id.padStart(2, "0")}`;
-      if (diagnosticId.toLowerCase().includes(trimmed)) return true;
-
-      const contractAddress = `CB${email.id.repeat(10).toUpperCase().padEnd(54, "9")}`;
-      if (contractAddress.toLowerCase().includes(trimmed)) return true;
-
-      return false;
-    });
-
-    return matchedEmails.map(generateMockProofRecord);
-  }, [hasSearched, query, emails]);
+    return searchProofRecords(proofRecords, query);
+  }, [hasSearched, query, proofRecords]);
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
@@ -312,7 +203,7 @@ export function ProofInspectorModal({
                     Quick shortcuts (local records)
                   </h4>
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                    {recentShortcuts.map((record) => (
+                    {proofRecords.slice(0, 4).map((record) => (
                       <button
                         key={record.emailId}
                         onClick={() => {

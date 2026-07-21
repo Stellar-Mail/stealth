@@ -3,13 +3,13 @@
     {
       "name": "Postage",
       "fields": [
-        { "name": "sender", "type": "address" },
-        { "name": "recipient", "type": "address" },
         { "name": "amount", "type": "i128" },
-        { "name": "fee", "type": "i128" },
         { "name": "created_at", "type": "u64" },
-        { "name": "expires_at", "type": "u64" },
         { "name": "dispute_until", "type": "u64" },
+        { "name": "expires_at", "type": "u64" },
+        { "name": "fee", "type": "i128" },
+        { "name": "recipient", "type": "address" },
+        { "name": "sender", "type": "address" },
         { "name": "status", "type": "udt:PostageStatus" }
       ]
     },
@@ -17,11 +17,11 @@
       "name": "EscrowConfig",
       "fields": [
         { "name": "asset", "type": "address" },
-        { "name": "minimum", "type": "i128" },
-        { "name": "treasury", "type": "address" },
-        { "name": "fee_bps", "type": "u32" },
+        { "name": "dispute_seconds", "type": "u64" },
         { "name": "expiry_seconds", "type": "u64" },
-        { "name": "dispute_seconds", "type": "u64" }
+        { "name": "fee_bps", "type": "u32" },
+        { "name": "minimum", "type": "i128" },
+        { "name": "treasury", "type": "address" }
       ]
     }
   ],
@@ -48,7 +48,9 @@
     { "name": "InvalidFee", "value": 7 },
     { "name": "InvalidWindow", "value": 8 },
     { "name": "NotExpired", "value": 9 },
-    { "name": "DisputeUnavailable", "value": 10 }
+    { "name": "DisputeUnavailable", "value": 10 },
+    { "name": "GuardNotConfigured", "value": 11 },
+    { "name": "LifecycleRejected", "value": 12 }
   ],
   "functions": [
     {
@@ -62,6 +64,16 @@
         { "name": "dispute_seconds", "type": "u64" }
       ],
       "output": "result:void:Error"
+    },
+    {
+      "name": "configure_guard",
+      "inputs": [{ "name": "guard", "type": "address" }],
+      "output": "result:void:Error"
+    },
+    {
+      "name": "guard",
+      "inputs": [],
+      "output": "result:address:Error"
     },
     {
       "name": "config",

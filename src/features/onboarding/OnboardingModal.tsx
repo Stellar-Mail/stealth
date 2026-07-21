@@ -1,4 +1,5 @@
-import { AnimatePresence, motion } from "framer-motion";
+import { useEffect, useRef } from "react";
+import { AnimatePresence, MotionConfig, motion } from "framer-motion";
 import { useOnboarding } from "./useOnboarding";
 import { useFreighter } from "./useFreighter";
 import { IdentityStep } from "./steps/IdentityStep";
@@ -28,7 +29,14 @@ const stepVariants = {
 
 function ProgressBar({ stepIndex, totalSteps }: { stepIndex: number; totalSteps: number }) {
   return (
-    <div className="flex items-center gap-3 px-6 pt-5 pb-1">
+    <div
+      className="flex items-center gap-3 px-6 pt-5 pb-1"
+      role="progressbar"
+      aria-valuemin={1}
+      aria-valuemax={totalSteps}
+      aria-valuenow={stepIndex + 1}
+      aria-label={"Step " + (stepIndex + 1) + " of " + totalSteps}
+    >
       <div className="flex flex-1 gap-1">
         {Array.from({ length: totalSteps }).map((_, i) => (
           <div
@@ -40,7 +48,7 @@ function ProgressBar({ stepIndex, totalSteps }: { stepIndex: number; totalSteps:
           />
         ))}
       </div>
-      <span className="shrink-0 text-[11px] text-muted-foreground tabular-nums">
+      <span className="shrink-0 text-[11px] text-muted-foreground tabular-nums" aria-live="polite">
         {stepIndex + 1} / {totalSteps}
       </span>
     </div>
@@ -133,6 +141,45 @@ export function OnboardingModal({ open, onComplete }: Props) {
   const freighter = useFreighter();
   const onboarding = useOnboarding({ onComplete });
 
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  // Accessibility: when the modal is open, move focus into it and trap Tab focus.
+  // The modal is intentionally non-dismissible, so there is no Escape-to-close.
+  useEffect(() => {
+    if (!open) return;
+    const node = panelRef.current;
+    if (!node) return;
+
+    const focusableSelector =
+      "a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex='-1'])";
+
+    const getFocusable = (): HTMLElement[] =>
+      Array.from(node.querySelectorAll<HTMLElement>(focusableSelector)).filter(
+        (el) => el.offsetParent !== null,
+      );
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Tab") return;
+      const focusable = getFocusable();
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const active = document.activeElement;
+      if (event.shiftKey && active === first) {
+        event.preventDefault();
+        last?.focus();
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault();
+        first?.focus();
+      }
+    };
+
+    node.addEventListener("keydown", handleKeyDown);
+    getFocusable()[0]?.focus();
+
+    return () => node.removeEventListener("keydown", handleKeyDown);
+  }, [open]);
+
   const stepProps: StepProps = {
     freighter,
     draft: onboarding.draft,
@@ -145,47 +192,53 @@ export function OnboardingModal({ open, onComplete }: Props) {
   };
 
   return (
-    <AnimatePresence>
-      {open && (
-        <>
-          {/* Non-dismissible backdrop */}
-          <motion.div
-            key="onboarding-backdrop"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-40 bg-black/70 backdrop-blur-md"
-          />
+    <MotionConfig reducedMotion="user">
+      <AnimatePresence>
+        {open && (
+          <>
+            {/* Non-dismissible backdrop */}
+            <motion.div
+              key="onboarding-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-40 bg-black/70 backdrop-blur-md"
+            />
 
-          {/* Modal panel */}
-          <motion.div
-            key="onboarding-panel"
-            initial={{ opacity: 0, scale: 0.96, y: 12 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.96, y: 8 }}
-            transition={{ type: "spring", stiffness: 300, damping: 28 }}
-            className="glass-strong fixed left-1/2 top-1/2 z-50 w-[min(480px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl"
-          >
-            <ProgressBar stepIndex={onboarding.stepIndex} totalSteps={onboarding.totalSteps} />
+            {/* Modal panel */}
+            <motion.div
+              key="onboarding-panel"
+              ref={panelRef}
+              role="dialog"
+              aria-modal="true"
+              aria-label="Account setup"
+              initial={{ opacity: 0, scale: 0.96, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 8 }}
+              transition={{ type: "spring", stiffness: 300, damping: 28 }}
+              className="glass-strong fixed left-1/2 top-1/2 z-50 w-[min(480px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl"
+            >
+              <ProgressBar stepIndex={onboarding.stepIndex} totalSteps={onboarding.totalSteps} />
 
-            {/* Step content area with direction-aware slide transition */}
-            <div className="overflow-hidden px-6 pb-6 pt-4">
-              <AnimatePresence mode="wait" custom={onboarding.direction}>
-                <motion.div
-                  key={onboarding.step}
-                  custom={onboarding.direction}
-                  variants={stepVariants}
-                  initial="enter"
-                  animate="center"
-                  exit="exit"
-                >
-                  {renderStep(onboarding.step, stepProps)}
-                </motion.div>
-              </AnimatePresence>
-            </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+              {/* Step content area with direction-aware slide transition */}
+              <div className="overflow-hidden px-6 pb-6 pt-4">
+                <AnimatePresence mode="wait" custom={onboarding.direction}>
+                  <motion.div
+                    key={onboarding.step}
+                    custom={onboarding.direction}
+                    variants={stepVariants}
+                    initial="enter"
+                    animate="center"
+                    exit="exit"
+                  >
+                    {renderStep(onboarding.step, stepProps)}
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </MotionConfig>
   );
 }

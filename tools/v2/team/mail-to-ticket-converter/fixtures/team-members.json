@@ -1,0 +1,32 @@
+[
+  {
+    "id": "member-001",
+    "name": "Alex Chen",
+    "email": "alex.chen@company.com",
+    "role": "Senior Support Engineer"
+  },
+  {
+    "id": "member-002",
+    "name": "Jordan Taylor",
+    "email": "jordan.taylor@company.com",
+    "role": "Support Engineer"
+  },
+  {
+    "id": "member-003",
+    "name": "Morgan Rivera",
+    "email": "morgan.rivera@company.com",
+    "role": "Support Engineer"
+  },
+  {
+    "id": "member-004",
+    "name": "Casey Kim",
+    "email": "casey.kim@company.com",
+    "role": "Technical Lead"
+  },
+  {
+    "id": "member-005",
+    "name": "Riley Johnson",
+    "email": "riley.johnson@company.com",
+    "role": "Junior Support Engineer"
+  }
+]

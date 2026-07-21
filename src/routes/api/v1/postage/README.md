@@ -64,6 +64,98 @@ Postage records persist as `pending`, `settled`, or `refunded`.
 - Duplicate submit or duplicate terminal transitions return conflict errors.
 - Rate limits return retryable `too_many_requests` responses.
 
+## Error Contract
+
+Every postage endpoint returns the standard JSON envelope defined in `src/server/api/response.ts`. Success responses use the success envelope; failures use the error envelope with a stable, machine-readable `code`:
+
+    {
+      "error": {
+        "code": "validation_error",
+        "message": "Request validation failed",
+        "details": { "formErrors": [], "fieldErrors": {} }
+      },
+      "meta": { "requestId": "8f3c...", "timestamp": "2026-07-17T23:00:00.000Z" }
+    }
+
+Clients should branch on `error.code`, not on `message` text. Every response also sets `x-request-id` and `cache-control: no-store`.
+
+### Error codes
+
+| Code                 | HTTP status     | Raised when                                                                                       | Retryable |
+| -------------------- | --------------- | ------------------------------------------------------------------------------------------------- | --------- |
+| `bad_request`        | 400 / 413 / 415 | Invalid JSON body, body over 64 KB, or non-JSON `Content-Type`                                    | No        |
+| `unauthorized`       | 401             | Missing or invalid `x-stealth-address` actor header                                               | No        |
+| `forbidden`          | 403             | Actor does not match the sender, recipient blocked the sender, or a non-participant tried to read | No        |
+| `not_found`          | 404             | No postage record exists for the message id                                                       | No        |
+| `conflict`           | 409             | Duplicate submit, or settle/refund of already-resolved postage                                    | No        |
+| `validation_error`   | 422             | Schema validation failed, or amount is below the mailbox minimum                                  | No        |
+| `too_many_requests`  | 429             | Account, IP, device, sender-recipient, or relay rate limit hit                                    | Yes       |
+| `method_not_allowed` | 405             | HTTP method not supported on the route                                                            | No        |
+| `internal_error`     | 500             | Unexpected server error                                                                           | Yes       |
+
+### Retryable vs non-retryable
+
+- **Retryable:** `too_many_requests` (429) — wait `details.retryAfterSeconds`, then retry the identical request. `internal_error` (500) — retry with exponential backoff.
+- **Non-retryable:** 400, 401, 403, 404, 409, 413, 415, and 422. Retrying the same request unchanged will fail again; fix the request first.
+- **Idempotent retries:** on `POST /api/v1/postage/`, send an `x-idempotency-key` header. A replay returns the stored `201` body with `x-idempotency-replayed: true` instead of a `409 conflict`, so automatic retries stay safe.
+
+### Errors by endpoint
+
+**`POST /api/v1/postage/quote`** — quote a sender/recipient pair (no actor header required).
+
+- `415` / `413` / `400` `bad_request` — malformed request body.
+- `422` `validation_error` — `recipient` or `sender` is missing or not a valid Stellar G-address.
+- `200` — returns `amount`, `eligible`, `reason`, and `trusted`. A blocked sender is reported as `eligible: false`, not as an error.
+
+**`POST /api/v1/postage/`** — submit postage as the sender.
+
+- `401` `unauthorized` — missing or invalid `x-stealth-address`.
+- `403` `forbidden` — actor does not match `sender`, or the recipient has blocked the sender.
+- `400` / `413` / `415` `bad_request` — malformed request body.
+- `422` `validation_error` — schema invalid, or `amount` is below the mailbox minimum (`details.minimumPostage`).
+- `429` `too_many_requests` — a rate limit was hit (`details.retryAfterSeconds`).
+- `409` `conflict` — postage already exists for this message id (unless replayed with an idempotency key).
+- `201` — record created with status `pending`.
+
+Example below-minimum failure:
+
+    {
+      "error": {
+        "code": "validation_error",
+        "message": "Postage is below the mailbox minimum",
+        "details": { "minimumPostage": "100" }
+      },
+      "meta": { "requestId": "1c9d...", "timestamp": "2026-07-17T23:00:00.000Z" }
+    }
+
+**`GET /api/v1/postage/:messageId`** — read a postage record.
+
+- `422` `validation_error` — `messageId` is not a 64-character hex hash.
+- `401` `unauthorized` — missing or invalid actor header.
+- `404` `not_found` — no record for that message id.
+- `403` `forbidden` — actor is neither the sender nor the recipient.
+- `200` — returns the postage record.
+
+**`POST /api/v1/postage/:messageId/settle`** and **`POST /api/v1/postage/:messageId/refund`** — the recipient resolves pending postage.
+
+- `401` `unauthorized` — missing or invalid actor header.
+- `422` `validation_error` — `messageId` is not a valid hash.
+- `404` `not_found` — no record for that message id.
+- `403` `forbidden` — actor is not the recipient.
+- `409` `conflict` — postage is not `pending` (already settled or refunded; `details.status` shows the current state).
+- `200` — returns the record in its new terminal state.
+
+Example rate-limit failure:
+
+    {
+      "error": {
+        "code": "too_many_requests",
+        "message": "Account limit exceeded",
+        "details": { "retryAfterSeconds": 60 }
+      },
+      "meta": { "requestId": "a4b1...", "timestamp": "2026-07-17T23:00:00.000Z" }
+    }
+
 ## Safety And Privacy Notes
 
 - This API works with fake/demo data in local and test runs. Do not use live
