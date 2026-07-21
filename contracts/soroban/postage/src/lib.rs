@@ -471,6 +471,10 @@ impl PostageContract {
 
     /// Submits a postage payment for a message, escrowing the tokens.
     ///
+    /// # Authorization
+    ///
+    /// * Requires `sender.require_auth()`. Transfers `amount` tokens from `sender` to contract escrow.
+    ///
     /// # Arguments
     ///
     /// * `message_id` - The 32-byte identifier of the message.
@@ -530,6 +534,10 @@ impl PostageContract {
 
     /// Marks the postage as expired if the expiry time has passed.
     ///
+    /// # Authorization
+    ///
+    /// * Permissionless. Requires current ledger timestamp >= `expires_at` and lifecycle guard approval.
+    ///
     /// # Errors
     ///
     /// * `Error::PostageNotFound` - If no postage is found for the given message ID.
@@ -571,6 +579,10 @@ impl PostageContract {
 
     /// Settles the postage, transferring the amount (minus fee) to the recipient.
     ///
+    /// # Authorization
+    ///
+    /// * Requires `recipient.require_auth()`. Evaluated via lifecycle guard verification.
+    ///
     /// # Errors
     ///
     /// * `Error::PostageNotFound` - If no postage is found for the given message ID.
@@ -600,6 +612,10 @@ impl PostageContract {
 
     /// Refunds the postage to the sender.
     ///
+    /// # Authorization
+    ///
+    /// * Requires `recipient.require_auth()`. Evaluated via lifecycle guard verification.
+    ///
     /// # Errors
     ///
     /// * `Error::PostageNotFound` - If no postage is found for the given message ID.
@@ -628,6 +644,10 @@ impl PostageContract {
     }
 
     /// Disputes the postage payment.
+    ///
+    /// # Authorization
+    ///
+    /// * Requires `recipient.require_auth()`. Allowed during the dispute window.
     ///
     /// # Errors
     ///
@@ -675,6 +695,10 @@ impl PostageContract {
     }
 
     /// Reclaims the escrowed postage to the sender after expiry and the dispute window have passed.
+    ///
+    /// # Authorization
+    ///
+    /// * Requires `sender.require_auth()`. Allowed after `reclaimable_at` timestamp.
     ///
     /// # Errors
     ///
@@ -2706,5 +2730,405 @@ mod spec_check {
              Add the missing spec_xdr_* entry to spec_check::entries() and \
              regenerate spec.json with: UPDATE_SPEC=1 cargo test -p stealth-postage spec_json"
         );
+    }
+}
+
+#[cfg(test)]
+mod auth_boundaries {
+    extern crate std;
+
+    use super::*;
+    use soroban_sdk::{
+        symbol_short,
+        testutils::{Address as _, AuthorizedFunction, AuthorizedInvocation, Ledger},
+        token, Address, BytesN, Env, IntoVal, Symbol,
+    };
+    use stealth_lifecycle::{LifecycleContract, LifecycleContractClient};
+    use stealth_policies::{MailboxPolicy, PoliciesContract, PoliciesContractClient};
+
+    fn id(env: &Env, byte: u8) -> BytesN<32> {
+        BytesN::from_array(env, &[byte; 32])
+    }
+
+    struct Setup {
+        env: Env,
+        contract_id: Address,
+        asset: Address,
+        sender: Address,
+        recipient: Address,
+        treasury: Address,
+        lifecycle: Address,
+    }
+
+    fn setup(fee_bps: u32) -> Setup {
+        let env = Env::default();
+        env.mock_all_auths();
+        env.ledger().set_timestamp(1_000);
+
+        let admin = Address::generate(&env);
+        let token_contract = env.register_stellar_asset_contract_v2(admin);
+        let asset = token_contract.address();
+        let token_admin = token::StellarAssetClient::new(&env, &asset);
+
+        let sender = Address::generate(&env);
+        let recipient = Address::generate(&env);
+        let treasury = Address::generate(&env);
+        let receipts = Address::generate(&env);
+
+        let policies = env.register(PoliciesContract, ());
+        PoliciesContractClient::new(&env, &policies).set_policy(
+            &recipient,
+            &MailboxPolicy {
+                allow_unknown: true,
+                require_verified: false,
+                require_receipt: false,
+                minimum_postage: 0,
+            },
+        );
+
+        let lifecycle = env.register(LifecycleContract, ());
+        let lifecycle_client = LifecycleContractClient::new(&env, &lifecycle);
+
+        let contract_id = env.register(PostageContract, ());
+        let client = PostageContractClient::new(&env, &contract_id);
+
+        token_admin.mint(&sender, &10_000);
+        client.initialize(&asset, &treasury, &100, &fee_bps, &86_400, &3_600);
+        client.configure_guard(&lifecycle);
+        lifecycle_client.initialize(&policies, &contract_id, &receipts);
+
+        Setup {
+            env,
+            contract_id,
+            asset,
+            sender,
+            recipient,
+            treasury,
+            lifecycle,
+        }
+    }
+
+    fn bind_lifecycle(
+        env: &Env,
+        lifecycle: &Address,
+        message_id: BytesN<32>,
+        sender: &Address,
+        recipient: &Address,
+        amount: i128,
+    ) {
+        let lifecycle_client = LifecycleContractClient::new(env, lifecycle);
+        lifecycle_client.bind(
+            &message_id,
+            &recipient.clone(),
+            &sender.clone(),
+            &recipient.clone(),
+            &amount,
+            &false,
+            &false,
+        );
+    }
+
+    #[test]
+    fn submit_requires_exact_sender_auth_and_sub_invokes() {
+        let s = setup(500);
+        let msg_id = id(&s.env, 1);
+        let client = PostageContractClient::new(&s.env, &s.contract_id);
+
+        client.submit(&msg_id, &s.sender, &s.recipient, &200);
+
+        assert_eq!(
+            s.env.auths(),
+            std::vec![(
+                s.sender.clone(),
+                AuthorizedInvocation {
+                    function: AuthorizedFunction::Contract((
+                        s.contract_id.clone(),
+                        Symbol::new(&s.env, "submit"),
+                        (
+                            msg_id.clone(),
+                            s.sender.clone(),
+                            s.recipient.clone(),
+                            200i128
+                        )
+                            .into_val(&s.env),
+                    )),
+                    sub_invocations: std::vec![AuthorizedInvocation {
+                        function: AuthorizedFunction::Contract((
+                            s.asset.clone(),
+                            Symbol::new(&s.env, "transfer"),
+                            (s.sender.clone(), s.contract_id.clone(), 200i128,).into_val(&s.env),
+                        )),
+                        sub_invocations: std::vec![],
+                    }],
+                }
+            )]
+        );
+    }
+
+    #[test]
+    fn settle_requires_exact_recipient_auth() {
+        let s = setup(500);
+        let msg_id = id(&s.env, 2);
+        let client = PostageContractClient::new(&s.env, &s.contract_id);
+
+        client.submit(&msg_id, &s.sender, &s.recipient, &200);
+        bind_lifecycle(
+            &s.env,
+            &s.lifecycle,
+            msg_id.clone(),
+            &s.sender,
+            &s.recipient,
+            200,
+        );
+
+        client.settle(&msg_id);
+
+        let auths = s.env.auths();
+        let recipient_auth = auths.iter().find(|(addr, _)| addr == &s.recipient);
+        assert!(
+            recipient_auth.is_some(),
+            "Settle must capture recipient authorization"
+        );
+
+        let (_, inv) = recipient_auth.unwrap();
+        assert_eq!(
+            inv.function,
+            AuthorizedFunction::Contract((
+                s.contract_id.clone(),
+                Symbol::new(&s.env, "settle"),
+                (msg_id.clone(),).into_val(&s.env),
+            ))
+        );
+    }
+
+    #[test]
+    fn refund_requires_exact_recipient_auth() {
+        let s = setup(500);
+        let msg_id = id(&s.env, 3);
+        let client = PostageContractClient::new(&s.env, &s.contract_id);
+
+        client.submit(&msg_id, &s.sender, &s.recipient, &200);
+        bind_lifecycle(
+            &s.env,
+            &s.lifecycle,
+            msg_id.clone(),
+            &s.sender,
+            &s.recipient,
+            200,
+        );
+
+        client.refund(&msg_id);
+
+        let auths = s.env.auths();
+        let recipient_auth = auths.iter().find(|(addr, _)| addr == &s.recipient);
+        assert!(
+            recipient_auth.is_some(),
+            "Refund must capture recipient authorization"
+        );
+
+        let (_, inv) = recipient_auth.unwrap();
+        assert_eq!(
+            inv.function,
+            AuthorizedFunction::Contract((
+                s.contract_id.clone(),
+                Symbol::new(&s.env, "refund"),
+                (msg_id.clone(),).into_val(&s.env),
+            ))
+        );
+    }
+
+    #[test]
+    fn dispute_requires_exact_recipient_auth() {
+        let s = setup(500);
+        let msg_id = id(&s.env, 4);
+        let client = PostageContractClient::new(&s.env, &s.contract_id);
+
+        client.submit(&msg_id, &s.sender, &s.recipient, &200);
+        bind_lifecycle(
+            &s.env,
+            &s.lifecycle,
+            msg_id.clone(),
+            &s.sender,
+            &s.recipient,
+            200,
+        );
+
+        s.env.ledger().set_timestamp(87_500);
+        client.dispute(&msg_id);
+
+        let auths = s.env.auths();
+        let recipient_auth = auths.iter().find(|(addr, _)| addr == &s.recipient);
+        assert!(
+            recipient_auth.is_some(),
+            "Dispute must capture recipient authorization"
+        );
+
+        let (_, inv) = recipient_auth.unwrap();
+        assert_eq!(
+            inv.function,
+            AuthorizedFunction::Contract((
+                s.contract_id.clone(),
+                Symbol::new(&s.env, "dispute"),
+                (msg_id.clone(),).into_val(&s.env),
+            ))
+        );
+    }
+
+    #[test]
+    fn reclaim_requires_exact_sender_auth() {
+        let s = setup(500);
+        let msg_id = id(&s.env, 5);
+        let client = PostageContractClient::new(&s.env, &s.contract_id);
+
+        client.submit(&msg_id, &s.sender, &s.recipient, &200);
+        bind_lifecycle(
+            &s.env,
+            &s.lifecycle,
+            msg_id.clone(),
+            &s.sender,
+            &s.recipient,
+            200,
+        );
+
+        s.env.ledger().set_timestamp(91_042);
+        client.reclaim(&msg_id);
+
+        let auths = s.env.auths();
+        let sender_auth = auths.iter().find(|(addr, _)| addr == &s.sender);
+        assert!(
+            sender_auth.is_some(),
+            "Reclaim must capture sender authorization"
+        );
+
+        let (_, inv) = sender_auth.unwrap();
+        assert_eq!(
+            inv.function,
+            AuthorizedFunction::Contract((
+                s.contract_id.clone(),
+                Symbol::new(&s.env, "reclaim"),
+                (msg_id.clone(),).into_val(&s.env),
+            ))
+        );
+    }
+
+    #[test]
+    fn read_only_and_expire_operations_require_no_user_auth() {
+        let s = setup(500);
+        let msg_id = id(&s.env, 6);
+        let client = PostageContractClient::new(&s.env, &s.contract_id);
+
+        client.submit(&msg_id, &s.sender, &s.recipient, &200);
+        bind_lifecycle(
+            &s.env,
+            &s.lifecycle,
+            msg_id.clone(),
+            &s.sender,
+            &s.recipient,
+            200,
+        );
+
+        s.env.ledger().set_timestamp(87_401);
+        client.expire(&msg_id);
+
+        let expire_auths = s.env.auths();
+        assert_eq!(
+            expire_auths.len(),
+            0,
+            "Expire must be permissionless (0 required auths)"
+        );
+
+        assert!(client.try_get(&msg_id).is_ok());
+        assert!(client.try_config().is_ok());
+        assert!(client.try_minimum().is_ok());
+        assert!(client.try_quote(&false).is_ok());
+        assert!(client.try_guard().is_ok());
+    }
+
+    #[test]
+    #[should_panic(expected = "Error(Auth")]
+    fn submit_fails_when_unauthorized_party_authorizes() {
+        let env = Env::default();
+        let admin = Address::generate(&env);
+        let asset = env.register_stellar_asset_contract_v2(admin).address();
+        let client = PostageContractClient::new(&env, &env.register(PostageContract, ()));
+        let treasury = Address::generate(&env);
+        client.initialize(&asset, &treasury, &100, &0, &3600, &0);
+
+        let sender = Address::generate(&env);
+        let recipient = Address::generate(&env);
+        let attacker = Address::generate(&env);
+
+        env.mock_auths(&[soroban_sdk::testutils::MockAuth {
+            address: &attacker,
+            invoke: &soroban_sdk::testutils::MockAuthInvoke {
+                contract: &client.address,
+                fn_name: "submit",
+                args: (id(&env, 1), sender.clone(), recipient.clone(), 100i128).into_val(&env),
+                sub_invokes: &[],
+            },
+        }]);
+
+        client.submit(&id(&env, 1), &sender, &recipient, &100);
+    }
+
+    #[test]
+    #[should_panic(expected = "Error(Auth")]
+    fn settle_fails_when_unauthorized_party_authorizes() {
+        let s = setup(500);
+        let msg_id = id(&s.env, 10);
+        let client = PostageContractClient::new(&s.env, &s.contract_id);
+        client.submit(&msg_id, &s.sender, &s.recipient, &200);
+        bind_lifecycle(
+            &s.env,
+            &s.lifecycle,
+            msg_id.clone(),
+            &s.sender,
+            &s.recipient,
+            200,
+        );
+
+        let attacker = Address::generate(&s.env);
+        s.env.mock_auths(&[soroban_sdk::testutils::MockAuth {
+            address: &attacker,
+            invoke: &soroban_sdk::testutils::MockAuthInvoke {
+                contract: &s.contract_id,
+                fn_name: "settle",
+                args: (msg_id.clone(),).into_val(&s.env),
+                sub_invokes: &[],
+            },
+        }]);
+
+        client.settle(&msg_id);
+    }
+
+    #[test]
+    #[should_panic(expected = "Error(Auth")]
+    fn reclaim_fails_when_unauthorized_party_authorizes() {
+        let s = setup(500);
+        let msg_id = id(&s.env, 11);
+        let client = PostageContractClient::new(&s.env, &s.contract_id);
+        client.submit(&msg_id, &s.sender, &s.recipient, &200);
+        bind_lifecycle(
+            &s.env,
+            &s.lifecycle,
+            msg_id.clone(),
+            &s.sender,
+            &s.recipient,
+            200,
+        );
+
+        s.env.ledger().set_timestamp(91_042);
+        let attacker = Address::generate(&s.env);
+        s.env.mock_auths(&[soroban_sdk::testutils::MockAuth {
+            address: &attacker,
+            invoke: &soroban_sdk::testutils::MockAuthInvoke {
+                contract: &s.contract_id,
+                fn_name: "reclaim",
+                args: (msg_id.clone(),).into_val(&s.env),
+                sub_invokes: &[],
+            },
+        }]);
+
+        client.reclaim(&msg_id);
     }
 }

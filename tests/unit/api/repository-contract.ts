@@ -117,6 +117,68 @@ export function runRepositoryContractTests(
       });
     });
 
+    describe("atomic postage transitions", () => {
+      it("reports not-found for a message with no postage", async () => {
+        await expect(repo.transitionPostage(messageId, "pending", "settled")).resolves.toEqual({
+          outcome: "not-found",
+        });
+      });
+
+      it("applies a pending -> settled transition and reflects it in getPostage", async () => {
+        await repo.setPostage({
+          amount: "100",
+          createdAt: "2026-01-01T00:00:00.000Z",
+          messageId,
+          paymentHash,
+          recipient: owner,
+          sender,
+          status: "pending",
+        });
+
+        const result = await repo.transitionPostage(messageId, "pending", "settled");
+        expect(result).toMatchObject({ outcome: "applied", postage: { status: "settled" } });
+        await expect(repo.getPostage(messageId)).resolves.toMatchObject({ status: "settled" });
+      });
+
+      it("reports a conflict with the current status when already terminal", async () => {
+        await repo.setPostage({
+          amount: "100",
+          createdAt: "2026-01-01T00:00:00.000Z",
+          messageId,
+          paymentHash,
+          recipient: owner,
+          sender,
+          status: "settled",
+        });
+
+        await expect(
+          repo.transitionPostage(messageId, "pending", "settled"),
+        ).resolves.toMatchObject({ outcome: "conflict", postage: { status: "settled" } });
+      });
+
+      it("allows exactly one winner out of concurrent settlement attempts", async () => {
+        await repo.setPostage({
+          amount: "100",
+          createdAt: "2026-01-01T00:00:00.000Z",
+          messageId,
+          paymentHash,
+          recipient: owner,
+          sender,
+          status: "pending",
+        });
+
+        const results = await Promise.all(
+          Array.from({ length: 5 }, () => repo.transitionPostage(messageId, "pending", "settled")),
+        );
+
+        const applied = results.filter((result) => result.outcome === "applied");
+        const conflicts = results.filter((result) => result.outcome === "conflict");
+        expect(applied).toHaveLength(1);
+        expect(conflicts).toHaveLength(4);
+        await expect(repo.getPostage(messageId)).resolves.toMatchObject({ status: "settled" });
+      });
+    });
+
     describe("idempotency records", () => {
       it("returns null for a missing idempotency key", async () => {
         await expect(repo.getIdempotencyRecord("missing")).resolves.toBeNull();

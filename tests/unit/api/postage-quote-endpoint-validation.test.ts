@@ -331,10 +331,16 @@ describe("Postage Quote Endpoint Validation", () => {
         const apiError = normalizeApiError(error);
         expect(apiError.details).toBeDefined();
 
-        // Verify details structure includes field errors
+        // Verify details use the stable application-owned validation schema.
         const details = apiError.details as any;
-        expect(details.fieldErrors).toBeDefined();
-        expect(details.fieldErrors.recipient).toBeDefined();
+        expect(details.validationErrors).toEqual([
+          expect.objectContaining({
+            path: "recipient",
+            rule: "format",
+            message: expect.any(String),
+          }),
+        ]);
+        expect(details.fieldErrors).toBeUndefined();
       }
     });
   });

@@ -112,6 +112,76 @@ describe("Postage Settlement Idempotency", () => {
     });
   });
 
+  describe("resolvePostage - concurrent settlement (issue #1545)", () => {
+    it("only settles once when multiple concurrent requests race with no idempotency key", async () => {
+      const repository = new MemoryApiRepository();
+      const messageId = "y".repeat(64);
+
+      await repository.setPostage({
+        amount: "1000",
+        createdAt: "2026-06-14T21:00:00.000Z",
+        messageId,
+        paymentHash: "u".repeat(64),
+        recipient,
+        sender,
+        status: "pending",
+      });
+
+      const outcomes = await Promise.allSettled(
+        Array.from({ length: 10 }, () => resolvePostage(repository, messageId, "settled")),
+      );
+
+      const fulfilled = outcomes.filter((outcome) => outcome.status === "fulfilled");
+      const rejected = outcomes.filter((outcome) => outcome.status === "rejected");
+
+      // Exactly one settlement side effect occurs.
+      expect(fulfilled).toHaveLength(1);
+      expect(rejected).toHaveLength(9);
+
+      for (const outcome of rejected) {
+        if (outcome.status !== "rejected") continue;
+        expect(outcome.reason).toMatchObject({
+          status: 409,
+          code: "conflict",
+          details: { currentStatus: "settled" },
+        });
+      }
+
+      const finalState = await getPostage(repository, messageId);
+      expect(finalState.status).toBe("settled");
+    });
+
+    it("only allows one winner between a concurrent settle and refund race", async () => {
+      const repository = new MemoryApiRepository();
+      const messageId = "v".repeat(64);
+
+      await repository.setPostage({
+        amount: "1200",
+        createdAt: "2026-06-14T22:00:00.000Z",
+        messageId,
+        paymentHash: "w".repeat(64),
+        recipient,
+        sender,
+        status: "pending",
+      });
+
+      const outcomes = await Promise.allSettled([
+        resolvePostage(repository, messageId, "settled"),
+        resolvePostage(repository, messageId, "refunded"),
+      ]);
+
+      const fulfilled = outcomes.filter((outcome) => outcome.status === "fulfilled");
+      expect(fulfilled).toHaveLength(1);
+
+      const finalState = await getPostage(repository, messageId);
+      // Whichever one won, the final state is a single deterministic terminal status.
+      expect(["settled", "refunded"]).toContain(finalState.status);
+      if (fulfilled[0].status === "fulfilled") {
+        expect(finalState.status).toBe(fulfilled[0].value.status);
+      }
+    });
+  });
+
   describe("idempotency service integration", () => {
     it("records and replays successful settlement", async () => {
       const repository = new MemoryApiRepository();

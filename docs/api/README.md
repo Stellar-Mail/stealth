@@ -32,6 +32,10 @@ Endpoints enforce strict validation for Stellar addresses and other identifiers:
 See [POSTAGE_QUOTE_VALIDATION.md](./POSTAGE_QUOTE_VALIDATION.md) for comprehensive documentation on
 validation rules, error responses, and boundary cases.
 
+Query strings for every endpoint are normalized and validated (length limits, empty-name and
+control-character rejection, and Unicode NFC normalization) before schema parsing. See
+[QUERY_NORMALIZATION.md](./QUERY_NORMALIZATION.md) for the rules and configuration.
+
 ## Development identity
 
 Protected endpoints require `x-stealth-address` with the Stellar address acting on the request.
