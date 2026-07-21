@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 
 import { parseJsonBody, parseSearchParams } from "../../../src/server/api/request";
@@ -14,6 +14,58 @@ describe("API request parsing", () => {
     await expect(
       parseJsonBody(request, z.object({ amount: z.number().int().positive() })),
     ).resolves.toEqual({ amount: 125 });
+  });
+
+  it("parses a chunked JSON body within the encoded-byte limit", async () => {
+    const encoder = new TextEncoder();
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(encoder.encode('{"message":"'));
+        controller.enqueue(encoder.encode('\u2713"}'));
+        controller.close();
+      },
+    });
+    const request = new Request("https://stealth.test/api", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body,
+      duplex: "half",
+    } as RequestInit & { duplex: "half" });
+
+    await expect(parseJsonBody(request, z.object({ message: z.string() }), 17)).resolves.toEqual({
+      message: "\u2713",
+    });
+  });
+
+  it("cancels a chunked body as soon as its encoded-byte limit is exceeded", async () => {
+    const encoder = new TextEncoder();
+    const cancel = vi.fn();
+    const chunks = [
+      encoder.encode('{"value":"'),
+      encoder.encode("\u{1F680}\u{1F680}"),
+      encoder.encode('"}'),
+    ];
+    let chunksRead = 0;
+    const body = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        controller.enqueue(chunks[chunksRead++]);
+      },
+      cancel,
+    });
+    const request = new Request("https://stealth.test/api", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body,
+      duplex: "half",
+    } as RequestInit & { duplex: "half" });
+
+    await expect(parseJsonBody(request, z.object({ value: z.string() }), 12)).rejects.toMatchObject(
+      {
+        status: 413,
+      },
+    );
+    expect(cancel).toHaveBeenCalledOnce();
+    expect(chunksRead).toBeLessThan(chunks.length);
   });
 
   it("rejects non-JSON content types", async () => {
