@@ -164,4 +164,97 @@ describe("createRouteHandler", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("Cache-Control")).toBe("public, max-age=60");
   });
+
+  const cors = {
+    allowedOrigins: ["https://mail.example.com"],
+    allowedMethods: ["GET", "POST"],
+    allowedHeaders: ["Content-Type", "X-Request-Id"],
+    allowCredentials: true,
+  } as const;
+
+  it("grants CORS access to an allowed origin", async () => {
+    const handler = createRouteHandler({ cors, handler: () => new Response("OK") });
+    const response = await handler(
+      new Request("http://localhost/api/test", {
+        headers: { Origin: "https://mail.example.com" },
+      }),
+    );
+
+    expect(response.headers.get("Access-Control-Allow-Origin")).toBe("https://mail.example.com");
+    expect(response.headers.get("Access-Control-Allow-Credentials")).toBe("true");
+    expect(response.headers.get("Vary")).toContain("Origin");
+  });
+
+  it("does not grant CORS access to a denied origin", async () => {
+    const routeHandler = vi.fn(() => new Response("OK"));
+    const handler = createRouteHandler({ cors, handler: routeHandler });
+    const response = await handler(
+      new Request("http://localhost/api/test", {
+        headers: { Origin: "https://attacker.example" },
+      }),
+    );
+
+    expect(response.status).toBe(403);
+    expect(response.headers.get("Access-Control-Allow-Origin")).toBeNull();
+    expect(response.headers.get("Access-Control-Allow-Credentials")).toBeNull();
+    expect(routeHandler).not.toHaveBeenCalled();
+  });
+
+  it("does not allow the null origin unless it is explicitly configured", async () => {
+    const handler = createRouteHandler({ cors, handler: () => new Response("OK") });
+    const response = await handler(
+      new Request("http://localhost/api/test", { headers: { Origin: "null" } }),
+    );
+
+    expect(response.status).toBe(403);
+    expect(response.headers.get("Access-Control-Allow-Origin")).toBeNull();
+  });
+
+  it("answers an allowed preflight with the configured methods and headers", async () => {
+    const routeHandler = vi.fn(() => new Response("should not run"));
+    const handler = createRouteHandler({ cors, requireAuth: true, handler: routeHandler });
+    const response = await handler(
+      new Request("http://localhost/api/test", {
+        method: "OPTIONS",
+        headers: {
+          Origin: "https://mail.example.com",
+          "Access-Control-Request-Method": "POST",
+          "Access-Control-Request-Headers": "content-type, x-request-id",
+        },
+      }),
+    );
+
+    expect(response.status).toBe(204);
+    expect(response.headers.get("Access-Control-Allow-Methods")).toBe("GET, POST");
+    expect(response.headers.get("Access-Control-Allow-Headers")).toBe("Content-Type, X-Request-Id");
+    expect(response.headers.get("Vary")).toBe(
+      "Origin, Access-Control-Request-Method, Access-Control-Request-Headers",
+    );
+    expect(routeHandler).not.toHaveBeenCalled();
+  });
+
+  it("rejects a denied preflight without CORS headers", async () => {
+    const handler = createRouteHandler({ cors, handler: () => new Response("OK") });
+    const response = await handler(
+      new Request("http://localhost/api/test", {
+        method: "OPTIONS",
+        headers: {
+          Origin: "https://attacker.example",
+          "Access-Control-Request-Method": "POST",
+        },
+      }),
+    );
+
+    expect(response.status).toBe(403);
+    expect(response.headers.get("Access-Control-Allow-Origin")).toBeNull();
+  });
+
+  it("actively prevents wildcard origins with credentials", () => {
+    expect(() =>
+      createRouteHandler({
+        cors: { ...cors, allowedOrigins: ["*"] },
+        handler: () => new Response("OK"),
+      }),
+    ).toThrow(/wildcard origins cannot be combined with credentials/i);
+  });
 });
