@@ -1,0 +1,23 @@
+{
+  "status": 200,
+  "headers": {
+    "cache-control": "no-store",
+    "content-type": "application/json; charset=utf-8",
+    "x-request-id": "<REQUEST_ID>"
+  },
+  "body": {
+    "data": {
+      "owner": "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "policy": {
+        "allowUnknown": false,
+        "minimumPostage": "0",
+        "requireVerified": true
+      },
+      "source": "default"
+    },
+    "meta": {
+      "requestId": "<REQUEST_ID>",
+      "timestamp": "<TIMESTAMP>"
+    }
+  }
+}

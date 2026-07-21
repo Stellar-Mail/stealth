@@ -1,0 +1,18 @@
+{
+  "status": 200,
+  "headers": {
+    "cache-control": "no-store",
+    "content-type": "application/json; charset=utf-8",
+    "x-request-id": "<REQUEST_ID>"
+  },
+  "body": {
+    "data": {
+      "actor": "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "authenticated": true
+    },
+    "meta": {
+      "requestId": "<REQUEST_ID>",
+      "timestamp": "<TIMESTAMP>"
+    }
+  }
+}

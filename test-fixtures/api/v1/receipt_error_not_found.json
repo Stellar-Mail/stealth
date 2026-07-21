@@ -1,0 +1,18 @@
+{
+  "status": 404,
+  "headers": {
+    "cache-control": "no-store",
+    "content-type": "application/json; charset=utf-8",
+    "x-request-id": "<REQUEST_ID>"
+  },
+  "body": {
+    "error": {
+      "code": "not_found",
+      "message": "Receipt was not found"
+    },
+    "meta": {
+      "requestId": "<REQUEST_ID>",
+      "timestamp": "<TIMESTAMP>"
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "status": 403,
+  "headers": {
+    "cache-control": "no-store",
+    "content-type": "application/json; charset=utf-8",
+    "x-request-id": "<REQUEST_ID>"
+  },
+  "body": {
+    "error": {
+      "code": "forbidden",
+      "message": "The authenticated actor cannot modify this resource"
+    },
+    "meta": {
+      "requestId": "<REQUEST_ID>",
+      "timestamp": "<TIMESTAMP>"
+    }
+  }
+}

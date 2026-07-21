@@ -1,0 +1,20 @@
+{
+  "status": 200,
+  "headers": {
+    "cache-control": "no-store",
+    "content-type": "application/json; charset=utf-8",
+    "x-request-id": "<REQUEST_ID>"
+  },
+  "body": {
+    "data": {
+      "amount": "0",
+      "eligible": true,
+      "reason": "trusted_sender",
+      "trusted": true
+    },
+    "meta": {
+      "requestId": "<REQUEST_ID>",
+      "timestamp": "<TIMESTAMP>"
+    }
+  }
+}

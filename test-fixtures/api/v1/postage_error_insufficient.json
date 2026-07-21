@@ -1,0 +1,18 @@
+{
+  "status": 422,
+  "headers": {
+    "cache-control": "no-store",
+    "content-type": "application/json; charset=utf-8",
+    "x-request-id": "<REQUEST_ID>"
+  },
+  "body": {
+    "error": {
+      "code": "validation_error",
+      "message": "Postage amount 99 is below mailbox minimum of 100"
+    },
+    "meta": {
+      "requestId": "<REQUEST_ID>",
+      "timestamp": "<TIMESTAMP>"
+    }
+  }
+}
