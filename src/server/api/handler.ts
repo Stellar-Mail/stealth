@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { requireActor } from "./actor";
 import { getApiContext } from "./context";
-import { ApiError } from "./errors";
+import { ApiError, normalizeApiError } from "./errors";
 import { apiFailure, apiSuccess } from "./response";
 import * as metrics from "./metrics";
 import { parseJsonBody } from "./request";
@@ -143,15 +143,18 @@ export function createRouteHandler<
     } catch (error: any) {
       // 7. Error Metrics & Logs
       const latency = performance.now() - startTime;
-      const status = error instanceof ApiError ? error.status : 500;
+      const normalizedError = normalizeApiError(error);
+      const status = normalizedError.status;
 
       metrics.recordHistogram("api_latency", latency, { method, path, status: String(status) });
       metrics.incrementCounter("api_requests_total", { method, path, status: String(status) });
       metrics.incrementCounter("api_errors_total", { method, path, status: String(status) });
 
-      console.error(`[API ERROR] ${method} ${path} - ${status} (${latency.toFixed(2)}ms)`, error);
+      if (status >= 500) {
+        console.error(`[API ERROR] ${method} ${path} - ${status} (${latency.toFixed(2)}ms)`, error);
+      }
 
-      return apiFailure(request, error);
+      return apiFailure(request, normalizedError);
     }
   };
 }

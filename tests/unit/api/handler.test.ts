@@ -4,7 +4,8 @@ import { createRouteHandler } from "../../../src/server/api/handler";
 import * as metrics from "../../../src/server/api/metrics";
 import { ApiError } from "../../../src/server/api/errors";
 import { MemoryApiRepository } from "../../../src/server/api/memory-repository";
-import { ACTOR_HEADER } from "../../../src/server/api/actor";
+import { Keypair } from "@stellar/stellar-sdk";
+import { createSignedRequest } from "./signed-request";
 
 vi.mock("../../../src/server/api/metrics", () => ({
   incrementCounter: vi.fn(),
@@ -91,17 +92,17 @@ describe("createRouteHandler", () => {
   });
 
   it("authenticates the actor", async () => {
+    const actorKey = Keypair.random();
     const handler = createRouteHandler({
       requireAuth: true,
       handler: ({ actorId }) => {
-        expect(actorId).toBe("GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB");
+        expect(actorId).toBe(actorKey.publicKey());
         return new Response("OK");
       },
     });
 
-    const request = new Request("http://localhost/api/test", {
+    const request = await createSignedRequest(actorKey, "http://localhost/api/test", {
       method: "GET",
-      headers: { [ACTOR_HEADER]: "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB" },
     });
     const response = await handler(request);
     expect(response.status).toBe(200);
@@ -119,22 +120,22 @@ describe("createRouteHandler", () => {
   });
 
   it("exhausts account quota according to the centrally configured operation cost", async () => {
+    const actorKey = Keypair.random();
     const route = createRouteHandler({
       requireAuth: true,
       rateLimit: { type: "account", operation: "paymentTransition" },
       handler: () => new Response("OK"),
     });
-    const makeRequest = () =>
-      new Request("http://localhost/api/test", {
+    const makeRequest = async () =>
+      createSignedRequest(actorKey, "http://localhost/api/test", {
         method: "POST",
-        headers: { [ACTOR_HEADER]: "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB" },
       });
 
     for (let requestNumber = 0; requestNumber < 5; requestNumber += 1) {
-      await expect(route(makeRequest())).resolves.toMatchObject({ status: 200 });
+      await expect(route(await makeRequest())).resolves.toMatchObject({ status: 200 });
     }
 
-    await expect(route(makeRequest())).resolves.toMatchObject({ status: 429 });
+    await expect(route(await makeRequest())).resolves.toMatchObject({ status: 429 });
   });
 
   it("charges simple reads one quota unit", async () => {
