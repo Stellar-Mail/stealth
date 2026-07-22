@@ -48,11 +48,23 @@ export function assertReceiptParticipant(receipt: Receipt, actor: string) {
 export async function markReceiptRead(
   repository: ApiRepository,
   messageId: string,
+  actor: string,
   now = new Date(),
 ) {
-  const result = await repository.markReceiptRead(messageId, now.toISOString());
-  if (!result) {
+  const result = await repository.markReceiptRead(messageId, actor, now);
+
+  if (result.outcome === "not-found") {
     throw new ApiError(404, "not_found", "Receipt was not found");
+  }
+  if (result.outcome === "forbidden") {
+    throw new ApiError(403, "forbidden", "Only message participants can read this receipt");
+  }
+  if (result.outcome === "already-read") {
+    const receipt = await repository.getReceipt(messageId);
+    if (!receipt) {
+      throw new ApiError(404, "not_found", "Receipt was not found");
+    }
+    return receipt;
   }
 
   return result.receipt;

@@ -121,13 +121,12 @@ export class HybridApiRepository implements ApiRepository {
 
   async markReceiptRead(
     messageId: string,
-    readAt: string,
-  ): Promise<{ receipt: Receipt; updated: boolean } | null> {
+    actor: string,
+    now?: Date,
+  ): Promise<import("./repository").MarkReceiptReadResult> {
     await this.getReceipt(messageId);
-    const result = await this.getStub().markReceiptRead(messageId, readAt);
-    if (!result) return null;
-
-    if (result.updated) {
+    const result = await this.getStub().markReceiptRead(messageId, actor, now);
+    if (result.outcome === "marked") {
       await this.kv.put(
         this.key("receipt", result.receipt.messageId),
         JSON.stringify(result.receipt),

@@ -105,16 +105,20 @@ export class StealthCoordinator extends DurableObjectBase {
 
   async markReceiptRead(
     messageId: string,
-    readAt: string,
-  ): Promise<{ receipt: Receipt; updated: boolean } | null> {
+    actor: string,
+    now = new Date(),
+  ): Promise<import("./repository").MarkReceiptReadResult> {
     return this.runExclusive(`receipt:${messageId}`, async () => {
       const receipt = await this.getReceipt(messageId);
-      if (!receipt) return null;
-      if (receipt.readAt) return { receipt, updated: false };
+      if (!receipt) return { outcome: "not-found" };
+      if (actor !== receipt.sender && actor !== receipt.recipient) {
+        return { outcome: "forbidden" };
+      }
+      if (receipt.readAt) return { outcome: "already-read", readAt: receipt.readAt };
 
-      const updated = { ...receipt, readAt };
+      const updated = { ...receipt, readAt: now.toISOString() };
       await this.ctx.storage.put(`receipt:${messageId}`, updated);
-      return { receipt: updated, updated: true };
+      return { outcome: "marked", receipt: updated };
     });
   }
 
