@@ -12,6 +12,13 @@ The TanStack Start worker exposes versioned endpoints under `/api/v1`.
 Amounts are decimal strings in stroops because Soroban uses i128 values that can exceed JavaScript's
 safe integer range. Message IDs and payment hashes are lowercase 32-byte hexadecimal strings.
 
+## Response headers
+
+All JSON API responses include `Content-Type: application/json; charset=utf-8`, `Cache-Control`,
+`X-Request-ID`, and `X-Content-Type-Options: nosniff`. The security header is applied centrally and
+cannot be overridden by individual routes. CORS headers remain independently configurable and are
+preserved when responses are created.
+
 ## Idempotency
 
 Certain endpoints support idempotency via the optional `X-Idempotency-Key` header to ensure safe
@@ -32,28 +39,34 @@ Endpoints enforce strict validation for Stellar addresses and other identifiers:
 See [POSTAGE_QUOTE_VALIDATION.md](./POSTAGE_QUOTE_VALIDATION.md) for comprehensive documentation on
 validation rules, error responses, and boundary cases.
 
-## Signed request authentication
+Query strings for every endpoint are normalized and validated (length limits, empty-name and
+control-character rejection, and Unicode NFC normalization) before schema parsing. See
+[QUERY_NORMALIZATION.md](./QUERY_NORMALIZATION.md) for the rules and configuration.
 
-Protected endpoints derive their principal from a Stellar Ed25519 signature. A bare
-`x-stealth-address` header is never sufficient. Clients send all four headers:
+## Development identity
 
-| Header                | Value                                     |
-| --------------------- | ----------------------------------------- |
-| `x-stealth-address`   | Stellar G-address for the signing account |
-| `x-stealth-timestamp` | Current Unix timestamp in seconds         |
-| `x-stealth-nonce`     | Unique 16-128 character URL-safe value    |
-| `x-stealth-signature` | Base64-encoded 64-byte Ed25519 signature  |
+Protected endpoints require `x-stealth-address` with the Stellar address acting on the request.
+This header only preserves authorization boundaries during development. It is not authentication.
+Production must derive the actor from a verified wallet challenge or signed session and must ignore
+caller-supplied identity headers at the public edge.
 
-The signature covers this UTF-8 payload, with fields separated by a single newline:
+### Authentication nonce lifecycle
 
-```text
-stealth-mail-api-request-v1
-<stellar address>
-<timestamp>
-<nonce>
-<uppercase HTTP method>
-<URL pathname and query>
-<lowercase SHA-256 hash of the exact request body>
+Signed authentication begins by issuing a cryptographically random 32-byte nonce. Each nonce is
+stored with its actor, authentication purpose, creation time, and expiration time. Its lifetime is
+five minutes by default and can be configured with `STEALTH_AUTH_NONCE_TTL_MS` as documented in
+[`src/config/README.md`](../../src/config/README.md).
+
+Consumption atomically checks the actor, purpose, and expiration before marking the nonce used.
+Only one concurrent request can succeed; replay attempts are rejected, and actor or purpose
+mismatches do not consume the legitimate caller's nonce. Production storage adapters must provide
+the same atomic compare-and-consume guarantee as the in-memory development implementation.
+
+```bash
+curl -X PUT http://localhost:8080/api/v1/policies/GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA \
+  -H "content-type: application/json" \
+  -H "x-stealth-address: GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" \
+  -d '{"allowUnknown":true,"requireVerified":true,"minimumPostage":"10000000"}'
 ```
 
 Method, route/query, and body binding prevents a valid signature from authorizing a

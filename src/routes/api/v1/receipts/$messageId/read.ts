@@ -13,10 +13,11 @@ export const Route = createFileRoute("/api/v1/receipts/$messageId/read")({
     handlers: {
       POST: ({ request, params }) =>
         handleApiRequest(request, async () => {
-          const repository = (await getApiContext()).repository;
+          const context = await getApiContext(request);
+          const repository = context.repository;
           const messageId = hash32Schema.parse(params.messageId);
           const current = await getReceipt(repository, messageId);
-          const principal = await requireActor(request);
+          const principal = requireActor(context);
           assertCanPublishReadReceipt(principal, current);
           const receipt = await markReceiptRead(repository, messageId);
           return apiSuccess(request, receipt);

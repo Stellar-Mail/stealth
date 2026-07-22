@@ -7,7 +7,9 @@ import {
   postageSchema,
   receiptSchema,
   idempotencyRecordSchema,
+  stellarAddressSchema,
 } from "./domain";
+import { ApiError } from "./errors";
 
 // Register schemas once at module init for Issue #1508 record validation
 registerRecordSchema("mailboxPolicy", mailboxPolicySchema);
@@ -16,13 +18,81 @@ registerRecordSchema("postage", postageSchema);
 registerRecordSchema("receipt", receiptSchema);
 registerRecordSchema("idempotencyRecord", idempotencyRecordSchema);
 
-interface ApiContext {
-  repository: ApiRepository;
+/**
+ * Issue #1461: Verified API Principal model representing authenticated request identity.
+ */
+export interface ApiPrincipal {
+  address: string;
+  authMethod: string;
+  authenticatedAt: Date;
+  metadata: Record<string, unknown>;
 }
+
+export interface AnonymousApiContext {
+  repository: ApiRepository;
+  principal: null;
+  isAuthenticated: false;
+}
+
+export interface AuthenticatedApiContext {
+  repository: ApiRepository;
+  principal: ApiPrincipal;
+  isAuthenticated: true;
+}
+
+export type ApiContext = AnonymousApiContext | AuthenticatedApiContext;
 
 const globalApi = globalThis as typeof globalThis & {
   __stealthApiRepository?: ApiRepository;
 };
+
+/**
+ * Extract verified principal from incoming request headers.
+ */
+export function extractPrincipal(request: Request): ApiPrincipal | null {
+  const value = request.headers.get("x-stealth-address");
+  if (!value) return null;
+
+  const result = stellarAddressSchema.safeParse(value);
+  if (!result.success) {
+    throw new ApiError(401, "unauthorized", "x-stealth-address must be a valid Stellar G-address");
+  }
+
+  const delegationHeader = request.headers.get("x-stealth-delegation");
+  const authMethod = delegationHeader ? "delegation" : "header";
+  const metadata: Record<string, unknown> = {};
+  if (delegationHeader) {
+    metadata.delegation = delegationHeader;
+  }
+
+  return {
+    address: result.data,
+    authMethod,
+    authenticatedAt: new Date(),
+    metadata,
+  };
+}
+
+/**
+ * Explicitly create an ApiContext with or without an authenticated principal.
+ */
+export function createApiContext(
+  repository: ApiRepository,
+  principal?: ApiPrincipal | null,
+): ApiContext {
+  if (principal) {
+    return {
+      repository,
+      principal,
+      isAuthenticated: true,
+    };
+  }
+  return {
+    repository,
+    principal: null,
+    isAuthenticated: false,
+  };
+}
 
 /**
  * Issue #1516: startup configuration validation gate.
@@ -63,39 +133,41 @@ export function validateApiConfig(config: ApiConfig): void {
   }
 }
 
-export async function getApiContext(): Promise<ApiContext> {
+export async function getApiContext(request?: Request): Promise<ApiContext> {
+  let repo: ApiRepository;
+
   if (!import.meta.env.PROD) {
     globalApi.__stealthApiRepository ??= new MemoryApiRepository();
-    return { repository: globalApi.__stealthApiRepository };
+    repo = globalApi.__stealthApiRepository;
+  } else if (globalApi.__stealthApiRepository) {
+    repo = globalApi.__stealthApiRepository;
+  } else {
+    const { env } = await import("cloudflare:workers");
+
+    // The Cloudflare env type only declares the KV and coordinator bindings;
+    // the cursor secret is read defensively so an undeclared secret fails the
+    // validation gate rather than a type error.
+    const cursorSecret = (env as Record<string, string | undefined>).STEALTH_CURSOR_SECRET;
+
+    validateApiConfig({
+      isProd: true,
+      kvBinding: env.STEALTH_KV,
+      coordinatorBinding: env.STEALTH_COORDINATOR,
+      cursorSecret,
+      supportedVersions: ["v1"],
+    });
+
+    if (!env.STEALTH_KV || !env.STEALTH_COORDINATOR) {
+      throw new Error(
+        "Configuration error: STEALTH_KV or STEALTH_COORDINATOR binding is not declared in wrangler.jsonc.",
+      );
+    }
+
+    const { HybridApiRepository } = await import("./kv-repository");
+    repo = new HybridApiRepository(env.STEALTH_KV, env.STEALTH_COORDINATOR);
+    globalApi.__stealthApiRepository = repo;
   }
 
-  if (globalApi.__stealthApiRepository) {
-    return { repository: globalApi.__stealthApiRepository };
-  }
-
-  const { env } = await import("cloudflare:workers");
-
-  // The Cloudflare env type only declares the KV and coordinator bindings;
-  // the cursor secret is read defensively so an undeclared secret fails the
-  // validation gate rather than a type error.
-  const cursorSecret = (env as Record<string, string | undefined>).STEALTH_CURSOR_SECRET;
-
-  validateApiConfig({
-    isProd: true,
-    kvBinding: env.STEALTH_KV,
-    coordinatorBinding: env.STEALTH_COORDINATOR,
-    cursorSecret,
-    supportedVersions: ["v1"],
-  });
-
-  if (!env.STEALTH_KV || !env.STEALTH_COORDINATOR) {
-    throw new Error(
-      "Configuration error: STEALTH_KV or STEALTH_COORDINATOR binding is not declared in wrangler.jsonc.",
-    );
-  }
-
-  const { HybridApiRepository } = await import("./kv-repository");
-  const repo = new HybridApiRepository(env.STEALTH_KV, env.STEALTH_COORDINATOR);
-  globalApi.__stealthApiRepository = repo;
-  return { repository: repo };
+  const principal = request ? extractPrincipal(request) : null;
+  return createApiContext(repo, principal);
 }

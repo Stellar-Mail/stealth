@@ -1,6 +1,6 @@
 # Operational Alerts and Runbooks
 
-This guide defines the runbooks and operational procedures for responding to authentication, rate-limiting, and anomaly detection alerts on the Stealth API.
+This guide defines the runbooks and operational procedures for responding to authentication, rate-limiting, and anomaly detection alerts on the Stealth API. For formal Service-Level Objectives, SLI mathematical definitions, and error budget burn rate targets, see [Service-Level Objectives](SLO.md).
 
 ---
 

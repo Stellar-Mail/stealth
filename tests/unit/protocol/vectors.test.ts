@@ -290,6 +290,7 @@ describe("tampered", () => {
 
 import { Route } from "../../../src/routes/api/v1/postage/index";
 import { getApiContext } from "../../../src/server/api/context";
+import { signQuote } from "../../../src/server/api/postage-service";
 
 describe("relay_submission", () => {
   const handler = (Route.options as any).server?.handlers?.POST;
@@ -347,21 +348,68 @@ describe("relay_submission", () => {
           requireVerified: false,
         });
 
-        const req1 = await relayRequest(c, input);
+        const payload = {
+          ...c.input,
+          issuedAt: new Date().toISOString(),
+          expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+        };
+        payload.quoteDigest = signQuote(
+          payload.recipient || "",
+          payload.sender || "",
+          payload.amount || "0",
+          payload.issuedAt,
+          payload.expiresAt,
+        );
+
+        const req1 = new Request("https://stealth.test/api/v1/postage", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            ...c.headers,
+          },
+          body: JSON.stringify(payload),
+        });
         const res1 = await handler!({ request: req1 });
         expect(res1.status).toBe(201);
         expect(res1.headers.get("x-idempotency-replayed")).toBeNull();
         const body1 = await res1.json();
 
         // Second request with same key
-        const req2 = await relayRequest(c, input);
+        const req2 = new Request("https://stealth.test/api/v1/postage", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            ...c.headers,
+          },
+          body: JSON.stringify(payload),
+        });
         const res2 = await handler!({ request: req2 });
         expect(res2.status).toBe(201);
         expect(res2.headers.get("x-idempotency-replayed")).toBe("true");
         const body2 = await res2.json();
         expect(body2.data).toEqual(body1.data);
       } else {
-        const req = await relayRequest(c, input);
+        const payload = {
+          ...c.input,
+          issuedAt: new Date().toISOString(),
+          expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+        };
+        payload.quoteDigest = signQuote(
+          payload.recipient || "",
+          payload.sender || "",
+          payload.amount || "0",
+          payload.issuedAt,
+          payload.expiresAt,
+        );
+
+        const req = new Request("https://stealth.test/api/v1/postage", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            ...c.headers,
+          },
+          body: JSON.stringify(payload),
+        });
         const res = await handler!({ request: req });
         expect(res.status).toBe(c.expected.status);
         if (c.expected.code) {

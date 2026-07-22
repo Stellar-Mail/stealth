@@ -70,22 +70,62 @@ export interface ReviewFlagDependency {
 const VALID_SEVERITIES: readonly ReviewFlagSeverity[] = ["low", "medium", "high", "critical"];
 
 const MAX_REASON_LENGTH = 2000;
+const MAX_REVIEWER_LENGTH = 128;
+const MAX_RESOURCE_LENGTH = 256;
+const MAX_EVIDENCE_REFS = 10;
+const MAX_EVIDENCE_REF_LENGTH = 512;
+
+export function sanitizeReviewFlagInput(input: ReviewFlagInput): ReviewFlagInput {
+  return {
+    reviewer: typeof input.reviewer === "string" ? input.reviewer.trim() : "",
+    targetResource: typeof input.targetResource === "string" ? input.targetResource.trim() : "",
+    flagReason: typeof input.flagReason === "string" ? input.flagReason.trim() : "",
+    severity: input.severity,
+    evidenceRefs: Array.isArray(input.evidenceRefs)
+      ? input.evidenceRefs
+          .filter((ref) => typeof ref === "string")
+          .map((ref) => ref.trim())
+          .filter((ref) => ref.length > 0)
+      : undefined,
+  };
+}
 
 function invalidFields(input: ReviewFlagInput): string[] {
   const fields: string[] = [];
-  if (typeof input.reviewer !== "string" || input.reviewer.trim() === "") {
+  if (
+    typeof input.reviewer !== "string" ||
+    input.reviewer === "" ||
+    input.reviewer.length > MAX_REVIEWER_LENGTH
+  ) {
     fields.push("reviewer");
   }
-  if (typeof input.targetResource !== "string" || input.targetResource.trim() === "") {
+  if (
+    typeof input.targetResource !== "string" ||
+    input.targetResource === "" ||
+    input.targetResource.length > MAX_RESOURCE_LENGTH
+  ) {
     fields.push("targetResource");
   }
-  if (typeof input.flagReason !== "string" || input.flagReason.trim() === "") {
-    fields.push("flagReason");
-  } else if (input.flagReason.length > MAX_REASON_LENGTH) {
+  if (
+    typeof input.flagReason !== "string" ||
+    input.flagReason === "" ||
+    input.flagReason.length > MAX_REASON_LENGTH
+  ) {
     fields.push("flagReason");
   }
   if (!VALID_SEVERITIES.includes(input.severity)) {
     fields.push("severity");
+  }
+  if (input.evidenceRefs !== undefined) {
+    if (!Array.isArray(input.evidenceRefs) || input.evidenceRefs.length > MAX_EVIDENCE_REFS) {
+      fields.push("evidenceRefs");
+    } else if (
+      input.evidenceRefs.some(
+        (ref) => typeof ref !== "string" || ref === "" || ref.length > MAX_EVIDENCE_REF_LENGTH,
+      )
+    ) {
+      fields.push("evidenceRefs");
+    }
   }
   return fields;
 }
@@ -98,9 +138,11 @@ function invalidFields(input: ReviewFlagInput): string[] {
  * for expected domain failures, so callers can branch on `outcome.code`.
  */
 export async function createReviewFlag(
-  input: ReviewFlagInput,
+  rawInput: ReviewFlagInput,
   deps: ReviewFlagDependency,
 ): Promise<ReviewFlagOutcome> {
+  const input = sanitizeReviewFlagInput(rawInput);
+
   const fields = invalidFields(input);
   if (fields.length > 0) {
     return {
