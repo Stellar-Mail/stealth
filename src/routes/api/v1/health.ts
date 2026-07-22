@@ -2,10 +2,11 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { apiSuccess, handleApiRequest } from "@/server/api/response";
 import { getVersionInfo } from "@/server/api/version";
+import { methodGuard } from "@/server/api/methodGuard";
 
 export const Route = createFileRoute("/api/v1/health")({
   server: {
-    handlers: {
+    handlers: methodGuard({
       GET: ({ request }) =>
         handleApiRequest(request, () =>
           apiSuccess(request, {
@@ -16,6 +17,6 @@ export const Route = createFileRoute("/api/v1/health")({
             versions: getVersionInfo(),
           }),
         ),
-    },
+    }),
   },
 });
