@@ -149,6 +149,11 @@ pub enum Error {
 
 #[contractimpl]
 impl ReceiptsContract {
+    /// Configures the contract guard (e.g. the Lifecycle contract) that verifies
+    /// receipt operations. This is a one-time configuration (first-write-wins).
+    ///
+    /// # Errors
+    /// Returns `Error::GuardAlreadyConfigured` if a guard is already set.
     pub fn configure_guard(env: Env, guard: Address) -> Result<(), Error> {
         if env.storage().instance().has(&DataKey::Guard) {
             return Err(Error::GuardAlreadyConfigured);
@@ -157,6 +162,10 @@ impl ReceiptsContract {
         Ok(())
     }
 
+    /// Returns the currently configured guard address.
+    ///
+    /// # Errors
+    /// Returns `Error::GuardNotConfigured` if no guard has been set.
     pub fn guard(env: Env) -> Result<Address, Error> {
         env.storage()
             .instance()
@@ -164,6 +173,14 @@ impl ReceiptsContract {
             .ok_or(Error::GuardNotConfigured)
     }
 
+    /// Records a delivery receipt for a message, registering its payload hash,
+    /// protocol version, sender, and recipient. The sender must authorize this action.
+    ///
+    /// # Errors
+    /// - `Error::DuplicateReceipt` if a matching receipt already exists.
+    /// - `Error::CommitmentMismatch` if a receipt exists but with different parameters.
+    /// - `Error::GuardNotConfigured` if no guard has been configured.
+    /// - `Error::LifecycleRejected` if the guard contract rejects verification.
     pub fn delivered(
         env: Env,
         message_id: BytesN<32>,
@@ -217,6 +234,13 @@ impl ReceiptsContract {
         Ok(receipt)
     }
 
+    /// Marks an existing delivery receipt as read. The recipient must authorize this action.
+    ///
+    /// # Errors
+    /// - `Error::ReceiptNotFound` if no receipt exists for the given message ID.
+    /// - `Error::AlreadyRead` if the receipt was already marked as read.
+    /// - `Error::GuardNotConfigured` if no guard has been configured.
+    /// - `Error::LifecycleRejected` if the guard contract rejects verification.
     pub fn read(env: Env, message_id: BytesN<32>) -> Result<Receipt, Error> {
         let key = DataKey::Receipt(message_id.clone());
         let mut receipt: Receipt = env
@@ -245,6 +269,10 @@ impl ReceiptsContract {
         Ok(receipt)
     }
 
+    /// Retrieves the stored receipt for the given message ID.
+    ///
+    /// # Errors
+    /// Returns `Error::ReceiptNotFound` if no receipt exists.
     pub fn get(env: Env, message_id: BytesN<32>) -> Result<Receipt, Error> {
         env.storage()
             .persistent()
@@ -912,5 +940,270 @@ mod event_schema {
                 .len(),
             0
         );
+    }
+}
+
+#[cfg(test)]
+mod proptests {
+    use super::*;
+    use proptest::prelude::*;
+    use soroban_sdk::{
+        testutils::{Address as _, Ledger},
+        Env,
+    };
+    use stealth_lifecycle::{LifecycleContract, LifecycleContractClient};
+    use stealth_policies::{MailboxPolicy, PoliciesContract, PoliciesContractClient};
+
+    fn hash(env: &Env, byte: u8) -> BytesN<32> {
+        BytesN::from_array(env, &[byte; 32])
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn configure_lifecycle(
+        env: &Env,
+        receipts: &Address,
+        message_id: &BytesN<32>,
+        sender: &Address,
+        recipient: &Address,
+        allow_unknown: bool,
+        require_receipt: bool,
+        amount: i128,
+    ) {
+        let policies = env.register(PoliciesContract, ());
+        let policies_client = PoliciesContractClient::new(env, &policies);
+        policies_client.set_policy(
+            &recipient.clone(),
+            &MailboxPolicy {
+                allow_unknown,
+                require_verified: false,
+                require_receipt,
+                minimum_postage: 0,
+            },
+        );
+
+        let postage = Address::generate(env);
+        let lifecycle = env.register(LifecycleContract, ());
+        let lifecycle_client = LifecycleContractClient::new(env, &lifecycle);
+        lifecycle_client.initialize(&policies, &postage, receipts);
+        ReceiptsContractClient::new(env, receipts).configure_guard(&lifecycle);
+        lifecycle_client.bind(
+            message_id,
+            &recipient.clone(),
+            &sender.clone(),
+            &recipient.clone(),
+            &amount,
+            &false,
+            &true,
+        );
+    }
+
+    proptest! {
+        #[test]
+        fn property_receipt_delivery_and_read_invariants(
+            message_byte in 0u8..255u8,
+            payload_byte in 0u8..255u8,
+            protocol_version in 0u32..1000u32,
+            delivered_timestamp in 0u64..1_000_000_000u64,
+            read_delay in 0u64..1_000_000_000u64,
+            amount in 0i128..1_000_000_000i128,
+        ) {
+            let env = Env::default();
+            env.mock_all_auths();
+
+            let contract_id = env.register(ReceiptsContract, ());
+            let client = ReceiptsContractClient::new(&env, &contract_id);
+            let sender = Address::generate(&env);
+            let recipient = Address::generate(&env);
+
+            let message_id = hash(&env, message_byte);
+            let payload_hash = hash(&env, payload_byte);
+
+            configure_lifecycle(
+                &env,
+                &contract_id,
+                &message_id,
+                &sender,
+                &recipient,
+                true, // allow_unknown = true
+                true, // require_receipt = true
+                amount,
+            );
+
+            env.ledger().set_timestamp(delivered_timestamp);
+
+            let delivered = client.delivered(&message_id, &payload_hash, &protocol_version, &sender, &recipient);
+            prop_assert_eq!(&delivered.message_id, &message_id);
+            prop_assert_eq!(&delivered.payload_hash, &payload_hash);
+            prop_assert_eq!(delivered.protocol_version, protocol_version);
+            prop_assert_eq!(&delivered.sender, &sender);
+            prop_assert_eq!(&delivered.recipient, &recipient);
+            prop_assert_eq!(delivered.delivered_at, delivered_timestamp);
+            prop_assert_eq!(delivered.read_at, None);
+
+            let fetched = client.get(&message_id);
+            prop_assert_eq!(fetched, delivered.clone());
+
+            // Read path
+            let read_timestamp = delivered_timestamp + read_delay;
+            env.ledger().set_timestamp(read_timestamp);
+
+            let read = client.read(&message_id);
+            prop_assert_eq!(&read.message_id, &message_id);
+            prop_assert_eq!(&read.payload_hash, &payload_hash);
+            prop_assert_eq!(read.protocol_version, protocol_version);
+            prop_assert_eq!(&read.sender, &sender);
+            prop_assert_eq!(&read.recipient, &recipient);
+            prop_assert_eq!(read.delivered_at, delivered_timestamp);
+            prop_assert_eq!(read.read_at, Some(read_timestamp));
+            prop_assert!(read.read_at.unwrap() >= read.delivered_at);
+
+            let fetched_after_read = client.get(&message_id);
+            prop_assert_eq!(fetched_after_read, read.clone());
+
+            // Verify already read fails
+            let try_read_again = client.try_read(&message_id);
+            prop_assert_eq!(
+                try_read_again.unwrap_err().unwrap(),
+                Error::AlreadyRead
+            );
+        }
+
+        #[test]
+        fn property_lifecycle_rejection_invariants(
+            message_byte in 0u8..255u8,
+            payload_byte in 0u8..255u8,
+            protocol_version in 0u32..1000u32,
+        ) {
+            let env = Env::default();
+            env.mock_all_auths();
+
+            let contract_id = env.register(ReceiptsContract, ());
+            let client = ReceiptsContractClient::new(&env, &contract_id);
+            let sender = Address::generate(&env);
+            let recipient = Address::generate(&env);
+
+            let message_id = hash(&env, message_byte);
+            let payload_hash = hash(&env, payload_byte);
+
+            // Set up a lifecycle and configure it on Receipts, but DO NOT bind the message_id
+            let policies = env.register(PoliciesContract, ());
+            let postage = Address::generate(&env);
+            let lifecycle = env.register(LifecycleContract, ());
+            let lifecycle_client = LifecycleContractClient::new(&env, &lifecycle);
+            lifecycle_client.initialize(&policies, &postage, &contract_id);
+            client.configure_guard(&lifecycle);
+
+            // delivered must fail with LifecycleRejected
+            let try_delivered = client.try_delivered(&message_id, &payload_hash, &protocol_version, &sender, &recipient);
+            prop_assert_eq!(
+                try_delivered.unwrap_err().unwrap(),
+                Error::LifecycleRejected
+            );
+
+            // get must still fail with ReceiptNotFound
+            let try_get = client.try_get(&message_id);
+            prop_assert_eq!(
+                try_get.unwrap_err().unwrap(),
+                Error::ReceiptNotFound
+            );
+        }
+
+        #[test]
+        fn property_delivery_immutability_invariants(
+            message_byte in 0u8..255u8,
+            payload_byte in 0u8..255u8,
+            protocol_version in 0u32..1000u32,
+            alt_payload_byte in 0u8..255u8,
+            alt_protocol_version in 0u32..1000u32,
+        ) {
+            let env = Env::default();
+            env.mock_all_auths();
+
+            let contract_id = env.register(ReceiptsContract, ());
+            let client = ReceiptsContractClient::new(&env, &contract_id);
+            let sender = Address::generate(&env);
+            let recipient = Address::generate(&env);
+            let alt_sender = Address::generate(&env);
+            let alt_recipient = Address::generate(&env);
+
+            let message_id = hash(&env, message_byte);
+            let payload_hash = hash(&env, payload_byte);
+
+            configure_lifecycle(
+                &env,
+                &contract_id,
+                &message_id,
+                &sender,
+                &recipient,
+                true,
+                false,
+                0,
+            );
+
+            client.delivered(&message_id, &payload_hash, &protocol_version, &sender, &recipient);
+
+            // Subsequent delivered with same fields must fail with DuplicateReceipt
+            let try_duplicate = client.try_delivered(&message_id, &payload_hash, &protocol_version, &sender, &recipient);
+            prop_assert_eq!(
+                try_duplicate.unwrap_err().unwrap(),
+                Error::DuplicateReceipt
+            );
+
+            // Subsequent delivered with different payload_hash must fail with CommitmentMismatch
+            if payload_byte != alt_payload_byte {
+                let alt_payload_hash = hash(&env, alt_payload_byte);
+                let try_mismatch = client.try_delivered(&message_id, &alt_payload_hash, &protocol_version, &sender, &recipient);
+                prop_assert_eq!(
+                    try_mismatch.unwrap_err().unwrap(),
+                    Error::CommitmentMismatch
+                );
+            }
+
+            // Subsequent delivered with different protocol_version must fail with CommitmentMismatch
+            if protocol_version != alt_protocol_version {
+                let try_mismatch = client.try_delivered(&message_id, &payload_hash, &alt_protocol_version, &sender, &recipient);
+                prop_assert_eq!(
+                    try_mismatch.unwrap_err().unwrap(),
+                    Error::CommitmentMismatch
+                );
+            }
+
+            // Subsequent delivered with different sender must fail with CommitmentMismatch
+            let try_mismatch_sender = client.try_delivered(&message_id, &payload_hash, &protocol_version, &alt_sender, &recipient);
+            prop_assert_eq!(
+                try_mismatch_sender.unwrap_err().unwrap(),
+                Error::CommitmentMismatch
+            );
+
+            // Subsequent delivered with different recipient must fail with CommitmentMismatch
+            let try_mismatch_recipient = client.try_delivered(&message_id, &payload_hash, &protocol_version, &sender, &alt_recipient);
+            prop_assert_eq!(
+                try_mismatch_recipient.unwrap_err().unwrap(),
+                Error::CommitmentMismatch
+            );
+        }
+
+        #[test]
+        fn property_guard_configuration_invariants(
+            _guard_addr1_seed in 0u64..1000u64,
+            _guard_addr2_seed in 0u64..1000u64,
+        ) {
+            let env = Env::default();
+            let contract_id = env.register(ReceiptsContract, ());
+            let client = ReceiptsContractClient::new(&env, &contract_id);
+
+            let guard1 = Address::generate(&env);
+            let guard2 = Address::generate(&env);
+
+            client.configure_guard(&guard1);
+
+            let try_reconfigure = client.try_configure_guard(&guard2);
+            prop_assert_eq!(
+                try_reconfigure.unwrap_err().unwrap(),
+                Error::GuardAlreadyConfigured
+            );
+
+            prop_assert_eq!(client.guard(), guard1);
+        }
     }
 }

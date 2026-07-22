@@ -13,7 +13,7 @@ export const Route = createFileRoute("/api/v1/postage/$messageId")({
         handleApiRequest(request, async () => {
           const messageId = hash32Schema.parse(params.messageId);
           const actor = requireActor(request);
-          const postage = await getPostage(getApiContext().repository, messageId);
+          const postage = await getPostage((await getApiContext()).repository, messageId);
           assertPostageParticipant(postage, actor);
           return apiSuccess(request, postage);
         }),

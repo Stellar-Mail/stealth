@@ -6,6 +6,16 @@ export {
   suggestAssignment,
 } from "./services/workload-service";
 
+// Non-UI execution contract
+export { createWorkloadContract } from "./contract";
+export { WorkloadErrorCode, validateBalanceInput, ok, fail } from "./contract";
+export type {
+  WorkloadContract,
+  WorkloadOperation,
+  WorkloadContractOutput,
+  WorkloadResult,
+} from "./contract";
+
 export type {
   AssignmentSuggestion,
   BalanceResult,

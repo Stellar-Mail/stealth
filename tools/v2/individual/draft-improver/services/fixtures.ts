@@ -1,71 +1,47 @@
-import { GUARD_LIMITS } from "./guards";
-import type {
-  DraftImproverErrorCode,
-  DraftImproverInput,
-  DraftImproverIssueType,
-} from "../types/draftImprover";
+import type { DraftInput } from "./types";
 
-export interface SuccessFixture {
-  name: string;
-  input: DraftImproverInput;
-  expectedIssueTypes: DraftImproverIssueType[];
+/**
+ * Deterministic sample drafts used for local review and manual exploration of
+ * the engine. These are static fixtures only: they involve no network access,
+ * secrets, or real user data.
+ */
+export interface DraftFixture {
+  id: string;
+  label: string;
+  input: DraftInput;
 }
 
-export interface FailureFixture {
-  name: string;
-  input: unknown;
-  expectedCode: DraftImproverErrorCode;
-}
-
-export const successFixtures: SuccessFixture[] = [
+export const DRAFT_FIXTURES: readonly DraftFixture[] = [
   {
-    name: "clear-note",
+    id: "clean",
+    label: "Clear, well-structured note",
     input: {
-      messageId: "msg-clear-001",
-      subject: "Quick update",
-      body: "The meeting moved to Friday. Please review the agenda before then.",
-      language: "en",
+      subject: "Project kickoff on Thursday",
+      body: "Hi Sam,\n\nThanks for the update. Let's meet Thursday at 10am to agree on scope and owners.\n\nBest,\nAlex",
     },
-    expectedIssueTypes: [],
   },
   {
-    name: "wordy-note",
+    id: "rambling",
+    label: "Long, hedging, filler-heavy draft",
     input: {
-      messageId: "msg-wordy-001",
-      subject: "URGENT PLEASE REVIEW",
-      body: "I am writing to let you know that the update will be very helpful for the team and may require additional review before we proceed.",
-      language: "en",
+      subject: "quick thoughts about the thing we sort of discussed and maybe some next steps",
+      body: "I just wanted to actually reach out because I think we should probably really sync sometime soon, and I guess it would be basically great if we could maybe find a time that works for everyone so that we can go over literally everything in one very long conversation.",
     },
-    expectedIssueTypes: ["clarity", "tone"],
-  },
-];
-
-export const failureFixtures: FailureFixture[] = [
-  {
-    name: "missing-body",
-    input: {
-      messageId: "msg-invalid-001",
-      subject: "No body field",
-    },
-    expectedCode: "invalid-input",
   },
   {
-    name: "oversized-body",
+    id: "shouty",
+    label: "All-caps and excessive punctuation",
     input: {
-      messageId: "msg-oversized-001",
-      subject: "Large payload",
-      body: "x".repeat(GUARD_LIMITS.maxBodyChars + 1),
+      subject: "URGENT",
+      body: "PLEASE respond ASAP!!! This is REALLY important!!!",
     },
-    expectedCode: "input-too-large",
   },
   {
-    name: "unsupported-language",
+    id: "empty",
+    label: "Empty body (error case)",
     input: {
-      messageId: "msg-lang-001",
-      subject: "Bonjour",
-      body: "Merci de simplifier ce texte.",
-      language: "fr",
+      subject: "No content",
+      body: "   ",
     },
-    expectedCode: "unsupported-language",
   },
 ];

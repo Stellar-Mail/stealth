@@ -15,3 +15,4 @@ soroban-sdk = { workspace = true }
 soroban-sdk = { workspace = true, features = ["testutils"] }
 stealth-lifecycle = { path = "../lifecycle", features = ["contract"] }
 stealth-policies = { path = "../policies" }
+proptest = "1.4.0"

@@ -50,3 +50,31 @@ team-digest-generator/
 ## Future Integration
 
 This tool is designed as an isolated mini-product. If a future issue requires integration with the main app (dashboard, inbox, settings), that work should be in a separate issue with explicit approval to modify protected areas.
+
+## Non-UI execution contract
+
+The digest generator exposes a presentation-free execution contract so it can run
+as a backend service, independent of any UI.
+
+- `contract.ts` — the typed `DigestOperation` / `DigestContractOutput`, the
+  `DigestResult<T>` discriminated union, explicit `DigestErrorCode` values, and
+  `validateDigestInput`. Wraps the existing `generateTeamDigest` in `src/`.
+- `index.ts` — `createDigestContract()` returns a `DigestContract` whose
+  `execute(...)` returns typed success/error results instead of throwing.
+- `contract.fixtures.ts` — deterministic sample items.
+- `tests/contract.test.ts` — vitest coverage of aggregation, the `topSubjectLimit`
+  option, empty input, and invalid-item error paths.
+
+Usage:
+
+```ts
+import { createDigestContract } from ".";
+
+const contract = createDigestContract();
+const res = contract.execute({ operation: "generate", items });
+if (res.ok && res.value.operation === "generate") {
+  // res.value.summary has authors/projects/tags/actionItems/topSubjects
+} else {
+  // res.error is a DigestErrorCode
+}
+```

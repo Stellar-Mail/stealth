@@ -1,112 +1,48 @@
-# Mail-to-Ticket Converter Specs
+# Mail-to-Ticket Converter Specification
 
 ## Purpose
 
-Convert incoming emails into trackable support tickets so team members can triage, assign, prioritize, and resolve issues without leaving the mail tooling ecosystem.
+Convert a normalized email into a ticket draft that a team member can review
+before a future integration submits it to an external ticket system.
 
-## Scope
+## Future Inputs
 
-- Release tier: V2
-- Audience: Team
-- Folder ownership: `tools/v2/team/mail-to-ticket-converter/`
-- Integration status: Isolated — not wired into main app
+- Message identifier and thread identifier
+- Subject and plain-text body
+- Sender and recipient metadata
+- Received timestamp
+- Optional attachments represented as metadata only
+- Team-provided conversion rules and destination project identifier
 
-This is a self-contained tooling workspace. Do not wire this tool into the main app, routing, inbox architecture, wallet core, Stellar core, or design system unless a future integration issue explicitly allows it.
+The tool must receive these values through a folder-local typed contract. It must
+not read the main inbox store, authentication context, or database directly.
 
-## In-Scope Behavior
+## Future Outputs
 
-- View a list of unconverted emails from fixtures
-- Create a ticket from an email with adjustable subject, description, priority, category, and optional assignee
-- View a list of tickets with status, priority, assignment, and resolution info
-- Advance ticket status: open → in-progress → resolved → closed (reopenable)
-- Assign tickets to team members via a dropdown
-- View aggregate metrics: total, by status, by priority, by category, average resolution time
-- In-memory state management with loading/empty/error/success states
+- Ticket title and description
+- Source message reference
+- Suggested priority, labels, and assignee identifiers
+- Attachment references without attachment content mutation
+- Validation warnings that require team review
 
-## Out-of-Scope Behavior
+Conversion produces a draft. Creating a ticket in an external system is an
+integration concern and is outside this issue.
 
-- No real email fetching (SMTP/IMAP) — fixture-only
-- No database persistence — ephemeral in-memory data
-- No authentication, authorization, or user identity
-- No notification system for assignments or status changes
-- No search, filter, or pagination
-- No undo for ticket creation
-- No attachment upload or preview
-- No real-time updates or WebSocket
-- No integration with the main mail app inbox, routing, or design system
+## Functional Boundaries
 
-## Data Contract
+The future mini-product may normalize email input, apply deterministic mapping
+rules, produce ticket drafts, expose local review components, and provide local
+fixtures and tests.
 
-```typescript
-type Priority = "low" | "medium" | "high" | "critical";
+It may not send mail, mutate inbox data, create routes, access wallets or Stellar,
+write to the application database, or call a ticket provider directly without a
+separate approved integration issue.
 
-type TicketStatus = "open" | "in-progress" | "resolved" | "closed";
+## Contributor Rules
 
-type TicketCategory = "bug" | "feature-request" | "support" | "billing" | "other";
+Future contributors may add or refine folder-local types, pure conversion logic,
+adapters defined behind local interfaces, local UI components, fixtures, and tests.
 
-interface EmailSender {
-  name: string;
-  email: string;
-}
-
-interface Email {
-  id: string;
-  threadId: string;
-  from: EmailSender;
-  to: EmailSender;
-  subject: string;
-  body: string;
-  receivedAt: string; // ISO 8601
-  hasAttachments: boolean;
-}
-
-interface CreateTicketInput {
-  subject: string;
-  description: string;
-  priority: Priority;
-  category: TicketCategory;
-  assignedTo?: string; // TeamMember.id
-  createdBy: string; // TeamMember.id
-}
-
-interface Ticket {
-  id: string;
-  emailId: string;
-  subject: string;
-  description: string;
-  priority: Priority;
-  status: TicketStatus;
-  category: TicketCategory;
-  assignedTo: string | null;
-  createdBy: string;
-  createdAt: string;
-  updatedAt: string;
-  resolution: string | null;
-}
-
-interface TeamMember {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-}
-
-interface TicketMetrics {
-  totalTickets: number;
-  openTickets: number;
-  inProgressTickets: number;
-  resolvedTickets: number;
-  closedTickets: number;
-  byPriority: Record<Priority, number>;
-  byCategory: Record<TicketCategory, number>;
-  averageResolutionTimeHours: number | null;
-}
-```
-
-## Required Issue Categories
-
-- Architecture
-- Feature
-- UI and accessibility
-- Security and performance
-- Testing and documentation
+Future contributors may not import main-app features, modify global configuration,
+change routing or navigation, alter the design system, or move ownership of source
+mail data into this tool.

@@ -13,7 +13,7 @@ export const Route = createFileRoute("/api/v1/receipts/$messageId")({
         handleApiRequest(request, async () => {
           const messageId = hash32Schema.parse(params.messageId);
           const actor = requireActor(request);
-          const receipt = await getReceipt(getApiContext().repository, messageId);
+          const receipt = await getReceipt((await getApiContext()).repository, messageId);
           assertReceiptParticipant(receipt, actor);
           return apiSuccess(request, receipt);
         }),
