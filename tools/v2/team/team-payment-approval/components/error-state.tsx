@@ -24,7 +24,9 @@ export function ErrorState({ action, className, details, icon, title }: ErrorSta
     <div
       role="alert"
       aria-label="Error loading payment approvals"
-      className={`mx-auto flex max-w-md flex-col items-center justify-center text-center py-12 px-4 ${className || ""}`}
+      className={`mx-auto flex max-w-md flex-col items-center justify-center text-center py-12 px-4 ${
+        className || ""
+      }`}
     >
       {icon ? (
         <div

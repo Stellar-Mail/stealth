@@ -12,6 +12,7 @@ describe("API response cache policies", () => {
 
   it.each([
     ["NO_STORE", CACHE_POLICIES.NO_STORE],
+    ["PUBLIC_5_MINUTES", CACHE_POLICIES.PUBLIC_5_MINUTES],
     ["PUBLIC_IMMUTABLE", CACHE_POLICIES.PUBLIC_IMMUTABLE],
     ["PUBLIC_REVALIDATE", CACHE_POLICIES.PUBLIC_REVALIDATE],
   ] as const)("applies the %s cache policy", (cachePolicy, expected) => {

@@ -27,8 +27,9 @@ export const Route = createFileRoute("/api/v1/postage/")({
     handlers: {
       POST: ({ request }) =>
         handleApiRequest(request, async () => {
+          const apiContext = await getApiContext(request);
           const input = await parseJsonBody(request, submissionSchema);
-          requireActorMatches(request, input.sender);
+          requireActorMatches(apiContext, input.sender);
 
           if (new Date(input.expiresAt) < new Date()) {
             throw new ApiError(422, "validation_error", "Quote has expired");
@@ -47,7 +48,7 @@ export const Route = createFileRoute("/api/v1/postage/")({
 
           const { issuedAt, expiresAt, quoteDigest, ...postageInput } = input;
 
-          const repo = (await getApiContext()).repository;
+          const repo = apiContext.repository;
           const rawIdempotencyKey = request.headers.get("x-idempotency-key");
           if (rawIdempotencyKey) {
             const result = await acquireIdempotency(repo, input.sender, rawIdempotencyKey);
@@ -82,14 +83,14 @@ export const Route = createFileRoute("/api/v1/postage/")({
             acceptEncoding,
             ipPrefix,
           });
-          const context: SubmitPostageContext = {
+          const submitContext: SubmitPostageContext = {
             actorId: input.sender,
             fingerprint,
             ip,
             relayId,
             sender: input.sender,
           };
-          const postage = await submitPostage(repo, postageInput, new Date(), context);
+          const postage = await submitPostage(repo, postageInput, new Date(), submitContext);
 
           if (rawIdempotencyKey) {
             await recordIdempotency(repo, input.sender, rawIdempotencyKey, 201, postage);

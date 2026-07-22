@@ -427,9 +427,9 @@ Test data is provided in `fixtures/`:
 
 ```typescript
 // In your test
-import { mockPayoutRequest, mockStellarAccount } from '../fixtures';
+import { mockPayoutRequest, mockStellarAccount } from "../fixtures";
 
-test('display payout status', () => {
+test("display payout status", () => {
   render(<PayoutStatus payout={mockPayoutRequest} />);
   expect(screen.getByText(mockPayoutRequest.amount)).toBeInTheDocument();
 });

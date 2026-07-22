@@ -1,177 +1,182 @@
-/**
- * Replay-safe, single-use authentication nonces backed by durable, shared
- * storage.
- *
- * Authentication nonces must be consumable exactly once. Tracking "seen"
- * nonces in process-local memory (for example a module-level `Set`) breaks in
- * two ways as soon as the API runs as more than a single long-lived process:
- *
- *   1. A nonce consumed on instance A is invisible to instance B, so the same
- *      signed request can be replayed against a sibling isolate.
- *   2. A restart or redeploy drops the in-memory set, so every previously seen
- *      nonce becomes replayable again.
- *
- * This module fixes both by delegating the "first consumer wins" decision to a
- * shared store behind an atomic put-if-absent. That mirrors the reasoning
- * already used for postage settlement and idempotency in this codebase: a
- * plain get-then-set cannot guarantee a single winner under concurrency, so
- * the atomic primitive must live in the shared store rather than in the caller.
- */
+import { randomBytes as secureRandomBytes } from "node:crypto";
 
-/** A nonce was accepted for the first time and is now consumed. */
-export interface NonceConsumeFresh {
-  readonly outcome: "fresh";
-  readonly record: NonceRecord;
-}
+import { ApiError } from "../errors";
 
-/** A nonce was already consumed; the request is a replay and must be rejected. */
-export interface NonceConsumeReplayed {
-  readonly outcome: "replayed";
-  readonly firstConsumedAt: string;
-}
+export const DEFAULT_AUTH_NONCE_TTL_MS = 5 * 60 * 1000;
+const DEFAULT_KEY_PREFIX = "auth:nonce";
+const NONCE_BYTES = 32;
+const MAX_GENERATION_ATTEMPTS = 3;
 
-export type NonceConsumeResult = NonceConsumeFresh | NonceConsumeReplayed;
-
-/** A consumed nonce and the window during which it stays reserved. */
 export interface NonceRecord {
   readonly nonce: string;
-  /** ISO-8601 timestamp of the first (winning) consume. */
-  readonly consumedAt: string;
-  /** ISO-8601 timestamp after which the nonce may be reused. */
+  readonly actor: string;
+  readonly purpose: string;
+  readonly createdAt: string;
   readonly expiresAt: string;
+  readonly consumedAt?: string;
 }
 
+export type NonceConsumeResult =
+  | { readonly outcome: "consumed"; readonly record: NonceRecord }
+  | { readonly outcome: "not_found" }
+  | { readonly outcome: "expired"; readonly record: NonceRecord }
+  | { readonly outcome: "replayed"; readonly record: NonceRecord }
+  | { readonly outcome: "actor_mismatch"; readonly record: NonceRecord }
+  | { readonly outcome: "purpose_mismatch"; readonly record: NonceRecord };
+
 /**
- * Durable, shared storage primitive the nonce service depends on.
- *
- * Implementations MUST provide an atomic put-if-absent: for a given key,
- * exactly one concurrent caller stores its record and receives `true`, and
- * every other concurrent or later caller receives `false`. This single-winner
- * guarantee is the whole point of the store, so it must not be implemented as
- * a separate `has()` followed by `set()`, which reintroduces the race it is
- * meant to prevent.
- *
- * A production deployment backs this with durable, cross-instance storage (for
- * example Workers KV plus the Durable Object coordinator already used for
- * postage and idempotency, or a Redis `SET key value NX PX ttl`). The
- * in-memory implementation below is the shared reference used in dev and
- * tests, exactly as MemoryApiRepository mirrors HybridApiRepository.
+ * Shared storage contract for nonce lifecycle state. Production adapters must
+ * implement consume atomically (for example in a Durable Object or with a
+ * database compare-and-swap), so concurrent requests cannot both succeed.
  */
 export interface NonceStore {
-  /**
-   * Atomically reserve `key` unless a live (unexpired) record already holds it.
-   * Returns `true` when this call stored `record` (fresh), `false` when a live
-   * record already existed (replay).
-   */
-  putIfAbsent(key: string, record: NonceRecord, nowMs: number): Promise<boolean>;
-  /** Read the live record for `key`, or `null` if absent or expired. */
-  get(key: string, nowMs: number): Promise<NonceRecord | null>;
+  putIfAbsent(key: string, record: NonceRecord): Promise<boolean>;
+  consume(key: string, actor: string, purpose: string, nowMs: number): Promise<NonceConsumeResult>;
+  get(key: string): Promise<NonceRecord | null>;
 }
 
 export interface NonceServiceOptions {
-  /** Key namespace so nonce entries never collide with other stored data. */
   keyPrefix?: string;
-  /** How long a consumed nonce stays reserved before it may be reused. */
   ttlMs?: number;
-  /** Injectable clock, primarily for deterministic tests. */
   now?: () => number;
+  randomBytes?: (size: number) => Uint8Array;
+  environment?: Record<string, string | undefined>;
 }
 
-const DEFAULT_TTL_MS = 5 * 60 * 1000;
-const DEFAULT_KEY_PREFIX = "auth:nonce";
+function normalizeBinding(value: string, name: string): string {
+  const normalized = value.trim();
+  if (!normalized) throw new RangeError(`${name} must be a non-empty string`);
+  return normalized;
+}
+
+export function getAuthNonceTtlMs(
+  environment: Record<string, string | undefined> = process.env,
+): number {
+  const configured = environment.STEALTH_AUTH_NONCE_TTL_MS;
+  if (configured === undefined || configured.trim() === "") return DEFAULT_AUTH_NONCE_TTL_MS;
+
+  const ttlMs = Number(configured);
+  if (!Number.isSafeInteger(ttlMs) || ttlMs <= 0) {
+    throw new Error(
+      "Configuration error: STEALTH_AUTH_NONCE_TTL_MS must be a positive integer number of milliseconds.",
+    );
+  }
+  return ttlMs;
+}
 
 export class NonceService {
   private readonly store: NonceStore;
   private readonly keyPrefix: string;
   private readonly ttlMs: number;
   private readonly now: () => number;
+  private readonly randomBytes: (size: number) => Uint8Array;
 
   constructor(store: NonceStore, options: NonceServiceOptions = {}) {
     this.store = store;
     this.keyPrefix = options.keyPrefix ?? DEFAULT_KEY_PREFIX;
-    this.ttlMs = options.ttlMs ?? DEFAULT_TTL_MS;
-    this.now = options.now ?? (() => Date.now());
+    this.ttlMs = options.ttlMs ?? getAuthNonceTtlMs(options.environment);
+    if (!Number.isSafeInteger(this.ttlMs) || this.ttlMs <= 0) {
+      throw new RangeError("Nonce TTL must be a positive integer number of milliseconds");
+    }
+    this.now = options.now ?? Date.now;
+    this.randomBytes = options.randomBytes ?? secureRandomBytes;
   }
 
   private key(nonce: string): string {
     return `${this.keyPrefix}:${nonce}`;
   }
 
-  /**
-   * Atomically consume a nonce. The first caller for a given nonce receives
-   * `{ outcome: "fresh" }`; any concurrent or later caller receives
-   * `{ outcome: "replayed" }`. Because the decision is delegated to the shared
-   * store, the result is identical across runtime instances and survives
-   * process restarts for as long as the store is durable.
-   */
-  async consume(nonce: string): Promise<NonceConsumeResult> {
-    const normalized = nonce.trim();
-    if (normalized.length === 0) {
-      throw new RangeError("Nonce must be a non-empty string");
+  /** Issues and persists an unpredictable nonce bound to an actor and purpose. */
+  async issue(actor: string, purpose: string): Promise<NonceRecord> {
+    const normalizedActor = normalizeBinding(actor, "Actor");
+    const normalizedPurpose = normalizeBinding(purpose, "Authentication purpose");
+
+    for (let attempt = 0; attempt < MAX_GENERATION_ATTEMPTS; attempt += 1) {
+      const nowMs = this.now();
+      const nonce = Buffer.from(this.randomBytes(NONCE_BYTES)).toString("hex");
+      const record: NonceRecord = {
+        nonce,
+        actor: normalizedActor,
+        purpose: normalizedPurpose,
+        createdAt: new Date(nowMs).toISOString(),
+        expiresAt: new Date(nowMs + this.ttlMs).toISOString(),
+      };
+
+      if (await this.store.putIfAbsent(this.key(nonce), record)) return record;
     }
 
-    const nowMs = this.now();
-    const record: NonceRecord = {
-      nonce: normalized,
-      consumedAt: new Date(nowMs).toISOString(),
-      expiresAt: new Date(nowMs + this.ttlMs).toISOString(),
-    };
-
-    const stored = await this.store.putIfAbsent(this.key(normalized), record, nowMs);
-    if (stored) {
-      return { outcome: "fresh", record };
-    }
-
-    const existing = await this.store.get(this.key(normalized), nowMs);
-    return {
-      outcome: "replayed",
-      firstConsumedAt: existing?.consumedAt ?? record.consumedAt,
-    };
+    throw new ApiError(500, "internal_error", "Unable to generate a unique authentication nonce");
   }
 
-  /** Whether `nonce` is currently consumed (present and not expired). */
-  async isConsumed(nonce: string): Promise<boolean> {
-    const existing = await this.store.get(this.key(nonce.trim()), this.now());
-    return existing !== null;
+  /**
+   * Atomically consumes a nonce after verifying its actor, purpose, and expiry.
+   * Any failure is rejected centrally and never returns authentication state.
+   */
+  async consume(nonce: string, actor: string, purpose: string): Promise<NonceRecord> {
+    const normalizedNonce = normalizeBinding(nonce, "Nonce");
+    const result = await this.store.consume(
+      this.key(normalizedNonce),
+      normalizeBinding(actor, "Actor"),
+      normalizeBinding(purpose, "Authentication purpose"),
+      this.now(),
+    );
+
+    switch (result.outcome) {
+      case "consumed":
+        return result.record;
+      case "expired":
+        throw new ApiError("expired_challenge");
+      case "replayed":
+        throw new ApiError(409, "conflict", "The authentication nonce has already been used");
+      case "actor_mismatch":
+      case "purpose_mismatch":
+      case "not_found":
+        throw new ApiError(401, "unauthorized", "The authentication nonce is invalid");
+    }
+  }
+
+  async get(nonce: string): Promise<NonceRecord | null> {
+    return this.store.get(this.key(normalizeBinding(nonce, "Nonce")));
   }
 }
 
-/**
- * In-memory NonceStore used in dev and tests. It is the shared reference
- * implementation of the store contract, not a production backend: two services
- * sharing one instance behave like two runtime instances sharing one durable
- * store, but its state does not outlive the process. Production wiring supplies
- * a durable, cross-instance store (see the interface docs).
- */
+/** In-memory development/test implementation of the atomic store contract. */
 export class InMemoryNonceStore implements NonceStore {
   private readonly entries = new Map<string, NonceRecord>();
 
-  async putIfAbsent(key: string, record: NonceRecord, nowMs: number): Promise<boolean> {
-    // No `await` runs between this read and the write below, so the
-    // check-then-act sequence completes within a single microtask and cannot
-    // interleave with a concurrent call for the same key. That is what makes
-    // the single-winner guarantee hold, matching MemoryApiRepository.
-    const existing = this.entries.get(key);
-    if (existing && Date.parse(existing.expiresAt) > nowMs) {
-      return false;
-    }
+  async putIfAbsent(key: string, record: NonceRecord): Promise<boolean> {
+    if (this.entries.has(key)) return false;
     this.entries.set(key, record);
     return true;
   }
 
-  async get(key: string, nowMs: number): Promise<NonceRecord | null> {
-    const existing = this.entries.get(key);
-    if (!existing) {
-      return null;
-    }
-    if (Date.parse(existing.expiresAt) <= nowMs) {
+  async consume(
+    key: string,
+    actor: string,
+    purpose: string,
+    nowMs: number,
+  ): Promise<NonceConsumeResult> {
+    // Deliberately contains no await: lookup, validation, and mutation happen
+    // in one microtask, giving this reference store compare-and-swap semantics.
+    const record = this.entries.get(key);
+    if (!record) return { outcome: "not_found" };
+    if (Date.parse(record.expiresAt) <= nowMs) {
       this.entries.delete(key);
-      return null;
+      return { outcome: "expired", record };
     }
-    return existing;
+    if (record.consumedAt) return { outcome: "replayed", record };
+    if (record.actor !== actor) return { outcome: "actor_mismatch", record };
+    if (record.purpose !== purpose) return { outcome: "purpose_mismatch", record };
+
+    const consumed = { ...record, consumedAt: new Date(nowMs).toISOString() };
+    this.entries.set(key, consumed);
+    return { outcome: "consumed", record: consumed };
   }
 
-  /** Test helper: drop all reserved nonces. */
+  async get(key: string): Promise<NonceRecord | null> {
+    return this.entries.get(key) ?? null;
+  }
+
   reset(): void {
     this.entries.clear();
   }

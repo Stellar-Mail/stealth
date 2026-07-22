@@ -4,13 +4,20 @@ The TanStack Start worker exposes versioned endpoints under `/api/v1`.
 
 ## Endpoint groups
 
-- Operations: `GET /health`, `GET /protocol`, `GET /openapi.json`
+- Operations: `GET /health`, `GET /health?check=readiness`, `GET /protocol`, `GET /openapi.json`
 - Policy: read or replace mailbox defaults, manage sender overrides, and evaluate admission
 - Postage: quote, submit, retrieve, settle, and refund message postage
 - Receipts: record delivery, retrieve participant state, and acknowledge reads
 
 Amounts are decimal strings in stroops because Soroban uses i128 values that can exceed JavaScript's
 safe integer range. Message IDs and payment hashes are lowercase 32-byte hexadecimal strings.
+
+## Response headers
+
+All JSON API responses include `Content-Type: application/json; charset=utf-8`, `Cache-Control`,
+`X-Request-ID`, and `X-Content-Type-Options: nosniff`. The security header is applied centrally and
+cannot be overridden by individual routes. CORS headers remain independently configurable and are
+preserved when responses are created.
 
 ## Idempotency
 
@@ -42,6 +49,32 @@ Protected endpoints require `x-stealth-address` with the Stellar address acting 
 This header only preserves authorization boundaries during development. It is not authentication.
 Production must derive the actor from a verified wallet challenge or signed session and must ignore
 caller-supplied identity headers at the public edge.
+
+### Authentication challenge validity
+
+Signed authentication challenges are valid for five minutes by default, with 30 seconds of
+client/server clock-skew tolerance on both ends of the window. Deployments can change these values
+with `STEALTH_AUTH_CHALLENGE_LIFETIME_MS` and `STEALTH_AUTH_CLOCK_SKEW_MS`; both values are integer
+milliseconds. The complete configuration rules are documented in [`src/config/README.md`](../../src/config/README.md).
+
+Challenges older than the configured window fail with the machine-readable error code
+`expired_challenge`. Challenges dated farther into the future than the allowed skew fail with
+`challenge_not_yet_valid`. Both errors use HTTP 422 and the standard API error envelope.
+
+### Authentication nonce lifecycle
+
+Signed authentication begins by issuing a cryptographically random 32-byte nonce. Each nonce is
+stored with its actor, authentication purpose, creation time, and expiration time. Its lifetime is
+five minutes by default and can be configured with `STEALTH_AUTH_NONCE_TTL_MS` as documented in
+[`src/config/README.md`](../../src/config/README.md).
+
+Consumption atomically checks the actor, purpose, and expiration before marking the nonce used.
+Only one concurrent request can succeed; replay attempts are rejected, and actor or purpose
+mismatches do not consume the legitimate caller's nonce. Production storage adapters must provide
+the same atomic compare-and-consume guarantee as the in-memory development implementation.
+
+The versioned production signing contract, verification order, validity windows, replay rules, and
+executable examples are in the [signed API authentication protocol v1](../security/api-authentication-v1.md).
 
 ```bash
 curl -X PUT http://localhost:8080/api/v1/policies/GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA \

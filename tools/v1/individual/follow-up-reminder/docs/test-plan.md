@@ -10,30 +10,37 @@
 ## Automated Cases
 
 1. Explicit follow-up request
+
    - Given an email asking for a reply by Friday.
    - Expect a `draft` reminder with title, due time, confidence, and signals.
 
 2. Relative date
+
    - Given received time, timezone, and "follow up tomorrow".
    - Expect deterministic `dueAt` resolution.
 
 3. Ambiguous date
+
    - Given "follow up soon" without a concrete date.
    - Expect `draft` with an ambiguous-date warning.
 
 4. Duplicate prevention
+
    - Given an existing reminder for the same message and due time.
    - Expect no duplicate scheduled reminder.
 
 5. Snooze action
+
    - Given a scheduled reminder and explicit snooze action.
    - Expect `snoozed` state and updated due time.
 
 6. Complete action
+
    - Given a scheduled reminder and explicit complete action.
    - Expect `completed` state without mailbox mutation.
 
 7. FYI false positive
+
    - Given an FYI-only newsletter or receipt.
    - Expect no scheduled reminder and low-confidence or no draft.
 

@@ -256,6 +256,7 @@ export const openApiDocument = {
         summary: "Read service health",
         "x-stability": "stable",
         responses: {
+          default: { description: "" },
           "200": {
             description: "Success",
             content: {
@@ -305,6 +306,7 @@ export const openApiDocument = {
         summary: "Discover protocol capabilities",
         "x-stability": "stable",
         responses: {
+          default: { description: "" },
           "200": {
             description: "Success",
             content: {
@@ -354,6 +356,7 @@ export const openApiDocument = {
         summary: "Read this OpenAPI document",
         "x-stability": "stable",
         responses: {
+          default: { description: "" },
           "200": {
             description: "Success",
             content: {
@@ -403,6 +406,7 @@ export const openApiDocument = {
         summary: "Read mailbox policy",
         "x-stability": "stable",
         responses: {
+          default: { description: "" },
           "200": {
             description: "Success",
             content: {
@@ -455,6 +459,7 @@ export const openApiDocument = {
         ],
         "x-stability": "stable",
         responses: {
+          default: { description: "" },
           "200": {
             description: "Success",
             content: {
@@ -504,6 +509,7 @@ export const openApiDocument = {
         summary: "Read a sender override",
         "x-stability": "stable",
         responses: {
+          default: { description: "" },
           "200": {
             description: "Success",
             content: {
@@ -556,6 +562,7 @@ export const openApiDocument = {
         ],
         "x-stability": "stable",
         responses: {
+          default: { description: "" },
           "200": {
             description: "Success",
             content: {
@@ -608,6 +615,7 @@ export const openApiDocument = {
         ],
         "x-stability": "stable",
         responses: {
+          default: { description: "" },
           "200": {
             description: "Success",
             content: {
@@ -657,6 +665,7 @@ export const openApiDocument = {
         summary: "Evaluate whether a sender can mail a recipient",
         "x-stability": "stable",
         responses: {
+          default: { description: "" },
           "200": {
             description: "Policy evaluation decision",
             content: {
@@ -723,6 +732,7 @@ export const openApiDocument = {
         ],
         "x-stability": "stable",
         responses: {
+          default: { description: "" },
           "200": {
             description: "Success",
             content: {
@@ -772,6 +782,7 @@ export const openApiDocument = {
         summary: "Quote recipient postage requirements",
         "x-stability": "stable",
         responses: {
+          default: { description: "" },
           "200": {
             description: "Success",
             content: {
@@ -826,6 +837,7 @@ export const openApiDocument = {
         ],
         "x-stability": "stable",
         responses: {
+          default: { description: "" },
           "200": {
             description: "Success",
             content: {
@@ -880,6 +892,7 @@ export const openApiDocument = {
         ],
         "x-stability": "stable",
         responses: {
+          default: { description: "" },
           "200": {
             description: "Success",
             content: {
@@ -934,6 +947,7 @@ export const openApiDocument = {
         ],
         "x-stability": "stable",
         responses: {
+          default: { description: "" },
           "200": {
             description: "Success",
             content: {
@@ -988,6 +1002,7 @@ export const openApiDocument = {
         ],
         "x-stability": "stable",
         responses: {
+          default: { description: "" },
           "200": {
             description: "Success",
             content: {
@@ -1042,6 +1057,7 @@ export const openApiDocument = {
         ],
         "x-stability": "stable",
         responses: {
+          default: { description: "" },
           "200": {
             description: "Success",
             content: {
@@ -1102,6 +1118,7 @@ export const openApiDocument = {
           migration: "/receipts/{messageId}",
         },
         responses: {
+          default: { description: "" },
           "200": {
             description: "Success",
             content: {

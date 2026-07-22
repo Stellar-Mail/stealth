@@ -19,7 +19,8 @@
     "local:teardown": "powershell -ExecutionPolicy Bypass -File scripts/setup-local-env/teardown.ps1",
     "local:setup:unix": "bash scripts/setup-local-env/setup.sh",
     "local:teardown:unix": "bash scripts/setup-local-env/teardown.sh",
-    "generate:bindings": "node scripts/generate-contract-bindings.mjs"
+    "generate:bindings": "node scripts/generate-contract-bindings.mjs",
+    "generate:openapi": "bun scripts/generate-openapi.ts"
   },
   "overrides": {
     "ws": "8.21.0"

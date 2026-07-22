@@ -188,16 +188,19 @@ When `prefers-reduced-motion: reduce` is active, animations use:
 ### Best Practices
 
 1. **Test with reduced motion enabled**
+
    - macOS: System Preferences → Accessibility → Display → Reduce motion
    - Windows: Settings → Ease of Access → Display → Show animations
    - Use the dev gallery's "Reduced Motion" toggle
 
 2. **Use animations purposefully**
+
    - Avoid animations on critical paths
    - Don't animate when content changes instantly
    - Keep animations under 500ms for attention-grabbing
 
 3. **Pair with focus states**
+
    - Always include keyboard navigation focus indicators
    - Don't rely solely on animation for feedback
    - Combine with visual states (color, border, shadow)

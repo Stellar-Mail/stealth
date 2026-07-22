@@ -14,7 +14,7 @@ The Grammar Cleaner tool includes a set of fixtures to ensure consistent behavio
   - _Input_: `hello there. how are you today? it is sunny`
   - _Expected_: `Hello there. How are you today? It is sunny.`
 - **Whitespace**: Cleaning up irregular spacing.
-  - _Input_: `  Too much    space here   `
+  - _Input_: `Too much    space here `
   - _Expected_: `Too much space here.`
 - **Case Preservation**: Maintaining capitalization on corrected typos.
   - _Input_: `Teh adress is wrong`

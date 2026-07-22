@@ -145,7 +145,9 @@ export function runMigrations(data: any, targetVersion: number): MigrationResult
         targetVersion,
         data: currentData,
         stepsApplied,
-        error: `Failed to migrate from version ${migration.fromVersion} to ${migration.toVersion}: ${err?.message || err}`,
+        error: `Failed to migrate from version ${migration.fromVersion} to ${
+          migration.toVersion
+        }: ${err?.message || err}`,
       };
     }
   }

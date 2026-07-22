@@ -447,7 +447,7 @@
         },
         {
           "id": "receipts/duplicate-deliver",
-          "description": "Creating a second delivery receipt for the same messageId is rejected.",
+          "description": "Creating a second identical delivery receipt for the same messageId replays the original receipt.",
           "fixture": {
             "sender": "GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
             "recipient": "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
@@ -456,16 +456,13 @@
           },
           "operations": ["deliver", "deliver"],
           "expected": {
-            "error": {
-              "code": "conflict",
-              "status": 409,
-              "message": "A delivery receipt already exists for this message"
-            }
+            "deliveredAt": "2026-01-01T00:00:00.000Z",
+            "readAt": null
           }
         },
         {
           "id": "receipts/read-already-read",
-          "description": "Marking an already-read receipt as read again is rejected.",
+          "description": "Marking an already-read receipt as read again replays the original read receipt.",
           "fixture": {
             "sender": "GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
             "recipient": "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
@@ -475,11 +472,8 @@
           },
           "operations": ["deliver", "read", "read"],
           "expected": {
-            "error": {
-              "code": "conflict",
-              "status": 409,
-              "message": "The receipt has already been marked as read"
-            }
+            "deliveredAt": "2026-01-01T00:00:00.000Z",
+            "readAt": "2026-01-02T00:00:00.000Z"
           }
         }
       ]

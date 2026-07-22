@@ -46,7 +46,11 @@ export function CollisionDetectedView({
         <p style={{ fontSize: "0.8rem", color: "#666", margin: "0.25rem 0 0 0" }}>
           {events.length === 0
             ? "No collisions detected"
-            : `${events.length} collision${events.length !== 1 ? "s" : ""} found across ${monitoredThreads} monitored thread${monitoredThreads !== 1 ? "s" : ""}`}
+            : `${events.length} collision${
+                events.length !== 1 ? "s" : ""
+              } found across ${monitoredThreads} monitored thread${
+                monitoredThreads !== 1 ? "s" : ""
+              }`}
         </p>
       </header>
 
