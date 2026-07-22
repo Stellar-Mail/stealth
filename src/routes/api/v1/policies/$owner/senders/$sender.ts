@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
-import { requireActorMatches } from "@/server/api/actor";
+import { parseDelegationHeader, requireActorMatches } from "@/server/api/actor";
 import { getApiContext } from "@/server/api/context";
 import { senderRuleSchema, stellarAddressSchema } from "@/server/api/domain";
 import { getSenderRule, setSenderRule } from "@/server/api/policy-service";
@@ -36,7 +36,15 @@ export const Route = createFileRoute("/api/v1/policies/$owner/senders/$sender")(
         handleApiRequest(request, async () => {
           const owner = stellarAddressSchema.parse(params.owner);
           const sender = stellarAddressSchema.parse(params.sender);
-          requireActorMatches(request, owner);
+          requireActorMatches(
+            request,
+            owner,
+            parseDelegationHeader(
+              request,
+              "policy:senders:update",
+              `mailbox:${owner}:senders:${sender}`,
+            ),
+          );
           const { rule } = await parseJsonBody(request, ruleBodySchema);
           const result = await setSenderRule((await getApiContext()).repository, owner, sender, rule);
           emitAudit({
@@ -52,7 +60,15 @@ export const Route = createFileRoute("/api/v1/policies/$owner/senders/$sender")(
         handleApiRequest(request, async () => {
           const owner = stellarAddressSchema.parse(params.owner);
           const sender = stellarAddressSchema.parse(params.sender);
-          requireActorMatches(request, owner);
+          requireActorMatches(
+            request,
+            owner,
+            parseDelegationHeader(
+              request,
+              "policy:senders:delete",
+              `mailbox:${owner}:senders:${sender}`,
+            ),
+          );
           const result = await setSenderRule((await getApiContext()).repository, owner, sender, "default");
           emitAudit({
             action: "delete",

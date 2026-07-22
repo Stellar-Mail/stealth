@@ -1,5 +1,13 @@
-import type { IdempotencyRecord, MailboxPolicy, Postage, Receipt, SenderRule } from "./domain";
-import type { ApiRepository } from "./repository";
+import type {
+  IdempotencyRecord,
+  MailboxPolicy,
+  Postage,
+  PostageStatus,
+  Receipt,
+  SenderRule,
+} from "./domain";
+import type { ApiRepository, PostageTransitionResult } from "./repository";
+import { ApiError } from "./errors";
 
 function key(owner: string, sender: string) {
   return `${owner}:${sender}`;
@@ -42,6 +50,39 @@ export class MemoryApiRepository implements ApiRepository {
     return structuredClone(postage);
   }
 
+  async transitionPostage(
+    messageId: string,
+    expectedStatus: PostageStatus,
+    nextStatus: PostageStatus,
+  ): Promise<PostageTransitionResult> {
+    // No `await` occurs between the read and the write below, so this
+    // check-then-act sequence runs to completion within a single
+    // microtask and cannot interleave with a concurrent call for the
+    // same messageId, giving us the atomicity the interface requires.
+    const current = this.postage.get(messageId);
+    if (!current) {
+      return { outcome: "not-found" };
+    }
+    if (current.status !== expectedStatus) {
+      return { outcome: "conflict", postage: structuredClone(current) };
+    }
+    const updated: Postage = { ...current, status: nextStatus };
+    this.postage.set(messageId, updated);
+    return { outcome: "applied", postage: structuredClone(updated) };
+  }
+
+  async insertPostage(postage: Postage) {
+    if (this.postage.has(postage.messageId)) {
+      throw new ApiError(
+        409,
+        "conflict",
+        `A postage record already exists for message ${postage.messageId}`,
+      );
+    }
+    this.postage.set(postage.messageId, structuredClone(postage));
+    return structuredClone(postage);
+  }
+
   async getReceipt(messageId: string) {
     return structuredClone(this.receipts.get(messageId) ?? null);
   }
@@ -49,6 +90,30 @@ export class MemoryApiRepository implements ApiRepository {
   async setReceipt(receipt: Receipt) {
     this.receipts.set(receipt.messageId, structuredClone(receipt));
     return structuredClone(receipt);
+  }
+
+  async markReceiptRead(
+    messageId: string,
+    actor: string,
+    now = new Date(),
+  ): Promise<import("./repository").MarkReceiptReadResult> {
+    // No `await` occurs between the read and the write below, so this
+    // check-then-act sequence runs to completion within a single
+    // microtask and cannot interleave with a concurrent call for the
+    // same messageId, giving us the atomicity the interface requires.
+    const receipt = this.receipts.get(messageId);
+    if (!receipt) {
+      return { outcome: "not-found" };
+    }
+    if (actor !== receipt.sender && actor !== receipt.recipient) {
+      return { outcome: "forbidden" };
+    }
+    if (receipt.readAt !== null) {
+      return { outcome: "already-read", readAt: receipt.readAt };
+    }
+    const updated: Receipt = { ...receipt, readAt: now.toISOString() };
+    this.receipts.set(messageId, updated);
+    return { outcome: "marked", receipt: structuredClone(updated) };
   }
 
   async getRelayQueueDepth(_relayId: string) {
@@ -74,15 +139,46 @@ export class MemoryApiRepository implements ApiRepository {
     return this.counters.get(key)?.length ?? 0;
   }
 
-  async incrementCounter(key: string, windowSeconds: number) {
+  async incrementCounter(key: string, windowSeconds: number, amount = 1) {
+    if (!Number.isSafeInteger(amount) || amount < 1) {
+      throw new RangeError("Counter increment amount must be a positive safe integer");
+    }
     const now = Date.now();
     const windowMilliseconds = windowSeconds * 1000;
     const timestamps = this.counters.get(key) ?? [];
-    const filtered = [...timestamps, now].filter(
+    const filtered = [...timestamps, ...Array<number>(amount).fill(now)].filter(
       (timestamp) => now - timestamp <= windowMilliseconds,
     );
     this.counters.set(key, filtered);
     return filtered.length;
+  }
+
+  async acquireIdempotencyRecord(
+    key: string,
+    leaseMs: number,
+  ): Promise<import("./repository").AcquireIdempotencyResult> {
+    const existing = this.idempotency.get(key);
+    const now = Date.now();
+
+    if (existing) {
+      if (existing.state === "completed") {
+        return { status: "completed", record: structuredClone(existing) };
+      }
+
+      // existing is in_progress. Check if lease expired
+      if (now < new Date(existing.recoveryExpiryAt).getTime()) {
+        return { status: "in_progress" };
+      }
+    }
+
+    // Acquire the lock
+    this.idempotency.set(key, {
+      state: "in_progress",
+      createdAt: new Date(now).toISOString(),
+      recoveryExpiryAt: new Date(now + leaseMs).toISOString(),
+    });
+
+    return { status: "acquired" };
   }
 
   async getIdempotencyRecord(key: string) {
