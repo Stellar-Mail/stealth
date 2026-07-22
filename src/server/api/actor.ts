@@ -1,6 +1,6 @@
 import { stellarAddressSchema } from "./domain";
 import { ApiError } from "./errors";
-import type { RequestContext } from "./context";
+import { assertActorAuthorized, type DelegatedAuthorization } from "./auth/delegation";
 
 export const ACTOR_HEADER = "x-stealth-address";
 
@@ -19,10 +19,11 @@ export function requireActor(requestOrContext: Request | RequestContext) {
   return result.data;
 }
 
-export function requireActorMatches(requestOrContext: Request | RequestContext, expectedAddress: string) {
-  const actor = requireActor(requestOrContext);
-  if (actor !== expectedAddress) {
-    throw new ApiError(403, "forbidden", "The authenticated actor cannot modify this resource");
-  }
-  return actor;
+export function requireActorMatches(
+  request: Request,
+  expectedAddress: string,
+  authorization?: DelegatedAuthorization,
+) {
+  const actor = requireActor(request);
+  return assertActorAuthorized(actor, expectedAddress, authorization);
 }

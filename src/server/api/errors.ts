@@ -33,10 +33,15 @@ export interface ValidationErrorDetails {
   validationErrors: ValidationErrorItem[];
 }
 
+export type RetryClassification = "permanent" | "transient" | "rate_limit" | "conflict";
+
 export class ApiError extends Error {
   readonly code: ApiErrorCode;
   readonly details?: unknown;
   readonly status: number;
+  readonly retryable: boolean;
+  readonly retryClassification: RetryClassification;
+  readonly retryAfterSeconds?: number;
 
   constructor(status: number, code: ApiErrorCode, message: string, details?: unknown) {
     super(message);
@@ -44,6 +49,26 @@ export class ApiError extends Error {
     this.status = status;
     this.code = code;
     this.details = details;
+
+    if (code === "too_many_requests") {
+      this.retryClassification = "rate_limit";
+      this.retryable = true;
+      if (details && typeof details === "object" && "retryAfterSeconds" in details) {
+        const val = (details as any).retryAfterSeconds;
+        if (typeof val === "number") {
+          this.retryAfterSeconds = val;
+        }
+      }
+    } else if (code === "conflict") {
+      this.retryClassification = "conflict";
+      this.retryable = true;
+    } else if (code === "internal_error") {
+      this.retryClassification = "transient";
+      this.retryable = true;
+    } else {
+      this.retryClassification = "permanent";
+      this.retryable = false;
+    }
   }
 }
 
