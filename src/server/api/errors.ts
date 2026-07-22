@@ -117,10 +117,7 @@ export function getErrorReporter(): UnexpectedErrorReporter | null {
   return activeReporter;
 }
 
-export function normalizeApiError(
-  error: unknown,
-  context?: UnexpectedErrorContext,
-): ApiError {
+export function normalizeApiError(error: unknown, context?: UnexpectedErrorContext): ApiError {
   if (error instanceof ApiError) return error;
 
   if (error instanceof ZodError) {
@@ -150,4 +147,3 @@ export function normalizeApiError(
 
   return new ApiError(500, "internal_error", "An unexpected server error occurred");
 }
-
