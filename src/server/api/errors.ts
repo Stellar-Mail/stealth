@@ -207,6 +207,20 @@ export class DataIntegrityError extends Error {
   }
 }
 
+export class RetryExhaustedError extends Error {
+  readonly code = "retry_exhausted" as const;
+  readonly status = 500;
+  readonly retryable = false;
+  readonly retryClassification: RetryClassification = "transient";
+  readonly originalError: unknown;
+
+  constructor(originalError: unknown) {
+    super("Operation failed after maximum retries");
+    this.name = "RetryExhaustedError";
+    this.originalError = originalError;
+  }
+}
+
 function formatPath(path: ZodIssue["path"]) {
   if (path.length === 0) return "$";
 
