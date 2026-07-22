@@ -3,10 +3,10 @@
 The receipts contract uses two Soroban storage spaces, keyed by the `DataKey` enum
 defined in `src/lib.rs`.
 
-| Variant                | Storage space | Written by                    | Read by                              |
-| ----------------------- | -------------- | ------------------------------ | -------------------------------------- |
-| `DataKey::Guard`        | Instance       | `configure_guard` (once)       | `guard`, `delivered`, `read`           |
-| `DataKey::Receipt(id)`  | Persistent     | `delivered` (first write only) | `delivered`, `read`, `get`             |
+| Variant                | Storage space | Written by                     | Read by                      |
+| ---------------------- | ------------- | ------------------------------ | ---------------------------- |
+| `DataKey::Guard`       | Instance      | `configure_guard` (once)       | `guard`, `delivered`, `read` |
+| `DataKey::Receipt(id)` | Persistent    | `delivered` (first write only) | `delivered`, `read`, `get`   |
 
 `Guard` is a single, contract-wide configuration value set at most once
 (`GuardAlreadyConfigured` on a second call). `Receipt(id)` is keyed by the 32-byte
@@ -17,9 +17,9 @@ storage space.
 ## How `DataKey` is encoded
 
 Soroban's `#[contracttype]` derive encodes each enum variant as a host vector whose
-first element is a `Symbol` built from the variant's Rust *name* (`"Guard"`,
+first element is a `Symbol` built from the variant's Rust _name_ (`"Guard"`,
 `"Receipt"`), followed by any tuple fields. Decoding looks up a previously-written
-key by that name among the enum's *current* variants — the numeric declaration
+key by that name among the enum's _current_ variants — the numeric declaration
 order plays no part in the encoding. Concretely, this means:
 
 - **Renaming or removing a variant that has ever written storage is unsafe.** The
