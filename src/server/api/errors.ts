@@ -75,6 +75,12 @@ export const API_ERROR_REGISTRY = {
     retryable: false,
     description: "The submitted authentication or quote challenge is no longer valid.",
   },
+  challenge_not_yet_valid: {
+    status: 422,
+    message: "The challenge is not yet valid",
+    retryable: false,
+    description: "The submitted authentication challenge is dated too far in the future.",
+  },
   idempotency_mismatch: {
     status: 409,
     message: "The idempotency key was already used for a different request",
