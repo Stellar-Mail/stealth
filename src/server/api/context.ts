@@ -7,7 +7,10 @@ import {
   postageSchema,
   receiptSchema,
   idempotencyRecordSchema,
+  stellarAddressSchema,
 } from "./domain";
+import { logger } from "./logging";
+import * as metrics from "./metrics";
 
 // Register schemas once at module init for Issue #1508 record validation
 registerRecordSchema("mailboxPolicy", mailboxPolicySchema);
@@ -15,6 +18,70 @@ registerRecordSchema("senderRule", senderRuleSchema);
 registerRecordSchema("postage", postageSchema);
 registerRecordSchema("receipt", receiptSchema);
 registerRecordSchema("idempotencyRecord", idempotencyRecordSchema);
+
+export interface RequestContext {
+  readonly request: Request;
+  readonly requestId: string;
+  readonly startTime: number;
+  readonly principal?: string;
+  readonly routeId: string;
+  readonly env?: any;
+  readonly logger: typeof logger;
+  readonly metrics: typeof metrics;
+  readonly repository: ApiRepository;
+}
+
+export interface RequestContextOptions {
+  request: Request;
+  routeId: string;
+  env?: any;
+  repository?: ApiRepository;
+  startTime?: number;
+  requestId?: string;
+  principal?: string;
+}
+
+export async function createRequestContext(options: RequestContextOptions): Promise<RequestContext> {
+  const request = options.request;
+  const requestId =
+    options.requestId ||
+    request.headers.get("x-request-id")?.trim() ||
+    crypto.randomUUID();
+  const startTime = options.startTime ?? performance.now();
+  const routeId = options.routeId;
+  const repository = options.repository ?? (await getApiContext()).repository;
+
+  let principal = options.principal;
+  if (!principal) {
+    const actorHeaderValue = request.headers.get("x-stealth-address");
+    if (actorHeaderValue) {
+      const result = stellarAddressSchema.safeParse(actorHeaderValue);
+      if (result.success) {
+        principal = result.data;
+      }
+    }
+  }
+
+  let resolvedEnv = options.env;
+  if (!resolvedEnv && import.meta.env.PROD) {
+    try {
+      const { env } = await import("cloudflare:workers");
+      resolvedEnv = env;
+    } catch {}
+  }
+
+  return {
+    request,
+    requestId,
+    startTime,
+    principal,
+    routeId,
+    env: resolvedEnv,
+    logger,
+    metrics,
+    repository,
+  };
+}
 
 interface ApiContext {
   repository: ApiRepository;

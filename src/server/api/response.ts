@@ -1,4 +1,5 @@
 import { normalizeApiError } from "./errors";
+import type { RequestContext } from "./context";
 
 interface ApiMeta {
   requestId: string;
@@ -43,8 +44,13 @@ function meta(requestId: string): ApiMeta {
   };
 }
 
-export function apiSuccess<T>(request: Request, data: T, options: ResponseOptions = {}) {
-  const requestId = getRequestId(request);
+export function apiSuccess<T>(
+  requestOrContext: Request | RequestContext,
+  data: T,
+  options: ResponseOptions = {},
+) {
+  const requestId =
+    "requestId" in requestOrContext ? requestOrContext.requestId : getRequestId(requestOrContext);
   const body: SuccessEnvelope<T> = { data, meta: meta(requestId) };
 
   return new Response(JSON.stringify(body), {
@@ -53,9 +59,14 @@ export function apiSuccess<T>(request: Request, data: T, options: ResponseOption
   });
 }
 
-export function apiFailure(request: Request, caught: unknown) {
-  const requestId = getRequestId(request);
-  const routeId = new URL(request.url).pathname;
+export function apiFailure(requestOrContext: Request | RequestContext, caught: unknown) {
+  const requestId =
+    "requestId" in requestOrContext ? requestOrContext.requestId : getRequestId(requestOrContext);
+  const routeId =
+    "routeId" in requestOrContext
+      ? requestOrContext.routeId
+      : new URL(requestOrContext.url).pathname;
+
   const error = normalizeApiError(caught, { requestId, routeId });
   const body: ErrorEnvelope = {
     error: {
