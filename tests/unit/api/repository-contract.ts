@@ -186,9 +186,11 @@ export function runRepositoryContractTests(
 
       it("round-trips an idempotency record", async () => {
         await repo.setIdempotencyRecord("key-1", {
+          state: "completed",
           status: 200,
           body: { ok: true },
           createdAt: "2026-01-01T00:00:00.000Z",
+          completedAt: "2026-01-01T00:00:01.000Z",
         });
         await expect(repo.getIdempotencyRecord("key-1")).resolves.toMatchObject({
           status: 200,

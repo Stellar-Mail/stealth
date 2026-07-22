@@ -4,6 +4,7 @@ import type { MailboxPolicy, Postage, Receipt } from "../../../src/server/api/do
 
 class MockKVNamespace {
   public store = new Map<string, string>();
+  public puts: string[] = [];
 
   async get(key: string, type: "text" | "json") {
     const val = this.store.get(key);
@@ -13,6 +14,7 @@ class MockKVNamespace {
   }
 
   async put(key: string, value: string): Promise<void> {
+    this.puts.push(key);
     this.store.set(key, value);
   }
 
@@ -23,6 +25,7 @@ class MockKVNamespace {
 
 class MockCoordinatorStub {
   private postage = new Map<string, Postage>();
+  private receipts = new Map<string, Receipt>();
 
   async getPostage(messageId: string) {
     return this.postage.get(messageId) ?? null;
@@ -42,6 +45,40 @@ class MockCoordinatorStub {
     const updated = { ...current, status: nextStatus } as Postage;
     this.postage.set(messageId, updated);
     return { outcome: "applied" as const, postage: updated };
+  }
+
+  async getReceipt(messageId: string) {
+    return this.receipts.get(messageId) ?? null;
+  }
+
+  async setReceipt(receipt: Receipt) {
+    this.receipts.set(receipt.messageId, receipt);
+    return receipt;
+  }
+
+  async createReceiptIfAbsent(receipt: Receipt) {
+    const existing = this.receipts.get(receipt.messageId);
+    if (existing) return { created: false, receipt: existing };
+
+    this.receipts.set(receipt.messageId, receipt);
+    return { created: true, receipt };
+  }
+
+  async markReceiptRead(
+    messageId: string,
+    actor: string,
+    now = new Date(),
+  ): Promise<import("../../../src/server/api/repository").MarkReceiptReadResult> {
+    const receipt = this.receipts.get(messageId);
+    if (!receipt) return { outcome: "not-found" };
+    if (actor !== receipt.sender && actor !== receipt.recipient) {
+      return { outcome: "forbidden" };
+    }
+    if (receipt.readAt) return { outcome: "already-read", readAt: receipt.readAt };
+
+    const updated = { ...receipt, readAt: now.toISOString() };
+    this.receipts.set(messageId, updated);
+    return { outcome: "marked", receipt: updated };
   }
 }
 
@@ -124,6 +161,39 @@ describe("HybridApiRepository - KV Operations", () => {
     await repo.setReceipt(receipt);
     const retrieved = await repo.getReceipt(messageId);
     expect(retrieved).toEqual(receipt);
+  });
+
+  it("mirrors only first receipt delivery and read transitions to KV", async () => {
+    const receipt: Receipt = {
+      deliveredAt: "2026-06-14T12:00:00.000Z",
+      messageId,
+      readAt: null,
+      recipient: owner,
+      sender,
+    };
+
+    await expect(repo.createReceiptIfAbsent(receipt)).resolves.toEqual({
+      created: true,
+      receipt,
+    });
+    await expect(
+      repo.createReceiptIfAbsent({ ...receipt, deliveredAt: "2026-06-14T12:05:00.000Z" }),
+    ).resolves.toEqual({ created: false, receipt });
+
+    const readReceipt = { ...receipt, readAt: "2026-06-14T12:30:00.000Z" };
+    await expect(
+      repo.markReceiptRead(messageId, owner, new Date(readReceipt.readAt!)),
+    ).resolves.toEqual({
+      outcome: "marked",
+      receipt: readReceipt,
+    });
+    await expect(
+      repo.markReceiptRead(messageId, owner, new Date("2026-06-14T12:45:00.000Z")),
+    ).resolves.toEqual({
+      outcome: "already-read",
+      readAt: readReceipt.readAt,
+    });
+    expect(kv.puts.filter((key) => key === `receipt:${messageId}`)).toHaveLength(2);
   });
 
   it("returns defaults/0 for relay stubs", async () => {

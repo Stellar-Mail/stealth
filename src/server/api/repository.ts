@@ -86,6 +86,8 @@ export interface ApiRepository {
   insertPostage(postage: Postage): Promise<Postage>;
   getReceipt(messageId: string): Promise<Receipt | null>;
   setReceipt(receipt: Receipt): Promise<Receipt>;
+  createReceiptIfAbsent(receipt: Receipt): Promise<{ created: boolean; receipt: Receipt }>;
+  markReceiptRead(messageId: string, actor: string, now?: Date): Promise<MarkReceiptReadResult>;
   acquireIdempotencyRecord(key: string, leaseMs: number): Promise<AcquireIdempotencyResult>;
   getIdempotencyRecord(key: string): Promise<IdempotencyRecord | null>;
   setIdempotencyRecord(key: string, record: IdempotencyRecord): Promise<void>;
@@ -195,6 +197,18 @@ export class ValidatedApiRepository implements ApiRepository {
     return this.inner.setReceipt(receipt);
   }
 
+  createReceiptIfAbsent(receipt: Receipt): Promise<{ created: boolean; receipt: Receipt }> {
+    return this.inner.createReceiptIfAbsent(receipt);
+  }
+
+  markReceiptRead(
+    messageId: string,
+    actor: string,
+    now?: Date,
+  ): Promise<import("./repository").MarkReceiptReadResult> {
+    return this.inner.markReceiptRead(messageId, actor, now);
+  }
+
   acquireIdempotencyRecord(key: string, leaseMs: number): Promise<AcquireIdempotencyResult> {
     return this.inner.acquireIdempotencyRecord(key, leaseMs);
   }
@@ -271,6 +285,8 @@ const RETRY_SAFE_OPERATIONS = new Set<string>([
   "setSenderRule",
   "setPostage",
   "setReceipt",
+  "createReceiptIfAbsent",
+  "markReceiptRead",
   "setIdempotencyRecord",
   "transitionPostage",
 ]);
@@ -373,6 +389,16 @@ export class RetryableApiRepository implements ApiRepository {
 
   setReceipt(receipt: Receipt): Promise<Receipt> {
     return this.withRetry("setReceipt", () => this.inner.setReceipt(receipt));
+  }
+
+  createReceiptIfAbsent(receipt: Receipt): Promise<{ created: boolean; receipt: Receipt }> {
+    return this.withRetry("createReceiptIfAbsent", () => this.inner.createReceiptIfAbsent(receipt));
+  }
+
+  markReceiptRead(messageId: string, actor: string, now?: Date): Promise<MarkReceiptReadResult> {
+    return this.withRetry("markReceiptRead", () =>
+      this.inner.markReceiptRead(messageId, actor, now),
+    );
   }
 
   acquireIdempotencyRecord(key: string, leaseMs: number): Promise<AcquireIdempotencyResult> {
