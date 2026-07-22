@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
-
 import { parseDelegationHeader, requireActorMatches } from "@/server/api/actor";
 import { getApiContext } from "@/server/api/context";
 import { senderRuleSchema, stellarAddressSchema } from "@/server/api/domain";
@@ -9,6 +8,17 @@ import { parseJsonBody } from "@/server/api/request";
 import { apiSuccess, handleApiRequest } from "@/server/api/response";
 
 const ruleBodySchema = z.object({ rule: senderRuleSchema.exclude(["default"]) });
+
+function emitAudit(params: {
+  action: "allow" | "block" | "update" | "delete";
+  owner: string;
+  sender: string;
+  actor: string;
+  timestamp: string;
+}) {
+  const record = { event: "policy.sender.mutation", ...params };
+  console.log(JSON.stringify(record));
+}
 
 export const Route = createFileRoute("/api/v1/policies/$owner/senders/$sender")({
   server: {
@@ -36,10 +46,15 @@ export const Route = createFileRoute("/api/v1/policies/$owner/senders/$sender")(
             ),
           );
           const { rule } = await parseJsonBody(request, ruleBodySchema);
-          return apiSuccess(
-            request,
-            await setSenderRule((await getApiContext()).repository, owner, sender, rule),
-          );
+          const result = await setSenderRule((await getApiContext()).repository, owner, sender, rule);
+          emitAudit({
+            action: rule === "allow" ? "allow" : rule === "block" ? "block" : "update",
+            owner,
+            sender,
+            actor: owner,
+            timestamp: new Date().toISOString(),
+          });
+          return apiSuccess(request, result);
         }),
       DELETE: ({ request, params }) =>
         handleApiRequest(request, async () => {
@@ -54,10 +69,15 @@ export const Route = createFileRoute("/api/v1/policies/$owner/senders/$sender")(
               `mailbox:${owner}:senders:${sender}`,
             ),
           );
-          return apiSuccess(
-            request,
-            await setSenderRule((await getApiContext()).repository, owner, sender, "default"),
-          );
+          const result = await setSenderRule((await getApiContext()).repository, owner, sender, "default");
+          emitAudit({
+            action: "delete",
+            owner,
+            sender,
+            actor: owner,
+            timestamp: new Date().toISOString(),
+          });
+          return apiSuccess(request, result);
         }),
     },
   },
