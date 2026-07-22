@@ -21,7 +21,6 @@ export interface ApiRepository {
   incrementCounter(key: string, windowSeconds: number): Promise<number>;
 }
 
-
 // ---------------------------------------------------------------------------
 // Data Retention Rules
 // ---------------------------------------------------------------------------
@@ -31,13 +30,13 @@ export interface ApiRepository {
  * Each persisted record type has a defined lifetime and cleanup behavior.
  */
 export enum RetentionClass {
-  /** Operational — kept while active, safe to delete when terminal (30d after completion). */
+  /** Operational ï¿½ kept while active, safe to delete when terminal (30d after completion). */
   Operational = "operational",
-  /** Financial — must be preserved for audit (7 years). */
+  /** Financial ï¿½ must be preserved for audit (7 years). */
   Financial = "financial",
-  /** Audit — immutable, retained for compliance (7 years). */
+  /** Audit ï¿½ immutable, retained for compliance (7 years). */
   Audit = "audit",
-  /** Security — retained for incident investigation (1 year). */
+  /** Security ï¿½ retained for incident investigation (1 year). */
   Security = "security",
 }
 
@@ -124,4 +123,3 @@ export const defaultMailboxPolicy: MailboxPolicy = {
   minimumPostage: "0",
   requireVerified: true,
 };
-
