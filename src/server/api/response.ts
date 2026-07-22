@@ -1,4 +1,4 @@
-import { normalizeApiError } from "./errors";
+import { normalizeApiError, type RetryClassification } from "./errors";
 
 interface ApiMeta {
   requestId: string;
@@ -15,6 +15,9 @@ interface ErrorEnvelope {
     code: string;
     details?: unknown;
     message: string;
+    retryable: boolean;
+    retryClassification: RetryClassification;
+    retryAfter?: number;
   };
   meta: ApiMeta;
 }
@@ -60,14 +63,22 @@ export function apiFailure(request: Request, caught: unknown) {
     error: {
       code: error.code,
       message: error.message,
+      retryable: error.retryable,
+      retryClassification: error.retryClassification,
+      ...(error.retryAfterSeconds === undefined ? {} : { retryAfter: error.retryAfterSeconds }),
       ...(error.details === undefined ? {} : { details: error.details }),
     },
     meta: meta(requestId),
   };
 
+  const headers = responseHeaders(requestId);
+  if (error.retryAfterSeconds !== undefined) {
+    headers.set("retry-after", String(error.retryAfterSeconds));
+  }
+
   return new Response(JSON.stringify(body), {
     status: error.status,
-    headers: responseHeaders(requestId),
+    headers,
   });
 }
 

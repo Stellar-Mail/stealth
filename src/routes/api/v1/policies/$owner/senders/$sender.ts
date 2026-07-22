@@ -19,7 +19,7 @@ export const Route = createFileRoute("/api/v1/policies/$owner/senders/$sender")(
           const sender = stellarAddressSchema.parse(params.sender);
           return apiSuccess(
             request,
-            await getSenderRule(getApiContext().repository, owner, sender),
+            await getSenderRule((await getApiContext()).repository, owner, sender),
           );
         }),
       PUT: ({ request, params }) =>
@@ -30,7 +30,7 @@ export const Route = createFileRoute("/api/v1/policies/$owner/senders/$sender")(
           const { rule } = await parseJsonBody(request, ruleBodySchema);
           return apiSuccess(
             request,
-            await setSenderRule(getApiContext().repository, owner, sender, rule),
+            await setSenderRule((await getApiContext()).repository, owner, sender, rule),
           );
         }),
       DELETE: ({ request, params }) =>
@@ -40,7 +40,7 @@ export const Route = createFileRoute("/api/v1/policies/$owner/senders/$sender")(
           requireActorMatches(request, owner);
           return apiSuccess(
             request,
-            await setSenderRule(getApiContext().repository, owner, sender, "default"),
+            await setSenderRule((await getApiContext()).repository, owner, sender, "default"),
           );
         }),
     },

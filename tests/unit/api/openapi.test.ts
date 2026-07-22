@@ -17,7 +17,27 @@ describe("OpenAPI document", () => {
     );
   });
 
-  it("marks mutating owner operations with actor security", () => {
-    expect(openApiDocument.paths["/policies/{owner}"].put.security).toEqual([{ ActorHeader: [] }]);
+  it("documents the SEP-10 signed-request authentication flow", () => {
+    expect(openApiDocument.components.securitySchemes.StellarSignedRequest).toMatchObject({
+      type: "http",
+      scheme: "bearer",
+      bearerFormat: "SEP-10 JWT",
+      "x-required-headers": ["Authorization"],
+    });
+  });
+
+  it("requires signed requests on protected operations", () => {
+    expect(openApiDocument.paths["/policies/{owner}"].put.security).toEqual([
+      { StellarSignedRequest: [] },
+    ]);
+    expect(openApiDocument.paths["/postage/{messageId}"].get.security).toEqual([
+      { StellarSignedRequest: [] },
+    ]);
+  });
+
+  it("does not require authentication on public operations", () => {
+    expect(openApiDocument.paths["/health"].get).not.toHaveProperty("security");
+    expect(openApiDocument.paths["/policies/{owner}"].get).not.toHaveProperty("security");
+    expect(openApiDocument.paths["/postage/quote"].post).not.toHaveProperty("security");
   });
 });

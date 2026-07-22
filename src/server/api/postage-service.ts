@@ -1,3 +1,4 @@
+import { createHmac } from "node:crypto";
 import type { Postage } from "./domain";
 import { ApiError } from "./errors";
 import {
@@ -19,6 +20,25 @@ export type SubmitPostageContext = {
   sender?: string;
 };
 
+function SECRET() {
+  return process.env.STEALTH_CURSOR_SECRET ?? "dev-secret";
+}
+
+export function signQuote(
+  recipient: string,
+  sender: string,
+  amount: string,
+  issuedAt: string,
+  expiresAt: string,
+): string {
+  const secret = SECRET();
+  if (!secret) {
+    throw new ApiError(500, "internal_error", "Quote signing secret is not configured");
+  }
+  const payload = `${recipient}:${sender}:${amount}:${issuedAt}:${expiresAt}`;
+  return createHmac("sha256", secret).update(payload).digest("hex");
+}
+
 export async function quotePostage(
   repository: ApiRepository,
   input: { recipient: string; sender: string },
@@ -26,22 +46,36 @@ export async function quotePostage(
   const rule = await repository.getSenderRule(input.recipient, input.sender);
   const { policy } = await getMailboxPolicy(repository, input.recipient);
 
+  const issuedAt = new Date().toISOString();
+  const lifetimeMs = process.env.STEALTH_QUOTE_LIFETIME_MS
+    ? parseInt(process.env.STEALTH_QUOTE_LIFETIME_MS, 10)
+    : 15 * 60 * 1000;
+  const expiresAt = new Date(Date.now() + lifetimeMs).toISOString();
+
   if (rule === "block") {
+    const amount = policy.minimumPostage;
     return {
-      amount: policy.minimumPostage,
+      amount,
       eligible: false,
       reason: "sender_blocked" as const,
       trusted: false,
+      issuedAt,
+      expiresAt,
+      digest: signQuote(input.recipient, input.sender, amount, issuedAt, expiresAt),
     };
   }
 
   const trusted = rule === "allow";
+  const amount = trusted ? "0" : policy.minimumPostage;
 
   return {
-    amount: trusted ? "0" : policy.minimumPostage,
+    amount,
     eligible: true,
     reason: trusted ? ("trusted_sender" as const) : ("mailbox_minimum" as const),
     trusted,
+    issuedAt,
+    expiresAt,
+    digest: signQuote(input.recipient, input.sender, amount, issuedAt, expiresAt),
   };
 }
 
@@ -170,13 +204,36 @@ export async function resolvePostage(
   messageId: string,
   status: "refunded" | "settled",
 ) {
-  const postage = await getPostage(repository, messageId);
+  // Use an atomic compare-and-swap instead of get-then-set: two concurrent
+  // settle/refund requests for the same message must not both succeed, and
+  // every loser must observe the same deterministic terminal state rather
+  // than racing to overwrite each other.
+  const result = await repository.transitionPostage(messageId, "pending", status);
 
-  if (postage.status !== "pending") {
-    throw new ApiError(409, "conflict", "Postage has already been resolved", {
-      status: postage.status,
+  if (result.outcome === "not-found") {
+    throw new ApiError(404, "not_found", "Postage was not found");
+  }
+
+  if (result.outcome === "conflict") {
+    const { postage } = result;
+
+    // Provide detailed explanations for terminal states to aid debugging and retry logic
+    const explanations: Record<string, string> = {
+      settled:
+        "Postage has already been settled. The escrow was previously released to the recipient.",
+      refunded:
+        "Postage has already been refunded. The escrow was previously returned to the sender.",
+    };
+
+    const explanation =
+      explanations[postage.status] || `Postage is in terminal state: ${postage.status}`;
+
+    throw new ApiError(409, "conflict", explanation, {
+      currentStatus: postage.status,
+      attemptedStatus: status,
+      messageId,
     });
   }
 
-  return repository.setPostage({ ...postage, status });
+  return result.postage;
 }

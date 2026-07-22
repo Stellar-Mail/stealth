@@ -1,0 +1,35 @@
+groups:
+  - name: stealth-api-anomalies
+    rules:
+      - alert: StealthAuthInvalidSignaturesSpike
+        expr: (sum(rate(api_errors_total{status="401"}[5m])) / sum(rate(api_requests_total[5m]))) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          tier: api
+        annotations:
+          summary: "Spike in invalid authentication signatures detected"
+          description: "Over the last 5 minutes, 401 unauthorized errors represent {{ $value | humanizePercentage }} of all requests on the API, indicating a potential signature generation issue or credential spraying."
+          runbook_url: "https://github.com/Dopezapha/stealth/blob/main/docs/deployment/ALERTS.md#runbook-stealthauthinvalidsignaturesspike"
+
+      - alert: StealthAuthReplayAttemptsDetected
+        expr: (sum(rate(api_errors_total{status="409"}[5m])) / sum(rate(api_requests_total[5m]))) > 0.03
+        for: 5m
+        labels:
+          severity: warning
+          tier: api
+        annotations:
+          summary: "Spike in potential replay attempts or duplicate mutations"
+          description: "Over the last 5 minutes, 409 conflict errors represent {{ $value | humanizePercentage }} of all requests, indicating potential message replays or idempotency failures."
+          runbook_url: "https://github.com/Dopezapha/stealth/blob/main/docs/deployment/ALERTS.md#runbook-stealthauthreplayattemptsdetected"
+
+      - alert: StealthSustainedThrottling
+        expr: (sum(rate(api_errors_total{status="429"}[10m])) / sum(rate(api_requests_total[10m]))) > 0.10
+        for: 10m
+        labels:
+          severity: warning
+          tier: api
+        annotations:
+          summary: "Sustained high rate of client throttling (HTTP 429)"
+          description: "Over the last 10 minutes, 10% or more of requests have been throttled (HTTP 429), indicating either an active denial-of-service attempt or a misconfigured high-volume client."
+          runbook_url: "https://github.com/Dopezapha/stealth/blob/main/docs/deployment/ALERTS.md#runbook-stealthsustainedthrottling"

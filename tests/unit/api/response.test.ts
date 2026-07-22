@@ -31,6 +31,28 @@ describe("API response envelopes", () => {
       error: {
         code: "conflict",
         message: "The resource already exists",
+        retryable: true,
+        retryClassification: "conflict",
+      },
+    });
+  });
+
+  it("handles rate limit errors and exposes retry-after metadata in body and headers", async () => {
+    const request = new Request("https://stealth.test/api");
+    const response = apiFailure(
+      request,
+      new ApiError(429, "too_many_requests", "Rate limit exceeded", { retryAfterSeconds: 60 }),
+    );
+
+    expect(response.status).toBe(429);
+    expect(response.headers.get("retry-after")).toBe("60");
+    expect(await response.json()).toMatchObject({
+      error: {
+        code: "too_many_requests",
+        message: "Rate limit exceeded",
+        retryable: true,
+        retryClassification: "rate_limit",
+        retryAfter: 60,
       },
     });
   });

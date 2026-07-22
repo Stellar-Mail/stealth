@@ -3,6 +3,7 @@ import { z } from "zod";
 export const stellarAddressSchema = z
   .string()
   .trim()
+  .toUpperCase()
   .regex(/^G[A-Z2-7]{55}$/, "Expected a Stellar G-address");
 
 export const hash32Schema = z
@@ -56,10 +57,19 @@ export type PostageStatus = z.infer<typeof postageStatusSchema>;
 export type Receipt = z.infer<typeof receiptSchema>;
 export type SenderRule = z.infer<typeof senderRuleSchema>;
 
-export const idempotencyRecordSchema = z.object({
-  status: z.number(),
-  body: z.unknown(),
-  createdAt: z.string().datetime(),
-});
+export const idempotencyRecordSchema = z.discriminatedUnion("state", [
+  z.object({
+    state: z.literal("in_progress"),
+    createdAt: z.string().datetime(),
+    recoveryExpiryAt: z.string().datetime(),
+  }),
+  z.object({
+    state: z.literal("completed"),
+    status: z.number(),
+    body: z.unknown(),
+    createdAt: z.string().datetime(),
+    completedAt: z.string().datetime(),
+  }),
+]);
 
 export type IdempotencyRecord = z.infer<typeof idempotencyRecordSchema>;
