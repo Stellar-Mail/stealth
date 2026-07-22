@@ -1,15 +1,16 @@
 import { normalizeApiError } from "./errors";
+import { getRequestContext } from "./context";
 
 interface ApiMeta {
   requestId: string;
   timestamp: string;
 }
-
+ 
 interface SuccessEnvelope<T> {
   data: T;
   meta: ApiMeta;
 }
-
+ 
 interface ErrorEnvelope {
   error: {
     code: string;
@@ -18,13 +19,17 @@ interface ErrorEnvelope {
   };
   meta: ApiMeta;
 }
-
+ 
 interface ResponseOptions {
   headers?: HeadersInit;
   status?: number;
 }
-
+ 
 function getRequestId(request: Request) {
+  const context = getRequestContext();
+  if (context?.requestId) {
+    return context.requestId;
+  }
   return request.headers.get("x-request-id")?.trim() || crypto.randomUUID();
 }
 

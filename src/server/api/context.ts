@@ -16,6 +16,20 @@ registerRecordSchema("postage", postageSchema);
 registerRecordSchema("receipt", receiptSchema);
 registerRecordSchema("idempotencyRecord", idempotencyRecordSchema);
 
+import { AsyncLocalStorage } from "node:async_hooks";
+
+export interface RequestContext {
+  requestId: string;
+  method?: string;
+  route?: string;
+}
+
+export const requestContextStorage = new AsyncLocalStorage<RequestContext>();
+
+export function getRequestContext(): RequestContext | undefined {
+  return requestContextStorage.getStore();
+}
+
 interface ApiContext {
   repository: ApiRepository;
 }
@@ -65,7 +79,7 @@ export function validateApiConfig(config: ApiConfig): void {
 
 export async function getApiContext(): Promise<ApiContext> {
   if (!import.meta.env.PROD) {
-    globalApi.__stealthApiRepository ??= new MemoryApiRepository();
+    globalApi.__stealthApiRepository ??= new ValidatedApiRepository(new MemoryApiRepository());
     return { repository: globalApi.__stealthApiRepository };
   }
 
@@ -95,7 +109,9 @@ export async function getApiContext(): Promise<ApiContext> {
   }
 
   const { HybridApiRepository } = await import("./kv-repository");
-  const repo = new HybridApiRepository(env.STEALTH_KV, env.STEALTH_COORDINATOR);
+  const repo = new ValidatedApiRepository(
+    new HybridApiRepository(env.STEALTH_KV, env.STEALTH_COORDINATOR),
+  );
   globalApi.__stealthApiRepository = repo;
   return { repository: repo };
 }
