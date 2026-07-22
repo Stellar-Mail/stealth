@@ -23,7 +23,11 @@ export class HybridApiRepository implements ApiRepository {
     return (policy as MailboxPolicy) ?? null;
   }
 
-  async setPolicy(owner: string, policy: MailboxPolicy, expectedVersion?: string): Promise<MailboxPolicy> {
+  async setPolicy(
+    owner: string,
+    policy: MailboxPolicy,
+    expectedVersion?: string,
+  ): Promise<MailboxPolicy> {
     const nextVersion = crypto.randomUUID();
     const key = this.key("policy", owner);
     await this.getStub().checkAndSetVersion(key, expectedVersion, nextVersion);

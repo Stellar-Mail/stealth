@@ -68,30 +68,42 @@ export function runRepositoryContractTests(
         expect(initial.version).toBeDefined();
 
         // 1. Success on matching version
-        const updated = await repo.setPolicy(owner, {
-          allowUnknown: false,
-          minimumPostage: "150",
-          requireVerified: true,
-        }, initial.version);
+        const updated = await repo.setPolicy(
+          owner,
+          {
+            allowUnknown: false,
+            minimumPostage: "150",
+            requireVerified: true,
+          },
+          initial.version,
+        );
         expect(updated.version).toBeDefined();
         expect(updated.version).not.toBe(initial.version);
 
         // 2. Conflict on stale version
         await expect(
-          repo.setPolicy(owner, {
-            allowUnknown: true,
-            minimumPostage: "200",
-            requireVerified: false,
-          }, initial.version)
+          repo.setPolicy(
+            owner,
+            {
+              allowUnknown: true,
+              minimumPostage: "200",
+              requireVerified: false,
+            },
+            initial.version,
+          ),
         ).rejects.toThrow();
 
         // 3. Stale update returns stable conflict code/status
         try {
-          await repo.setPolicy(owner, {
-            allowUnknown: true,
-            minimumPostage: "200",
-            requireVerified: false,
-          }, initial.version);
+          await repo.setPolicy(
+            owner,
+            {
+              allowUnknown: true,
+              minimumPostage: "200",
+              requireVerified: false,
+            },
+            initial.version,
+          );
           expect.fail("Expected update to fail");
         } catch (err: any) {
           expect(err.status).toBe(409);
@@ -107,17 +119,25 @@ export function runRepositoryContractTests(
         });
 
         // Fire two concurrent updates with the same initial version
-        const p1 = repo.setPolicy(owner, {
-          allowUnknown: false,
-          minimumPostage: "200",
-          requireVerified: true,
-        }, initial.version);
+        const p1 = repo.setPolicy(
+          owner,
+          {
+            allowUnknown: false,
+            minimumPostage: "200",
+            requireVerified: true,
+          },
+          initial.version,
+        );
 
-        const p2 = repo.setPolicy(owner, {
-          allowUnknown: true,
-          minimumPostage: "300",
-          requireVerified: false,
-        }, initial.version);
+        const p2 = repo.setPolicy(
+          owner,
+          {
+            allowUnknown: true,
+            minimumPostage: "300",
+            requireVerified: false,
+          },
+          initial.version,
+        );
 
         const results = await Promise.allSettled([p1, p2]);
         const fulfilled = results.filter((r) => r.status === "fulfilled");
@@ -200,27 +220,33 @@ export function runRepositoryContractTests(
         });
         expect(initial.version).toBeDefined();
 
-        const updated = await repo.setPostage({
-          amount: "100",
-          createdAt: "2026-01-01T00:00:00.000Z",
-          messageId,
-          paymentHash,
-          recipient: owner,
-          sender,
-          status: "settled",
-        }, initial.version);
-        expect(updated.version).not.toBe(initial.version);
-
-        await expect(
-          repo.setPostage({
+        const updated = await repo.setPostage(
+          {
             amount: "100",
             createdAt: "2026-01-01T00:00:00.000Z",
             messageId,
             paymentHash,
             recipient: owner,
             sender,
-            status: "refunded",
-          }, initial.version)
+            status: "settled",
+          },
+          initial.version,
+        );
+        expect(updated.version).not.toBe(initial.version);
+
+        await expect(
+          repo.setPostage(
+            {
+              amount: "100",
+              createdAt: "2026-01-01T00:00:00.000Z",
+              messageId,
+              paymentHash,
+              recipient: owner,
+              sender,
+              status: "refunded",
+            },
+            initial.version,
+          ),
         ).rejects.toThrow();
       });
 
@@ -234,23 +260,29 @@ export function runRepositoryContractTests(
         });
         expect(initial.version).toBeDefined();
 
-        const updated = await repo.setReceipt({
-          deliveredAt: "2026-01-01T00:00:00.000Z",
-          messageId,
-          readAt: "2026-01-02T00:00:00.000Z",
-          recipient: owner,
-          sender,
-        }, initial.version);
+        const updated = await repo.setReceipt(
+          {
+            deliveredAt: "2026-01-01T00:00:00.000Z",
+            messageId,
+            readAt: "2026-01-02T00:00:00.000Z",
+            recipient: owner,
+            sender,
+          },
+          initial.version,
+        );
         expect(updated.version).not.toBe(initial.version);
 
         await expect(
-          repo.setReceipt({
-            deliveredAt: "2026-01-01T00:00:00.000Z",
-            messageId,
-            readAt: "2026-01-03T00:00:00.000Z",
-            recipient: owner,
-            sender,
-          }, initial.version)
+          repo.setReceipt(
+            {
+              deliveredAt: "2026-01-01T00:00:00.000Z",
+              messageId,
+              readAt: "2026-01-03T00:00:00.000Z",
+              recipient: owner,
+              sender,
+            },
+            initial.version,
+          ),
         ).rejects.toThrow();
       });
     });

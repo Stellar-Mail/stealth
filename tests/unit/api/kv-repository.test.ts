@@ -37,7 +37,7 @@ class MockStealthCoordinator {
   async incrementCounter(key: string, windowSeconds: number) {
     const now = Date.now();
     const ts = this.storage.get(`counter:${key}`) ?? [];
-    const filtered = [...ts, now].filter(t => now - t <= windowSeconds * 1000);
+    const filtered = [...ts, now].filter((t) => now - t <= windowSeconds * 1000);
     this.storage.set(`counter:${key}`, filtered);
     return filtered.length;
   }
