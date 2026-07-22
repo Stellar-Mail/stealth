@@ -5,7 +5,7 @@ import { requireActorMatches } from "@/server/api/actor";
 import { getApiContext } from "@/server/api/context";
 import { hash32Schema, stellarAddressSchema, stroopAmountSchema } from "@/server/api/domain";
 import { buildDeviceFingerprint } from "@/server/api/abuse-service";
-import { submitPostage, type SubmitPostageContext } from "@/server/api/postage-service";
+import { submitPostage, signQuote, type SubmitPostageContext } from "@/server/api/postage-service";
 import { parseJsonBody } from "@/server/api/request";
 import { apiSuccess, handleApiRequest } from "@/server/api/response";
 import { acquireIdempotency, recordIdempotency } from "@/server/api/idempotency-service";
@@ -17,6 +17,9 @@ const submissionSchema = z.object({
   paymentHash: hash32Schema,
   recipient: stellarAddressSchema,
   sender: stellarAddressSchema,
+  issuedAt: z.string().datetime(),
+  expiresAt: z.string().datetime(),
+  quoteDigest: z.string(),
 });
 
 export const Route = createFileRoute("/api/v1/postage/")({
@@ -26,6 +29,23 @@ export const Route = createFileRoute("/api/v1/postage/")({
         handleApiRequest(request, async () => {
           const input = await parseJsonBody(request, submissionSchema);
           requireActorMatches(request, input.sender);
+
+          if (new Date(input.expiresAt) < new Date()) {
+            throw new ApiError(422, "validation_error", "Quote has expired");
+          }
+
+          const expectedDigest = signQuote(
+            input.recipient,
+            input.sender,
+            input.amount,
+            input.issuedAt,
+            input.expiresAt,
+          );
+          if (expectedDigest !== input.quoteDigest) {
+            throw new ApiError(422, "validation_error", "Quote digest is invalid or tampered");
+          }
+
+          const { issuedAt, expiresAt, quoteDigest, ...postageInput } = input;
 
           const repo = (await getApiContext()).repository;
           const rawIdempotencyKey = request.headers.get("x-idempotency-key");
@@ -69,7 +89,7 @@ export const Route = createFileRoute("/api/v1/postage/")({
             relayId,
             sender: input.sender,
           };
-          const postage = await submitPostage(repo, input, new Date(), context);
+          const postage = await submitPostage(repo, postageInput, new Date(), context);
 
           if (rawIdempotencyKey) {
             await recordIdempotency(repo, input.sender, rawIdempotencyKey, 201, postage);

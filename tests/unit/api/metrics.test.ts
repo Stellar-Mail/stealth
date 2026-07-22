@@ -5,6 +5,11 @@ import {
   snapshot,
   reset,
   DEFAULT_LATENCY_BUCKETS,
+  computeAvailabilitySLI,
+  computeLatencySLI,
+  computeAuthAvailabilitySLI,
+  computePostageTransitionSLI,
+  computeSLOSummary,
 } from "../../../src/server/api/metrics";
 
 describe("metrics", () => {
@@ -117,6 +122,151 @@ describe("metrics", () => {
       const snap = snapshot();
       expect(snap.counters).toEqual({});
       expect(snap.histograms).toEqual({});
+    });
+  });
+
+  describe("SLI Computation", () => {
+    it("computes API Availability SLI with exact numerator and denominator", () => {
+      // 990 successful requests (200, 400, 404, etc.), 10 server error requests (500)
+      for (let i = 0; i < 990; i++) {
+        incrementCounter("api_requests_total", {
+          method: "GET",
+          path: "/api/v1/policies",
+          status: "200",
+        });
+      }
+      for (let i = 0; i < 10; i++) {
+        incrementCounter("api_requests_total", {
+          method: "GET",
+          path: "/api/v1/policies",
+          status: "500",
+        });
+      }
+
+      const sli = computeAvailabilitySLI();
+      expect(sli.numerator).toBe(990);
+      expect(sli.denominator).toBe(1000);
+      expect(sli.ratio).toBeCloseTo(0.99);
+      expect(sli.target).toBe(0.999);
+      expect(sli.met).toBe(false);
+    });
+
+    it("excludes configured paths like health check from Availability SLI", () => {
+      incrementCounter("api_requests_total", {
+        method: "GET",
+        path: "/api/v1/health",
+        status: "200",
+      });
+      incrementCounter("api_requests_total", {
+        method: "GET",
+        path: "/api/v1/policies",
+        status: "200",
+      });
+      incrementCounter("api_requests_total", {
+        method: "GET",
+        path: "/api/v1/policies",
+        status: "500",
+      });
+
+      const sli = computeAvailabilitySLI();
+      expect(sli.numerator).toBe(1);
+      expect(sli.denominator).toBe(2);
+      expect(sli.ratio).toBe(0.5);
+    });
+
+    it("computes API Latency SLI within threshold", () => {
+      const labels = { method: "GET", path: "/api/v1/policies", status: "200" };
+      recordHistogram("api_latency", 20, labels); // <= 250ms
+      recordHistogram("api_latency", 100, labels); // <= 250ms
+      recordHistogram("api_latency", 400, labels); // > 250ms
+
+      const sli = computeLatencySLI(250);
+      expect(sli.numerator).toBe(2);
+      expect(sli.denominator).toBe(3);
+      expect(sli.ratio).toBeCloseTo(2 / 3);
+    });
+
+    it("computes Authentication Availability SLI for auth paths", () => {
+      incrementCounter("api_requests_total", {
+        method: "POST",
+        path: "/api/v1/auth/login",
+        status: "200",
+      });
+      incrementCounter("api_requests_total", {
+        method: "POST",
+        path: "/api/v1/auth/login",
+        status: "401",
+      });
+      incrementCounter("api_requests_total", {
+        method: "POST",
+        path: "/api/v1/auth/login",
+        status: "500",
+      });
+      incrementCounter("api_requests_total", {
+        method: "GET",
+        path: "/api/v1/policies",
+        status: "500",
+      });
+
+      const sli = computeAuthAvailabilitySLI();
+      // Auth requests: 200 (non-5xx), 401 (non-5xx), 500 (5xx)
+      expect(sli.numerator).toBe(2);
+      expect(sli.denominator).toBe(3);
+      expect(sli.target).toBe(0.9995);
+    });
+
+    it("computes Critical Postage Transitions SLI", () => {
+      incrementCounter("api_requests_total", {
+        method: "POST",
+        path: "/api/v1/postage/quote",
+        status: "200",
+      });
+      incrementCounter("api_requests_total", {
+        method: "POST",
+        path: "/api/v1/postage/settle",
+        status: "201",
+      });
+      incrementCounter("api_requests_total", {
+        method: "POST",
+        path: "/api/v1/postage/settle",
+        status: "409",
+      }); // idempotency handled
+      incrementCounter("api_requests_total", {
+        method: "POST",
+        path: "/api/v1/postage/quote",
+        status: "422",
+      }); // validation handled
+      incrementCounter("api_requests_total", {
+        method: "POST",
+        path: "/api/v1/postage/settle",
+        status: "500",
+      }); // system error
+
+      const sli = computePostageTransitionSLI();
+      expect(sli.numerator).toBe(4);
+      expect(sli.denominator).toBe(5);
+      expect(sli.ratio).toBeCloseTo(0.8);
+      expect(sli.target).toBe(0.999);
+    });
+
+    it("computes complete SLO summary", () => {
+      incrementCounter("api_requests_total", {
+        method: "GET",
+        path: "/api/v1/policies",
+        status: "200",
+      });
+      recordHistogram("api_latency", 50, {
+        method: "GET",
+        path: "/api/v1/policies",
+        status: "200",
+      });
+
+      const summary = computeSLOSummary();
+      expect(summary.availability).toBeDefined();
+      expect(summary.latency).toBeDefined();
+      expect(summary.authAvailability).toBeDefined();
+      expect(summary.postageTransitions).toBeDefined();
+      expect(summary.availability.met).toBe(true);
     });
   });
 });

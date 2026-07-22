@@ -29,6 +29,32 @@ export type AcquireIdempotencyResult =
   | { status: "in_progress" }
   | { status: "completed"; record: IdempotencyRecord & { state: "completed" } };
 
+/**
+ * Outcome of an atomic read-receipt publication.
+ *
+ * - "not-found": no receipt record exists for the given messageId.
+ * - "forbidden": the requesting actor is not a participant in the receipt
+ *   (neither sender nor recipient). The read state is never modified.
+ * - "already-read": the receipt was already marked as read on a prior call.
+ *   `readAt` reflects the original timestamp recorded on the first valid
+ *   transition, enabling callers to surface deterministic 409 responses
+ *   without a separate read round-trip.
+ * - "marked": the read timestamp was set atomically for the first time.
+ *   `receipt` reflects the updated record.
+ *
+ * ## Duplicate-call policy
+ *
+ * The first caller that observes `readAt === null` wins; every subsequent
+ * call receives `{ outcome: "already-read", readAt }`. This is a
+ * first-write-wins, idempotent-read policy: the stored timestamp is
+ * authoritative and is never overwritten.
+ */
+export type MarkReceiptReadResult =
+  | { outcome: "not-found" }
+  | { outcome: "forbidden" }
+  | { outcome: "already-read"; readAt: string }
+  | { outcome: "marked"; receipt: Receipt };
+
 export interface ApiRepository {
   getPolicy(owner: string): Promise<MailboxPolicy | null>;
   setPolicy(owner: string, policy: MailboxPolicy): Promise<MailboxPolicy>;
@@ -50,6 +76,14 @@ export interface ApiRepository {
     expectedStatus: PostageStatus,
     nextStatus: PostageStatus,
   ): Promise<PostageTransitionResult>;
+  /**
+   * Insert a postage record, enforcing message-identifier uniqueness at the
+   * persistence layer. Unlike {@link ApiRepository.setPostage} (an upsert), a
+   * duplicate messageId must reject with a deterministic conflict
+   * (ApiError 409 "conflict") so duplicate records can never create ambiguous
+   * postage/receipt state. Concurrent inserts must yield exactly one winner.
+   */
+  insertPostage(postage: Postage): Promise<Postage>;
   getReceipt(messageId: string): Promise<Receipt | null>;
   setReceipt(receipt: Receipt): Promise<Receipt>;
   acquireIdempotencyRecord(key: string, leaseMs: number): Promise<AcquireIdempotencyResult>;
@@ -176,6 +210,11 @@ export class ValidatedApiRepository implements ApiRepository {
     return runWithCorrelation(() =>
       this.inner.transitionPostage(messageId, expectedStatus, nextStatus),
     );
+  }
+
+  async insertPostage(postage: Postage): Promise<Postage> {
+    const result = await this.inner.insertPostage(postage);
+    return validateRecord<Postage>("postage", result);
   }
 
   async getReceipt(messageId: string): Promise<Receipt | null> {

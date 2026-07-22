@@ -10,12 +10,29 @@ import { logger } from "./logging";
 
 export type { RateLimitConfig } from "./rate-limit";
 
+// Define authentication mode options
+export type AuthMode = "public" | "optional" | "required";
+
 export type RouteConfig<
   BodySchema extends z.ZodTypeAny,
   QuerySchema extends z.ZodTypeAny,
   ParamsSchema extends z.ZodTypeAny,
 > = {
+  /**
+   * Backwards-compat: legacy boolean flag. If set, it overrides `authMode`.
+   * Deprecated: prefer using `authMode` ("public" | "optional" | "required").
+   */
   requireAuth?: boolean;
+
+  /**
+   * Authentication mode for the route.
+   * - "public": No authentication performed. (default)
+   * - "optional": Authentication attempted if credentials are present.
+   * - "required": Authentication is mandatory.
+   */
+  authMode?: AuthMode; // defaults to "public"
+  /** Optional authorization policy function. Return true to allow, false to reject. */
+  authPolicy?: (actorId: string, request: Request) => boolean | Promise<boolean>;
   rateLimit?: RateLimitConfig;
   bodySchema?: BodySchema;
   querySchema?: QuerySchema;

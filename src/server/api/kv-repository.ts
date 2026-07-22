@@ -7,6 +7,7 @@ import type {
   Receipt,
   IdempotencyRecord,
 } from "./domain";
+import { ApiError } from "./errors";
 
 export class HybridApiRepository implements ApiRepository {
   constructor(
@@ -72,6 +73,19 @@ export class HybridApiRepository implements ApiRepository {
       await this.kv.put(this.key("postage", messageId), JSON.stringify(result.postage));
     }
     return result;
+  }
+
+  async insertPostage(postage: Postage): Promise<Postage> {
+    const existing = await this.kv.get(this.key("postage", postage.messageId), "json");
+    if (existing) {
+      throw new ApiError(
+        409,
+        "conflict",
+        `A postage record already exists for message ${postage.messageId}`,
+      );
+    }
+    await this.kv.put(this.key("postage", postage.messageId), JSON.stringify(postage));
+    return postage;
   }
 
   async getReceipt(messageId: string): Promise<Receipt | null> {

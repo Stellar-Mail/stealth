@@ -16,11 +16,15 @@ interface ErrorEnvelope {
     code: string;
     details?: unknown;
     message: string;
+    retryable: boolean;
+    retryClassification: RetryClassification;
+    retryAfter?: number;
   };
   meta: ApiMeta;
 }
  
 interface ResponseOptions {
+  cachePolicy?: CachePolicy;
   headers?: HeadersInit;
   status?: number;
 }
@@ -33,9 +37,22 @@ function getRequestId(request: Request) {
   return request.headers.get("x-request-id")?.trim() || crypto.randomUUID();
 }
 
-function responseHeaders(requestId: string, headers?: HeadersInit) {
+function responseHeaders(
+  requestId: string,
+  headers?: HeadersInit,
+  cachePolicy: CachePolicy = "NO_STORE",
+) {
   const result = new Headers(headers);
-  result.set("cache-control", "no-store");
+  const cacheControl = CACHE_POLICIES[cachePolicy];
+  const suppliedCacheControl = result.get("cache-control");
+
+  if (suppliedCacheControl !== null && suppliedCacheControl !== cacheControl) {
+    throw new TypeError(
+      "Cache-Control must be configured with a named cache policy; conflicting directives are not allowed",
+    );
+  }
+
+  result.set("cache-control", cacheControl);
   result.set("content-type", "application/json; charset=utf-8");
   result.set("x-request-id", requestId);
   return result;
@@ -54,7 +71,7 @@ export function apiSuccess<T>(request: Request, data: T, options: ResponseOption
 
   return new Response(JSON.stringify(body), {
     status: options.status ?? 200,
-    headers: responseHeaders(requestId, options.headers),
+    headers: responseHeaders(requestId, options.headers, options.cachePolicy),
   });
 }
 
@@ -66,14 +83,22 @@ export function apiFailure(request: Request, caught: unknown) {
     error: {
       code: error.code,
       message: error.message,
+      retryable: error.retryable,
+      retryClassification: error.retryClassification,
+      ...(error.retryAfterSeconds === undefined ? {} : { retryAfter: error.retryAfterSeconds }),
       ...(error.details === undefined ? {} : { details: error.details }),
     },
     meta: meta(requestId),
   };
 
+  const headers = responseHeaders(requestId);
+  if (error.retryAfterSeconds !== undefined) {
+    headers.set("retry-after", String(error.retryAfterSeconds));
+  }
+
   return new Response(JSON.stringify(body), {
     status: error.status,
-    headers: responseHeaders(requestId),
+    headers,
   });
 }
 
@@ -88,4 +113,4 @@ export async function handleApiRequest(
   }
 }
 
-export type { ApiMeta, ErrorEnvelope, ResponseOptions, SuccessEnvelope };
+export type { ApiMeta, CachePolicy, ErrorEnvelope, ResponseOptions, SuccessEnvelope };
