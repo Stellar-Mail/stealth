@@ -712,6 +712,212 @@ mod test {
             Error::GuardNotConfigured
         );
     }
+
+    #[test]
+    fn read_fails_on_nonexistent_message_without_authorization() {
+        let env = Env::default();
+        let contract_id = env.register(ReceiptsContract, ());
+        let client = ReceiptsContractClient::new(&env, &contract_id);
+        let message_id = hash(&env, 99);
+
+        // Snapshot test: reading a nonexistent message fails without needing auth
+        env.set_auths(&[]);
+        assert_eq!(
+            client.try_read(&message_id).unwrap_err().unwrap(),
+            Error::ReceiptNotFound
+        );
+    }
+
+    #[test]
+    fn delivered_fails_when_guard_rejects() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let contract_id = env.register(ReceiptsContract, ());
+        let client = ReceiptsContractClient::new(&env, &contract_id);
+        let sender = Address::generate(&env);
+        let recipient = Address::generate(&env);
+        let message_id = hash(&env, 7);
+        let payload_hash = hash(&env, 8);
+
+        // Set up lifecycle but do NOT bind the message
+        let policies = env.register(PoliciesContract, ());
+        let postage = Address::generate(&env);
+        let lifecycle = env.register(LifecycleContract, ());
+        let lifecycle_client = LifecycleContractClient::new(&env, &lifecycle);
+        lifecycle_client.initialize(&policies, &postage, &contract_id);
+        client.configure_guard(&lifecycle);
+
+        // delivered must fail with LifecycleRejected because the message isn't bound
+        assert_eq!(
+            client
+                .try_delivered(&message_id, &payload_hash, &1, &sender, &recipient)
+                .unwrap_err()
+                .unwrap(),
+            Error::LifecycleRejected
+        );
+
+        // No receipt should be stored
+        assert_eq!(
+            client.try_get(&message_id).unwrap_err().unwrap(),
+            Error::ReceiptNotFound
+        );
+    }
+
+    #[test]
+    fn read_of_receipt_with_unbound_message_fails_with_lifecycle_rejected() {
+        // This test ensures that even if a receipt somehow exists in storage
+        // (e.g. via ledger recovery or direct storage), attempting to read it
+        // when the lifecycle hasn't bound the message fails with LifecycleRejected.
+        // In normal operation, deliver() enforces this, but this test verifies
+        // the read path also enforces the guard contract checks.
+        let env = Env::default();
+        env.mock_all_auths();
+        let contract_id = env.register(ReceiptsContract, ());
+        let client = ReceiptsContractClient::new(&env, &contract_id);
+        let sender = Address::generate(&env);
+        let recipient = Address::generate(&env);
+        let message_id = hash(&env, 7);
+        let payload_hash = hash(&env, 8);
+
+        // Set up lifecycle but do NOT bind the message
+        let policies = env.register(PoliciesContract, ());
+        let postage = Address::generate(&env);
+        let lifecycle = env.register(LifecycleContract, ());
+        let lifecycle_client = LifecycleContractClient::new(&env, &lifecycle);
+        lifecycle_client.initialize(&policies, &postage, &contract_id);
+        client.configure_guard(&lifecycle);
+
+        // Attempting to deliver without a bound message fails immediately
+        assert_eq!(
+            client
+                .try_delivered(&message_id, &payload_hash, &1, &sender, &recipient)
+                .unwrap_err()
+                .unwrap(),
+            Error::LifecycleRejected
+        );
+    }
+
+    #[test]
+    fn double_read_is_prevented() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let contract_id = env.register(ReceiptsContract, ());
+        let client = ReceiptsContractClient::new(&env, &contract_id);
+        let sender = Address::generate(&env);
+        let recipient = Address::generate(&env);
+        let message_id = hash(&env, 7);
+        let payload_hash = hash(&env, 8);
+        configure_lifecycle(&env, &contract_id, &message_id, &sender, &recipient);
+
+        env.ledger().set_timestamp(10);
+        client.delivered(&message_id, &payload_hash, &1, &sender, &recipient);
+
+        env.ledger().set_timestamp(20);
+        let first_read = client.read(&message_id);
+        assert_eq!(first_read.read_at, Some(20));
+
+        // Second read should fail
+        env.ledger().set_timestamp(30);
+        assert_eq!(
+            client.try_read(&message_id).unwrap_err().unwrap(),
+            Error::AlreadyRead
+        );
+    }
+
+    #[test]
+    fn guard_returns_error_when_not_configured() {
+        let env = Env::default();
+        let contract_id = env.register(ReceiptsContract, ());
+        let client = ReceiptsContractClient::new(&env, &contract_id);
+
+        assert_eq!(
+            client.try_guard().unwrap_err().unwrap(),
+            Error::GuardNotConfigured
+        );
+    }
+
+    #[test]
+    fn guard_returns_configured_address() {
+        let env = Env::default();
+        let contract_id = env.register(ReceiptsContract, ());
+        let client = ReceiptsContractClient::new(&env, &contract_id);
+        let guard = Address::generate(&env);
+
+        client.configure_guard(&guard);
+        assert_eq!(client.guard(), guard);
+    }
+
+    #[test]
+    fn duplicate_commitment_with_different_protocol_version_fails() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let contract_id = env.register(ReceiptsContract, ());
+        let client = ReceiptsContractClient::new(&env, &contract_id);
+        let sender = Address::generate(&env);
+        let recipient = Address::generate(&env);
+        let message_id = hash(&env, 7);
+        let payload_hash = hash(&env, 8);
+        configure_lifecycle(&env, &contract_id, &message_id, &sender, &recipient);
+
+        client.delivered(&message_id, &payload_hash, &1, &sender, &recipient);
+        assert_eq!(
+            client
+                .try_delivered(&message_id, &payload_hash, &2, &sender, &recipient)
+                .unwrap_err()
+                .unwrap(),
+            Error::CommitmentMismatch
+        );
+    }
+
+    #[test]
+    fn duplicate_commitment_with_different_sender_fails() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let contract_id = env.register(ReceiptsContract, ());
+        let client = ReceiptsContractClient::new(&env, &contract_id);
+        let sender = Address::generate(&env);
+        let recipient = Address::generate(&env);
+        let message_id = hash(&env, 7);
+        let payload_hash = hash(&env, 8);
+        configure_lifecycle(&env, &contract_id, &message_id, &sender, &recipient);
+
+        client.delivered(&message_id, &payload_hash, &1, &sender, &recipient);
+
+        let alt_sender = Address::generate(&env);
+        configure_lifecycle(&env, &contract_id, &message_id, &alt_sender, &recipient);
+        assert_eq!(
+            client
+                .try_delivered(&message_id, &payload_hash, &1, &alt_sender, &recipient)
+                .unwrap_err()
+                .unwrap(),
+            Error::CommitmentMismatch
+        );
+    }
+
+    #[test]
+    fn duplicate_commitment_with_different_recipient_fails() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let contract_id = env.register(ReceiptsContract, ());
+        let client = ReceiptsContractClient::new(&env, &contract_id);
+        let sender = Address::generate(&env);
+        let recipient = Address::generate(&env);
+        let message_id = hash(&env, 7);
+        let payload_hash = hash(&env, 8);
+        configure_lifecycle(&env, &contract_id, &message_id, &sender, &recipient);
+
+        client.delivered(&message_id, &payload_hash, &1, &sender, &recipient);
+
+        let alt_recipient = Address::generate(&env);
+        configure_lifecycle(&env, &contract_id, &message_id, &sender, &alt_recipient);
+        assert_eq!(
+            client
+                .try_delivered(&message_id, &payload_hash, &1, &sender, &alt_recipient)
+                .unwrap_err()
+                .unwrap(),
+            Error::CommitmentMismatch
+        );
+    }
 }
 
 #[cfg(test)]
