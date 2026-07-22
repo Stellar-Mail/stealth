@@ -142,6 +142,15 @@ pub struct LifecycleEvent {
     pub record: LifecycleRecord,
 }
 
+/// Storage Key Migration Notes:
+///
+/// The `DataKey` enum defines the keys for persistent storage in the Soroban environment.
+/// - When introducing new variants, **ALWAYS append them to the end** of this enum to preserve
+///   backward compatibility with Soroban's underlying XDR serialization.
+/// - **NEVER reorder or remove existing variants**. Doing so will corrupt the contract's ability
+///   to read previously written data from the ledger, leading to catastrophic failure.
+/// - If a variant's inner types must be changed or a key structure is deprecated, leave the old
+///   variant intact and append a new one (e.g., `RecordV2(BytesN<32>)`).
 #[contracttype]
 enum DataKey {
     Config,
