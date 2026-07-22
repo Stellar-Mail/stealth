@@ -20,7 +20,6 @@ export function requirePrincipal(requestOrContext: Request | ApiContext): ApiPri
     }
     return requestOrContext.principal;
   }
-}
 
   const principal = extractPrincipal(requestOrContext as Request);
   if (!principal) {
