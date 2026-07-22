@@ -55,10 +55,13 @@ describe("Query string normalization", () => {
     });
   });
 
-  it("keeps last-value-wins semantics for duplicate names", () => {
+  it("rejects duplicate scalar parameter names", () => {
     const request = new Request("https://stealth.test/api?cursor=first&cursor=second");
 
-    expect(parseSearchParams(request, passthrough)).toEqual({ cursor: "second" });
+    expect(captureError(() => parseSearchParams(request, passthrough))).toMatchObject({
+      status: 400,
+      code: "bad_request",
+    });
   });
 
   it("rejects empty parameter names", () => {

@@ -5,9 +5,28 @@ import { ApiError } from "./errors";
 const DEFAULT_MAX_BODY_BYTES = 64 * 1024;
 
 function assertJsonContentType(request: Request) {
-  const contentType = request.headers.get("content-type")?.toLowerCase() ?? "";
-  if (!contentType.includes("application/json")) {
+  const raw = request.headers.get("content-type");
+  if (!raw) {
+    throw new ApiError(415, "bad_request", "Content-Type header is missing");
+  }
+  // Trim whitespace and ignore case
+  const contentType = raw.trim().toLowerCase();
+  // Regex matches "application/json" or "application/*+json" with optional parameters
+  const jsonTypeRegex = /^application\/(?:[\w!#$&^_.-]+\+)?json(?:\s*;.*)?$/i;
+  if (!jsonTypeRegex.test(contentType)) {
     throw new ApiError(415, "bad_request", "Content-Type must be application/json");
+  }
+}
+
+function validateContentLength(request: Request, maxBytes: number): void {
+  const raw = request.headers.get("content-length");
+  if (raw === null) return;
+  const declaredLength = Number(raw);
+  if (!Number.isInteger(declaredLength) || declaredLength < 0) {
+    throw new ApiError(400, "bad_request", "Content-Length must be a non-negative integer");
+  }
+  if (declaredLength > maxBytes) {
+    throw new ApiError(413, "bad_request", `Request body exceeds ${maxBytes} bytes`);
   }
 }
 
@@ -18,10 +37,7 @@ export async function parseJsonBody<T>(
 ): Promise<T> {
   assertJsonContentType(request);
 
-  const declaredLength = Number(request.headers.get("content-length") ?? 0);
-  if (declaredLength > maxBytes) {
-    throw new ApiError(413, "bad_request", `Request body exceeds ${maxBytes} bytes`);
-  }
+  validateContentLength(request, maxBytes);
 
   const body = await request.text();
   if (new TextEncoder().encode(body).byteLength > maxBytes) {
@@ -57,6 +73,13 @@ export interface SearchParamsOptions {
   maxQueryLength?: number;
   /** Cap on each decoded, normalized parameter value length. Default {@link DEFAULT_MAX_QUERY_VALUE_LENGTH}. */
   maxValueLength?: number;
+  /**
+   * Parameter names that may appear more than once.
+   * Their values are collected into an array instead of triggering a
+   * duplicate-parameter error. All other (scalar) parameters must appear
+   * at most once.
+   */
+  multiValuedFields?: ReadonlySet<string>;
 }
 
 /**
@@ -73,7 +96,8 @@ export interface SearchParamsOptions {
  *   changed unexpectedly.
  *
  * Duplicate names keep last-value-wins semantics, matching the previous
- * `Object.fromEntries` behavior.
+ * `Object.fromEntries` behavior. Use {@link parseSearchParams} to reject
+ * duplicate scalar parameters before the schema sees the data.
  */
 export function normalizeSearchParams(
   request: Request,
@@ -122,7 +146,38 @@ export function parseSearchParams<T>(
   schema: ZodType<T>,
   options?: SearchParamsOptions,
 ): T {
-  return schema.parse(normalizeSearchParams(request, options));
+  const multiValued = options?.multiValuedFields ?? new Set<string>();
+  const url = new URL(request.url);
+
+  // Detect duplicate scalar parameters before normalization.
+  const seen = new Map<string, string[]>();
+  for (const [key, value] of url.searchParams.entries()) {
+    if (multiValued.has(key)) continue;
+    const prev = seen.get(key) ?? [];
+    prev.push(value);
+    seen.set(key, prev);
+  }
+  for (const [key, values] of seen) {
+    if (values.length > 1) {
+      throw new ApiError(
+        400,
+        "bad_request",
+        `Duplicate query parameter: ${key}. Expected a single value for '${key}'.`,
+      );
+    }
+  }
+
+  const normalized = normalizeSearchParams(request, options);
+
+  // Multi-valued fields: collect every occurrence into an array.
+  for (const key of multiValued) {
+    const allValues = url.searchParams.getAll(key);
+    if (allValues.length > 0) {
+      (normalized as Record<string, unknown>)[key] = allValues.map((v) => v.normalize("NFC"));
+    }
+  }
+
+  return schema.parse(normalized);
 }
 
 export const paginationSchema = z.object({

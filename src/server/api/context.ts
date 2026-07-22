@@ -1,5 +1,20 @@
 import { MemoryApiRepository } from "./memory-repository";
+import { ValidatedApiRepository, registerRecordSchema } from "./repository";
 import type { ApiRepository } from "./repository";
+import {
+  mailboxPolicySchema,
+  senderRuleSchema,
+  postageSchema,
+  receiptSchema,
+  idempotencyRecordSchema,
+} from "./domain";
+
+// Register schemas once at module init for Issue #1508 record validation
+registerRecordSchema("mailboxPolicy", mailboxPolicySchema);
+registerRecordSchema("senderRule", senderRuleSchema);
+registerRecordSchema("postage", postageSchema);
+registerRecordSchema("receipt", receiptSchema);
+registerRecordSchema("idempotencyRecord", idempotencyRecordSchema);
 
 interface ApiContext {
   repository: ApiRepository;
