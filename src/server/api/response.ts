@@ -58,7 +58,8 @@ export function apiSuccess<T>(request: Request, data: T, options: ResponseOption
 
 export function apiFailure(request: Request, caught: unknown) {
   const requestId = getRequestId(request);
-  const error = normalizeApiError(caught);
+  const routeId = new URL(request.url).pathname;
+  const error = normalizeApiError(caught, { requestId, routeId });
   const body: ErrorEnvelope = {
     error: {
       code: error.code,

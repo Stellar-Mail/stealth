@@ -122,7 +122,27 @@ export function normalizeValidationError(error: ZodError): ValidationErrorDetail
   };
 }
 
-export function normalizeApiError(error: unknown): ApiError {
+export interface UnexpectedErrorContext {
+  requestId?: string;
+  routeId?: string;
+}
+
+export type UnexpectedErrorReporter = (
+  error: unknown,
+  context: UnexpectedErrorContext,
+) => void | Promise<void>;
+
+let activeReporter: UnexpectedErrorReporter | null = null;
+
+export function registerErrorReporter(reporter: UnexpectedErrorReporter): void {
+  activeReporter = reporter;
+}
+
+export function getErrorReporter(): UnexpectedErrorReporter | null {
+  return activeReporter;
+}
+
+export function normalizeApiError(error: unknown, context?: UnexpectedErrorContext): ApiError {
   if (error instanceof ApiError) return error;
 
   if (error instanceof ZodError) {
@@ -132,6 +152,22 @@ export function normalizeApiError(error: unknown): ApiError {
       "Request validation failed",
       normalizeValidationError(error),
     );
+  }
+
+  if (activeReporter) {
+    try {
+      const result = activeReporter(error, {
+        requestId: context?.requestId,
+        routeId: context?.routeId,
+      });
+      if (result instanceof Promise) {
+        result.catch((reporterError) => {
+          console.error("Async error reporter failure:", reporterError);
+        });
+      }
+    } catch (reporterError) {
+      console.error("Sync error reporter failure:", reporterError);
+    }
   }
 
   return new ApiError(500, "internal_error", "An unexpected server error occurred");
