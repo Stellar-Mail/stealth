@@ -1,0 +1,10 @@
+{
+  "status": 422,
+  "body": {
+    "error": "Insufficient postage",
+    "code": "insufficient_postage"
+  },
+  "headers": {
+    "content-type": "application/json"
+  }
+}

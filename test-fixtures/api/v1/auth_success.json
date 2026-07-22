@@ -1,0 +1,1 @@
+{\n  "status": 200,\n  "body": {\n    "token": "dummy-token",\n    "expires": "2026-12-31T23:59:59Z"\n  },\n  "headers": {\n    "content-type": "application/json"\n  }\n}

@@ -1,0 +1,12 @@
+{
+  "status": 200,
+  "body": {
+    "amount": "125",
+    "eligible": true,
+    "trusted": true,
+    "reason": "eligible"
+  },
+  "headers": {
+    "content-type": "application/json"
+  }
+}

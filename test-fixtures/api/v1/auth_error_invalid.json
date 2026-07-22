@@ -1,0 +1,10 @@
+{
+  "status": 400,
+  "body": {
+    "error": "Invalid credentials",
+    "code": "auth_invalid"
+  },
+  "headers": {
+    "content-type": "application/json"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "status": 200,
+  "body": {
+    "policy": {
+      "allowUnknown": false,
+      "minimumPostage": "0",
+      "requireVerified": true
+    },
+    "source": "default"
+  },
+  "headers": {
+    "content-type": "application/json"
+  }
+}
