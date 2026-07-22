@@ -26,6 +26,10 @@ describe("API domain schemas", () => {
 
   it("enforces Stellar addresses and 32-byte hashes", () => {
     expect(stellarAddressSchema.parse(address)).toBe(address);
+    // Add normalization tests for canonical address handling
+    expect(stellarAddressSchema.parse(address.toLowerCase())).toBe(address);
+    expect(stellarAddressSchema.parse(`  ${address.toLowerCase()}  `)).toBe(address);
+
     expect(hash32Schema.parse("a".repeat(64))).toBe("a".repeat(64));
     expect(() => stellarAddressSchema.parse("eve*stealth.xyz")).toThrow();
     expect(() => hash32Schema.parse("abc")).toThrow();

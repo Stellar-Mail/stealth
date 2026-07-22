@@ -13,7 +13,7 @@ export const Route = createFileRoute("/api/v1/receipts/$messageId/read")({
     handlers: {
       POST: ({ request, params }) =>
         handleApiRequest(request, async () => {
-          const repository = getApiContext().repository;
+          const repository = (await getApiContext()).repository;
           const messageId = hash32Schema.parse(params.messageId);
           const current = await getReceipt(repository, messageId);
           const principal = requireActor(request);

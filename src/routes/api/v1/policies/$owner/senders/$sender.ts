@@ -10,10 +10,6 @@ import { apiSuccess, handleApiRequest } from "@/server/api/response";
 
 const ruleBodySchema = z.object({ rule: senderRuleSchema.exclude(["default"]) });
 
-/**
- * Emit a structured audit record for policy sender mutations.
- * No sensitive payloads are included — only metadata.
- */
 function emitAudit(params: {
   action: "allow" | "block" | "update" | "delete";
   owner: string;
@@ -25,12 +21,10 @@ function emitAudit(params: {
     event: "policy.sender.mutation",
     ...params,
   };
-  // Structured audit log — production should wire this to an audit sink
   console.log(JSON.stringify(record));
-  return record;
 }
 
-export const Route = createFileRoute("/api/v1/policies//senders/")({
+export const Route = createFileRoute("/api/v1/policies/$owner/senders/$sender")({
   server: {
     handlers: {
       GET: ({ request, params }) =>
@@ -39,7 +33,7 @@ export const Route = createFileRoute("/api/v1/policies//senders/")({
           const sender = stellarAddressSchema.parse(params.sender);
           return apiSuccess(
             request,
-            await getSenderRule(getApiContext().repository, owner, sender),
+            await getSenderRule((await getApiContext()).repository, owner, sender),
           );
         }),
       PUT: ({ request, params }) =>
@@ -48,7 +42,7 @@ export const Route = createFileRoute("/api/v1/policies//senders/")({
           const sender = stellarAddressSchema.parse(params.sender);
           requireActorMatches(request, owner);
           const { rule } = await parseJsonBody(request, ruleBodySchema);
-          const result = await setSenderRule(getApiContext().repository, owner, sender, rule);
+          const result = await setSenderRule((await getApiContext()).repository, owner, sender, rule);
           emitAudit({
             action: rule === "allow" ? "allow" : rule === "block" ? "block" : "update",
             owner,
@@ -63,7 +57,7 @@ export const Route = createFileRoute("/api/v1/policies//senders/")({
           const owner = stellarAddressSchema.parse(params.owner);
           const sender = stellarAddressSchema.parse(params.sender);
           requireActorMatches(request, owner);
-          const result = await setSenderRule(getApiContext().repository, owner, sender, "default");
+          const result = await setSenderRule((await getApiContext()).repository, owner, sender, "default");
           emitAudit({
             action: "delete",
             owner,

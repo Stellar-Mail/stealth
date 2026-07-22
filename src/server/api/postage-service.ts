@@ -170,13 +170,36 @@ export async function resolvePostage(
   messageId: string,
   status: "refunded" | "settled",
 ) {
-  const postage = await getPostage(repository, messageId);
+  // Use an atomic compare-and-swap instead of get-then-set: two concurrent
+  // settle/refund requests for the same message must not both succeed, and
+  // every loser must observe the same deterministic terminal state rather
+  // than racing to overwrite each other.
+  const result = await repository.transitionPostage(messageId, "pending", status);
 
-  if (postage.status !== "pending") {
-    throw new ApiError(409, "conflict", "Postage has already been resolved", {
-      status: postage.status,
+  if (result.outcome === "not-found") {
+    throw new ApiError(404, "not_found", "Postage was not found");
+  }
+
+  if (result.outcome === "conflict") {
+    const { postage } = result;
+
+    // Provide detailed explanations for terminal states to aid debugging and retry logic
+    const explanations: Record<string, string> = {
+      settled:
+        "Postage has already been settled. The escrow was previously released to the recipient.",
+      refunded:
+        "Postage has already been refunded. The escrow was previously returned to the sender.",
+    };
+
+    const explanation =
+      explanations[postage.status] || `Postage is in terminal state: ${postage.status}`;
+
+    throw new ApiError(409, "conflict", explanation, {
+      currentStatus: postage.status,
+      attemptedStatus: status,
+      messageId,
     });
   }
 
-  return repository.setPostage({ ...postage, status });
+  return result.postage;
 }

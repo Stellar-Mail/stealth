@@ -11,7 +11,7 @@ export const Route = createFileRoute("/api/v1/postage/$messageId/refund")({
     handlers: {
       POST: ({ request, params }) =>
         handleApiRequest(request, async () => {
-          const repository = getApiContext().repository;
+          const repository = (await getApiContext()).repository;
           // Authenticate before loading so unauthenticated callers cannot
           // probe whether a message id exists.
           requireActor(request);
