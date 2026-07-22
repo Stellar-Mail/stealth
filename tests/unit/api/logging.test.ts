@@ -199,4 +199,3 @@ describe("Structured Logger and Redaction", () => {
     }
   });
 });
-
