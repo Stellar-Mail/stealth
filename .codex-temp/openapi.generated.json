@@ -17,9 +17,7 @@
         "scheme": "bearer",
         "bearerFormat": "SEP-10 JWT",
         "description": "Authenticates a Stellar account through the [SEP-10 Web Authentication](https://github.com/stellar/stellar-protocol/blob/master/ecosystem/sep-0010.md) challenge flow. Fetch a short-lived challenge transaction from the service's WEB_AUTH_ENDPOINT, verify the server signature and transaction fields, sign the challenge with an authorized Stellar account signer, and exchange the signed transaction for a token. Send that token on protected API calls as `Authorization: Bearer <SEP-10-token>`. Never send a Stellar secret seed. The server derives the actor from the verified token and enforces challenge expiry and replay protection; `x-stealth-address` alone is not proof of identity.",
-        "x-required-headers": [
-          "Authorization"
-        ],
+        "x-required-headers": ["Authorization"],
         "x-signing-specification": "https://github.com/stellar/stellar-protocol/blob/master/ecosystem/sep-0010.md",
         "x-challenge-flow": [
           "Request a challenge transaction from the WEB_AUTH_ENDPOINT for the Stellar account.",
@@ -39,10 +37,7 @@
     "schemas": {
       "ApiMeta": {
         "type": "object",
-        "required": [
-          "requestId",
-          "timestamp"
-        ],
+        "required": ["requestId", "timestamp"],
         "properties": {
           "requestId": {
             "type": "string",
@@ -57,10 +52,7 @@
       },
       "SuccessEnvelope": {
         "type": "object",
-        "required": [
-          "data",
-          "meta"
-        ],
+        "required": ["data", "meta"],
         "properties": {
           "data": {
             "type": "object",
@@ -73,10 +65,7 @@
       },
       "DomainError": {
         "type": "object",
-        "required": [
-          "code",
-          "message"
-        ],
+        "required": ["code", "message"],
         "properties": {
           "code": {
             "type": "string",
@@ -126,11 +115,7 @@
       },
       "MailboxPolicy": {
         "type": "object",
-        "required": [
-          "allowUnknown",
-          "minimumPostage",
-          "requireVerified"
-        ],
+        "required": ["allowUnknown", "minimumPostage", "requireVerified"],
         "properties": {
           "allowUnknown": {
             "type": "boolean"
@@ -145,21 +130,13 @@
       },
       "ValidationErrorItem": {
         "type": "object",
-        "required": [
-          "path",
-          "rule",
-          "message"
-        ],
+        "required": ["path", "rule", "message"],
         "additionalProperties": false,
         "properties": {
           "path": {
             "type": "string",
             "description": "Safe request field path using dot and bracket notation; root errors use $.",
-            "examples": [
-              "recipient",
-              "tags[0]",
-              "$"
-            ]
+            "examples": ["recipient", "tags[0]", "$"]
           },
           "rule": {
             "type": "string",
@@ -184,9 +161,7 @@
       },
       "ValidationErrorDetails": {
         "type": "object",
-        "required": [
-          "validationErrors"
-        ],
+        "required": ["validationErrors"],
         "additionalProperties": false,
         "properties": {
           "validationErrors": {
@@ -199,11 +174,7 @@
       },
       "PolicyEvaluationDecision": {
         "type": "object",
-        "required": [
-          "allowed",
-          "reasonCode",
-          "message"
-        ],
+        "required": ["allowed", "reasonCode", "message"],
         "additionalProperties": false,
         "properties": {
           "allowed": {
@@ -230,30 +201,17 @@
       },
       "RetryClassification": {
         "type": "string",
-        "enum": [
-          "permanent",
-          "transient",
-          "rate_limit",
-          "conflict"
-        ],
+        "enum": ["permanent", "transient", "rate_limit", "conflict"],
         "description": "Stable machine-readable classification of retry eligibility."
       },
       "ErrorEnvelope": {
         "type": "object",
-        "required": [
-          "error",
-          "meta"
-        ],
+        "required": ["error", "meta"],
         "additionalProperties": false,
         "properties": {
           "error": {
             "type": "object",
-            "required": [
-              "code",
-              "message",
-              "retryable",
-              "retryClassification"
-            ],
+            "required": ["code", "message", "retryable", "retryClassification"],
             "additionalProperties": false,
             "properties": {
               "code": {
@@ -303,10 +261,7 @@
           },
           "meta": {
             "type": "object",
-            "required": [
-              "requestId",
-              "timestamp"
-            ],
+            "required": ["requestId", "timestamp"],
             "additionalProperties": false,
             "properties": {
               "requestId": {
