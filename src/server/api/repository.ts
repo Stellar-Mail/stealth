@@ -106,6 +106,8 @@ export const defaultMailboxPolicy: MailboxPolicy = {
   requireVerified: true,
 };
 
+import { getRequestContext } from "./context";
+
 // ---------------------------------------------------------------------------
 // Issue #1508: Record validation at adapter boundaries
 // ---------------------------------------------------------------------------
@@ -113,8 +115,29 @@ export const defaultMailboxPolicy: MailboxPolicy = {
 let correlationCounter = 0;
 
 export function generateCorrelationId(): string {
+  const context = getRequestContext();
+  if (context?.requestId) {
+    return context.requestId;
+  }
   correlationCounter += 1;
   return `di-${Date.now()}-${correlationCounter}`;
+}
+
+async function runWithCorrelation<T>(fn: () => Promise<T>): Promise<T> {
+  try {
+    return await fn();
+  } catch (error) {
+    const context = getRequestContext();
+    if (context && error instanceof Error) {
+      Object.defineProperty(error, "requestId", {
+        value: context.requestId,
+        writable: true,
+        enumerable: true,
+        configurable: true,
+      });
+    }
+    throw error;
+  }
 }
 
 const recordSchemas = new Map<string, ZodSchema>();
@@ -147,30 +170,36 @@ export class ValidatedApiRepository implements ApiRepository {
   constructor(private readonly inner: ApiRepository) {}
 
   async getPolicy(owner: string): Promise<MailboxPolicy | null> {
-    const raw = await this.inner.getPolicy(owner);
-    return raw ? validateRecord<MailboxPolicy>("mailboxPolicy", raw) : null;
+    return runWithCorrelation(async () => {
+      const raw = await this.inner.getPolicy(owner);
+      return raw ? validateRecord<MailboxPolicy>("mailboxPolicy", raw) : null;
+    });
   }
 
   setPolicy(owner: string, policy: MailboxPolicy): Promise<MailboxPolicy> {
-    return this.inner.setPolicy(owner, policy);
+    return runWithCorrelation(() => this.inner.setPolicy(owner, policy));
   }
 
   async getSenderRule(owner: string, sender: string): Promise<SenderRule> {
-    const raw = await this.inner.getSenderRule(owner, sender);
-    return validateRecord<SenderRule>("senderRule", raw);
+    return runWithCorrelation(async () => {
+      const raw = await this.inner.getSenderRule(owner, sender);
+      return validateRecord<SenderRule>("senderRule", raw);
+    });
   }
 
   setSenderRule(owner: string, sender: string, rule: SenderRule): Promise<SenderRule> {
-    return this.inner.setSenderRule(owner, sender, rule);
+    return runWithCorrelation(() => this.inner.setSenderRule(owner, sender, rule));
   }
 
   async getPostage(messageId: string): Promise<Postage | null> {
-    const raw = await this.inner.getPostage(messageId);
-    return raw ? validateRecord<Postage>("postage", raw) : null;
+    return runWithCorrelation(async () => {
+      const raw = await this.inner.getPostage(messageId);
+      return raw ? validateRecord<Postage>("postage", raw) : null;
+    });
   }
 
   setPostage(postage: Postage): Promise<Postage> {
-    return this.inner.setPostage(postage);
+    return runWithCorrelation(() => this.inner.setPostage(postage));
   }
 
   transitionPostage(
@@ -178,7 +207,9 @@ export class ValidatedApiRepository implements ApiRepository {
     expectedStatus: PostageStatus,
     nextStatus: PostageStatus,
   ): Promise<PostageTransitionResult> {
-    return this.inner.transitionPostage(messageId, expectedStatus, nextStatus);
+    return runWithCorrelation(() =>
+      this.inner.transitionPostage(messageId, expectedStatus, nextStatus),
+    );
   }
 
   async insertPostage(postage: Postage): Promise<Postage> {
@@ -187,53 +218,57 @@ export class ValidatedApiRepository implements ApiRepository {
   }
 
   async getReceipt(messageId: string): Promise<Receipt | null> {
-    const raw = await this.inner.getReceipt(messageId);
-    return raw ? validateRecord<Receipt>("receipt", raw) : null;
+    return runWithCorrelation(async () => {
+      const raw = await this.inner.getReceipt(messageId);
+      return raw ? validateRecord<Receipt>("receipt", raw) : null;
+    });
   }
 
   setReceipt(receipt: Receipt): Promise<Receipt> {
-    return this.inner.setReceipt(receipt);
+    return runWithCorrelation(() => this.inner.setReceipt(receipt));
   }
 
   acquireIdempotencyRecord(key: string, leaseMs: number): Promise<AcquireIdempotencyResult> {
-    return this.inner.acquireIdempotencyRecord(key, leaseMs);
+    return runWithCorrelation(() => this.inner.acquireIdempotencyRecord(key, leaseMs));
   }
 
   async getIdempotencyRecord(key: string): Promise<IdempotencyRecord | null> {
-    const raw = await this.inner.getIdempotencyRecord(key);
-    return raw ? validateRecord<IdempotencyRecord>("idempotencyRecord", raw) : null;
+    return runWithCorrelation(async () => {
+      const raw = await this.inner.getIdempotencyRecord(key);
+      return raw ? validateRecord<IdempotencyRecord>("idempotencyRecord", raw) : null;
+    });
   }
 
   setIdempotencyRecord(key: string, record: IdempotencyRecord): Promise<void> {
-    return this.inner.setIdempotencyRecord(key, record);
+    return runWithCorrelation(() => this.inner.setIdempotencyRecord(key, record));
   }
 
   getRelayQueueDepth(relayId: string): Promise<number> {
-    return this.inner.getRelayQueueDepth(relayId);
+    return runWithCorrelation(() => this.inner.getRelayQueueDepth(relayId));
   }
 
   getRelayRetryCount(relayId: string): Promise<number> {
-    return this.inner.getRelayRetryCount(relayId);
+    return runWithCorrelation(() => this.inner.getRelayRetryCount(relayId));
   }
 
   getRelayLastSuccessfulDelivery(relayId: string): Promise<string | null> {
-    return this.inner.getRelayLastSuccessfulDelivery(relayId);
+    return runWithCorrelation(() => this.inner.getRelayLastSuccessfulDelivery(relayId));
   }
 
   getRelayLastFailedDelivery(relayId: string): Promise<string | null> {
-    return this.inner.getRelayLastFailedDelivery(relayId);
+    return runWithCorrelation(() => this.inner.getRelayLastFailedDelivery(relayId));
   }
 
   getRelayDeadLetterCount(relayId: string): Promise<number> {
-    return this.inner.getRelayDeadLetterCount(relayId);
+    return runWithCorrelation(() => this.inner.getRelayDeadLetterCount(relayId));
   }
 
   getCounter(key: string): Promise<number> {
-    return this.inner.getCounter(key);
+    return runWithCorrelation(() => this.inner.getCounter(key));
   }
 
   incrementCounter(key: string, windowSeconds: number, amount?: number): Promise<number> {
-    return this.inner.incrementCounter(key, windowSeconds, amount);
+    return runWithCorrelation(() => this.inner.incrementCounter(key, windowSeconds, amount));
   }
 
   reset(): void {

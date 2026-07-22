@@ -1,15 +1,16 @@
-import { normalizeApiError, type RetryClassification } from "./errors";
+import { normalizeApiError } from "./errors";
+import { getRequestContext } from "./context";
 
 interface ApiMeta {
   requestId: string;
   timestamp: string;
 }
-
+ 
 interface SuccessEnvelope<T> {
   data: T;
   meta: ApiMeta;
 }
-
+ 
 interface ErrorEnvelope {
   error: {
     code: string;
@@ -21,22 +22,18 @@ interface ErrorEnvelope {
   };
   meta: ApiMeta;
 }
-
-export const CACHE_POLICIES = {
-  NO_STORE: "no-store",
-  PUBLIC_IMMUTABLE: "public, max-age=31536000, immutable",
-  PUBLIC_REVALIDATE: "public, max-age=0, must-revalidate",
-} as const;
-
-type CachePolicy = keyof typeof CACHE_POLICIES;
-
+ 
 interface ResponseOptions {
   cachePolicy?: CachePolicy;
   headers?: HeadersInit;
   status?: number;
 }
-
+ 
 function getRequestId(request: Request) {
+  const context = getRequestContext();
+  if (context?.requestId) {
+    return context.requestId;
+  }
   return request.headers.get("x-request-id")?.trim() || crypto.randomUUID();
 }
 
@@ -80,7 +77,8 @@ export function apiSuccess<T>(request: Request, data: T, options: ResponseOption
 
 export function apiFailure(request: Request, caught: unknown) {
   const requestId = getRequestId(request);
-  const error = normalizeApiError(caught);
+  const routeId = new URL(request.url).pathname;
+  const error = normalizeApiError(caught, { requestId, routeId });
   const body: ErrorEnvelope = {
     error: {
       code: error.code,
