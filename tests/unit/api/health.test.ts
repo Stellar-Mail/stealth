@@ -6,10 +6,13 @@ import type { ApiRepository } from "../../../src/server/api/repository";
 function createRepository(overrides: Partial<ApiRepository> = {}): ApiRepository {
   return {
     getCounter: async () => 0,
+    acquireIdempotencyRecord: async () => ({ status: "acquired" }),
     getIdempotencyRecord: async () => null,
     getPolicy: async () => null,
     getPostage: async () => null,
     getReceipt: async () => null,
+    createReceiptIfAbsent: async (receipt) => ({ created: true, receipt }),
+    markReceiptRead: async () => null,
     getRelayDeadLetterCount: async () => 0,
     getRelayLastFailedDelivery: async () => null,
     getRelayLastSuccessfulDelivery: async () => null,
@@ -22,6 +25,7 @@ function createRepository(overrides: Partial<ApiRepository> = {}): ApiRepository
     setPostage: async (postage) => postage,
     setReceipt: async (receipt) => receipt,
     setSenderRule: async (_owner, _sender, rule) => rule,
+    transitionPostage: async () => ({ outcome: "not-found" }),
     ...overrides,
   };
 }

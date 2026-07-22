@@ -19,7 +19,7 @@ export const Route = createFileRoute("/api/v1/receipts/$messageId/read")({
           const current = await getReceipt(repository, messageId);
           const principal = requireActor(context);
           assertCanPublishReadReceipt(principal, current);
-          const receipt = await markReceiptRead(repository, messageId);
+          const receipt = await markReceiptRead(repository, messageId, principal);
           return apiSuccess(request, receipt);
         }),
     },

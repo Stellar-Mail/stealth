@@ -229,7 +229,7 @@ describe("receipts", () => {
           if (op === "deliver") {
             lastResult = await createDeliveryReceipt(repo, receiptInput, deliverAt);
           } else if (op === "read") {
-            lastResult = await markReceiptRead(repo, f.messageId, readAt);
+            lastResult = await markReceiptRead(repo, f.messageId, f.recipient, readAt);
           }
         } catch (err) {
           caughtError = err;
