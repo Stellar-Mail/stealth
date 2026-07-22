@@ -1,5 +1,6 @@
 import { createHmac } from "node:crypto";
 import type { Postage } from "./domain";
+import { transitionPostage } from "./domain";
 import { ApiError } from "./errors";
 import {
   checkAccountLimit,
