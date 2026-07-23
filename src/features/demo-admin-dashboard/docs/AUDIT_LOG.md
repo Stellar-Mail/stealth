@@ -43,9 +43,7 @@ const formattedString = formatAuditEntry(entry);
 ```tsx
 import { AuditLogPanel } from "./components/AuditLogPanel";
 
-const myAuditEntries = [
-  /* ...array of AuditLogEntry objects... */
-];
+const myAuditEntries = [/* ...array of AuditLogEntry objects... */];
 
 <AuditLogPanel entries={myAuditEntries} />;
 ```

@@ -28,8 +28,7 @@ export enum TimelineErrorCode {
 
 /** Discriminated outcome returned by every contract operation. */
 export type TimelineResult<T> =
-  | { ok: true; value: T }
-  | { ok: false; error: TimelineErrorCode; message: string };
+  { ok: true; value: T } | { ok: false; error: TimelineErrorCode; message: string };
 
 /** Operations supported by the timeline contract. */
 export type TimelineOperation =

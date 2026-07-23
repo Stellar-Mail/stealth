@@ -5,8 +5,7 @@ import { getTranslationProvider } from "./translationProvider";
  * Translation service result wrapper.
  */
 export type TranslationServiceResult =
-  | { success: true; result: TranslationResult }
-  | { success: false; error: TranslationError };
+  { success: true; result: TranslationResult } | { success: false; error: TranslationError };
 
 /**
  * Orchestrates translation requests.

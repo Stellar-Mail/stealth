@@ -1,10 +1,5 @@
 export type EventCategory =
-  | "onboarding"
-  | "policy"
-  | "send_outcome"
-  | "request"
-  | "proof_failure"
-  | "retention";
+  "onboarding" | "policy" | "send_outcome" | "request" | "proof_failure" | "retention";
 
 export type EventPurpose = "activation_measurement" | "reliability_monitoring" | "abuse_prevention";
 

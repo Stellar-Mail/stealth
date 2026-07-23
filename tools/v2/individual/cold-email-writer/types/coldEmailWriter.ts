@@ -34,10 +34,7 @@ export interface ColdEmailWriterOutput {
 }
 
 export type ColdEmailWriterErrorCode =
-  | "invalid-input"
-  | "invalid-options"
-  | "input-too-large"
-  | "empty-content";
+  "invalid-input" | "invalid-options" | "input-too-large" | "empty-content";
 
 export interface ColdEmailWriterValidationIssue {
   code: ColdEmailWriterErrorCode;

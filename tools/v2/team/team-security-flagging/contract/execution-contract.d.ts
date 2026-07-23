@@ -46,8 +46,7 @@ export interface SecurityFlaggingError {
 }
 
 export type SecurityFlaggingOutput =
-  | { ok: true; data: SecurityFlaggingRecord }
-  | { ok: false; error: SecurityFlaggingError };
+  { ok: true; data: SecurityFlaggingRecord } | { ok: false; error: SecurityFlaggingError };
 
 /** I/O and environmental behavior supplied by the backend caller. */
 export interface SecurityFlaggingDependencies {

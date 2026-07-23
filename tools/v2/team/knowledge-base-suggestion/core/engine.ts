@@ -45,8 +45,7 @@ export interface KbCorpusFilterResult {
 
 /** Discriminated outcome returned by every operation. */
 export type KbResult<T> =
-  | { ok: true; value: T }
-  | { ok: false; error: KbErrorCode; message: string };
+  { ok: true; value: T } | { ok: false; error: KbErrorCode; message: string };
 
 /** Operations supported by the contract. */
 export type KbOperation = { operation: "suggest"; input: SuggestInput };

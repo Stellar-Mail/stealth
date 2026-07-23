@@ -38,8 +38,7 @@ export interface GuardIssue {
  * rejection raised before the engine runs any work.
  */
 export type SafeRewriteResult =
-  | RewriterResult
-  | { status: "error"; code: GuardErrorCode; message: string };
+  RewriterResult | { status: "error"; code: GuardErrorCode; message: string };
 
 // Control characters (except tab and newline) can hide or corrupt content.
 // eslint-disable-next-line no-control-regex

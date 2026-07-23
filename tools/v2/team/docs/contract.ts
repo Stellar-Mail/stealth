@@ -19,8 +19,7 @@ export enum DocErrorCode {
 
 /** Discriminated outcome returned by every contract operation. */
 export type DocResult<T> =
-  | { ok: true; value: T }
-  | { ok: false; error: DocErrorCode; message: string };
+  { ok: true; value: T } | { ok: false; error: DocErrorCode; message: string };
 
 /** Operations supported by the docs contract. */
 export type DocOperation = { operation: "resolve"; input: ResolveDocInput };

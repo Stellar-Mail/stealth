@@ -23,8 +23,7 @@ export enum ReviewErrorCode {
 }
 
 export type ReviewResult<T> =
-  | { ok: true; value: T }
-  | { ok: false; error: ReviewErrorCode; message: string };
+  { ok: true; value: T } | { ok: false; error: ReviewErrorCode; message: string };
 
 export type ReviewOperation =
   | { operation: "fetch"; input: FetchQueueInput }

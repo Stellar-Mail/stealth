@@ -17,13 +17,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
  * Standardizing these here keeps labels and colors identical everywhere.
  */
 export type TrustState =
-  | "verified"
-  | "allowed"
-  | "unknown"
-  | "paid"
-  | "blocked"
-  | "bridged"
-  | "encrypted";
+  "verified" | "allowed" | "unknown" | "paid" | "blocked" | "bridged" | "encrypted";
 
 export type TrustStateMeta = {
   label: string;

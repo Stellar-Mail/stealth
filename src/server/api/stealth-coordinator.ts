@@ -42,8 +42,7 @@ export class StealthCoordinator extends DurableObjectBase {
 
   async getIdempotencyRecord(key: string): Promise<IdempotencyRecord | null> {
     const record = (await this.ctx.storage.get(`idempotency:${key}`)) as
-      | IdempotencyRecord
-      | undefined;
+      IdempotencyRecord | undefined;
     return record ?? null;
   }
 

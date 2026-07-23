@@ -8,18 +8,16 @@ import type { CampaignTemplate, CampaignChecklistItem } from "./types/campaign";
 /** Converts campaign templates into a flat list of message templates for testing. */
 const getTestTemplates = (campaignTemplates: CampaignTemplate[]): MessageTemplate[] => {
   return campaignTemplates.flatMap((t) =>
-    t.checklist.map(
-      (c: CampaignChecklistItem): MessageTemplate => ({
-        id: c.id,
-        name: c.label,
-        subject: c.label,
-        body: c.description,
-        description: c.description,
-        category: t.name as TemplateCategory,
-        recipients: [],
-        tags: [],
-      }),
-    ),
+    t.checklist.map((c: CampaignChecklistItem): MessageTemplate => ({
+      id: c.id,
+      name: c.label,
+      subject: c.label,
+      body: c.description,
+      description: c.description,
+      category: t.name as TemplateCategory,
+      recipients: [],
+      tags: [],
+    })),
   );
 };
 

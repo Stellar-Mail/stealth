@@ -36,10 +36,7 @@ export type BinderStateSuccess = {
 };
 
 export type BinderState =
-  | BinderStateEmpty
-  | BinderStateLoading
-  | BinderStateError
-  | BinderStateSuccess;
+  BinderStateEmpty | BinderStateLoading | BinderStateError | BinderStateSuccess;
 
 // ---------------------------------------------------------------------------
 // Type guards

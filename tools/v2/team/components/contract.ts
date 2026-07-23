@@ -19,13 +19,11 @@ export enum ComponentErrorCode {
 
 /** Discriminated outcome returned by every contract operation. */
 export type ComponentResult<T> =
-  | { ok: true; value: T }
-  | { ok: false; error: ComponentErrorCode; message: string };
+  { ok: true; value: T } | { ok: false; error: ComponentErrorCode; message: string };
 
 /** Operations supported by the components contract. */
 export type ComponentOperation =
-  | { operation: "resolve"; input: ResolveComponentInput }
-  | { operation: "list" };
+  { operation: "resolve"; input: ResolveComponentInput } | { operation: "list" };
 
 /** Output produced by the contract, keyed by operation. */
 export type ComponentContractOutput =
