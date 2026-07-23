@@ -58,6 +58,98 @@ export function runRepositoryContractTests(
           requireVerified: true,
         });
       });
+
+      it("requires correct version/token for updates when expectedVersion is provided", async () => {
+        const initial = await repo.setPolicy(owner, {
+          allowUnknown: true,
+          minimumPostage: "100",
+          requireVerified: false,
+        });
+        expect(initial.version).toBeDefined();
+
+        // 1. Success on matching version
+        const updated = await repo.setPolicy(
+          owner,
+          {
+            allowUnknown: false,
+            minimumPostage: "150",
+            requireVerified: true,
+          },
+          initial.version,
+        );
+        expect(updated.version).toBeDefined();
+        expect(updated.version).not.toBe(initial.version);
+
+        // 2. Conflict on stale version
+        await expect(
+          repo.setPolicy(
+            owner,
+            {
+              allowUnknown: true,
+              minimumPostage: "200",
+              requireVerified: false,
+            },
+            initial.version,
+          ),
+        ).rejects.toThrow();
+
+        // 3. Stale update returns stable conflict code/status
+        try {
+          await repo.setPolicy(
+            owner,
+            {
+              allowUnknown: true,
+              minimumPostage: "200",
+              requireVerified: false,
+            },
+            initial.version,
+          );
+          expect.fail("Expected update to fail");
+        } catch (err: any) {
+          expect(err.status).toBe(409);
+          expect(err.code).toBe("conflict");
+        }
+      });
+
+      it("only allows one concurrent update to succeed when using expected version", async () => {
+        const initial = await repo.setPolicy(owner, {
+          allowUnknown: true,
+          minimumPostage: "100",
+          requireVerified: false,
+        });
+
+        // Fire two concurrent updates with the same initial version
+        const p1 = repo.setPolicy(
+          owner,
+          {
+            allowUnknown: false,
+            minimumPostage: "200",
+            requireVerified: true,
+          },
+          initial.version,
+        );
+
+        const p2 = repo.setPolicy(
+          owner,
+          {
+            allowUnknown: true,
+            minimumPostage: "300",
+            requireVerified: false,
+          },
+          initial.version,
+        );
+
+        const results = await Promise.allSettled([p1, p2]);
+        const fulfilled = results.filter((r) => r.status === "fulfilled");
+        const rejected = results.filter((r) => r.status === "rejected");
+
+        expect(fulfilled.length).toBe(1);
+        expect(rejected.length).toBe(1);
+
+        const error = (rejected[0] as PromiseRejectedResult).reason;
+        expect(error.status).toBe(409);
+        expect(error.code).toBe("conflict");
+      });
     });
 
     describe("sender rules", () => {
@@ -114,6 +206,84 @@ export function runRepositoryContractTests(
           messageId,
           readAt: null,
         });
+      });
+
+      it("requires expected version for postage updates", async () => {
+        const initial = await repo.setPostage({
+          amount: "100",
+          createdAt: "2026-01-01T00:00:00.000Z",
+          messageId,
+          paymentHash,
+          recipient: owner,
+          sender,
+          status: "pending",
+        });
+        expect(initial.version).toBeDefined();
+
+        const updated = await repo.setPostage(
+          {
+            amount: "100",
+            createdAt: "2026-01-01T00:00:00.000Z",
+            messageId,
+            paymentHash,
+            recipient: owner,
+            sender,
+            status: "settled",
+          },
+          initial.version,
+        );
+        expect(updated.version).not.toBe(initial.version);
+
+        await expect(
+          repo.setPostage(
+            {
+              amount: "100",
+              createdAt: "2026-01-01T00:00:00.000Z",
+              messageId,
+              paymentHash,
+              recipient: owner,
+              sender,
+              status: "refunded",
+            },
+            initial.version,
+          ),
+        ).rejects.toThrow();
+      });
+
+      it("requires expected version for receipt updates", async () => {
+        const initial = await repo.setReceipt({
+          deliveredAt: "2026-01-01T00:00:00.000Z",
+          messageId,
+          readAt: null,
+          recipient: owner,
+          sender,
+        });
+        expect(initial.version).toBeDefined();
+
+        const updated = await repo.setReceipt(
+          {
+            deliveredAt: "2026-01-01T00:00:00.000Z",
+            messageId,
+            readAt: "2026-01-02T00:00:00.000Z",
+            recipient: owner,
+            sender,
+          },
+          initial.version,
+        );
+        expect(updated.version).not.toBe(initial.version);
+
+        await expect(
+          repo.setReceipt(
+            {
+              deliveredAt: "2026-01-01T00:00:00.000Z",
+              messageId,
+              readAt: "2026-01-03T00:00:00.000Z",
+              recipient: owner,
+              sender,
+            },
+            initial.version,
+          ),
+        ).rejects.toThrow();
       });
     });
 

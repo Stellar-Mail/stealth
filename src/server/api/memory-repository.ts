@@ -1,12 +1,5 @@
-import type {
-  IdempotencyRecord,
-  MailboxPolicy,
-  Postage,
-  PostageStatus,
-  Receipt,
-  SenderRule,
-} from "./domain";
-import type { ApiRepository, PostageTransitionResult } from "./repository";
+import type { IdempotencyRecord, MailboxPolicy, Postage, Receipt, SenderRule } from "./domain";
+import type { ApiRepository } from "./repository";
 import { ApiError } from "./errors";
 
 function key(owner: string, sender: string) {
@@ -46,9 +39,19 @@ export class MemoryApiRepository implements ApiRepository {
     return structuredClone(this.policies.get(owner) ?? null);
   }
 
-  async setPolicy(owner: string, policy: MailboxPolicy) {
-    this.policies.set(owner, structuredClone(policy));
-    return structuredClone(policy);
+  async setPolicy(owner: string, policy: MailboxPolicy, expectedVersion?: string) {
+    const current = this.policies.get(owner);
+    if (expectedVersion !== undefined) {
+      if (!current || current.version !== expectedVersion) {
+        throw new ApiError(409, "conflict", "Concurrency conflict: Policy version mismatch");
+      }
+    }
+    const updated = {
+      ...policy,
+      version: crypto.randomUUID(),
+    };
+    this.policies.set(owner, structuredClone(updated));
+    return structuredClone(updated);
   }
 
   async getSenderRule(owner: string, sender: string) {
@@ -66,9 +69,19 @@ export class MemoryApiRepository implements ApiRepository {
     return structuredClone(this.postage.get(messageId) ?? null);
   }
 
-  async setPostage(postage: Postage) {
-    this.postage.set(postage.messageId, structuredClone(postage));
-    return structuredClone(postage);
+  async setPostage(postage: Postage, expectedVersion?: string) {
+    const current = this.postage.get(postage.messageId);
+    if (expectedVersion !== undefined) {
+      if (!current || current.version !== expectedVersion) {
+        throw new ApiError(409, "conflict", "Concurrency conflict: Postage version mismatch");
+      }
+    }
+    const updated = {
+      ...postage,
+      version: crypto.randomUUID(),
+    };
+    this.postage.set(postage.messageId, structuredClone(updated));
+    return structuredClone(updated);
   }
 
   async transitionPostage(
@@ -108,9 +121,19 @@ export class MemoryApiRepository implements ApiRepository {
     return structuredClone(this.receipts.get(messageId) ?? null);
   }
 
-  async setReceipt(receipt: Receipt) {
-    this.receipts.set(receipt.messageId, structuredClone(receipt));
-    return structuredClone(receipt);
+  async setReceipt(receipt: Receipt, expectedVersion?: string) {
+    const current = this.receipts.get(receipt.messageId);
+    if (expectedVersion !== undefined) {
+      if (!current || current.version !== expectedVersion) {
+        throw new ApiError(409, "conflict", "Concurrency conflict: Receipt version mismatch");
+      }
+    }
+    const updated = {
+      ...receipt,
+      version: crypto.randomUUID(),
+    };
+    this.receipts.set(receipt.messageId, structuredClone(updated));
+    return structuredClone(updated);
   }
 
   async createReceiptIfAbsent(receipt: Receipt) {
