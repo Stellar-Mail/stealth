@@ -14,6 +14,7 @@
  */
 
 import { verifyCommitment } from "./commitment";
+import { recordCryptoTelemetry, type CryptoResultCode } from "./telemetry";
 
 /** Minimal non-secret error carrying a stable code (no key/plaintext leakage). */
 export class OpenEnvelopeError extends Error {
@@ -127,114 +128,152 @@ export async function openEnvelope(
   input: { payload: unknown; ciphertext: unknown },
   keys: KeyProvider,
 ): Promise<OpenedEnvelope> {
-  if (!input || typeof input !== "object") {
-    throw new OpenEnvelopeError("envelope is missing", "crypto_validation_error");
-  }
-  const payload = input.payload as RawPayload | undefined;
-  const ciphertextB64 = str(input.ciphertext, "ciphertext");
+  const startTime = performance.now();
+  let result: CryptoResultCode = "success";
 
-  if (!payload || typeof payload !== "object") {
-    throw new OpenEnvelopeError("payload is missing", "crypto_validation_error");
-  }
-  if (payload.version !== SUPPORTED_VERSION) {
-    throw new OpenEnvelopeError(
-      `unsupported envelope version: ${String(payload.version)}`,
-      "crypto_version_error",
-    );
-  }
-
-  const sender = str(payload.sender, "sender");
-  const recipient = str(payload.recipient, "recipient");
-  const timestamp = str(payload.timestamp, "timestamp");
-  const meta = payload.encryption_metadata;
-  if (!meta || typeof meta !== "object") {
-    throw new OpenEnvelopeError("encryption_metadata is missing", "crypto_validation_error");
-  }
-  const algorithm = str(meta.algorithm, "algorithm");
-  if (algorithm !== "AES-256-GCM") {
-    throw new OpenEnvelopeError(`unsupported algorithm: ${algorithm}`, "crypto_validation_error");
-  }
-  const nonceHex = str(meta.nonce, "nonce");
-  const macHex = str(meta.mac, "mac");
-  const commitment = str(payload.content_commitment, "content_commitment");
-
-  // 1) Decode ciphertext.
-  let ciphertext: Uint8Array<ArrayBuffer>;
   try {
-    ciphertext = fromBase64(ciphertextB64);
-  } catch {
-    throw new OpenEnvelopeError("ciphertext is not valid base64", "crypto_validation_error");
-  }
-  if (ciphertext.length < GCM_TAG_BYTES) {
-    throw new OpenEnvelopeError("ciphertext shorter than auth tag", "crypto_integrity_error");
-  }
-
-  // 2) Content commitment: Parse and verify versioned format.
-  try {
-    await verifyCommitment(commitment, ciphertext);
-  } catch (err) {
-    if (err instanceof Error) {
-      if (err.message.includes("mismatch") || err.message.includes("crypto_commitment_error")) {
-        throw new OpenEnvelopeError("content commitment mismatch", "crypto_integrity_error");
-      }
-      throw new OpenEnvelopeError(err.message, "crypto_validation_error");
+    if (!input || typeof input !== "object") {
+      throw new OpenEnvelopeError("envelope is missing", "crypto_validation_error");
     }
-    throw new OpenEnvelopeError("content commitment verification failed", "crypto_integrity_error");
+    const payload = input.payload as RawPayload | undefined;
+    const ciphertextB64 = str(input.ciphertext, "ciphertext");
+
+    if (!payload || typeof payload !== "object") {
+      throw new OpenEnvelopeError("payload is missing", "crypto_validation_error");
+    }
+    if (payload.version !== SUPPORTED_VERSION) {
+      throw new OpenEnvelopeError(
+        `unsupported envelope version: ${String(payload.version)}`,
+        "crypto_version_error",
+      );
+    }
+
+    const sender = str(payload.sender, "sender");
+    const recipient = str(payload.recipient, "recipient");
+    const timestamp = str(payload.timestamp, "timestamp");
+    const meta = payload.encryption_metadata;
+    if (!meta || typeof meta !== "object") {
+      throw new OpenEnvelopeError("encryption_metadata is missing", "crypto_validation_error");
+    }
+    const algorithm = str(meta.algorithm, "algorithm");
+    if (algorithm !== "AES-256-GCM") {
+      throw new OpenEnvelopeError(`unsupported algorithm: ${algorithm}`, "crypto_validation_error");
+    }
+    const nonceHex = str(meta.nonce, "nonce");
+    const macHex = str(meta.mac, "mac");
+    const commitment = str(payload.content_commitment, "content_commitment");
+
+    // 1) Decode ciphertext.
+    let ciphertext: Uint8Array<ArrayBuffer>;
+    try {
+      ciphertext = fromBase64(ciphertextB64);
+    } catch {
+      throw new OpenEnvelopeError("ciphertext is not valid base64", "crypto_validation_error");
+    }
+    if (ciphertext.length < GCM_TAG_BYTES) {
+      throw new OpenEnvelopeError("ciphertext shorter than auth tag", "crypto_integrity_error");
+    }
+
+    // 2) Content commitment: Parse and verify versioned format.
+    try {
+      await verifyCommitment(commitment, ciphertext);
+    } catch (err) {
+      if (err instanceof Error) {
+        if (err.message.includes("mismatch") || err.message.includes("crypto_commitment_error")) {
+          throw new OpenEnvelopeError("content commitment mismatch", "crypto_integrity_error");
+        }
+        throw new OpenEnvelopeError(err.message, "crypto_validation_error");
+      }
+      throw new OpenEnvelopeError(
+        "content commitment verification failed",
+        "crypto_integrity_error",
+      );
+    }
+
+    // 3) Recompute and compare the auth tag against the declared mac.
+    const declaredTag = fromHex(macHex);
+    const actualTag = ciphertext.slice(ciphertext.length - GCM_TAG_BYTES);
+    if (declaredTag.length !== GCM_TAG_BYTES || !constantTimeEqual(declaredTag, actualTag)) {
+      throw new OpenEnvelopeError("auth tag mismatch", "crypto_integrity_error");
+    }
+
+    // 4) Resolve recipient key and decrypt (fail closed on any mismatch).
+    let key: CryptoKey;
+    try {
+      key = await keys.resolveKey(recipient);
+    } catch {
+      throw new OpenEnvelopeError("recipient key unavailable", "crypto_decryption_error");
+    }
+
+    const iv = fromHex(nonceHex);
+    const ivCopy = new Uint8Array(new ArrayBuffer(iv.length));
+    ivCopy.set(iv);
+    const ctCopy = new Uint8Array(new ArrayBuffer(ciphertext.length));
+    ctCopy.set(ciphertext);
+
+    // Decrypt the full ciphertext (Web Crypto verifies the trailing GCM tag and
+    // fails closed on tamper or wrong key).
+    let decrypted: ArrayBuffer;
+    try {
+      decrypted = await crypto.subtle.decrypt({ name: "AES-GCM", iv: ivCopy }, key, ctCopy);
+    } catch {
+      throw new OpenEnvelopeError(
+        "decryption failed (wrong key or tampered)",
+        "crypto_decryption_error",
+      );
+    }
+
+    const body = new TextDecoder().decode(new Uint8Array(decrypted));
+
+    const attachments = Array.isArray(payload.attachments)
+      ? payload.attachments.map((a) => ({
+          filename: str((a as { filename?: unknown }).filename, "attachment.filename"),
+          content_type: str(
+            (a as { content_type?: unknown }).content_type,
+            "attachment.content_type",
+          ),
+          size_bytes: Number(
+            str((a as { size_bytes?: unknown }).size_bytes, "attachment.size_bytes"),
+          ),
+          content_hash: str(
+            (a as { content_hash?: unknown }).content_hash,
+            "attachment.content_hash",
+          ),
+        }))
+      : [];
+
+    return { sender, recipient, timestamp, body, attachments };
+  } catch (error: unknown) {
+    result = mapOpenEnvelopeError(error);
+    throw error;
+  } finally {
+    const durationMs = Math.max(1, Math.round(performance.now() - startTime));
+    recordCryptoTelemetry({
+      operation: "open",
+      suite: "AES-256-GCM",
+      result,
+      durationMs,
+    });
   }
+}
 
-  // 3) Recompute and compare the auth tag against the declared mac.
-  const declaredTag = fromHex(macHex);
-  const actualTag = ciphertext.slice(ciphertext.length - GCM_TAG_BYTES);
-  if (declaredTag.length !== GCM_TAG_BYTES || !constantTimeEqual(declaredTag, actualTag)) {
-    throw new OpenEnvelopeError("auth tag mismatch", "crypto_integrity_error");
+function mapOpenEnvelopeError(error: unknown): CryptoResultCode {
+  if (error !== null && typeof error === "object" && "code" in error) {
+    const code = (error as { code: unknown }).code;
+    if (typeof code === "string") {
+      switch (code) {
+        case "crypto_version_error":
+          return "error_version";
+        case "crypto_integrity_error":
+          return "error_integrity";
+        case "crypto_decryption_error":
+          return "error_decrypt";
+        case "crypto_validation_error":
+          return "error_validation";
+      }
+    }
   }
-
-  // 4) Resolve recipient key and decrypt (fail closed on any mismatch).
-  let key: CryptoKey;
-  try {
-    key = await keys.resolveKey(recipient);
-  } catch {
-    throw new OpenEnvelopeError("recipient key unavailable", "crypto_decryption_error");
-  }
-
-  const iv = fromHex(nonceHex);
-  const ivCopy = new Uint8Array(new ArrayBuffer(iv.length));
-  ivCopy.set(iv);
-  const ctCopy = new Uint8Array(new ArrayBuffer(ciphertext.length));
-  ctCopy.set(ciphertext);
-
-  // Decrypt the full ciphertext (Web Crypto verifies the trailing GCM tag and
-  // fails closed on tamper or wrong key).
-  let decrypted: ArrayBuffer;
-  try {
-    decrypted = await crypto.subtle.decrypt({ name: "AES-GCM", iv: ivCopy }, key, ctCopy);
-  } catch {
-    throw new OpenEnvelopeError(
-      "decryption failed (wrong key or tampered)",
-      "crypto_decryption_error",
-    );
-  }
-
-  const body = new TextDecoder().decode(new Uint8Array(decrypted));
-
-  const attachments = Array.isArray(payload.attachments)
-    ? payload.attachments.map((a) => ({
-        filename: str((a as { filename?: unknown }).filename, "attachment.filename"),
-        content_type: str(
-          (a as { content_type?: unknown }).content_type,
-          "attachment.content_type",
-        ),
-        size_bytes: Number(
-          str((a as { size_bytes?: unknown }).size_bytes, "attachment.size_bytes"),
-        ),
-        content_hash: str(
-          (a as { content_hash?: unknown }).content_hash,
-          "attachment.content_hash",
-        ),
-      }))
-    : [];
-
-  return { sender, recipient, timestamp, body, attachments };
+  return "error_parse";
 }
 
 /** Constant-time byte comparison (no early-exit timing leak). */

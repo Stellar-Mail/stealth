@@ -12,6 +12,7 @@
  */
 
 import { getCryptoTestVectors } from "./testing";
+import { recordCryptoTelemetry, type CryptoResultCode } from "./telemetry";
 
 /** Minimal non-secret error carrying a stable code (no key/plaintext leakage). */
 export class ResolverError extends Error {
@@ -94,6 +95,36 @@ export async function resolveTrustedKey(
   recipient: string,
   now: Date = getCryptoTestVectors().now ? getCryptoTestVectors().now!() : new Date(),
 ): Promise<ResolvedKey> {
-  const key = await resolver.resolve(recipient);
-  return validateResolvedKey(key, recipient, now);
+  const startTime = performance.now();
+  let result: CryptoResultCode = "success";
+
+  try {
+    const key = await resolver.resolve(recipient);
+    return validateResolvedKey(key, recipient, now);
+  } catch (error: unknown) {
+    result = mapResolverError(error);
+    throw error;
+  } finally {
+    const durationMs = Math.max(1, Math.round(performance.now() - startTime));
+    recordCryptoTelemetry({
+      operation: "key_resolve",
+      result,
+      durationMs,
+    });
+  }
+}
+
+function mapResolverError(error: unknown): CryptoResultCode {
+  if (error !== null && typeof error === "object" && "code" in error) {
+    const code = (error as { code: unknown }).code;
+    if (typeof code === "string") {
+      switch (code) {
+        case "crypto_validation_error":
+          return "error_validation";
+        case "crypto_key_error":
+          return "error_key";
+      }
+    }
+  }
+  return "error_key";
 }

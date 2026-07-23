@@ -14,6 +14,7 @@
 import { clearSecret, digestHex, sharedPool, toBase64, toHex } from "./memory";
 import { getCryptoTestVectors } from "./testing";
 import { createCommitment } from "./commitment";
+import { recordCryptoTelemetry, type CryptoResultCode } from "./telemetry";
 
 export interface EnvelopeAttachment {
   filename: string;
@@ -100,141 +101,182 @@ export function canonicalizePayload(value: unknown): string {
  * simultaneously). The saving is ≈ N + 20 bytes for the body.
  */
 export async function sealEnvelope(input: SealEnvelopeInput): Promise<SealedEnvelope> {
-  const body = input.body ?? "";
-  if (!body.trim()) {
-    throw new Error("Cannot seal an empty message body");
-  }
+  const startTime = performance.now();
+  let result: CryptoResultCode = "success";
 
-  const signal = input.signal;
-  const throwIfAborted = () => {
-    signal?.throwIfAborted();
-  };
+  try {
+    const body = input.body ?? "";
+    if (!body.trim()) {
+      throw new Error("Cannot seal an empty message body");
+    }
 
-  const { generateKey, getRandomValues, now } = getCryptoTestVectors();
+    const signal = input.signal;
+    const throwIfAborted = () => {
+      signal?.throwIfAborted();
+    };
 
-  // --- Key generation (no plaintext allocated yet) ---
-  throwIfAborted();
-  const key = generateKey
-    ? await generateKey({ name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt"])
-    : await crypto.subtle.generateKey({ name: "AES-GCM", length: 256 }, true, [
-        "encrypt",
-        "decrypt",
-      ]);
+    const { generateKey, getRandomValues, now } = getCryptoTestVectors();
 
-  // --- Body encryption ---
-  throwIfAborted();
-  const ivBuf = sharedPool.acquire(12);
-  const iv = new Uint8Array(ivBuf, 0, 12);
-  if (getRandomValues) {
-    getRandomValues(iv);
-  } else {
-    crypto.getRandomValues(iv);
-  }
-
-  const plaintext = new TextEncoder().encode(body);
-
-  // crypto.subtle.encrypt returns a fresh ArrayBuffer; we cannot pre-fill
-  // a pool buffer, but we manage the result lifecycle explicitly below.
-  const ciphertext = new Uint8Array(
-    await crypto.subtle.encrypt(
-      { name: "AES-GCM", iv: iv as BufferSource },
-      key,
-      plaintext as BufferSource,
-    ),
-  );
-
-  // Plaintext is no longer needed — zero it to release secret material early.
-  clearSecret(plaintext);
-
-  // AES-GCM appends a 16-byte auth tag to the end of the ciphertext.
-  const tag = ciphertext.slice(ciphertext.length - GCM_TAG_BYTES);
-
-  // --- Attachments (sequential, buffers freed per iteration) ---
-  throwIfAborted();
-  const attachments: EnvelopeAttachment[] = [];
-  for (const attachment of input.attachments ?? []) {
+    // --- Key generation (no plaintext allocated yet) ---
     throwIfAborted();
-    let hash: string;
-    let encMetadata: EncryptionMetadata | undefined;
-    let ciphertextStr: string | undefined;
+    const key = generateKey
+      ? await generateKey({ name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt"])
+      : await crypto.subtle.generateKey({ name: "AES-GCM", length: 256 }, true, [
+          "encrypt",
+          "decrypt",
+        ]);
 
-    if (attachment.data) {
-      // View into caller's ArrayBuffer — no copy for hashing.
-      const dataBytes = new Uint8Array(attachment.data);
-      hash = await digestHex(dataBytes);
-      if (attachment.content_hash && hash !== attachment.content_hash) {
+    // --- Body encryption ---
+    throwIfAborted();
+    const ivBuf = sharedPool.acquire(12);
+    const iv = new Uint8Array(ivBuf, 0, 12);
+    if (getRandomValues) {
+      getRandomValues(iv);
+    } else {
+      crypto.getRandomValues(iv);
+    }
+
+    const plaintext = new TextEncoder().encode(body);
+
+    // crypto.subtle.encrypt returns a fresh ArrayBuffer; we cannot pre-fill
+    // a pool buffer, but we manage the result lifecycle explicitly below.
+    const ciphertext = new Uint8Array(
+      await crypto.subtle.encrypt(
+        { name: "AES-GCM", iv: iv as BufferSource },
+        key,
+        plaintext as BufferSource,
+      ),
+    );
+
+    // Plaintext is no longer needed — zero it to release secret material early.
+    clearSecret(plaintext);
+
+    // AES-GCM appends a 16-byte auth tag to the end of the ciphertext.
+    const tag = ciphertext.slice(ciphertext.length - GCM_TAG_BYTES);
+
+    // --- Attachments (sequential, buffers freed per iteration) ---
+    throwIfAborted();
+    const attachments: EnvelopeAttachment[] = [];
+    for (const attachment of input.attachments ?? []) {
+      throwIfAborted();
+      let hash: string;
+      let encMetadata: EncryptionMetadata | undefined;
+      let ciphertextStr: string | undefined;
+
+      if (attachment.data) {
+        // View into caller's ArrayBuffer — no copy for hashing.
+        const dataBytes = new Uint8Array(attachment.data);
+        hash = await digestHex(dataBytes);
+        if (attachment.content_hash && hash !== attachment.content_hash) {
+          throw new Error(
+            `Mismatch between supplied bytes and content_hash for attachment ${attachment.filename}`,
+          );
+        }
+
+        const attIv = sharedPool.acquire(12);
+        const attIvView = new Uint8Array(attIv, 0, 12);
+        crypto.getRandomValues(attIvView);
+
+        const attCiphertext = new Uint8Array(
+          await crypto.subtle.encrypt(
+            { name: "AES-GCM", iv: attIvView as BufferSource },
+            key,
+            dataBytes,
+          ),
+        );
+        const attTag = attCiphertext.slice(attCiphertext.length - GCM_TAG_BYTES);
+
+        encMetadata = {
+          algorithm: "AES-256-GCM",
+          nonce: toHex(attIvView),
+          mac: toHex(attTag),
+        };
+        ciphertextStr = toBase64(attCiphertext);
+
+        // Release attachment crypto buffers.
+        clearSecret(attCiphertext);
+        sharedPool.release(attIv);
+      } else if (attachment.content_hash) {
+        hash = attachment.content_hash;
+      } else {
         throw new Error(
-          `Mismatch between supplied bytes and content_hash for attachment ${attachment.filename}`,
+          `Attachment ${attachment.filename} must include either data bytes or a validated content_hash`,
         );
       }
-
-      const attIv = sharedPool.acquire(12);
-      const attIvView = new Uint8Array(attIv, 0, 12);
-      crypto.getRandomValues(attIvView);
-
-      const attCiphertext = new Uint8Array(
-        await crypto.subtle.encrypt(
-          { name: "AES-GCM", iv: attIvView as BufferSource },
-          key,
-          dataBytes,
-        ),
-      );
-      const attTag = attCiphertext.slice(attCiphertext.length - GCM_TAG_BYTES);
-
-      encMetadata = {
-        algorithm: "AES-256-GCM",
-        nonce: toHex(attIvView),
-        mac: toHex(attTag),
-      };
-      ciphertextStr = toBase64(attCiphertext);
-
-      // Release attachment crypto buffers.
-      clearSecret(attCiphertext);
-      sharedPool.release(attIv);
-    } else if (attachment.content_hash) {
-      hash = attachment.content_hash;
-    } else {
-      throw new Error(
-        `Attachment ${attachment.filename} must include either data bytes or a validated content_hash`,
-      );
+      attachments.push({
+        filename: attachment.filename,
+        content_type: attachment.content_type,
+        size_bytes: attachment.size_bytes,
+        content_hash: hash,
+        ...(encMetadata ? { encryption_metadata: encMetadata } : {}),
+        ...(ciphertextStr ? { ciphertext: ciphertextStr } : {}),
+      });
     }
-    attachments.push({
-      filename: attachment.filename,
-      content_type: attachment.content_type,
-      size_bytes: attachment.size_bytes,
-      content_hash: hash,
-      ...(encMetadata ? { encryption_metadata: encMetadata } : {}),
-      ...(ciphertextStr ? { ciphertext: ciphertextStr } : {}),
+
+    // --- Final payload assembly ---
+    throwIfAborted();
+
+    // Compute the content commitment BEFORE base64-encoding so the binary
+    // ciphertext can be released immediately after.
+    const contentCommitment = await digestHex(ciphertext);
+
+    // Encode the ciphertext — the binary buffer is no longer needed afterwards.
+    const ciphertextBase64 = toBase64(ciphertext);
+
+    // Release body ciphertext buffer now that both commitment and base64 are done.
+    clearSecret(ciphertext);
+    sharedPool.release(ivBuf);
+
+    const payload: EnvelopePayload = {
+      version: "v1",
+      sender: input.sender,
+      recipient: input.recipient,
+      timestamp: now ? now().toISOString() : new Date().toISOString(),
+      encryption_metadata: {
+        algorithm: "AES-256-GCM",
+        nonce: toHex(iv),
+        mac: toHex(tag),
+      },
+      content_commitment: contentCommitment,
+      attachments,
+    };
+
+    return { payload, ciphertext: ciphertextBase64 };
+  } catch (error: unknown) {
+    result = mapEnvelopeError(error);
+    throw error;
+  } finally {
+    const durationMs = Math.max(1, Math.round(performance.now() - startTime));
+    recordCryptoTelemetry({
+      operation: "seal",
+      suite: "AES-256-GCM",
+      result,
+      durationMs,
     });
   }
+}
 
-  // --- Final payload assembly ---
-  throwIfAborted();
-
-  // Compute the content commitment BEFORE base64-encoding so the binary
-  // ciphertext can be released immediately after.
-  const contentCommitment = await digestHex(ciphertext);
-
-  // Encode the ciphertext — the binary buffer is no longer needed afterwards.
-  const ciphertextBase64 = toBase64(ciphertext);
-
-  // Release body ciphertext buffer now that both commitment and base64 are done.
-  clearSecret(ciphertext);
-  sharedPool.release(ivBuf);
-
-  const payload: EnvelopePayload = {
-    version: "v1",
-    sender: input.sender,
-    recipient: input.recipient,
-    timestamp: now ? now().toISOString() : new Date().toISOString(),
-    encryption_metadata: {
-      algorithm: "AES-256-GCM",
-      nonce: toHex(iv),
-      mac: toHex(tag),
-    },
-    content_commitment: contentCommitment,
-    attachments,
-  };
-
-  return { payload, ciphertext: ciphertextBase64 };
+function mapEnvelopeError(error: unknown): CryptoResultCode {
+  if (error !== null && typeof error === "object" && "code" in error) {
+    const code = (error as { code: unknown }).code;
+    if (typeof code === "string") {
+      switch (code) {
+        case "crypto_parse_error":
+          return "error_parse";
+        case "crypto_validation_error":
+          return "error_validation";
+        case "crypto_algorithm_error":
+          return "error_algorithm";
+        case "crypto_key_error":
+          return "error_key";
+        case "crypto_signature_error":
+          return "error_signature";
+        case "crypto_commitment_error":
+          return "error_commitment";
+        case "crypto_decrypt_error":
+          return "error_decrypt";
+      }
+    }
+  }
+  return "error_parse";
 }
