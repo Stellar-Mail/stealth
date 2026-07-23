@@ -21,8 +21,7 @@ describe("OpenAPI deprecation metadata", () => {
   it("every deprecated operation carries sunset metadata", () => {
     for (const { path, op } of deprecated) {
       const meta = op["x-deprecation"] as
-        | { reason?: string; sunset?: string; migration?: string }
-        | undefined;
+        { reason?: string; sunset?: string; migration?: string } | undefined;
       expect(meta, `${path} x-deprecation`).toBeDefined();
       expect(meta?.reason, `${path} deprecation reason`).toBeTruthy();
       expect(meta?.sunset, `${path} sunset date`).toMatch(/^\d{4}-\d{2}-\d{2}$/);

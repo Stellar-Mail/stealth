@@ -23,8 +23,7 @@ export enum InvoiceErrorCode {
 
 /** Discriminated outcome returned by every contract operation. */
 export type InvoiceResult<T> =
-  | { ok: true; value: T }
-  | { ok: false; error: InvoiceErrorCode; message: string };
+  { ok: true; value: T } | { ok: false; error: InvoiceErrorCode; message: string };
 
 /** Operations supported by the invoice approval contract. */
 export type InvoiceOperation =

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import {
   checkCapabilities,
   createCryptoAdapter,
@@ -7,13 +7,13 @@ import {
   CryptoCapability,
   CryptoCapabilityError,
   getRuntimeInfo,
-} from '../../src/services/crypto/runtime';
+} from "../../src/services/crypto/runtime";
 
-describe('Crypto Runtime Compatibility', () => {
-  describe('checkCapabilities', () => {
-    it('should detect all capabilities in a browser-like environment', () => {
+describe("Crypto Runtime Compatibility", () => {
+  describe("checkCapabilities", () => {
+    it("should detect all capabilities in a browser-like environment", () => {
       const capabilities = checkCapabilities(false);
-      
+
       expect(capabilities.get(CryptoCapability.GLOBAL_CRYPTO)).toBe(true);
       expect(capabilities.get(CryptoCapability.SUBTLE_CRYPTO)).toBe(true);
       expect(capabilities.get(CryptoCapability.BTOA)).toBe(true);
@@ -21,33 +21,33 @@ describe('Crypto Runtime Compatibility', () => {
       expect(capabilities.get(CryptoCapability.RANDOM_VALUES)).toBe(true);
     });
 
-    it('should throw on missing capabilities when throwOnMissing is true', () => {
+    it("should throw on missing capabilities when throwOnMissing is true", () => {
       // Mock a missing capability
       const originalCrypto = globalThis.crypto;
       // @ts-ignore - temporarily remove crypto for test
       delete globalThis.crypto;
 
       expect(() => checkCapabilities(true)).toThrow(CryptoCapabilityError);
-      
+
       // Restore crypto
       globalThis.crypto = originalCrypto;
     });
 
-    it('should not throw when throwOnMissing is false', () => {
+    it("should not throw when throwOnMissing is false", () => {
       const originalCrypto = globalThis.crypto;
       // @ts-ignore - temporarily remove crypto for test
       delete globalThis.crypto;
 
       const capabilities = checkCapabilities(false);
       expect(capabilities.get(CryptoCapability.GLOBAL_CRYPTO)).toBe(false);
-      
+
       // Restore crypto
       globalThis.crypto = originalCrypto;
     });
   });
 
-  describe('createCryptoAdapter', () => {
-    it('should create a fully functional adapter in a browser-like environment', () => {
+  describe("createCryptoAdapter", () => {
+    it("should create a fully functional adapter in a browser-like environment", () => {
       const adapter = createCryptoAdapter();
 
       expect(adapter.crypto).toBeDefined();
@@ -59,53 +59,53 @@ describe('Crypto Runtime Compatibility', () => {
       expect(adapter.randomBytes).toBeInstanceOf(Function);
     });
 
-    it('should throw CryptoCapabilityError on missing capabilities', () => {
+    it("should throw CryptoCapabilityError on missing capabilities", () => {
       const originalCrypto = globalThis.crypto;
       // @ts-ignore - temporarily remove crypto for test
       delete globalThis.crypto;
 
       expect(() => createCryptoAdapter()).toThrow(CryptoCapabilityError);
-      
+
       // Restore crypto
       globalThis.crypto = originalCrypto;
     });
 
-    it('should generate random bytes securely', () => {
+    it("should generate random bytes securely", () => {
       const adapter = createCryptoAdapter();
       const bytes = adapter.randomBytes(32);
 
       expect(bytes).toBeInstanceOf(Uint8Array);
       expect(bytes.length).toBe(32);
-      expect(bytes.some(b => b !== 0)).toBe(true); // Should have some randomness
+      expect(bytes.some((b) => b !== 0)).toBe(true); // Should have some randomness
     });
 
-    it('should encode and decode text correctly', () => {
+    it("should encode and decode text correctly", () => {
       const adapter = createCryptoAdapter();
-      const text = 'Hello, World! 🚀';
-      
+      const text = "Hello, World! 🚀";
+
       const encoded = adapter.encode(text);
       expect(encoded).toBeInstanceOf(Uint8Array);
-      
+
       const decoded = adapter.decode(encoded);
       expect(decoded).toBe(text);
     });
 
-    it('should base64 encode and decode correctly', () => {
+    it("should base64 encode and decode correctly", () => {
       const adapter = createCryptoAdapter();
-      const text = 'Hello, World!';
-      
+      const text = "Hello, World!";
+
       const encoded = adapter.btoa(text);
       expect(encoded).toMatch(/^[A-Za-z0-9+/]+=*$/);
-      
+
       const decoded = adapter.atob(encoded);
       expect(decoded).toBe(text);
     });
   });
 
-  describe('createTestAdapter', () => {
-    it('should create an adapter with overrides', () => {
+  describe("createTestAdapter", () => {
+    it("should create an adapter with overrides", () => {
       const mockRandomBytes = vi.fn(() => new Uint8Array([1, 2, 3, 4]));
-      
+
       const adapter = createTestAdapter({
         randomBytes: mockRandomBytes,
       });
@@ -116,8 +116,8 @@ describe('Crypto Runtime Compatibility', () => {
     });
   });
 
-  describe('createMockAdapterWithMissingCapabilities', () => {
-    it('should create an adapter missing specific capabilities', () => {
+  describe("createMockAdapterWithMissingCapabilities", () => {
+    it("should create an adapter missing specific capabilities", () => {
       const adapter = createMockAdapterWithMissingCapabilities([
         CryptoCapability.BTOA,
         CryptoCapability.TEXT_ENCODER,
@@ -129,10 +129,8 @@ describe('Crypto Runtime Compatibility', () => {
       expect(adapter.randomBytes).toBeDefined();
     });
 
-    it('should still have other capabilities intact', () => {
-      const adapter = createMockAdapterWithMissingCapabilities([
-        CryptoCapability.BTOA,
-      ]);
+    it("should still have other capabilities intact", () => {
+      const adapter = createMockAdapterWithMissingCapabilities([CryptoCapability.BTOA]);
 
       expect(adapter.crypto).toBeDefined();
       expect(adapter.subtle).toBeDefined();
@@ -140,24 +138,24 @@ describe('Crypto Runtime Compatibility', () => {
     });
   });
 
-  describe('getRuntimeInfo', () => {
-    it('should return a string describing the runtime', () => {
+  describe("getRuntimeInfo", () => {
+    it("should return a string describing the runtime", () => {
       const info = getRuntimeInfo();
-      expect(typeof info).toBe('string');
+      expect(typeof info).toBe("string");
       expect(info.length).toBeGreaterThan(0);
     });
   });
 
-  describe('Error handling', () => {
-    it('should create CryptoCapabilityError with correct fields', () => {
+  describe("Error handling", () => {
+    it("should create CryptoCapabilityError with correct fields", () => {
       const error = new CryptoCapabilityError(
         CryptoCapability.GLOBAL_CRYPTO,
-        'Crypto not available'
+        "Crypto not available",
       );
 
-      expect(error.name).toBe('CryptoCapabilityError');
+      expect(error.name).toBe("CryptoCapabilityError");
       expect(error.capability).toBe(CryptoCapability.GLOBAL_CRYPTO);
-      expect(error.message).toContain('[globalCrypto]');
+      expect(error.message).toContain("[globalCrypto]");
     });
   });
 });

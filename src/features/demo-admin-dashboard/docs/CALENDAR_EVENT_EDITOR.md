@@ -71,9 +71,7 @@ These pure functions are exported from `components/CalendarEventEditor.tsx`:
 import { calendarEventToEditorState, editorStateToCalendarEvent } from "../types/calendarEvent";
 import type { DemoCalendarEvent } from "../types/dataset";
 
-const event: DemoCalendarEvent = {
-  /* ... */
-};
+const event: DemoCalendarEvent = {/* ... */};
 const editorState = calendarEventToEditorState(event);
 // ... edit fields ...
 const updated: DemoCalendarEvent = editorStateToCalendarEvent(editorState);

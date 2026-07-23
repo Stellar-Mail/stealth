@@ -20,8 +20,7 @@ export enum WorkloadErrorCode {
 
 /** Discriminated outcome returned by every contract operation. */
 export type WorkloadResult<T> =
-  | { ok: true; value: T }
-  | { ok: false; error: WorkloadErrorCode; message: string };
+  { ok: true; value: T } | { ok: false; error: WorkloadErrorCode; message: string };
 
 /** Operations supported by the workload contract. */
 export type WorkloadOperation = {

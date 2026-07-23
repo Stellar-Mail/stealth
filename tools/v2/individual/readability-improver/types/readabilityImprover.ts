@@ -12,11 +12,7 @@ export type IssueSeverity = "info" | "warn";
 
 /** Which rule produced an issue. */
 export type ReadabilityIssueType =
-  | "long-sentence"
-  | "complex-word"
-  | "passive-voice"
-  | "long-paragraph"
-  | "shouting";
+  "long-sentence" | "complex-word" | "passive-voice" | "long-paragraph" | "shouting";
 
 /** Where an issue was found. */
 export type IssueSource = "subject" | "body";

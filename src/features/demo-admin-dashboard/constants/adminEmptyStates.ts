@@ -3,12 +3,7 @@
  * fake, and safe for public review — no real user data, addresses, or secrets.
  */
 export type AdminEmptyStateKind =
-  | "messages"
-  | "senders"
-  | "attachments"
-  | "events"
-  | "validation"
-  | "kpis";
+  "messages" | "senders" | "attachments" | "events" | "validation" | "kpis";
 
 export interface AdminEmptyStateCopy {
   /** Short, friendly heading. */
