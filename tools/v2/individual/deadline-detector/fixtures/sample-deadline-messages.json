@@ -1,127 +1,118 @@
 {
-  "tool": "deadline-detector",
-  "version": 1,
-  "runContext": {
-    "now": "2026-06-18T09:00:00Z",
-    "timezone": "Asia/Tokyo"
-  },
-  "sourceMessages": [
+  "runDate": "2026-07-01T09:00:00Z",
+  "soonWindowDays": 3,
+  "messages": [
     {
       "id": "msg-renewal-001",
-      "type": "invoice",
-      "sender": "billing@example.test",
-      "subject": "Renewal deadline due 2026-06-20",
-      "body": "Please renew by 2026-06-20 at 17:00 to avoid service interruption.",
-      "receivedAt": "2026-06-18T00:30:00Z",
+      "type": "renewal",
+      "sender": "billing@synthetic.example",
+      "subject": "Domain renewal due 2026-07-10",
+      "body": "Your domain subscription is due for renewal by 2026-07-10. Please renew before the deadline to avoid interruption.",
+      "receivedAt": "2026-06-25T10:00:00Z",
       "containsPersonalData": false,
-      "userTimezone": "Asia/Tokyo"
+      "userTimezone": "UTC"
     },
     {
-      "id": "msg-submit-002",
-      "type": "project-update",
-      "sender": "project@example.test",
-      "subject": "Submit final notes tomorrow",
-      "body": "The project notes are due tomorrow before 11:00. Please confirm when submitted.",
-      "receivedAt": "2026-06-18T02:15:00Z",
+      "id": "msg-relative-002",
+      "type": "request",
+      "sender": "legal@synthetic.example",
+      "subject": "Contract sign-off due tomorrow",
+      "body": "Please complete the contract sign-off by tomorrow at 17:00. This is the final deadline.",
+      "receivedAt": "2026-06-30T08:00:00Z",
       "containsPersonalData": false,
-      "userTimezone": "Asia/Tokyo"
+      "userTimezone": "UTC"
     },
     {
       "id": "msg-ambiguous-003",
-      "type": "email",
-      "sender": "team@example.test",
-      "subject": "Can you handle this soon?",
-      "body": "We should probably finish the response next week, but no exact commitment was provided.",
-      "receivedAt": "2026-06-18T03:45:00Z",
+      "type": "request",
+      "sender": "colleague@synthetic.example",
+      "subject": "Are you free on 8/15/2026?",
+      "body": "Just checking if the 8/15/2026 timeframe could work for a chat sometime.",
+      "receivedAt": "2026-06-28T12:00:00Z",
       "containsPersonalData": false,
-      "userTimezone": "Asia/Tokyo"
+      "userTimezone": "UTC"
     },
     {
-      "id": "msg-overdue-004",
-      "type": "calendar-forward",
-      "sender": "events@example.test",
-      "subject": "Registration expired 2026-06-14",
-      "body": "This is a reminder that the conference registration deadline was 2026-06-14.",
-      "receivedAt": "2026-06-18T04:00:00Z",
+      "id": "msg-missed-004",
+      "type": "invoice",
+      "sender": "accounts@synthetic.example",
+      "subject": "Invoice payment due 2026-06-20",
+      "body": "Payment for invoice INV-204 was due by 2026-06-20. Please remit as soon as possible.",
+      "receivedAt": "2026-06-15T09:00:00Z",
       "containsPersonalData": false,
-      "userTimezone": "Asia/Tokyo"
+      "userTimezone": "UTC"
     },
     {
-      "id": "msg-digest-005",
-      "type": "email",
-      "sender": "news@example.test",
-      "subject": "Weekly digest",
-      "body": "Newsletter only. No action required and no deadline action should be created.",
-      "receivedAt": "2026-06-18T05:30:00Z",
+      "id": "msg-newsletter-005",
+      "type": "newsletter",
+      "sender": "news@synthetic.example",
+      "subject": "Weekly product digest",
+      "body": "Here are this weeks highlights and updates. No action needed.",
+      "receivedAt": "2026-06-30T06:00:00Z",
       "containsPersonalData": false,
-      "userTimezone": "Asia/Tokyo"
+      "userTimezone": "UTC"
     }
   ],
   "expectedDeadlines": [
     {
-      "id": "deadline-msg-renewal-001",
+      "id": "msg-renewal-001-deadline",
       "sourceMessageId": "msg-renewal-001",
-      "title": "Renewal deadline due 2026-06-20",
-      "dueDate": "2026-06-20",
-      "dueTime": "17:00",
-      "timezone": "Asia/Tokyo",
-      "status": "detected",
-      "urgency": "soon",
-      "confidence": 0.96,
-      "reviewRequired": false
-    },
-    {
-      "id": "deadline-msg-submit-002",
-      "sourceMessageId": "msg-submit-002",
-      "title": "Submit final notes tomorrow",
-      "dueDate": "2026-06-19",
-      "dueTime": "11:00",
-      "timezone": "Asia/Tokyo",
-      "status": "detected",
-      "urgency": "soon",
-      "confidence": 0.96,
-      "reviewRequired": false
-    },
-    {
-      "id": "deadline-msg-ambiguous-003",
-      "sourceMessageId": "msg-ambiguous-003",
-      "title": "Can you handle this soon?",
-      "dueDate": "2026-06-25",
+      "title": "Domain renewal due 2026-07-10",
+      "dueDate": "2026-07-10",
       "dueTime": null,
-      "timezone": "Asia/Tokyo",
-      "status": "needs-review",
+      "timezone": "UTC",
+      "status": "detected",
+      "urgency": "later",
+      "confidence": 0.8,
+      "reviewRequired": false
+    },
+    {
+      "id": "msg-relative-002-deadline",
+      "sourceMessageId": "msg-relative-002",
+      "title": "Contract sign-off due tomorrow",
+      "dueDate": "2026-07-02",
+      "dueTime": "17:00",
+      "timezone": "UTC",
+      "status": "detected",
       "urgency": "soon",
-      "confidence": 0.58,
+      "confidence": 0.9,
+      "reviewRequired": false
+    },
+    {
+      "id": "msg-ambiguous-003-deadline",
+      "sourceMessageId": "msg-ambiguous-003",
+      "title": "Are you free on 8/15/2026?",
+      "dueDate": "2026-08-15",
+      "dueTime": null,
+      "timezone": "UTC",
+      "status": "needs-review",
+      "urgency": "later",
+      "confidence": 0.5,
       "reviewRequired": true
     },
     {
-      "id": "deadline-msg-overdue-004",
-      "sourceMessageId": "msg-overdue-004",
-      "title": "Registration expired 2026-06-14",
-      "dueDate": "2026-06-14",
+      "id": "msg-missed-004-deadline",
+      "sourceMessageId": "msg-missed-004",
+      "title": "Invoice payment due 2026-06-20",
+      "dueDate": "2026-06-20",
       "dueTime": null,
-      "timezone": "Asia/Tokyo",
+      "timezone": "UTC",
       "status": "missed",
       "urgency": "overdue",
-      "confidence": 0.95,
+      "confidence": 0.8,
       "reviewRequired": true
     },
     {
-      "id": "deadline-msg-digest-005",
-      "sourceMessageId": "msg-digest-005",
-      "title": "Weekly digest",
+      "id": "msg-newsletter-005-deadline",
+      "sourceMessageId": "msg-newsletter-005",
+      "title": "Weekly product digest",
       "dueDate": null,
       "dueTime": null,
-      "timezone": "Asia/Tokyo",
+      "timezone": "UTC",
       "status": "ignored",
       "urgency": "unknown",
       "confidence": 0.1,
       "reviewRequired": true
     }
-  ],
-  "reviewNotes": [
-    "All senders, subjects, and message bodies are synthetic.",
-    "Detected deadlines are safe to offer as reminder candidates but do not create reminders automatically.",
-    "Ambiguous, missed, and ignored rows require manual review before any future integration takes action."
   ]
 }
