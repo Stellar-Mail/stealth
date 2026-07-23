@@ -32,6 +32,20 @@ function cloneTemplate(template: EmailTemplate): EmailTemplate {
   return { ...template, variables: template.variables.map((variable) => ({ ...variable })) };
 }
 
+const MAX_SUBJECT_LENGTH = 255;
+const MAX_BODY_LENGTH = 100 * 1024; // 100 KB
+const MAX_VARIABLES = 50;
+export const MAX_VARIABLE_VALUE_LENGTH = 10 * 1024; // 10 KB
+
+export function escapeHtml(unsafe: string): string {
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 function validateTemplate(value: unknown): string[] {
   if (!isRecord(value)) return ["id", "name", "categoryId", "subject", "body", "variables"];
   const fields: string[] = [];
@@ -39,10 +53,12 @@ function validateTemplate(value: unknown): string[] {
   if (typeof value.name !== "string" || value.name.trim() === "") fields.push("name");
   if (!(typeof value.categoryId === "string" || value.categoryId === null))
     fields.push("categoryId");
-  if (typeof value.subject !== "string") fields.push("subject");
-  if (typeof value.body !== "string") fields.push("body");
+  if (typeof value.subject !== "string" || value.subject.length > MAX_SUBJECT_LENGTH)
+    fields.push("subject");
+  if (typeof value.body !== "string" || value.body.length > MAX_BODY_LENGTH) fields.push("body");
   if (
     !Array.isArray(value.variables) ||
+    value.variables.length > MAX_VARIABLES ||
     value.variables.some(
       (variable) =>
         !isRecord(variable) ||
@@ -160,6 +176,18 @@ export function executeEmailTemplateLibrary(
       "Render values must be a string map.",
     );
   }
+  const oversizedVariables = Object.entries(request.values)
+    .filter(([_, value]) => typeof value === "string" && value.length > MAX_VARIABLE_VALUE_LENGTH)
+    .map(([key, _]) => key);
+
+  if (oversizedVariables.length > 0) {
+    return failure(
+      EMAIL_TEMPLATE_LIBRARY_ERROR_CODES.VARIABLE_TOO_LARGE,
+      `Variables exceeded the maximum allowed size of ${MAX_VARIABLE_VALUE_LENGTH} bytes.`,
+      { fields: oversizedVariables },
+    );
+  }
+
   const missingVariables = template.variables
     .map(({ key }) => key)
     .filter((key) => !(key in request.values));
@@ -172,7 +200,9 @@ export function executeEmailTemplateLibrary(
   }
   const substitute = (text: string) =>
     text.replace(/\{\{\s*([\w.-]+)\s*\}\}/g, (match, key: string) =>
-      Object.prototype.hasOwnProperty.call(request.values, key) ? request.values[key] : match,
+      Object.prototype.hasOwnProperty.call(request.values, key)
+        ? escapeHtml(request.values[key])
+        : match,
     );
   return {
     status: "ok",
