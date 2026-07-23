@@ -43,7 +43,6 @@ export {
   hashCorpus,
   hashQuery,
   suggestKb,
-  KnowledgeBaseEngine,
 } from "./core/engine";
 
 export type { KbResult, KbOperation, KbContractOutput, KbContract } from "./core/engine";
