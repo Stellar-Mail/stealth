@@ -2,37 +2,35 @@
 
 ## Purpose
 
-Rank internal knowledge-base articles against a normalized email context so a team
-member can review relevant guidance while handling a conversation.
+Rank internal knowledge-base articles against a query so a team member can review
+relevant guidance, with explainable match reasons and expandable corpus filtering.
 
-## Future Inputs
+## Inputs
 
-- Message and thread identifiers
-- Subject and normalized plain-text excerpt
-- Optional team, product, locale, and category context
-- Candidate article snapshots containing identifiers, titles, summaries, tags,
-  locale, revision, and access metadata
-- Team-provided ranking configuration
+- Query string from the caller
+- Corpus of `KbArticle` snapshots provided through the contract
+- Optional `KbCorpusFilter[]` (locale, access, team, product, etc.)
+- Optional `limit` for maximum suggestions
 
 The tool must receive these values through a folder-local typed contract. It must
 not read the inbox store, authentication context, database, or knowledge-base
 provider directly.
 
-## Future Outputs
+## Outputs
 
-- Ranked article suggestions with stable article identifiers
-- Relevance score and explainable match reasons
-- Article revision and access metadata copied from the input snapshot
-- Validation warnings or a typed no-suggestion result
+- Ranked article suggestions with stable identifiers
+- Relevance score and explainable `KbMatchReason[]`
+- Pipeline `warnings` (e.g., filter removal counts, invalid corpus)
+- Typed success/error `KbResult<T>` outcomes
 
 Outputs are recommendations only. Fetching full article content, enforcing access,
 and inserting content into mail are integration concerns outside this issue.
 
 ## Functional Boundaries
 
-The future mini-product may normalize supplied context, filter inaccessible or
-incompatible candidates, rank article snapshots deterministically, expose local
-review components, and provide local fixtures and tests.
+The mini-product normalizes text, filters candidates via pluggable filters, ranks
+articles deterministically, exposes local review data, and provides fixtures and
+tests.
 
 It may not mutate mail, index the main database, bypass article permissions, send
 messages, create routes, access wallets or Stellar, or call a knowledge-base
@@ -40,9 +38,13 @@ provider directly without a separate approved integration issue.
 
 ## Contributor Rules
 
-Future contributors may add or refine folder-local types, pure ranking logic,
-adapter interfaces, local components, fixtures, and tests.
+Contributors may:
 
-Future contributors may not import main-app features, modify global configuration,
-change routing or navigation, alter the design system, or move ownership of mail or
+- Add `KbMatchReason` variants and scoring factors in `core/engine.ts`
+- Add `KbCorpusFilter` implementations
+- Extend `KbArticle` metadata (e.g., locale, access) used by filters
+- Add or refine folder-local types, services, fixtures, and tests
+
+Contributors may not import main-app features, modify global configuration, change
+routing or navigation, alter the design system, or move ownership of mail or
 knowledge-base records into this tool.
