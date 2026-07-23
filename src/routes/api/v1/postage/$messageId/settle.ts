@@ -42,13 +42,14 @@ export const Route = createFileRoute("/api/v1/postage/$messageId/settle")({
     handlers: {
       POST: ({ request, params }) =>
         handleApiRequest(request, async () => {
-          const repository = (await getApiContext()).repository;
+          const context = await getApiContext(request);
+          const repository = context.repository;
           // Authenticate before loading so unauthenticated callers cannot
           // probe whether a message id exists.
-          requireActor(request);
+          requireActor(context);
           const messageId = hash32Schema.parse(params.messageId);
           const current = await getPostage(repository, messageId);
-          requireActorMatches(request, current.recipient);
+          requireActorMatches(context, current.recipient);
 
           // Check for idempotency key to enable safe retries
           const rawIdempotencyKey = request.headers.get("x-idempotency-key");

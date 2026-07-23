@@ -2,7 +2,88 @@ import { z, type ZodType } from "zod";
 
 import { ApiError } from "./errors";
 
-const DEFAULT_MAX_BODY_BYTES = 64 * 1024;
+/**
+ * Issue #1487: central request body-limit registry.
+ *
+ * Body size limits are declared here, keyed by a stable payload *category*,
+ * rather than as scattered magic numbers at each call site. Routes select an
+ * approved category; they cannot silently disable enforcement because every
+ * category maps to a finite, positive byte cap and the default is always
+ * applied when no category is specified.
+ */
+export const BODY_LIMIT_CATEGORIES = {
+  /** Default cap for small JSON control payloads (policies, receipts, postage). */
+  default: 64 * 1024,
+  /** Tiny payloads: single-field or empty-body mutations. */
+  minimal: 4 * 1024,
+  /** Compact domain writes: addresses, hashes, amounts, timestamps. */
+  compact: 16 * 1024,
+  /** Standard domain writes with nested objects (mailbox policies, rules). */
+  standard: 64 * 1024,
+  /** Larger batch or list submissions. */
+  bulk: 256 * 1024,
+} as const satisfies Record<string, number>;
+
+export type BodyLimitCategory = keyof typeof BODY_LIMIT_CATEGORIES;
+
+const DEFAULT_BODY_LIMIT_CATEGORY: BodyLimitCategory = "default";
+const DEFAULT_MAX_BODY_BYTES = BODY_LIMIT_CATEGORIES[DEFAULT_BODY_LIMIT_CATEGORY];
+
+/**
+ * Stable route keys mapped to their approved body-limit category. A route key
+ * is `METHOD path` using the OpenAPI-style path template. This is the single
+ * auditable place where per-route overrides live.
+ */
+export const ROUTE_BODY_LIMITS = {
+  "POST /postage": "compact",
+  "POST /postage/quote": "compact",
+  "POST /receipts": "compact",
+  "PUT /policies/{owner}": "standard",
+  "PUT /policies/{owner}/senders/{sender}": "standard",
+  "POST /policies/evaluate": "compact",
+} as const satisfies Record<string, BodyLimitCategory>;
+
+export type RouteBodyLimitKey = keyof typeof ROUTE_BODY_LIMITS;
+
+/** Options accepted by {@link parseJsonBody} for selecting a body-size limit. */
+export interface BodyLimitOptions {
+  /** Select an approved category from {@link BODY_LIMIT_CATEGORIES}. */
+  category?: BodyLimitCategory;
+  /** Select the category configured for a stable route key. */
+  route?: RouteBodyLimitKey;
+}
+
+/**
+ * Resolve the maximum body size in bytes from a limit selector.
+ *
+ * Accepts a raw byte number (legacy call sites), a category name, a route key,
+ * or nothing (the default category). Enforcement can never be silently disabled:
+ * a non-finite or non-positive numeric limit is rejected.
+ */
+export function resolveBodyLimit(selector?: number | BodyLimitCategory | BodyLimitOptions): number {
+  if (selector === undefined) return DEFAULT_MAX_BODY_BYTES;
+
+  if (typeof selector === "number") {
+    if (!Number.isFinite(selector) || selector <= 0) {
+      throw new TypeError(
+        "Request body limit must be a finite, positive number of bytes; enforcement cannot be disabled",
+      );
+    }
+    return selector;
+  }
+
+  if (typeof selector === "string") {
+    return BODY_LIMIT_CATEGORIES[selector];
+  }
+
+  if (selector.route !== undefined) {
+    return BODY_LIMIT_CATEGORIES[ROUTE_BODY_LIMITS[selector.route]];
+  }
+  if (selector.category !== undefined) {
+    return BODY_LIMIT_CATEGORIES[selector.category];
+  }
+  return DEFAULT_MAX_BODY_BYTES;
+}
 
 function assertJsonContentType(request: Request) {
   const raw = request.headers.get("content-type");
@@ -33,8 +114,10 @@ function validateContentLength(request: Request, maxBytes: number): void {
 export async function parseJsonBody<T>(
   request: Request,
   schema: ZodType<T>,
-  maxBytes = DEFAULT_MAX_BODY_BYTES,
+  limit: number | BodyLimitCategory | BodyLimitOptions = DEFAULT_BODY_LIMIT_CATEGORY,
 ): Promise<T> {
+  const maxBytes = resolveBodyLimit(limit);
+
   assertJsonContentType(request);
 
   validateContentLength(request, maxBytes);
@@ -185,4 +268,4 @@ export const paginationSchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(25),
 });
 
-export { DEFAULT_MAX_BODY_BYTES };
+export { DEFAULT_MAX_BODY_BYTES, DEFAULT_BODY_LIMIT_CATEGORY };

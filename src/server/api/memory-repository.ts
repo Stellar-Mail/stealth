@@ -7,6 +7,7 @@ import type {
   SenderRule,
 } from "./domain";
 import type { ApiRepository, PostageTransitionResult } from "./repository";
+import { ApiError } from "./errors";
 
 function key(owner: string, sender: string) {
   return `${owner}:${sender}`;
@@ -19,6 +20,27 @@ export class MemoryApiRepository implements ApiRepository {
   private readonly senderRules = new Map<string, SenderRule>();
   private readonly counters = new Map<string, number[]>();
   private readonly idempotency = new Map<string, IdempotencyRecord>();
+  private readonly receiptLocks = new Map<string, Promise<void>>();
+
+  private async withReceiptLock<T>(messageId: string, action: () => Promise<T>): Promise<T> {
+    const previous = this.receiptLocks.get(messageId) ?? Promise.resolve();
+    let release!: () => void;
+    const current = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const queued = previous.then(() => current);
+    this.receiptLocks.set(messageId, queued);
+
+    await previous;
+    try {
+      return await action();
+    } finally {
+      release();
+      if (this.receiptLocks.get(messageId) === queued) {
+        this.receiptLocks.delete(messageId);
+      }
+    }
+  }
 
   async getPolicy(owner: string) {
     return structuredClone(this.policies.get(owner) ?? null);
@@ -70,6 +92,18 @@ export class MemoryApiRepository implements ApiRepository {
     return { outcome: "applied", postage: structuredClone(updated) };
   }
 
+  async insertPostage(postage: Postage) {
+    if (this.postage.has(postage.messageId)) {
+      throw new ApiError(
+        409,
+        "conflict",
+        `A postage record already exists for message ${postage.messageId}`,
+      );
+    }
+    this.postage.set(postage.messageId, structuredClone(postage));
+    return structuredClone(postage);
+  }
+
   async getReceipt(messageId: string) {
     return structuredClone(this.receipts.get(messageId) ?? null);
   }
@@ -77,6 +111,40 @@ export class MemoryApiRepository implements ApiRepository {
   async setReceipt(receipt: Receipt) {
     this.receipts.set(receipt.messageId, structuredClone(receipt));
     return structuredClone(receipt);
+  }
+
+  async createReceiptIfAbsent(receipt: Receipt) {
+    return this.withReceiptLock(receipt.messageId, async () => {
+      const existing = this.receipts.get(receipt.messageId);
+      if (existing) return { created: false, receipt: structuredClone(existing) };
+
+      this.receipts.set(receipt.messageId, structuredClone(receipt));
+      return { created: true, receipt: structuredClone(receipt) };
+    });
+  }
+
+  async markReceiptRead(
+    messageId: string,
+    actor: string,
+    now = new Date(),
+  ): Promise<import("./repository").MarkReceiptReadResult> {
+    // No `await` occurs between the read and the write below, so this
+    // check-then-act sequence runs to completion within a single
+    // microtask and cannot interleave with a concurrent call for the
+    // same messageId, giving us the atomicity the interface requires.
+    const receipt = this.receipts.get(messageId);
+    if (!receipt) {
+      return { outcome: "not-found" };
+    }
+    if (actor !== receipt.sender && actor !== receipt.recipient) {
+      return { outcome: "forbidden" };
+    }
+    if (receipt.readAt !== null) {
+      return { outcome: "already-read", readAt: receipt.readAt };
+    }
+    const updated: Receipt = { ...receipt, readAt: now.toISOString() };
+    this.receipts.set(messageId, updated);
+    return { outcome: "marked", receipt: structuredClone(updated) };
   }
 
   async getRelayQueueDepth(_relayId: string) {
@@ -159,5 +227,6 @@ export class MemoryApiRepository implements ApiRepository {
     this.senderRules.clear();
     this.counters.clear();
     this.idempotency.clear();
+    this.receiptLocks.clear();
   }
 }

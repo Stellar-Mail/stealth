@@ -11,12 +11,14 @@ This document defines threat assumptions, unsafe inputs, and mitigation strategi
 ### What We Assume Is Unsafe
 
 1. **User Input**
+
    - Team member email addresses and names (unvalidated)
    - Schedule expressions (cron or custom format)
    - Filter rules and exclusion lists
    - Configuration from untrusted sources
 
 2. **Email Content**
+
    - Subject lines from any sender
    - Email bodies (HTML, rich text, plain text)
    - Attachments (filenames, metadata)

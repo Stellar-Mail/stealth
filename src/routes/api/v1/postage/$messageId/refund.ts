@@ -11,13 +11,14 @@ export const Route = createFileRoute("/api/v1/postage/$messageId/refund")({
     handlers: {
       POST: ({ request, params }) =>
         handleApiRequest(request, async () => {
-          const repository = (await getApiContext()).repository;
+          const context = await getApiContext(request);
+          const repository = context.repository;
           // Authenticate before loading so unauthenticated callers cannot
           // probe whether a message id exists.
-          requireActor(request);
+          requireActor(context);
           const messageId = hash32Schema.parse(params.messageId);
           const current = await getPostage(repository, messageId);
-          requireActorMatches(request, current.recipient);
+          requireActorMatches(context, current.recipient);
           const postage = await resolvePostage(repository, messageId, "refunded");
           return apiSuccess(request, postage);
         }),

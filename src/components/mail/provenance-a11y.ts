@@ -38,5 +38,7 @@ export function technicalProvenanceToggleLabel(expanded: boolean): string {
 
 /** Full step announcement for timeline list items. */
 export function timelineStepAriaLabel(item: ProvenanceTimelineItem): string {
-  return `${item.title}, ${timelineStepStatusLabel(item.status)}${item.timestamp ? `, ${item.timestamp}` : ""}`;
+  return `${item.title}, ${timelineStepStatusLabel(item.status)}${
+    item.timestamp ? `, ${item.timestamp}` : ""
+  }`;
 }

@@ -10,30 +10,37 @@
 ## Automated Cases
 
 1. Future one-time schedule
+
    - Given a draft, recipients, timezone, and future local time.
    - Expect `ready-for-confirmation` with a normalized UTC timestamp.
 
 2. Past-time rejection
+
    - Given a local scheduled time earlier than the current clock.
    - Expect a blocking warning and no `ready-for-confirmation` status.
 
 3. Timezone display
+
    - Given `Pacific/Auckland` and a future local time.
    - Expect the timezone label and UTC conversion to be visible in the model.
 
 4. Daylight-saving ambiguous time
+
    - Given a time that repeats during DST fallback.
    - Expect an ambiguity warning and manual review requirement.
 
 5. Missing recipients
+
    - Given a draft without recipients.
    - Expect a blocking warning before confirmation.
 
 6. Multiple recipients
+
    - Given to, cc, and bcc values.
    - Expect all recipient groups to be counted and reviewable.
 
 7. Cancel scheduled draft
+
    - Given an existing schedule record.
    - Expect cancel action to move status to `cancelled` without sending.
 

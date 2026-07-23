@@ -141,7 +141,9 @@ export function matchIdentity(row: ImportedContactRow, knownContacts: ContactRef
         matchedAddress: best.contact.address,
         matchedName: best.contact.name,
         confidence: 1,
-        reason: `Name and address match existing contact${best.contact.trusted ? " (trusted)" : ""}.`,
+        reason: `Name and address match existing contact${
+          best.contact.trusted ? " (trusted)" : ""
+        }.`,
       };
     }
 

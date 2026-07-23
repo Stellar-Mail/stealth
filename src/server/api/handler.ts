@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { requireActor } from "./actor";
-import { createRequestContext, type RequestContext } from "./context";
+import { getApiContext, type ApiContext, type ApiPrincipal } from "./context";
 import { ApiError } from "./errors";
 import { apiFailure, apiSuccess } from "./response";
 import { consumeRouteQuota, type RateLimitConfig } from "./rate-limit";
@@ -38,6 +38,8 @@ export type RouteConfig<
   cacheSeconds?: number;
   handler: (context: {
     request: Request;
+    apiContext: ApiContext;
+    principal?: ApiPrincipal;
     actorId?: string;
     body: z.infer<BodySchema>;
     query: z.infer<QuerySchema>;
@@ -65,9 +67,10 @@ export function createRouteHandler<
     let actorId: string | undefined;
 
     try {
+      // 0. Resolve request-scoped ApiContext
+      const apiContext = await getApiContext(request);
+
       // 1. Authentication based on authMode (new) and legacy requireAuth (old)
-      // Preserve backward compatibility: if `requireAuth` is explicitly set, it overrides `authMode`.
-      // Default mode is "public" (no authentication) to match original behavior where auth was optional.
       let mode: AuthMode = "public";
       if (typeof config.requireAuth === "boolean") {
         mode = config.requireAuth ? "required" : "public";
@@ -75,10 +78,10 @@ export function createRouteHandler<
         mode = config.authMode;
       }
       if (mode === "required") {
-        actorId = requireActor(request);
+        actorId = requireActor(apiContext);
       } else if (mode === "optional") {
         try {
-          actorId = requireActor(request);
+          actorId = requireActor(apiContext);
         } catch (_) {
           actorId = undefined;
         }
@@ -98,6 +101,7 @@ export function createRouteHandler<
 
       // 3. Rate Limiting
       if (config.rateLimit) {
+        const repo = apiContext.repository;
         let subject: string;
         if (config.rateLimit.type === "account") {
           if (!actorId) {
@@ -158,6 +162,8 @@ export function createRouteHandler<
       // 5. Execute Route
       let response = await config.handler({
         request,
+        apiContext,
+        principal: apiContext.isAuthenticated ? apiContext.principal : undefined,
         actorId,
         body: parsedBody,
         query: parsedQuery,

@@ -1,0 +1,268 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Stealth Mail API",
+    "version": "1.0.0",
+    "description": "Development API for mailbox policy, Stellar postage proofs, and delivery receipts."
+  },
+  "servers": [
+    {
+      "url": "/api/v1"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "ActorHeader": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-stealth-address",
+        "description": "Development actor transport. Production must derive this identity from a verified signed session."
+      }
+    },
+    "schemas": {
+      "StellarAddress": {
+        "type": "string",
+        "pattern": "^G[A-Z2-7]{55}$"
+      },
+      "Hash32": {
+        "type": "string",
+        "pattern": "^[a-f0-9]{64}$"
+      },
+      "StroopAmount": {
+        "type": "string",
+        "pattern": "^(0|[1-9][0-9]*)$"
+      },
+      "MailboxPolicy": {
+        "type": "object",
+        "required": ["allowUnknown", "minimumPostage", "requireVerified"],
+        "properties": {
+          "allowUnknown": {
+            "type": "boolean"
+          },
+          "minimumPostage": {
+            "$ref": "#/components/schemas/StroopAmount"
+          },
+          "requireVerified": {
+            "type": "boolean"
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Read service health",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/protocol": {
+      "get": {
+        "summary": "Discover protocol capabilities",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/openapi.json": {
+      "get": {
+        "summary": "Read this OpenAPI document",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/policies/{owner}": {
+      "get": {
+        "summary": "Read mailbox policy",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      },
+      "put": {
+        "summary": "Replace mailbox policy",
+        "security": [
+          {
+            "ActorHeader": []
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/policies/{owner}/senders/{sender}": {
+      "get": {
+        "summary": "Read a sender override",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      },
+      "put": {
+        "summary": "Set a sender override",
+        "security": [
+          {
+            "ActorHeader": []
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      },
+      "delete": {
+        "summary": "Reset a sender override",
+        "security": [
+          {
+            "ActorHeader": []
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/policies/evaluate": {
+      "post": {
+        "summary": "Evaluate whether a sender can mail a recipient",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/postage": {
+      "post": {
+        "summary": "Submit a postage proof",
+        "security": [
+          {
+            "ActorHeader": []
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/postage/quote": {
+      "post": {
+        "summary": "Quote recipient postage requirements",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/postage/{messageId}": {
+      "get": {
+        "summary": "Read participant postage state",
+        "security": [
+          {
+            "ActorHeader": []
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/postage/{messageId}/settle": {
+      "post": {
+        "summary": "Settle pending postage",
+        "security": [
+          {
+            "ActorHeader": []
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/postage/{messageId}/refund": {
+      "post": {
+        "summary": "Mark pending postage for refund",
+        "security": [
+          {
+            "ActorHeader": []
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/receipts": {
+      "post": {
+        "summary": "Record message delivery",
+        "security": [
+          {
+            "ActorHeader": []
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/receipts/{messageId}": {
+      "get": {
+        "summary": "Read participant receipt state",
+        "security": [
+          {
+            "ActorHeader": []
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/receipts/{messageId}/read": {
+      "post": {
+        "summary": "Record recipient read acknowledgment",
+        "security": [
+          {
+            "ActorHeader": []
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    }
+  }
+}

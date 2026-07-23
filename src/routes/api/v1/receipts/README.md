@@ -30,7 +30,8 @@ The contract intentionally excludes message bodies, attachments, mailbox snapsho
 ## User-Facing States
 
 - Create receipt: `POST /api/v1/receipts/` returns `201` with the receipt when the request actor matches the sender.
-- Duplicate receipt: creating a second receipt for the same `messageId` returns a conflict error.
+- Duplicate receipt: retrying the same delivery receipt for the same `messageId`, `sender`, and
+  `recipient` replays the stored receipt.
 - Read receipt: `GET /api/v1/receipts/$messageId` returns the receipt only when the request actor is the sender or recipient.
 - Missing receipt: unknown `messageId` returns a not-found error.
 - Forbidden receipt: non-participants receive a forbidden error rather than receipt metadata.
@@ -47,7 +48,10 @@ Receipt access is scoped to the two participants of a message: its `sender` and 
 - The resolved principal must equal the `sender` in the request body, enforced by `assertCanPublishDeliveryReceipt`. Only a sender can record delivery for their own address.
 - An actor that does not match `sender` returns `403 forbidden`, so a recipient or third party cannot mint a sender-owned receipt.
 - A missing or invalid actor header returns `401 unauthorized`.
-- A duplicate receipt for a `messageId` that already exists returns `409 conflict`.
+- An identical duplicate for a `messageId` that already exists returns a `201` receipt
+  response. The first persisted `deliveredAt` timestamp wins, so later retry timestamps never
+  rewrite delivery metadata or trigger a second receipt write.
+- A duplicate for the same `messageId` with different participants returns `409 conflict`.
 
 **`GET /api/v1/receipts/:messageId`** — read a receipt.
 
@@ -60,7 +64,9 @@ Receipt access is scoped to the two participants of a message: its `sender` and 
 - The actor must equal the existing receipt's `recipient`, enforced by `assertCanPublishReadReceipt`. The sender and unrelated actors receive `403 forbidden`.
 - Authorization runs before `markReceiptRead`, so a forbidden attempt cannot set `readAt`.
 - A missing or invalid actor header returns `401 unauthorized`.
-- Repeating an authorized read transition returns `409 conflict` and preserves the first timestamp in `details.readAt`.
+- Repeating an authorized read transition replays the stored `200` receipt response. The first
+  persisted `readAt` timestamp wins, so later retry timestamps never rewrite read metadata or
+  trigger a second receipt write.
 
 ### Delegation
 
@@ -70,15 +76,15 @@ Receipt publication delegation is not supported. A delivery publisher must exact
 
 All failures use the standard error envelope from `src/server/api/response.ts`, so callers can branch on `error.code`.
 
-| Scenario                                                      | HTTP status | `error.code`       |
-| ------------------------------------------------------------- | ----------- | ------------------ |
-| Missing or invalid `x-stealth-address` header                 | 401         | `unauthorized`     |
-| Creating a receipt where the actor is not the `sender`        | 403         | `forbidden`        |
-| Marking a receipt read where the actor is not the `recipient` | 403         | `forbidden`        |
-| Reading a receipt as a non-participant                        | 403         | `forbidden`        |
-| Reading a receipt that does not exist                         | 404         | `not_found`        |
-| Creating a duplicate receipt for the same `messageId`         | 409         | `conflict`         |
-| `messageId`, `sender`, or `recipient` fails schema validation | 422         | `validation_error` |
+| Scenario                                                                          | HTTP status | `error.code`       |
+| --------------------------------------------------------------------------------- | ----------- | ------------------ |
+| Missing or invalid `x-stealth-address` header                                     | 401         | `unauthorized`     |
+| Creating a receipt where the actor is not the `sender`                            | 403         | `forbidden`        |
+| Marking a receipt read where the actor is not the `recipient`                     | 403         | `forbidden`        |
+| Reading a receipt as a non-participant                                            | 403         | `forbidden`        |
+| Reading a receipt that does not exist                                             | 404         | `not_found`        |
+| Creating a duplicate receipt for the same `messageId` with different participants | 409         | `conflict`         |
+| `messageId`, `sender`, or `recipient` fails schema validation                     | 422         | `validation_error` |
 
 Non-participant read (`403 forbidden`):
 
@@ -90,15 +96,23 @@ Non-participant read (`403 forbidden`):
       "meta": { "requestId": "7b2e...", "timestamp": "2026-07-17T23:00:00.000Z" }
     }
 
-Duplicate create (`409 conflict`):
+Conflicting duplicate create (`409 conflict`):
 
     {
       "error": {
         "code": "conflict",
-        "message": "A delivery receipt already exists for this message"
+        "message": "A delivery receipt already exists for this message with different participants"
       },
       "meta": { "requestId": "3f9a...", "timestamp": "2026-07-17T23:00:00.000Z" }
     }
+
+### Duplicate timestamp precedence
+
+Receipt publication is idempotent for matching participants. The first successful delivery
+publication owns `deliveredAt`, and the first successful read publication owns `readAt`. Later
+identical retries return the stored receipt without applying the retry's later request time. This
+keeps client timeout retries deterministic and limits receipt publication to one domain write per
+transition.
 
 ### Receipt examples
 
@@ -151,7 +165,10 @@ After the message is marked read, the same record carries a `readAt` timestamp:
 ## Lightweight QA Checklist
 
 - Create a receipt with a valid sender actor and confirm `deliveredAt` is set and `readAt` is `null`.
-- Attempt duplicate creation for the same `messageId` and confirm a conflict response.
+- Attempt duplicate creation for the same `messageId`, `sender`, and `recipient` and confirm the
+  stored receipt is replayed.
+- Attempt duplicate creation for the same `messageId` with different participants and confirm a
+  conflict response.
 - Read a receipt as the sender and as the recipient.
 - Attempt to read the same receipt as a different actor and confirm a forbidden response.
 - Request an unknown receipt and confirm a not-found response.

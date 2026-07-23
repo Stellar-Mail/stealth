@@ -1,3 +1,5 @@
+import { API_ERROR_CODES, API_ERROR_REGISTRY } from "./errors";
+
 export const openApiDocument = {
   openapi: "3.1.0",
   info: {
@@ -74,7 +76,8 @@ export const openApiDocument = {
           code: {
             type: "string",
             description: "Stable domain error code.",
-            example: "bad_request",
+            enum: API_ERROR_CODES,
+            example: "invalid_state_transition",
           },
           message: {
             type: "string",
@@ -82,18 +85,6 @@ export const openApiDocument = {
           },
           details: {
             description: "Optional structured error details.",
-          },
-        },
-      },
-      ErrorEnvelope: {
-        type: "object",
-        required: ["error", "meta"],
-        properties: {
-          error: {
-            $ref: "#/components/schemas/DomainError",
-          },
-          meta: {
-            $ref: "#/components/schemas/ApiMeta",
           },
         },
       },
@@ -216,6 +207,7 @@ export const openApiDocument = {
               code: {
                 type: "string",
                 description: "Stable domain-specific error code.",
+                enum: API_ERROR_CODES,
               },
               message: {
                 type: "string",
@@ -249,6 +241,12 @@ export const openApiDocument = {
           },
         },
       },
+      ApiErrorRegistry: {
+        type: "object",
+        description:
+          "Stable error-code metadata. This schema is generated from the runtime registry.",
+        "x-error-registry": API_ERROR_REGISTRY,
+      },
     },
   },
   paths: {
@@ -258,6 +256,7 @@ export const openApiDocument = {
         summary: "Read service health",
         "x-stability": "stable",
         responses: {
+          default: { description: "" },
           "200": {
             description: "Success",
             content: {
@@ -307,6 +306,7 @@ export const openApiDocument = {
         summary: "Discover protocol capabilities",
         "x-stability": "stable",
         responses: {
+          default: { description: "" },
           "200": {
             description: "Success",
             content: {
@@ -356,6 +356,7 @@ export const openApiDocument = {
         summary: "Read this OpenAPI document",
         "x-stability": "stable",
         responses: {
+          default: { description: "" },
           "200": {
             description: "Success",
             content: {
@@ -405,6 +406,7 @@ export const openApiDocument = {
         summary: "Read mailbox policy",
         "x-stability": "stable",
         responses: {
+          default: { description: "" },
           "200": {
             description: "Success",
             content: {
@@ -450,6 +452,7 @@ export const openApiDocument = {
       put: {
         operationId: "replaceMailboxPolicy",
         summary: "Replace mailbox policy",
+        "x-max-body-bytes": 64 * 1024,
         security: [
           {
             StellarSignedRequest: [],
@@ -457,6 +460,7 @@ export const openApiDocument = {
         ],
         "x-stability": "stable",
         responses: {
+          default: { description: "" },
           "200": {
             description: "Success",
             content: {
@@ -506,6 +510,7 @@ export const openApiDocument = {
         summary: "Read a sender override",
         "x-stability": "stable",
         responses: {
+          default: { description: "" },
           "200": {
             description: "Success",
             content: {
@@ -550,6 +555,7 @@ export const openApiDocument = {
       },
       put: {
         operationId: "setSenderOverride",
+        "x-max-body-bytes": 64 * 1024,
         summary: "Set a sender override",
         security: [
           {
@@ -558,6 +564,7 @@ export const openApiDocument = {
         ],
         "x-stability": "stable",
         responses: {
+          default: { description: "" },
           "200": {
             description: "Success",
             content: {
@@ -610,6 +617,7 @@ export const openApiDocument = {
         ],
         "x-stability": "stable",
         responses: {
+          default: { description: "" },
           "200": {
             description: "Success",
             content: {
@@ -656,9 +664,11 @@ export const openApiDocument = {
     "/policies/evaluate": {
       post: {
         operationId: "evaluateMailboxPolicy",
+        "x-max-body-bytes": 16 * 1024,
         summary: "Evaluate whether a sender can mail a recipient",
         "x-stability": "stable",
         responses: {
+          default: { description: "" },
           "200": {
             description: "Policy evaluation decision",
             content: {
@@ -718,6 +728,7 @@ export const openApiDocument = {
       post: {
         operationId: "submitPostageProof",
         summary: "Submit a postage proof",
+        "x-max-body-bytes": 16 * 1024,
         security: [
           {
             StellarSignedRequest: [],
@@ -725,6 +736,7 @@ export const openApiDocument = {
         ],
         "x-stability": "stable",
         responses: {
+          default: { description: "" },
           "200": {
             description: "Success",
             content: {
@@ -772,8 +784,10 @@ export const openApiDocument = {
       post: {
         operationId: "quotePostage",
         summary: "Quote recipient postage requirements",
+        "x-max-body-bytes": 16 * 1024,
         "x-stability": "stable",
         responses: {
+          default: { description: "" },
           "200": {
             description: "Success",
             content: {
@@ -828,6 +842,7 @@ export const openApiDocument = {
         ],
         "x-stability": "stable",
         responses: {
+          default: { description: "" },
           "200": {
             description: "Success",
             content: {
@@ -882,6 +897,7 @@ export const openApiDocument = {
         ],
         "x-stability": "stable",
         responses: {
+          default: { description: "" },
           "200": {
             description: "Success",
             content: {
@@ -936,6 +952,7 @@ export const openApiDocument = {
         ],
         "x-stability": "stable",
         responses: {
+          default: { description: "" },
           "200": {
             description: "Success",
             content: {
@@ -982,6 +999,7 @@ export const openApiDocument = {
     "/receipts": {
       post: {
         operationId: "recordDelivery",
+        "x-max-body-bytes": 16 * 1024,
         summary: "Record message delivery",
         security: [
           {
@@ -990,6 +1008,7 @@ export const openApiDocument = {
         ],
         "x-stability": "stable",
         responses: {
+          default: { description: "" },
           "200": {
             description: "Success",
             content: {
@@ -1044,6 +1063,7 @@ export const openApiDocument = {
         ],
         "x-stability": "stable",
         responses: {
+          default: { description: "" },
           "200": {
             description: "Success",
             content: {
@@ -1104,6 +1124,7 @@ export const openApiDocument = {
           migration: "/receipts/{messageId}",
         },
         responses: {
+          default: { description: "" },
           "200": {
             description: "Success",
             content: {

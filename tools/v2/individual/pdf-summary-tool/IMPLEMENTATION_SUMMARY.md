@@ -256,11 +256,13 @@ localStorage / Browser APIs
 ### Immediate (When Ready to Implement Features)
 
 1. **Read Documentation** (Required)
+
    - Start with [README.md](./README.md)
    - Study [ARCHITECTURE.md](./ARCHITECTURE.md)
    - Review [INTEGRATION_CONSTRAINTS.md](./INTEGRATION_CONSTRAINTS.md)
 
 2. **Set Up Environment**
+
    - Follow [docs/DEVELOPMENT.md](./docs/DEVELOPMENT.md)
    - Run tests: `npm test`
    - Verify setup works
