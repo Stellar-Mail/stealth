@@ -130,6 +130,8 @@ export function reset(): void {
   histograms.clear();
 }
 
+export function recordAuditEvent(_event: string, _fields: Record<string, string>): void {}
+
 /**
  * Computes the API Availability SLI from accumulated counters.
  * Numerator: Count of non-5xx requests across non-excluded routes.

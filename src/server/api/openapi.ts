@@ -256,6 +256,7 @@ export const openApiDocument = {
         summary: "Read service health",
         "x-stability": "stable",
         responses: {
+          default: { description: "" },
           "200": {
             description: "Success",
             content: {
@@ -305,6 +306,7 @@ export const openApiDocument = {
         summary: "Discover protocol capabilities",
         "x-stability": "stable",
         responses: {
+          default: { description: "" },
           "200": {
             description: "Success",
             content: {
@@ -354,6 +356,7 @@ export const openApiDocument = {
         summary: "Read this OpenAPI document",
         "x-stability": "stable",
         responses: {
+          default: { description: "" },
           "200": {
             description: "Success",
             content: {
@@ -403,6 +406,7 @@ export const openApiDocument = {
         summary: "Read mailbox policy",
         "x-stability": "stable",
         responses: {
+          default: { description: "" },
           "200": {
             description: "Success",
             content: {
@@ -448,6 +452,7 @@ export const openApiDocument = {
       put: {
         operationId: "replaceMailboxPolicy",
         summary: "Replace mailbox policy",
+        "x-max-body-bytes": 64 * 1024,
         security: [
           {
             StellarSignedRequest: [],
@@ -455,6 +460,7 @@ export const openApiDocument = {
         ],
         "x-stability": "stable",
         responses: {
+          default: { description: "" },
           "200": {
             description: "Success",
             content: {
@@ -504,6 +510,7 @@ export const openApiDocument = {
         summary: "Read a sender override",
         "x-stability": "stable",
         responses: {
+          default: { description: "" },
           "200": {
             description: "Success",
             content: {
@@ -548,6 +555,7 @@ export const openApiDocument = {
       },
       put: {
         operationId: "setSenderOverride",
+        "x-max-body-bytes": 64 * 1024,
         summary: "Set a sender override",
         security: [
           {
@@ -556,6 +564,7 @@ export const openApiDocument = {
         ],
         "x-stability": "stable",
         responses: {
+          default: { description: "" },
           "200": {
             description: "Success",
             content: {
@@ -608,6 +617,7 @@ export const openApiDocument = {
         ],
         "x-stability": "stable",
         responses: {
+          default: { description: "" },
           "200": {
             description: "Success",
             content: {
@@ -654,9 +664,11 @@ export const openApiDocument = {
     "/policies/evaluate": {
       post: {
         operationId: "evaluateMailboxPolicy",
+        "x-max-body-bytes": 16 * 1024,
         summary: "Evaluate whether a sender can mail a recipient",
         "x-stability": "stable",
         responses: {
+          default: { description: "" },
           "200": {
             description: "Policy evaluation decision",
             content: {
@@ -716,6 +728,7 @@ export const openApiDocument = {
       post: {
         operationId: "submitPostageProof",
         summary: "Submit a postage proof",
+        "x-max-body-bytes": 16 * 1024,
         security: [
           {
             StellarSignedRequest: [],
@@ -723,6 +736,7 @@ export const openApiDocument = {
         ],
         "x-stability": "stable",
         responses: {
+          default: { description: "" },
           "200": {
             description: "Success",
             content: {
@@ -770,8 +784,10 @@ export const openApiDocument = {
       post: {
         operationId: "quotePostage",
         summary: "Quote recipient postage requirements",
+        "x-max-body-bytes": 16 * 1024,
         "x-stability": "stable",
         responses: {
+          default: { description: "" },
           "200": {
             description: "Success",
             content: {
@@ -826,6 +842,7 @@ export const openApiDocument = {
         ],
         "x-stability": "stable",
         responses: {
+          default: { description: "" },
           "200": {
             description: "Success",
             content: {
@@ -880,6 +897,7 @@ export const openApiDocument = {
         ],
         "x-stability": "stable",
         responses: {
+          default: { description: "" },
           "200": {
             description: "Success",
             content: {
@@ -934,6 +952,7 @@ export const openApiDocument = {
         ],
         "x-stability": "stable",
         responses: {
+          default: { description: "" },
           "200": {
             description: "Success",
             content: {
@@ -980,6 +999,7 @@ export const openApiDocument = {
     "/receipts": {
       post: {
         operationId: "recordDelivery",
+        "x-max-body-bytes": 16 * 1024,
         summary: "Record message delivery",
         security: [
           {
@@ -988,6 +1008,7 @@ export const openApiDocument = {
         ],
         "x-stability": "stable",
         responses: {
+          default: { description: "" },
           "200": {
             description: "Success",
             content: {
@@ -1042,6 +1063,7 @@ export const openApiDocument = {
         ],
         "x-stability": "stable",
         responses: {
+          default: { description: "" },
           "200": {
             description: "Success",
             content: {
@@ -1102,6 +1124,7 @@ export const openApiDocument = {
           migration: "/receipts/{messageId}",
         },
         responses: {
+          default: { description: "" },
           "200": {
             description: "Success",
             content: {

@@ -25,4 +25,8 @@ Email was built to let anyone enter your inbox. That openness became spam, phish
 4. **Anchor the proof.** The message hash and payment reference are recorded without exposing message content.
 5. **Verify before rendering.** The client checks sender identity, payload integrity, postage, and delivery state.
 
+API implementers should follow the [signed API authentication protocol v1](docs/security/api-authentication-v1.md)
+for canonical requests, required headers, challenge validity, signature verification, replay
+protection, error responses, and executable synthetic interoperability vectors.
+
 Stealth turns the inbox from an open endpoint into a programmable, privacy-preserving communication boundary.

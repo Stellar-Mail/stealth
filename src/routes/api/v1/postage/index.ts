@@ -28,7 +28,9 @@ export const Route = createFileRoute("/api/v1/postage/")({
       POST: ({ request }) =>
         handleApiRequest(request, async () => {
           const apiContext = await getApiContext(request);
-          const input = await parseJsonBody(request, submissionSchema);
+          const input = await parseJsonBody(request, submissionSchema, {
+            route: "POST /postage",
+          });
           requireActorMatches(apiContext, input.sender);
 
           if (new Date(input.expiresAt) < new Date()) {

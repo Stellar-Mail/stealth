@@ -318,6 +318,7 @@ If you need an external library:
 
 1. **Check if it's already in package.json** - Reuse existing dependencies
 2. **If not in package.json** - Can only add if:
+
    - It's a standalone library (doesn't conflict with main app)
    - It doesn't modify global state
    - It's only used locally (not exported)

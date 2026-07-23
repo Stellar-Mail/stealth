@@ -26,7 +26,9 @@ export const Route = createFileRoute("/api/v1/policies/$owner")({
             owner,
             parseDelegationHeader(request, "policy:update", `mailbox:${owner}:policy`),
           );
-          const policy = await parseJsonBody(request, mailboxPolicySchema);
+          const policy = await parseJsonBody(request, mailboxPolicySchema, {
+            route: "PUT /policies/{owner}",
+          });
           const result = await setMailboxPolicy(context.repository, owner, policy);
           return apiSuccess(request, result);
         }),

@@ -33,9 +33,7 @@ test.describe("receipts API", () => {
     });
   });
 
-  test("marks a receipt as read once", async ({ api }) => {
-    const recipient = createIdentity();
-    const sender = createIdentity();
+  test("marks a receipt as read idempotently", async ({ api }) => {
     const msgId = "a".repeat(64);
 
     await api.createReceipt(msgId, recipient, sender);
@@ -45,16 +43,25 @@ test.describe("receipts API", () => {
       messageId: msgId,
       readAt: expect.any(String),
     });
-    expect((await api.markReceiptRead(msgId, recipient)).status()).toBe(409);
+
+    // Duplicate read mark replays the original read timestamp
+    const dupRes = await api.markReceiptRead(msgId, recipient);
+    expect(dupRes.status()).toBe(200);
+    const { data: duplicateRead } = await dupRes.json();
+    expect(duplicateRead).toEqual(read);
   });
 
-  test("rejects duplicate delivery receipt with 409", async ({ api }) => {
-    const recipient = createIdentity();
-    const sender = createIdentity();
+  test("replays duplicate delivery receipt", async ({ api }) => {
     const msgId = "d".repeat(64);
 
-    expect((await api.createReceipt(msgId, recipient, sender)).status()).toBe(201);
-    expect((await api.createReceipt(msgId, recipient, sender)).status()).toBe(409);
+    const first = await api.createReceipt(msgId, recipient, sender);
+    expect(first.status()).toBe(201);
+    const { data: firstReceipt } = await first.json();
+
+    const second = await api.createReceipt(msgId, recipient, sender);
+    expect(second.status()).toBe(201);
+    const { data: secondReceipt } = await second.json();
+    expect(secondReceipt).toEqual(firstReceipt);
   });
 
   test("rejects non-sender trying to create a delivery receipt with 403", async ({ api }) => {

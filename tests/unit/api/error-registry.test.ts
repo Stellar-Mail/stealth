@@ -16,6 +16,7 @@ describe("API error registry", () => {
 
   it.each([
     ["expired_challenge", 422],
+    ["challenge_not_yet_valid", 422],
     ["idempotency_mismatch", 409],
     ["invalid_state_transition", 409],
     ["insufficient_postage", 422],
