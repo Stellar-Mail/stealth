@@ -26,6 +26,25 @@ class MockKVNamespace {
 class MockStealthCoordinator {
   private storage = new Map<string, any>();
 
+  async getPostage(messageId: string) {
+    return this.storage.get(`postage:${messageId}`) ?? null;
+  }
+  async setPostage(postage: any) {
+    this.storage.set(`postage:${postage.messageId}`, postage);
+    return postage;
+  }
+  async transitionPostage(messageId: string, expectedStatus: string, nextStatus: string) {
+    const current = this.storage.get(`postage:${messageId}`);
+    if (!current) {
+      return { outcome: "not-found" as const };
+    }
+    if (current.status !== expectedStatus) {
+      return { outcome: "conflict" as const, postage: current };
+    }
+    const updated = { ...current, status: nextStatus };
+    this.storage.set(`postage:${messageId}`, updated);
+    return { outcome: "applied" as const, postage: updated };
+  }
   async getIdempotencyRecord(key: string) {
     return this.storage.get(`idempotency:${key}`) ?? null;
   }

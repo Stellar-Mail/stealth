@@ -62,6 +62,7 @@ export class HybridApiRepository implements ApiRepository {
     const key = this.key("postage", postage.messageId);
     await this.getStub().checkAndSetVersion(key, expectedVersion, nextVersion);
     const updated = { ...postage, version: nextVersion };
+    await this.getStub().setPostage?.(updated);
     await this.kv.put(key, JSON.stringify(updated));
     return updated;
   }
