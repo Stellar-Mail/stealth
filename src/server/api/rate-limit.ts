@@ -1,4 +1,5 @@
 import type { ApiRepository } from "./repository";
+import * as metrics from "./metrics";
 
 export const RATE_LIMIT_OPERATION_COSTS = Object.freeze({
   read: 1,
@@ -37,6 +38,7 @@ export async function consumeRouteQuota(
   const count = await repository.incrementCounter(`abuse:${type}:${subject}`, windowSeconds, cost);
 
   if (count > max) {
+    metrics.incrementCounter("rate_limit_hits_total", { type, operation });
     return { allowed: false, retryAfterSeconds: windowSeconds };
   }
   return { allowed: true };

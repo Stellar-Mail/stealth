@@ -176,6 +176,12 @@ export async function submitPostage(
     });
   }
 
+  metrics.incrementCounter("domain_transition_total", {
+    entity: "postage",
+    from: "none",
+    to: "pending",
+  });
+
   return repository.setPostage({
     ...input,
     createdAt: now.toISOString(),
@@ -234,6 +240,12 @@ export async function resolvePostage(
       messageId,
     });
   }
+
+  metrics.incrementCounter("domain_transition_total", {
+    entity: "postage",
+    from: "pending",
+    to: status,
+  });
 
   return result.postage;
 }
