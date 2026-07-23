@@ -62,6 +62,11 @@ export const idempotencyRecordSchema = z.discriminatedUnion("state", [
     state: z.literal("in_progress"),
     createdAt: z.string().datetime(),
     recoveryExpiryAt: z.string().datetime(),
+    actor: z.string().optional(),
+    method: z.string().optional(),
+    route: z.string().optional(),
+    key: z.string().optional(),
+    digest: z.string().optional(),
   }),
   z.object({
     state: z.literal("completed"),
@@ -69,6 +74,11 @@ export const idempotencyRecordSchema = z.discriminatedUnion("state", [
     body: z.unknown(),
     createdAt: z.string().datetime(),
     completedAt: z.string().datetime(),
+    actor: z.string().optional(),
+    method: z.string().optional(),
+    route: z.string().optional(),
+    key: z.string().optional(),
+    digest: z.string().optional(),
   }),
 ]);
 

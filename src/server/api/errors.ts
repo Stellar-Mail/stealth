@@ -87,6 +87,12 @@ export const API_ERROR_REGISTRY = {
     retryable: false,
     description: "An idempotency key was reused with a different request payload.",
   },
+  IDEMPOTENCY_KEY_REUSED: {
+    status: 409,
+    message: "Idempotency key has already been used with a different request.",
+    retryable: false,
+    description: "An idempotency key was reused with a different request payload.",
+  },
   invalid_state_transition: {
     status: 409,
     message: "The requested state transition is invalid",
