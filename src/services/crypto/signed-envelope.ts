@@ -256,10 +256,7 @@ export function verifyBindingSignature(
  * @throws {Error}  If the re-derived binding does not match `envelope.binding`.
  */
 export function assertBindingConsistency(envelope: SignedEnvelope): void {
-  const rederived = buildCiphertextBinding(
-    envelope.payload,
-    envelope.payload.content_commitment,
-  );
+  const rederived = buildCiphertextBinding(envelope.payload, envelope.payload.content_commitment);
 
   const canonicalize = (obj: object) => canonicalizePayload(obj);
 

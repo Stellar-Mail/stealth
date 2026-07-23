@@ -21,7 +21,10 @@ import {
   type SignedEnvelope,
 } from "../../../src/services/crypto/signed-envelope";
 import { verifyCommitment, createCommitment } from "../../../src/services/crypto/commitment";
-import { STEALTH_DOMAIN_TAG, STEALTH_PROTOCOL_VERSION } from "../../../src/services/crypto/signing-preimage";
+import {
+  STEALTH_DOMAIN_TAG,
+  STEALTH_PROTOCOL_VERSION,
+} from "../../../src/services/crypto/signing-preimage";
 import { type EnvelopePayload } from "../../../src/services/crypto/envelope";
 import { type EnvelopeSignature } from "../../../src/services/crypto/signature";
 import { toHex } from "../../../src/services/crypto/codec";
@@ -257,7 +260,8 @@ describe("verifyBindingSignature", () => {
     const payload = makePayload({ sender: keypair.publicKey() });
 
     // Original binding
-    const originalCommitment = "v1:sha256:hex:aaaa1111aaaa1111aaaa1111aaaa1111aaaa1111aaaa1111aaaa1111aaaa1111";
+    const originalCommitment =
+      "v1:sha256:hex:aaaa1111aaaa1111aaaa1111aaaa1111aaaa1111aaaa1111aaaa1111aaaa1111";
     const originalBinding = buildCiphertextBinding(payload, originalCommitment);
     const signature = makeEnvelopeSignature(originalBinding, keypair);
 
