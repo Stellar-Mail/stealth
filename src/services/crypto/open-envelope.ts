@@ -273,6 +273,7 @@ function mapOpenEnvelopeError(error: unknown): CryptoResultCode {
       }
     }
   }
+  return "error_parse";
 }
 
 /** Constant-time byte comparison (no early-exit timing leak). */
