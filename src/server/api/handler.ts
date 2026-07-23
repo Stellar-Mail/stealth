@@ -3,9 +3,8 @@ import { requireActor } from "./actor";
 import { getApiContext, type ApiContext, type ApiPrincipal } from "./context";
 import { ApiError } from "./errors";
 import { apiFailure, apiSuccess } from "./response";
-import * as metrics from "./metrics";
-import { parseJsonBody } from "./request";
 import { consumeRouteQuota, type RateLimitConfig } from "./rate-limit";
+import { parseJsonBody } from "./request";
 
 export type { RateLimitConfig } from "./rate-limit";
 
@@ -45,6 +44,7 @@ export type RouteConfig<
     body: z.infer<BodySchema>;
     query: z.infer<QuerySchema>;
     params: z.infer<ParamsSchema>;
+    ctx: RequestContext;
   }) => Promise<Response> | Response;
 };
 
@@ -54,10 +54,15 @@ export function createRouteHandler<
   ParamsSchema extends z.ZodTypeAny = z.ZodAny,
 >(config: RouteConfig<BodySchema, QuerySchema, ParamsSchema>) {
   return async (request: Request, params?: Record<string, string>): Promise<Response> => {
-    const startTime = performance.now();
-    const method = request.method;
     const url = new URL(request.url);
     const path = url.pathname;
+    const method = request.method;
+
+    // Create the immutable request context at the API boundary
+    const context = await createRequestContext({
+      request,
+      routeId: path,
+    });
 
     let actorId: string | undefined;
 
@@ -111,7 +116,7 @@ export function createRouteHandler<
         }
 
         const limit = await consumeRouteQuota(
-          repo,
+          context.repository,
           config.rateLimit.type,
           subject,
           config.rateLimit.operation,
@@ -163,6 +168,7 @@ export function createRouteHandler<
         body: parsedBody,
         query: parsedQuery,
         params: parsedParams,
+        ctx: context,
       });
 
       // 6. Caching
@@ -179,13 +185,19 @@ export function createRouteHandler<
         path,
         status: String(response.status),
       });
-      metrics.incrementCounter("api_requests_total", {
+      context.metrics.incrementCounter("api_requests_total", {
         method,
         path,
         status: String(response.status),
       });
 
-      console.log(`[API SUCCESS] ${method} ${path} - ${response.status} (${latency.toFixed(2)}ms)`);
+      context.logger.log({
+        routeId: context.routeId,
+        requestId: context.requestId,
+        status: response.status,
+        durationMs: latency,
+        method,
+      });
 
       return response;
     } catch (error: any) {
@@ -193,13 +205,20 @@ export function createRouteHandler<
       const latency = performance.now() - startTime;
       const status = error instanceof ApiError ? error.status : 500;
 
-      metrics.recordHistogram("api_latency", latency, { method, path, status: String(status) });
-      metrics.incrementCounter("api_requests_total", { method, path, status: String(status) });
-      metrics.incrementCounter("api_errors_total", { method, path, status: String(status) });
+      context.metrics.recordHistogram("api_latency", latency, { method, path, status: String(status) });
+      context.metrics.incrementCounter("api_requests_total", { method, path, status: String(status) });
+      context.metrics.incrementCounter("api_errors_total", { method, path, status: String(status) });
 
-      console.error(`[API ERROR] ${method} ${path} - ${status} (${latency.toFixed(2)}ms)`, error);
+      context.logger.log({
+        routeId: context.routeId,
+        requestId: context.requestId,
+        status,
+        durationMs: latency,
+        method,
+        error,
+      });
 
-      return apiFailure(request, error);
+      return apiFailure(context, error);
     }
   };
 }

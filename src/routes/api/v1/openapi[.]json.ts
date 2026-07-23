@@ -10,6 +10,6 @@ export const Route = createFileRoute("/api/v1/openapi.json")({
         jsonResponse(request, openApiDocument, {
           cachePolicy: "PUBLIC_5_MINUTES",
         }),
-    },
+    }),
   },
 });
