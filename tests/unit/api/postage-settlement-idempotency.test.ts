@@ -212,11 +212,11 @@ describe("Postage Settlement Idempotency", () => {
       // Second request: idempotency record exists
       const secondCheck = await checkIdempotency(repository, recipient, idempotencyKey);
       expect(secondCheck).not.toBeNull();
-      expect(secondCheck?.status).toBe(200);
-      expect(secondCheck?.body).toEqual(settledPostage);
+      expect((secondCheck as any)?.status).toBe(200);
+      expect((secondCheck as any)?.body).toEqual(settledPostage);
 
       // Verify the recorded body matches the settled postage
-      const recordedBody = secondCheck?.body as typeof settledPostage;
+      const recordedBody = (secondCheck as any)?.body as typeof settledPostage;
       expect(recordedBody.status).toBe("settled");
       expect(recordedBody.messageId).toBe(messageId);
       expect(recordedBody.amount).toBe("250");
@@ -269,9 +269,11 @@ describe("Postage Settlement Idempotency", () => {
       // Second attempt: retrieve cached error
       const replayedRecord = await checkIdempotency(repository, recipient, idempotencyKey);
       expect(replayedRecord).not.toBeNull();
-      expect(replayedRecord?.status).toBe(409);
+      expect((replayedRecord as any)?.status).toBe(409);
 
-      const replayedBody = replayedRecord?.body as { error: { code: string; message: string } };
+      const replayedBody = (replayedRecord as any)?.body as {
+        error: { code: string; message: string };
+      };
       expect(replayedBody.error.code).toBe("conflict");
       expect(replayedBody.error.message).toContain("already been settled");
     });
@@ -290,7 +292,7 @@ describe("Postage Settlement Idempotency", () => {
       // Recipient 1 can retrieve their record
       const recipient1Check = await checkIdempotency(repository, recipient, idempotencyKey);
       expect(recipient1Check).not.toBeNull();
-      expect(recipient1Check?.status).toBe(200);
+      expect((recipient1Check as any)?.status).toBe(200);
 
       // Recipient 2 cannot see recipient 1's idempotency record (actor isolation)
       const recipient2Check = await checkIdempotency(repository, recipient2, idempotencyKey);
@@ -321,10 +323,10 @@ describe("Postage Settlement Idempotency", () => {
       // Network failure occurs, client retries with same idempotency key
       const retryRecord = await checkIdempotency(repository, recipient, idempotencyKey);
       expect(retryRecord).not.toBeNull();
-      expect(retryRecord?.status).toBe(200);
+      expect((retryRecord as any)?.status).toBe(200);
 
       // The replayed response matches the original
-      const replayedPostage = retryRecord?.body as typeof firstResult;
+      const replayedPostage = (retryRecord as any)?.body as typeof firstResult;
       expect(replayedPostage).toEqual(firstResult);
       expect(replayedPostage.status).toBe("settled");
 
@@ -374,10 +376,10 @@ describe("Postage Settlement Idempotency", () => {
       // Network failure, client retries with same idempotency key
       const retryRecord = await checkIdempotency(repository, recipient, idempotencyKey);
       expect(retryRecord).not.toBeNull();
-      expect(retryRecord?.status).toBe(409);
+      expect((retryRecord as any)?.status).toBe(409);
 
       // The replayed error matches the original
-      const replayedError = retryRecord?.body as {
+      const replayedError = (retryRecord as any)?.body as {
         error: { code: string; message: string; details: unknown };
       };
       expect(replayedError.error.code).toBe("conflict");
@@ -425,10 +427,10 @@ describe("Postage Settlement Idempotency", () => {
       const check1 = await checkIdempotency(repository, recipient, key1);
       const check2 = await checkIdempotency(repository, recipient, key2);
 
-      expect(check1?.body).toEqual(result1);
-      expect(check2?.body).toEqual(result2);
-      expect((check1?.body as typeof result1).messageId).toBe(messageId1);
-      expect((check2?.body as typeof result2).messageId).toBe(messageId2);
+      expect((check1 as any)?.body).toEqual(result1);
+      expect((check2 as any)?.body).toEqual(result2);
+      expect(((check1 as any)?.body as typeof result1).messageId).toBe(messageId1);
+      expect(((check2 as any)?.body as typeof result2).messageId).toBe(messageId2);
     });
   });
 

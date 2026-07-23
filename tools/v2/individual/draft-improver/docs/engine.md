@@ -17,18 +17,21 @@ tool folder and is **not** wired into the main application.
 
 Import only from the folder-local entry point, `index.ts`. Example usage:
 
-    import { improveDraft } from "..";
+```ts
+import { analyzeDraft } from "..";
 
-    const result = improveDraft({
-      subject: "Project kickoff",
-      body: "Hi Sam, please review the plan.",
-    });
+const { result, error } = analyzeDraft({
+  id: "draft-001",
+  subject: "Project kickoff",
+  body: "Hi Sam,\n\nPlease review the plan and let me know your feedback.\n\nBest regards,\nAlex",
+});
 
-    if (result.ok) {
-      // result.analysis.score, result.analysis.metrics, result.analysis.suggestions
-    } else {
-      // result.error.code is "EMPTY_DRAFT" or "INVALID_INPUT"
-    }
+if (result) {
+  console.log(result.score.overall);
+} else {
+  console.error(error);
+}
+```
 
 ## Input
 
@@ -41,21 +44,39 @@ The `DraftInput` object:
 
 ## Output
 
-The call returns a discriminated union, `DraftImproverResult`:
+`analyzeDraft()` returns an object with one of the following shapes.
 
-- On success: `ok: true` with an `analysis` object containing:
-  - `score` - overall quality from 0 to 100.
-  - `metrics` - a `DraftMetrics` object (word, sentence, and paragraph counts,
-    average and longest sentence length, estimated reading time, filler-word
-    count, hedging-phrase count, adverb count, exclamation count, all-caps
-    count, and greeting / sign-off presence).
-  - `suggestions` - a list of `Suggestion` items, each with a stable `id`,
-    `category`, `severity`, `message`, and optional `detail`.
-- On failure: `ok: false` with an `error` object whose `code` is one of:
-  - `EMPTY_DRAFT` - the body was empty or whitespace only.
-  - `INVALID_INPUT` - the body was missing or not a string.
+### Success
 
-Callers should branch on `result.ok` before reading `analysis` or `error`.
+```ts
+{
+  result: DraftImprovementResult;
+}
+```
+
+The `result` contains:
+
+- `inputId`
+- `parsed`
+- `sanitized`
+- `issues`
+- `suggestions`
+- `score`
+- `summary`
+- `totalIssues`
+- `errorCount`
+- `warningCount`
+- `infoCount`
+
+### Validation Failure
+
+```ts
+{
+  error: string;
+}
+```
+
+Callers should check whether `result` exists before accessing the analysis output.
 
 ## Suggestion categories
 

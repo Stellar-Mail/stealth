@@ -43,9 +43,9 @@ describe("metrics", () => {
     });
 
     it("works without labels", () => {
-      incrementCounter("some_metric");
+      incrementCounter("api_requests_total");
       const snap = snapshot();
-      expect(snap.counters["some_metric"]).toBe(1);
+      expect(snap.counters["api_requests_total"]).toBe(1);
     });
   });
 
@@ -105,19 +105,19 @@ describe("metrics", () => {
 
   describe("snapshot / reset", () => {
     it("snapshot returns current state without mutation", () => {
-      incrementCounter("test", { label: "a" });
+      incrementCounter("api_requests_total", { method: "GET" });
       const snap1 = snapshot();
-      expect(snap1.counters['test{label:"a"}']).toBe(1);
+      expect(snap1.counters['api_requests_total{method:"GET"}']).toBe(1);
 
       // Mutating the snapshot should not affect internal state
-      snap1.counters['test{label:"a"}'] = 999;
+      snap1.counters['api_requests_total{method:"GET"}'] = 999;
       const snap2 = snapshot();
-      expect(snap2.counters['test{label:"a"}']).toBe(1);
+      expect(snap2.counters['api_requests_total{method:"GET"}']).toBe(1);
     });
 
     it("reset clears all counters and histograms", () => {
-      incrementCounter("test");
-      recordHistogram("latency", 50);
+      incrementCounter("api_requests_total");
+      recordHistogram("api_latency", 50);
       reset();
       const snap = snapshot();
       expect(snap.counters).toEqual({});
@@ -267,6 +267,48 @@ describe("metrics", () => {
       expect(summary.authAvailability).toBeDefined();
       expect(summary.postageTransitions).toBeDefined();
       expect(summary.availability.met).toBe(true);
+    });
+  });
+
+  describe("cardinality limits", () => {
+    it("fails fast on unknown labels outside production", () => {
+      const originalEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = "development";
+      try {
+        expect(() => {
+          incrementCounter("api_requests_total", {
+            method: "GET",
+            unknown_label: "bad", // This should throw
+          });
+        }).toThrow("Unknown label 'unknown_label' for metric 'api_requests_total'");
+
+        expect(() => {
+          incrementCounter("unknown_metric" as any, { method: "GET" });
+        }).toThrow("Unknown metric name: unknown_metric");
+      } finally {
+        process.env.NODE_ENV = originalEnv;
+      }
+    });
+
+    it("drops unknown labels in production to prevent unbounded cardinality", () => {
+      const originalEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = "production";
+      try {
+        incrementCounter("api_requests_total", {
+          method: "GET",
+          user_id: "user1",
+        });
+        incrementCounter("api_requests_total", {
+          method: "GET",
+          user_id: "user2",
+        });
+        const snap = snapshot();
+        // Since user_id is dropped, they should map to the same series, series count = 1
+        expect(Object.keys(snap.counters)).toHaveLength(1);
+        expect(snap.counters['api_requests_total{method:"GET"}']).toBe(2);
+      } finally {
+        process.env.NODE_ENV = originalEnv;
+      }
     });
   });
 });

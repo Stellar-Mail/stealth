@@ -13,23 +13,23 @@ function editableTarget(tagName: string, parentElement: any = null) {
 
 describe("shortcut guards", () => {
   it("treats inputs, textareas, selects, and textboxes as editable", () => {
-    expect(isEditableTarget(editableTarget("INPUT"))).toBe(true);
-    expect(isEditableTarget(editableTarget("TEXTAREA"))).toBe(true);
-    expect(isEditableTarget(editableTarget("SELECT"))).toBe(true);
+    expect(isEditableTarget(editableTarget("INPUT") as any)).toBe(true);
+    expect(isEditableTarget(editableTarget("TEXTAREA") as any)).toBe(true);
+    expect(isEditableTarget(editableTarget("SELECT") as any)).toBe(true);
     expect(
       isEditableTarget({
         tagName: "DIV",
         isContentEditable: false,
         getAttribute: (name: string) => (name === "role" ? "textbox" : null),
         parentElement: null,
-      } as EventTarget),
+      } as any),
     ).toBe(true);
   });
 
   it("walks up parent elements to find editable ancestors", () => {
     const parent = editableTarget("TEXTAREA");
     const child = editableTarget("SPAN", parent);
-    expect(isEditableTarget(child as EventTarget)).toBe(true);
+    expect(isEditableTarget(child as any)).toBe(true);
   });
 
   it("suppresses shortcuts while typing in editable fields", () => {
@@ -37,14 +37,14 @@ describe("shortcut guards", () => {
       getShortcutAction({
         key: "k",
         ctrlKey: true,
-        target: editableTarget("INPUT") as EventTarget,
+        target: editableTarget("INPUT") as any,
       }),
     ).toBeNull();
     expect(
       getShortcutAction({
         key: "?",
         shiftKey: true,
-        target: editableTarget("TEXTAREA") as EventTarget,
+        target: editableTarget("TEXTAREA") as any,
       }),
     ).toBeNull();
   });

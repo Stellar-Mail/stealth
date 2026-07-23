@@ -1,7 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { MemoryApiRepository } from "../../../src/server/api/memory-repository";
+import * as metrics from "../../../src/server/api/metrics";
 import {
+  ABUSE_OUTAGE_POLICIES,
   buildDeviceFingerprint,
   checkAccountLimit,
   checkDeviceLimit,
@@ -16,7 +18,38 @@ const sender = `G${"B".repeat(55)}`;
 const recipient = `G${"A".repeat(55)}`;
 const relayId = "relay-001";
 
+class FailingAbuseRepository extends MemoryApiRepository {
+  constructor(private readonly failingOperation: "getCounter" | "incrementCounter") {
+    super();
+  }
+
+  override async getCounter(key: string) {
+    if (this.failingOperation === "getCounter") {
+      throw new Error(`counter read unavailable: ${key}`);
+    }
+    return super.getCounter(key);
+  }
+
+  override async incrementCounter(key: string, windowSeconds: number) {
+    if (this.failingOperation === "incrementCounter") {
+      throw new Error(`counter write unavailable: ${key}`);
+    }
+    return super.incrementCounter(key, windowSeconds);
+  }
+}
+
 describe("abuse service", () => {
+  it("defines an outage policy for every postage submit abuse check", () => {
+    expect(ABUSE_OUTAGE_POLICIES.postage_submit).toEqual({
+      account: "fail_closed",
+      device: "fail_open",
+      ip: "fail_open",
+      proof_failure: "fail_closed",
+      relay: "fail_open",
+      sender_recipient: "fail_closed",
+    });
+  });
+
   it("allows sender under account limit", async () => {
     const repository = new MemoryApiRepository();
     const result = await checkAccountLimit(repository, sender);
@@ -165,5 +198,104 @@ describe("abuse service", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it("fails closed and emits observability when account checks are unavailable", async () => {
+    const repository = new FailingAbuseRepository("incrementCounter");
+    const metricSpy = vi.spyOn(metrics, "incrementCounter");
+    const auditSpy = vi.spyOn(metrics, "recordAuditEvent");
+
+    try {
+      const result = await checkAccountLimit(repository, sender);
+
+      expect(result).toMatchObject({
+        allowed: false,
+        outage: {
+          check: "account",
+          policy: "fail_closed",
+          route: "postage_submit",
+        },
+        retryAfterSeconds: 60,
+      });
+      expect(metricSpy).toHaveBeenCalledWith(
+        "abuse_dependency_fallback",
+        expect.objectContaining({
+          check: "account",
+          decision: "deny",
+          policy: "fail_closed",
+          route: "postage_submit",
+        }),
+      );
+      expect(auditSpy).toHaveBeenCalledWith(
+        "abuse.dependency_fallback",
+        expect.objectContaining({
+          check: "account",
+          decision: "deny",
+          policy: "fail_closed",
+        }),
+      );
+    } finally {
+      metricSpy.mockRestore();
+      auditSpy.mockRestore();
+    }
+  });
+
+  it("fails open and emits observability when ip checks are unavailable", async () => {
+    const repository = new FailingAbuseRepository("incrementCounter");
+    const metricSpy = vi.spyOn(metrics, "incrementCounter");
+    const auditSpy = vi.spyOn(metrics, "recordAuditEvent");
+
+    try {
+      const result = await checkIpLimit(repository, "203.0.113.42");
+
+      expect(result).toMatchObject({
+        allowed: true,
+        flagged: true,
+        outage: {
+          check: "ip",
+          policy: "fail_open",
+          route: "postage_submit",
+        },
+      });
+      expect(metricSpy).toHaveBeenCalledWith(
+        "abuse_dependency_fallback",
+        expect.objectContaining({
+          check: "ip",
+          decision: "allow",
+          policy: "fail_open",
+        }),
+      );
+      expect(auditSpy).toHaveBeenCalledWith(
+        "abuse.dependency_fallback",
+        expect.objectContaining({
+          check: "ip",
+          decision: "allow",
+          policy: "fail_open",
+        }),
+      );
+    } finally {
+      metricSpy.mockRestore();
+      auditSpy.mockRestore();
+    }
+  });
+
+  it("treats proof-failure counter read timeouts as fail closed", async () => {
+    class TimeoutRepository extends FailingAbuseRepository {
+      override async getCounter(key: string): Promise<number> {
+        const error = new Error(`counter timeout: ${key}`);
+        error.name = "TimeoutError";
+        throw error;
+      }
+    }
+
+    await expect(
+      checkProofFailureLimit(new TimeoutRepository("getCounter"), sender),
+    ).resolves.toMatchObject({
+      allowed: false,
+      outage: {
+        check: "proof_failure",
+        policy: "fail_closed",
+      },
+    });
   });
 });

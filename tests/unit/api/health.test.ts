@@ -12,7 +12,7 @@ function createRepository(overrides: Partial<ApiRepository> = {}): ApiRepository
     getPostage: async () => null,
     getReceipt: async () => null,
     createReceiptIfAbsent: async (receipt) => ({ created: true, receipt }),
-    markReceiptRead: async () => null,
+    markReceiptRead: async () => ({ outcome: "not-found" }),
     getRelayDeadLetterCount: async () => 0,
     getRelayLastFailedDelivery: async () => null,
     getRelayLastSuccessfulDelivery: async () => null,
@@ -27,7 +27,7 @@ function createRepository(overrides: Partial<ApiRepository> = {}): ApiRepository
     setSenderRule: async (_owner, _sender, rule) => rule,
     transitionPostage: async () => ({ outcome: "not-found" }),
     ...overrides,
-  };
+  } as any;
 }
 
 function never<T>(): Promise<T> {
@@ -37,7 +37,7 @@ function never<T>(): Promise<T> {
 describe("API health readiness", () => {
   it("reports ready when required bindings, storage, and coordinator respond", async () => {
     const result = await checkApiReadiness({
-      getContext: async () => ({ repository: createRepository() }),
+      getContext: async () => ({ repository: createRepository() }) as any,
       timeoutMs: 25,
     });
 
@@ -71,13 +71,14 @@ describe("API health readiness", () => {
 
   it("fails readiness when required storage is unavailable", async () => {
     const result = await checkApiReadiness({
-      getContext: async () => ({
-        repository: createRepository({
-          getPolicy: async () => {
-            throw new Error("kv connection details should not leak");
-          },
-        }),
-      }),
+      getContext: async () =>
+        ({
+          repository: createRepository({
+            getPolicy: async () => {
+              throw new Error("kv connection details should not leak");
+            },
+          }),
+        }) as any,
       timeoutMs: 25,
     });
 
@@ -92,11 +93,12 @@ describe("API health readiness", () => {
 
   it("bounds slow dependency checks with timeouts", async () => {
     const result = await checkApiReadiness({
-      getContext: async () => ({
-        repository: createRepository({
-          getCounter: () => never<number>(),
-        }),
-      }),
+      getContext: async () =>
+        ({
+          repository: createRepository({
+            getCounter: () => never<number>(),
+          }),
+        }) as any,
       timeoutMs: 5,
     });
 

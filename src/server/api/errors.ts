@@ -63,6 +63,13 @@ export const API_ERROR_REGISTRY = {
     retryable: true,
     description: "A request rate limit was exceeded.",
   },
+  dependency_unavailable: {
+    status: 503,
+    message: "A required dependency is unavailable",
+    retryable: true,
+    description:
+      "The server cannot handle the request because a required dependency is unavailable.",
+  },
   data_integrity_error: {
     status: 500,
     message: "Stored data failed integrity validation",

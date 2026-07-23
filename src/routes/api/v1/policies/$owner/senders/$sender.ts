@@ -34,7 +34,9 @@ export const Route = createFileRoute("/api/v1/policies/$owner/senders/$sender")(
               `mailbox:${owner}:senders:${sender}`,
             ),
           );
-          const { rule } = await parseJsonBody(request, ruleBodySchema);
+          const { rule } = await parseJsonBody(request, ruleBodySchema, {
+            route: "PUT /policies/{owner}/senders/{sender}",
+          });
           return apiSuccess(request, await setSenderRule(context.repository, owner, sender, rule));
         }),
       DELETE: ({ request, params }) =>

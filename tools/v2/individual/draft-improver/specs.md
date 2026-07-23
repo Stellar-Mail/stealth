@@ -1,41 +1,64 @@
-# Draft Improver
-
-Improve draft quality before sending.
-
-## Scope
-
-- Release tier: $(System.Collections.Hashtable.Tier.ToUpperInvariant())
-- Audience: $(System.Collections.Hashtable.Audience)
-- Folder ownership: $dir/
-
-This is a self-contained tooling workspace. Do not wire this tool into the main app, routing, inbox architecture, wallet core, Stellar core, or design system unless a future integration issue explicitly allows it.
-
-Recommended internal structure:
-
-- components/
-- services/
-- hooks/
--     ests/
-- docs/
-  "@ | Set-Content -Path "tools/v2/individual/draft-improver/README.md"
-  @"
-
 # Draft Improver Specs
 
 ## Purpose
 
-Improve draft quality before sending.
+Draft Improver is an isolated V2 Individual Tool that analyzes email drafts before sending and provides actionable improvements for spelling, clarity, tone, structure, length, missing fields, and sensitive content.
 
-## Contributor boundary
+## Release Information
 
-All work for this tool should stay in:
+- **Release Tier:** V2
+- **Audience:** Individual
 
-$dir/
+## Folder Ownership
 
-## Required issue categories
+All work for this tool must remain inside:
 
-- Architecture
-- Feature
-- UI and accessibility
-- Security and performance
-- Testing and documentation
+```text
+tools/v2/individual/draft-improver/
+```
+
+This tool is intentionally isolated and must not be integrated into the main application unless a future integration issue explicitly allows it.
+
+## Scope
+
+### Included
+
+- Local React components
+- Local services
+- Local fixtures
+- Local tests
+- Local documentation
+
+### Excluded
+
+The following are **out of scope** for this issue:
+
+- Application routing
+- Authentication
+- Mail rendering engine
+- Inbox architecture
+- Wallet functionality
+- Stellar integration
+- Database schema
+- Shared design system
+
+## Review Checklist
+
+Reviewers should verify that:
+
+- All modified files remain inside the Draft Improver folder.
+- Documentation is complete and accurate.
+- Local tests execute successfully.
+- Test fixtures contain only synthetic data.
+- No integration with the main application has been introduced.
+
+## Future Work
+
+Future integration issues may add:
+
+- Compose screen integration
+- Draft persistence
+- Mail workflow integration
+- AI-assisted writing improvements
+
+These items are intentionally excluded from this issue.

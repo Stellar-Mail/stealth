@@ -1,53 +1,39 @@
 ## Summary
 
-This PR implements the local user interface surface for the **Multi-Agent Assignment** tool with built-in accessibility (a11y) and comprehensive state handling (loading, empty, error, and success). All changes are fully isolated within `tools/v2/team/multi-agent-assignment/`.
+This PR addresses issue #1537 by adding domain schema refinements to `src/server/api/domain.ts` to enforce receipt timestamp chronological ordering and future-time bounds.
 
-## Deliverables
+Previously, `receiptSchema` validated ISO 8601 syntax for `deliveredAt` and `readAt`, but did not enforce:
 
-### 1. `AssignmentConsole.tsx`
+1. That `readAt` follows `deliveredAt` (`readAt >= deliveredAt`).
+2. That `deliveredAt` and `readAt` are plausible (not set too far into the future).
 
-- **Initial Loading State:** Introduced an `isInitializing` loading spinner overlay with a simulated startup delay to model real-world API data fetching.
-- **Accessibility Enhancements:**
-  - Added semantic `role="main"` and descriptive labeling (`aria-label`, `aria-describedby`).
-  - Implemented `aria-live="polite"` and `aria-atomic="true"` on the simulator notification banners to ensure real-time outcomes of simulated emails/auto-routing are announced to assistive technologies.
-  - Added `role="log"` and `aria-live="polite"` on the activity log console to announce routed/resolved events instantly.
-  - Linked keyboard toggle triggers with proper `aria-expanded` and `aria-controls` properties.
+### Changes Implemented
 
-### 2. `ThreadList.tsx`
+- **`src/server/api/domain.ts`**:
+  - Introduced `DEFAULT_RECEIPT_FUTURE_TOLERANCE_MS` (5 minutes tolerance for clock skew).
+  - Introduced `ReceiptSchemaOptions` allowing configurable `maxFutureSkewMs` and reference clock `now` injection.
+  - Implemented `createReceiptSchema(options)` using Zod `.superRefine(...)`:
+    - Updated `deliveredAt` and `readAt` datetime validation to accept ISO 8601 strings with timezone offsets (`{ offset: true }`).
+    - Enforced that `deliveredAt` must not exceed `now() + maxFutureSkewMs` (throws `"Delivery timestamp is too far in the future"`).
+    - Enforced that when `readAt !== null`:
+      - `readAt` must not precede `deliveredAt` (throws `"Read time cannot precede delivery time"`).
+      - `readAt` must not exceed `now() + maxFutureSkewMs` (throws `"Read timestamp is too far in the future"`).
+    - Kept `readAt: null` as valid without ordering/future checks.
+  - Exported `receiptSchema = createReceiptSchema()`.
 
-- **Interactive Empty State:** Created a premium empty state fallback layout (`role="status"` and `aria-live="polite"`) showing when the queue is clean or when no search results match.
-- **Accessibility Enhancements:**
-  - Upgraded filter tab bar to a compliant `role="tablist"`/`role="tab"` widget.
-  - Added `aria-label`s for the search bar, auto-route buttons, and resolve buttons.
-  - Implemented correct keyboard focus rings (`focus:ring-2 focus:ring-sky-500/50`) and structured threads inside a clean semantic hierarchy (`role="list"` and `role="listitem"`).
-  - Wired correct listbox aria properties to manual agent assignment selectors.
-
-### 3. `AgentList.tsx`
-
-- **Dynamic State Support:** Implemented empty rosters support and interactive agent list displays.
-- **Accessibility Enhancements:**
-  - Wrapped elements in a semantic listing component using `role="list"` and `role="listitem"`.
-  - Decorated agent status dropdown triggers with descriptive aria labels detailing exactly which agent is being modified.
-  - Configured high-contrast status pills and robust visual focus rings.
+- **`tests/unit/api/domain.test.ts`**:
+  - Added comprehensive test coverage for `receiptSchema` and `createReceiptSchema`:
+    - Valid receipts with `readAt: null`.
+    - Valid receipts with `readAt` equal to `deliveredAt` (exact boundary).
+    - Valid receipts with `readAt` after `deliveredAt`.
+    - Timezone-equivalent inputs (comparing UTC `Z` vs offset `+02:00`).
+    - Rejection when `readAt` precedes `deliveredAt`.
+    - Rejection when `deliveredAt` or `readAt` exceeds future clock tolerance.
+    - Custom schema configuration with custom `now` and `maxFutureSkewMs`.
 
 ## Verification
 
-### 1. Automated Syntax & Formatting Verification
+- Unit tests executed and passed (`11 passed`):
+  - `tests/unit/api/domain.test.ts`
 
-The codebase formatting has been strictly audited and aligned using Prettier:
-
-```bash
-node node_modules/prettier/bin/prettier.cjs --check .
-```
-
-_Result: Clean checkout, 0 formatting errors._
-
-### 2. Manual Accessibility & Keyboard Audit
-
-- Verified keyboard tab order through the control console, simulation panel, filters, search inputs, status switches, and action buttons.
-- Screen reader tests successfully pick up incoming support threads and assignment logs via `aria-live="polite"`.
-
-## Boundary Compliance
-
-- All modifications are strictly contained within `tools/v2/team/multi-agent-assignment/components/`.
-- Zero changes to global layout, authentication, routing, mail engines, databases, or main styles.
+Fixes #1537

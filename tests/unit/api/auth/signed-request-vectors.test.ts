@@ -8,10 +8,22 @@ import {
   type SignedRequestInput,
 } from "../../../../src/server/api/auth/signed-request";
 
+type VectorError =
+  | "expired"
+  | "future"
+  | "invalid_signature"
+  | "malformed_request"
+  | "replayed_nonce";
+
 interface Vector {
   name: string;
   request: SignedRequestInput & { signature: string };
-  expected: { canonical: string; outcome: string; error?: string };
+  expected: {
+    canonical?: string;
+    outcome: "accepted" | "rejected";
+    error?: VectorError;
+    principal?: string;
+  };
   replayOf?: string;
 }
 
@@ -45,6 +57,14 @@ describe("signed request v1 documentation vectors", () => {
   });
 
   it.each(fixture.vectors)("executes $name", (vector) => {
+    if (vector.expected.error === "malformed_request") {
+      expect(() => canonicalizeSignedRequest(vector.request)).toThrow(
+        "Missing required signed header: host",
+      );
+      expect(vector.expected).not.toHaveProperty("principal");
+      return;
+    }
+
     expect(canonicalizeSignedRequest(vector.request)).toBe(vector.expected.canonical);
     const time = signedRequestTimeStatus(
       vector.request.headers["x-stealth-timestamp"],
@@ -54,6 +74,9 @@ describe("signed request v1 documentation vectors", () => {
     if (vector.expected.outcome === "accepted" || vector.expected.error === "replayed_nonce") {
       expect(time).toBe("valid");
       expect(signatureIsValid(vector)).toBe(true);
+      if (vector.expected.outcome === "accepted") {
+        expect(vector.expected.principal).toBe(vector.request.headers["x-stealth-address"]);
+      }
     } else if (vector.expected.error === "invalid_signature") {
       expect(signatureIsValid(vector)).toBe(false);
     } else {
@@ -69,5 +92,20 @@ describe("signed request v1 documentation vectors", () => {
       if (!replayed) consumed.add(nonce);
       expect(replayed).toBe(vector.expected.error === "replayed_nonce");
     }
+  });
+
+  it("covers every documented interoperability outcome", () => {
+    expect(
+      fixture.vectors.map((vector) => vector.expected.error ?? vector.expected.outcome),
+    ).toEqual(
+      expect.arrayContaining([
+        "accepted",
+        "invalid_signature",
+        "expired",
+        "replayed_nonce",
+        "future",
+        "malformed_request",
+      ]),
+    );
   });
 });

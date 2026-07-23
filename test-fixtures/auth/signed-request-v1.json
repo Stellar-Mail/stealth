@@ -20,7 +20,8 @@
       },
       "expected": {
         "canonical": "STEALTH-AUTH-V1\nPOST\n/api/v1/messages?cursor=alpha&limit=10\nhost:api.example.test\nx-stealth-address:GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF\nx-stealth-nonce:00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff\nx-stealth-timestamp:2026-07-22T12:00:00.000Z\nhost;x-stealth-address;x-stealth-nonce;x-stealth-timestamp\n0b20edc565703904ddcdab7e7b87725c121cb35339fdaddccdc0a52a6be52036",
-        "outcome": "accepted"
+        "outcome": "accepted",
+        "principal": "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF"
       }
     },
     {
@@ -79,7 +80,8 @@
       },
       "expected": {
         "canonical": "STEALTH-AUTH-V1\nPOST\n/api/v1/messages?cursor=alpha&limit=10\nhost:api.example.test\nx-stealth-address:GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF\nx-stealth-nonce:30112233445566778899aabbccddeeff00112233445566778899aabbccddeeff\nx-stealth-timestamp:2026-07-22T12:00:30.000Z\nhost;x-stealth-address;x-stealth-nonce;x-stealth-timestamp\n0b20edc565703904ddcdab7e7b87725c121cb35339fdaddccdc0a52a6be52036",
-        "outcome": "accepted"
+        "outcome": "accepted",
+        "principal": "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF"
       }
     },
     {
@@ -118,7 +120,8 @@
       },
       "expected": {
         "canonical": "STEALTH-AUTH-V1\nPOST\n/api/v1/messages?cursor=alpha&limit=10\nhost:api.example.test\nx-stealth-address:GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF\nx-stealth-nonce:50112233445566778899aabbccddeeff00112233445566778899aabbccddeeff\nx-stealth-timestamp:2026-07-22T12:00:00.000Z\nhost;x-stealth-address;x-stealth-nonce;x-stealth-timestamp\n0b20edc565703904ddcdab7e7b87725c121cb35339fdaddccdc0a52a6be52036",
-        "outcome": "accepted"
+        "outcome": "accepted",
+        "principal": "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF"
       }
     },
     {
@@ -139,6 +142,24 @@
         "canonical": "STEALTH-AUTH-V1\nPOST\n/api/v1/messages?cursor=alpha&limit=10\nhost:api.example.test\nx-stealth-address:GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF\nx-stealth-nonce:50112233445566778899aabbccddeeff00112233445566778899aabbccddeeff\nx-stealth-timestamp:2026-07-22T12:00:00.000Z\nhost;x-stealth-address;x-stealth-nonce;x-stealth-timestamp\n0b20edc565703904ddcdab7e7b87725c121cb35339fdaddccdc0a52a6be52036",
         "outcome": "rejected",
         "error": "replayed_nonce"
+      }
+    },
+    {
+      "name": "malformed request missing required host header",
+      "request": {
+        "method": "POST",
+        "url": "https://api.example.test/api/v1/messages?limit=10&cursor=alpha",
+        "headers": {
+          "x-stealth-address": "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF",
+          "x-stealth-nonce": "60112233445566778899aabbccddeeff00112233445566778899aabbccddeeff",
+          "x-stealth-timestamp": "2026-07-22T12:00:00.000Z"
+        },
+        "body": "{\"recipient\":\"GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBUJD\",\"subject\":\"Synthetic example\"}",
+        "signature": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="
+      },
+      "expected": {
+        "outcome": "rejected",
+        "error": "malformed_request"
       }
     }
   ]

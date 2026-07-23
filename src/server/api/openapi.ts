@@ -452,6 +452,7 @@ export const openApiDocument = {
       put: {
         operationId: "replaceMailboxPolicy",
         summary: "Replace mailbox policy",
+        "x-max-body-bytes": 64 * 1024,
         security: [
           {
             StellarSignedRequest: [],
@@ -554,6 +555,7 @@ export const openApiDocument = {
       },
       put: {
         operationId: "setSenderOverride",
+        "x-max-body-bytes": 64 * 1024,
         summary: "Set a sender override",
         security: [
           {
@@ -662,6 +664,7 @@ export const openApiDocument = {
     "/policies/evaluate": {
       post: {
         operationId: "evaluateMailboxPolicy",
+        "x-max-body-bytes": 16 * 1024,
         summary: "Evaluate whether a sender can mail a recipient",
         "x-stability": "stable",
         responses: {
@@ -725,6 +728,7 @@ export const openApiDocument = {
       post: {
         operationId: "submitPostageProof",
         summary: "Submit a postage proof",
+        "x-max-body-bytes": 16 * 1024,
         security: [
           {
             StellarSignedRequest: [],
@@ -780,6 +784,7 @@ export const openApiDocument = {
       post: {
         operationId: "quotePostage",
         summary: "Quote recipient postage requirements",
+        "x-max-body-bytes": 16 * 1024,
         "x-stability": "stable",
         responses: {
           default: { description: "" },
@@ -994,6 +999,7 @@ export const openApiDocument = {
     "/receipts": {
       post: {
         operationId: "recordDelivery",
+        "x-max-body-bytes": 16 * 1024,
         summary: "Record message delivery",
         security: [
           {

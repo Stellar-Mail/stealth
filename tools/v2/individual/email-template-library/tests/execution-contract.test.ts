@@ -224,3 +224,55 @@ test("createEmailTemplateLibraryService isolates its source snapshot", () => {
     assert.equal(res.result.template.name, "Friendly follow-up");
   }
 });
+
+test("render escapes HTML characters in substituted variables", () => {
+  const res = run({
+    tool: TOOL,
+    version: VERSION,
+    operation: "render",
+    templateId: "template-follow-up",
+    values: { firstName: "<script>alert(1)</script>", topic: "a & b \"c\" 'd'" },
+  });
+  assert.equal(res.status, "ok");
+  if (res.status === "ok" && res.result.operation === "render") {
+    assert.equal(res.result.subject, "Following up, &lt;script&gt;alert(1)&lt;/script&gt;");
+    assert.equal(
+      res.result.body,
+      "Hello &lt;script&gt;alert(1)&lt;/script&gt;,\n\nAbout a &amp; b &quot;c&quot; &#039;d&#039;.",
+    );
+  }
+});
+
+test("rejects render values that exceed the maximum length", () => {
+  const longValue = "A".repeat(10 * 1024 + 1); // 1 byte over 10 KB
+  const res = run({
+    tool: TOOL,
+    version: VERSION,
+    operation: "render",
+    templateId: "template-follow-up",
+    values: { firstName: "Sam", topic: longValue },
+  });
+  assert.equal(res.status, "error");
+  if (res.status === "error") {
+    assert.equal(res.error.code, "VARIABLE_TOO_LARGE");
+    assert.deepEqual(res.error.details?.fields, ["topic"]);
+  }
+});
+
+test("rejects a catalog containing a template body that is too large", () => {
+  const badCatalog: EmailTemplate[] = [
+    {
+      id: "big",
+      name: "Big",
+      categoryId: null,
+      subject: "s",
+      body: "A".repeat(100 * 1024 + 1),
+      variables: [],
+    },
+  ];
+  const res = run({ tool: TOOL, version: VERSION, operation: "list" }, badCatalog);
+  assert.equal(res.status, "error");
+  if (res.status === "error") {
+    assert.equal(res.error.code, "INVALID_TEMPLATE");
+  }
+});

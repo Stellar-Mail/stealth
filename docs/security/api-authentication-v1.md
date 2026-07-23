@@ -108,7 +108,9 @@ challenge records.
 
 [`signed-request-v1.json`](../../test-fixtures/auth/signed-request-v1.json) contains a valid request,
 an invalid signature, an expired request, accepted and rejected clock-skew boundaries, and a
-first-use/replay pair. All domains, identities, messages, nonces, signatures, and the public key are
-synthetic examples. No private key or secret seed is included. `npm test` recreates each canonical
-string in memory, verifies every Ed25519 result, evaluates time boundaries, and exercises replay
-state, so changes to implementation or fixtures fail together.
+first-use/replay pair, plus a malformed request with a missing required header. Accepted vectors
+declare the expected authenticated principal. All domains, identities, messages, nonces,
+signatures, and the public key are synthetic examples. No private key or secret seed is included.
+`npm test` recreates each canonical string in memory, verifies every Ed25519 result and expected
+principal, evaluates time boundaries, exercises replay state, and confirms malformed input is
+rejected, so changes to implementation or fixtures fail together.

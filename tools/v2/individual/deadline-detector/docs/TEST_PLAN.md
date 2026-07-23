@@ -18,6 +18,21 @@ Expected result:
 - missed rows are marked overdue
 - ignored rows do not schedule dates
 
+## Automated Engine Output Test
+
+Run from the repository root:
+
+    node --test tools/v2/individual/deadline-detector/tests/deadline-detection.test.mjs
+
+This test executes the detector against the sample fixture and asserts that:
+
+- detectDeadlines returns one deadline per source message
+- every expected deadline is reproduced field by field, covering status, urgency, due date and time, timezone, confidence, and the review flag
+- the summary status counts add up to the total
+- sortDetectedDeadlines orders by urgency without mutating its input
+
+Where the fixture test confirms the sample data is well formed, this test confirms the engine actually reproduces that data.
+
 ## Manual Review Checklist
 
 1. Confirm all changed files are under

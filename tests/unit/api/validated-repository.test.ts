@@ -12,11 +12,11 @@ import {
 } from "../../../src/server/api/domain";
 
 // Register schemas for validation (same as context.ts)
-registerRecordSchema("mailboxPolicy", mailboxPolicySchema);
-registerRecordSchema("senderRule", senderRuleSchema);
-registerRecordSchema("postage", postageSchema);
-registerRecordSchema("receipt", receiptSchema);
-registerRecordSchema("idempotencyRecord", idempotencyRecordSchema);
+registerRecordSchema("mailboxPolicy", 1, mailboxPolicySchema);
+registerRecordSchema("senderRule", 1, senderRuleSchema);
+registerRecordSchema("postage", 1, postageSchema);
+registerRecordSchema("receipt", 1, receiptSchema);
+registerRecordSchema("idempotencyRecord", 1, idempotencyRecordSchema);
 
 const owner = `G${"A".repeat(55)}`;
 const sender = `G${"B".repeat(55)}`;

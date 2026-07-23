@@ -1,12 +1,13 @@
 import { createHmac } from "node:crypto";
 import type { Postage } from "./domain";
-import { ApiError } from "./errors";
+import { ApiError, type ApiErrorCode } from "./errors";
 import {
   checkAccountLimit,
   checkDeviceLimit,
   checkIpLimit,
   checkRelayLimit,
   checkSenderRecipientLimit,
+  type AbuseDecision,
 } from "./abuse-service";
 import { getMailboxPolicy } from "./policy-service";
 import * as metrics from "./metrics";
@@ -19,6 +20,44 @@ export type SubmitPostageContext = {
   relayId?: string;
   sender?: string;
 };
+
+function throwAbuseLimitError(
+  decision: AbuseDecision,
+  status: number,
+  code: ApiErrorCode,
+  message: string,
+) {
+  throw new ApiError(status, code, message, {
+    ...(decision.retryAfterSeconds === undefined
+      ? {}
+      : { retryAfterSeconds: decision.retryAfterSeconds }),
+    ...(decision.outage === undefined
+      ? {}
+      : {
+          outagePolicy: decision.outage.policy,
+          outageRoute: decision.outage.route,
+        }),
+  });
+}
+
+function rejectLimitedPostage(
+  decision: AbuseDecision,
+  labels: Record<string, string>,
+  limitMessage: string,
+) {
+  metrics.incrementCounter("postage_limit_rejected", labels);
+
+  if (decision.outage) {
+    throwAbuseLimitError(
+      decision,
+      503,
+      "dependency_unavailable",
+      `Abuse ${decision.outage.check} check is unavailable`,
+    );
+  }
+
+  throwAbuseLimitError(decision, 429, "too_many_requests", limitMessage);
+}
 
 function SECRET() {
   return process.env.STEALTH_CURSOR_SECRET ?? "dev-secret";
@@ -89,40 +128,19 @@ export async function submitPostage(
 
   const accountLimit = await checkAccountLimit(repository, input.sender);
   if (!accountLimit.allowed) {
-    metrics.incrementCounter("postage_limit_rejected", {
-      actorId,
-      limit: "account",
-    });
-
-    throw new ApiError(429, "too_many_requests", "Account limit exceeded", {
-      retryAfterSeconds: accountLimit.retryAfterSeconds,
-    });
+    rejectLimitedPostage(accountLimit, { limit: "account" }, "Account limit exceeded");
   }
 
   const ip = context.ip ?? "unknown";
   const ipLimit = await checkIpLimit(repository, ip);
   if (!ipLimit.allowed) {
-    metrics.incrementCounter("postage_limit_rejected", {
-      ip,
-      limit: "ip",
-    });
-
-    throw new ApiError(429, "too_many_requests", "IP limit exceeded", {
-      retryAfterSeconds: ipLimit.retryAfterSeconds,
-    });
+    rejectLimitedPostage(ipLimit, { limit: "ip" }, "IP limit exceeded");
   }
 
   const fingerprint = context.fingerprint ?? "";
   const deviceLimit = await checkDeviceLimit(repository, fingerprint);
   if (!deviceLimit.allowed) {
-    metrics.incrementCounter("postage_limit_rejected", {
-      fingerprint: fingerprint || "unknown",
-      limit: "device",
-    });
-
-    throw new ApiError(429, "too_many_requests", "Device limit exceeded", {
-      retryAfterSeconds: deviceLimit.retryAfterSeconds,
-    });
+    rejectLimitedPostage(deviceLimit, { limit: "device" }, "Device limit exceeded");
   }
 
   const senderRecipientLimit = await checkSenderRecipientLimit(
@@ -134,28 +152,18 @@ export async function submitPostage(
   if (!senderRecipientLimit.allowed) {
     const sender = context.sender ?? input.sender;
 
-    metrics.incrementCounter("postage_limit_rejected", {
-      limit: "sender_recipient",
-      sender,
-    });
-
-    throw new ApiError(429, "too_many_requests", "Sender-recipient limit exceeded", {
-      retryAfterSeconds: senderRecipientLimit.retryAfterSeconds,
-    });
+    rejectLimitedPostage(
+      senderRecipientLimit,
+      { limit: "sender_recipient" },
+      "Sender-recipient limit exceeded",
+    );
   }
 
   const relayId = context.relayId?.trim() || "unknown";
   const relayLimit = await checkRelayLimit(repository, relayId);
 
   if (!relayLimit.allowed) {
-    metrics.incrementCounter("postage_limit_rejected", {
-      limit: "relay",
-      relayId,
-    });
-
-    throw new ApiError(429, "too_many_requests", "Relay limit exceeded", {
-      retryAfterSeconds: relayLimit.retryAfterSeconds,
-    });
+    rejectLimitedPostage(relayLimit, { limit: "relay" }, "Relay limit exceeded");
   }
 
   if (await repository.getPostage(input.messageId)) {
