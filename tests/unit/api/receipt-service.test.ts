@@ -25,7 +25,7 @@ describe("receipt service", () => {
       readAt: null,
       recipient,
       sender,
-    };
+    });
 
     await expect(
       createDeliveryReceipt(repository, input, new Date("2026-06-14T12:00:00.000Z")),
