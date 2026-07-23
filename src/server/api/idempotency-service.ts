@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import type { ApiRepository } from "./repository";
 import type { IdempotencyRecord } from "./domain";
 import { canonicalize } from "./envelope";
+import * as metrics from "./metrics";
 
 /**
  * Issue #1501: canonicalize request bodies before computing idempotency
@@ -59,4 +60,10 @@ export async function recordIdempotency(
     completedAt: now,
   };
   await repository.setIdempotencyRecord(keyHash, record);
+
+  metrics.incrementCounter("domain_transition_total", {
+    entity: "idempotency",
+    from: "in_progress",
+    to: "completed",
+  });
 }
