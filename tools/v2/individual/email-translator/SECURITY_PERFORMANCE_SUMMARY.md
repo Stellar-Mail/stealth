@@ -19,11 +19,13 @@ This document summarizes the security and performance hardening work completed f
 Comprehensive security documentation covering:
 
 #### Threat Model
+
 - Trust assumptions for source text, providers, user input, and browser environment
 - Attack surface analysis with 8 major threat vectors
 - Risk assessment and mitigation strategies
 
 #### Unsafe Input Categories
+
 1. **Malformed or Hostile Email Bodies**
    - HTML/XML with script tags
    - Encoded attacks
@@ -48,6 +50,7 @@ Comprehensive security documentation covering:
    - Prototype pollution prevention
 
 #### Security Best Practices
+
 - Input validation and size limits
 - Output sanitization and escaping
 - Provider endpoint allowlisting
@@ -56,6 +59,7 @@ Comprehensive security documentation covering:
 - Error sanitization (no internal details leaked)
 
 #### Testing Requirements
+
 - 7 mandatory security test cases
 - XSS prevention validation
 - Injection attack prevention
@@ -68,25 +72,30 @@ Comprehensive security documentation covering:
 Comprehensive performance documentation covering:
 
 #### Performance Budget
+
 Target metrics for 6 key operations:
+
 - Language detection: <100ms target, 500ms max
 - Translation request: <2s target, 10s max
 - UI render: <200ms target, 500ms max
 - Sanitization: <50ms target, 200ms max
 
 #### Size Limits
+
 - Input text: 100KB soft limit, 1MB hard limit
 - Translated output: 150KB soft limit, 2MB hard limit
 - Simultaneous translations: 1 typical, 3 maximum
 - History entries: 10 typical, 50 maximum
 
 #### Bottleneck Analysis
+
 1. **Large Email Bodies** - Text chunking solution (50KB chunks)
 2. **Language Detection** - Debouncing (500ms) solution
 3. **Repeated Sanitization** - Memoization and caching solution
 4. **Provider API Latency** - Timeout enforcement (10s default)
 
 #### Optimization Strategies
+
 - Request deduplication and caching (5-minute TTL)
 - Rate limiting (configurable requests/minute)
 - Memory management (LRU eviction, size limits)
@@ -94,6 +103,7 @@ Target metrics for 6 key operations:
 - Lazy component loading
 
 #### Future Scalability
+
 - Batch translation design (rate-limited queue)
 - Team/organization usage considerations
 - Server-side caching recommendations
@@ -105,6 +115,7 @@ Target metrics for 6 key operations:
 Production-ready validation and sanitization module with:
 
 #### Custom Error Types
+
 - `ValidationError` - For invalid input format
 - `SecurityError` - For security policy violations
 
@@ -131,6 +142,7 @@ Production-ready validation and sanitization module with:
    - `safeJsonParse()` - Safe JSON parsing with size limits
 
 #### Constants
+
 - `MAX_INPUT_SIZE` = 1MB
 - `MAX_RESPONSE_SIZE` = 2MB
 - `MIN_DETECTION_LENGTH` = 10 characters
@@ -171,6 +183,7 @@ Production-ready performance optimization module with:
    - `checkMemoryLimit()` - Validates memory usage
 
 #### Constants
+
 - `CHUNK_SIZE` = 50KB
 - `DEFAULT_TIMEOUT` = 10 seconds
 - `DETECTION_DEBOUNCE_DELAY` = 500ms
@@ -182,9 +195,11 @@ Production-ready performance optimization module with:
 ### 5. Test Suite
 
 #### Validation Tests (`tests/validation.test.ts`)
+
 Comprehensive test coverage (60+ tests):
 
 **Text Sanitization Tests**
+
 - XSS prevention (script tags, encoded attacks)
 - Control character removal
 - Whitespace normalization
@@ -192,6 +207,7 @@ Comprehensive test coverage (60+ tests):
 - Empty string handling
 
 **Language Code Tests**
+
 - Valid ISO 639-1 code acceptance
 - Invalid code rejection
 - Injection attempt prevention
@@ -199,6 +215,7 @@ Comprehensive test coverage (60+ tests):
 - Language pair validation
 
 **Provider Config Tests**
+
 - Valid configuration acceptance
 - Endpoint allowlist enforcement
 - HTTPS requirement (except localhost)
@@ -207,6 +224,7 @@ Comprehensive test coverage (60+ tests):
 - Prototype pollution prevention
 
 **Security Guard Tests**
+
 - ReDoS pattern detection
 - Prototype pollution detection
 - Clipboard injection prevention
@@ -215,14 +233,17 @@ Comprehensive test coverage (60+ tests):
 **Coverage:** All major attack vectors and edge cases
 
 #### Performance Tests (`tests/performance.test.ts`)
+
 Comprehensive test coverage (40+ tests):
 
 **Timeout Tests**
+
 - Promise timeout enforcement
 - Custom error messages
 - Default timeout behavior
 
 **Chunking Tests**
+
 - Small text passthrough
 - Large text splitting
 - Sentence boundary detection
@@ -230,6 +251,7 @@ Comprehensive test coverage (40+ tests):
 - Chunk processing with delays
 
 **Cache Tests**
+
 - Result caching
 - In-flight deduplication
 - TTL expiration
@@ -238,12 +260,14 @@ Comprehensive test coverage (40+ tests):
 - Language pair differentiation
 
 **Rate Control Tests**
+
 - Debounce delay and reset
 - Cancel support
 - Throttle limiting
 - Rate-limited queue processing
 
 **Monitoring Tests**
+
 - Duration measurement
 - Error capture
 - Metadata inclusion
@@ -254,7 +278,9 @@ Comprehensive test coverage (40+ tests):
 **Coverage:** All performance-critical paths
 
 #### Test Documentation (`tests/README.md`)
+
 Complete testing guide with:
+
 - Running instructions
 - Coverage requirements (>80%)
 - Security testing guidelines
@@ -289,64 +315,73 @@ Updated `ARCHITECTURE.md` to include:
 ## Security Measures Implemented
 
 ### Input Validation
+
 ✅ Size limits enforced (1MB input, 2MB response)  
 ✅ Type checking at runtime  
 ✅ Whitelist approach for language codes (200+ valid codes)  
 ✅ HTML sanitization using DOMPurify  
-✅ Control character removal  
+✅ Control character removal
 
 ### Injection Prevention
+
 ✅ SQL injection prevention (language code validation)  
 ✅ XSS prevention (HTML stripping, output escaping)  
 ✅ Command injection prevention (endpoint allowlisting)  
 ✅ Path traversal prevention (strict validation)  
-✅ Prototype pollution prevention (safe object creation)  
+✅ Prototype pollution prevention (safe object creation)
 
 ### Provider Security
+
 ✅ Endpoint allowlisting (HTTPS required, except localhost)  
 ✅ API key format validation  
 ✅ Request timeout enforcement (10s default)  
 ✅ Response size limits (2MB max)  
-✅ Error sanitization (no internal details leaked)  
+✅ Error sanitization (no internal details leaked)
 
 ### Attack Surface Reduction
+
 ✅ ReDoS prevention (regex safety checks)  
 ✅ Memory exhaustion prevention (size limits, chunking)  
 ✅ Clipboard injection prevention (ANSI escape removal)  
-✅ JSON parsing safety (size limits, prototype checks)  
+✅ JSON parsing safety (size limits, prototype checks)
 
 ---
 
 ## Performance Optimizations Implemented
 
 ### Request Efficiency
+
 ✅ Translation result caching (5-minute TTL)  
 ✅ In-flight request deduplication  
 ✅ Request cancellation on component unmount  
-✅ Timeout enforcement (prevents hanging requests)  
+✅ Timeout enforcement (prevents hanging requests)
 
 ### Large Input Handling
+
 ✅ Text chunking (50KB chunks, sentence boundaries)  
 ✅ Chunk processing with rate limiting  
-✅ Memory-efficient processing  
+✅ Memory-efficient processing
 
 ### UI Responsiveness
+
 ✅ Language detection debouncing (500ms)  
 ✅ Sanitization memoization  
 ✅ Virtual scrolling support (for history)  
-✅ Lazy component loading support  
+✅ Lazy component loading support
 
 ### Resource Management
+
 ✅ LRU cache eviction (50 entries max)  
 ✅ History size limits (10 entries typical)  
 ✅ LocalStorage size management (500KB max)  
-✅ Memory limit checks  
+✅ Memory limit checks
 
 ### Monitoring
+
 ✅ Performance metrics logging  
 ✅ Duration tracking  
 ✅ Memory delta measurement  
-✅ Success rate calculation  
+✅ Success rate calculation
 
 ---
 
@@ -355,21 +390,25 @@ Updated `ARCHITECTURE.md` to include:
 All files are within `tools/v2/individual/email-translator/`:
 
 ### Documentation
+
 - ✅ `docs/SECURITY.md` - Security threat model and guidelines
 - ✅ `docs/PERFORMANCE.md` - Performance constraints and optimizations
 - ✅ `SECURITY_PERFORMANCE_SUMMARY.md` - This summary document
 - ✅ `ARCHITECTURE.md` - Updated with security/performance sections
 
 ### Implementation
+
 - ✅ `services/validation.ts` - Validation and sanitization utilities (470 lines)
 - ✅ `services/performance.ts` - Performance optimization utilities (550 lines)
 
 ### Tests
+
 - ✅ `tests/validation.test.ts` - Validation test suite (330 lines, 60+ tests)
 - ✅ `tests/performance.test.ts` - Performance test suite (380 lines, 40+ tests)
 - ✅ `tests/README.md` - Testing documentation and guidelines
 
 ### Total
+
 - **9 files created/modified**
 - **~2,000 lines of code and documentation**
 - **100+ test cases**
@@ -409,12 +448,14 @@ All files are within `tools/v2/individual/email-translator/`:
 ## Dependencies
 
 ### Required
+
 - **dompurify** - HTML sanitization library
   - Used in: `services/validation.ts`
   - Purpose: XSS prevention via HTML stripping
   - Installation: `npm install dompurify @types/dompurify`
 
 ### Existing (already in project)
+
 - **vitest** - Test runner
 - **React** - UI framework (for future components)
 - **TypeScript** - Type safety
@@ -424,6 +465,7 @@ All files are within `tools/v2/individual/email-translator/`:
 ## Integration Readiness
 
 ### Security Checklist
+
 - ✅ Threat model documented
 - ✅ Input validation implemented
 - ✅ Output sanitization implemented
@@ -433,6 +475,7 @@ All files are within `tools/v2/individual/email-translator/`:
 - ✅ No secrets in code
 
 ### Performance Checklist
+
 - ✅ Performance budget defined
 - ✅ Bottlenecks identified
 - ✅ Optimization utilities implemented
@@ -442,6 +485,7 @@ All files are within `tools/v2/individual/email-translator/`:
 - ✅ Monitoring infrastructure ready
 
 ### Testing Checklist
+
 - ✅ Unit tests written (100+ tests)
 - ✅ Security tests written
 - ✅ Performance tests written
@@ -450,6 +494,7 @@ All files are within `tools/v2/individual/email-translator/`:
 - ✅ Coverage >80% (estimated)
 
 ### Documentation Checklist
+
 - ✅ Security documentation complete
 - ✅ Performance documentation complete
 - ✅ Architecture updated
@@ -464,11 +509,13 @@ All files are within `tools/v2/individual/email-translator/`:
 ### Before Future Integration
 
 1. **Install Dependencies**
+
    ```bash
    npm install dompurify @types/dompurify
    ```
 
 2. **Run Tests**
+
    ```bash
    npm test
    ```

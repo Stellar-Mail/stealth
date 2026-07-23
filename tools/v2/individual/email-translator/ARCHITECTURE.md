@@ -63,13 +63,13 @@ email-translator/
 
 **Planned modules:**
 
-| Module                            | Responsibility                                                                                                                                                       |
-| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `translationProvider` (interface) | Contract for pluggable backends (`translate(text, from, to): Promise<string>`). Enables swapping mock, local, or external API providers without touching components. |
-| `translationService`              | Orchestrates translation requests: validates input, selects provider, normalizes errors, and returns translated text.                                                |
-| `languageDetector`                | Detects the likely source language from input text (heuristic or provider-backed). Returns a language code or `unknown`.                                             |
+| Module                            | Responsibility                                                                                                                                                           |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `translationProvider` (interface) | Contract for pluggable backends (`translate(text, from, to): Promise<string>`). Enables swapping mock, local, or external API providers without touching components.     |
+| `translationService`              | Orchestrates translation requests: validates input, selects provider, normalizes errors, and returns translated text.                                                    |
+| `languageDetector`                | Detects the likely source language from input text (heuristic or provider-backed). Returns a language code or `unknown`.                                                 |
 | `validation`                      | Input validation, sanitization, and security guards for email bodies, language codes, provider configs, and responses. Prevents XSS, injection, and prototype pollution. |
-| `performance`                     | Performance utilities: caching, deduplication, timeout enforcement, text chunking, rate limiting, and monitoring.                                                     |
+| `performance`                     | Performance utilities: caching, deduplication, timeout enforcement, text chunking, rate limiting, and monitoring.                                                        |
 
 **Rules:**
 

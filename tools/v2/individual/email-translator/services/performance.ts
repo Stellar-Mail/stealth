@@ -1,6 +1,6 @@
 /**
  * Email Translator — Performance Utilities
- * 
+ *
  * This module provides performance optimization utilities:
  * - Request deduplication and caching
  * - Timeout enforcement
@@ -44,7 +44,7 @@ export const CACHE_TTL = 5 * 60 * 1000;
 
 /**
  * Wraps a promise with a timeout
- * 
+ *
  * @param promise - Promise to wrap
  * @param timeoutMs - Timeout in milliseconds
  * @param errorMessage - Error message if timeout occurs
@@ -53,7 +53,7 @@ export const CACHE_TTL = 5 * 60 * 1000;
 export async function withTimeout<T>(
   promise: Promise<T>,
   timeoutMs: number = DEFAULT_TIMEOUT,
-  errorMessage = 'Operation timed out'
+  errorMessage = "Operation timed out",
 ): Promise<T> {
   let timeoutId: NodeJS.Timeout;
 
@@ -72,7 +72,7 @@ export async function withTimeout<T>(
 
 /**
  * Wraps a fetch call with timeout using AbortController
- * 
+ *
  * @param input - Fetch input
  * @param init - Fetch init options
  * @param timeoutMs - Timeout in milliseconds
@@ -81,7 +81,7 @@ export async function withTimeout<T>(
 export async function fetchWithTimeout(
   input: RequestInfo | URL,
   init: RequestInit = {},
-  timeoutMs: number = DEFAULT_TIMEOUT
+  timeoutMs: number = DEFAULT_TIMEOUT,
 ): Promise<Response> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
@@ -93,8 +93,8 @@ export async function fetchWithTimeout(
     });
     return response;
   } catch (err) {
-    if ((err as Error).name === 'AbortError') {
-      throw new Error('Request timed out. Please try again.');
+    if ((err as Error).name === "AbortError") {
+      throw new Error("Request timed out. Please try again.");
     }
     throw err;
   } finally {
@@ -108,10 +108,10 @@ export async function fetchWithTimeout(
 
 /**
  * Splits large text into chunks at sentence boundaries
- * 
+ *
  * Attempts to break on sentence boundaries (. ! ?) to preserve context.
  * Falls back to hard breaks if no sentence boundary is found.
- * 
+ *
  * @param text - Text to split
  * @param maxSize - Maximum chunk size (default 50KB)
  * @returns Array of text chunks
@@ -157,7 +157,7 @@ export function splitIntoChunks(text: string, maxSize: number = CHUNK_SIZE): str
 
 /**
  * Processes large text in chunks with a delay between chunks
- * 
+ *
  * @param text - Text to process
  * @param processor - Async function to process each chunk
  * @param chunkSize - Maximum chunk size
@@ -168,7 +168,7 @@ export async function processInChunks<T>(
   text: string,
   processor: (chunk: string) => Promise<T>,
   chunkSize: number = CHUNK_SIZE,
-  delayMs: number = 100
+  delayMs: number = 100,
 ): Promise<T[]> {
   const chunks = splitIntoChunks(text, chunkSize);
   const results: T[] = [];
@@ -188,12 +188,12 @@ export async function processInChunks<T>(
 
 /**
  * Sleep utility for adding delays
- * 
+ *
  * @param ms - Milliseconds to sleep
  * @returns Promise that resolves after delay
  */
 export function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 // ============================================================================
@@ -207,7 +207,7 @@ interface CacheEntry<T> {
 
 /**
  * Translation request cache
- * 
+ *
  * Provides caching and deduplication for translation requests.
  * - Deduplicates in-flight requests (same params = same promise)
  * - Caches successful results with TTL
@@ -236,11 +236,11 @@ export class TranslationCache {
 
   /**
    * Gets cached result or executes translator function
-   * 
+   *
    * - Returns cached result if available and not expired
    * - Deduplicates in-flight requests
    * - Caches successful results
-   * 
+   *
    * @param text - Text to translate
    * @param from - Source language
    * @param to - Target language
@@ -251,7 +251,7 @@ export class TranslationCache {
     text: string,
     from: string,
     to: string,
-    translator: () => Promise<string>
+    translator: () => Promise<string>,
   ): Promise<string> {
     const key = this.getCacheKey(text, from, to);
 
@@ -268,12 +268,12 @@ export class TranslationCache {
 
     // Execute new request
     const promise = translator()
-      .then(result => {
+      .then((result) => {
         // Cache successful result
         this.set(key, result);
         return result;
       })
-      .catch(err => {
+      .catch((err) => {
         // Don't cache errors
         throw err;
       })
@@ -328,14 +328,14 @@ export class TranslationCache {
 
 /**
  * Debounces a function
- * 
+ *
  * @param fn - Function to debounce
  * @param delayMs - Delay in milliseconds
  * @returns Debounced function with cancel method
  */
 export function debounce<T extends (...args: any[]) => any>(
   fn: T,
-  delayMs: number
+  delayMs: number,
 ): T & { cancel: () => void } {
   let timeoutId: NodeJS.Timeout | null = null;
 
@@ -362,15 +362,12 @@ export function debounce<T extends (...args: any[]) => any>(
 
 /**
  * Throttles a function
- * 
+ *
  * @param fn - Function to throttle
  * @param limitMs - Minimum time between invocations
  * @returns Throttled function
  */
-export function throttle<T extends (...args: any[]) => any>(
-  fn: T,
-  limitMs: number
-): T {
+export function throttle<T extends (...args: any[]) => any>(fn: T, limitMs: number): T {
   let lastCall = 0;
 
   return function (this: any, ...args: Parameters<T>) {
@@ -388,7 +385,7 @@ export function throttle<T extends (...args: any[]) => any>(
 
 /**
  * Rate-limited queue for translation requests
- * 
+ *
  * Ensures a maximum number of requests per time window.
  * Useful for respecting provider API rate limits.
  */
@@ -405,7 +402,7 @@ export class RateLimitedQueue {
 
   /**
    * Adds a task to the queue
-   * 
+   *
    * @param task - Async task to execute
    * @returns Promise that resolves when task completes
    */
@@ -435,7 +432,7 @@ export class RateLimitedQueue {
     while (this.queue.length > 0) {
       const task = this.queue.shift()!;
       await task();
-      
+
       // Wait before processing next task (rate limit)
       if (this.queue.length > 0) {
         await sleep(this.intervalMs);
@@ -472,14 +469,14 @@ export interface PerformanceMetrics {
 
 /**
  * Measures performance of an async operation
- * 
+ *
  * @param operation - Async operation to measure
  * @param metadata - Additional metadata to include in metrics
  * @returns Result and performance metrics
  */
 export async function measurePerformance<T>(
   operation: () => Promise<T>,
-  metadata: Record<string, any> = {}
+  metadata: Record<string, any> = {},
 ): Promise<{ result: T; metrics: PerformanceMetrics & Record<string, any> }> {
   const startTime = performance.now();
   const startMemory = (performance as any).memory?.usedJSHeapSize;
@@ -543,8 +540,8 @@ export class PerformanceLogger {
     }
 
     // In production, send to analytics service
-    if (process.env.NODE_ENV === 'development') {
-      console.debug('[Performance]', metrics);
+    if (process.env.NODE_ENV === "development") {
+      console.debug("[Performance]", metrics);
     }
   }
 
@@ -569,7 +566,7 @@ export class PerformanceLogger {
     }
 
     const totalDuration = this.logs.reduce((sum, log) => sum + log.duration, 0);
-    const successCount = this.logs.filter(log => log.success).length;
+    const successCount = this.logs.filter((log) => log.success).length;
     const totalInputSize = this.logs.reduce((sum, log) => sum + log.inputSize, 0);
     const totalOutputSize = this.logs.reduce((sum, log) => sum + log.outputSize, 0);
 
@@ -596,7 +593,7 @@ export class PerformanceLogger {
 
 /**
  * Checks if an operation would exceed memory limits
- * 
+ *
  * @param estimatedSize - Estimated memory usage in bytes
  * @param thresholdMb - Warning threshold in MB
  * @returns True if operation is safe
@@ -607,7 +604,7 @@ export function checkMemoryLimit(estimatedSize: number, thresholdMb: number = 50
   if (estimatedSize > thresholdBytes) {
     console.warn(
       `Operation may exceed memory limit: ${(estimatedSize / 1024 / 1024).toFixed(2)} MB ` +
-      `(threshold: ${thresholdMb} MB)`
+        `(threshold: ${thresholdMb} MB)`,
     );
     return false;
   }

@@ -5,7 +5,9 @@ This directory contains tests for the Email Translator tool.
 ## Test Coverage
 
 ### `validation.test.ts`
+
 Tests for security validation and sanitization utilities:
+
 - Email body sanitization (XSS prevention, size limits)
 - Language code validation (injection prevention)
 - Provider configuration validation (endpoint allowlisting)
@@ -14,7 +16,9 @@ Tests for security validation and sanitization utilities:
 - JSON parsing safety
 
 ### `performance.test.ts`
+
 Tests for performance optimization utilities:
+
 - Timeout enforcement
 - Text chunking for large inputs
 - Translation result caching and deduplication
@@ -26,22 +30,26 @@ Tests for performance optimization utilities:
 ## Running Tests
 
 ### Run all tests
+
 ```bash
 npm test
 ```
 
 ### Run tests in watch mode
+
 ```bash
 npm run test:watch
 ```
 
 ### Run specific test file
+
 ```bash
 npm test validation.test.ts
 npm test performance.test.ts
 ```
 
 ### Run with coverage
+
 ```bash
 npm test -- --coverage
 ```
@@ -49,6 +57,7 @@ npm test -- --coverage
 ## Test Dependencies
 
 The tests use:
+
 - **vitest** - Test runner (already in project)
 - **@testing-library/react** - React component testing (for future component tests)
 - **dompurify** - HTML sanitization library (required for validation module)
@@ -75,16 +84,16 @@ npm install --save-dev @types/dompurify
 Tests follow the Arrange-Act-Assert pattern:
 
 ```typescript
-it('should sanitize email body', () => {
+it("should sanitize email body", () => {
   // Arrange
   const input = '<script>alert("xss")</script>Hello';
-  
+
   // Act
   const result = sanitizeEmailBody(input);
-  
+
   // Assert
-  expect(result).toBe('Hello');
-  expect(result).not.toContain('<script>');
+  expect(result).toBe("Hello");
+  expect(result).not.toContain("<script>");
 });
 ```
 
@@ -146,22 +155,26 @@ Performance tests verify:
 When implementation is added:
 
 ### `hooks/` tests
+
 - `useTranslation` hook behavior
 - `useLanguageDetect` hook behavior
 - State management and side effects
 
 ### `components/` tests
+
 - Component rendering
 - User interactions
 - Accessibility (a11y)
 - Error states
 
 ### `services/` tests
+
 - Translation provider implementations
 - Language detection algorithms
 - Service orchestration
 
 ### Integration tests
+
 - End-to-end translation flow
 - Provider switching
 - Error recovery
@@ -169,11 +182,13 @@ When implementation is added:
 ## Continuous Integration
 
 Tests should run in CI on:
+
 - Pull request creation
 - Push to main branch
 - Scheduled daily runs
 
 CI should enforce:
+
 - All tests pass
 - Code coverage > 80%
 - No security vulnerabilities in dependencies
@@ -202,17 +217,21 @@ tests/
 ## Debugging Tests
 
 ### Enable verbose logging
+
 ```bash
 npm test -- --reporter=verbose
 ```
 
 ### Run single test
+
 ```bash
 npm test -- -t "should sanitize email body"
 ```
 
 ### Debug in VS Code
+
 Add to `.vscode/launch.json`:
+
 ```json
 {
   "type": "node",
