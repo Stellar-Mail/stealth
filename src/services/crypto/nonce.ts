@@ -12,6 +12,8 @@
  * modules that may land in separate PRs.
  */
 
+import { recordCryptoTelemetry, type CryptoResultCode } from "./telemetry";
+
 /** Stable, non-secret failure codes for nonce operations. */
 export type NonceErrorCode = "crypto_algorithm_error" | "crypto_validation_error";
 
@@ -60,12 +62,43 @@ function randomBytes(length: number): Uint8Array {
 
 /** Generate a fresh nonce for the given algorithm suite. */
 export function generateNonce(algorithm: NonceAlgorithm): Uint8Array {
-  const length = NONCE_LENGTHS[algorithm];
-  const nonce = randomBytes(length);
-  if (nonce.length !== length) {
-    throw new NonceError("crypto_algorithm_error", "nonce generation length mismatch");
+  const startTime = performance.now();
+  let result: CryptoResultCode = "success";
+
+  try {
+    const length = NONCE_LENGTHS[algorithm];
+    const nonce = randomBytes(length);
+    if (nonce.length !== length) {
+      throw new NonceError("crypto_algorithm_error", "nonce generation length mismatch");
+    }
+    return nonce;
+  } catch (error: unknown) {
+    result = mapNonceError(error);
+    throw error;
+  } finally {
+    const durationMs = Math.max(1, Math.round(performance.now() - startTime));
+    recordCryptoTelemetry({
+      operation: "nonce_generate",
+      suite: algorithm,
+      result,
+      durationMs,
+    });
   }
-  return nonce;
+}
+
+function mapNonceError(error: unknown): CryptoResultCode {
+  if (error !== null && typeof error === "object" && "code" in error) {
+    const code = (error as { code: unknown }).code;
+    if (typeof code === "string") {
+      switch (code) {
+        case "crypto_algorithm_error":
+          return "error_algorithm";
+        case "crypto_validation_error":
+          return "error_validation";
+      }
+    }
+  }
+  return "error_algorithm";
 }
 
 const HEX_REGEX = /^[0-9a-fA-F]*$/;

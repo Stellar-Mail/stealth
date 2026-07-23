@@ -128,40 +128,19 @@ export async function submitPostage(
 
   const accountLimit = await checkAccountLimit(repository, input.sender);
   if (!accountLimit.allowed) {
-    rejectLimitedPostage(
-      accountLimit,
-      {
-        actorId,
-        limit: "account",
-      },
-      "Account limit exceeded",
-    );
+    rejectLimitedPostage(accountLimit, { limit: "account" }, "Account limit exceeded");
   }
 
   const ip = context.ip ?? "unknown";
   const ipLimit = await checkIpLimit(repository, ip);
   if (!ipLimit.allowed) {
-    rejectLimitedPostage(
-      ipLimit,
-      {
-        ip,
-        limit: "ip",
-      },
-      "IP limit exceeded",
-    );
+    rejectLimitedPostage(ipLimit, { limit: "ip" }, "IP limit exceeded");
   }
 
   const fingerprint = context.fingerprint ?? "";
   const deviceLimit = await checkDeviceLimit(repository, fingerprint);
   if (!deviceLimit.allowed) {
-    rejectLimitedPostage(
-      deviceLimit,
-      {
-        fingerprint: fingerprint || "unknown",
-        limit: "device",
-      },
-      "Device limit exceeded",
-    );
+    rejectLimitedPostage(deviceLimit, { limit: "device" }, "Device limit exceeded");
   }
 
   const senderRecipientLimit = await checkSenderRecipientLimit(
@@ -175,10 +154,7 @@ export async function submitPostage(
 
     rejectLimitedPostage(
       senderRecipientLimit,
-      {
-        limit: "sender_recipient",
-        sender,
-      },
+      { limit: "sender_recipient" },
       "Sender-recipient limit exceeded",
     );
   }
@@ -187,14 +163,7 @@ export async function submitPostage(
   const relayLimit = await checkRelayLimit(repository, relayId);
 
   if (!relayLimit.allowed) {
-    rejectLimitedPostage(
-      relayLimit,
-      {
-        limit: "relay",
-        relayId,
-      },
-      "Relay limit exceeded",
-    );
+    rejectLimitedPostage(relayLimit, { limit: "relay" }, "Relay limit exceeded");
   }
 
   if (await repository.getPostage(input.messageId)) {

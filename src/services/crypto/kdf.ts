@@ -11,6 +11,8 @@
  * Self-contained (local KdfError) so the branch is independently mergeable.
  */
 
+import { recordCryptoTelemetry, type CryptoResultCode } from "./telemetry";
+
 /** Minimal non-secret error carrying a stable code (no key/plaintext leakage). */
 export class KdfError extends Error {
   readonly code = "crypto_algorithm_error" as const;
@@ -109,7 +111,35 @@ export async function deriveKey(
   length: number,
   salt?: Uint8Array,
 ): Promise<Uint8Array> {
-  const prk = await hkdfExtract(ikm, salt);
-  const info = new TextEncoder().encode(KEY_PURPOSES[purpose]);
-  return hkdfExpand(prk, info, length);
+  const startTime = performance.now();
+  let result: CryptoResultCode = "success";
+
+  try {
+    const prk = await hkdfExtract(ikm, salt);
+    const info = new TextEncoder().encode(KEY_PURPOSES[purpose]);
+    return await hkdfExpand(prk, info, length);
+  } catch (error: unknown) {
+    result = mapKdfError(error);
+    throw error;
+  } finally {
+    const durationMs = Math.max(1, Math.round(performance.now() - startTime));
+    recordCryptoTelemetry({
+      operation: "kdf",
+      result,
+      durationMs,
+    });
+  }
+}
+
+function mapKdfError(error: unknown): CryptoResultCode {
+  if (error !== null && typeof error === "object" && "code" in error) {
+    const code = (error as { code: unknown }).code;
+    if (typeof code === "string") {
+      switch (code) {
+        case "crypto_algorithm_error":
+          return "error_algorithm";
+      }
+    }
+  }
+  return "error_algorithm";
 }

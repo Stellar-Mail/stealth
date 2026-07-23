@@ -119,16 +119,58 @@ export function generateCorrelationId(): string {
   return `di-${Date.now()}-${correlationCounter}`;
 }
 
-const recordSchemas = new Map<string, ZodSchema>();
+export type Migration = (data: any) => any;
 
-export function registerRecordSchema(type: string, schema: ZodSchema): void {
-  recordSchemas.set(type, schema);
+interface RecordSchemaDef {
+  currentVersion: number;
+  schema: ZodSchema;
+  migrations: Record<number, Migration>;
+}
+
+const recordSchemas = new Map<string, RecordSchemaDef>();
+
+export function registerRecordSchema(
+  type: string,
+  currentVersion: number,
+  schema: ZodSchema,
+  migrations: Record<number, Migration> = {},
+): void {
+  recordSchemas.set(type, { currentVersion, schema, migrations });
 }
 
 export function validateRecord<T>(recordType: string, data: unknown): T {
-  const schema = recordSchemas.get(recordType);
-  if (!schema) return data as T;
-  const result = schema.safeParse(data);
+  const def = recordSchemas.get(recordType);
+  if (!def) return data as T;
+
+  const version =
+    typeof data === "object" && data !== null && "$v" in data ? ((data as any).$v as number) : 1;
+
+  if (version > def.currentVersion) {
+    throw new DataIntegrityError(
+      recordType,
+      generateCorrelationId(),
+      `Unsupported newer schema version ${version} for ${recordType}`,
+    );
+  }
+
+  let migratedData = data;
+  for (let v = version; v < def.currentVersion; v++) {
+    const migration = def.migrations[v];
+    if (migration) {
+      migratedData = migration(migratedData);
+      if (typeof migratedData === "object" && migratedData !== null) {
+        (migratedData as any).$v = v + 1;
+      }
+    } else {
+      throw new DataIntegrityError(
+        recordType,
+        generateCorrelationId(),
+        `Missing migration from version ${v} to ${v + 1} for ${recordType}`,
+      );
+    }
+  }
+
+  const result = def.schema.safeParse(migratedData);
   if (!result.success) {
     throw new DataIntegrityError(
       recordType,
@@ -137,6 +179,12 @@ export function validateRecord<T>(recordType: string, data: unknown): T {
     );
   }
   return result.data as T;
+}
+
+export function versionRecord<T>(recordType: string, data: T): T {
+  const def = recordSchemas.get(recordType);
+  if (!def || typeof data !== "object" || data === null) return data;
+  return { ...data, $v: def.currentVersion } as unknown as T;
 }
 
 /**
@@ -154,7 +202,7 @@ export class ValidatedApiRepository implements ApiRepository {
   }
 
   setPolicy(owner: string, policy: MailboxPolicy): Promise<MailboxPolicy> {
-    return this.inner.setPolicy(owner, policy);
+    return this.inner.setPolicy(owner, versionRecord("mailboxPolicy", policy));
   }
 
   async getSenderRule(owner: string, sender: string): Promise<SenderRule> {
@@ -163,7 +211,7 @@ export class ValidatedApiRepository implements ApiRepository {
   }
 
   setSenderRule(owner: string, sender: string, rule: SenderRule): Promise<SenderRule> {
-    return this.inner.setSenderRule(owner, sender, rule);
+    return this.inner.setSenderRule(owner, sender, versionRecord("senderRule", rule));
   }
 
   async getPostage(messageId: string): Promise<Postage | null> {
@@ -171,20 +219,25 @@ export class ValidatedApiRepository implements ApiRepository {
     return raw ? validateRecord<Postage>("postage", raw) : null;
   }
 
-  setPostage(postage: Postage): Promise<Postage> {
-    return this.inner.setPostage(postage);
+  async setPostage(postage: Postage): Promise<Postage> {
+    const result = await this.inner.setPostage(versionRecord("postage", postage));
+    return validateRecord<Postage>("postage", result);
   }
 
-  transitionPostage(
+  async transitionPostage(
     messageId: string,
     expectedStatus: PostageStatus,
     nextStatus: PostageStatus,
   ): Promise<PostageTransitionResult> {
-    return this.inner.transitionPostage(messageId, expectedStatus, nextStatus);
+    const result = await this.inner.transitionPostage(messageId, expectedStatus, nextStatus);
+    if (result.outcome === "conflict" || result.outcome === "applied") {
+      result.postage = validateRecord<Postage>("postage", result.postage);
+    }
+    return result;
   }
 
   async insertPostage(postage: Postage): Promise<Postage> {
-    const result = await this.inner.insertPostage(postage);
+    const result = await this.inner.insertPostage(versionRecord("postage", postage));
     return validateRecord<Postage>("postage", result);
   }
 
@@ -193,20 +246,44 @@ export class ValidatedApiRepository implements ApiRepository {
     return raw ? validateRecord<Receipt>("receipt", raw) : null;
   }
 
-  setReceipt(receipt: Receipt): Promise<Receipt> {
-    return this.inner.setReceipt(receipt);
+  async setReceipt(receipt: Receipt): Promise<Receipt> {
+    const result = await this.inner.setReceipt(versionRecord("receipt", receipt));
+    return validateRecord<Receipt>("receipt", result);
   }
 
-  createReceiptIfAbsent(receipt: Receipt): Promise<{ created: boolean; receipt: Receipt }> {
-    return this.inner.createReceiptIfAbsent(receipt);
+  async createReceiptIfAbsent(receipt: Receipt): Promise<{ created: boolean; receipt: Receipt }> {
+    const result = await this.inner.createReceiptIfAbsent(versionRecord("receipt", receipt));
+    if (result.created) {
+      result.receipt = validateRecord<Receipt>("receipt", result.receipt);
+    }
+    return result;
   }
 
-  markReceiptRead(messageId: string, actor: string, now?: Date): Promise<MarkReceiptReadResult> {
-    return this.inner.markReceiptRead(messageId, actor, now);
+  async markReceiptRead(
+    messageId: string,
+    actor: string,
+    now?: Date,
+  ): Promise<MarkReceiptReadResult> {
+    const result = await this.inner.markReceiptRead(messageId, actor, now);
+    if (result.outcome === "marked") {
+      result.receipt = validateRecord<Receipt>("receipt", result.receipt);
+    }
+    return result;
   }
 
   acquireIdempotencyRecord(key: string, leaseMs: number): Promise<AcquireIdempotencyResult> {
-    return this.inner.acquireIdempotencyRecord(key, leaseMs);
+    // Acquire does not take an object payload to insert, it creates one internally.
+    // The internal DO logic is responsible for its own fields.
+    // For reads via this repo wrapper, we could validate the returned record.
+    return this.inner.acquireIdempotencyRecord(key, leaseMs).then((result) => {
+      if (result.status === "completed") {
+        result.record = validateRecord<IdempotencyRecord & { state: "completed" }>(
+          "idempotencyRecord",
+          result.record,
+        );
+      }
+      return result;
+    });
   }
 
   async getIdempotencyRecord(key: string): Promise<IdempotencyRecord | null> {
@@ -215,7 +292,7 @@ export class ValidatedApiRepository implements ApiRepository {
   }
 
   setIdempotencyRecord(key: string, record: IdempotencyRecord): Promise<void> {
-    return this.inner.setIdempotencyRecord(key, record);
+    return this.inner.setIdempotencyRecord(key, versionRecord("idempotencyRecord", record));
   }
 
   getRelayQueueDepth(relayId: string): Promise<number> {

@@ -14,6 +14,7 @@
  */
 
 import { verifyCommitment } from "./commitment";
+import { recordCryptoTelemetry, type CryptoResultCode } from "./telemetry";
 
 /** Minimal non-secret error carrying a stable code (no key/plaintext leakage). */
 export class OpenEnvelopeError extends Error {
@@ -108,6 +109,23 @@ function str(value: unknown, field: string, maxLength = MAX_FIELD_STRING_LENGTH)
 }
 
 /**
+ * /** Shape we accept (structural — we validate fields individually). */
+interface RawPayload {
+  version?: unknown;
+  sender?: unknown;
+  recipient?: unknown;
+  timestamp?: unknown;
+  encryption_metadata?: {
+    algorithm?: unknown;
+    nonce?: unknown;
+    mac?: unknown;
+    ephemeral_public_key?: unknown;
+  };
+  content_commitment?: unknown;
+  attachments?: unknown;
+}
+
+/**
  * Open (decrypt) a sealed envelope.
  *
  * @param input  The sealed envelope: `{ payload, ciphertext }` or raw JSON string.
@@ -119,6 +137,9 @@ export async function openEnvelope(
   input: unknown,
   keys: KeyProvider,
 ): Promise<OpenedEnvelope> {
+  const startTime = performance.now();
+  let result: CryptoResultCode = "success";
+
   try {
     let parsedInput: Record<string, unknown>;
 
@@ -275,15 +296,43 @@ export async function openEnvelope(
       : [];
 
     return { sender, recipient, timestamp, body, attachments };
-  } catch (err) {
-    if (err instanceof OpenEnvelopeError) {
-      throw err;
+  } catch (error: unknown) {
+    result = mapOpenEnvelopeError(error);
+    if (error instanceof OpenEnvelopeError) {
+      throw error;
     }
     throw new OpenEnvelopeError(
-      err instanceof Error ? err.message : "envelope processing failed",
+      error instanceof Error ? error.message : "envelope processing failed",
       "crypto_validation_error",
     );
+  } finally {
+    const durationMs = Math.max(1, Math.round(performance.now() - startTime));
+    recordCryptoTelemetry({
+      operation: "open",
+      suite: "AES-256-GCM",
+      result,
+      durationMs,
+    });
   }
+}
+
+function mapOpenEnvelopeError(error: unknown): CryptoResultCode {
+  if (error !== null && typeof error === "object" && "code" in error) {
+    const code = (error as { code: unknown }).code;
+    if (typeof code === "string") {
+      switch (code) {
+        case "crypto_version_error":
+          return "error_version";
+        case "crypto_integrity_error":
+          return "error_integrity";
+        case "crypto_decryption_error":
+          return "error_decrypt";
+        case "crypto_validation_error":
+          return "error_validation";
+      }
+    }
+  }
+  return "error_parse";
 }
 
 /** Constant-time byte comparison (no early-exit timing leak). */

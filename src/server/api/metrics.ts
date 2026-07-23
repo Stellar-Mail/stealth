@@ -71,8 +71,38 @@ function bucketFor(value: number, buckets: readonly number[]): string {
   return `~+Inf`;
 }
 
+export const METRIC_DESCRIPTORS = {
+  api_requests_total: ["method", "path", "status", "type", "synthetic"],
+  api_latency: ["method", "path", "status", "type", "synthetic"],
+  api_errors_total: ["method", "path", "status", "type", "synthetic", "error_type"],
+  abuse_dependency_fallback: ["check", "decision", "errorType", "policy", "route"],
+  postage_limit_rejected: ["limit"],
+} as const;
+
+export type MetricName = keyof typeof METRIC_DESCRIPTORS;
+
+function validateLabels(metric: string, labels: Record<string, string>) {
+  const allowedLabels = METRIC_DESCRIPTORS[metric as MetricName];
+  if (!allowedLabels) {
+    if (process.env.NODE_ENV !== "production") {
+      throw new Error(`Unknown metric name: ${metric}`);
+    }
+    return;
+  }
+  for (const key of Object.keys(labels)) {
+    if (!(allowedLabels as readonly string[]).includes(key)) {
+      if (process.env.NODE_ENV !== "production") {
+        throw new Error(`Unknown label '${key}' for metric '${metric}'`);
+      }
+      delete labels[key];
+    }
+  }
+}
+
 export function incrementCounter(metric: string, labels?: Record<string, string>): void {
-  const key = labelKey(metric, labels ?? {});
+  const safeLabels = { ...labels };
+  validateLabels(metric, safeLabels);
+  const key = labelKey(metric, safeLabels);
   const entry = counters.get(key) ?? { value: 0 };
   entry.value += 1;
   counters.set(key, entry);
@@ -84,7 +114,9 @@ export function recordHistogram(
   labels?: Record<string, string>,
   buckets: readonly number[] = DEFAULT_LATENCY_BUCKETS,
 ): void {
-  const key = labelKey(metric, labels ?? {});
+  const safeLabels = { ...labels };
+  validateLabels(metric, safeLabels);
+  const key = labelKey(metric, safeLabels);
   const entry = histograms.get(key) ?? { buckets: {}, sum: 0, count: 0 };
   const bucket = bucketFor(value, buckets);
   entry.buckets[bucket] = (entry.buckets[bucket] ?? 0) + 1;

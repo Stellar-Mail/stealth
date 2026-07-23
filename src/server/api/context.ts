@@ -184,11 +184,11 @@ globalThis.fetch = function (input: RequestInfo | URL, init?: RequestInit): Prom
 };
 
 // Register schemas once at module init for Issue #1508 record validation
-registerRecordSchema("mailboxPolicy", mailboxPolicySchema);
-registerRecordSchema("senderRule", senderRuleSchema);
-registerRecordSchema("postage", postageSchema);
-registerRecordSchema("receipt", receiptSchema);
-registerRecordSchema("idempotencyRecord", idempotencyRecordSchema);
+registerRecordSchema("mailboxPolicy", 1, mailboxPolicySchema);
+registerRecordSchema("senderRule", 1, senderRuleSchema);
+registerRecordSchema("postage", 1, postageSchema);
+registerRecordSchema("receipt", 1, receiptSchema);
+registerRecordSchema("idempotencyRecord", 1, idempotencyRecordSchema);
 
 /**
  * Issue #1461: Verified API Principal model representing authenticated request identity.

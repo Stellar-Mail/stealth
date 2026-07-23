@@ -13,6 +13,8 @@
  * the verified canonical identity. Self-contained (local IdentityError).
  */
 
+import { recordCryptoTelemetry, type CryptoResultCode } from "./telemetry";
+
 /** Minimal non-secret error carrying a stable code (no key/plaintext leakage). */
 export class IdentityError extends Error {
   readonly code = "crypto_validation_error" as const;
@@ -74,22 +76,50 @@ export function isFederationAddress(value: string): boolean {
  * account nor a federation address).
  */
 export function normalizeIdentity(value: string): NormalizedIdentity {
-  if (typeof value !== "string" || value.trim().length === 0) {
-    throw new IdentityError("identifier must be a non-empty string");
-  }
-  const trimmed = value.trim();
+  const startTime = performance.now();
+  let result: CryptoResultCode = "success";
 
-  if (isValidAccountAddress(trimmed)) {
-    return { canonical: trimmed, raw: trimmed, kind: "account" };
-  }
+  try {
+    if (typeof value !== "string" || value.trim().length === 0) {
+      throw new IdentityError("identifier must be a non-empty string");
+    }
+    const trimmed = value.trim();
 
-  if (isFederationAddress(trimmed)) {
-    // Recognized but unresolved: canonical is left as the raw federation form
-    // so no unverified account is ever bound. Callers resolve then re-normalize.
-    return { canonical: trimmed, raw: trimmed, kind: "federation" };
-  }
+    if (isValidAccountAddress(trimmed)) {
+      return { canonical: trimmed, raw: trimmed, kind: "account" };
+    }
 
-  throw new IdentityError("identifier is neither a valid account nor a federation address");
+    if (isFederationAddress(trimmed)) {
+      // Recognized but unresolved: canonical is left as the raw federation form
+      // so no unverified account is ever bound. Callers resolve then re-normalize.
+      return { canonical: trimmed, raw: trimmed, kind: "federation" };
+    }
+
+    throw new IdentityError("identifier is neither a valid account nor a federation address");
+  } catch (error: unknown) {
+    result = mapIdentityError(error);
+    throw error;
+  } finally {
+    const durationMs = Math.max(1, Math.round(performance.now() - startTime));
+    recordCryptoTelemetry({
+      operation: "identity_normalize",
+      result,
+      durationMs,
+    });
+  }
+}
+
+function mapIdentityError(error: unknown): CryptoResultCode {
+  if (error !== null && typeof error === "object" && "code" in error) {
+    const code = (error as { code: unknown }).code;
+    if (typeof code === "string") {
+      switch (code) {
+        case "crypto_validation_error":
+          return "error_validation";
+      }
+    }
+  }
+  return "error_validation";
 }
 
 /**
