@@ -13,6 +13,7 @@ issue does not implement or integrate that behavior.
 
 ## Documents
 
+- [Setup Guide](docs/SETUP.md) - Quick start for contributors
 - [Architecture](ARCHITECTURE.md) defines module responsibilities and dependency
   direction.
 - [Specification](specs.md) defines the future tool contract and non-goals.
@@ -20,7 +21,10 @@ issue does not implement or integrate that behavior.
   data boundaries.
 - [Integration constraints](docs/integration-constraints.md) defines allowed and
   forbidden dependencies.
-- [Test plan](tests/test-plan.md) defines future contract-level coverage.
+- [Test plan](docs/test-plan.md) defines future contract-level coverage.
+- [Fixtures](docs/FIXTURES.md) - Test data and usage examples
+- [Known Limitations](docs/KNOWN_LIMITATIONS.md) - Current scope constraints
+- [Review Notes](docs/review-notes.md) - Validation checklist for contributors
 
 All future work for this tool must remain inside this directory until a separate
 integration issue explicitly authorizes changes elsewhere.
