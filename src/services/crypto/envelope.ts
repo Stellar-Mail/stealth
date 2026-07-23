@@ -16,6 +16,7 @@ import { getCryptoTestVectors } from "./testing";
 import { createCommitment } from "./commitment";
 import { recordCryptoTelemetry, type CryptoResultCode } from "./telemetry";
 import { canonicalizeAttachmentDescriptors } from "./attachment-metadata";
+import { getDefaultSuite, getDefaultVersion } from "./suites";
 
 export interface EnvelopeAttachment {
   filename: string;
@@ -108,6 +109,7 @@ export function canonicalizePayload(value: unknown): string {
 export async function sealEnvelope(input: SealEnvelopeInput): Promise<SealedEnvelope> {
   const startTime = performance.now();
   let result: CryptoResultCode = "success";
+  const defaultSuite = getDefaultSuite();
 
   try {
     const body = input.body ?? "";
@@ -125,11 +127,16 @@ export async function sealEnvelope(input: SealEnvelopeInput): Promise<SealedEnve
     // --- Key generation (no plaintext allocated yet) ---
     throwIfAborted();
     const key = generateKey
-      ? await generateKey({ name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt"])
-      : await crypto.subtle.generateKey({ name: "AES-GCM", length: 256 }, true, [
-          "encrypt",
-          "decrypt",
-        ]);
+      ? await generateKey(
+          { name: defaultSuite.webCryptoName, length: defaultSuite.keyBits },
+          true,
+          ["encrypt", "decrypt"],
+        )
+      : await crypto.subtle.generateKey(
+          { name: defaultSuite.webCryptoName, length: defaultSuite.keyBits },
+          true,
+          ["encrypt", "decrypt"],
+        );
 
     // --- Pre-process attachments to get descriptors for AAD ---
     const attachmentsToProcess = input.attachments ?? [];
@@ -198,7 +205,11 @@ export async function sealEnvelope(input: SealEnvelopeInput): Promise<SealedEnve
     // a pool buffer, but we manage the result lifecycle explicitly below.
     const ciphertext = new Uint8Array(
       await crypto.subtle.encrypt(
-        { name: "AES-GCM", iv: iv as BufferSource, additionalData: aad as BufferSource },
+        {
+          name: defaultSuite.webCryptoName,
+          iv: iv as BufferSource,
+          additionalData: aad as BufferSource,
+        },
         key,
         plaintext as BufferSource,
       ),
@@ -226,7 +237,7 @@ export async function sealEnvelope(input: SealEnvelopeInput): Promise<SealedEnve
 
         const attCiphertext = new Uint8Array(
           await crypto.subtle.encrypt(
-            { name: "AES-GCM", iv: attIvView as BufferSource },
+            { name: defaultSuite.webCryptoName, iv: attIvView as BufferSource },
             key,
             dataBytes,
           ),
@@ -234,7 +245,7 @@ export async function sealEnvelope(input: SealEnvelopeInput): Promise<SealedEnve
         const attTag = attCiphertext.slice(attCiphertext.length - GCM_TAG_BYTES);
 
         encMetadata = {
-          algorithm: "AES-256-GCM",
+          algorithm: defaultSuite.name,
           nonce: toHex(attIvView),
           mac: toHex(attTag),
         };
@@ -272,12 +283,12 @@ export async function sealEnvelope(input: SealEnvelopeInput): Promise<SealedEnve
     sharedPool.release(ivBuf);
 
     const payload: EnvelopePayload = {
-      version: "v1",
+      version: getDefaultVersion() as "v1",
       sender: input.sender,
       recipient: input.recipient,
       timestamp: now ? now().toISOString() : new Date().toISOString(),
       encryption_metadata: {
-        algorithm: "AES-256-GCM",
+        algorithm: defaultSuite.name,
         nonce: nonceHex,
         mac: macHex,
         ...(input.recipientKeyId ? { recipient_key_id: input.recipientKeyId } : {}),
@@ -295,7 +306,7 @@ export async function sealEnvelope(input: SealEnvelopeInput): Promise<SealedEnve
     const durationMs = Math.max(1, Math.round(performance.now() - startTime));
     recordCryptoTelemetry({
       operation: "seal",
-      suite: "AES-256-GCM",
+      suite: defaultSuite.name,
       result,
       durationMs,
     });
@@ -311,6 +322,8 @@ function mapEnvelopeError(error: unknown): CryptoResultCode {
           return "error_parse";
         case "crypto_validation_error":
           return "error_validation";
+        case "crypto_version_error":
+          return "error_version";
         case "crypto_algorithm_error":
           return "error_algorithm";
         case "crypto_key_error":

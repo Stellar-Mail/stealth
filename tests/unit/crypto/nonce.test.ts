@@ -43,9 +43,9 @@ describe("secure nonce helpers (#1694)", () => {
   });
 
   it("round-trips nonce encode/decode", () => {
-    const nonce = generateNonce("AES-128-GCM");
+    const nonce = generateNonce("AES-256-GCM");
     const encoded = encodeNonce(nonce);
-    const decoded = decodeNonce(encoded, "AES-128-GCM");
+    const decoded = decodeNonce(encoded, "AES-256-GCM");
     expect(decoded.ok).toBe(true);
     if (decoded.ok) expect(decoded.value).toEqual(nonce);
   });

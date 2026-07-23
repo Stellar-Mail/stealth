@@ -16,6 +16,7 @@
 import { verifyCommitment } from "./commitment";
 import { recordCryptoTelemetry, type CryptoResultCode } from "./telemetry";
 import { canonicalizeAttachmentDescriptors } from "./attachment-metadata";
+import { validateNegotiationForOpen, getSuite, getDefaultVersion } from "./suites";
 
 /** Minimal non-secret error carrying a stable code (no key/plaintext leakage). */
 export class OpenEnvelopeError extends Error {
@@ -44,7 +45,7 @@ export interface KeyProvider {
 }
 
 const GCM_TAG_BYTES = 16;
-const SUPPORTED_VERSION = "v1";
+const SUPPORTED_VERSION = getDefaultVersion();
 
 export interface OpenedEnvelope {
   sender: string;
@@ -148,6 +149,7 @@ export async function openEnvelope(
 ): Promise<OpenedEnvelope> {
   const startTime = performance.now();
   let result: CryptoResultCode = "success";
+  let algorithm = "";
 
   try {
     if (!input || typeof input !== "object") {
@@ -159,13 +161,6 @@ export async function openEnvelope(
     if (!payload || typeof payload !== "object") {
       throw new OpenEnvelopeError("payload is missing", "crypto_validation_error");
     }
-    if (payload.version !== SUPPORTED_VERSION) {
-      throw new OpenEnvelopeError(
-        `unsupported envelope version: ${String(payload.version)}`,
-        "crypto_version_error",
-      );
-    }
-
     const sender = str(payload.sender, "sender");
     const recipient = str(payload.recipient, "recipient");
     const timestamp = str(payload.timestamp, "timestamp");
@@ -173,9 +168,28 @@ export async function openEnvelope(
     if (!meta || typeof meta !== "object") {
       throw new OpenEnvelopeError("encryption_metadata is missing", "crypto_validation_error");
     }
-    const algorithm = str(meta.algorithm, "algorithm");
-    if (algorithm !== "AES-256-GCM") {
-      throw new OpenEnvelopeError(`unsupported algorithm: ${algorithm}`, "crypto_validation_error");
+    algorithm = str(meta.algorithm, "algorithm");
+
+    // Validate version + suite combination against the fail-closed registry.
+    try {
+      validateNegotiationForOpen(payload.version as string, algorithm);
+    } catch (err) {
+      if (err instanceof Error && "code" in err) {
+        const code = (err as { code: string }).code;
+        if (code === "crypto_version_error") {
+          throw new OpenEnvelopeError(
+            `unsupported envelope version: ${String(payload.version)}`,
+            "crypto_version_error",
+          );
+        }
+        if (code === "crypto_algorithm_error") {
+          throw new OpenEnvelopeError(
+            `unsupported algorithm: ${algorithm}`,
+            "crypto_validation_error",
+          );
+        }
+      }
+      throw new OpenEnvelopeError("validation failed", "crypto_validation_error");
     }
     const nonceHex = str(meta.nonce, "nonce");
     const macHex = str(meta.mac, "mac");
@@ -282,9 +296,10 @@ export async function openEnvelope(
     throw error;
   } finally {
     const durationMs = Math.max(1, Math.round(performance.now() - startTime));
+    const suiteName = getSuite(algorithm)?.name ?? algorithm;
     recordCryptoTelemetry({
       operation: "open",
-      suite: "AES-256-GCM",
+      suite: suiteName,
       result,
       durationMs,
     });
