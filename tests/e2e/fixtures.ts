@@ -123,6 +123,7 @@ export class ApiHelper {
   async markReceiptRead(messageId = MSG_ID, actor = ACTOR) {
     return this.page.request.post(`/api/v1/receipts/${messageId}/read`, {
       headers: this.headers(actor),
+      data: { readAt: new Date().toISOString() },
     });
   }
 }
