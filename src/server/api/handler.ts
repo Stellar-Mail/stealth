@@ -193,6 +193,14 @@ export function createRouteHandler<
       const latency = performance.now() - startTime;
       const status = error instanceof ApiError ? error.status : 500;
 
+      if (status === 401 || status === 403) {
+        metrics.incrementCounter("auth_failures_total", {
+          method,
+          path,
+          reason: error instanceof ApiError ? error.code : "unauthorized",
+        });
+      }
+
       metrics.recordHistogram("api_latency", latency, { method, path, status: String(status) });
       metrics.incrementCounter("api_requests_total", { method, path, status: String(status) });
       metrics.incrementCounter("api_errors_total", { method, path, status: String(status) });
