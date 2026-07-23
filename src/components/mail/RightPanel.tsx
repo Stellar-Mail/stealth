@@ -59,7 +59,9 @@ export function RightPanel({
     }
     if (action === "summarize") {
       setSummary(
-        `${email.from} is writing about ${email.subject.toLowerCase()}. The next step is to respond or review the attached context.`,
+        `${
+          email.from
+        } is writing about ${email.subject.toLowerCase()}. The next step is to respond or review the attached context.`,
       );
     }
     onAction(action, email);

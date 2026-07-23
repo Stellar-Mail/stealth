@@ -200,14 +200,11 @@ export function useExtractedKeywords(summary: string | null) {
 
 ```typescript
 // components/KeywordDisplay.tsx
-import React from 'react';
-import { useExtractedKeywords } from '../hooks/useExtractedKeywords';
-import type { KeywordDisplayProps } from '../types';
+import React from "react";
+import { useExtractedKeywords } from "../hooks/useExtractedKeywords";
+import type { KeywordDisplayProps } from "../types";
 
-export const KeywordDisplay: React.FC<KeywordDisplayProps> = ({
-  summary,
-  onKeywordClick,
-}) => {
+export const KeywordDisplay: React.FC<KeywordDisplayProps> = ({ summary, onKeywordClick }) => {
   const { keywords, isLoading, error } = useExtractedKeywords(summary);
 
   if (isLoading) return <div>Extracting keywords...</div>;
@@ -217,10 +214,7 @@ export const KeywordDisplay: React.FC<KeywordDisplayProps> = ({
   return (
     <div>
       {keywords.map((keyword) => (
-        <button
-          key={keyword}
-          onClick={() => onKeywordClick?.(keyword)}
-        >
+        <button key={keyword} onClick={() => onKeywordClick?.(keyword)}>
           {keyword}
         </button>
       ))}
@@ -669,11 +663,13 @@ describe("myFunction", () => {
 ### If You're Stuck
 
 1. **Read the documentation:**
+
    - [ARCHITECTURE.md](./ARCHITECTURE.md) - Full architecture
    - [MODULE_BOUNDARIES.md](./MODULE_BOUNDARIES.md) - Module contracts
    - [INTEGRATION_CONSTRAINTS.md](./INTEGRATION_CONSTRAINTS.md) - Constraints
 
 2. **Check existing patterns:**
+
    - Look at similar existing modules
    - Copy the pattern, adapt for your use case
 

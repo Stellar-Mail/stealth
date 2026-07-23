@@ -110,7 +110,9 @@ describe("summarizeBulkFolderMove", () => {
   it("reports partial skips", () => {
     const result = applyBulkFolderMove(sampleMessages(), ["m1", "m2"], "drafts");
     expect(summarizeBulkFolderMove(result)).toBe(
-      `Moved 1 message to ${getMessageFolderLabel("drafts")} (1 skipped — already in ${getMessageFolderLabel("drafts")}).`,
+      `Moved 1 message to ${getMessageFolderLabel(
+        "drafts",
+      )} (1 skipped — already in ${getMessageFolderLabel("drafts")}).`,
     );
   });
 });

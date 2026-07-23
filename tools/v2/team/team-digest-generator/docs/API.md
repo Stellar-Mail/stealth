@@ -137,7 +137,7 @@ All email content must be sanitized before display. Use the `contentSanitization
 ### Email Content Sanitization
 
 ```typescript
-import { sanitizeEmailContent } from '../services/contentSanitization';
+import { sanitizeEmailContent } from "../services/contentSanitization";
 
 const htmlContent = emailBody;
 const safe = sanitizeEmailContent(htmlContent);
@@ -348,8 +348,8 @@ for (const email of emails) {
 ### Example: Digest Configuration Component
 
 ```typescript
-import { validateDigestConfig } from '@/services/inputValidation';
-import { useState } from 'react';
+import { validateDigestConfig } from "@/services/inputValidation";
+import { useState } from "react";
 
 export function DigestConfigForm() {
   const [config, setConfig] = useState(initialConfig);
@@ -370,7 +370,7 @@ export function DigestConfigForm() {
   return (
     <form onSubmit={handleSave}>
       {/* Form fields */}
-      {errors.map(err => (
+      {errors.map((err) => (
         <p key={err.field} className="error">
           {err.field}: {err.message}
         </p>
@@ -383,12 +383,12 @@ export function DigestConfigForm() {
 ### Example: Digest Preview Component
 
 ```typescript
-import { sanitizeEmailContent, sanitizeEmailSubject } from '@/services/contentSanitization';
+import { sanitizeEmailContent, sanitizeEmailSubject } from "@/services/contentSanitization";
 
 export function DigestPreview({ emails }) {
   return (
     <div>
-      {emails.map(email => (
+      {emails.map((email) => (
         <div key={email.id} className="email-preview">
           <h3>{sanitizeEmailSubject(email.subject)}</h3>
           <p className="from">{email.from}</p>

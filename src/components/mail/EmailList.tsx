@@ -393,7 +393,9 @@ export function EmailList({
                       )}
                     >
                       <img
-                        src={`https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(e.from)}&backgroundColor=1a1a1d`}
+                        src={`https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(
+                          e.from,
+                        )}&backgroundColor=1a1a1d`}
                         alt={e.from}
                         loading="lazy"
                         className="h-full w-full object-cover"

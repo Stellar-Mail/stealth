@@ -77,11 +77,11 @@ describe("useMyHook", () => {
 ### Component Test Template
 
 ```typescript
-import { render, screen } from '@testing-library/react';
-import { MyComponent } from '../../../components/MyComponent';
+import { render, screen } from "@testing-library/react";
+import { MyComponent } from "../../../components/MyComponent";
 
-describe('MyComponent', () => {
-  it('should render', () => {
+describe("MyComponent", () => {
+  it("should render", () => {
     render(<MyComponent />);
     expect(screen.getByText(/expected text/i)).toBeInTheDocument();
   });

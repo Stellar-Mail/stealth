@@ -4,19 +4,56 @@ The Email Translator helps **Individual** users translate email body content bet
 
 ## Current Status
 
-**Architecture only — implementation deferred.** This folder contains the architectural contract, module placeholders, and contributor rules. No TypeScript components, services, or hooks are implemented yet. Future issues should implement against `ARCHITECTURE.md` without modifying core application files.
+**UI Implementation Complete.** The Email Translator tool now includes:
+
+- ✅ Complete UI components with accessibility built-in
+- ✅ Translation services with mock provider
+- ✅ React hooks for state management
+- ✅ Language detection capabilities
+- ✅ Empty, loading, error, and success states
+- ✅ Keyboard navigation and screen reader support
+- ✅ Test coverage for services and components
+- ✅ Documentation for accessibility and visual style
+
+**Not yet integrated:** This tool is isolated and not wired into the main application. Future issues should handle integration following `ARCHITECTURE.md`.
 
 ## Folder Structure
 
 ```
 email-translator/
-├── ARCHITECTURE.md    # Module boundaries, data ownership, integration rules
-├── README.md          # This file
-├── components/        # EmailTranslatorShell, LanguageSelector, etc. (planned)
-├── services/          # translationProvider, translationService, languageDetector (planned)
-├── hooks/             # useTranslation, useLanguageDetect (planned)
-├── tests/             # Local unit and integration tests (planned)
-└── docs/              # Extended local documentation (planned)
+├── ARCHITECTURE.md                      # Module boundaries, data ownership, integration rules
+├── README.md                            # This file
+├── index.ts                             # Public exports
+├── components/                          # UI components
+│   ├── EmailTranslatorTool.tsx          # Main tool container
+│   ├── EmailTranslatorEmptyState.tsx    # Empty state display
+│   ├── EmailTranslatorLoadingState.tsx  # Loading state display
+│   ├── EmailTranslatorErrorState.tsx    # Error state display
+│   ├── LanguageSelector.tsx             # Language picker with keyboard nav
+│   ├── TranslationInput.tsx             # Source text input
+│   ├── TranslationOutput.tsx            # Translated text output with copy
+│   └── index.ts                         # Component exports
+├── services/                            # Business logic
+│   ├── languages.ts                     # Language definitions and utilities
+│   ├── translationProvider.ts           # Provider interface and mock implementation
+│   ├── translationService.ts            # Translation orchestration
+│   └── index.ts                         # Service exports
+├── hooks/                               # React hooks
+│   ├── useTranslation.ts                # Translation state management
+│   ├── useLanguageDetect.ts             # Auto language detection
+│   └── index.ts                         # Hook exports
+├── types/                               # TypeScript types
+│   └── index.ts                         # Type definitions
+├── tests/                               # Unit and component tests
+│   ├── translationService.test.ts       # Service tests
+│   ├── languages.test.ts                # Language utility tests
+│   └── components.test.tsx              # Component tests
+├── fixtures/                            # Test data
+│   ├── sample-emails.ts                 # Sample email content
+│   └── index.ts                         # Fixture exports
+└── docs/                                # Documentation
+    ├── ACCESSIBILITY.md                 # Accessibility implementation details
+    └── VISUAL_STYLE.md                  # Visual design documentation
 ```
 
 See [ARCHITECTURE.md](./ARCHITECTURE.md) for component, service, and hook responsibilities.

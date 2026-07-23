@@ -51,6 +51,9 @@ test.describe("postage API", () => {
       requireVerified: false,
     });
 
+    const quoteRes = await api.quotePostage(actor, sender);
+    const { data: quoteData } = await quoteRes.json();
+
     const submitRes = await page.request.post("/api/v1/postage/", {
       headers: {
         "Content-Type": "application/json",
@@ -62,6 +65,9 @@ test.describe("postage API", () => {
         paymentHash: payHash,
         recipient: actor,
         sender: sender,
+        issuedAt: quoteData.issuedAt,
+        expiresAt: quoteData.expiresAt,
+        quoteDigest: quoteData.digest,
       },
     });
     expect(submitRes.status()).toBe(201);
@@ -86,7 +92,14 @@ test.describe("postage API", () => {
     const msgId = "c".repeat(64);
     const payHash = "d".repeat(64);
 
-    await api.putPolicy(actor, { allowUnknown: true, minimumPostage: "0", requireVerified: false });
+    await api.putPolicy(actor, {
+      allowUnknown: true,
+      minimumPostage: "50",
+      requireVerified: false,
+    });
+
+    const quoteRes = await api.quotePostage(actor, sender);
+    const { data: quoteData } = await quoteRes.json();
 
     const submitRes = await page.request.post("/api/v1/postage/", {
       headers: { "Content-Type": "application/json", "x-stealth-address": sender },
@@ -96,6 +109,9 @@ test.describe("postage API", () => {
         paymentHash: payHash,
         recipient: actor,
         sender: sender,
+        issuedAt: quoteData.issuedAt,
+        expiresAt: quoteData.expiresAt,
+        quoteDigest: quoteData.digest,
       },
     });
     expect(submitRes.status()).toBe(201);
@@ -116,6 +132,9 @@ test.describe("postage API", () => {
 
     await api.putPolicy(actor, { allowUnknown: true, minimumPostage: "0", requireVerified: false });
 
+    const quoteRes = await api.quotePostage(actor, sender);
+    const { data: quoteData } = await quoteRes.json();
+
     const submitFn = () =>
       page.request.post("/api/v1/postage/", {
         headers: { "Content-Type": "application/json", "x-stealth-address": sender },
@@ -125,6 +144,9 @@ test.describe("postage API", () => {
           paymentHash: payHash,
           recipient: actor,
           sender: sender,
+          issuedAt: quoteData.issuedAt,
+          expiresAt: quoteData.expiresAt,
+          quoteDigest: quoteData.digest,
         },
       });
 
@@ -147,6 +169,9 @@ test.describe("postage API", () => {
       requireVerified: false,
     });
 
+    const quoteRes = await api.quotePostage(actor, sender);
+    const { data: quoteData } = await quoteRes.json();
+
     const res = await page.request.post("/api/v1/postage/", {
       headers: { "Content-Type": "application/json", "x-stealth-address": sender },
       data: {
@@ -155,6 +180,9 @@ test.describe("postage API", () => {
         paymentHash: payHash,
         recipient: actor,
         sender: sender,
+        issuedAt: quoteData.issuedAt,
+        expiresAt: quoteData.expiresAt,
+        quoteDigest: quoteData.digest,
       },
     });
     expect(res.status()).toBe(422);

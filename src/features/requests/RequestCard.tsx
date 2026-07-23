@@ -112,7 +112,9 @@ export function RequestCard({
               <div className="flex items-start gap-3">
                 <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full ring-1 ring-white/10">
                   <img
-                    src={`https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(email.from)}&backgroundColor=1a1a1d`}
+                    src={`https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(
+                      email.from,
+                    )}&backgroundColor=1a1a1d`}
                     alt={email.from}
                     className="h-full w-full object-cover"
                   />

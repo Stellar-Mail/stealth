@@ -10,31 +10,38 @@
 ## Automated Cases
 
 1. Urgent deadline
+
    - Given an email with a deadline today and a direct request.
    - Expect `urgent`, high confidence, and signals naming deadline plus action.
 
 2. High importance without immediate deadline
+
    - Given a direct work request due later this week.
    - Expect `high` with an explanation that avoids immediate urgency wording.
 
 3. Normal message
+
    - Given a neutral update with no direct action.
    - Expect `normal` and low-risk signals.
 
 4. Low-priority newsletter
+
    - Given newsletter/digest language and unsubscribe footer.
    - Expect `low` even if promotional urgency words appear.
 
 5. Conflicting signals
+
    - Given "urgent" in a promotional subject but FYI body content.
    - Expect `unknown` or low confidence rather than `urgent`.
 
 6. Security alert
+
    - Given account-security wording with a review request.
    - Expect `urgent` or `high` with security signal noted and no link-click
      recommendation.
 
 7. Empty content
+
    - Given missing body and vague subject.
    - Expect `unknown` with an insufficient-content warning.
 

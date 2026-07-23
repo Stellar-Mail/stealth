@@ -382,16 +382,19 @@ tests/components.test.tsx
 A future UI integration issue may add:
 
 - **React components** (`components/NoteList.tsx`, `components/NoteEditor.tsx`)
+
   - Location: `tools/v2/team/shared-contact-notes/components/`
   - Imports: `service.ts`, `types.ts`
   - No modification of main app shell or routing
 
 - **React hooks** (`hooks/useContactNotes.ts`)
+
   - Location: `tools/v2/team/shared-contact-notes/hooks/`
   - Wraps `NoteService` with React state management
   - Pure hook, no main app dependencies
 
 - **Persistence layer** (`services/storage.ts`)
+
   - Location: `tools/v2/team/shared-contact-notes/services/`
   - Syncs in-memory store to storage or API
   - Does not modify main app storage schema

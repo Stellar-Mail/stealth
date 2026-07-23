@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { requireActor } from "./actor";
-import { getApiContext } from "./context";
+import { getApiContext, type ApiContext, type ApiPrincipal } from "./context";
 import { ApiError } from "./errors";
 import { apiFailure, apiSuccess } from "./response";
 import * as metrics from "./metrics";
@@ -9,12 +9,29 @@ import { consumeRouteQuota, type RateLimitConfig } from "./rate-limit";
 
 export type { RateLimitConfig } from "./rate-limit";
 
+// Define authentication mode options
+export type AuthMode = "public" | "optional" | "required";
+
 export type RouteConfig<
   BodySchema extends z.ZodTypeAny,
   QuerySchema extends z.ZodTypeAny,
   ParamsSchema extends z.ZodTypeAny,
 > = {
+  /**
+   * Backwards-compat: legacy boolean flag. If set, it overrides `authMode`.
+   * Deprecated: prefer using `authMode` ("public" | "optional" | "required").
+   */
   requireAuth?: boolean;
+
+  /**
+   * Authentication mode for the route.
+   * - "public": No authentication performed. (default)
+   * - "optional": Authentication attempted if credentials are present.
+   * - "required": Authentication is mandatory.
+   */
+  authMode?: AuthMode; // defaults to "public"
+  /** Optional authorization policy function. Return true to allow, false to reject. */
+  authPolicy?: (actorId: string, request: Request) => boolean | Promise<boolean>;
   rateLimit?: RateLimitConfig;
   bodySchema?: BodySchema;
   querySchema?: QuerySchema;
@@ -22,6 +39,8 @@ export type RouteConfig<
   cacheSeconds?: number;
   handler: (context: {
     request: Request;
+    apiContext: ApiContext;
+    principal?: ApiPrincipal;
     actorId?: string;
     body: z.infer<BodySchema>;
     query: z.infer<QuerySchema>;
@@ -43,14 +62,41 @@ export function createRouteHandler<
     let actorId: string | undefined;
 
     try {
-      // 1. Authentication
-      if (config.requireAuth) {
-        actorId = requireActor(request);
+      // 0. Resolve request-scoped ApiContext
+      const apiContext = await getApiContext(request);
+
+      // 1. Authentication based on authMode (new) and legacy requireAuth (old)
+      let mode: AuthMode = "public";
+      if (typeof config.requireAuth === "boolean") {
+        mode = config.requireAuth ? "required" : "public";
+      } else if (config.authMode) {
+        mode = config.authMode;
+      }
+      if (mode === "required") {
+        actorId = requireActor(apiContext);
+      } else if (mode === "optional") {
+        try {
+          actorId = requireActor(apiContext);
+        } catch (_) {
+          actorId = undefined;
+        }
+      } // "public" leaves actorId undefined
+
+      // 2. Authorization policy if provided
+      if (config.authPolicy) {
+        // If policy requires an authenticated actor but none is present, fail closed
+        if (!actorId) {
+          throw new ApiError(401, "unauthorized", "Authentication required for policy evaluation");
+        }
+        const authorized = await Promise.resolve(config.authPolicy(actorId, request));
+        if (!authorized) {
+          throw new ApiError(403, "forbidden", "Authorization policy rejected the request");
+        }
       }
 
-      // 2. Rate Limiting
+      // 3. Rate Limiting
       if (config.rateLimit) {
-        const { repository: repo } = await getApiContext();
+        const repo = apiContext.repository;
         let subject: string;
         if (config.rateLimit.type === "account") {
           if (!actorId) {
@@ -82,7 +128,7 @@ export function createRouteHandler<
         }
       }
 
-      // 3. Validation
+      // 4. Validation
       let parsedBody: any = undefined;
       let parsedQuery: any = undefined;
       let parsedParams: any = undefined;
@@ -108,23 +154,25 @@ export function createRouteHandler<
         parsedParams = result.data;
       }
 
-      // 4. Execute Route
+      // 5. Execute Route
       let response = await config.handler({
         request,
+        apiContext,
+        principal: apiContext.isAuthenticated ? apiContext.principal : undefined,
         actorId,
         body: parsedBody,
         query: parsedQuery,
         params: parsedParams,
       });
 
-      // 5. Caching
+      // 6. Caching
       if (config.cacheSeconds && response.status === 200) {
         // Need to create a new response to mutate headers if it's from a factory
         response = new Response(response.body, response);
         response.headers.set("Cache-Control", `public, max-age=${config.cacheSeconds}`);
       }
 
-      // 6. Success Metrics & Logs
+      // 7. Success Metrics & Logs
       const latency = performance.now() - startTime;
       metrics.recordHistogram("api_latency", latency, {
         method,
@@ -141,7 +189,7 @@ export function createRouteHandler<
 
       return response;
     } catch (error: any) {
-      // 7. Error Metrics & Logs
+      // 8. Error Metrics & Logs
       const latency = performance.now() - startTime;
       const status = error instanceof ApiError ? error.status : 500;
 

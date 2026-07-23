@@ -117,7 +117,10 @@ export function normalizeMimeType(mimeType: string): string {
 export function generateAttachmentId(filename: string, mimeType: string): string {
   const timestamp = Date.now();
   const random = Math.random().toString(36).substring(2, 9);
-  return `${sanitizeFileName(filename).replace(/\W/g, "_")}_${normalizeMimeType(mimeType).replace(/\//g, "_")}_${timestamp}_${random}`;
+  return `${sanitizeFileName(filename).replace(/\W/g, "_")}_${normalizeMimeType(mimeType).replace(
+    /\//g,
+    "_",
+  )}_${timestamp}_${random}`;
 }
 
 /**
@@ -340,7 +343,9 @@ export async function extractAttachments(
     errors.push({
       filename: "batch",
       reason: "batch_too_large",
-      message: `Batch size ${formatFileSize(totalInputSize)} exceeds ${formatFileSize(maxTotalSize)}`,
+      message: `Batch size ${formatFileSize(totalInputSize)} exceeds ${formatFileSize(
+        maxTotalSize,
+      )}`,
     });
     return { success: false, attachments, errors, stats: calculateStats(attachments, errors) };
   }

@@ -40,11 +40,13 @@ if (rawIdempotencyKey) {
 **Test Coverage** (from `tests/unit/api/postage-settlement-idempotency.test.ts`):
 
 1. **Retry after success**:
+
    - `"handles retry after successful settlement (same idempotency key)"`
    - Verifies replayed response matches original
    - Confirms no double-settlement occurs
 
 2. **Retry after terminal state**:
+
    - `"returns deterministic error when settling already-settled postage"`
    - `"returns deterministic error when settling already-refunded postage"`
    - `"handles retry after terminal-state error (same idempotency key)"`
@@ -100,11 +102,13 @@ if (postage.status !== "pending") {
 ### Files Modified
 
 1. **`src/routes/api/v1/postage/$messageId/settle.ts`**
+
    - Added idempotency key handling
    - Implemented response caching and replay
    - Added comprehensive documentation
 
 2. **`src/server/api/postage-service.ts`**
+
    - Enhanced `resolvePostage` with detailed error messages
    - Improved terminal state explanations
 
@@ -114,11 +118,13 @@ if (postage.status !== "pending") {
 ### Files Created
 
 1. **`tests/unit/api/postage-settlement-idempotency.test.ts`**
+
    - 17 comprehensive test cases
    - Covers all retry scenarios
    - Validates actor isolation and security
 
 2. **`docs/api/SETTLEMENT_IDEMPOTENCY.md`**
+
    - Complete idempotency documentation
    - Request flow diagrams
    - Client best practices
@@ -157,6 +163,7 @@ if (postage.status !== "pending") {
 ## Commits
 
 1. **f607e2c8** - `feat: add idempotency support to postage settlement endpoint`
+
    - Core implementation
    - Test suite
    - Error message improvements

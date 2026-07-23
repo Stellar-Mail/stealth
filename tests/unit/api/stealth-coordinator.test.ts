@@ -14,7 +14,7 @@ vi.mock("cloudflare:workers", () => {
 });
 
 import { StealthCoordinator } from "../../../src/server/api/stealth-coordinator";
-import type { IdempotencyRecord, Postage } from "../../../src/server/api/domain";
+import type { IdempotencyRecord, Postage, Receipt } from "../../../src/server/api/domain";
 
 class MockDurableObjectState {
   public id = { toString: () => "mock-do-id" };
@@ -43,8 +43,10 @@ describe("StealthCoordinator - Durable Object Operations", () => {
 
   it("handles idempotency records", async () => {
     const record: IdempotencyRecord = {
+      state: "completed",
       body: { ok: true },
       createdAt: new Date().toISOString(),
+      completedAt: new Date().toISOString(),
       status: 201,
     };
 
@@ -78,6 +80,55 @@ describe("StealthCoordinator - Durable Object Operations", () => {
     expect(await coordinator.getCounter("limiter-1")).toBe(2);
 
     dateSpy.mockRestore();
+  });
+
+  it("creates receipts once and replays duplicate deliveries", async () => {
+    const receipt: Receipt = {
+      deliveredAt: "2026-06-14T12:00:00.000Z",
+      messageId: "a".repeat(64),
+      readAt: null,
+      recipient: `G${"A".repeat(55)}`,
+      sender: `G${"B".repeat(55)}`,
+    };
+    const duplicate = { ...receipt, deliveredAt: "2026-06-14T12:05:00.000Z" };
+
+    await expect(coordinator.createReceiptIfAbsent(receipt)).resolves.toEqual({
+      created: true,
+      receipt,
+    });
+    await expect(coordinator.createReceiptIfAbsent(duplicate)).resolves.toEqual({
+      created: false,
+      receipt,
+    });
+    await expect(coordinator.getReceipt(receipt.messageId)).resolves.toEqual(receipt);
+  });
+
+  it("marks receipts read once and replays duplicate reads", async () => {
+    const receipt: Receipt = {
+      deliveredAt: "2026-06-14T12:00:00.000Z",
+      messageId: "b".repeat(64),
+      readAt: null,
+      recipient: `G${"A".repeat(55)}`,
+      sender: `G${"B".repeat(55)}`,
+    };
+    const expected = { ...receipt, readAt: "2026-06-14T12:30:00.000Z" };
+
+    await coordinator.setReceipt(receipt);
+
+    await expect(
+      coordinator.markReceiptRead(
+        receipt.messageId,
+        receipt.recipient,
+        new Date("2026-06-14T12:30:00.000Z"),
+      ),
+    ).resolves.toEqual({ outcome: "marked", receipt: expected });
+    await expect(
+      coordinator.markReceiptRead(
+        receipt.messageId,
+        receipt.recipient,
+        new Date("2026-06-14T12:45:00.000Z"),
+      ),
+    ).resolves.toEqual({ outcome: "already-read", readAt: expected.readAt });
   });
 
   describe("postage settlement transitions", () => {

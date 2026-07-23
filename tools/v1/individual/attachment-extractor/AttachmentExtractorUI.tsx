@@ -114,7 +114,9 @@ export function AttachmentExtractorUI({ options, onFilesExtracted }: AttachmentE
         <div className="toolbar">
           <div className="toolbar-left">
             <button
-              className={`toolbar-button ${isAllSelected ? "active" : ""} ${isSomeSelected ? "indeterminate" : ""}`}
+              className={`toolbar-button ${isAllSelected ? "active" : ""} ${
+                isSomeSelected ? "indeterminate" : ""
+              }`}
               onClick={() => (isAllSelected ? deselectAll() : selectAll())}
               title={isAllSelected ? "Deselect all" : "Select all"}
             >

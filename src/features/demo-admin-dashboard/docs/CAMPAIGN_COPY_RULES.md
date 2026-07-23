@@ -16,17 +16,20 @@ journal campaign status, review readiness, and task context.
 ## Rules for demo message copy
 
 1. Use simple, direct language.
+
    - Subject lines should summarize the message in 6–10 words.
    - Body text should answer "who, what, why, next step" clearly.
    - Avoid jargon, slang, or overly promotional phrasing.
 
 2. Keep content safe and deterministic.
+
    - All recipients must use `example.com`, `example.org`, or `*.stealth.demo`.
    - No real user names, real organisations, PII, secrets, private keys, or
      live network references.
    - All fixture values must be hardcoded constants.
 
 3. Structure longer content for readability.
+
    - Use short paragraphs, bullet lists, or labeled sections when helpful.
    - Avoid large blocks of text in demo bodies.
    - Prefer a positive, helpful tone that supports the demo scenario.
@@ -39,16 +42,19 @@ journal campaign status, review readiness, and task context.
 ## Rules for internal notes
 
 1. Write internal notes as concise status summaries.
+
    - Focus on campaign readiness, review status, or follow-up tasks.
    - Keep each note short and factual.
    - Avoid editorial language that is unrelated to the review context.
 
 2. Use plain language and clear context.
+
    - Describe what changed, why it matters, and what happens next.
    - Use consistent labels like "status", "next step", and "review".
    - Keep the tone neutral and purposeful.
 
 3. Avoid sensitive or private details.
+
    - Do not include real project secrets, live endpoints, or user-identifying
      details.
    - Internal notes should be safe for a demo admin surface and public review.

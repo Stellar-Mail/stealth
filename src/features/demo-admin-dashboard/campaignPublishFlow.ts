@@ -204,7 +204,9 @@ export function rollbackCampaignPublish(result: MockPublishResult): RollbackPlan
     summary:
       steps.length === 0
         ? "Nothing to roll back; no stages completed."
-        : `Roll back ${steps.length} completed stage${steps.length === 1 ? "" : "s"} for campaign ${result.campaignId}.`,
+        : `Roll back ${steps.length} completed stage${steps.length === 1 ? "" : "s"} for campaign ${
+            result.campaignId
+          }.`,
   };
 }
 
@@ -216,7 +218,9 @@ export function summarizePublishResult(result: MockPublishResult): string {
   if (result.status === "in-progress") {
     return `Publishing campaign ${result.campaignId} (${result.overallProgress}% complete).`;
   }
-  return `Published ${result.publishedDraftCount} draft${result.publishedDraftCount === 1 ? "" : "s"} for campaign ${result.campaignId}.`;
+  return `Published ${result.publishedDraftCount} draft${
+    result.publishedDraftCount === 1 ? "" : "s"
+  } for campaign ${result.campaignId}.`;
 }
 
 function describeCompletedStage(id: PublishStageId, draftCount: number): string {

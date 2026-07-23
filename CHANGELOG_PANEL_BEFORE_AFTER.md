@@ -402,17 +402,20 @@ ChangelogPanel
 ### WCAG Compliance Improvements
 
 1. **Semantic HTML**
+
    - `<article>` for entries
    - `<section>` for groups
    - `<time>` for dates
    - `<h3>`, `<h4>`, `<h5>` for headings
 
 2. **Keyboard Navigation**
+
    - `focus-visible:ring-1 focus-visible:ring-ring` on interactive elements
    - Proper button component for links
    - Tab order naturally follows DOM
 
 3. **Screen Reader Support**
+
    - `aria-label` on visual indicators
    - `title` attributes for tooltips
    - Semantic elements provide context

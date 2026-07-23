@@ -40,4 +40,12 @@ describe("OpenAPI document", () => {
     expect(openApiDocument.paths["/policies/{owner}"].get).not.toHaveProperty("security");
     expect(openApiDocument.paths["/postage/quote"].post).not.toHaveProperty("security");
   });
+
+  it("preserves the backwards-compatible default response on every operation", () => {
+    for (const path of Object.values(openApiDocument.paths)) {
+      for (const operation of Object.values(path)) {
+        expect(operation.responses).toHaveProperty("default");
+      }
+    }
+  });
 });
