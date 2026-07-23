@@ -15,6 +15,7 @@
 
 import { verifyCommitment } from "./commitment";
 import { recordCryptoTelemetry, type CryptoResultCode } from "./telemetry";
+import { canonicalizeAttachmentDescriptors } from "./attachment-metadata";
 
 /** Minimal non-secret error carrying a stable code (no key/plaintext leakage). */
 export class OpenEnvelopeError extends Error {
@@ -213,27 +214,7 @@ export async function openEnvelope(
       throw new OpenEnvelopeError("recipient key unavailable", "crypto_decryption_error");
     }
 
-    const iv = fromHex(nonceHex);
-    const ivCopy = new Uint8Array(new ArrayBuffer(iv.length));
-    ivCopy.set(iv);
-    const ctCopy = new Uint8Array(new ArrayBuffer(ciphertext.length));
-    ctCopy.set(ciphertext);
-
-    // Decrypt the full ciphertext (Web Crypto verifies the trailing GCM tag and
-    // fails closed on tamper or wrong key).
-    let decrypted: ArrayBuffer;
-    try {
-      decrypted = await crypto.subtle.decrypt({ name: "AES-GCM", iv: ivCopy }, key, ctCopy);
-    } catch {
-      throw new OpenEnvelopeError(
-        "decryption failed (wrong key or tampered)",
-        "crypto_decryption_error",
-      );
-    }
-
-    const body = new TextDecoder().decode(new Uint8Array(decrypted));
-
-    const attachments = Array.isArray(payload.attachments)
+    const parsedAttachments = Array.isArray(payload.attachments)
       ? payload.attachments.map((a) => ({
           filename: str((a as { filename?: unknown }).filename, "attachment.filename"),
           content_type: str(
@@ -250,12 +231,38 @@ export async function openEnvelope(
         }))
       : [];
 
+    const aad = canonicalizeAttachmentDescriptors(parsedAttachments);
+
+    const iv = fromHex(nonceHex);
+    const ivCopy = new Uint8Array(new ArrayBuffer(iv.length));
+    ivCopy.set(iv);
+    const ctCopy = new Uint8Array(new ArrayBuffer(ciphertext.length));
+    ctCopy.set(ciphertext);
+
+    // Decrypt the full ciphertext (Web Crypto verifies the trailing GCM tag and
+    // fails closed on tamper or wrong key).
+    let decrypted: ArrayBuffer;
+    try {
+      decrypted = await crypto.subtle.decrypt(
+        { name: "AES-GCM", iv: ivCopy, additionalData: aad as BufferSource },
+        key,
+        ctCopy,
+      );
+    } catch {
+      throw new OpenEnvelopeError(
+        "decryption failed (wrong key or tampered)",
+        "crypto_decryption_error",
+      );
+    }
+
+    const body = new TextDecoder().decode(new Uint8Array(decrypted));
+
     return {
       sender,
       recipient,
       timestamp,
       body,
-      attachments,
+      attachments: parsedAttachments,
       recipientKeyId,
       senderKeyId,
     };
