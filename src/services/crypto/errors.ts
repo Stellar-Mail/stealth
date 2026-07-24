@@ -10,6 +10,7 @@
 export type CryptoErrorCode =
   | "crypto_parse_error"
   | "crypto_validation_error"
+  | "crypto_version_error"
   | "crypto_algorithm_error"
   | "crypto_key_error"
   | "crypto_signature_error"
@@ -32,6 +33,11 @@ export const CRYPTO_ERROR_REGISTRY: Record<CryptoErrorCode, CryptoErrorDefinitio
   crypto_validation_error: {
     code: "crypto_validation_error",
     publicMessage: "The envelope failed input validation",
+    safe: true,
+  },
+  crypto_version_error: {
+    code: "crypto_version_error",
+    publicMessage: "The envelope version is unsupported",
     safe: true,
   },
   crypto_algorithm_error: {

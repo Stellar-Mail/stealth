@@ -20,7 +20,8 @@ export const Route = createFileRoute("/api/v1/policies/evaluate")({
       POST: ({ request }) =>
         handleApiRequest(request, async () => {
           const input = await parseJsonBody(request, evaluationSchema);
-          const result = await evaluateMailboxPolicy((await getApiContext()).repository, input);
+          const context = await getApiContext(request);
+          const result = await evaluateMailboxPolicy(context.repository, input);
 
           const reasonMessages: Record<string, string> = {
             sender_allowed: "Sender is explicitly allowed by the recipient.",
@@ -35,6 +36,8 @@ export const Route = createFileRoute("/api/v1/policies/evaluate")({
             allowed: result.allowed,
             reasonCode: result.reason,
             message: reasonMessages[result.reason] ?? "Unknown policy evaluation result.",
+            source: result.source ?? "default",
+            rule: result.rule ?? "default",
           };
 
           return apiSuccess(request, decision);

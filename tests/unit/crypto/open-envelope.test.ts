@@ -122,6 +122,42 @@ describe("openEnvelope decryption (#1685)", () => {
     expect((err as OpenEnvelopeError).code).toBe("crypto_version_error");
   });
 
+  it("rejects an unsupported algorithm", async () => {
+    const key = await crypto.subtle.generateKey({ name: "AES-GCM", length: 256 }, true, [
+      "encrypt",
+      "decrypt",
+    ]);
+    const env = await buildEnvelope("x", key, "GABC");
+    const bad = {
+      ...env,
+      payload: {
+        ...env.payload,
+        encryption_metadata: { ...env.payload.encryption_metadata, algorithm: "AES-128-GCM" },
+      },
+    };
+    const err = await openEnvelope(bad, keyProviderFor(key)).catch((e) => e);
+    expect(err).toBeInstanceOf(OpenEnvelopeError);
+    expect((err as OpenEnvelopeError).code).toBe("crypto_validation_error");
+  });
+
+  it("rejects an unknown algorithm", async () => {
+    const key = await crypto.subtle.generateKey({ name: "AES-GCM", length: 256 }, true, [
+      "encrypt",
+      "decrypt",
+    ]);
+    const env = await buildEnvelope("x", key, "GABC");
+    const bad = {
+      ...env,
+      payload: {
+        ...env.payload,
+        encryption_metadata: { ...env.payload.encryption_metadata, algorithm: "ROT13" },
+      },
+    };
+    const err = await openEnvelope(bad, keyProviderFor(key)).catch((e) => e);
+    expect(err).toBeInstanceOf(OpenEnvelopeError);
+    expect((err as OpenEnvelopeError).code).toBe("crypto_validation_error");
+  });
+
   it("rejects a malformed envelope (missing fields)", async () => {
     const key = await crypto.subtle.generateKey({ name: "AES-GCM", length: 256 }, true, [
       "encrypt",

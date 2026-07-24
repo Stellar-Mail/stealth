@@ -1,6 +1,3 @@
-// Project Mail Binder — module entry point
-// All exports are local to this tool folder.
-
 export { ProjectMailBinder } from "./components";
 export type {
   BinderProject,
@@ -13,6 +10,24 @@ export type {
   ProjectId,
   MailId,
   ProjectColor,
+  BinderErrorCode,
+  BinderError,
+  BinderResult,
+  CreateProjectInput,
+  CreateProjectOutput,
+  DeleteProjectInput,
+  DeleteProjectOutput,
+  BindMailInput,
+  BindMailOutput,
+  UnbindMailInput,
+  UnbindMailOutput,
+  AutoBindInputEmail,
+  AutoBindInput,
+  AutoBindOutput,
+  IBinderBackendService,
+  Project,
+  AutoBindingRule,
+  ProjectMailBinding,
 } from "./types";
 export { isEmptyState, isLoadingState, isErrorState, isSuccessState, A11Y } from "./types";
 export {
@@ -23,6 +38,15 @@ export {
   errorState,
   successState,
   stateByName,
+  validCreateProjectInputFixture,
+  validBindMailInputFixture,
+  validAutoBindInputFixture,
+  invalidCreateInputEmptyNameFixture,
+  invalidCreateInputColorFixture,
+  notFoundProjectIdFixture,
+  notFoundMailIdFixture,
+  duplicateProjectInputFixture,
+  invalidStateErrorFixture,
 } from "./fixtures/projects";
 
 // Core logic exports
@@ -30,3 +54,5 @@ export { createProject, deleteProject, bindMail, unbindMail } from "./core";
 export type { CreateProjectParams, BindMailParams, CoreDeps } from "./core";
 
 export { LocalBinderService } from "./service";
+export { ProjectBinderService } from "./services/projectBinderService";
+export { ProjectMailBinderBackendService } from "./services/binderBackendService";
