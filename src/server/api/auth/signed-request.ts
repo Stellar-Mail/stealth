@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { computeBodyHash } from "./bodyHash";
 
 export const SIGNED_REQUEST_VERSION = "STEALTH-AUTH-V1";
 export const SIGNED_REQUEST_MAX_AGE_MS = 5 * 60 * 1000;
@@ -42,7 +42,7 @@ export function canonicalizeSignedRequest(input: SignedRequestInput): string {
   const signedHeaders = SIGNED_REQUEST_HEADERS.map(
     (name) => `${name}:${requiredHeader(input.headers, name)}`,
   ).join("\n");
-  const bodyHash = createHash("sha256").update(input.body, "utf8").digest("hex");
+  const bodyHash = computeBodyHash(input.body);
 
   return [
     SIGNED_REQUEST_VERSION,

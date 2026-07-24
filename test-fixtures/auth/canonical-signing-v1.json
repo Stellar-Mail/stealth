@@ -1,0 +1,38 @@
+{
+  "version": "v1",
+  "audience": "remitflow-api",
+  "now": "2026-07-23T00:00:00.000Z",
+  "fixtures": [
+    {
+      "name": "valid_post_request",
+      "version": "v1",
+      "method": "POST",
+      "route": "/api/auth/login",
+      "body": { "username": "alice", "role": "admin" },
+      "nonce": "nonce-abc-123",
+      "issuedAt": "2026-07-23T00:00:00.000Z",
+      "audience": "remitflow-api",
+      "expectedCanonical": "v1\nPOST\n/api/auth/login\n475f0f9600f0efc50029867287851d7f9db84dc5416c4fc307d6473cb868e010\nnonce=nonce-abc-123\niat=2026-07-23T00:00:00.000Z\naud=remitflow-api"
+    },
+    {
+      "name": "equivalent_key_ordering_1",
+      "body": { "a": 1, "b": 2 },
+      "expectedBodyHash": "43258cff783fe7036d8a43033f830adfc60ec037382473548ac742b888292777"
+    },
+    {
+      "name": "equivalent_key_ordering_2",
+      "body": { "b": 2, "a": 1 },
+      "expectedBodyHash": "43258cff783fe7036d8a43033f830adfc60ec037382473548ac742b888292777"
+    },
+    {
+      "name": "empty_body_hash",
+      "body": "",
+      "expectedBodyHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "route_canonicalization_trailing_slash",
+      "route": "/auth/login/",
+      "expectedRoute": "/auth/login"
+    }
+  ]
+}
