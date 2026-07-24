@@ -24,9 +24,17 @@ export class HybridApiRepository implements ApiRepository {
     return (policy as MailboxPolicy) ?? null;
   }
 
-  async setPolicy(owner: string, policy: MailboxPolicy): Promise<MailboxPolicy> {
-    await this.kv.put(this.key("policy", owner), JSON.stringify(policy));
-    return policy;
+  async setPolicy(
+    owner: string,
+    policy: MailboxPolicy,
+    expectedVersion?: string,
+  ): Promise<MailboxPolicy> {
+    const nextVersion = crypto.randomUUID();
+    const key = this.key("policy", owner);
+    await this.getStub().checkAndSetVersion(key, expectedVersion, nextVersion);
+    const updated = { ...policy, version: nextVersion };
+    await this.kv.put(key, JSON.stringify(updated));
+    return updated;
   }
 
   async getSenderRule(owner: string, sender: string): Promise<SenderRule> {
@@ -49,14 +57,14 @@ export class HybridApiRepository implements ApiRepository {
     return (postage as Postage) ?? null;
   }
 
-  async setPostage(postage: Postage): Promise<Postage> {
-    await this.kv.put(this.key("postage", postage.messageId), JSON.stringify(postage));
-    // Mirror into the coordinator, whose transactional storage is the
-    // source of truth for settlement transitions (see transitionPostage).
-    // KV alone cannot provide the compare-and-swap guarantee settlement
-    // needs, since Workers KV writes are not atomic or strongly consistent.
-    await this.getStub().setPostage(postage);
-    return postage;
+  async setPostage(postage: Postage, expectedVersion?: string): Promise<Postage> {
+    const nextVersion = crypto.randomUUID();
+    const key = this.key("postage", postage.messageId);
+    await this.getStub().checkAndSetVersion(key, expectedVersion, nextVersion);
+    const updated = { ...postage, version: nextVersion };
+    await this.getStub().setPostage?.(updated);
+    await this.kv.put(key, JSON.stringify(updated));
+    return updated;
   }
 
   // Settling/refunding postage must be atomic: two concurrent requests
@@ -99,10 +107,13 @@ export class HybridApiRepository implements ApiRepository {
     return receipt as Receipt;
   }
 
-  async setReceipt(receipt: Receipt): Promise<Receipt> {
-    await this.getStub().setReceipt(receipt);
-    await this.kv.put(this.key("receipt", receipt.messageId), JSON.stringify(receipt));
-    return receipt;
+  async setReceipt(receipt: Receipt, expectedVersion?: string): Promise<Receipt> {
+    const nextVersion = crypto.randomUUID();
+    const key = this.key("receipt", receipt.messageId);
+    await this.getStub().checkAndSetVersion(key, expectedVersion, nextVersion);
+    const updated = { ...receipt, version: nextVersion };
+    await this.kv.put(key, JSON.stringify(updated));
+    return updated;
   }
 
   async createReceiptIfAbsent(receipt: Receipt): Promise<{ created: boolean; receipt: Receipt }> {
