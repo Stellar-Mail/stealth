@@ -8,13 +8,7 @@
 import { Compose } from "@/components/mail/Compose";
 
 export function MailUI() {
-  return (
-    <Compose
-      open={true}
-      onClose={() => {}}
-      blockedRecipients={["blocked@example.com"]}
-    />
-  );
+  return <Compose open={true} onClose={() => {}} blockedRecipients={["blocked@example.com"]} />;
 }
 ```
 
@@ -32,22 +26,26 @@ const context: RecipientResolutionContext = {
   // Resolve from local contact database
   resolveContact: async (input: string) => {
     const contact = await contactDB.query(input);
-    return contact ? {
-      id: contact.id,
-      name: contact.name,
-      address: contact.address,
-      publicKey: contact.encryptionKey,
-      trusted: contact.isTrusted,
-    } : null;
+    return contact
+      ? {
+          id: contact.id,
+          name: contact.name,
+          address: contact.address,
+          publicKey: contact.encryptionKey,
+          trusted: contact.isTrusted,
+        }
+      : null;
   },
 
   // Resolve federation addresses (alice*stellar.org)
   resolveFederation: async (address: string) => {
     const result = await stellarFederation.resolve(address);
-    return result ? {
-      publicKey: result.accountId,
-      domain: result.domain,
-    } : null;
+    return result
+      ? {
+          publicKey: result.accountId,
+          domain: result.domain,
+        }
+      : null;
   },
 
   // Check if recipient is blocked

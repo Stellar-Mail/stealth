@@ -15,10 +15,8 @@ Recommended internal structure:
 - components/
 - services/
 - hooks/
--     ests/
+- tests/
 - docs/
-  "@ | Set-Content -Path "tools/v2/team/stellar-team-payout-request/README.md"
-  @"
 
 # Stellar Team Payout Request Specs
 

@@ -22,6 +22,7 @@ import {
   setSenderRule,
 } from "../../../src/server/api/policy-service";
 import { submitPostage, resolvePostage } from "../../../src/server/api/postage-service";
+import { createApiContext } from "../../../src/server/api/context";
 import { createDeliveryReceipt, markReceiptRead } from "../../../src/server/api/receipt-service";
 import { ApiError } from "../../../src/server/api/errors";
 import type { MailboxPolicy, SenderRule } from "../../../src/server/api/domain";
@@ -165,11 +166,11 @@ describe("postage_states", () => {
       for (const op of c.operations) {
         try {
           if (op === "submit") {
-            lastResult = await submitPostage(repo, postageInput, submitAt);
+            lastResult = await submitPostage(createApiContext(repo), postageInput, submitAt);
           } else if (op === "settle") {
-            lastResult = await resolvePostage(repo, f.messageId, "settled");
+            lastResult = await resolvePostage(createApiContext(repo), f.messageId, "settled");
           } else if (op === "refund") {
-            lastResult = await resolvePostage(repo, f.messageId, "refunded");
+            lastResult = await resolvePostage(createApiContext(repo), f.messageId, "refunded");
           }
         } catch (err) {
           caughtError = err;
@@ -229,7 +230,7 @@ describe("receipts", () => {
           if (op === "deliver") {
             lastResult = await createDeliveryReceipt(repo, receiptInput, deliverAt);
           } else if (op === "read") {
-            lastResult = await markReceiptRead(repo, f.messageId, readAt);
+            lastResult = await markReceiptRead(repo, f.messageId, f.recipient, readAt);
           }
         } catch (err) {
           caughtError = err;
@@ -287,13 +288,14 @@ describe("tampered", () => {
 
 import { Route } from "../../../src/routes/api/v1/postage/index";
 import { getApiContext } from "../../../src/server/api/context";
+import { signQuote } from "../../../src/server/api/postage-service";
 
 describe("relay_submission", () => {
   const handler = (Route.options as any).server?.handlers?.POST;
 
   for (const c of (vectors.categories as any).relay_submission.cases) {
     it(c.id, async () => {
-      const context = getApiContext();
+      const context = await getApiContext();
       (context.repository as any).reset();
 
       // For the policy block case, we need to pre-configure a blocked rule.
@@ -310,13 +312,26 @@ describe("relay_submission", () => {
           requireVerified: false,
         });
 
+        const payload = {
+          ...c.input,
+          issuedAt: new Date().toISOString(),
+          expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+        };
+        payload.quoteDigest = signQuote(
+          payload.recipient || "",
+          payload.sender || "",
+          payload.amount || "0",
+          payload.issuedAt,
+          payload.expiresAt,
+        );
+
         const req1 = new Request("https://stealth.test/api/v1/postage", {
           method: "POST",
           headers: {
             "content-type": "application/json",
             ...c.headers,
           },
-          body: JSON.stringify(c.input),
+          body: JSON.stringify(payload),
         });
         const res1 = await handler!({ request: req1 });
         expect(res1.status).toBe(201);
@@ -330,7 +345,7 @@ describe("relay_submission", () => {
             "content-type": "application/json",
             ...c.headers,
           },
-          body: JSON.stringify(c.input),
+          body: JSON.stringify(payload),
         });
         const res2 = await handler!({ request: req2 });
         expect(res2.status).toBe(201);
@@ -338,13 +353,26 @@ describe("relay_submission", () => {
         const body2 = await res2.json();
         expect(body2.data).toEqual(body1.data);
       } else {
+        const payload = {
+          ...c.input,
+          issuedAt: new Date().toISOString(),
+          expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+        };
+        payload.quoteDigest = signQuote(
+          payload.recipient || "",
+          payload.sender || "",
+          payload.amount || "0",
+          payload.issuedAt,
+          payload.expiresAt,
+        );
+
         const req = new Request("https://stealth.test/api/v1/postage", {
           method: "POST",
           headers: {
             "content-type": "application/json",
             ...c.headers,
           },
-          body: JSON.stringify(c.input),
+          body: JSON.stringify(payload),
         });
         const res = await handler!({ request: req });
         expect(res.status).toBe(c.expected.status);

@@ -346,7 +346,9 @@ function emitClient(spec, contractName, xdrBase64Entries) {
       lines.push(`export async function ${camelCase(fn.name)}(`);
       lines.push(`  ${fullParamList}`);
       lines.push(
-        `): Promise<contract.Ok<${ok === "void" ? "void" : ok}> | contract.Err<{ message: string }>> {`,
+        `): Promise<contract.Ok<${
+          ok === "void" ? "void" : ok
+        }> | contract.Err<{ message: string }>> {`,
       );
     } else {
       lines.push(`export async function ${camelCase(fn.name)}(`);

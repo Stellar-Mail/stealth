@@ -19,7 +19,7 @@ import { taskBoardExecutor } from "./services/task-board-execution.service.mjs";
 // or construct your own with dependency injection:
 import { createTaskBoardExecutor } from "./services/task-board-execution.service.mjs";
 
-const result = taskBoardExecutor.createTaskFromEmail({ email, context? });
+const result = taskBoardExecutor.createTaskFromEmail({ email, context });
 ```
 
 `createTaskBoardExecutor({ extract })` returns `{ createTaskFromEmail, extractTaskFromEmail, groupTasksByStatus }`. It is dependency-injected: pass a custom `extract` function to swap the heuristic for tests/automation. The singleton `taskBoardExecutor` is pre-bound to the built-in extraction logic.

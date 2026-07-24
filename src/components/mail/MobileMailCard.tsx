@@ -63,7 +63,9 @@ export function MobileMailCard({
           <div className="relative shrink-0">
             <div className="h-9 w-9 overflow-hidden rounded-full ring-1 ring-white/15 shadow-[0_8px_18px_-12px_rgba(0,0,0,0.9)]">
               <img
-                src={`https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(email.from)}&backgroundColor=1a1a1d`}
+                src={`https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(
+                  email.from,
+                )}&backgroundColor=1a1a1d`}
                 alt={email.from}
                 loading="lazy"
                 className="h-full w-full object-cover"

@@ -90,6 +90,11 @@ pub enum Error {
 
 #[contractimpl]
 impl PoliciesContract {
+    /// Sets the mailbox policy and emits a `policy` event.
+    ///
+    /// Event topics are `("policy", owner)` and data is
+    /// `VersionedMailboxPolicy { policy, version }`. The version is the
+    /// post-mutation policy version.
     pub fn set_policy(env: Env, owner: Address, policy: MailboxPolicy) -> Result<(), Error> {
         Self::set_policy_as(env, owner.clone(), owner, policy)
     }
@@ -136,6 +141,11 @@ impl PoliciesContract {
             .unwrap_or(0)
     }
 
+    /// Sets or revokes a delegate scope and emits a `delegate` event.
+    ///
+    /// Event topics are `("delegate", owner, delegate)` and data is the
+    /// requested `DelegateScope`. Both scope flags being false represents
+    /// revocation. Delegate changes do not increment the policy version.
     pub fn set_delegate(
         env: Env,
         owner: Address,
@@ -164,6 +174,11 @@ impl PoliciesContract {
             })
     }
 
+    /// Sets or clears a sender rule and emits a `sender` event.
+    ///
+    /// Event topics are `("sender", owner, sender)` and data is
+    /// `(rule, version)`. `SenderRule::Default` represents clearing an
+    /// explicit rule. The version is the post-mutation policy version.
     pub fn set_sender_rule(
         env: Env,
         owner: Address,
@@ -196,6 +211,11 @@ impl PoliciesContract {
         Ok(())
     }
 
+    /// Sets sender-specific minimum postage and emits a `tier` event.
+    ///
+    /// Event topics are `("tier", owner, sender)` and data is
+    /// `(minimum_postage, version)`. The version is the post-mutation policy
+    /// version.
     pub fn set_sender_tier(
         env: Env,
         owner: Address,
@@ -389,6 +409,121 @@ impl PoliciesContract {
             .persistent()
             .set(&DataKey::PolicyVersion(owner.clone()), &version);
         version
+    }
+}
+
+#[cfg(test)]
+mod event_schema {
+    // Ledger indexers decode these raw events, so topic order and payload
+    // values are public API. These tests intentionally exercise the existing
+    // `publish` calls rather than introducing new event types or semantics.
+    extern crate std;
+
+    use super::*;
+    use soroban_sdk::{
+        testutils::{Address as _, Events},
+        IntoVal, Val, Vec,
+    };
+
+    fn assert_last_event(env: &Env, contract_id: &Address, topics: Vec<Val>, data: Val) {
+        assert_eq!(
+            env.events().all(),
+            Vec::from_array(env, [(contract_id.clone(), topics, data)])
+        );
+    }
+
+    #[test]
+    fn policy_event_schema_is_stable() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let contract_id = env.register(PoliciesContract, ());
+        let client = PoliciesContractClient::new(&env, &contract_id);
+        let owner = Address::generate(&env);
+        let policy = MailboxPolicy {
+            allow_unknown: true,
+            require_verified: false,
+            require_receipt: true,
+            minimum_postage: 25,
+        };
+
+        client.set_policy(&owner, &policy);
+
+        assert_last_event(
+            &env,
+            &contract_id,
+            (symbol_short!("policy"), owner.clone()).into_val(&env),
+            VersionedMailboxPolicy { policy, version: 1 }.into_val(&env),
+        );
+    }
+
+    #[test]
+    fn delegate_event_schema_is_stable_and_unversioned() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let contract_id = env.register(PoliciesContract, ());
+        let client = PoliciesContractClient::new(&env, &contract_id);
+        let owner = Address::generate(&env);
+        let delegate = Address::generate(&env);
+        let scope = DelegateScope {
+            can_set_policy: true,
+            can_set_senders: false,
+        };
+
+        client.set_delegate(&owner, &delegate, &scope);
+
+        assert_last_event(
+            &env,
+            &contract_id,
+            (symbol_short!("delegate"), owner.clone(), delegate.clone()).into_val(&env),
+            scope.into_val(&env),
+        );
+        assert_eq!(client.policy_version(&owner), 0);
+    }
+
+    #[test]
+    fn sender_and_tier_events_pin_topic_order_and_post_mutation_version() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let contract_id = env.register(PoliciesContract, ());
+        let client = PoliciesContractClient::new(&env, &contract_id);
+        let owner = Address::generate(&env);
+        let sender = Address::generate(&env);
+
+        client.set_sender_rule(&owner, &sender, &SenderRule::Allow);
+        assert_last_event(
+            &env,
+            &contract_id,
+            (symbol_short!("sender"), owner.clone(), sender.clone()).into_val(&env),
+            (SenderRule::Allow, 1_u32).into_val(&env),
+        );
+
+        client.set_sender_tier(&owner, &sender, &40);
+        assert_last_event(
+            &env,
+            &contract_id,
+            (symbol_short!("tier"), owner.clone(), sender.clone()).into_val(&env),
+            (40_i128, 2_u32).into_val(&env),
+        );
+    }
+
+    #[test]
+    fn rejected_mutations_emit_no_event() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let contract_id = env.register(PoliciesContract, ());
+        let client = PoliciesContractClient::new(&env, &contract_id);
+        let owner = Address::generate(&env);
+        let sender = Address::generate(&env);
+
+        assert_eq!(
+            client
+                .try_set_sender_tier(&owner, &sender, &-1)
+                .unwrap_err()
+                .unwrap(),
+            Error::InvalidPostage
+        );
+        assert!(env.events().all().events().is_empty());
+        assert_eq!(client.policy_version(&owner), 0);
     }
 }
 

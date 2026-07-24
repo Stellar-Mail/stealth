@@ -150,7 +150,9 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
     (result: { writes: number; rows: Array<{ name: string; address: string }> }) => {
       setImportOpen(false);
       showToast(
-        `${result.writes} sender rule${result.writes !== 1 ? "s" : ""} written for ${result.rows.length} contact${result.rows.length !== 1 ? "s" : ""}`,
+        `${result.writes} sender rule${result.writes !== 1 ? "s" : ""} written for ${
+          result.rows.length
+        } contact${result.rows.length !== 1 ? "s" : ""}`,
       );
     },
     [showToast],
@@ -392,7 +394,9 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
 
     if (failures.length > 0) {
       showToast(
-        `${failures.length} selected message${failures.length === 1 ? "" : "s"} could not be updated`,
+        `${failures.length} selected message${
+          failures.length === 1 ? "" : "s"
+        } could not be updated`,
         { tone: "danger" },
       );
     } else if (successCount > 0) {
@@ -505,7 +509,9 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
           return;
         case "quote-postage":
           showToast(
-            `Minimum postage for ${email?.from ?? "this sender"} is ${preferences.minimumPostage} XLM`,
+            `Minimum postage for ${email?.from ?? "this sender"} is ${
+              preferences.minimumPostage
+            } XLM`,
           );
           return;
         case "inspect-proof":
@@ -818,7 +824,9 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
                                 subject: email.subject.startsWith("Re: ")
                                   ? email.subject
                                   : `Re: ${email.subject}`,
-                                body: `${prompt}\n\nDrafted response:\nThanks for the note. I reviewed the context and will follow up with the next step shortly.${quoteBody(email)}`,
+                                body: `${prompt}\n\nDrafted response:\nThanks for the note. I reviewed the context and will follow up with the next step shortly.${quoteBody(
+                                  email,
+                                )}`,
                               })
                             }
                             onPreviewAttachment={(attachment) => setPreviewAttachment(attachment)}

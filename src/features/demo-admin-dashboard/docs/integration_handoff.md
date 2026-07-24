@@ -9,11 +9,13 @@ This handoff document details the architecture of the **Campaign Draft Snapshot*
 All campaign administration operates completely isolated under `src/features/demo-admin-dashboard/`. The key states and adapters are:
 
 1. **Active Draft Dataset (`Draft[]`)**:
+
    - Accumulates draft messages selected via the **Templates** tab (`TemplatePicker`).
    - Synced to the **Campaigns** tab to save custom snapshots.
    - Persisted in browser's local storage under the key `demoAdminDraftDataset` via `saveDraftDataset` and `loadDraftDataset`.
 
 2. **Campaign Snapshots (`CampaignSnapshot[]`)**:
+
    - Represents snapshot states containing name, description, target audience, tag list, timestamp, status, and the draft list.
    - Saved in local storage under the key `demoAdminCampaignSnapshots` via `saveCampaignSnapshots` and `loadCampaignSnapshots` (falls back to `defaultCampaignSnapshots` fixtures when empty).
 
@@ -72,10 +74,14 @@ Render metadata attributes (status, tags, and audience) alongside drafts in the 
   import { getTagToken, getAudienceToken } from "@/features/demo-admin-dashboard";
 
   // Inside your component render:
-  {draft.tags.map(tag => {
-    const token = getTagToken(tag);
-    return <span className={`${token.bg} ${token.text} border ${token.border}`}>{token.label}</span>;
-  })}
+  {
+    draft.tags.map((tag) => {
+      const token = getTagToken(tag);
+      return (
+        <span className={`${token.bg} ${token.text} border ${token.border}`}>{token.label}</span>
+      );
+    });
+  }
   ```
 
 ---

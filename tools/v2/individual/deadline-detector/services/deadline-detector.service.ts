@@ -127,11 +127,25 @@ function titleFromMessage(message: DeadlineMessage): string {
   return cleaned || "Untitled deadline";
 }
 
+/**
+ * Detects reviewable deadline candidates from synthetic messages.
+ *
+ * Deterministic for a given messages array and options, which keeps
+ * fixture-based tests stable. Throws on non-array input or an invalid
+ * options.now value so callers fail fast instead of receiving silent garbage.
+ */
 export function detectDeadlines(
   messages: DeadlineMessage[],
   options: DeadlineDetectorServiceOptions = {},
 ): DeadlineDetectionResult {
+  if (!Array.isArray(messages)) {
+    throw new TypeError("detectDeadlines expects an array of messages.");
+  }
+
   const now = new Date(options.now ?? new Date().toISOString());
+  if (Number.isNaN(now.getTime())) {
+    throw new RangeError("detectDeadlines received an invalid options.now value.");
+  }
   const defaultTimezone = options.defaultTimezone ?? "UTC";
 
   const deadlines = messages.map((message): DetectedDeadline => {

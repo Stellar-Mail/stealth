@@ -7,10 +7,12 @@ This document outlines the threat assumptions, unsafe inputs, and risk mitigatio
 The Team Calendar Extraction tool is designed to parse potentially untrusted data from email headers, email bodies (HTML/plain text), and attachments (specifically `.ics` iCalendar files). The primary threat vectors are:
 
 1. **Hostile Inputs / Injection (XSS & HTML Injection)**
+
    - **Threat**: Attackers sending calendar invites with malicious `<script>` tags, iframe embeds, or HTML event handlers (e.g., `onerror`, `onload`) embedded inside description fields, locations, summaries, or attendee names.
    - **Mitigation**: Strict HTML sanitization on all extracted text fields before rendering. Event descriptions are parsed and stripped of executable scripts, unsafe styling, and invalid URL protocols (e.g., `javascript:`, `data:`).
 
 2. **Denial of Service (DoS) / Resource Exhaustion via `.ics` Parsing**
+
    - **Threat**: iCalendar files with massive sizes (e.g., 50MB), single-line content without line folding, excessive number of properties, or an infinite loop/crash caused by circular recurrence rules (`RRULE`).
    - **Mitigation**:
      - Restrict file size (max 2MB for `.ics` parsing).
@@ -19,6 +21,7 @@ The Team Calendar Extraction tool is designed to parse potentially untrusted dat
      - Cap maximum attendees list size to prevent excessive DOM nesting or memory use.
 
 3. **Regular Expression Denial of Service (ReDoS)**
+
    - **Threat**: Maliciously crafted email content or `.ics` headers designed to trigger catastrophic backtracking in date extraction or field-matching regular expressions.
    - **Mitigation**: Length-limited string checks. Simple, non-nested regex patterns. Avoiding wildcard/greedy matches within repeating groups.
 

@@ -15,10 +15,6 @@ const messageId = "d".repeat(64);
 const deliveryHandler = (DeliveryRoute.options as any).server?.handlers?.POST;
 const readHandler = (ReadRoute.options as any).server?.handlers?.POST;
 
-function repository() {
-  return getApiContext().repository as MemoryApiRepository;
-}
-
 function deliveryRequest(actor: string) {
   return new Request("https://stealth.test/api/v1/receipts", {
     method: "POST",
@@ -38,13 +34,18 @@ function readRequest(actor: string) {
 }
 
 describe("receipt route publication roles", () => {
-  beforeEach(() => repository().reset());
+  let repo: MemoryApiRepository;
+
+  beforeEach(async () => {
+    repo = (await getApiContext()).repository as MemoryApiRepository;
+    repo.reset();
+  });
 
   it("allows only the sender to publish a delivery receipt", async () => {
     const response = await deliveryHandler({ request: deliveryRequest(sender) });
 
     expect(response.status).toBe(201);
-    await expect(repository().getReceipt(messageId)).resolves.toMatchObject({
+    await expect(repo.getReceipt(messageId)).resolves.toMatchObject({
       messageId,
       readAt: null,
       recipient,
@@ -60,11 +61,11 @@ describe("receipt route publication roles", () => {
 
     expect(response.status).toBe(403);
     await expect(response.json()).resolves.toMatchObject({ error: { code: "forbidden" } });
-    await expect(repository().getReceipt(messageId)).resolves.toBeNull();
+    await expect(repo.getReceipt(messageId)).resolves.toBeNull();
   });
 
   it("allows only the recipient to publish a read receipt", async () => {
-    await createDeliveryReceipt(repository(), { messageId, recipient, sender });
+    await createDeliveryReceipt(repo, { messageId, recipient, sender });
 
     const response = await readHandler({
       request: readRequest(recipient),
@@ -72,7 +73,7 @@ describe("receipt route publication roles", () => {
     });
 
     expect(response.status).toBe(200);
-    await expect(repository().getReceipt(messageId)).resolves.toMatchObject({
+    await expect(repo.getReceipt(messageId)).resolves.toMatchObject({
       readAt: expect.any(String),
     });
   });
@@ -81,7 +82,7 @@ describe("receipt route publication roles", () => {
     ["sender", sender],
     ["unrelated actor", unrelatedActor],
   ])("rejects the %s as a read publisher without mutating state", async (_role, actor) => {
-    await createDeliveryReceipt(repository(), { messageId, recipient, sender });
+    await createDeliveryReceipt(repo, { messageId, recipient, sender });
 
     const response = await readHandler({
       request: readRequest(actor),
@@ -90,6 +91,6 @@ describe("receipt route publication roles", () => {
 
     expect(response.status).toBe(403);
     await expect(response.json()).resolves.toMatchObject({ error: { code: "forbidden" } });
-    await expect(repository().getReceipt(messageId)).resolves.toMatchObject({ readAt: null });
+    await expect(repo.getReceipt(messageId)).resolves.toMatchObject({ readAt: null });
   });
 });

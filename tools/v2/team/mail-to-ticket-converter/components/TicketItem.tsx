@@ -54,7 +54,9 @@ export function TicketItem({ ticket, teamMembers, onUpdateStatus, onAssign }: Ti
           <div className="flex items-center gap-2">
             <p className="truncate text-sm font-medium text-[--text-primary]">{ticket.subject}</p>
             <span
-              className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${STATUS_COLORS[ticket.status]}`}
+              className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                STATUS_COLORS[ticket.status]
+              }`}
             >
               {ticket.status}
             </span>

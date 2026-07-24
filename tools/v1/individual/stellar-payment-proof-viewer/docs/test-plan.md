@@ -11,33 +11,40 @@
 ## Automated Cases
 
 1. Complete provided proof
+
    - Given a transaction hash, source account, destination account, asset,
      amount, memo, ledger, and timestamp.
    - Expect every field to render with `provided` status and stable labels.
 
 2. Format-valid Stellar fields
+
    - Given synthetic account IDs and a 64-character transaction hash.
    - Expect plausible-format indicators for account and hash fields.
 
 3. Missing optional fields
+
    - Given a proof without memo and issuer.
    - Expect those fields to show `unknown` or remain absent according to the
      component contract, without fabricated fallback values.
 
 4. Conflicting amount
+
    - Given email body amount `25 XLM` and attachment amount `20 XLM`.
    - Expect a `conflict` state that names both supplied values.
 
 5. Unsupported asset
+
    - Given an asset code or issuer format outside supported Stellar patterns.
    - Expect an `unsupported` warning and no verification claim.
 
 6. Suspicious memo text
+
    - Given a memo containing urgency or instructions unrelated to proof review.
    - Expect memo text to be displayed as provided and optionally flagged, but no
      automated payment action.
 
 7. Long-value accessibility
+
    - Given long account IDs and hashes.
    - Expect full values to be copyable and status labels to be text-visible.
 

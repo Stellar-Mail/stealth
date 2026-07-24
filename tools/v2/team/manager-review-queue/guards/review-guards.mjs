@@ -83,7 +83,9 @@ export function validateStatus(status) {
   }
   if (!ALLOWED_STATUSES.has(status)) {
     throw new ReviewValidationError(
-      `"${status}" is not a recognised status — must be one of: ${[...ALLOWED_STATUSES].join(", ")}`,
+      `"${status}" is not a recognised status — must be one of: ${[...ALLOWED_STATUSES].join(
+        ", ",
+      )}`,
       "status",
     );
   }
@@ -101,7 +103,9 @@ export function validatePriority(priority) {
   }
   if (!ALLOWED_PRIORITIES.has(priority)) {
     throw new ReviewValidationError(
-      `"${priority}" is not a recognised priority — must be one of: ${[...ALLOWED_PRIORITIES].join(", ")}`,
+      `"${priority}" is not a recognised priority — must be one of: ${[...ALLOWED_PRIORITIES].join(
+        ", ",
+      )}`,
       "priority",
     );
   }

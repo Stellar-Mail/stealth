@@ -50,7 +50,9 @@ export class VendorService {
     }
 
     return {
-      id: `vendor-${sanitizeText(sanitized.value.name, { maxLength: 24, fallback: "vendor" }).toLowerCase().replace(/\s+/g, "-")}`,
+      id: `vendor-${sanitizeText(sanitized.value.name, { maxLength: 24, fallback: "vendor" })
+        .toLowerCase()
+        .replace(/\s+/g, "-")}`,
       name: sanitized.value.name,
       email: sanitized.value.email,
       category: sanitized.value.category as VendorCategory,

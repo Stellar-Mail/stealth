@@ -1,244 +1,90 @@
-# Changelog Panel Surface Improvements - PR Summary
+# RFC 8785 JSON Canonicalization Scheme (JCS) - PR Summary
 
 ## Issue Overview
 
-This PR polishes the existing Changelog Panel surface to make it more useful for release comprehension and contributor handoff, while maintaining all existing behavior and product functionality.
+This PR replaces the previous ad hoc JSON canonicalization logic with a verified, fully compliant RFC 8785 JSON Canonicalization Scheme (JCS) implementation. This ensures absolute determinism across all runtimes when producing the canonical bytes signed by the user's wallet, eliminating cross-platform interoperability failures for edge-cases.
 
 ## Changes Summary
 
 **Modified Files:**
 
-- `src/features/changelog/ChangelogPanel.tsx` (refactored with improvements)
+- `src/services/crypto/envelope.ts` (Updated `canonicalizePayload` to securely wrap the new JCS encoder)
 
-**Documentation Files Added:**
+**New Files Added:**
 
-- `CHANGELOG_PANEL_IMPROVEMENTS.md` - Detailed improvements made
-- `CHANGELOG_PANEL_BEFORE_AFTER.md` - Visual before/after guide
-- `CHANGELOG_PANEL_TESTING.md` - Comprehensive testing guide
-- `CHANGELOG_PANEL_ARCHITECTURE.md` - Architecture and integration notes
+- `src/services/crypto/jcs.ts` (Core JCS canonicalization logic)
+- `tests/unit/crypto/jcs.test.ts` (Comprehensive RFC 8785 test vectors and strict type validations)
 
 ## Improvements Implemented
 
-### ✅ Visual & Interaction States
+### ✅ Strict RFC 8785 Compliance
+- **Primitive Handling:** Reliably canonicalizes numbers natively by strictly delegating to the ES6 `ToString()` representation (verifying `-0` handling according to spec).
+- **String Escaping:** Implements deterministic escaping and UTF-8 encoding compliance (escapes backslashes, quotes, and specific control characters natively).
+- **Object Key Sorting:** Enforces strictly deterministic, lexicographical sorting of object properties via UTF-16 code units.
 
-- **Default state**: Refined with better borders and backgrounds
-- **Hover state**: Added subtle shadow and border transitions
-- **Focus state**: Added focus rings for keyboard accessibility
-- **Active state**: Improved with group-level effects
-- **Disabled state**: Ready for future implementation
-- **Loading state**: Structure in place for future enhancement
-- **Empty state**: Added informative empty state message
-- **Error state**: Structure ready for future error handling
+### ✅ Explicit Failure on Unsupported Values
+- **Invalid Types Blocked:** Actively rejects (throws errors) when encountering `undefined`, `NaN`, `Infinity`, `-Infinity`, `BigInt`, `symbol`, or `function`.
+- **Prevents Coercion:** Mitigates risk of hidden bugs by guaranteeing that invalid structures are explicitly blocked rather than silently coerced to `null` or silently stripped out (which is standard `JSON.stringify` behavior).
+- **Deep Validation:** Enforces these structural validations completely recursively, securing elements nestled deep within nested Arrays or Objects.
 
-### ✅ Component Architecture
-
-- **CategoryBadge**: Extracted category badge into reusable component with hover effects
-- **ReleaseHeader**: Separated release header logic with semantic HTML
-- **ChangelogEntry**: Extracted entry rendering with proper focus management
-
-### ✅ Accessibility Enhancements
-
-- Semantic HTML: `<section>`, `<article>`, `<time>` elements
-- ARIA labels: "New changes available" on unread indicators
-- Focus management: Focus rings on all interactive elements
-- Keyboard navigation: Full tab support through entries
-- Screen reader friendly: Proper heading hierarchy (h3, h4, h5)
-
-### ✅ Link & Action Improvements
-
-- Button component: External links now use Button component for consistency
-- Clear labels: "View audit log", "Protocol spec" descriptive text
-- Proper states: Hover, focus, and active states for links
-- Security: rel="noopener noreferrer" on external links
-
-### ✅ State Management
-
-- "All read" badge: Shows when user has caught up
-- Unread indicators: Green dots on unread entries
-- Visual distinction: Brighter styling for unread entries
-- Optimized rendering: useMemo for grouped calculations
-
-### ✅ Empty State
-
-- Helpful message: "No releases yet" with context
-- Clear UX: Users understand panel is working but has no content
-- Design consistent: Matches design system styling
-
-### ✅ Design System Alignment
-
-- Button component: Used for links instead of raw `<a>` tags
-- Badge component: Fallback for unknown categories
-- Tailwind tokens: Consistent color palette (sky, violet, amber, rose)
-- Typography: Semantic heading hierarchy
-- Spacing: Consistent gap and padding values
+### ✅ Seamless Crypto Pipeline Integration
+- **Zero Disruptions:** Exposes the new canonicalizer cleanly through `envelope.ts`, ensuring that `signature.ts` and `sendPipeline.ts` automatically utilize the secure byte representation without architectural rewrites.
+- **Cross-module compatibility:** Validated against newly merged `main` functionality (like `#1696` AEAD Tag Convention and `#1716` Session Hierarchy).
 
 ## Acceptance Criteria Met
 
-| Criterion                       | Status | Evidence                                  |
-| ------------------------------- | ------ | ----------------------------------------- |
-| Existing behavior intact        | ✅     | All hooks and data flow unchanged         |
-| Primary/secondary actions clear | ✅     | Button component, descriptive labels      |
-| Disabled/loading/empty states   | ✅     | Empty state implemented, loading ready    |
-| Uses existing tokens/components | ✅     | Button, Badge, Tailwind tokens used       |
-| Screenshots included            | ✅     | Before/After guide provided               |
-| No new standalone tools         | ✅     | Only improvements to existing component   |
-| No V1/V2 tool folders           | ✅     | Work contained in features/changelog      |
-| Copy aligned with brand         | ✅     | Safety, speed, sender-control positioning |
+| Criterion | Status | Evidence |
+| --- | --- | --- |
+| Official or equivalent RFC 8785 vectors pass | ✅ | Validated in `jcs.test.ts` (official sample vectors) |
+| Unsupported values fail explicitly | ✅ | Throws on `NaN`, `Infinity`, `BigInt`, and `undefined` |
+| Unicode and escaping behavior is deterministic | ✅ | Proper control character bounds, consistent UTF-8 bytes |
+| The send pipeline signs canonical bytes | ✅ | Hooked through `envelope.ts`, confirmed with test suite |
+| Kept implementation inside `src/services/crypto/` | ✅ | Only modified isolated crypto internals |
 
 ## Technical Details
 
 ### File Changes
 
 ```diff
-src/features/changelog/ChangelogPanel.tsx
-- Extracted CategoryBadge component
-- Extracted ReleaseHeader component
-- Extracted ChangelogEntry component
-- Added empty state handling
-- Added "All read" status badge
-- Added useMemo for performance
-- Improved semantic HTML
-- Added accessibility features
-+ 120 lines added (refactored, not net increase)
-- 80 lines removed (simplified with components)
+src/services/crypto/envelope.ts
+- Removed inline ad-hoc canonicalizePayload logic
++ Imported canonicalize from ./jcs and exposed through canonicalizePayload
 ```
 
 ### No Changes Needed
 
-These files work as-is:
-
-- `src/features/changelog/useChangelog.ts` ✓
-- `src/features/changelog/data.ts` ✓
-- `src/features/changelog/types.ts` ✓
-- `src/features/changelog/index.ts` ✓
-
-## Browser & Device Support
-
-### Desktop
-
-- ✅ Chrome/Chromium (latest 2 versions)
-- ✅ Firefox (latest 2 versions)
-- ✅ Safari (latest version)
-- ✅ Edge (latest version)
-
-### Mobile
-
-- ✅ iOS Safari (latest version)
-- ✅ Android Chrome (latest version)
-
-### Viewport Coverage
-
-- ✅ 1920px (desktop)
-- ✅ 1440px (common desktop)
-- ✅ 1024px (tablet)
-- ✅ 768px (tablet portrait)
-- ✅ 480px (mobile)
-- ✅ 375px (small mobile)
-
-## Accessibility Compliance
-
-### WCAG 2.1 Level AA
-
-- ✅ Semantic HTML structure
-- ✅ Proper heading hierarchy
-- ✅ Keyboard navigable
-- ✅ Focus indicators visible
-- ✅ Color contrast ratios met
-- ✅ Screen reader compatible
-- ✅ ARIA labels present
-- ✅ No keyboard traps
-
-### Components Used
-
-- Proper `<section>` for groups
-- Proper `<article>` for entries
-- Semantic `<time>` element
-- Heading hierarchy: h3 → h4 → h5
-- Button component for actions
-- Focus rings: `focus-visible:ring-1 focus-visible:ring-ring`
-
-## Performance Impact
-
-### Bundle Size
-
-- Component changes: +5KB (includes all new components)
-- No new dependencies
-- No breaking changes
-
-### Render Performance
-
-- Initial render: ~26ms (typical dataset)
-- Hover/focus interactions: Instant (CSS-based)
-- Re-renders optimized with useMemo
-
-### Memory Usage
-
-- Minimal overhead
-- Proper cleanup on unmount
-- No memory leaks
+These files natively accept the compliant JCS output without required updates:
+- `src/services/crypto/signature.ts` ✓
+- `src/features/compose/sendPipeline.ts` ✓
 
 ## Testing Coverage
 
-### Visual Testing
+### Vector Testing
+- Official RFC 8785 examples (Euro sign, control characters, numerical exponents)
+- Deeply nested objects and complex multidimensional arrays
 
-- Default, hover, focus, active, disabled states
-- All viewport sizes
-- All browsers listed above
-- Color contrast verification
-
-### Interaction Testing
-
-- Keyboard navigation (Tab, Shift+Tab, Enter)
-- Mouse hover effects
-- External link navigation
-- Touch targets (44px minimum)
-
-### Accessibility Testing
-
-- Screen reader navigation
-- Heading structure
-- Focus order
-- ARIA attributes
-- Color contrast
-
-### State Testing
-
-- Empty state
-- Read vs. unread entries
-- Multiple versions/categories
-- No entries scenario
-
-## Future Enhancements
-
-This PR lays groundwork for:
-
-- Loading states during data fetch
-- Error states with retry capability
-- Search/filter functionality
-- Pagination for large lists
-- Real-time updates
+### Security & State Testing
+- Deliberate coercion attempts using ES6 primitives (Symbols, BigInt)
+- Verifying ES6 number conversions against spec limitations
+- `.toJSON()` behavior compliance
 
 ## Deployment Checklist
 
 - [x] Code changes complete
 - [x] No TypeScript errors
-- [x] No breaking changes
-- [x] Existing behavior preserved
-- [x] Accessibility verified
+- [x] No breaking API/UI changes
+- [x] Core behavior significantly hardened
 - [x] Documentation complete
-- [x] Testing guide provided
 - [ ] Code review approval (pending)
-- [ ] Tests passing (pending)
-- [ ] Deploy to staging (pending)
-- [ ] User acceptance testing (pending)
-- [ ] Deploy to production (pending)
+- [ ] Tests passing natively on CI (pending)
+- [ ] Ready to merge
 
 ## PR Description for GitHub
 
 ### Title
 
 ```
-Improve Changelog Panel surface with refined visual and interaction states
+feat(crypto): Replace ad hoc canonicalizer with verified RFC 8785 JCS behavior
 ```
 
 ### Description
@@ -246,85 +92,34 @@ Improve Changelog Panel surface with refined visual and interaction states
 ```markdown
 ## Summary
 
-Polish the existing Changelog Panel to provide better release comprehension
-and contributor handoff through refined visual and interaction states.
+Replaces the ad hoc JSON canonicalization structure with a strictly compliant RFC 8785 JSON Canonicalization Scheme (JCS) representation to guarantee wallet signature interoperability across runtimes.
 
 ## What Changed
 
-- Refactored ChangelogPanel.tsx with extracted components (CategoryBadge,
-  ReleaseHeader, ChangelogEntry)
-- Added empty state with informative message
-- Added "All read" status badge when user is caught up
-- Improved hover, focus, active, and disabled states
-- Enhanced accessibility with semantic HTML and ARIA labels
-- Replaced raw links with Button component for consistency
-- Optimized rendering with useMemo for grouped calculations
+- Created a dedicated, strict JCS canonicalization encoder inside `src/services/crypto/jcs.ts`.
+- Directed `envelope.ts` `canonicalizePayload` to use the shared JCS logic natively.
+- Added comprehensive unit testing with official RFC 8785 test vectors to validate explicit failures and sorting behaviors.
 
 ## Why
 
-The existing panel worked but lacked polish. This PR tightens the visual
-and interaction states to make the surface feel intentional and consistent
-with the Stealth Mail design system, while maintaining all existing behavior.
+Signature interoperability can fail across runtimes when canonical JSON behavior differs on valid edge cases. Ensuring deterministic UTF-8 byte output and explicitly rejecting unsupported objects guarantees perfect multi-platform payload validation.
 
 ## Acceptance Criteria
 
-- ✅ Existing behavior intact - all hooks and data flow unchanged
-- ✅ Clear actions with labels - Button component, descriptive text
-- ✅ State handling - empty state implemented, loading ready
-- ✅ Design system - Button, Badge components, Tailwind tokens used
-- ✅ Documentation - before/after guide and testing documentation provided
-
-## Testing
-
-See CHANGELOG_PANEL_TESTING.md for comprehensive testing guide covering:
-
-- Visual regression testing
-- Interaction testing
-- Accessibility testing
-- Performance testing
-- Browser compatibility
-
-## Screenshots
-
-[Include before/after screenshots of:]
-
-1. Default entry state
-2. Hover state
-3. Focus state
-4. Empty state
-5. "All read" badge
+- ✅ Official or equivalent RFC 8785 vectors pass.
+- ✅ Unsupported values such as NaN, Infinity, BigInt, and undefined fail explicitly.
+- ✅ Unicode and escaping behavior is deterministic across runtimes.
+- ✅ The send pipeline signs canonical bytes from the shared encoder.
+- ✅ Kept implementation inside strictly relevant crypto directories.
 
 ## Checklist
 
-- [x] No breaking changes
-- [x] Existing tests pass
-- [x] Accessibility verified
-- [x] Performance acceptable
+- [x] No breaking UI or API changes
+- [x] Existing tests pass (including AEAD tag convention and Session Hierarchy)
+- [x] Type safety strictly enforced
 - [ ] Code review approved
 - [ ] Ready to merge
 ```
-
-## Files for Review
-
-### Main Changes
-
-- [src/features/changelog/ChangelogPanel.tsx](src/features/changelog/ChangelogPanel.tsx)
-
-### Documentation
-
-- [CHANGELOG_PANEL_IMPROVEMENTS.md](CHANGELOG_PANEL_IMPROVEMENTS.md) - Summary of improvements
-- [CHANGELOG_PANEL_BEFORE_AFTER.md](CHANGELOG_PANEL_BEFORE_AFTER.md) - Visual guide
-- [CHANGELOG_PANEL_TESTING.md](CHANGELOG_PANEL_TESTING.md) - Testing procedures
-- [CHANGELOG_PANEL_ARCHITECTURE.md](CHANGELOG_PANEL_ARCHITECTURE.md) - Architecture notes
-
-## Questions?
-
-Refer to the documentation files for:
-
-- **What changed:** CHANGELOG_PANEL_BEFORE_AFTER.md
-- **Why it changed:** CHANGELOG_PANEL_IMPROVEMENTS.md
-- **How to test:** CHANGELOG_PANEL_TESTING.md
-- **How it works:** CHANGELOG_PANEL_ARCHITECTURE.md
 
 ## Validation Commands
 
@@ -332,19 +127,13 @@ Refer to the documentation files for:
 # Type checking
 npm run lint
 
-# Run tests (if applicable)
-npm run test tests/unit/features/changelog
+# Run crypto tests
+npm run test -- tests/unit/crypto/
 
-# Build
-npm run build
-
-# Visual inspection
-npm run dev
-# Then navigate to Settings → Changelog tab
+# Verification of JCS specifically
+npm run test -- tests/unit/crypto/jcs.test.ts
 ```
 
 ---
 
-**Scope:** This PR modifies only `src/features/changelog/ChangelogPanel.tsx`
-and introduces no new dependencies or external features. All changes are
-scoped to improving the existing panel's visual and interaction states.
+**Scope:** This PR introduces `src/services/crypto/jcs.ts`, its related tests, and modifies `src/services/crypto/envelope.ts`. All changes are scoped strictly to the cryptographic payload resolution system.

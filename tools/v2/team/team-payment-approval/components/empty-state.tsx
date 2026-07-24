@@ -21,7 +21,9 @@ interface EmptyStateProps {
 export function EmptyState({ action, className, description, icon, title }: EmptyStateProps) {
   return (
     <div
-      className={`mx-auto flex max-w-md flex-col items-center justify-center text-center py-12 px-4 ${className || ""}`}
+      className={`mx-auto flex max-w-md flex-col items-center justify-center text-center py-12 px-4 ${
+        className || ""
+      }`}
       role="status"
       aria-label="No payment requests"
     >

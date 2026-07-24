@@ -72,9 +72,21 @@ export class ApiHelper {
     recipient = ACTOR,
     sender = SENDER,
   ) {
+    const quoteRes = await this.quotePostage(recipient, sender);
+    const { data: quoteData } = await quoteRes.json();
+
     return this.page.request.post("/api/v1/postage/", {
       headers: this.headers(sender),
-      data: { amount, messageId, paymentHash, recipient, sender },
+      data: {
+        amount,
+        messageId,
+        paymentHash,
+        recipient,
+        sender,
+        issuedAt: quoteData.issuedAt,
+        expiresAt: quoteData.expiresAt,
+        quoteDigest: quoteData.digest,
+      },
     });
   }
 
