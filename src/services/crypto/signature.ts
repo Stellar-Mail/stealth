@@ -29,6 +29,7 @@ export function verifyEnvelopeSignature(
   payload: EnvelopePayload,
   signature: EnvelopeSignature,
   expectedSender: string,
+  originalPayload?: unknown,
 ): boolean {
   if (signature.scheme !== "Ed25519") {
     return false;
@@ -53,7 +54,7 @@ export function verifyEnvelopeSignature(
     return false;
   }
 
-  const canonical = canonicalizePayload(payload);
+  const canonical = canonicalizePayload(originalPayload !== undefined ? originalPayload : payload);
   const dataToSign = new TextEncoder().encode(ENVELOPE_SIGNATURE_DOMAIN + canonical);
 
   try {

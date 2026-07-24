@@ -16,6 +16,7 @@
 import { verifyCommitment } from "./commitment";
 import { recordCryptoTelemetry, type CryptoResultCode } from "./telemetry";
 import { canonicalizeAttachmentDescriptors } from "./attachment-metadata";
+import { migrateEnvelope } from "./migrations";
 
 /** Minimal non-secret error carrying a stable code (no key/plaintext leakage). */
 export class OpenEnvelopeError extends Error {
@@ -153,18 +154,11 @@ export async function openEnvelope(
     if (!input || typeof input !== "object") {
       throw new OpenEnvelopeError("envelope is missing", "crypto_validation_error");
     }
-    const payload = input.payload as RawPayload | undefined;
+    const rawPayload = (input as { payload?: unknown }).payload;
     const ciphertextB64 = str(input.ciphertext, "ciphertext");
 
-    if (!payload || typeof payload !== "object") {
-      throw new OpenEnvelopeError("payload is missing", "crypto_validation_error");
-    }
-    if (payload.version !== SUPPORTED_VERSION) {
-      throw new OpenEnvelopeError(
-        `unsupported envelope version: ${String(payload.version)}`,
-        "crypto_version_error",
-      );
-    }
+    const migrated = migrateEnvelope(rawPayload);
+    const payload = migrated.model as unknown as RawPayload;
 
     const sender = str(payload.sender, "sender");
     const recipient = str(payload.recipient, "recipient");
