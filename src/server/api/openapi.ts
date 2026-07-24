@@ -162,6 +162,34 @@ export const openApiDocument = {
           },
         },
       },
+      PolicyEvaluationRequest: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          owner: {
+            $ref: "#/components/schemas/StellarAddress",
+            description: "Stellar address of the recipient mailbox owner.",
+          },
+          postage: {
+            $ref: "#/components/schemas/StroopAmount",
+            description: "Postage amount in stroops string.",
+          },
+          sender: {
+            $ref: "#/components/schemas/StellarAddress",
+            description: "Stellar address of the candidate sender.",
+          },
+          verified: {
+            type: "boolean",
+            description: "Whether the sender identity has been verified.",
+          },
+        },
+        example: {
+          owner: "GA2CAB2A57RNDJ3Y4P75C2V6ZNGY8Q5M1K9X3L6R7T0W4V8N2M5K8J0H",
+          postage: "1000",
+          sender: "GB4CAB2A57RNDJ3Y4P75C2V6ZNGY8Q5M1K9X3L6R7T0W4V8N2M5K8J0H",
+          verified: true,
+        },
+      },
       PolicyEvaluationDecision: {
         type: "object",
         required: ["allowed", "reasonCode", "message"],
@@ -186,6 +214,16 @@ export const openApiDocument = {
           message: {
             type: "string",
             description: "Human-readable but non-authoritative explanation of the decision.",
+          },
+          source: {
+            type: "string",
+            description: "Policy configuration source.",
+            enum: ["configured", "default"],
+          },
+          rule: {
+            type: "string",
+            description: "Applied sender override rule.",
+            enum: ["allow", "block", "default"],
           },
         },
       },
@@ -667,6 +705,45 @@ export const openApiDocument = {
         "x-max-body-bytes": 16 * 1024,
         summary: "Evaluate whether a sender can mail a recipient",
         "x-stability": "stable",
+        requestBody: {
+          description: "Mail admission policy evaluation input parameters.",
+          content: {
+            "application/json": {
+              schema: {
+                $ref: "#/components/schemas/PolicyEvaluationRequest",
+              },
+              examples: {
+                validEvaluation: {
+                  summary: "Valid policy evaluation request",
+                  value: {
+                    owner: "GA2CAB2A57RNDJ3Y4P75C2V6ZNGY8Q5M1K9X3L6R7T0W4V8N2M5K8J0H",
+                    postage: "1000",
+                    sender: "GB4CAB2A57RNDJ3Y4P75C2V6ZNGY8Q5M1K9X3L6R7T0W4V8N2M5K8J0H",
+                    verified: true,
+                  },
+                },
+                malformedAddress: {
+                  summary: "Malformed request with invalid Stellar address",
+                  value: {
+                    owner: "INVALID_STELLAR_ADDRESS",
+                    postage: "1000",
+                    sender: "GB4CAB2A57RNDJ3Y4P75C2V6ZNGY8Q5M1K9X3L6R7T0W4V8N2M5K8J0H",
+                    verified: true,
+                  },
+                },
+                malformedPostage: {
+                  summary: "Malformed request with negative postage amount",
+                  value: {
+                    owner: "GA2CAB2A57RNDJ3Y4P75C2V6ZNGY8Q5M1K9X3L6R7T0W4V8N2M5K8J0H",
+                    postage: "-500",
+                    sender: "GB4CAB2A57RNDJ3Y4P75C2V6ZNGY8Q5M1K9X3L6R7T0W4V8N2M5K8J0H",
+                    verified: true,
+                  },
+                },
+              },
+            },
+          },
+        },
         responses: {
           default: { description: "" },
           "200": {
@@ -688,15 +765,132 @@ export const openApiDocument = {
                     },
                   ],
                 },
+                examples: {
+                  policySatisfied: {
+                    summary: "Policy satisfied (Allowed)",
+                    value: {
+                      data: {
+                        allowed: true,
+                        reasonCode: "policy_satisfied",
+                        message: "Sender satisfies all recipient mailbox policies.",
+                        source: "configured",
+                        rule: "default",
+                      },
+                      meta: {
+                        requestId: "c1a9f3b7-1234-4567-89ab-cdef01234567",
+                        timestamp: "2026-07-23T22:00:00.000Z",
+                      },
+                    },
+                  },
+                  senderAllowed: {
+                    summary: "Trusted sender explicitly allowed (Allowed)",
+                    value: {
+                      data: {
+                        allowed: true,
+                        reasonCode: "sender_allowed",
+                        message: "Sender is explicitly allowed by the recipient.",
+                        source: "configured",
+                        rule: "allow",
+                      },
+                      meta: {
+                        requestId: "c1a9f3b7-1234-4567-89ab-cdef01234568",
+                        timestamp: "2026-07-23T22:00:00.000Z",
+                      },
+                    },
+                  },
+                  senderBlocked: {
+                    summary: "Policy Denied — Sender explicitly blocked",
+                    value: {
+                      data: {
+                        allowed: false,
+                        reasonCode: "sender_blocked",
+                        message: "Sender is explicitly blocked by the recipient.",
+                        source: "configured",
+                        rule: "block",
+                      },
+                      meta: {
+                        requestId: "c1a9f3b7-1234-4567-89ab-cdef01234569",
+                        timestamp: "2026-07-23T22:00:00.000Z",
+                      },
+                    },
+                  },
+                  unknownSendersDisabled: {
+                    summary: "Policy Denied — Unknown senders disabled by recipient policy",
+                    value: {
+                      data: {
+                        allowed: false,
+                        reasonCode: "unknown_senders_disabled",
+                        message: "Recipient does not accept mail from unknown senders.",
+                        source: "default",
+                        rule: "default",
+                      },
+                      meta: {
+                        requestId: "c1a9f3b7-1234-4567-89ab-cdef01234570",
+                        timestamp: "2026-07-23T22:00:00.000Z",
+                      },
+                    },
+                  },
+                  insufficientPostage: {
+                    summary:
+                      "Policy Denied — Postage provided is below recipient minimum requirement",
+                    value: {
+                      data: {
+                        allowed: false,
+                        reasonCode: "insufficient_postage",
+                        message: "Provided postage is insufficient for this recipient.",
+                        source: "configured",
+                        rule: "default",
+                      },
+                      meta: {
+                        requestId: "c1a9f3b7-1234-4567-89ab-cdef01234571",
+                        timestamp: "2026-07-23T22:00:00.000Z",
+                      },
+                    },
+                  },
+                  verificationRequired: {
+                    summary: "Policy Denied — Sender identity verification is required",
+                    value: {
+                      data: {
+                        allowed: false,
+                        reasonCode: "verification_required",
+                        message: "Recipient requires sender verification.",
+                        source: "configured",
+                        rule: "default",
+                      },
+                      meta: {
+                        requestId: "c1a9f3b7-1234-4567-89ab-cdef01234572",
+                        timestamp: "2026-07-23T22:00:00.000Z",
+                      },
+                    },
+                  },
+                },
               },
             },
           },
           "400": {
-            description: "Bad Request",
+            description:
+              "Bad Request — Invalid request JSON structure or missing Content-Type header",
             content: {
               "application/json": {
                 schema: {
                   $ref: "#/components/schemas/ErrorEnvelope",
+                },
+                examples: {
+                  invalidJson: {
+                    summary: "Bad Request — Syntax error in JSON body",
+                    value: {
+                      error: {
+                        code: "bad_request",
+                        message: "Request body contains invalid JSON",
+                        retryable: false,
+                        retryClassification: "permanent",
+                      },
+                      meta: {
+                        requestId: "c1a9f3b7-1234-4567-89ab-cdef01234575",
+                        timestamp: "2026-07-23T22:00:00.000Z",
+                      },
+                    },
+                  },
                 },
               },
             },
@@ -707,6 +901,66 @@ export const openApiDocument = {
               "application/json": {
                 schema: {
                   $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "422": {
+            description: "Unprocessable Entity — Request payload validation failure",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+                examples: {
+                  invalidStellarAddress: {
+                    summary: "Validation failure — Malformed Stellar address field",
+                    value: {
+                      error: {
+                        code: "validation_error",
+                        message: "Request validation failed",
+                        retryable: false,
+                        retryClassification: "permanent",
+                        details: {
+                          validationErrors: [
+                            {
+                              path: "owner",
+                              rule: "format",
+                              message: "Expected a Stellar G-address",
+                            },
+                          ],
+                        },
+                      },
+                      meta: {
+                        requestId: "c1a9f3b7-1234-4567-89ab-cdef01234573",
+                        timestamp: "2026-07-23T22:00:00.000Z",
+                      },
+                    },
+                  },
+                  invalidPostageAmount: {
+                    summary: "Validation failure — Malformed postage amount string",
+                    value: {
+                      error: {
+                        code: "validation_error",
+                        message: "Request validation failed",
+                        retryable: false,
+                        retryClassification: "permanent",
+                        details: {
+                          validationErrors: [
+                            {
+                              path: "postage",
+                              rule: "format",
+                              message: "Expected a non-negative integer string",
+                            },
+                          ],
+                        },
+                      },
+                      meta: {
+                        requestId: "c1a9f3b7-1234-4567-89ab-cdef01234574",
+                        timestamp: "2026-07-23T22:00:00.000Z",
+                      },
+                    },
+                  },
                 },
               },
             },

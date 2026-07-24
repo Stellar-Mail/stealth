@@ -6,9 +6,11 @@
  * whether they can exchange envelopes before attempting encryption.
  *
  * This module exposes a non-secret, immutable capability descriptor derived
- * from a single source of truth (the suite registry). It reveals no private
- * keys or environment secrets. Self-contained.
+ * from a single source of truth (the suite registry in suites.ts). It reveals
+ * no private keys or environment secrets. Self-contained.
  */
+
+import { SUITE_REGISTRY, getDefaultVersion } from "./suites";
 
 /** A single supported algorithm suite entry. */
 export interface SuiteCapability {
@@ -17,13 +19,16 @@ export interface SuiteCapability {
   nonceBytes: number;
 }
 
-/** The single source of truth for supported crypto behavior. */
+/** Derived from the suite registry — single source of truth. */
 export const CRYPTO_SUITE_REGISTRY = {
-  envelopeVersion: "v1",
-  suites: [
-    { name: "AES-256-GCM", keyBits: 256, nonceBytes: 12 },
-    { name: "AES-128-GCM", keyBits: 128, nonceBytes: 12 },
-  ] as SuiteCapability[],
+  get envelopeVersion(): string {
+    return getDefaultVersion();
+  },
+  suites: SUITE_REGISTRY.suites.map((s) => ({
+    name: s.name,
+    keyBits: s.keyBits,
+    nonceBytes: s.nonceBytes,
+  })) as SuiteCapability[],
   keyFormats: ["raw", "jwk"] as const,
   limits: {
     maxBodyBytes: 64 * 1024,

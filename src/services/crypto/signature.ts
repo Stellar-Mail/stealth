@@ -1,6 +1,7 @@
 import { Keypair } from "@stellar/stellar-sdk";
 import { canonicalizePayload, type EnvelopePayload } from "./envelope";
 import { fromHex } from "./codec";
+import { envelopePayloadSchema, envelopeSignatureSchema } from "./schema";
 
 /** Domain separation prefix for Ed25519 payload signatures. */
 export const ENVELOPE_SIGNATURE_DOMAIN = "stealth-mail-envelope-v1:";
@@ -31,6 +32,13 @@ export function verifyEnvelopeSignature(
   expectedSender: string,
   originalPayload?: unknown,
 ): boolean {
+  try {
+    envelopePayloadSchema.parse(payload);
+    envelopeSignatureSchema.parse(signature);
+  } catch {
+    return false;
+  }
+
   if (signature.scheme !== "Ed25519") {
     return false;
   }

@@ -13,6 +13,7 @@
  */
 
 import { recordCryptoTelemetry, type CryptoResultCode } from "./telemetry";
+import { SUITE_REGISTRY } from "./suites";
 
 /** Stable, non-secret failure codes for nonce operations. */
 export type NonceErrorCode = "crypto_algorithm_error" | "crypto_validation_error";
@@ -38,12 +39,11 @@ function nonceFail<T = never>(error: NonceError): NonceResult<T> {
   return { ok: false, error };
 }
 
-/** Algorithm suites and the nonce length (in bytes) each expects. */
-export const NONCE_LENGTHS = {
-  "AES-256-GCM": 12,
-  "AES-128-GCM": 12,
-  "ChaCha20-Poly1305": 12,
-} as const;
+/** Algorithm suites and the nonce length (in bytes) each expects.
+ *  Derived from the suite registry to stay in sync with supported suites. */
+export const NONCE_LENGTHS: Record<string, number> = Object.fromEntries(
+  SUITE_REGISTRY.suites.map((s) => [s.name, s.nonceBytes]),
+);
 
 export type NonceAlgorithm = keyof typeof NONCE_LENGTHS;
 

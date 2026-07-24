@@ -20,7 +20,8 @@ function generateTestPayload(sender: string, recipient: string): EnvelopePayload
       nonce: "0102030405060708090a0b0c",
       mac: "0102030405060708090a0b0c0d0e0f10",
     },
-    content_commitment: "abcdef",
+    content_commitment:
+      "v1:sha256:hex:a591a6d40bf420404a011733cfb7b190d62c65bf0bcda32b57b277d9ad9f146e",
     attachments: [],
   };
 }
@@ -139,7 +140,8 @@ describe("verifyEnvelopeSignature", () => {
     };
 
     // Change payload after signing
-    payload.content_commitment = "different";
+    payload.content_commitment =
+      "v1:sha256:hex:b591a6d40bf420404a011733cfb7b190d62c65bf0bcda32b57b277d9ad9f146f";
 
     expect(verifyEnvelopeSignature(payload, signature, senderKp.publicKey())).toBe(false);
   });
