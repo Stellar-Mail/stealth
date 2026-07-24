@@ -5,7 +5,9 @@
     "vite.config.ts",
     "eslint.config.js",
     "tools/**/*.ts",
-    "tools/**/*.tsx"
+    "tools/**/*.tsx",
+    "tests/**/*.ts",
+    "tests/**/*.tsx"
   ],
   "compilerOptions": {
     "target": "ES2022",

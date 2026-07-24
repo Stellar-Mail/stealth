@@ -63,7 +63,9 @@ export function useCalendarExtraction() {
           validatedEvents.push(evt);
         } else {
           validationErrors.push(
-            `Event "${evt.title}" failed validation: ${validation.errors.map((e) => e.message).join(", ")}`,
+            `Event "${evt.title}" failed validation: ${validation.errors
+              .map((e) => e.message)
+              .join(", ")}`,
           );
         }
       });

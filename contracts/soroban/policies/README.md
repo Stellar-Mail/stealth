@@ -25,6 +25,14 @@ deterministic: block, allow, tier, then mailbox default.
 - `evaluate(...)` returns the complete decision, reason, required postage, sender rule, and policy version.
 - `can_mail(...)` returns the boolean result of `evaluate`.
 
+## Events
+
+Policy, delegate, sender-rule, and sender-tier mutations emit ledger events for
+off-chain consumers. The complete public schema—including topic order, payload
+encoding, version semantics, and failure-path guarantees—is documented in
+[`docs/events.md`](docs/events.md) and pinned by the `event_schema` tests in
+`src/lib.rs`.
+
 ## Precedence
 
 1. Block always denies, regardless of price or mailbox defaults.

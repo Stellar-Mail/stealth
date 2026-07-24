@@ -63,7 +63,7 @@ Shows full message content with rich formatting:
 ## Usage
 
 ```typescript
-import { DemoInboxPreview } from '@/features/demo-admin-dashboard';
+import { DemoInboxPreview } from "@/features/demo-admin-dashboard";
 
 function AdminDashboard() {
   return (

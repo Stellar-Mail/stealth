@@ -6,6 +6,7 @@ Run from the repository root:
 
 ```bash
 node --test tools/v2/team/response-time-tracker/tests/response-time.test.mjs
+node --test tools/v2/team/response-time-tracker/tests/execution-contract.test.mjs
 ```
 
 ### What the automated test covers
@@ -15,6 +16,14 @@ node --test tools/v2/team/response-time-tracker/tests/response-time.test.mjs
 3. **Service: empty metrics** — All-zero metrics when no entries exist.
 4. **Service: error handling** — Throws when failure rate is 100%.
 5. **Service: date filtering** — Returns empty array when range matches nothing.
+6. **Execution contract: success cases** — No range, a narrowing range, and a
+   range matching nothing all resolve `{ ok: true, data: ... }`
+   (`fixtures/execution-contract-cases.json`).
+7. **Execution contract: failure cases** — An inverted range, an unparseable
+   date bound, and a simulated service failure all resolve
+   `{ ok: false, error: { code, message } }` with the expected error code.
+8. **Execution contract: result shape** — `runResponseTimeQuery` never throws,
+   and `data`/`error` are mutually exclusive on the returned result.
 
 ## Manual Review Steps
 

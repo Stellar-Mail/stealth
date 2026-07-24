@@ -10,30 +10,37 @@
 ## Automated Cases
 
 1. Display-text mismatch
+
    - Given display text for a trusted brand but an unrelated target domain.
    - Expect `suspicious` or `blocked`, high confidence, and a mismatch signal.
 
 2. Punycode domain
+
    - Given a link with an `xn--` domain that resembles a trusted domain.
    - Expect `suspicious` and a punycode warning.
 
 3. URL shortener
+
    - Given a shortened link in a payment or account-security message.
    - Expect `suspicious` with shortener and lure signals.
 
 4. Credential reset lure
+
    - Given reset-password language and a non-allowlisted domain.
    - Expect `blocked` or high-confidence `suspicious`.
 
 5. Trusted domain hint
+
    - Given a caller-supplied trusted domain and matching target link.
    - Expect `safe` or low-risk output with the hint named.
 
 6. Newsletter link
+
    - Given a benign newsletter with unsubscribe and tracking-style links.
    - Expect `unknown` or `safe` without credential-theft warnings.
 
 7. Empty input
+
    - Given no links and minimal message content.
    - Expect `unknown` with an insufficient-content warning.
 

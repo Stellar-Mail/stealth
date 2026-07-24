@@ -57,6 +57,14 @@ export const resourceNotFoundInput: ReviewFlagInput = {
   severity: "high",
 };
 
+export const oversizedInput: ReviewFlagInput = {
+  reviewer: authorizedReviewer,
+  targetResource: existingResource,
+  flagReason: "A".repeat(2500), // > 2000
+  severity: "high",
+  evidenceRefs: Array(15).fill("ticket:sec-334"), // > 10 items
+};
+
 let idCounter = 0;
 function nextId(): string {
   idCounter += 1;

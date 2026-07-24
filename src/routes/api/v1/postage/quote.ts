@@ -67,7 +67,7 @@ export const Route = createFileRoute("/api/v1/postage/quote")({
       POST: ({ request }) =>
         handleApiRequest(request, async () => {
           const input = await parseJsonBody(request, quoteSchema);
-          const quote = await quotePostage((await getApiContext()).repository, input);
+          const quote = await quotePostage(await getApiContext(request), input);
           return apiSuccess(request, quote);
         }),
     },

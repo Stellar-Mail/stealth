@@ -1,5 +1,13 @@
-import type { ApiRepository } from "./repository";
-import type { MailboxPolicy, SenderRule, Postage, Receipt, IdempotencyRecord } from "./domain";
+import type { ApiRepository, PostageTransitionResult } from "./repository";
+import type {
+  MailboxPolicy,
+  SenderRule,
+  Postage,
+  PostageStatus,
+  Receipt,
+  IdempotencyRecord,
+} from "./domain";
+import { ApiError } from "./errors";
 
 /**
  * Issue #1544: on-disk shape for a policy record once versioning was
@@ -62,17 +70,88 @@ export class HybridApiRepository implements ApiRepository {
 
   async setPostage(postage: Postage): Promise<Postage> {
     await this.kv.put(this.key("postage", postage.messageId), JSON.stringify(postage));
+    // Mirror into the coordinator, whose transactional storage is the
+    // source of truth for settlement transitions (see transitionPostage).
+    // KV alone cannot provide the compare-and-swap guarantee settlement
+    // needs, since Workers KV writes are not atomic or strongly consistent.
+    await this.getStub().setPostage(postage);
+    return postage;
+  }
+
+  // Settling/refunding postage must be atomic: two concurrent requests
+  // racing on the same messageId must not both succeed. KV get-then-put
+  // cannot guarantee that, so the compare-and-swap is delegated to the
+  // Durable Object coordinator, then mirrored back into KV for fast reads.
+  async transitionPostage(
+    messageId: string,
+    expectedStatus: PostageStatus,
+    nextStatus: PostageStatus,
+  ): Promise<PostageTransitionResult> {
+    const result = await this.getStub().transitionPostage(messageId, expectedStatus, nextStatus);
+    if (result.outcome === "applied") {
+      await this.kv.put(this.key("postage", messageId), JSON.stringify(result.postage));
+    }
+    return result;
+  }
+
+  async insertPostage(postage: Postage): Promise<Postage> {
+    const existing = await this.kv.get(this.key("postage", postage.messageId), "json");
+    if (existing) {
+      throw new ApiError(
+        409,
+        "conflict",
+        `A postage record already exists for message ${postage.messageId}`,
+      );
+    }
+    await this.kv.put(this.key("postage", postage.messageId), JSON.stringify(postage));
     return postage;
   }
 
   async getReceipt(messageId: string): Promise<Receipt | null> {
+    const coordinatedReceipt = await this.getStub().getReceipt(messageId);
+    if (coordinatedReceipt) return coordinatedReceipt;
+
     const receipt = await this.kv.get(this.key("receipt", messageId), "json");
-    return (receipt as Receipt) ?? null;
+    if (!receipt) return null;
+
+    await this.getStub().setReceipt(receipt as Receipt);
+    return receipt as Receipt;
   }
 
   async setReceipt(receipt: Receipt): Promise<Receipt> {
+    await this.getStub().setReceipt(receipt);
     await this.kv.put(this.key("receipt", receipt.messageId), JSON.stringify(receipt));
     return receipt;
+  }
+
+  async createReceiptIfAbsent(receipt: Receipt): Promise<{ created: boolean; receipt: Receipt }> {
+    const existing = await this.getReceipt(receipt.messageId);
+    if (existing) return { created: false, receipt: existing };
+
+    const result = await this.getStub().createReceiptIfAbsent(receipt);
+    if (result.created) {
+      await this.kv.put(
+        this.key("receipt", result.receipt.messageId),
+        JSON.stringify(result.receipt),
+      );
+    }
+    return result;
+  }
+
+  async markReceiptRead(
+    messageId: string,
+    actor: string,
+    now?: Date,
+  ): Promise<import("./repository").MarkReceiptReadResult> {
+    await this.getReceipt(messageId);
+    const result = await this.getStub().markReceiptRead(messageId, actor, now);
+    if (result.outcome === "marked") {
+      await this.kv.put(
+        this.key("receipt", result.receipt.messageId),
+        JSON.stringify(result.receipt),
+      );
+    }
+    return result;
   }
 
   // Consistent layer delegated to Durable Object via RPC
@@ -85,6 +164,13 @@ export class HybridApiRepository implements ApiRepository {
     return this.getStub().getIdempotencyRecord(key);
   }
 
+  async acquireIdempotencyRecord(
+    key: string,
+    leaseMs: number,
+  ): Promise<import("./repository").AcquireIdempotencyResult> {
+    return this.getStub().acquireIdempotencyRecord(key, leaseMs);
+  }
+
   async setIdempotencyRecord(key: string, record: IdempotencyRecord): Promise<void> {
     await this.getStub().setIdempotencyRecord(key, record);
   }
@@ -93,8 +179,8 @@ export class HybridApiRepository implements ApiRepository {
     return this.getStub().getCounter(key);
   }
 
-  async incrementCounter(key: string, windowSeconds: number): Promise<number> {
-    return this.getStub().incrementCounter(key, windowSeconds);
+  async incrementCounter(key: string, windowSeconds: number, amount = 1): Promise<number> {
+    return this.getStub().incrementCounter(key, windowSeconds, amount);
   }
 
   // Relay stats stubs matching MemoryApiRepository exactly

@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { MemoryApiRepository } from "../../../src/server/api/memory-repository";
 import { getPostage, quotePostage, submitPostage } from "../../../src/server/api/postage-service";
+import { createApiContext } from "../../../src/server/api/context";
 
 const recipient = `G${"A".repeat(55)}`;
 const sender = `G${"B".repeat(55)}`;
@@ -24,7 +25,7 @@ describe("postage service regression coverage", () => {
     });
 
     await expect(
-      quotePostage(repository, { recipient, sender, messageId: "a".repeat(64) }),
+      quotePostage(createApiContext(repository), { recipient, sender }),
     ).resolves.toMatchObject({
       amount: "100",
       eligible: true,
@@ -38,7 +39,7 @@ describe("postage service regression coverage", () => {
     await repository.setSenderRule(recipient, sender, "block");
 
     await expect(
-      submitPostage(repository, {
+      submitPostage(createApiContext(repository), {
         amount: "100",
         messageId: "a".repeat(64),
         paymentHash: "b".repeat(64),

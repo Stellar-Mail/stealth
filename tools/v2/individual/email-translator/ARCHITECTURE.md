@@ -63,17 +63,21 @@ email-translator/
 
 **Planned modules:**
 
-| Module                            | Responsibility                                                                                                                                                       |
-| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `translationProvider` (interface) | Contract for pluggable backends (`translate(text, from, to): Promise<string>`). Enables swapping mock, local, or external API providers without touching components. |
-| `translationService`              | Orchestrates translation requests: validates input, selects provider, normalizes errors, and returns translated text.                                                |
-| `languageDetector`                | Detects the likely source language from input text (heuristic or provider-backed). Returns a language code or `unknown`.                                             |
+| Module                            | Responsibility                                                                                                                                                           |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `translationProvider` (interface) | Contract for pluggable backends (`translate(text, from, to): Promise<string>`). Enables swapping mock, local, or external API providers without touching components.     |
+| `translationService`              | Orchestrates translation requests: validates input, selects provider, normalizes errors, and returns translated text.                                                    |
+| `languageDetector`                | Detects the likely source language from input text (heuristic or provider-backed). Returns a language code or `unknown`.                                                 |
+| `validation`                      | Input validation, sanitization, and security guards for email bodies, language codes, provider configs, and responses. Prevents XSS, injection, and prototype pollution. |
+| `performance`                     | Performance utilities: caching, deduplication, timeout enforcement, text chunking, rate limiting, and monitoring.                                                        |
 
 **Rules:**
 
 - Provider configuration (API keys, endpoints, default provider) lives here — not in components or hooks.
 - Services are testable without a DOM or React.
 - No imports from main app mail, wallet, Stellar, or auth modules.
+- **All untrusted input MUST pass through `validation` module before processing.**
+- **Large texts (>50KB) SHOULD use `performance` module chunking utilities.**
 
 ### `hooks/`
 
@@ -112,6 +116,11 @@ email-translator/
 
 **Responsibility:** Folder-local documentation beyond this contract.
 
+**Current contents:**
+
+- `SECURITY.md` — Threat model, attack surfaces, input validation guidelines, and security best practices.
+- `PERFORMANCE.md` — Performance budgets, bottleneck analysis, optimization strategies, and scalability considerations.
+
 **Expected contents (future):**
 
 - API reference for public component props and service interfaces.
@@ -122,6 +131,7 @@ email-translator/
 
 - Do not document or modify core app files from here.
 - Architecture changes must update `ARCHITECTURE.md` in the same PR.
+- Security and performance considerations MUST be kept up-to-date.
 
 ---
 
@@ -229,3 +239,8 @@ No circular dependencies. Components must not import services directly — use h
 - [x] Integration constraints and future path documented.
 - [x] Contributor may/may-not rules are explicit.
 - [x] Deliverable is reviewable as a self-contained mini-product.
+- [x] Security threat model and input validation documented (`docs/SECURITY.md`).
+- [x] Performance constraints and optimization strategies documented (`docs/PERFORMANCE.md`).
+- [x] Validation and sanitization utilities implemented (`services/validation.ts`).
+- [x] Performance utilities implemented (`services/performance.ts`).
+- [x] Architecture updated to reflect security and performance requirements.

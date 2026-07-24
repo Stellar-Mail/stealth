@@ -1,41 +1,50 @@
 # Project Mail Binder
 
-Group mail by project.
-
-## Scope
-
-- Release tier: $(System.Collections.Hashtable.Tier.ToUpperInvariant())
-- Audience: $(System.Collections.Hashtable.Audience)
-- Folder ownership: $dir/
-
-This is a self-contained tooling workspace. Do not wire this tool into the main app, routing, inbox architecture, wallet core, Stellar core, or design system unless a future integration issue explicitly allows it.
-
-Recommended internal structure:
-
-- components/
-- services/
-- hooks/
--     ests/
-- docs/
-  "@ | Set-Content -Path "tools/v2/team/project-mail-binder/README.md"
-  @"
-
-# Project Mail Binder Specs
-
 ## Purpose
 
-Group mail by project.
+Group mail into project-specific collections within an isolated team workspace.
 
-## Contributor boundary
+## Release
 
-All work for this tool should stay in:
+- Tier: V2
+- Audience: Team
 
-$dir/
+## Ownership Boundary
 
-## Required issue categories
+All work for this tool must remain inside:
 
-- Architecture
-- Feature
-- UI and accessibility
-- Security and performance
-- Testing and documentation
+```text
+tools/v2/team/project-mail-binder/
+```
+
+Do not connect this tool to:
+
+- application routing
+- dashboard navigation
+- authentication
+- inbox architecture
+- wallet functionality
+- Stellar integration
+- database schema
+- shared design system
+
+unless a future integration issue explicitly authorizes those changes.
+
+## Recommended Structure
+
+```text
+components/
+services/
+hooks/
+fixtures/
+tests/
+docs/
+```
+
+## Testing & Documentation Scope
+
+This issue focuses exclusively on improving contributor documentation and validating the existing isolated implementation.
+
+## Future Integration
+
+Integration with the main application should be completed through a dedicated follow-up issue.

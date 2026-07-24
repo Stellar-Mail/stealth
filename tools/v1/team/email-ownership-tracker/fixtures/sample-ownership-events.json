@@ -1,0 +1,137 @@
+{
+  "tool": "email-ownership-tracker",
+  "version": 1,
+  "runContext": {
+    "now": "2026-07-07T09:00:00Z",
+    "timezone": "Africa/Lagos"
+  },
+  "sourceEvents": [
+    {
+      "id": "evt-001",
+      "threadId": "thread-support-001",
+      "action": "assigned",
+      "actor": "lead@team.test",
+      "owner": "alice@team.test",
+      "previousOwner": null,
+      "timestamp": "2026-07-01T09:00:00Z",
+      "note": "Initial triage assignment."
+    },
+    {
+      "id": "evt-002",
+      "threadId": "thread-support-001",
+      "action": "reassigned",
+      "actor": "alice@team.test",
+      "owner": "bob@team.test",
+      "previousOwner": "alice@team.test",
+      "timestamp": "2026-07-03T14:30:00Z",
+      "note": "Handed off for escalation."
+    },
+    {
+      "id": "evt-003",
+      "threadId": "thread-support-001",
+      "action": "released",
+      "actor": "bob@team.test",
+      "owner": null,
+      "previousOwner": "bob@team.test",
+      "timestamp": "2026-07-05T16:00:00Z",
+      "note": "Resolved and released."
+    },
+    {
+      "id": "evt-004",
+      "threadId": "thread-sales-002",
+      "action": "claimed",
+      "actor": "carol@team.test",
+      "owner": "carol@team.test",
+      "previousOwner": null,
+      "timestamp": "2026-07-02T10:00:00Z",
+      "note": "Claimed inbound lead."
+    },
+    {
+      "id": "evt-005",
+      "threadId": "thread-sales-002",
+      "action": "claimed",
+      "actor": "carol@team.test",
+      "owner": "carol@team.test",
+      "previousOwner": "carol@team.test",
+      "timestamp": "2026-07-02T10:05:00Z",
+      "note": "Duplicate claim on an already-owned thread."
+    },
+    {
+      "id": "evt-006",
+      "threadId": "thread-sales-002",
+      "action": "reassigned",
+      "actor": "carol@team.test",
+      "owner": "dave@team.test",
+      "previousOwner": "carol@team.test",
+      "timestamp": "2026-07-04T11:00:00Z",
+      "note": "Reassigned to account executive."
+    },
+    {
+      "id": "evt-007",
+      "threadId": "thread-billing-003",
+      "action": "released",
+      "actor": "erin@team.test",
+      "owner": null,
+      "previousOwner": null,
+      "timestamp": "2026-07-06T08:00:00Z",
+      "note": "Release recorded with no active owner."
+    }
+  ],
+  "expectedReport": {
+    "records": [
+      {
+        "threadId": "thread-support-001",
+        "currentOwner": null,
+        "state": "unassigned",
+        "handoffCount": 1,
+        "firstEventAt": "2026-07-01T09:00:00Z",
+        "lastEventAt": "2026-07-05T16:00:00Z",
+        "historyEventIds": ["evt-001", "evt-002", "evt-003"]
+      },
+      {
+        "threadId": "thread-sales-002",
+        "currentOwner": "dave@team.test",
+        "state": "owned",
+        "handoffCount": 1,
+        "firstEventAt": "2026-07-02T10:00:00Z",
+        "lastEventAt": "2026-07-04T11:00:00Z",
+        "historyEventIds": ["evt-004", "evt-005", "evt-006"]
+      },
+      {
+        "threadId": "thread-billing-003",
+        "currentOwner": null,
+        "state": "unassigned",
+        "handoffCount": 0,
+        "firstEventAt": "2026-07-06T08:00:00Z",
+        "lastEventAt": "2026-07-06T08:00:00Z",
+        "historyEventIds": ["evt-007"]
+      }
+    ],
+    "anomalies": [
+      {
+        "eventId": "evt-005",
+        "threadId": "thread-sales-002",
+        "code": "duplicate-owner-assignment"
+      },
+      {
+        "eventId": "evt-007",
+        "threadId": "thread-billing-003",
+        "code": "release-without-owner"
+      }
+    ],
+    "summary": {
+      "totalEvents": 7,
+      "totalThreads": 3,
+      "ownedThreads": 1,
+      "unassignedThreads": 2,
+      "totalHandoffs": 2,
+      "anomalies": 2
+    }
+  },
+  "reviewNotes": [
+    "All actors and threads are synthetic; addresses use the reserved .test suffix.",
+    "historyEventIds lists the ordered event ids applied to each thread.",
+    "Duplicate claims and releases without an owner are surfaced as anomalies, not errors.",
+    "The engine reconstructs history only and performs no mailbox, reminder, or database writes."
+  ]
+}

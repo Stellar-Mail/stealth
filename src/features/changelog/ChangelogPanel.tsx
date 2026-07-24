@@ -37,7 +37,7 @@ function CategoryBadge({ category }: { category: string }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-medium transition-colors duration-200",
+        "inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-medium transition-colors duration-200 motion-reduce:transition-none",
         config.styles,
       )}
     >
@@ -64,16 +64,22 @@ function ReleaseHeader({
   return (
     <div className="flex items-center justify-between gap-3">
       <div className="flex items-center gap-3">
-        <h4 className="text-xs font-semibold text-foreground">v{version}</h4>
+        <h4 className="text-xs font-semibold text-foreground">
+          <span aria-hidden="true">v{version}</span>
+          <span className="sr-only">Version {version}</span>
+        </h4>
         {hasUnread && (
-          <span
-            className="h-1.5 w-1.5 rounded-full bg-emerald-400"
-            title="New changes in this release"
-            aria-label="New changes available"
-          />
+          <div role="status" aria-label="New changes available" className="flex items-center">
+            <span
+              className="h-1.5 w-1.5 rounded-full bg-emerald-400"
+              title="New changes in this release"
+              aria-hidden="true"
+            />
+          </div>
         )}
       </div>
       <time dateTime={date} className="text-[11px] text-muted-foreground">
+        <span className="sr-only">Published on </span>
         {formattedDate}
       </time>
     </div>
@@ -84,7 +90,7 @@ function ChangelogEntry({ entry, isUnread }: { entry: any; isUnread: boolean }) 
   return (
     <article
       className={cn(
-        "group rounded-lg border transition-all duration-200",
+        "group rounded-lg border transition-all duration-200 motion-reduce:transition-none",
         "hover:shadow-sm hover:border-white/15",
         "focus-within:ring-1 focus-within:ring-ring",
         isUnread
@@ -97,7 +103,10 @@ function ChangelogEntry({ entry, isUnread }: { entry: any; isUnread: boolean }) 
           <div className="flex-1 space-y-2 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <CategoryBadge category={entry.category} />
-              <h5 className="text-xs font-medium text-foreground leading-tight">{entry.title}</h5>
+              <h5 className="text-xs font-medium text-foreground leading-tight">
+                {entry.title}
+                {isUnread && <span className="sr-only"> (Unread)</span>}
+              </h5>
             </div>
             <p className="text-[11px] leading-relaxed text-muted-foreground">{entry.description}</p>
           </div>
@@ -109,7 +118,7 @@ function ChangelogEntry({ entry, isUnread }: { entry: any; isUnread: boolean }) 
             size="sm"
             asChild
             className={cn(
-              "mt-2 h-auto p-0 text-[11px] text-sky-400 transition-colors duration-200",
+              "mt-2 h-auto p-0 text-[11px] text-sky-400 transition-colors duration-200 motion-reduce:transition-none",
               "hover:text-sky-300 focus-visible:ring-1 focus-visible:ring-ring",
             )}
           >
@@ -119,8 +128,9 @@ function ChangelogEntry({ entry, isUnread }: { entry: any; isUnread: boolean }) 
               rel="noopener noreferrer"
               className="flex items-center gap-1"
             >
-              <ExternalLink className="h-3 w-3 flex-shrink-0" />
+              <ExternalLink className="h-3 w-3 flex-shrink-0" aria-hidden="true" />
               {entry.link.label}
+              <span className="sr-only"> (opens in a new tab)</span>
             </a>
           </Button>
         )}
@@ -159,9 +169,13 @@ export function ChangelogPanel() {
               UI, API, protocol, and security changes — in plain language.
             </p>
           </div>
-          {!isEmpty && hasUnread && (
-            <div className="flex items-center gap-1.5 rounded-md bg-emerald-400/10 px-2.5 py-1.5 border border-emerald-400/20">
-              <CheckCircle2 className="h-3 w-3 text-emerald-400 flex-shrink-0" />
+          {!isEmpty && !hasUnread && (
+            <div
+              className="flex items-center gap-1.5 rounded-md bg-emerald-400/10 px-2.5 py-1.5 border border-emerald-400/20"
+              role="status"
+              aria-label="All release notes read"
+            >
+              <CheckCircle2 className="h-3 w-3 text-emerald-400 flex-shrink-0" aria-hidden="true" />
               <span className="text-[11px] font-medium text-emerald-300">All read</span>
             </div>
           )}

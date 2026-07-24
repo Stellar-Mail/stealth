@@ -134,7 +134,9 @@ function generateDigest(
   const summary =
     emails.length === 0
       ? "Your inbox is completely empty. Nothing needs your attention."
-      : `Your inbox has ${emails.length} message${emails.length > 1 ? "s" : ""} requiring review. ` +
+      : `Your inbox has ${emails.length} message${
+          emails.length > 1 ? "s" : ""
+        } requiring review. ` +
         (highCount > 0
           ? `There are ${highCount} high-priority thread${highCount > 1 ? "s" : ""} to address.`
           : "No urgent actions are pending today.");

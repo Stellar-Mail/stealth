@@ -14,7 +14,7 @@ vi.mock("cloudflare:workers", () => {
 });
 
 import { StealthCoordinator } from "../../../src/server/api/stealth-coordinator";
-import type { IdempotencyRecord } from "../../../src/server/api/domain";
+import type { IdempotencyRecord, Postage, Receipt } from "../../../src/server/api/domain";
 
 class MockDurableObjectState {
   public id = { toString: () => "mock-do-id" };
@@ -43,8 +43,10 @@ describe("StealthCoordinator - Durable Object Operations", () => {
 
   it("handles idempotency records", async () => {
     const record: IdempotencyRecord = {
+      state: "completed",
       body: { ok: true },
       createdAt: new Date().toISOString(),
+      completedAt: new Date().toISOString(),
       status: 201,
     };
 
@@ -78,5 +80,107 @@ describe("StealthCoordinator - Durable Object Operations", () => {
     expect(await coordinator.getCounter("limiter-1")).toBe(2);
 
     dateSpy.mockRestore();
+  });
+
+  it("creates receipts once and replays duplicate deliveries", async () => {
+    const receipt: Receipt = {
+      deliveredAt: "2026-06-14T12:00:00.000Z",
+      messageId: "a".repeat(64),
+      readAt: null,
+      recipient: `G${"A".repeat(55)}`,
+      sender: `G${"B".repeat(55)}`,
+    };
+    const duplicate = { ...receipt, deliveredAt: "2026-06-14T12:05:00.000Z" };
+
+    await expect(coordinator.createReceiptIfAbsent(receipt)).resolves.toEqual({
+      created: true,
+      receipt,
+    });
+    await expect(coordinator.createReceiptIfAbsent(duplicate)).resolves.toEqual({
+      created: false,
+      receipt,
+    });
+    await expect(coordinator.getReceipt(receipt.messageId)).resolves.toEqual(receipt);
+  });
+
+  it("marks receipts read once and replays duplicate reads", async () => {
+    const receipt: Receipt = {
+      deliveredAt: "2026-06-14T12:00:00.000Z",
+      messageId: "b".repeat(64),
+      readAt: null,
+      recipient: `G${"A".repeat(55)}`,
+      sender: `G${"B".repeat(55)}`,
+    };
+    const expected = { ...receipt, readAt: "2026-06-14T12:30:00.000Z" };
+
+    await coordinator.setReceipt(receipt);
+
+    await expect(
+      coordinator.markReceiptRead(
+        receipt.messageId,
+        receipt.recipient,
+        new Date("2026-06-14T12:30:00.000Z"),
+      ),
+    ).resolves.toEqual({ outcome: "marked", receipt: expected });
+    await expect(
+      coordinator.markReceiptRead(
+        receipt.messageId,
+        receipt.recipient,
+        new Date("2026-06-14T12:45:00.000Z"),
+      ),
+    ).resolves.toEqual({ outcome: "already-read", readAt: expected.readAt });
+  });
+
+  describe("postage settlement transitions", () => {
+    const recipient = `G${"A".repeat(55)}`;
+    const sender = `G${"B".repeat(55)}`;
+    const messageId = "a".repeat(64);
+
+    const pendingPostage: Postage = {
+      amount: "100",
+      createdAt: "2026-01-01T00:00:00.000Z",
+      messageId,
+      paymentHash: "c".repeat(64),
+      recipient,
+      sender,
+      status: "pending",
+    };
+
+    it("round-trips postage via get/set", async () => {
+      expect(await coordinator.getPostage(messageId)).toBeNull();
+      await coordinator.setPostage(pendingPostage);
+      expect(await coordinator.getPostage(messageId)).toEqual(pendingPostage);
+    });
+
+    it("returns not-found when transitioning a record that was never set", async () => {
+      expect(await coordinator.transitionPostage(messageId, "pending", "settled")).toEqual({
+        outcome: "not-found",
+      });
+    });
+
+    it("applies a valid pending -> settled transition exactly once", async () => {
+      await coordinator.setPostage(pendingPostage);
+
+      const applied = await coordinator.transitionPostage(messageId, "pending", "settled");
+      expect(applied).toMatchObject({ outcome: "applied", postage: { status: "settled" } });
+
+      // A second attempt with the same expected status is now a conflict,
+      // not a second settlement.
+      const conflict = await coordinator.transitionPostage(messageId, "pending", "settled");
+      expect(conflict).toMatchObject({ outcome: "conflict", postage: { status: "settled" } });
+    });
+
+    it("only lets one of two concurrent settlement calls win", async () => {
+      await coordinator.setPostage(pendingPostage);
+
+      const [first, second] = await Promise.all([
+        coordinator.transitionPostage(messageId, "pending", "settled"),
+        coordinator.transitionPostage(messageId, "pending", "settled"),
+      ]);
+
+      const outcomes = [first.outcome, second.outcome].sort();
+      expect(outcomes).toEqual(["applied", "conflict"]);
+      expect(await coordinator.getPostage(messageId)).toMatchObject({ status: "settled" });
+    });
   });
 });

@@ -45,7 +45,9 @@ export function DeadlineResultCard({
       <div className="flex flex-col gap-4 md:flex-row md:items-start">
         <div
           aria-hidden="true"
-          className={`flex size-10 shrink-0 items-center justify-center rounded-md border ${urgencyStyles[deadline.urgency]}`}
+          className={`flex size-10 shrink-0 items-center justify-center rounded-md border ${
+            urgencyStyles[deadline.urgency]
+          }`}
         >
           <StatusIcon className="size-5" />
         </div>
@@ -54,7 +56,9 @@ export function DeadlineResultCard({
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="break-words text-base font-semibold text-slate-950">{deadline.title}</h3>
             <span
-              className={`rounded-md border px-2 py-1 text-xs font-medium ${urgencyStyles[deadline.urgency]}`}
+              className={`rounded-md border px-2 py-1 text-xs font-medium ${
+                urgencyStyles[deadline.urgency]
+              }`}
             >
               {deadline.urgency}
             </span>

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import * as fs from "fs";
 
 import { openApiDocument } from "../../../src/server/api/openapi";
 
@@ -22,7 +23,14 @@ describe("OpenAPI example/schema integrity", () => {
 
   it("declares reusable component schemas for shared domain types", () => {
     expect([...schemaNames]).toEqual(
-      expect.arrayContaining(["StellarAddress", "Hash32", "StroopAmount", "MailboxPolicy"]),
+      expect.arrayContaining([
+        "StellarAddress",
+        "Hash32",
+        "StroopAmount",
+        "MailboxPolicy",
+        "PolicyEvaluationRequest",
+        "PolicyEvaluationDecision",
+      ]),
     );
   });
 
@@ -32,5 +40,57 @@ describe("OpenAPI example/schema integrity", () => {
         expect(op.summary, `${method.toUpperCase()} ${path} summary`).toBeTruthy();
       }
     }
+  });
+
+  describe("policy evaluation OpenAPI documentation (#1330)", () => {
+    const evalOp = openApiDocument.paths["/policies/evaluate"].post as any;
+
+    it("documents requestBody with PolicyEvaluationRequest schema reference and examples", () => {
+      expect(evalOp.requestBody).toBeDefined();
+
+      const jsonContent = evalOp.requestBody.content["application/json"];
+      expect(jsonContent.schema.$ref).toBe("#/components/schemas/PolicyEvaluationRequest");
+      expect(jsonContent.examples).toHaveProperty("validEvaluation");
+      expect(jsonContent.examples).toHaveProperty("malformedAddress");
+      expect(jsonContent.examples).toHaveProperty("malformedPostage");
+    });
+
+    it("includes policy-denied response examples on HTTP 200", () => {
+      const response200 = evalOp.responses["200"].content["application/json"];
+      expect(response200.examples).toBeDefined();
+
+      const examples = response200.examples;
+      expect(examples).toHaveProperty("policySatisfied");
+      expect(examples).toHaveProperty("senderAllowed");
+      expect(examples).toHaveProperty("senderBlocked");
+      expect(examples).toHaveProperty("unknownSendersDisabled");
+      expect(examples).toHaveProperty("insufficientPostage");
+      expect(examples).toHaveProperty("verificationRequired");
+
+      // Verify policy denied examples have allowed: false
+      expect(examples.senderBlocked.value.data.allowed).toBe(false);
+      expect(examples.unknownSendersDisabled.value.data.allowed).toBe(false);
+      expect(examples.insufficientPostage.value.data.allowed).toBe(false);
+      expect(examples.verificationRequired.value.data.allowed).toBe(false);
+    });
+
+    it("includes malformed request validation failure examples on HTTP 422", () => {
+      expect(evalOp.responses).toHaveProperty("422");
+      const response422 = evalOp.responses["422"].content["application/json"];
+
+      expect(response422.schema.$ref).toBe("#/components/schemas/ErrorEnvelope");
+      expect(response422.examples).toHaveProperty("invalidStellarAddress");
+      expect(response422.examples).toHaveProperty("invalidPostageAmount");
+
+      expect(response422.examples.invalidStellarAddress.value.error.code).toBe("validation_error");
+      expect(response422.examples.invalidPostageAmount.value.error.code).toBe("validation_error");
+    });
+  });
+
+  it("generated openapi.json is valid JSON matching openApiDocument", () => {
+    const rawFile = fs.readFileSync("openapi.json", "utf-8");
+    const parsed = JSON.parse(rawFile);
+    expect(parsed.openapi).toBe("3.1.0");
+    expect(parsed.paths["/policies/evaluate"]).toBeDefined();
   });
 });

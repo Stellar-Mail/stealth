@@ -287,10 +287,12 @@ const isUnread = entryVersion > seenVersion; // String comparison works for semv
 ### Optimization Techniques Used
 
 1. **useMemo for grouping**
+
    - Prevents recalculation on every render
    - Only recalculates when entries change
 
 2. **useCallback for handlers**
+
    - `markAllSeen` wrapped in useCallback
    - `isEntryUnread` wrapped in useCallback
    - Prevents unnecessary function recreations
@@ -340,17 +342,20 @@ const isUnread = entryVersion > seenVersion; // String comparison works for semv
 ### Unit Test Suggestions
 
 1. **Component rendering**
+
    - Header displays correctly
    - Entries render
    - Empty state shows when entries empty
    - Categories badges have correct styling
 
 2. **State management**
+
    - markAllSeen() updates localStorage
    - isEntryUnread() correctly identifies unread
    - hasUnread flag works correctly
 
 3. **Grouping logic**
+
    - Entries grouped by version|date
    - Groups appear in correct order
    - Entries within group maintain order
@@ -364,6 +369,7 @@ const isUnread = entryVersion > seenVersion; // String comparison works for semv
 ### E2E Test Suggestions
 
 1. **User flows**
+
    - Navigate to changelog
    - Verify entries displayed
    - Hover over entry
@@ -371,6 +377,7 @@ const isUnread = entryVersion > seenVersion; // String comparison works for semv
    - Navigate away and back
 
 2. **Interaction**
+
    - Keyboard navigation
    - Focus management
    - Link functionality

@@ -23,14 +23,16 @@ describe("API version negotiation", () => {
   it("rejects unknown/old versions as unsupported", () => {
     const unsupported = ["v0", "beta", "1.0", "v99"];
     for (const v of unsupported) {
-      expect(supported.includes(v), `${v} should be unsupported`).toBe(false);
+      expect(supported.includes(v as any), `${v} should be unsupported`).toBe(false);
     }
   });
 
   it("rejects malformed future versions as unsupported", () => {
     const future = ["v999", "vx", ""];
     for (const v of future) {
-      expect(supported.includes(v), `${JSON.stringify(v)} should be unsupported`).toBe(false);
+      expect(supported.includes(v as any), `${JSON.stringify(v)} should be unsupported`).toBe(
+        false,
+      );
     }
   });
 

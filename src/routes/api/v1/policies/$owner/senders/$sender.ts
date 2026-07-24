@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 
-import { requireActorMatches } from "@/server/api/actor";
+import { parseDelegationHeader, requireActorMatches } from "@/server/api/actor";
 import { getApiContext } from "@/server/api/context";
 import { senderRuleSchema, stellarAddressSchema } from "@/server/api/domain";
 import { getSenderRule, setSenderRule } from "@/server/api/policy-service";
@@ -15,32 +15,47 @@ export const Route = createFileRoute("/api/v1/policies/$owner/senders/$sender")(
     handlers: {
       GET: ({ request, params }) =>
         handleApiRequest(request, async () => {
+          const context = await getApiContext(request);
           const owner = stellarAddressSchema.parse(params.owner);
           const sender = stellarAddressSchema.parse(params.sender);
-          return apiSuccess(
-            request,
-            await getSenderRule((await getApiContext()).repository, owner, sender),
-          );
+          return apiSuccess(request, await getSenderRule(context.repository, owner, sender));
         }),
       PUT: ({ request, params }) =>
         handleApiRequest(request, async () => {
+          const context = await getApiContext(request);
           const owner = stellarAddressSchema.parse(params.owner);
           const sender = stellarAddressSchema.parse(params.sender);
-          requireActorMatches(request, owner);
-          const { rule } = await parseJsonBody(request, ruleBodySchema);
-          return apiSuccess(
-            request,
-            await setSenderRule((await getApiContext()).repository, owner, sender, rule),
+          requireActorMatches(
+            context,
+            owner,
+            parseDelegationHeader(
+              request,
+              "policy:senders:update",
+              `mailbox:${owner}:senders:${sender}`,
+            ),
           );
+          const { rule } = await parseJsonBody(request, ruleBodySchema, {
+            route: "PUT /policies/{owner}/senders/{sender}",
+          });
+          return apiSuccess(request, await setSenderRule(context.repository, owner, sender, rule));
         }),
       DELETE: ({ request, params }) =>
         handleApiRequest(request, async () => {
+          const context = await getApiContext(request);
           const owner = stellarAddressSchema.parse(params.owner);
           const sender = stellarAddressSchema.parse(params.sender);
-          requireActorMatches(request, owner);
+          requireActorMatches(
+            context,
+            owner,
+            parseDelegationHeader(
+              request,
+              "policy:senders:delete",
+              `mailbox:${owner}:senders:${sender}`,
+            ),
+          );
           return apiSuccess(
             request,
-            await setSenderRule((await getApiContext()).repository, owner, sender, "default"),
+            await setSenderRule(context.repository, owner, sender, "default"),
           );
         }),
     },

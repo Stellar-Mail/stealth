@@ -26,7 +26,7 @@ const baseEmail: Email = {
 };
 
 function email(folder: MailFolder, overrides: Partial<Email> = {}): Email {
-  return { ...baseEmail, id: `bulk-${folder}`, folder, ...overrides };
+  return { ...baseEmail, id: `bulk-${folder}`, folder: folder as any, ...overrides };
 }
 
 describe("bulk action availability", () => {

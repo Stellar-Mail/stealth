@@ -99,7 +99,7 @@ src/features/demo-admin-dashboard/
 ### Basic Integration
 
 ```typescript
-import { DemoInboxPreview } from '@/features/demo-admin-dashboard';
+import { DemoInboxPreview } from "@/features/demo-admin-dashboard";
 
 function AdminDashboard() {
   return (

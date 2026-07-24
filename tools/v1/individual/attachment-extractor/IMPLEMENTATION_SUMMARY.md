@@ -104,10 +104,7 @@ const {
 **Component**
 
 ```typescript
-<AttachmentExtractorUI
-  options={extractionOptions}
-  onFilesExtracted={(count) => {}}
-/>
+<AttachmentExtractorUI options={extractionOptions} onFilesExtracted={(count) => {}} />
 ```
 
 ### Key Design Decisions
@@ -198,6 +195,7 @@ const {
 ## Documentation
 
 1. **README.md** (350 lines)
+
    - Feature overview
    - Type definitions
    - API usage examples
@@ -205,6 +203,7 @@ const {
    - Future integration notes
 
 2. **Inline Comments**
+
    - All functions documented
    - Complex logic explained
    - TypeScript types annotated
@@ -219,14 +218,17 @@ const {
 When linking to main app (separate issue):
 
 1. **Compose Integration**
+
    - Add AttachmentExtractorUI to compose modal
    - Display extracted attachments in message
 
 2. **Storage Integration**
+
    - Save attachments to message storage
    - Manage attachment lifecycle
 
 3. **Inbox Integration**
+
    - Display attachments in inbox
    - Attachment management UI
 

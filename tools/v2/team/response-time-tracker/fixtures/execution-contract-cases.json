@@ -1,0 +1,37 @@
+{
+  "successCases": [
+    {
+      "name": "no range returns the full fixture dataset",
+      "input": {},
+      "expect": { "totalResponses": 7, "teamMemberCount": 3 }
+    },
+    {
+      "name": "single-day range narrows to matching entries",
+      "input": { "range": { "start": "2026-06-10", "end": "2026-06-10" } },
+      "expect": { "totalResponses": 2, "teamMemberCount": 3 }
+    },
+    {
+      "name": "range outside all entries returns zero entries without erroring",
+      "input": { "range": { "start": "2025-01-01", "end": "2025-01-02" } },
+      "expect": { "totalResponses": 0, "teamMemberCount": 3 }
+    }
+  ],
+  "failureCases": [
+    {
+      "name": "start date after end date is rejected before fetching",
+      "input": { "range": { "start": "2026-06-15", "end": "2026-06-10" } },
+      "expectErrorCode": "INVALID_DATE_RANGE"
+    },
+    {
+      "name": "unparseable date bounds are rejected before fetching",
+      "input": { "range": { "start": "not-a-date", "end": "2026-06-10" } },
+      "expectErrorCode": "INVALID_DATE_RANGE"
+    },
+    {
+      "name": "underlying service failure surfaces as FETCH_FAILED",
+      "input": {},
+      "config": { "simulateDelay": false, "failureRate": 1 },
+      "expectErrorCode": "FETCH_FAILED"
+    }
+  ]
+}
