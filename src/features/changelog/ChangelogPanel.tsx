@@ -56,17 +56,16 @@ export function ChangelogPanel() {
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-semibold text-foreground">v{version}</span>
                   {hasUnreadInGroup && (
-                    <span
-                      className="h-1.5 w-1.5 rounded-full bg-emerald-400"
-                      aria-hidden="true"
-                    />
+                    <>
+                      <span
+                        className="h-1.5 w-1.5 rounded-full bg-emerald-400"
+                        aria-hidden="true"
+                      />
+                      <span className="text-muted-foreground text-[11px]">
+                        <span className="sr-only">, </span>New
+                      </span>
+                    </>
                   )}
-                  <span
-                    className="text-muted-foreground text-[11px]"
-                    aria-hidden="true"
-                  >
-                    {hasUnreadInGroup ? "New" : ""}
-                  </span>
                 </div>
                 <span className="text-[11px] text-muted-foreground">
                   {new Date(date).toLocaleDateString("en-US", {
@@ -82,7 +81,7 @@ export function ChangelogPanel() {
                   <div
                     key={entry.id}
                     className={cn(
-                      "rounded-xl border p-3 transition",
+                      "rounded-xl border p-3 transition motion-reduce:transition-none",
                       isEntryUnread(entry.version)
                         ? "border-white/10 bg-white/[0.04]"
                         : "border-white/5 bg-white/[0.015]",
@@ -109,7 +108,7 @@ export function ChangelogPanel() {
                           )}
                         </div>
                         {isEntryUnread(entry.version) && (
-                          <span aria-live="polite">Unread</span>
+                          <span className="sr-only">Unread</span>
                         )}
                         <p className="text-[11px] leading-relaxed text-muted-foreground">
                           {entry.description}
@@ -121,9 +120,9 @@ export function ChangelogPanel() {
                         href={entry.link.href}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="mt-2 flex items-center gap-1 text-[11px] text-sky-400 transition hover:text-sky-300"
+                        className="mt-2 flex w-fit items-center gap-1 text-[11px] text-sky-400 transition hover:text-sky-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-1 focus-visible:ring-offset-background rounded-sm motion-reduce:transition-none"
                       >
-                        <ExternalLink className="h-3 w-3" />
+                        <ExternalLink className="h-3 w-3" aria-hidden="true" />
                         {entry.link.label}
                         <span className="sr-only">(opens in a new tab)</span>
                       </a>
