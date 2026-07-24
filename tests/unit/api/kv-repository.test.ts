@@ -23,28 +23,57 @@ class MockKVNamespace {
   }
 }
 
-class MockCoordinatorStub {
-  private postage = new Map<string, Postage>();
-  private receipts = new Map<string, Receipt>();
+class MockStealthCoordinator {
+  private storage = new Map<string, any>();
 
   async getPostage(messageId: string) {
-    return this.postage.get(messageId) ?? null;
+    return this.storage.get(`postage:${messageId}`) ?? null;
   }
-
-  async setPostage(postage: Postage) {
-    this.postage.set(postage.messageId, postage);
+  async setPostage(postage: any) {
+    this.storage.set(`postage:${postage.messageId}`, postage);
     return postage;
   }
-
   async transitionPostage(messageId: string, expectedStatus: string, nextStatus: string) {
-    const current = this.postage.get(messageId);
-    if (!current) return { outcome: "not-found" as const };
+    const current = this.storage.get(`postage:${messageId}`);
+    if (!current) {
+      return { outcome: "not-found" as const };
+    }
     if (current.status !== expectedStatus) {
       return { outcome: "conflict" as const, postage: current };
     }
-    const updated = { ...current, status: nextStatus } as Postage;
-    this.postage.set(messageId, updated);
+    const updated = { ...current, status: nextStatus };
+    this.storage.set(`postage:${messageId}`, updated);
     return { outcome: "applied" as const, postage: updated };
+  }
+  async getIdempotencyRecord(key: string) {
+    return this.storage.get(`idempotency:${key}`) ?? null;
+  }
+  async setIdempotencyRecord(key: string, record: any) {
+    this.storage.set(`idempotency:${key}`, record);
+  }
+  async getCounter(key: string) {
+    const ts = this.storage.get(`counter:${key}`) ?? [];
+    return ts.length;
+  }
+  async incrementCounter(key: string, windowSeconds: number) {
+    const now = Date.now();
+    const ts = this.storage.get(`counter:${key}`) ?? [];
+    const filtered = [...ts, now].filter((t) => now - t <= windowSeconds * 1000);
+    this.storage.set(`counter:${key}`, filtered);
+    return filtered.length;
+  }
+  async checkAndSetVersion(key: string, expectedVersion: string | undefined, nextVersion: string) {
+    const current = this.storage.get(`version:${key}`);
+    if (expectedVersion !== undefined) {
+      if (current !== expectedVersion) {
+        // Throw an error that acts/looks like ApiError (or we can just throw standard Error with properties)
+        const err: any = new Error("Concurrency conflict: version mismatch");
+        err.status = 409;
+        err.code = "conflict";
+        throw err;
+      }
+    }
+    this.storage.set(`version:${key}`, nextVersion);
   }
 
   async getReceipt(messageId: string) {
@@ -83,8 +112,7 @@ class MockCoordinatorStub {
 }
 
 class MockDurableObjectNamespace {
-  public stub = new MockCoordinatorStub();
-
+  private readonly stub = new MockStealthCoordinator();
   idFromName(name: string) {
     return { toString: () => name };
   }
@@ -116,7 +144,8 @@ describe("HybridApiRepository - KV Operations", () => {
     };
     await repo.setPolicy(owner, policy);
     const retrieved = await repo.getPolicy(owner);
-    expect(retrieved).toEqual(policy);
+    expect(retrieved).toMatchObject(policy);
+    expect(retrieved?.version).toBeDefined();
   });
 
   it("returns null for non-existent policy", async () => {
@@ -147,7 +176,8 @@ describe("HybridApiRepository - KV Operations", () => {
     };
     await repo.setPostage(postage);
     const retrieved = await repo.getPostage(messageId);
-    expect(retrieved).toEqual(postage);
+    expect(retrieved).toMatchObject(postage);
+    expect(retrieved?.version).toBeDefined();
   });
 
   it("persists and retrieves receipt", async () => {
@@ -160,7 +190,8 @@ describe("HybridApiRepository - KV Operations", () => {
     };
     await repo.setReceipt(receipt);
     const retrieved = await repo.getReceipt(messageId);
-    expect(retrieved).toEqual(receipt);
+    expect(retrieved).toMatchObject(receipt);
+    expect(retrieved?.version).toBeDefined();
   });
 
   it("mirrors only first receipt delivery and read transitions to KV", async () => {

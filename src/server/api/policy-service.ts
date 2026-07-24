@@ -18,7 +18,7 @@ export async function setMailboxPolicy(
 ) {
   return {
     owner,
-    policy: await repository.setPolicy(owner, policy),
+    policy: await repository.setPolicy(owner, policy, policy.version),
     source: "configured" as const,
   };
 }

@@ -16,13 +16,16 @@ describe("receipt service", () => {
   it("creates one sender-authored delivery receipt", async () => {
     const repository = new MemoryApiRepository();
     const input = { messageId, recipient, sender };
-    const expectedReceipt = {
+
+    await expect(
+      createDeliveryReceipt(repository, input, new Date("2026-06-14T12:00:00.000Z")),
+    ).resolves.toMatchObject({
       deliveredAt: "2026-06-14T12:00:00.000Z",
       messageId,
       readAt: null,
       recipient,
       sender,
-    };
+    });
 
     await expect(
       createDeliveryReceipt(repository, input, new Date("2026-06-14T12:00:00.000Z")),

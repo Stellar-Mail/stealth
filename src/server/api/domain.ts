@@ -31,6 +31,7 @@ export const mailboxPolicySchema = z.object({
   allowUnknown: z.boolean(),
   minimumPostage: stroopAmountSchema,
   requireVerified: z.boolean(),
+  version: z.string().optional(),
 });
 
 export const postageSchema = z.object({
@@ -41,6 +42,7 @@ export const postageSchema = z.object({
   recipient: stellarAddressSchema,
   sender: stellarAddressSchema,
   status: postageStatusSchema,
+  version: z.string().optional(),
 });
 
 export const DEFAULT_RECEIPT_FUTURE_TOLERANCE_MS = 5 * 60 * 1000;
