@@ -16,7 +16,7 @@ export interface RelayDiagnosticsSignals {
   isDegraded: boolean;
 }
 
-export type RelayDiagnosticsStatus = "healthy" | "degraded" | "failing";
+export type RelayDiagnosticsStatus = "healthy" | "degraded" | "failing" | "empty";
 
 export interface RelayDiagnosticsResponse extends RelayDiagnostics {
   status: RelayDiagnosticsStatus;
@@ -56,10 +56,18 @@ export function toRelayDiagnosticsResponse(
   const isRetryStorm = diagnostics.retryCount > 20;
   const isDegraded = isDelayed || isRetryStorm || diagnostics.deadLetterCount > 0;
 
+  const isEmpty =
+    diagnostics.queueDepth === 0 &&
+    diagnostics.retryCount === 0 &&
+    diagnostics.deadLetterCount === 0 &&
+    diagnostics.lastSuccessAt === null &&
+    diagnostics.lastFailureAt === null;
+
   return {
     ...diagnostics,
-    status:
-      diagnostics.deadLetterCount > 5 || isRetryStorm
+    status: isEmpty
+      ? "empty"
+      : diagnostics.deadLetterCount > 5 || isRetryStorm
         ? "failing"
         : isDegraded
           ? "degraded"

@@ -93,7 +93,9 @@ export function ValidationResultsPanel({
                         className={cn(
                           "w-full rounded-md border px-3 py-2 text-left transition-colors",
                           SEVERITY_STYLES[issue.severity],
-                          interactive ? "cursor-pointer hover:brightness-110" : "cursor-default",
+                          interactive
+                            ? "cursor-pointer hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
+                            : "cursor-default",
                         )}
                       >
                         <span className="block text-[13px] font-medium text-foreground">

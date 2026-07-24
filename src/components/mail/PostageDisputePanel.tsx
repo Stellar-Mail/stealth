@@ -8,8 +8,8 @@ import {
   History,
   Info,
 } from "lucide-react";
-import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useId, useState } from "react";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 /**
@@ -77,6 +77,12 @@ function DisabledAction({
 
 export function PostageDisputePanel({ postageStatus, amountXlm }: PostageDisputePanelProps) {
   const [open, setOpen] = useState(false);
+  const panelId = useId();
+  const prefersReducedMotion = useReducedMotion();
+  const accordionTransition = prefersReducedMotion
+    ? { duration: 0 }
+    : { duration: 0.22, ease: "easeInOut" as const };
+  const chevronTransition = prefersReducedMotion ? { duration: 0 } : { duration: 0.2 };
 
   const isDisputable = postageStatus === "expired" || postageStatus === "pending";
 
@@ -84,12 +90,15 @@ export function PostageDisputePanel({ postageStatus, amountXlm }: PostageDispute
     <div className="mt-2 rounded-xl border border-amber-500/20 bg-amber-500/[0.03]">
       {/* Header toggle */}
       <button
+        type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left"
+        className="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left focus:outline-none focus:ring-2 focus:ring-amber-400/30"
         aria-expanded={open}
+        aria-controls={panelId}
+        aria-label={open ? "Hide dispute and appeal details" : "Show dispute and appeal details"}
       >
         <div className="flex items-center gap-2">
-          <Flag className="h-3.5 w-3.5 text-amber-400/80 shrink-0" />
+          <Flag className="h-3.5 w-3.5 text-amber-400/80 shrink-0" aria-hidden="true" />
           <span className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-amber-400/80">
             Dispute &amp; Appeal
           </span>
@@ -97,19 +106,22 @@ export function PostageDisputePanel({ postageStatus, amountXlm }: PostageDispute
             Roadmap
           </span>
         </div>
-        <motion.div animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.2 }}>
-          <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+        <motion.div animate={{ rotate: open ? 180 : 0 }} transition={chevronTransition}>
+          <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
         </motion.div>
       </button>
 
       <AnimatePresence initial={false}>
         {open && (
           <motion.div
-            initial={{ height: 0, opacity: 0 }}
+            id={panelId}
+            initial={prefersReducedMotion ? false : { height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.22, ease: "easeInOut" }}
+            exit={prefersReducedMotion ? undefined : { height: 0, opacity: 0 }}
+            transition={accordionTransition}
             className="overflow-hidden"
+            role="region"
+            aria-label="Postage dispute and appeal placeholder"
           >
             <div className="space-y-3 border-t border-amber-500/[0.12] px-3 pb-3 pt-2.5">
               {/* Roadmap notice */}

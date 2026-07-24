@@ -1,4 +1,4 @@
-import { CampaignTemplate } from "../types/campaign";
+import type { CampaignTemplate } from "../types/campaign";
 
 export const CAMPAIGN_TEMPLATES: CampaignTemplate[] = [
   {

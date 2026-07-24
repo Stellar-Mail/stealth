@@ -1,0 +1,32 @@
+.contact-extractor-container {
+  @apply w-full max-w-2xl mx-auto;
+}
+
+.contact-extractor-input {
+  @apply min-h-64 font-mono text-sm;
+}
+
+.contact-extractor-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .contact-extractor-spinner {
+    animation: none;
+    opacity: 0.5;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .contact-extractor-card {
+    border-width: 2px;
+  }
+}

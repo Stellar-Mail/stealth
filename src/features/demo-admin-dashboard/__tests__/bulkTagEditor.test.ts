@@ -16,6 +16,7 @@ function makeCampaign(id: string, name: string, tags: string[]): CampaignSnapsho
     targetAudience: "Test Audience",
     tags,
     timestamp: "2026-06-16T12:00:00Z",
+    status: "draft",
     drafts: [],
   };
 }

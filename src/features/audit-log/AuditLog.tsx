@@ -1,16 +1,17 @@
 import { useState } from "react";
 import {
+  BadgeDollarSign,
   ClipboardCopy,
+  ClipboardList,
   Download,
+  Lock,
   Search,
   ShieldCheck,
   Truck,
-  BadgeDollarSign,
-  Lock,
-  ClipboardList,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { EmptyState } from "@/features/design-system";
+import { ActionButton, EmptyState, Surface } from "@/features/design-system";
 import { useAuditLog } from "./useAuditLog";
 import type { AuditCategory, AuditEvent } from "./types";
 
@@ -23,6 +24,13 @@ const CATEGORIES: { value: AuditCategory | "all"; label: string }[] = [
   { value: "security", label: "Security" },
   { value: "billing", label: "Billing" },
 ];
+
+const CATEGORY_LABEL: Record<AuditCategory, string> = {
+  policy: "Policy",
+  delivery: "Delivery",
+  security: "Security",
+  billing: "Billing",
+};
 
 const CATEGORY_DOT: Record<AuditCategory, string> = {
   policy: "bg-violet-400",
@@ -41,14 +49,26 @@ const CATEGORY_ICON: Record<AuditCategory, React.ElementType> = {
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function formatTs(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  const date = new Date(iso);
+  return date.toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+}
+
+function formatFullTs(iso: string): string {
+  const date = new Date(iso);
+  return date.toLocaleString(undefined, {
+    dateStyle: "medium",
+    timeStyle: "medium",
+  });
 }
 
 function formatActor(event: AuditEvent): string {
-  const a = event.actor;
-  if (a.type === "user") return a.displayName ?? a.address;
-  if (a.type === "relay") return a.relayId;
+  const actor = event.actor;
+  if (actor.type === "user") return actor.displayName ?? actor.address;
+  if (actor.type === "relay") return actor.relayId;
   return "system";
 }
 
@@ -56,142 +76,231 @@ function formatActor(event: AuditEvent): string {
 
 function EventRow({ event }: { event: AuditEvent }) {
   const Icon = CATEGORY_ICON[event.category];
-  const ctx = event.context;
+  const context = event.context;
 
   return (
-    <div className="group flex gap-3 border-b border-white/[0.04] px-4 py-3 text-sm hover:bg-white/[0.02]">
-      {/* Icon */}
-      <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white/[0.04]">
-        <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+    <article
+      aria-label={`${CATEGORY_LABEL[event.category]} event: ${event.summary}`}
+      className="group flex gap-3 border-b border-white/[0.04] px-4 py-3 text-sm transition-colors hover:bg-white/[0.03] focus-within:bg-white/[0.03]"
+    >
+      <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white/[0.04] ring-1 ring-white/[0.04] transition group-hover:bg-white/[0.06]">
+        <Icon aria-hidden className="h-3.5 w-3.5 text-muted-foreground" />
       </div>
 
-      {/* Main content */}
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <span
+            aria-hidden
             className={cn("mt-px h-1.5 w-1.5 shrink-0 rounded-full", CATEGORY_DOT[event.category])}
           />
+          <span className="sr-only">{CATEGORY_LABEL[event.category]}:</span>
           <span className="truncate text-foreground">{event.summary}</span>
         </div>
         <div className="mt-0.5 flex flex-wrap gap-x-3 text-[11px] text-muted-foreground">
           <span>{formatActor(event)}</span>
-          {ctx?.senderDisplayName && <span>→ {ctx.senderDisplayName}</span>}
-          {ctx?.messageId && (
-            <span className="font-mono text-[10px] opacity-60">{ctx.messageId}</span>
+          {context?.senderDisplayName && <span>→ {context.senderDisplayName}</span>}
+          {context?.messageId && (
+            <span className="font-mono text-[10px] opacity-70">{context.messageId}</span>
           )}
-          {ctx?.amount && (
+          {context?.amount && (
             <span>
-              {ctx.amount} {ctx.currency}
+              {context.amount} {context.currency}
             </span>
           )}
         </div>
       </div>
 
-      {/* Timestamp */}
       <time
         dateTime={event.ts}
-        className="shrink-0 font-mono text-[10px] text-muted-foreground/60 tabular-nums"
+        title={formatFullTs(event.ts)}
+        className="shrink-0 self-start font-mono text-[10px] text-muted-foreground/70 tabular-nums"
       >
         {formatTs(event.ts)}
       </time>
-    </div>
+    </article>
   );
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function AuditLog() {
-  const { events, filter, setFilter, copyDiagnostics, exportJson } = useAuditLog();
-  const [copied, setCopied] = useState(false);
+  const {
+    clearFilters,
+    copyDiagnostics,
+    events,
+    exportJson,
+    filter,
+    hasActiveFilter,
+    setFilter,
+    totalCount,
+  } = useAuditLog();
+  const [copyState, setCopyState] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [exportState, setExportState] = useState<"idle" | "loading" | "error">("idle");
+
+  const hasVisibleEvents = events.length > 0;
+  const actionsDisabled = !hasVisibleEvents || copyState === "loading" || exportState === "loading";
 
   const handleCopy = async () => {
-    await copyDiagnostics();
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1800);
+    if (actionsDisabled) return;
+
+    setCopyState("loading");
+    const ok = await copyDiagnostics();
+    setCopyState(ok ? "success" : "error");
+    window.setTimeout(() => setCopyState("idle"), ok ? 1800 : 2600);
   };
+
+  const handleExport = () => {
+    if (actionsDisabled) return;
+
+    setExportState("loading");
+    const ok = exportJson();
+    setExportState(ok ? "idle" : "error");
+    if (!ok) window.setTimeout(() => setExportState("idle"), 2600);
+  };
+
+  const copyLabel =
+    copyState === "loading"
+      ? "Copying…"
+      : copyState === "success"
+        ? "Copied"
+        : copyState === "error"
+          ? "Copy failed"
+          : "Copy diagnostics";
+
+  const exportLabel = exportState === "loading" ? "Exporting…" : "Export JSON";
 
   return (
     <div className="flex h-full flex-col gap-3">
-      {/* Toolbar */}
       <div className="flex flex-col gap-2">
-        {/* Search */}
-        <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2">
-          <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+        <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 transition focus-within:border-white/20 focus-within:bg-white/[0.05]">
+          <Search aria-hidden className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
           <input
             value={filter.search}
-            onChange={(e) => setFilter({ ...filter, search: e.target.value })}
-            placeholder="Search events…"
-            className="w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
+            onChange={(event) => setFilter({ ...filter, search: event.target.value })}
+            placeholder="Search summaries, kinds, senders, or message IDs…"
+            className="glow-ring w-full rounded-md bg-transparent text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
             aria-label="Search audit events"
           />
+          {filter.search ? (
+            <button
+              type="button"
+              onClick={() => setFilter({ ...filter, search: "" })}
+              className="glow-ring rounded-md p-1 text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground active:scale-[0.98]"
+              aria-label="Clear search"
+            >
+              <X aria-hidden className="h-3.5 w-3.5" />
+            </button>
+          ) : null}
         </div>
 
-        {/* Category filter + CTAs */}
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex gap-1">
-            {CATEGORIES.map(({ value, label }) => (
-              <button
-                key={value}
-                onClick={() => setFilter({ ...filter, category: value })}
-                className={cn(
-                  "rounded-md px-2.5 py-1 text-xs transition",
-                  filter.category === value
-                    ? "bg-white/[0.1] text-foreground"
-                    : "text-muted-foreground hover:bg-white/[0.04] hover:text-foreground",
-                )}
-              >
-                {label}
-              </button>
-            ))}
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div
+            className="flex flex-wrap gap-1"
+            role="group"
+            aria-label="Filter audit events by category"
+          >
+            {CATEGORIES.map(({ value, label }) => {
+              const isActive = filter.category === value;
+
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  aria-pressed={isActive}
+                  onClick={() => setFilter({ ...filter, category: value })}
+                  className={cn(
+                    "glow-ring rounded-md px-2.5 py-1 text-xs font-medium transition active:scale-[0.98]",
+                    isActive
+                      ? "bg-white/[0.12] text-foreground ring-1 ring-white/10"
+                      : "text-muted-foreground hover:bg-white/[0.05] hover:text-foreground",
+                  )}
+                >
+                  {label}
+                </button>
+              );
+            })}
           </div>
 
           <div className="flex gap-1.5">
-            <button
+            <ActionButton
+              type="button"
+              intent="secondary"
+              size="sm"
               onClick={handleCopy}
-              className="flex items-center gap-1.5 rounded-md border border-white/10 px-2.5 py-1 text-xs text-muted-foreground transition hover:border-white/20 hover:text-foreground"
-              aria-label="Copy diagnostics"
+              disabled={actionsDisabled}
+              aria-label={copyLabel}
+              aria-busy={copyState === "loading"}
+              className="min-w-[9.5rem]"
             >
-              <ClipboardCopy className="h-3.5 w-3.5" />
-              {copied ? "Copied!" : "Copy"}
-            </button>
-            <button
-              onClick={exportJson}
-              className="flex items-center gap-1.5 rounded-md border border-white/10 px-2.5 py-1 text-xs text-muted-foreground transition hover:border-white/20 hover:text-foreground"
-              aria-label="Export JSON"
+              <ClipboardCopy aria-hidden className="h-3.5 w-3.5" />
+              {copyLabel}
+            </ActionButton>
+            <ActionButton
+              type="button"
+              intent="secondary"
+              size="sm"
+              onClick={handleExport}
+              disabled={actionsDisabled}
+              aria-label={exportLabel}
+              aria-busy={exportState === "loading"}
             >
-              <Download className="h-3.5 w-3.5" />
-              Export
-            </button>
+              <Download aria-hidden className="h-3.5 w-3.5" />
+              {exportLabel}
+            </ActionButton>
           </div>
         </div>
+
+        {(copyState === "error" || exportState === "error") && (
+          <p className="rounded-lg border border-red-300/20 bg-red-500/10 px-3 py-2 text-xs text-red-100">
+            Could not complete that action. Try again, or export fewer events if your browser
+            blocked clipboard or download access.
+          </p>
+        )}
       </div>
 
-      {/* Event list */}
-      <div className="flex-1 overflow-y-auto rounded-xl border border-white/[0.06] bg-white/[0.02]">
-        {events.length === 0 ? (
-          <div className="flex h-full items-center justify-center py-12">
+      <Surface
+        padding="none"
+        variant="tile"
+        className="flex min-h-[16rem] flex-1 flex-col overflow-hidden"
+      >
+        {totalCount === 0 ? (
+          <div className="flex flex-1 items-center justify-center px-4 py-10">
             <EmptyState
-              icon={<ClipboardList className="h-6 w-6" />}
+              icon={<ClipboardList aria-hidden className="h-6 w-6" />}
               eyebrow="Audit log"
-              title="No events yet"
-              description="Policy changes, sender decisions, delivery proofs, and session events will appear here once activity starts. Message body content is never recorded."
+              title="No protocol events yet"
+              description="Policy changes, sender decisions, delivery proofs, and session activity will appear here once events are recorded. Message body content is never stored in the audit trail."
             />
           </div>
-        ) : (
-          <div>
+        ) : hasVisibleEvents ? (
+          <div className="overflow-y-auto">
             {events.map((event) => (
               <EventRow key={event.id} event={event} />
             ))}
           </div>
+        ) : (
+          <div className="flex flex-1 items-center justify-center px-4 py-10">
+            <EmptyState
+              icon={<Search aria-hidden className="h-6 w-6" />}
+              eyebrow="No matches"
+              title="No events match these filters"
+              description="Try a broader search term or switch back to All categories. Only metadata such as event kind, sender label, and message ID is searchable."
+              action={
+                <ActionButton type="button" intent="secondary" size="sm" onClick={clearFilters}>
+                  Clear filters
+                </ActionButton>
+              }
+            />
+          </div>
         )}
-      </div>
+      </Surface>
 
-      {/* Footer count */}
-      {events.length > 0 && (
-        <p className="text-right text-[11px] text-muted-foreground/60">
-          {events.length} event{events.length !== 1 ? "s" : ""}
+      {hasVisibleEvents ? (
+        <p className="text-right text-[11px] text-muted-foreground/70">
+          Showing {events.length} of {totalCount} event{totalCount !== 1 ? "s" : ""}
+          {hasActiveFilter ? " for the current filters" : ""}
         </p>
-      )}
+      ) : null}
     </div>
   );
 }

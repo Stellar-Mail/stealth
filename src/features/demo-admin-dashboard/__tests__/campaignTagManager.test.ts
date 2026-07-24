@@ -24,6 +24,7 @@ const baseSnapshots: CampaignSnapshot[] = [
     targetAudience: "all",
     tags: ["onboarding", "newsletter"],
     timestamp: "2026-06-01T00:00:00Z",
+    status: "draft",
     drafts: [],
   },
   {
@@ -33,6 +34,7 @@ const baseSnapshots: CampaignSnapshot[] = [
     targetAudience: "all",
     tags: ["onboarding"],
     timestamp: "2026-06-02T00:00:00Z",
+    status: "draft",
     drafts: [],
   },
   {
@@ -42,6 +44,7 @@ const baseSnapshots: CampaignSnapshot[] = [
     targetAudience: "all",
     tags: ["security"],
     timestamp: "2026-06-03T00:00:00Z",
+    status: "draft",
     drafts: [],
   },
 ];

@@ -1,40 +1,24 @@
-# Review Notes
+# Reviewer Validation Notes
 
-## What This Contribution Adds
+This guide is for OSS contributors validating the isolated Role-Based Mail Access tool.
 
-- A guard module (`guards/access-guards.mjs`) with validation, sanitisation, and performance-safety helpers — no UI, no service wiring, no app integration.
-- A fixture (`fixtures/sample-access-requests.json`) that encodes the valid-request contract and a named catalogue of 19 hostile inputs covering role escalation, injection, and traversal attacks.
-- A test suite (`tests/access-guards.test.mjs`) with 33 tests that validate every guard function against both normal and adversarial inputs, and verify that all fixture hostile inputs throw `AccessValidationError`.
-- A threat model (`docs/threat-model.md`) documenting trust boundaries, attack categories, and out-of-scope threats for future issues.
-- Performance notes (`docs/performance-notes.md`) covering O(n) risks, size caps, and future implementation guidance.
-- An updated `README.md` with setup, run command, file map, and known limitations.
+## Fast Checks
 
-## Validation Performed
+- Run [../tests/test-plan.md](../tests/test-plan.md) from top to bottom.
+- Confirm `node --test tools/v2/team/role-based-mail-access/tests/access-guards.test.mjs` passes.
+- Confirm `npx vitest -c tools/v2/team/role-based-mail-access/vitest.config.ts run` passes when dependencies are installed.
+- Check that no file outside `tools/v2/team/role-based-mail-access/` changed for this issue.
 
-```bash
-node --test tools/v2/team/role-based-mail-access/tests/access-guards.test.mjs
-```
+## What To Review
 
-All 33 tests pass. No install step required.
+1. The guard suite should reject every hostile payload in `fixtures/sample-access-requests.json`.
+2. The service tests should show that policies, logs, and size limits behave independently of the main app.
+3. The docs should explain setup, usage, fixture scope, and known limitations without referencing the main app shell.
+4. The folder should remain easy to remove or refactor later because nothing is wired into app-wide routing or state.
 
-## Reviewer Focus
+## Expected Results
 
-- **Guard completeness** — every hostile input category in `docs/threat-model.md` should have a corresponding entry in `fixtures/sample-access-requests.json` and a passing rejection test.
-- **Allowlist discipline** — `validateRole` and `validateAccessLevel` use `Set.has()` against hard-coded allowlists, not regex. If the allowed roles or levels change in a future issue, update `ALLOWED_ROLES` / `ALLOWED_ACCESS_LEVELS` in the guard module and the `policy` object in the fixture.
-- **Error field tagging** — every `AccessValidationError` carries a `field` property so future UI code can surface per-field error messages without parsing the message string.
-- **No production code touched** — this contribution is self-contained. No files outside `tools/v2/team/role-based-mail-access/` were modified.
-
-## Intentionally Out of Scope
-
-- Authentication (verifying the caller owns the declared role) — requires session/token integration
-- Audit logging of access decisions — separate compliance concern
-- Rate limiting / brute-force protection — requires middleware outside this boundary
-- UI components for role assignment — future feature issue
-- Integration with the main inbox or routing — blocked by isolation boundary
-
-## Follow-Up Work
-
-- Add service code that loads the live role policy and wires `checkAccess` to inbox thread lookups.
-- Add authentication middleware that validates the declared role against the session token.
-- Add audit logging so every access decision is recorded for compliance review.
-- Add integration tests only after a future issue explicitly allows app wiring.
+- The Node guard suite covers sanitization, validation, limits, and fixture contract checks.
+- The Vitest suite covers core service behavior, log order, policy updates, and isolation boundaries.
+- The fixture file remains local and readable.
+- The tool stays a self-contained mini-product until a future integration issue is approved.

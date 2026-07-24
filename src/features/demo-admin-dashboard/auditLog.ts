@@ -44,15 +44,21 @@ export const formatAuditEntry = (entry: AuditLogEntry): string => {
       return `${actor.name} created the ${target.type.toLowerCase()} "${target.name}".`;
     case "update":
       if (details && details.field) {
-        return `${actor.name} updated the ${details.field} of ${target.type.toLowerCase()} "${target.name}" from "${details.from}" to "${details.to}".`;
+        return `${actor.name} updated the ${details.field} of ${target.type.toLowerCase()} "${
+          target.name
+        }" from "${details.from}" to "${details.to}".`;
       }
       return `${actor.name} updated the ${target.type.toLowerCase()} "${target.name}".`;
     case "assign":
-      return `${actor.name} assigned the ${target.type.toLowerCase()} "${target.name}" to ${details?.assignee || "a team member"}.`;
+      return `${actor.name} assigned the ${target.type.toLowerCase()} "${target.name}" to ${
+        details?.assignee || "a team member"
+      }.`;
     case "publish":
       return `${actor.name} published the ${target.type.toLowerCase()} "${target.name}".`;
     case "rollback":
-      return `${actor.name} rolled back the ${target.type.toLowerCase()} "${target.name}" to version ${details?.version || "a previous state"}.`;
+      return `${actor.name} rolled back the ${target.type.toLowerCase()} "${
+        target.name
+      }" to version ${details?.version || "a previous state"}.`;
     default:
       return `An unknown action was performed by ${actor.name} on "${target.name}".`;
   }

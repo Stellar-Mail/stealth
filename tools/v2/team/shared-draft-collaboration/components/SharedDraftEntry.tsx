@@ -1,7 +1,7 @@
 import React from "react";
 import { FileText, Users, Clock, Edit2 } from "lucide-react";
-import { Button } from "../../../src/components/ui/button";
-import { Badge } from "../../../src/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 interface SharedDraftEntryProps {
   id: string;

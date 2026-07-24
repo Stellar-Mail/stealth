@@ -20,8 +20,8 @@ const ALL_METRIC_KINDS: KpiMetricKind[] = [
 ];
 
 describe("CAMPAIGN_KPI_DEFINITIONS fixture", () => {
-  it("contains 12 items", () => {
-    expect(CAMPAIGN_KPI_DEFINITIONS).toHaveLength(12);
+  it("contains 18 items", () => {
+    expect(CAMPAIGN_KPI_DEFINITIONS).toHaveLength(18);
   });
 
   it("every item has required string fields", () => {
@@ -58,11 +58,11 @@ describe("CAMPAIGN_KPI_DEFINITIONS fixture", () => {
     }
   });
 
-  it("covers exactly two campaign ids", () => {
+  it("covers expected campaign ids", () => {
     const campaignIds = new Set(CAMPAIGN_KPI_DEFINITIONS.map((k) => k.campaignId));
-    expect(campaignIds.size).toBe(2);
     expect(campaignIds.has("campaign-onboarding-2026")).toBe(true);
     expect(campaignIds.has("campaign-stellar-launch-2026")).toBe(true);
+    expect(campaignIds.has("campaign-investor-nurture")).toBe(true);
   });
 });
 

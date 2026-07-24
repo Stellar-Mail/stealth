@@ -18,3 +18,12 @@ export type {
   RuleEvaluationResult,
   ServiceConfig,
 } from "./rules";
+export type {
+  TeamInboxRulesExecutionInput,
+  TeamInboxRulesExecutionErrorCode,
+  TeamInboxRulesTriggeredAction,
+  TeamInboxRulesExecutionSuccess,
+  TeamInboxRulesExecutionError,
+  TeamInboxRulesExecutionResult,
+  ExecuteTeamInboxRules,
+} from "./execution";

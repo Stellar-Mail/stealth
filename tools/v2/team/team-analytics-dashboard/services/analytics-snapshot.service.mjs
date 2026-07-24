@@ -1,3 +1,5 @@
+import { validateSourceReports } from "../guards/analytics-guards.mjs";
+
 const HEALTHY_BACKLOG_THRESHOLD = 20;
 const WATCH_BACKLOG_THRESHOLD = 30;
 const HIGH_RESPONSE_TIME_THRESHOLD = 8;
@@ -46,9 +48,11 @@ function buildSnapshot(report) {
   };
 }
 
+/**
+ * @param {import("../contract/analytics-contract").SourceReport[]} sourceReports
+ * @returns {import("../contract/analytics-contract").AnalyticsSnapshot[]}
+ */
 export function generateSnapshots(sourceReports) {
-  if (!Array.isArray(sourceReports)) {
-    throw new Error("sourceReports must be an array");
-  }
+  validateSourceReports(sourceReports);
   return sourceReports.map(buildSnapshot);
 }

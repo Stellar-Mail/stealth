@@ -1,7 +1,8 @@
 import { useCallback, useState } from "react";
 import { Clock, RefreshCw } from "lucide-react";
-import type { DateRange, ResponseTimeService } from "../types";
+import type { DateRange } from "../types";
 import { useResponseTimes } from "../hooks/use-response-times";
+import type { ResponseTimeService } from "../services/response-time-service";
 import { DateRangePicker } from "./date-range-picker";
 import { ResponseTimeMetrics } from "./response-time-metrics";
 import { ResponseTimeList } from "./response-time-list";

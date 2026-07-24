@@ -1,0 +1,63 @@
+{
+  "success": {
+    "input": {
+      "emailId": "email-contract-001",
+      "threadId": "thread-contract-001",
+      "reportedBy": "analyst@company.example",
+      "severity": "high",
+      "category": "phishing",
+      "subject": "  Suspicious account verification request  ",
+      "senderEmail": "alerts@untrusted.example",
+      "description": "  Sender requested credentials through an unfamiliar link.  ",
+      "evidence": ["  Domain is not allow-listed  ", "Urgent credential request"]
+    },
+    "expected": {
+      "id": "flag-contract-001",
+      "emailId": "email-contract-001",
+      "threadId": "thread-contract-001",
+      "reportedBy": "analyst@company.example",
+      "severity": "high",
+      "category": "phishing",
+      "subject": "Suspicious account verification request",
+      "senderEmail": "alerts@untrusted.example",
+      "description": "Sender requested credentials through an unfamiliar link.",
+      "evidence": ["Domain is not allow-listed", "Urgent credential request"],
+      "status": "new",
+      "createdAt": "2026-07-18T12:00:00.000Z",
+      "updatedAt": "2026-07-18T12:00:00.000Z"
+    }
+  },
+  "failures": [
+    {
+      "name": "missing subject",
+      "override": { "subject": " " },
+      "mode": "normal",
+      "expectedCode": "INVALID_INPUT",
+      "expectedField": "subject"
+    },
+    {
+      "name": "unauthorized reporter",
+      "override": {},
+      "mode": "unauthorized",
+      "expectedCode": "UNAUTHORIZED_REPORTER"
+    },
+    {
+      "name": "duplicate active flag",
+      "override": {},
+      "mode": "duplicate",
+      "expectedCode": "DUPLICATE_FLAG"
+    },
+    {
+      "name": "storage failure",
+      "override": {},
+      "mode": "persistence-failure",
+      "expectedCode": "PERSISTENCE_FAILED"
+    },
+    {
+      "name": "authorization dependency failure",
+      "override": {},
+      "mode": "internal-failure",
+      "expectedCode": "INTERNAL_ERROR"
+    }
+  ]
+}

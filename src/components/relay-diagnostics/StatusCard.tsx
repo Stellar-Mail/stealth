@@ -26,6 +26,7 @@ export function StatusCard({ label, value, unit, status }: StatusCardProps) {
             {unit ? (
               <span className="ml-2 align-baseline text-sm font-normal text-slate-500">{unit}</span>
             ) : null}
+            <span className="sr-only">Status: {status}</span>
           </div>
         </div>
         <div

@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useId, useState } from "react";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
   Shield,
   ShieldCheck,
@@ -18,13 +18,19 @@ import {
 } from "lucide-react";
 import {
   getEmailProvenance,
-  type ProvenanceDetails,
   type ProvenanceItemDetails,
   type ProvenanceTimelineItem,
 } from "./provenance";
 import { ProvenanceInspector } from "./ProvenanceInspector";
 import { PostageDisputePanel, type PostageDisputeStatus } from "./PostageDisputePanel";
 import type { Email } from "./data";
+import {
+  copyFieldAriaLabel,
+  inspectFieldAriaLabel,
+  provenanceStatusHeading,
+  technicalProvenanceToggleLabel,
+  timelineStepAriaLabel,
+} from "./provenance-a11y";
 
 /** Map provenance status strings to the contract PostageStatus enum values. */
 function deriveDisputeStatus(status: string): PostageDisputeStatus {
@@ -38,6 +44,8 @@ function deriveDisputeStatus(status: string): PostageDisputeStatus {
   return "pending";
 }
 
+const focusRingClass = "focus:outline-none focus:ring-2 focus:ring-white/10";
+
 export function ProvenancePanel({
   email,
   onShowToast,
@@ -50,12 +58,20 @@ export function ProvenancePanel({
   const [expanded, setExpanded] = useState(false);
   const [inspectItem, setInspectItem] = useState<ProvenanceItemDetails | null>(null);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const prefersReducedMotion = useReducedMotion();
+  const technicalDetailsId = useId();
+  const statusHeadingId = useId();
+  const timelineHeadingId = useId();
+  const accordionTransition = prefersReducedMotion
+    ? { duration: 0 }
+    : { duration: 0.25, ease: "easeInOut" as const };
+  const chevronTransition = prefersReducedMotion ? { duration: 0 } : { duration: 0.2 };
 
   if (!email) {
     return (
-      <div className="text-center py-6 text-xs text-muted-foreground">
+      <p className="text-center py-6 text-xs text-muted-foreground" role="status">
         Select a message to view cryptographic provenance.
-      </div>
+      </p>
     );
   }
 
@@ -92,6 +108,8 @@ export function ProvenancePanel({
   };
 
   const isVerified = provenance.senderIdentity.isVerified;
+  const isSpam = email.folder === "spam";
+  const completedSteps = provenance.timeline.filter((item) => item.status === "complete").length;
 
   // Render a single field row inside the detailed panel
   const FieldRow = ({
@@ -116,28 +134,31 @@ export function ProvenancePanel({
     return (
       <div className="flex flex-col gap-1 rounded-lg border border-white/[0.04] bg-white/[0.02] p-2.5 transition hover:bg-white/[0.04]">
         <div className="flex items-center gap-2">
-          <Icon className="h-3.5 w-3.5 text-muted-foreground/80 shrink-0" />
+          <Icon className="h-3.5 w-3.5 text-muted-foreground/80 shrink-0" aria-hidden="true" />
           <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
             {label}
           </span>
           <div className="ml-auto flex items-center gap-1.5">
             <button
+              type="button"
               onClick={() => handleCopy(fieldKey, rawValue, label)}
-              className="rounded p-1 text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground"
-              title={`Copy ${label}`}
+              className={`rounded p-1 text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground ${focusRingClass}`}
+              aria-label={copyFieldAriaLabel(label, isCopied)}
+              aria-pressed={isCopied}
             >
               {isCopied ? (
-                <Check className="h-3 w-3 text-emerald-400" />
+                <Check className="h-3 w-3 text-emerald-400" aria-hidden="true" />
               ) : (
-                <Copy className="h-3 w-3" />
+                <Copy className="h-3 w-3" aria-hidden="true" />
               )}
             </button>
             <button
+              type="button"
               onClick={() => setInspectItem(inspectorData)}
-              className="rounded p-1 text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground"
-              title={`Inspect ${label}`}
+              className={`rounded p-1 text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground ${focusRingClass}`}
+              aria-label={inspectFieldAriaLabel(label)}
             >
-              <Search className="h-3 w-3" />
+              <Search className="h-3 w-3" aria-hidden="true" />
             </button>
           </div>
         </div>
@@ -158,13 +179,16 @@ export function ProvenancePanel({
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3" role="region" aria-label="Message provenance and receipt details">
       {/* High-level status header */}
-      <div className="flex items-start gap-3 rounded-xl border border-white/[0.06] bg-black/15 p-3">
-        <div className="mt-0.5 shrink-0">
+      <section
+        className="flex items-start gap-3 rounded-xl border border-white/[0.06] bg-black/15 p-3"
+        aria-labelledby={statusHeadingId}
+      >
+        <div className="mt-0.5 shrink-0" aria-hidden="true">
           {isVerified ? (
             <ShieldCheck className="h-5 w-5 text-emerald-300" />
-          ) : email.folder === "spam" ? (
+          ) : isSpam ? (
             <ShieldAlert className="h-5 w-5 text-red-300" />
           ) : (
             <Shield className="h-5 w-5 text-amber-200" />
@@ -172,33 +196,34 @@ export function ProvenancePanel({
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
-            <span className="text-xs font-semibold text-foreground">
-              {isVerified
-                ? "Secure On-Chain Route"
-                : email.folder === "spam"
-                  ? "SMTP Bridged (Unverified)"
-                  : "Awaiting Envelope Proof"}
-            </span>
+            <h4 id={statusHeadingId} className="text-xs font-semibold text-foreground">
+              {provenanceStatusHeading(isVerified, isSpam)}
+            </h4>
           </div>
           <p className="mt-1 text-[10.5px] leading-relaxed text-muted-foreground/90">
             {isVerified
               ? `Delivered via ${provenance.relaySource.nodeId} with a verified postage record.`
-              : email.folder === "spam"
+              : isSpam
                 ? "Bridged message without Stellar cryptographic signatures."
                 : "Message processed but security verification is currently in progress."}
           </p>
         </div>
-      </div>
+      </section>
 
-      <div className="mt-4 rounded-2xl border border-white/[0.06] bg-black/10 p-3">
-        <div className="flex items-center justify-between gap-3 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+      <section
+        className="mt-4 rounded-2xl border border-white/[0.06] bg-black/10 p-3"
+        aria-labelledby={timelineHeadingId}
+      >
+        <div
+          id={timelineHeadingId}
+          className="flex items-center justify-between gap-3 text-[10px] uppercase tracking-[0.18em] text-muted-foreground"
+        >
           <span>Proof Timeline</span>
-          <span>
-            {provenance.timeline.filter((item) => item.status === "complete").length}/
-            {provenance.timeline.length} complete
+          <span aria-live="polite">
+            {completedSteps}/{provenance.timeline.length} complete
           </span>
         </div>
-        <div className="mt-3 space-y-3">
+        <ol className="mt-3 space-y-3" aria-label="Proof timeline steps">
           {provenance.timeline.map((item, index) => {
             const Icon = getTimelineIcon(item.key);
             const statusStyles =
@@ -209,8 +234,12 @@ export function ProvenancePanel({
                   : "border-white/10 bg-white/10 text-muted-foreground";
 
             return (
-              <div key={item.key} className="grid grid-cols-[auto_1fr] gap-3">
-                <div className="relative flex flex-col items-center">
+              <li
+                key={item.key}
+                className="grid grid-cols-[auto_1fr] gap-3"
+                aria-label={timelineStepAriaLabel(item)}
+              >
+                <div className="relative flex flex-col items-center" aria-hidden="true">
                   <span
                     className={`grid h-9 w-9 place-items-center rounded-full border ${statusStyles}`}
                   >
@@ -228,37 +257,47 @@ export function ProvenancePanel({
                         {item.description}
                       </p>
                     </div>
-                    <span className="shrink-0 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                    <time
+                      className="shrink-0 text-[10px] uppercase tracking-[0.18em] text-muted-foreground"
+                      dateTime={item.timestamp}
+                    >
                       {item.timestamp}
-                    </span>
+                    </time>
                   </div>
                 </div>
-              </div>
+              </li>
             );
           })}
-        </div>
-      </div>
+        </ol>
+      </section>
 
       {/* Accordion Toggle for Progressive Disclosure */}
       <div className="border-t border-white/[0.06] pt-1">
         <button
+          type="button"
           onClick={() => setExpanded(!expanded)}
-          className="flex w-full items-center justify-between py-2 text-[10.5px] font-semibold uppercase tracking-[0.14em] text-muted-foreground transition hover:text-foreground"
+          className={`flex w-full items-center justify-between py-2 text-[10.5px] font-semibold uppercase tracking-[0.14em] text-muted-foreground transition hover:text-foreground ${focusRingClass}`}
+          aria-expanded={expanded}
+          aria-controls={technicalDetailsId}
+          aria-label={technicalProvenanceToggleLabel(expanded)}
         >
           <span>Technical Provenance</span>
-          <motion.div animate={{ rotate: expanded ? 180 : 0 }} transition={{ duration: 0.2 }}>
-            <ChevronDown className="h-3.5 w-3.5" />
+          <motion.div animate={{ rotate: expanded ? 180 : 0 }} transition={chevronTransition}>
+            <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
           </motion.div>
         </button>
 
         <AnimatePresence initial={false}>
           {expanded && (
             <motion.div
-              initial={{ height: 0, opacity: 0 }}
+              id={technicalDetailsId}
+              initial={prefersReducedMotion ? false : { height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.25, ease: "easeInOut" }}
+              exit={prefersReducedMotion ? undefined : { height: 0, opacity: 0 }}
+              transition={accordionTransition}
               className="overflow-hidden"
+              role="region"
+              aria-label="Technical provenance fields"
             >
               <div className="space-y-2 pb-2 pt-1.5">
                 <FieldRow

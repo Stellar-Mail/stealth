@@ -70,22 +70,37 @@ The fixture data is intentionally small so OSS contributors can reason about
 the expected behavior without running the main app. The service layer defaults
 to loading fixture data with an 800 ms simulated delay.
 
+## Non-UI Execution Contract
+
+`runResponseTimeQuery` (exported from `index.ts`, defined in
+`services/execution-contract.ts`) is a stable, backend-facing entry point that
+runs a full query (entries, metrics, team members) and resolves with a typed
+`ResponseTimeQueryResult` — it never throws. See
+`docs/execution-contract.md` for the typed input/output contract and error
+codes, and `fixtures/execution-contract-cases.json` for the success/failure
+cases it is tested against.
+
 ## Documentation Map
 
 - `specs.md` — Local product contract, boundaries, and required categories.
 - `docs/test-plan.md` — Manual and automated review steps.
 - `docs/review-notes.md` — What was validated and what remains out of scope.
+- `docs/execution-contract.md` — Typed non-UI input/output contract and error codes.
 
 ## Tests
 
-Run the local test from the repository root:
+Run the local tests from the repository root:
 
 ```bash
 node --test tools/v2/team/response-time-tracker/tests/response-time.test.mjs
+node --test tools/v2/team/response-time-tracker/tests/execution-contract.test.mjs
 ```
 
-The test uses Node's built-in test runner and validates the response-time
-service logic (metrics calculation, date filtering, error handling).
+The tests use Node's built-in test runner. `response-time.test.mjs` validates
+the response-time service logic (metrics calculation, date filtering, error
+handling); `execution-contract.test.mjs` validates the non-UI execution
+contract's success and failure cases against
+`fixtures/execution-contract-cases.json`.
 
 ## Known Limitations
 

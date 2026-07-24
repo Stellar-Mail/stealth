@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import {
   AlertTriangle,
   BookOpen,
@@ -64,63 +64,81 @@ export function CampaignSnapshots({
     saveCampaignSnapshots(nextSnapshots);
   };
 
-  const handleSaveSnapshot = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim() || !description.trim() || !targetAudience.trim()) {
-      setFormError("Please fill out all required fields.");
-      return;
-    }
+  const handleSaveSnapshot = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!name.trim() || !description.trim() || !targetAudience.trim()) {
+        setFormError("Please fill out all required fields.");
+        return;
+      }
 
-    if (currentDataset.length === 0) {
-      setFormError("Cannot create a snapshot of an empty draft dataset.");
-      return;
-    }
+      if (currentDataset.length === 0) {
+        setFormError("Cannot create a snapshot of an empty draft dataset.");
+        return;
+      }
 
-    const newTags = normalizeLabels(tagsInput.split(","));
-    const existingIds = new Set(snapshots.map((s) => s.id));
+      const newTags = normalizeLabels(tagsInput.split(","));
+      const existingIds = new Set(snapshots.map((s) => s.id));
 
-    const newSnapshot: CampaignSnapshot = {
-      id: deterministicSnapshotId("snap", name.trim(), existingIds),
-      name: name.trim(),
-      description: description.trim(),
-      targetAudience: targetAudience.trim(),
-      tags: newTags,
-      timestamp: new Date().toISOString(),
-      status: status,
-      drafts: [...currentDataset],
-    };
+      const newSnapshot: CampaignSnapshot = {
+        id: deterministicSnapshotId("snap", name.trim(), existingIds),
+        name: name.trim(),
+        description: description.trim(),
+        targetAudience: targetAudience.trim(),
+        tags: newTags,
+        timestamp: new Date().toISOString(),
+        status: status,
+        drafts: [...currentDataset],
+      };
 
-    commitSnapshots([newSnapshot, ...snapshots]);
+      commitSnapshots([newSnapshot, ...snapshots]);
 
-    // Reset form
-    setName("");
-    setDescription("");
-    setTargetAudience("");
-    setTagsInput("");
-    setStatus("draft");
-    setFormError("");
-    setIsCreating(false);
-  };
+      // Reset form
+      setName("");
+      setDescription("");
+      setTargetAudience("");
+      setTagsInput("");
+      setStatus("draft");
+      setFormError("");
+      setIsCreating(false);
+    },
+    [
+      name,
+      description,
+      targetAudience,
+      tagsInput,
+      status,
+      currentDataset,
+      snapshots,
+      commitSnapshots,
+    ],
+  );
 
-  const handleDeleteSnapshot = (id: string) => {
-    const next = snapshots.filter((s) => s.id !== id);
-    commitSnapshots(next);
-  };
+  const handleDeleteSnapshot = useCallback(
+    (id: string) => {
+      const next = snapshots.filter((s) => s.id !== id);
+      commitSnapshots(next);
+    },
+    [snapshots, commitSnapshots],
+  );
 
-  const triggerRestore = (snapshot: CampaignSnapshot) => {
+  const triggerRestore = useCallback((snapshot: CampaignSnapshot) => {
     setConfirmRestoreTarget(snapshot);
-  };
+  }, []);
 
-  const handleConfirmRestore = () => {
+  const handleConfirmRestore = useCallback(() => {
     if (!confirmRestoreTarget) return;
     onRestoreDataset(confirmRestoreTarget.drafts);
     setConfirmRestoreTarget(null);
-  };
+  }, [confirmRestoreTarget, onRestoreDataset]);
 
-  const handleMergeResolved = (resolvedDrafts: Draft[]) => {
-    onRestoreDataset(resolvedDrafts);
-    setMergeTarget(null);
-  };
+  const handleMergeResolved = useCallback(
+    (resolvedDrafts: Draft[]) => {
+      onRestoreDataset(resolvedDrafts);
+      setMergeTarget(null);
+    },
+    [onRestoreDataset],
+  );
 
   return (
     <div className={cn("space-y-6", className)}>

@@ -1,0 +1,58 @@
+[
+  {
+    "id": "ticket-001",
+    "emailId": "email-001",
+    "subject": "Login page returns 500 error on submit",
+    "description": "User reports 500 error on login after latest deployment. Immediate investigation needed.",
+    "priority": "critical",
+    "status": "in-progress",
+    "category": "bug",
+    "assignedTo": "member-004",
+    "createdBy": "member-001",
+    "createdAt": "2026-07-15T10:00:00Z",
+    "updatedAt": "2026-07-17T09:15:00Z",
+    "resolution": null
+  },
+  {
+    "id": "ticket-002",
+    "emailId": "email-002",
+    "subject": "Invoice #INV-2026-0421 is incorrect",
+    "description": "Client was overcharged for 50 users instead of 30. Need to review and issue credit.",
+    "priority": "high",
+    "status": "open",
+    "category": "billing",
+    "assignedTo": null,
+    "createdBy": "member-002",
+    "createdAt": "2026-07-15T12:30:00Z",
+    "updatedAt": "2026-07-15T12:30:00Z",
+    "resolution": null
+  },
+  {
+    "id": "ticket-003",
+    "emailId": "email-003",
+    "subject": "Feature request: bulk export to CSV",
+    "description": "Client requesting ability to bulk export project data to CSV for reporting purposes.",
+    "priority": "low",
+    "status": "open",
+    "category": "feature-request",
+    "assignedTo": null,
+    "createdBy": "member-003",
+    "createdAt": "2026-07-16T09:00:00Z",
+    "updatedAt": "2026-07-16T09:00:00Z",
+    "resolution": null
+  },
+  {
+    "id": "ticket-004",
+    "emailId": "email-004",
+    "subject": "Password reset link not received",
+    "description": "User unable to reset password - reset emails not being delivered. Investigate email delivery system.",
+    "priority": "high",
+    "status": "resolved",
+    "category": "support",
+    "assignedTo": "member-001",
+    "createdBy": "member-001",
+    "createdAt": "2026-07-16T14:30:00Z",
+    "updatedAt": "2026-07-17T11:00:00Z",
+    "resolution": "Identified that the user's email domain was rejected by our SPF filter. Whitelisted the domain and password reset emails are now going through."
+  }
+]

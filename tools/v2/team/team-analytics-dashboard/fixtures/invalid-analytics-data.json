@@ -1,0 +1,47 @@
+{
+  "tool": "team-analytics-dashboard",
+  "version": 1,
+  "description": "Invalid inputs that the execution contract must reject. Each case lists the payload and the AnalyticsError code the guards must raise. Consumed by tests/analytics-contract.test.mjs to cover the failure path.",
+  "dashboardCases": [
+    {
+      "name": "null payload",
+      "input": null,
+      "expectedErrorCode": "INVALID_DASHBOARD_DATA"
+    },
+    {
+      "name": "members missing",
+      "input": { "teamId": "team-x", "period": { "start": "2026-06-09", "end": "2026-06-15" } },
+      "expectedErrorCode": "INVALID_MEMBERS"
+    },
+    {
+      "name": "member is not an object",
+      "input": {
+        "teamId": "team-x",
+        "period": { "start": "2026-06-09", "end": "2026-06-15" },
+        "members": [null]
+      },
+      "expectedErrorCode": "INVALID_MEMBER_ITEM"
+    },
+    {
+      "name": "member missing memberId",
+      "input": {
+        "teamId": "team-x",
+        "period": { "start": "2026-06-09", "end": "2026-06-15" },
+        "members": [{ "name": "No Id" }]
+      },
+      "expectedErrorCode": "INVALID_MEMBER_ID"
+    }
+  ],
+  "sourceReportCases": [
+    {
+      "name": "source reports not an array",
+      "input": { "nope": true },
+      "expectedErrorCode": "INVALID_SOURCE_REPORTS"
+    },
+    {
+      "name": "source report item is not an object",
+      "input": ["not-an-object"],
+      "expectedErrorCode": "INVALID_SOURCE_REPORT_ITEM"
+    }
+  ]
+}

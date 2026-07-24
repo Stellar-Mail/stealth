@@ -111,9 +111,9 @@ export function ContactMigrationDialog({
       parsed = [];
     }
 
-    parsed = deduplicateRows(parsed);
-
-    const matched = matchAllIdentities(parsed, knownContacts);
+    // Deduplicate first, then match (avoids matching duplicates)
+    const deduplicated = deduplicateRows(parsed);
+    const matched = matchAllIdentities(deduplicated, knownContacts);
     setRows(matched);
     setRetention(defaultRetentionForSource(src));
     goTo("identity-review");

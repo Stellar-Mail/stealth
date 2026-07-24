@@ -1,26 +1,33 @@
 import { describe, it, expect } from "vitest";
 import { generateDemoMessages } from "./messageGeneration";
 import { fakePersonas } from "./fixtures";
-import type { TemplateCategory } from "./templates/types";
+import type { MessageTemplate, TemplateCategory } from "./templates/types";
 import { CAMPAIGN_TEMPLATES as messageTemplates } from "./fixtures/campaignFixtures";
+import type { CampaignTemplate, CampaignChecklistItem } from "./types/campaign";
+
+/** Converts campaign templates into a flat list of message templates for testing. */
+const getTestTemplates = (campaignTemplates: CampaignTemplate[]): MessageTemplate[] => {
+  return campaignTemplates.flatMap((t) =>
+    t.checklist.map(
+      (c: CampaignChecklistItem): MessageTemplate => ({
+        id: c.id,
+        name: c.label,
+        subject: c.label,
+        body: c.description,
+        description: c.description,
+        category: t.name as TemplateCategory,
+        recipients: [],
+        tags: [],
+      }),
+    ),
+  );
+};
 
 describe("generateDemoMessages", () => {
   const options = {
     count: 5,
     personas: fakePersonas,
-    templates: messageTemplates.flatMap((t) =>
-      t.checklist.map((c) => ({
-        ...t, // Spread the rest of the properties from the template
-        id: c.id, // Override with specific checklist item id
-        subject: c.label, // Use checklist item label as subject
-        body: c.description, // Use checklist item description as body
-        name: c.label, // Use checklist item label as name
-        description: c.description, // Use checklist item description
-        category: t.name as TemplateCategory, // Assign category from parent template
-        recipients: [], // Add missing property
-        tags: [], // Add missing property
-      })),
-    ),
+    templates: getTestTemplates(messageTemplates),
     seed: "test-seed",
   };
 

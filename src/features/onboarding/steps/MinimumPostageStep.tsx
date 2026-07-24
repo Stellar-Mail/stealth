@@ -63,11 +63,15 @@ export function MinimumPostageStep({ draft, onUpdate, onAdvance, onRetreat }: Pr
           return (
             <button
               key={preset.value}
+              type="button"
+              aria-pressed={isSelected}
               onClick={() => handlePreset(preset.value)}
               className={cn(
                 "rounded-xl border p-3 text-left transition",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60",
+                "active:scale-[0.99]",
                 isSelected
-                  ? "border-emerald-400/20 bg-emerald-400/[0.06]"
+                  ? "border-emerald-400/30 bg-emerald-400/[0.06] ring-1 ring-emerald-400/30"
                   : "border-white/10 bg-white/[0.025] hover:bg-white/[0.05]",
               )}
             >
@@ -80,8 +84,9 @@ export function MinimumPostageStep({ draft, onUpdate, onAdvance, onRetreat }: Pr
 
       <div className="space-y-2">
         <button
+          type="button"
           onClick={() => setCustom(true)}
-          className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground transition"
+          className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground transition rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
         >
           Enter custom amount
         </button>
@@ -118,16 +123,18 @@ export function MinimumPostageStep({ draft, onUpdate, onAdvance, onRetreat }: Pr
 
       <div className="flex gap-3">
         <button
+          type="button"
           onClick={onRetreat}
-          className="flex-1 rounded-xl border border-white/10 px-4 py-2.5 text-sm text-muted-foreground transition hover:bg-white/[0.04] hover:text-foreground"
+          className="flex-1 rounded-xl border border-white/10 px-4 py-2.5 text-sm text-muted-foreground transition hover:bg-white/[0.04] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 active:scale-[0.99]"
         >
           Back
         </button>
         <button
+          type="button"
           onClick={onAdvance}
           disabled={!canAdvance}
           className={cn(
-            "flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold transition",
+            "flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60 active:scale-[0.99]",
             canAdvance
               ? "bg-foreground text-background hover:opacity-90"
               : "cursor-not-allowed bg-white/10 text-muted-foreground",

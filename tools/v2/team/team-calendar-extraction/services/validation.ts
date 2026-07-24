@@ -97,7 +97,7 @@ export function validateEventTimes(startDate: string, endDate: string): Validati
 /**
  * Validate full extracted calendar event object
  */
-/* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+
 export function validateCalendarEvent(event: any): ValidationResult {
   const errors: ValidationError[] = [];
 

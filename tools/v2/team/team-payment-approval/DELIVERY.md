@@ -15,6 +15,7 @@ All work is isolated to `tools/v2/team/team-payment-approval/` and ready for iso
 **File**: `components/`
 
 - **PaymentApprovalForm** (`payment-approval-form.tsx`)
+
   - Accessible form for approving/rejecting payments
   - Full keyboard support: Tab, Shift+Tab, Escape, Ctrl+Enter
   - Radio group with fieldset/legend semantics
@@ -24,6 +25,7 @@ All work is isolated to `tools/v2/team/team-payment-approval/` and ready for iso
   - aria-label on all buttons
 
 - **PaymentApprovalList** (`payment-approval-list.tsx`)
+
   - Semantic table structure with proper headers
   - Sortable columns with aria-sort attributes
   - Keyboard navigation: Arrow Up/Down to move between rows
@@ -34,24 +36,28 @@ All work is isolated to `tools/v2/team/team-payment-approval/` and ready for iso
   - Focus indicators on interactive elements
 
 - **EmptyState** (`empty-state.tsx`)
+
   - Accessible empty state: role="status" with aria-label
   - Clear title and description
   - Optional action button
   - Centered layout with max-width
 
 - **LoadingState** (`loading-state.tsx`)
+
   - Accessible loading: role="status" aria-live="polite" aria-busy="true"
   - Screen reader friendly message in sr-only div
   - Skeleton placeholders with aria-hidden
   - No visual blocking
 
 - **ErrorState** (`error-state.tsx`)
+
   - Accessible error: role="alert" (immediate announcement)
   - Error title and optional details
   - Optional retry action
   - Destructive color to indicate problem
 
 - **SuccessState** (`success-state.tsx`)
+
   - Accessible success: role="status" aria-live="assertive"
   - Confirmation title and optional details
   - Success color (emerald)
@@ -111,6 +117,7 @@ All work is isolated to `tools/v2/team/team-payment-approval/` and ready for iso
 **File**: `hooks/`
 
 - **usePaymentApproval** (`use-payment-approval.ts`)
+
   - Manages approval workflow state
   - Methods: approve(), reject(), getDecision(), clearError()
   - Handles loading and error states
@@ -127,6 +134,7 @@ All work is isolated to `tools/v2/team/team-payment-approval/` and ready for iso
 **File**: `services/`
 
 - **PaymentService** (`payment.service.ts`)
+
   - Singleton for payment data
   - Methods: addPayment(), getPayment(), getAllPayments(), getPendingPayments()
   - updatePaymentStatus(), createWorkflow()
@@ -439,3 +447,12 @@ These will be handled by **separate follow-up issues** after this UI work is val
 ✅ **Ready for review and testing!**
 
 The Team Payment Approval tool is now a **complete, self-contained, accessible UI** ready for isolated validation and future integration.
+
+---
+
+## Issue Linkage Note
+
+The original delivery PR (#781) merged the full tool, but its description referenced the
+issue with `for #696` rather than a GitHub closing keyword, so the issue was not
+auto-closed or linked on merge. This follow-up records the completed linkage so that
+issue #696 is closed by a merged pull request.

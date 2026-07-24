@@ -1,0 +1,64 @@
+{
+  "successCases": [
+    {
+      "input": {
+        "action": "TRACK_MAIL",
+        "vendorId": "v-12345",
+        "payload": {
+          "subject": "Invoice Enclosed",
+          "messageId": "msg-987"
+        }
+      },
+      "expectedOutput": {
+        "success": true,
+        "data": {
+          "tracked": true,
+          "timestamp": "2026-07-18T10:00:00.000Z"
+        }
+      }
+    },
+    {
+      "input": {
+        "action": "UPDATE_VENDOR_STATUS",
+        "vendorId": "v-12345",
+        "payload": {
+          "status": "active"
+        }
+      },
+      "expectedOutput": {
+        "success": true,
+        "data": {
+          "vendorId": "v-12345",
+          "status": "active",
+          "updated": true
+        }
+      }
+    }
+  ],
+  "failureCases": [
+    {
+      "input": {
+        "action": "TRACK_MAIL"
+      },
+      "expectedOutput": {
+        "success": false,
+        "error": {
+          "code": "INVALID_INPUT",
+          "message": "vendorId is required for TRACK_MAIL"
+        }
+      }
+    },
+    {
+      "input": {
+        "action": "UNKNOWN_ACTION"
+      },
+      "expectedOutput": {
+        "success": false,
+        "error": {
+          "code": "ACTION_NOT_SUPPORTED",
+          "message": "Action UNKNOWN_ACTION is not supported"
+        }
+      }
+    }
+  ]
+}

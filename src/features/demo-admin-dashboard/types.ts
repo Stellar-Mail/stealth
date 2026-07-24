@@ -76,7 +76,8 @@ export type PresetId =
   | "receipt-settlement"
   | "encrypted-provenance"
   | "encrypted-payload"
-  | "conference-pass";
+  | "conference-pass"
+  | "investor-nurture";
 
 export interface PresetAccount {
   name: string;

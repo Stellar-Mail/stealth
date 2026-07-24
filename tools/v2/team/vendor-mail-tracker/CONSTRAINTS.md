@@ -7,30 +7,35 @@ This document specifies what contributors **can** and **cannot** change when wor
 ### ✅ Within `tools/v2/team/vendor-mail-tracker/`
 
 1. **Create/Modify Components**
+
    - Add new UI components in `components/`
    - Modify existing components within this tool
    - Create component composition patterns
    - Add component-level state management
 
 2. **Create/Modify Services**
+
    - Add business logic in `services/`
    - Create vendor and tracking operations
    - Implement analytics aggregation
    - Add dependency injection for testability
 
 3. **Create/Modify Hooks**
+
    - Add React hooks for state management
    - Compose services into reusable hooks
    - Implement custom hooks for features
    - Export stable, memoized values
 
 4. **Create/Modify Types**
+
    - Define vendor data shapes
    - Define tracking records
    - Define analytics metrics
    - Create TypeScript interfaces
 
 5. **Expand Tests**
+
    - Add unit tests for services
    - Add tests for hooks
    - Add component tests
@@ -38,6 +43,7 @@ This document specifies what contributors **can** and **cannot** change when wor
    - Create test fixtures
 
 6. **Expand Fixtures**
+
    - Add mock vendor data
    - Create builder utilities for tests
    - Add sample state configurations
@@ -55,44 +61,52 @@ This document specifies what contributors **can** and **cannot** change when wor
 **The following files/directories are OFF-LIMITS**:
 
 1. **Main Application Shell**
+
    - `src/router.tsx`
    - `src/routes/__root.tsx`
    - App-level layout and navigation
 
 2. **Routing System**
+
    - Main route definitions in `src/routes/`
    - Route tree generation
    - Navigation orchestration (except future integration issue)
 
 3. **Mail/Inbox Architecture**
+
    - `src/features/mail/` (DO NOT MODIFY)
    - Mail rendering engine
    - Existing inbox state
    - Mail service implementations
 
 4. **Authentication System**
+
    - `src/services/` auth modules
    - Session management
    - User context (await integration issue)
 
 5. **Wallet & Stellar Core**
+
    - `src/services/stellar/`
    - `src/services/crypto/`
    - Wallet operations
    - Blockchain integration
 
 6. **Database Schema**
+
    - Any database migrations
    - Schema definitions in `contracts/`
    - Existing data models
 
 7. **Design System**
+
    - `src/components/ui/` (core UI components)
    - Design tokens
    - Shared component patterns
    - Styling system (unless explicitly exported for use)
 
 8. **Configuration Files** (Root Level)
+
    - `package.json` (core scripts only - don't add vendor tracker entries yet)
    - `tsconfig.json`
    - `vite.config.ts`
@@ -109,22 +123,26 @@ This document specifies what contributors **can** and **cannot** change when wor
 Contributors **MUST NOT**:
 
 1. **Create circular dependencies**
+
    - Services must not import from components
    - Components must not import services directly
    - Hooks can import from services, but not vice versa
 
 2. **Break module boundaries**
+
    - Types layer: No service/hook/component imports
    - Service layer: No component imports
    - Component layer: No service imports (use hooks)
 
 3. **Couple to main app internals**
+
    - Don't import main app service internals
    - Don't access main app state directly
    - Don't modify main app routes/components
    - Document any necessary main-app interfaces
 
 4. **Add external dependencies**
+
    - Coordinate with team for new npm packages
    - Prefer existing dependencies
    - Document dependency rationale

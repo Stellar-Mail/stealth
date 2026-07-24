@@ -1,0 +1,52 @@
+[
+  {
+    "id": "email-001",
+    "threadId": "thread-001",
+    "from": { "name": "Sarah Mitchell", "email": "sarah.m@client.org" },
+    "to": { "name": "Support", "email": "support@company.com" },
+    "subject": "Login page returns 500 error on submit",
+    "body": "Hi, I'm getting a 500 Internal Server Error every time I try to log in. This started happening after the latest deployment. Please help.",
+    "receivedAt": "2026-07-15T09:23:00Z",
+    "hasAttachments": false
+  },
+  {
+    "id": "email-002",
+    "threadId": "thread-002",
+    "from": { "name": "Mike O'Brien", "email": "mike.obrien@startup.io" },
+    "to": { "name": "Billing", "email": "billing@company.com" },
+    "subject": "Invoice #INV-2026-0421 is incorrect",
+    "body": "Our invoice shows a charge for 50 users but we only have 30 active licenses. Can you correct this?",
+    "receivedAt": "2026-07-15T11:47:00Z",
+    "hasAttachments": true
+  },
+  {
+    "id": "email-003",
+    "threadId": "thread-003",
+    "from": { "name": "Elena Vasquez", "email": "elena.v@designlab.com" },
+    "to": { "name": "Support", "email": "support@company.com" },
+    "subject": "Feature request: bulk export to CSV",
+    "body": "It would save us hours if we could export all project data to CSV in one click. Currently we have to export each project individually.",
+    "receivedAt": "2026-07-16T08:15:00Z",
+    "hasAttachments": false
+  },
+  {
+    "id": "email-004",
+    "threadId": "thread-004",
+    "from": { "name": "David Park", "email": "david.park@edu.org" },
+    "to": { "name": "Support", "email": "support@company.com" },
+    "subject": "Password reset link not received",
+    "body": "I've requested a password reset three times but never received the email. Checked spam folder too. Can you help?",
+    "receivedAt": "2026-07-16T14:02:00Z",
+    "hasAttachments": false
+  },
+  {
+    "id": "email-005",
+    "threadId": "thread-005",
+    "from": { "name": "Taylor Reed", "email": "taylor@acmecorp.com" },
+    "to": { "name": "Support", "email": "support@company.com" },
+    "subject": "Dashboard widget not loading data",
+    "body": "The revenue widget on our main dashboard shows 'No data available' since yesterday. Other widgets work fine.",
+    "receivedAt": "2026-07-17T07:30:00Z",
+    "hasAttachments": true
+  }
+]

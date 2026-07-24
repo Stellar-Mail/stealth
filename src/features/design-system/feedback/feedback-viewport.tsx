@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { AlertTriangle, CheckCircle2, Info, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -25,6 +25,10 @@ interface FeedbackViewportProps {
 }
 
 export function FeedbackViewport({ items, onDismiss }: FeedbackViewportProps) {
+  // Respect the OS reduced-motion setting: framer-motion's JS animations are
+  // not covered by the CSS prefers-reduced-motion rule, so toasts fall back to
+  // an instant opacity change with no slide, scale, spring, or layout shift.
+  const reduceMotion = useReducedMotion();
   return (
     <div
       aria-atomic="true"
@@ -38,11 +42,13 @@ export function FeedbackViewport({ items, onDismiss }: FeedbackViewportProps) {
           return (
             <motion.div
               key={item.id}
-              layout
-              initial={{ opacity: 0, y: 20, scale: 0.96 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 10, scale: 0.97 }}
-              transition={{ type: "spring", stiffness: 340, damping: 30 }}
+              layout={!reduceMotion}
+              initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 20, scale: 0.96 }}
+              animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
+              exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 10, scale: 0.97 }}
+              transition={
+                reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 340, damping: 30 }
+              }
               className={cn(
                 "glass-strong pointer-events-auto flex w-full max-w-md items-center gap-3 rounded-2xl border px-4 py-3 shadow-[0_18px_50px_-12px_rgba(0,0,0,0.7)]",
                 toneStyles[item.tone],

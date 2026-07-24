@@ -1,14 +1,13 @@
 // Test fixtures and mock data builders
 // Use these to create consistent test data
 
-import type {
-  Vendor,
+import type { Vendor, CommunicationRecord, VendorMetrics } from "../types";
+import {
   VendorCategory,
   VendorStatus,
-  CommunicationRecord,
   CommunicationType,
   CommunicationStatus,
-  VendorMetrics,
+  Trend,
 } from "../types";
 
 /**
@@ -87,7 +86,7 @@ export function createMockVendorMetrics(overrides?: Partial<VendorMetrics>): Ven
     engagementScore: overrides?.engagementScore || 75,
     communicationFrequency: overrides?.communicationFrequency || 3.2,
     lastInteraction: overrides?.lastInteraction || new Date(),
-    trend: overrides?.trend || "stable",
+    trend: overrides?.trend || Trend.STABLE,
     metadata: overrides?.metadata,
   };
 }

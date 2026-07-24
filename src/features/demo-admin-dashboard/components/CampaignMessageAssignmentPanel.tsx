@@ -167,7 +167,7 @@ export function CampaignMessageAssignmentPanel({ className }: CampaignMessageAss
             e.stopPropagation();
             handleUnassign(msg.id);
           }}
-          className="rounded-lg p-1.5 text-muted-foreground transition hover:bg-rose-500/10 hover:text-rose-400"
+          className="rounded-lg p-1.5 text-muted-foreground transition hover:bg-rose-500/10 hover:text-rose-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400"
         >
           <Trash2 className="h-3.5 w-3.5" />
         </button>
@@ -212,7 +212,7 @@ export function CampaignMessageAssignmentPanel({ className }: CampaignMessageAss
               <button
                 type="button"
                 onClick={() => setPickerOpen(true)}
-                className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-foreground transition hover:bg-white/[0.07]"
+                className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-foreground transition hover:bg-white/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
               >
                 <Plus className="h-3.5 w-3.5" />
                 Add messages

@@ -68,8 +68,9 @@ export function useMultiAgentAssignment() {
       try {
         service.autoAssign(t.id);
         count++;
-      } catch (err: any) {
-        errors.push(`${t.id}: ${err.message}`);
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        errors.push(`${t.id}: ${message}`);
       }
     }
     syncState();

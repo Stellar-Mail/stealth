@@ -25,10 +25,12 @@ Run from the repository root:
 
 ```bash
 node --test tools/v2/individual/unsubscribe-finder/tests/unsubscribe-fixtures.test.mjs
+node --experimental-strip-types --test tools/v2/individual/unsubscribe-finder/tests/unsubscribe-service.test.ts
 ```
 
-The test validates the sample unsubscribe fixture against the local review
-contract described in `specs.md`.
+The first test validates the sample unsubscribe fixture against the local
+review contract described in `specs.md`. The second test exercises the
+exported non-UI service entry point and the stable error codes.
 
 ## Detection Workflow
 
@@ -49,6 +51,11 @@ contains:
 - a phishing-like message whose unsubscribe target is unsafe
 - a transactional message that should be ignored
 
+Additional service fixtures cover failure cases:
+
+- `fixtures/sample-unsubscribe-empty-input.json`
+- `fixtures/sample-unsubscribe-invalid-message.json`
+
 The fixture intentionally uses `example.test` addresses, synthetic URLs, and fake
 message ids so contributors can validate behavior without using real mailbox
 content or personal subscription data.
@@ -56,13 +63,18 @@ content or personal subscription data.
 ## Documentation Map
 
 - `specs.md` defines the local unsubscribe candidate contract and scope.
+- `index.ts` exports the folder-local service boundary and shared types.
+- `types/` defines the typed request, response, and error code contract.
+- `services/` contains the pure analyzer implementation.
 - `docs/test-plan.md` lists automated and manual review steps.
 - `docs/review-notes.md` explains validation and known limits.
 - `tests/unsubscribe-fixtures.test.mjs` validates the fixture contract.
+- `tests/unsubscribe-service.test.ts` validates the exported service contract.
 
 ## Known Limitations
 
 - This contribution does not add app UI or live email scanning.
-- Detection behavior is represented through fixture expectations only.
+- Detection behavior is represented through fixture expectations and the local
+  service contract only.
 - One-click unsubscribe, sender reputation checks, and mailbox mutations remain
   out of scope for this isolated V2 folder.

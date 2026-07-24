@@ -52,3 +52,41 @@ export {
   getMockPaymentsByPriority,
   completedPayments,
 } from "./fixtures/payments.fixtures";
+
+// Execution-contract fixtures (backend-facing, presentation-independent)
+export {
+  fixturePendingPayment,
+  fixtureHighValuePayment,
+  fixtureAuthorizedContext,
+  fixtureUnauthorizedContext,
+  fixtureLimitedContext,
+  fixtureApproveInput,
+  fixtureRejectInput,
+  fixtureValidationFailureInput,
+  fixtureInvalidDecisionInput,
+  fixtureAuthorizationFailureInput,
+  fixtureLimitExceededInput,
+  fixtureNotFoundInput,
+  createFailingStore,
+} from "./fixtures/execution.fixtures";
+
+// Backend-facing service entry point (non-UI)
+export { paymentApprovalExecutor } from "./services";
+export { createPaymentApprovalExecutor } from "./services";
+export type {
+  PaymentApprovalExecutor,
+  PaymentApprovalExecutorDeps,
+  PaymentApprovalStore,
+} from "./services";
+
+// Execution contract types
+export type {
+  PaymentDecisionKind,
+  PaymentApprovalErrorCode,
+  PaymentApprovalInput,
+  PaymentApprovalContext,
+  PaymentApprovalResult,
+  PaymentApprovalSuccess,
+  PaymentApprovalError,
+  ExecutePaymentApproval,
+} from "./types";

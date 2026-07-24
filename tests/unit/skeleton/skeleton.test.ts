@@ -8,6 +8,18 @@
 
 import { describe, expect, it } from "vitest";
 
+import {
+  CalendarSkeleton,
+  MailListSkeleton,
+  MailReaderSkeleton,
+  RightPanelSkeleton,
+  SettingsSkeleton,
+  SkeletonAvatar,
+  SkeletonBlock,
+  SkeletonButton,
+  SkeletonText,
+} from "@/features/design-system";
+
 // --- helpers: introspect component default values via the functions themselves ---
 
 // We import the source module directly to inspect the default parameter values
@@ -40,6 +52,20 @@ function resolveAvatarClass(shape?: "circle" | "square"): string {
 function resolveButtonWidth(widthClass?: string): string {
   return widthClass ?? "w-20";
 }
+
+describe("design-system skeleton exports", () => {
+  it("exports skeleton primitives and screen components from the public barrel", () => {
+    expect(SkeletonBlock).toBeDefined();
+    expect(SkeletonText).toBeDefined();
+    expect(SkeletonAvatar).toBeDefined();
+    expect(SkeletonButton).toBeDefined();
+    expect(MailListSkeleton).toBeDefined();
+    expect(MailReaderSkeleton).toBeDefined();
+    expect(CalendarSkeleton).toBeDefined();
+    expect(SettingsSkeleton).toBeDefined();
+    expect(RightPanelSkeleton).toBeDefined();
+  });
+});
 
 describe("SkeletonText defaults", () => {
   it("defaults to 1 line when lines prop is omitted", () => {

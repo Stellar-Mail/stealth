@@ -1,0 +1,23 @@
+# Normalize all text files to LF line endings
+# Prevents prettier/eslint `Delete ␍` errors on Linux CI and Windows dev machines
+* text eol=lf
+
+# Windows-specific scripts must stay CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binary files - do not touch
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.svg binary
+*.woff binary
+*.woff2 binary
+*.eot binary
+*.ttf binary
+*.wasm binary
+*.zip binary
+*.tar binary
+*.gz binary

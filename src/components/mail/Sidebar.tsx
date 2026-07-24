@@ -106,22 +106,11 @@ export function Sidebar({
 }) {
   const [folders, setFolders] = useState(defaultFolders);
   const [isAddingFolder, setIsAddingFolder] = useState(false);
-  const [newFolderName, setNewFolderName] = useState("");
-  const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (isAddingFolder && inputRef.current) {
-      inputRef.current.focus();
-    }
-  }, [isAddingFolder]);
-
-  const handleAddFolder = () => {
-    if (newFolderName.trim()) {
-      const color = folderColors[folders.length % folderColors.length];
-      setFolders([...folders, { name: newFolderName.trim(), color }]);
-      setNewFolderName("");
-      setIsAddingFolder(false);
-    }
+  const handleAddFolder = (name: string) => {
+    const color = folderColors[folders.length % folderColors.length];
+    setFolders([...folders, { name, color }]);
+    setIsAddingFolder(false);
   };
   return (
     <motion.aside
@@ -149,7 +138,7 @@ export function Sidebar({
         )}
         <button
           onClick={onToggle}
-          className="ml-auto rounded-md p-1.5 text-muted-foreground transition hover:bg-white/5 hover:text-foreground"
+          className="glow-ring ml-auto rounded-md p-1.5 text-muted-foreground transition hover:bg-white/5 hover:text-foreground"
           aria-label="Toggle sidebar"
         >
           {collapsed ? <ChevronsRight className="h-4 w-4" /> : <ChevronsLeft className="h-4 w-4" />}
@@ -161,7 +150,7 @@ export function Sidebar({
         whileTap={{ scale: 0.97 }}
         onClick={onCompose}
         className={cn(
-          "group mt-3 flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium",
+          "group glow-ring mt-3 flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium",
           "border border-white/10 bg-white/5 text-foreground",
           "shadow-[0_8px_30px_-10px_rgba(0,0,0,0.6)] transition hover:bg-white/10",
           collapsed && "justify-center px-2",
@@ -182,7 +171,7 @@ export function Sidebar({
           whileTap={{ scale: 0.97 }}
           onClick={onOpenSenderJourney}
           className={cn(
-            "group mt-2 flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium",
+            "group glow-ring mt-2 flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium",
             "border border-white/10 bg-emerald-500/10 text-emerald-300",
             "shadow-[0_8px_30px_-10px_rgba(0,0,0,0.6)] transition hover:bg-emerald-500/20",
             collapsed && "justify-center px-2",
@@ -230,7 +219,8 @@ export function Sidebar({
               </span>
               <button
                 onClick={() => setIsAddingFolder(true)}
-                className="rounded p-1 text-muted-foreground transition hover:bg-white/5 hover:text-foreground"
+                className="glow-ring rounded p-1 text-muted-foreground transition hover:bg-white/5 hover:text-foreground"
+                aria-label="Add folder"
               >
                 <Plus className="h-3.5 w-3.5" />
               </button>
@@ -239,39 +229,7 @@ export function Sidebar({
             {/* Add folder input */}
             <AnimatePresence>
               {isAddingFolder && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="mb-2 overflow-hidden px-3"
-                >
-                  <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.04] px-2 py-1.5">
-                    <Hash className="h-3.5 w-3.5 text-muted-foreground" />
-                    <input
-                      ref={inputRef}
-                      value={newFolderName}
-                      onChange={(e) => setNewFolderName(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") handleAddFolder();
-                        if (e.key === "Escape") {
-                          setIsAddingFolder(false);
-                          setNewFolderName("");
-                        }
-                      }}
-                      placeholder="Folder name"
-                      className="w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none"
-                    />
-                    <button
-                      onClick={() => {
-                        setIsAddingFolder(false);
-                        setNewFolderName("");
-                      }}
-                      className="rounded p-0.5 text-muted-foreground transition hover:text-foreground"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </div>
-                </motion.div>
+                <AddFolderInput onAdd={handleAddFolder} onCancel={() => setIsAddingFolder(false)} />
               )}
             </AnimatePresence>
 
@@ -283,7 +241,7 @@ export function Sidebar({
                     <button
                       onClick={() => onSelectCustomFolder?.(isCustomActive ? null : f.name)}
                       className={cn(
-                        "group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition hover:bg-white/[0.04] hover:text-foreground",
+                        "group glow-ring flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition hover:bg-white/[0.04] hover:text-foreground",
                         isCustomActive
                           ? "bg-white/[0.06] text-foreground"
                           : "text-muted-foreground",
@@ -325,6 +283,58 @@ export function Sidebar({
         )}
       </div>
     </motion.aside>
+  );
+}
+
+// Owns its own input state so typing a new folder name does not re-render the
+// sidebar nav (all section items and FolderButtons) on every keystroke.
+function AddFolderInput({
+  onAdd,
+  onCancel,
+}: {
+  onAdd: (name: string) => void;
+  onCancel: () => void;
+}) {
+  const [name, setName] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  const submit = () => {
+    const trimmed = name.trim();
+    if (trimmed) onAdd(trimmed);
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, height: 0 }}
+      animate={{ opacity: 1, height: "auto" }}
+      exit={{ opacity: 0, height: 0 }}
+      className="mb-2 overflow-hidden px-3"
+    >
+      <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.04] px-2 py-1.5">
+        <Hash className="h-3.5 w-3.5 text-muted-foreground" />
+        <input
+          ref={inputRef}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") submit();
+            if (e.key === "Escape") onCancel();
+          }}
+          placeholder="Folder name"
+          className="w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none"
+        />
+        <button
+          onClick={onCancel}
+          className="rounded p-0.5 text-muted-foreground transition hover:text-foreground"
+        >
+          <X className="h-3 w-3" />
+        </button>
+      </div>
+    </motion.div>
   );
 }
 
@@ -375,7 +385,7 @@ function FolderButton({
           : undefined
       }
       className={cn(
-        "relative flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition",
+        "glow-ring relative flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition",
         "text-muted-foreground hover:bg-white/[0.04] hover:text-foreground",
         active && "text-foreground",
         collapsed && "justify-center px-2",

@@ -1,4 +1,14 @@
-export { RuleStorageService, RuleEngineService } from "./services";
+export {
+  RuleStorageService,
+  RuleEngineService,
+  createTeamInboxRulesExecutor,
+  teamInboxRulesExecutor,
+} from "./services";
+export type {
+  TeamInboxRulesEvaluator,
+  TeamInboxRulesExecutorDependencies,
+  TeamInboxRulesExecutor,
+} from "./services";
 export { useRules, useRuleEvaluation } from "./hooks";
 export { EmptyState, LoadingState, ErrorState, SuccessState } from "./components";
 export type {
@@ -14,4 +24,11 @@ export type {
   ConditionOperator,
   MailContext,
   RuleEvaluationResult,
+  TeamInboxRulesExecutionInput,
+  TeamInboxRulesExecutionErrorCode,
+  TeamInboxRulesTriggeredAction,
+  TeamInboxRulesExecutionSuccess,
+  TeamInboxRulesExecutionError,
+  TeamInboxRulesExecutionResult,
+  ExecuteTeamInboxRules,
 } from "./types";

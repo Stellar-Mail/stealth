@@ -23,7 +23,8 @@ export function useFreighter() {
     setState({ status: "connecting" });
 
     try {
-      const freighter = await import("@stellar/freighter-api");
+      const freighterModule = await import("@stellar/freighter-api");
+      const freighter = freighterModule.default || freighterModule;
 
       const { isConnected } = await freighter.isConnected();
       if (!isConnected) {

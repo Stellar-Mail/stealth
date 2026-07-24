@@ -2,7 +2,13 @@
  * Preset copy for the demo admin dashboard empty states. Each entry is static,
  * fake, and safe for public review — no real user data, addresses, or secrets.
  */
-export type AdminEmptyStateKind = "messages" | "senders" | "attachments" | "events" | "validation";
+export type AdminEmptyStateKind =
+  | "messages"
+  | "senders"
+  | "attachments"
+  | "events"
+  | "validation"
+  | "kpis";
 
 export interface AdminEmptyStateCopy {
   /** Short, friendly heading. */
@@ -39,6 +45,11 @@ export const ADMIN_EMPTY_STATE_PRESETS: Record<AdminEmptyStateKind, AdminEmptySt
     description: "Run validation to see passes, warnings, and errors.",
     ctaLabel: "Run validation",
   },
+  kpis: {
+    title: "No analytics yet",
+    description: "KPI data will appear once the campaign fixture loads.",
+    ctaLabel: "Load KPI data",
+  },
 };
 
 /** Look up the preset copy for a given empty-state kind. */
@@ -53,4 +64,5 @@ export const ADMIN_EMPTY_STATE_KINDS: AdminEmptyStateKind[] = [
   "attachments",
   "events",
   "validation",
+  "kpis",
 ];

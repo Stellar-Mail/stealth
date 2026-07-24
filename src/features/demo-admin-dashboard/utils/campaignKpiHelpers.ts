@@ -1,5 +1,5 @@
 import type { ValidationIssue } from "../validation-types";
-import type { CampaignKpiDefinition, KpiMetricKind } from "../types/campaignKpi";
+import type { CampaignKpiDefinition, KpiMetricKind, KpiTrend } from "../types/campaignKpi";
 
 const KPI_METRIC_KIND_ORDER: KpiMetricKind[] = [
   "opens",
@@ -41,6 +41,16 @@ export function sortKpisByMetric(kpis: CampaignKpiDefinition[]): CampaignKpiDefi
   return [...kpis].sort(
     (a, b) => KPI_METRIC_KIND_ORDER.indexOf(a.metric) - KPI_METRIC_KIND_ORDER.indexOf(b.metric),
   );
+}
+
+const TREND_LABELS: Record<KpiTrend, string> = {
+  up: "↑ Up",
+  down: "↓ Down",
+  stable: "→ Stable",
+};
+
+export function formatKpiTrend(trend: KpiTrend): string {
+  return TREND_LABELS[trend];
 }
 
 export function validateCampaignKpiDefinition(kpi: CampaignKpiDefinition): ValidationIssue[] {

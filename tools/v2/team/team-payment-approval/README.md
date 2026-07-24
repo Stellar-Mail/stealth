@@ -160,6 +160,31 @@ decisionService.recordDecision({
 const decision = decisionService.getDecision("payment-1");
 ```
 
+### Using the Backend-Facing Execution Contract
+
+The tool also exposes a presentation-independent service entry point for APIs,
+tests, and automation. It returns a typed result with stable error codes and
+never throws for expected failures. See [CONTRACT.md](CONTRACT.md) for the full
+schema and error-code catalog.
+
+```ts
+import { paymentApprovalExecutor } from "./services";
+
+const result = paymentApprovalExecutor.execute({
+  paymentId: "payment-1",
+  approverId: "user-123",
+  decision: "approve",
+  notes: "Approved by manager",
+  context: { approverId: "user-123", role: "manager" },
+});
+
+if (result.ok) {
+  console.log("status:", result.data.status);
+} else {
+  console.error(result.error.code); // e.g. "UNAUTHORIZED"
+}
+```
+
 ## Testing
 
 ### Local Testing

@@ -15,6 +15,60 @@ Primary goals:
 - Make every demo data mutation previewable, reversible, and auditable.
 - Provide fixtures and validation that keep the demo UI realistic and stable.
 
+## Safety and contributor handoff
+
+The demo admin dashboard is the source of truth for safe demo-data operations. Contributors should treat it as an isolated maintainer surface for editing deterministic fixtures, validating campaign snapshots, previewing generated mail data, and reviewing audit-style demo events. It must not become a path for production mailbox writes or live protocol actions.
+
+Important local files and folders:
+
+- `DemoAdminDashboard.tsx` owns the tabbed admin shell, section routing, campaign editor surface, validation panels, and review affordances.
+- `components/` contains dashboard-only controls such as panels, editors, cards, and validation displays.
+- `fixtures/`, `fixtures.ts`, `validationFixtures.ts`, and `scenarioRegistry.ts` provide deterministic fake records and demo scenarios.
+- `types.ts`, `validation-types.ts`, and nested `types/` files define the dashboard data contracts.
+- `validation.ts` summarizes, sorts, groups, navigates, and validates demo campaign issues.
+- `templates/` maps safe message templates into draft data without mutating production mail.
+- `snooze/` provides deterministic reminder metadata for demo messages.
+- `persistence/`, `reducers/`, `selectors/`, `helpers/`, and `utils/` hold local state, normalization, and review helpers.
+- `docs/`, `AdminSearchBar.md`, `ValidationResultsPanel.md`, and `CONTRIBUTING.md` document existing local behavior and review conventions.
+- `__tests__/` and sibling `*.test.ts` files cover fixture determinism, validation, migrations, message generation, and dashboard helpers.
+
+Key data contracts a reviewer should understand:
+
+- Demo people and sender identities must use reserved domains such as `example.com`, `example.org`, or `*.stealth.demo`.
+- Campaign drafts can contain body text for fake messages, but they must never use real customer mail, secrets, private keys, auth tokens, payment accounts, or live addresses.
+- Preset accounts, mail, attachments, events, audit events, personas, and campaign snapshots are local fixtures. They are review data, not live state.
+- Validation results are advisory dashboard metadata with `error`, `warning`, and `info` severity. They should guide maintainers before data is exported or connected to another demo surface.
+- Audit and proof-related rows may show hashes, mock signatures, demo contract addresses, or postage-like fields only when those values are fake and deterministic.
+
+User-facing states to preserve:
+
+- Overview and data tabs should make fake dataset status, record counts, and current preset/campaign context easy to scan.
+- Editors should support preview-before-apply behavior and keep destructive changes reversible or locally scoped.
+- Validation panels should distinguish blocking errors from warnings and info without relying on color alone.
+- Empty or placeholder sections should explain what is missing and where the maintainer should go next.
+- Import, export, snapshot, and quick-fix flows should be explicit about whether they touch local demo data only.
+- Loading and transition states should not imply that live mail, live payments, or production protocol data has been fetched.
+
+Safety and privacy notes:
+
+- Do not add real user data, live customer mail, production logs, private keys, auth tokens, payment account numbers, payment QR codes, or real wallet secrets to fixtures, docs, tests, or screenshots.
+- Keep demo data deterministic so tests, snapshots, and maintainer reviews do not depend on the current date, network state, or external services.
+- Keep network access out of this feature unless a later issue defines a narrow demo-only integration.
+- Do not write to the production inbox, mail reader, calendar, sender-conversion, or protocol modules from this folder.
+- Keep copy aligned with Stealth Mail's safety, speed, and sender-control positioning; avoid claims that demo trust badges, hashes, signatures, or proofs are live verification.
+- Prefer adding links to existing local files and tests over describing an architecture that is not implemented.
+
+Lightweight QA checklist:
+
+- Confirm changed files stay inside `src/features/demo-admin-dashboard/` unless the issue explicitly requests a small integration shim.
+- Review any new fixture, template, persona, sender, recipient, proof, and payment-like value for fake-domain and fake-data safety.
+- Run the targeted demo-admin tests when dependencies are available: `npx vitest run src/features/demo-admin-dashboard/__tests__/`.
+- Run validation-focused tests when changing validators, quick fixes, migrations, or snapshot helpers.
+- Check tablet, laptop, and desktop dashboard layouts after UI changes.
+- Verify keyboard focus, visible labels, and screen-reader text for changed controls and validation panels.
+- Confirm import/export, snapshot, quick-fix, and editor flows are previewable, locally scoped, and reversible.
+- Search changed files for secrets, private keys, payment details, personal accounts, and live mail content before opening a PR.
+
 ## Responsive Width Notes
 
 | Width         | Breakpoint | Layout rule                                           | Review expectation                                               |
@@ -28,17 +82,6 @@ Primary goals:
 - Controls precede data cards on tablet widths.
 - Laptop widths use a two-up card grid without requiring unrelated app-shell changes.
 - Desktop widths keep responsive review notes visible next to the card grid.
-
-## Campaign seed guide
-
-Contributors adding campaign seed data should follow the guide in [docs/CAMPAIGN_SEEDING_GUIDE.md](./docs/CAMPAIGN_SEEDING_GUIDE.md). The guide covers:
-
-- naming conventions for scenario slugs and IDs
-- safe recipient patterns and fake metadata rules
-- how to add deterministic examples under `seed-data/`
-- how to validate scenarios before they are used in the demo UI
-
-For reusable helpers, prefer the seed utilities exported from [seed-helpers/campaignSeed.ts](./seed-helpers/campaignSeed.ts) and the scenario fixtures in [seed-data/campaignSeedExamples.ts](./seed-data/campaignSeedExamples.ts).
 
 ## Validation
 

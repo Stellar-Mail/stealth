@@ -1,56 +1,39 @@
 ## Summary
 
-Closes #685
+This PR addresses issue #1537 by adding domain schema refinements to `src/server/api/domain.ts` to enforce receipt timestamp chronological ordering and future-time bounds.
 
-Builds the **Team Digest Generator** tool's core feature inside its isolated folder `tools/v2/team/team-digest-generator/`.
+Previously, `receiptSchema` validated ISO 8601 syntax for `deliveredAt` and `readAt`, but did not enforce:
 
-## Deliverables
+1. That `readAt` follows `deliveredAt` (`readAt >= deliveredAt`).
+2. That `deliveredAt` and `readAt` are plausible (not set too far into the future).
 
-### Core Logic (`services/digest-generator.service.mjs`)
+### Changes Implemented
 
-- `generateDigest(activity, date, generatedAt)` — transforms raw team activity into a structured daily digest
-- `classifyItem(email)` — classifies emails into digest item types: `new_message`, `pending_item`, `completed_item`, `team_summary`
-- `inferPriority(email)` — assigns priority (`low`, `medium`, `high`) based on content signals
-- `requiresAttention(email)` — flags items needing human intervention
-- `buildSummary(items)` — produces aggregate statistics (total items, attention count, distinct team members)
+- **`src/server/api/domain.ts`**:
+  - Introduced `DEFAULT_RECEIPT_FUTURE_TOLERANCE_MS` (5 minutes tolerance for clock skew).
+  - Introduced `ReceiptSchemaOptions` allowing configurable `maxFutureSkewMs` and reference clock `now` injection.
+  - Implemented `createReceiptSchema(options)` using Zod `.superRefine(...)`:
+    - Updated `deliveredAt` and `readAt` datetime validation to accept ISO 8601 strings with timezone offsets (`{ offset: true }`).
+    - Enforced that `deliveredAt` must not exceed `now() + maxFutureSkewMs` (throws `"Delivery timestamp is too far in the future"`).
+    - Enforced that when `readAt !== null`:
+      - `readAt` must not precede `deliveredAt` (throws `"Read time cannot precede delivery time"`).
+      - `readAt` must not exceed `now() + maxFutureSkewMs` (throws `"Read timestamp is too far in the future"`).
+    - Kept `readAt: null` as valid without ordering/future checks.
+  - Exported `receiptSchema = createReceiptSchema()`.
 
-### Fixtures (`fixtures/sample-team-activity.json`)
-
-- 6 sample team emails spanning multiple team members, threads, and scenarios
-- Expected digest items covering all 4 digest types
-- Summary statistics matching the expected output
-- Review notes documenting fixture assumptions
-
-### Tests (`tests/digest-fixtures.test.mjs`)
-
-- Validates fixture structure, required fields, enum values, and cross-references
-- Validates that the service produces output matching the expected digest contract
-- Zero-dependency Node.js test (`node:test`)
-
-### Documentation
-
-- `docs/test-plan.md` — automated and manual review steps, edge cases
-- `docs/review-notes.md` — validation summary, reviewer focus areas, follow-up work
-
-### Upstream Fix
-
-- Cleaned up PowerShell artifact placeholders in `specs.md`
+- **`tests/unit/api/domain.test.ts`**:
+  - Added comprehensive test coverage for `receiptSchema` and `createReceiptSchema`:
+    - Valid receipts with `readAt: null`.
+    - Valid receipts with `readAt` equal to `deliveredAt` (exact boundary).
+    - Valid receipts with `readAt` after `deliveredAt`.
+    - Timezone-equivalent inputs (comparing UTC `Z` vs offset `+02:00`).
+    - Rejection when `readAt` precedes `deliveredAt`.
+    - Rejection when `deliveredAt` or `readAt` exceeds future clock tolerance.
+    - Custom schema configuration with custom `now` and `maxFutureSkewMs`.
 
 ## Verification
 
-```bash
-node --test tools/v2/team/team-digest-generator/tests/digest-fixtures.test.mjs
-```
+- Unit tests executed and passed (`11 passed`):
+  - `tests/unit/api/domain.test.ts`
 
-Both tests pass:
-
-- Sample fixture follows the local digest contract
-- Digest generator service produces matching output from fixture input
-
-## Boundary Compliance
-
-- All changes stay inside `tools/v2/team/team-digest-generator/`
-- No modification to main app shell, routing, inbox, wallet, Stellar core, database, or design system
-- No live network calls, secrets, or production data
-- Deterministic fixtures replace external dependencies
-- Folder-local API surface for future UI work
+Fixes #1537

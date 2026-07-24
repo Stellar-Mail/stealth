@@ -1,0 +1,28 @@
+{
+  "templates": [
+    {
+      "id": "template-follow-up",
+      "name": "Friendly follow-up",
+      "categoryId": "follow-up",
+      "subject": "Following up, {{firstName}}",
+      "body": "Hello {{firstName}},\n\nI wanted to follow up about {{topic}}.",
+      "variables": [
+        { "key": "firstName", "label": "First name" },
+        { "key": "topic", "label": "Topic" }
+      ]
+    }
+  ],
+  "request": {
+    "tool": "email-template-library",
+    "version": 1,
+    "operation": "render",
+    "templateId": "template-follow-up",
+    "values": { "firstName": "Avery", "topic": "the project timeline" }
+  },
+  "expected": {
+    "operation": "render",
+    "templateId": "template-follow-up",
+    "subject": "Following up, Avery",
+    "body": "Hello Avery,\n\nI wanted to follow up about the project timeline."
+  }
+}

@@ -72,9 +72,21 @@ export class ApiHelper {
     recipient = ACTOR,
     sender = SENDER,
   ) {
+    const quoteRes = await this.quotePostage(recipient, sender);
+    const { data: quoteData } = await quoteRes.json();
+
     return this.page.request.post("/api/v1/postage/", {
       headers: this.headers(sender),
-      data: { amount, messageId, paymentHash, recipient, sender },
+      data: {
+        amount,
+        messageId,
+        paymentHash,
+        recipient,
+        sender,
+        issuedAt: quoteData.issuedAt,
+        expiresAt: quoteData.expiresAt,
+        quoteDigest: quoteData.digest,
+      },
     });
   }
 
@@ -89,6 +101,28 @@ export class ApiHelper {
     return this.page.request.patch(`/api/v1/postage/${messageId}`, {
       headers: this.headers(ACTOR),
       data: { status: "refunded" },
+    });
+  }
+
+  // -----------------------------------------------------------------------
+  // Receipt helpers
+  // -----------------------------------------------------------------------
+  async createReceipt(messageId = MSG_ID, recipient = ACTOR, sender = SENDER) {
+    return this.page.request.post("/api/v1/receipts/", {
+      headers: this.headers(sender),
+      data: { messageId, recipient, sender },
+    });
+  }
+
+  async getReceipt(messageId = MSG_ID, actor = ACTOR) {
+    return this.page.request.get(`/api/v1/receipts/${messageId}`, {
+      headers: this.headers(actor),
+    });
+  }
+
+  async markReceiptRead(messageId = MSG_ID, actor = ACTOR) {
+    return this.page.request.post(`/api/v1/receipts/${messageId}/read`, {
+      headers: this.headers(actor),
     });
   }
 }

@@ -5,13 +5,14 @@ Executable tests are in `tests/service.test.ts`. This document describes the cov
 ## Fixture Setup
 
 Use `fixtures/notes.ts` — contains 5 seed notes across 4 contacts:
-| Note ID | Contact | Archived |
-|---|---|---|
-| `note-alice-1` | contact-alice | No |
-| `note-alice-2` | contact-alice | No |
-| `note-bob-1` | contact-bob | Yes |
-| `note-carol-1` | contact-carol | No |
-| `note-dave-1` | contact-dave | No |
+
+| Note ID        | Contact       | Archived |
+| -------------- | ------------- | -------- |
+| `note-alice-1` | contact-alice | No       |
+| `note-alice-2` | contact-alice | No       |
+| `note-bob-1`   | contact-bob   | Yes      |
+| `note-carol-1` | contact-carol | No       |
+| `note-dave-1`  | contact-dave  | No       |
 
 ## Scenarios
 

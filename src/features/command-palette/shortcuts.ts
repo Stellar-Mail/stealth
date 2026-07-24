@@ -147,6 +147,17 @@ export function getShortcutAction(event: ShortcutEventLike): ShortcutActionId | 
   const key = event.key.toLowerCase();
   const hasCommandModifier = !!event.metaKey || !!event.ctrlKey;
 
+  // Suppress all global shortcuts if any dialog or modal is open, except Ctrl/Cmd+K.
+  if (typeof document !== "undefined") {
+    const activeDialog = document.querySelector(
+      '[role="dialog"], [aria-modal="true"], [data-state="open"]',
+    );
+    if (activeDialog) {
+      if (hasCommandModifier && key === "k") return "open-palette";
+      return null;
+    }
+  }
+
   if (hasCommandModifier && key === "k") return "open-palette";
   if (hasCommandModifier && key === "n") return "compose";
   if (!hasCommandModifier && key === "e") return "archive-thread";

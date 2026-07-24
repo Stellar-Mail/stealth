@@ -1,3 +1,5 @@
+import { validateDashboardData } from "../guards/analytics-guards.mjs";
+
 const SLA_THRESHOLD_HOURS = 4;
 const OVERLOAD_OPEN_THRESHOLD = 10;
 const OVERLOAD_SLA_BREACH_THRESHOLD = 2;
@@ -51,10 +53,12 @@ function findReviewRequired(members) {
   return members.filter((m) => m.slaBreaches > 0).map((m) => m.memberId);
 }
 
+/**
+ * @param {import("../contract/analytics-contract").DashboardInput} data
+ * @returns {import("../contract/analytics-contract").DashboardReport}
+ */
 export function generateDashboardReport(data) {
-  if (!data || !Array.isArray(data.members)) {
-    throw new Error("data.members must be an array");
-  }
+  validateDashboardData(data);
 
   const { members, period, teamId } = data;
 

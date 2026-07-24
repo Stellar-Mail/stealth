@@ -1,0 +1,95 @@
+.import-dataset-panel {
+  background: var(--dashboard-panel, rgba(15, 23, 42, 0.72));
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 1.25rem;
+  color: #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1.5rem;
+}
+
+.import-dataset-panel__header {
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+  padding-bottom: 1rem;
+}
+
+.import-dataset-panel__content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.import-dataset-panel__textarea {
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 0.75rem;
+  color: #f8fafc;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.875rem;
+  min-height: 200px;
+  padding: 1rem;
+  resize: vertical;
+}
+
+.import-dataset-panel__textarea:focus {
+  border-color: #0ea5e9;
+  outline: none;
+}
+
+.import-dataset-panel__actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+}
+
+.import-dataset-panel__button {
+  background: #0ea5e9;
+  border: 0;
+  border-radius: 999px;
+  color: #082f49;
+  cursor: pointer;
+  font-weight: 800;
+  padding: 0.75rem 1.5rem;
+  transition: opacity 0.2s;
+}
+
+.import-dataset-panel__button:hover {
+  opacity: 0.9;
+}
+
+.import-dataset-panel__button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.import-dataset-panel__errors {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.import-dataset-panel__error-item {
+  background: rgba(248, 113, 113, 0.1);
+  border: 1px solid rgba(248, 113, 113, 0.2);
+  border-radius: 0.5rem;
+  color: #f87171;
+  font-size: 0.875rem;
+  padding: 0.75rem;
+}
+
+.import-dataset-panel__error-path {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-weight: 700;
+  margin-right: 0.5rem;
+}
+
+.import-dataset-panel__success {
+  background: rgba(74, 222, 128, 0.1);
+  border: 1px solid rgba(74, 222, 128, 0.2);
+  border-radius: 0.5rem;
+  color: #4ade80;
+  font-size: 0.875rem;
+  padding: 0.75rem;
+  text-align: center;
+}

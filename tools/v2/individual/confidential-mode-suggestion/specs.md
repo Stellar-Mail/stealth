@@ -1,38 +1,31 @@
 # Confidential Mode Suggestion
 
-Suggest privacy protections.
+## Purpose
+
+Suggest privacy protections for an email draft before it is sent.
 
 ## Scope
 
-- Release tier: $(System.Collections.Hashtable.Tier.ToUpperInvariant())
-- Audience: $(System.Collections.Hashtable.Audience)
-- Folder ownership: $dir/
+- Release tier: V2
+- Audience: Individual
+- Folder ownership:
+  `tools/v2/individual/confidential-mode-suggestion/`
 
-This is a self-contained tooling workspace. Do not wire this tool into the main app, routing, inbox architecture, wallet core, Stellar core, or design system unless a future integration issue explicitly allows it.
+This is a self-contained tooling workspace.
 
-Recommended internal structure:
+Do not wire this tool into the main application, routing, inbox architecture, wallet core, Stellar integration, database schema, or shared design system unless a future integration issue explicitly allows it.
+
+## Recommended Internal Structure
 
 - components/
 - services/
 - hooks/
--     ests/
+- tests/
 - docs/
-  "@ | Set-Content -Path "tools/v2/individual/confidential-mode-suggestion/README.md"
-  @"
+- fixtures/
+- types/
 
-# Confidential Mode Suggestion Specs
-
-## Purpose
-
-Suggest privacy protections.
-
-## Contributor boundary
-
-All work for this tool should stay in:
-
-$dir/
-
-## Required issue categories
+## Required Issue Categories
 
 - Architecture
 - Feature

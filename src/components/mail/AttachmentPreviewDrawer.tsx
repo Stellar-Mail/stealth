@@ -15,12 +15,9 @@ import {
   ChevronLeft,
   ChevronRight,
   ShieldAlert,
-  Sparkles,
-  Eye,
   FileCode,
 } from "lucide-react";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { cn } from "@/lib/utils";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 
 // Mock database of file contents
 const MOCK_FILE_CONTENTS: Record<string, string | { [key: string]: any }> = {
@@ -141,7 +138,7 @@ export function AttachmentPreviewDrawer({
   onClose,
   attachment,
   senderAddress,
-}: AttachmentPreviewDrawerProps) {
+}: Readonly<AttachmentPreviewDrawerProps>) {
   const [copied, setCopied] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0);
@@ -227,7 +224,7 @@ export function AttachmentPreviewDrawer({
       link.download = attachment.name;
       document.body.appendChild(link);
       link.click();
-      document.body.removeChild(link);
+      link.remove();
     } else {
       const text = getMockFileString();
       const blob = new Blob([text], { type: getMimeType(type) });
@@ -237,7 +234,7 @@ export function AttachmentPreviewDrawer({
       link.download = attachment.name;
       document.body.appendChild(link);
       link.click();
-      document.body.removeChild(link);
+      link.remove();
       URL.revokeObjectURL(url);
     }
   };
@@ -254,45 +251,53 @@ export function AttachmentPreviewDrawer({
 
   // Helper for JSON syntax highlighting
   const renderHighlightedJson = (jsonStr: string) => {
-    const regex =
-      /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?)/g;
+    const stringPattern = String.raw`"(?:\\.|[^"\\])*"(?:\s*:)?`;
+    const keywordPattern = String.raw`\b(?:true|false|null)\b`;
+    const numberPattern = String.raw`-?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?`;
+    const regex = new RegExp(`(${stringPattern}|${keywordPattern}|${numberPattern})`, "g");
     const parts = jsonStr.split(regex);
+    let offset = 0;
 
-    return parts.map((part, i) => {
+    return parts.map((part) => {
       if (!part) return null;
+
+      // Use character offset as a stable, unique key instead of array index
+      const key = `token-${offset}`;
+      offset += part.length;
+
       if (part.startsWith('"') && part.endsWith(":")) {
         return (
-          <span key={i} className="text-sky-300">
+          <span key={key} className="text-sky-300">
             {part}
           </span>
         );
       } else if (part.startsWith('"')) {
         return (
-          <span key={i} className="text-emerald-300">
+          <span key={key} className="text-emerald-300">
             {part}
           </span>
         );
       } else if (/^(true|false)$/.test(part)) {
         return (
-          <span key={i} className="text-amber-300 font-semibold">
+          <span key={key} className="text-amber-300 font-semibold">
             {part}
           </span>
         );
       } else if (part === "null") {
         return (
-          <span key={i} className="text-gray-400 italic">
+          <span key={key} className="text-gray-400 italic">
             {part}
           </span>
         );
       } else if (/^-?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?$/.test(part)) {
         return (
-          <span key={i} className="text-violet-300">
+          <span key={key} className="text-violet-300">
             {part}
           </span>
         );
       }
       return (
-        <span key={i} className="text-white/80">
+        <span key={key} className="text-white/80">
           {part}
         </span>
       );
@@ -301,17 +306,22 @@ export function AttachmentPreviewDrawer({
 
   // Helper for safe text line numbers
   const renderTextWithLines = (text: string) => {
-    const lines = text.split("\n");
+    let lineCounter = 1;
+    const lines = text.split("\n").map((content) => {
+      const num = lineCounter++;
+      return { id: `line-${num}`, num, content };
+    });
+
     return (
       <div className="flex font-mono text-[13px] leading-6 select-text">
         <div className="w-10 text-right select-none text-muted-foreground/45 border-r border-white/5 pr-2.5 mr-3 font-semibold tabular-nums">
-          {lines.map((_, idx) => (
-            <div key={idx}>{idx + 1}</div>
+          {lines.map((line) => (
+            <div key={`num-${line.id}`}>{line.num}</div>
           ))}
         </div>
         <div className="flex-1 overflow-x-auto whitespace-pre text-foreground/90">
-          {lines.map((line, idx) => (
-            <div key={idx}>{line || " "}</div>
+          {lines.map((line) => (
+            <div key={`content-${line.id}`}>{line.content || " "}</div>
           ))}
         </div>
       </div>
@@ -324,7 +334,7 @@ export function AttachmentPreviewDrawer({
         {/* Drawer Header */}
         <div className="flex items-center justify-between border-b border-white/5 px-6 py-4.5">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-white/[0.08] bg-white/[0.04] shadow-[inset_0_1px_0_oklch(1_0_0/0.08)]">
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-white/8 bg-white/4 shadow-[inset_0_1px_0_oklch(1_0_0/0.08)]">
               {getHeaderIcon()}
             </div>
             <div className="min-w-0">
@@ -345,7 +355,7 @@ export function AttachmentPreviewDrawer({
               <button
                 onClick={handleCopy}
                 title="Copy contents"
-                className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-semibold text-muted-foreground hover:bg-white/[0.08] hover:text-foreground transition duration-150"
+                className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/4 px-3 py-2 text-xs font-semibold text-muted-foreground hover:bg-white/8 hover:text-foreground transition duration-150"
               >
                 {copied ? (
                   <>
@@ -377,24 +387,24 @@ export function AttachmentPreviewDrawer({
           {isPDF && (
             <div className="flex-1 flex flex-col h-full">
               {/* PDF Toolbar */}
-              <div className="flex items-center justify-between px-6 py-2 bg-white/[0.02] border-b border-white/5 text-xs text-muted-foreground">
+              <div className="flex items-center justify-between px-6 py-2 bg-white/2 border-b border-white/5 text-xs text-muted-foreground">
                 <div className="flex items-center gap-1.5">
                   <button
                     onClick={() => setZoom((z) => Math.max(0.5, z - 0.1))}
-                    className="p-1 hover:bg-white/[0.05] rounded text-foreground transition"
+                    className="p-1 hover:bg-white/5 rounded text-foreground transition"
                   >
                     <ZoomOut className="h-3.5 w-3.5" />
                   </button>
                   <span className="font-mono w-10 text-center">{Math.round(zoom * 100)}%</span>
                   <button
                     onClick={() => setZoom((z) => Math.min(2, z + 0.1))}
-                    className="p-1 hover:bg-white/[0.05] rounded text-foreground transition"
+                    className="p-1 hover:bg-white/5 rounded text-foreground transition"
                   >
                     <ZoomIn className="h-3.5 w-3.5" />
                   </button>
                   <button
                     onClick={() => setRotation((r) => (r + 90) % 360)}
-                    className="p-1 hover:bg-white/[0.05] rounded text-foreground transition ml-1"
+                    className="p-1 hover:bg-white/5 rounded text-foreground transition ml-1"
                     title="Rotate 90°"
                   >
                     <RotateCw className="h-3.5 w-3.5" />
@@ -405,7 +415,7 @@ export function AttachmentPreviewDrawer({
                   <button
                     disabled={pdfPage <= 1}
                     onClick={() => setPdfPage((p) => Math.max(1, p - 1))}
-                    className="p-1 hover:bg-white/[0.05] rounded text-foreground disabled:opacity-40 disabled:hover:bg-transparent transition"
+                    className="p-1 hover:bg-white/5 rounded text-foreground disabled:opacity-40 disabled:hover:bg-transparent transition"
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </button>
@@ -417,13 +427,13 @@ export function AttachmentPreviewDrawer({
                     onClick={() =>
                       setPdfPage((p) => Math.min((activeContent as any).pages?.length || 3, p + 1))
                     }
-                    className="p-1 hover:bg-white/[0.05] rounded text-foreground disabled:opacity-40 disabled:hover:bg-transparent transition"
+                    className="p-1 hover:bg-white/5 rounded text-foreground disabled:opacity-40 disabled:hover:bg-transparent transition"
                   >
                     <ChevronRight className="h-4 w-4" />
                   </button>
                 </div>
 
-                <div className="relative flex items-center bg-white/[0.04] rounded px-2 py-1 border border-white/5 max-w-[150px]">
+                <div className="relative flex items-center bg-white/4 rounded px-2 py-1 border border-white/5 max-w-[150px]">
                   <Search className="h-3.5 w-3.5 mr-1.5 opacity-60" />
                   <input
                     placeholder="Search..."
@@ -480,18 +490,18 @@ export function AttachmentPreviewDrawer({
           {isImage && (
             <div className="flex-1 flex flex-col h-full bg-[#18181b]">
               {/* Image Toolbar */}
-              <div className="flex items-center justify-between px-6 py-2 bg-white/[0.02] border-b border-white/5 text-xs text-muted-foreground">
+              <div className="flex items-center justify-between px-6 py-2 bg-white/2 border-b border-white/5 text-xs text-muted-foreground">
                 <div className="flex items-center gap-1.5">
                   <button
                     onClick={() => setZoom((z) => Math.max(0.2, z - 0.1))}
-                    className="p-1 hover:bg-white/[0.05] rounded text-foreground transition"
+                    className="p-1 hover:bg-white/5 rounded text-foreground transition"
                   >
                     <ZoomOut className="h-3.5 w-3.5" />
                   </button>
                   <span className="font-mono w-10 text-center">{Math.round(zoom * 100)}%</span>
                   <button
                     onClick={() => setZoom((z) => Math.min(3, z + 0.1))}
-                    className="p-1 hover:bg-white/[0.05] rounded text-foreground transition"
+                    className="p-1 hover:bg-white/5 rounded text-foreground transition"
                   >
                     <ZoomIn className="h-3.5 w-3.5" />
                   </button>
@@ -500,14 +510,14 @@ export function AttachmentPreviewDrawer({
                       setZoom(1);
                       setRotation(0);
                     }}
-                    className="px-2 py-0.5 hover:bg-white/[0.05] rounded text-foreground transition text-[10px]"
+                    className="px-2 py-0.5 hover:bg-white/5 rounded text-foreground transition text-[10px]"
                   >
                     Reset
                   </button>
                 </div>
                 <button
                   onClick={() => setRotation((r) => (r + 90) % 360)}
-                  className="p-1 hover:bg-white/[0.05] rounded text-foreground transition flex items-center gap-1"
+                  className="p-1 hover:bg-white/5 rounded text-foreground transition flex items-center gap-1"
                   title="Rotate 90°"
                 >
                   <RotateCw className="h-3.5 w-3.5" />
@@ -567,7 +577,7 @@ export function AttachmentPreviewDrawer({
           {isEncrypted && (
             <div className="p-6 space-y-5">
               {/* Security Header Card */}
-              <div className="rounded-xl border border-amber-500/15 bg-amber-500/[0.03] p-4 flex gap-3.5">
+              <div className="rounded-xl border border-amber-500/15 bg-amber-500/3 p-4 flex gap-3.5">
                 <div className="h-10 w-10 shrink-0 grid place-items-center rounded-lg bg-amber-500/10 text-amber-300">
                   <ShieldAlert className="h-5 w-5" />
                 </div>
@@ -583,7 +593,7 @@ export function AttachmentPreviewDrawer({
               </div>
 
               {/* Cryptographic Metadata */}
-              <div className="rounded-xl border border-white/5 bg-white/[0.015] p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="rounded-xl border border-white/5 bg-white/1.5 p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground/60">
                     Encryption Standard
@@ -604,7 +614,7 @@ export function AttachmentPreviewDrawer({
                   <div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground/60">
                     Quarantine Status
                   </div>
-                  <div className="text-xs font-semibold text-amber-300 font-medium">
+                  <div className="text-xs font-semibold text-amber-300">
                     Restricted (Payload quarantined)
                   </div>
                 </div>
@@ -612,7 +622,7 @@ export function AttachmentPreviewDrawer({
                   <div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground/60">
                     Integrity Signature
                   </div>
-                  <div className="text-xs font-semibold text-emerald-400 font-medium flex items-center gap-1">
+                  <div className="text-xs font-semibold text-emerald-400 flex items-center gap-1">
                     <Check className="h-3.5 w-3.5" /> Verified Stellar Signature
                   </div>
                 </div>
@@ -643,7 +653,7 @@ export function AttachmentPreviewDrawer({
           {/* UNSUPPORTED FALLBACK */}
           {isUnsupported && (
             <div className="p-8 flex-1 flex flex-col justify-center items-center text-center max-w-[420px] mx-auto">
-              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] shadow-inner text-muted-foreground">
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/4 shadow-inner text-muted-foreground">
                 <File className="h-6 w-6" />
               </div>
               <h3 className="text-base font-semibold text-foreground/95">Preview Unavailable</h3>
@@ -653,7 +663,7 @@ export function AttachmentPreviewDrawer({
                 supported for interactive, sandboxed previews in Stealth.
               </p>
 
-              <div className="w-full mt-6 rounded-xl border border-white/5 bg-white/[0.02] p-4 text-left space-y-3">
+              <div className="w-full mt-6 rounded-xl border border-white/5 bg-white/2 p-4 text-left space-y-3">
                 <div className="flex justify-between border-b border-white/5 pb-2 text-xs">
                   <span className="text-muted-foreground">File name</span>
                   <span className="font-semibold text-foreground truncate max-w-[200px]">

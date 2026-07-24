@@ -11,34 +11,41 @@
 ## Automated Cases
 
 1. Stellar public key detection
+
    - Given an email containing one `G...` public key with valid length.
    - Expect one detection with `networkHint: "stellar-public-key"` and a source
      excerpt that includes the full token.
 
 2. Stellar contract ID detection
+
    - Given an email containing one `C...` contract ID.
    - Expect one detection with `networkHint: "stellar-contract"` and no payment
      action side effects.
 
 3. EVM address detection
+
    - Given an email containing a checksummed or lowercase `0x` address.
    - Expect one detection with `networkHint: "evm"` and confidence below any
      future validated-checksum result unless checksum validation is implemented.
 
 4. Solana-style base58 detection
+
    - Given a sentence with one base58 token in the accepted length range.
    - Expect one detection with `networkHint: "solana-like"` and conservative
      confidence.
 
 5. Punctuation boundaries
+
    - Given addresses followed by `.`, `,`, `)`, `]`, or a newline.
    - Expect punctuation to be excluded from the detected address value.
 
 6. Multiple detections
+
    - Given one email containing Stellar and EVM addresses.
    - Expect stable ordering by first appearance and no duplicate records.
 
 7. False positive filtering
+
    - Given UUIDs, invoice IDs, URLs, phone numbers, and short hex strings.
    - Expect zero wallet detections.
 

@@ -169,11 +169,11 @@ bun test tests/unit/MyComponent.test.tsx
 
 ```typescript
 // In your test file
-import { mockPayoutRequest } from '../fixtures/mock-payouts';
+import { mockPayoutRequest } from "../fixtures/mock-payouts";
 
-test('display payout details', () => {
+test("display payout details", () => {
   render(<PayoutStatus payout={mockPayoutRequest} />);
-  expect(screen.getByText('$100.00')).toBeInTheDocument();
+  expect(screen.getByText("$100.00")).toBeInTheDocument();
 });
 ```
 

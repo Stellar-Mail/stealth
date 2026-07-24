@@ -43,4 +43,22 @@ test.describe("calendar linking", () => {
       page.getByRole("heading", { level: 1, name: "TOKEN2049 Abu Dhabi - founder pass ready" }),
     ).toBeVisible();
   });
+  test("calendar workspace handles manual event creation and deletion", async ({ page }) => {
+    await page.getByRole("button", { name: "Verified 1" }).click();
+    await page.getByRole("button", { name: /Add to calendar/i }).click();
+    await page.getByRole("button", { name: /Open calendar/i }).click();
+
+    // Create a new event
+    await page.getByRole("button", { name: /New event/i }).click();
+    await page.getByPlaceholder("What is happening?").fill("My Custom Meeting");
+    await page.getByRole("button", { name: /Create event/i }).click();
+
+    await expect(page.getByRole("heading", { name: "My Custom Meeting" })).toBeVisible();
+    await expect(page.getByText("Event created")).toBeVisible();
+
+    // Delete the event
+    await page.getByRole("button", { name: /Delete/i }).click();
+    await expect(page.getByText("Event deleted")).toBeVisible();
+    await expect(page.getByText("My Custom Meeting")).toHaveCount(0);
+  });
 });

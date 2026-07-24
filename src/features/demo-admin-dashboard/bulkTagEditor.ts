@@ -70,7 +70,7 @@ export function applyBulkTagEdit(
       return campaign;
     }
 
-    const existing = campaign.tags.map(normalizeTag);
+    const existing = (campaign.tags ?? []).map(normalizeTag);
     const existingSet = new Set(existing);
     const applied: string[] = [];
     const skipped: string[] = [];
@@ -101,7 +101,7 @@ export function applyBulkTagEdit(
     changes.push({ id: campaign.id, name: campaign.name, applied, skipped });
     return applied.length === 0
       ? campaign
-      : { ...campaign, tags: existing.filter((tag) => !removeSet.has(tag)) };
+      : { ...campaign, tags: existing.filter((tag: string) => !removeSet.has(tag)) };
   });
 
   const affectedCount = changes.filter((change) => change.applied.length > 0).length;

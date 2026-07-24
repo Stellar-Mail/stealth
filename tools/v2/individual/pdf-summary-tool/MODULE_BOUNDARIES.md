@@ -70,10 +70,10 @@ export const SummarySettings: React.FC<SummarySettingsProps>;
 
 ```typescript
 // components/PDFUploadZone.tsx
-import React from 'react';
-import { usePDFSummary } from '../hooks/usePDFSummary';
-import type { PDFUploadZoneProps } from '../types';
-import { validatePDFFile } from '../utils/pdfValidation';
+import React from "react";
+import { usePDFSummary } from "../hooks/usePDFSummary";
+import type { PDFUploadZoneProps } from "../types";
+import { validatePDFFile } from "../utils/pdfValidation";
 
 export const PDFUploadZone: React.FC<PDFUploadZoneProps> = ({
   onPDFSelected,
@@ -89,11 +89,7 @@ export const PDFUploadZone: React.FC<PDFUploadZoneProps> = ({
     }
   };
 
-  return (
-    <div onDrop={handleDrop}>
-      {/* JSX here */}
-    </div>
-  );
+  return <div onDrop={handleDrop}>{/* JSX here */}</div>;
 };
 ```
 

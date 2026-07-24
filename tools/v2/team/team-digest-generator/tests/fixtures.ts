@@ -2,7 +2,7 @@
  * Test fixtures and mock data for security and performance testing
  */
 
-import { DigestConfig, DigestEmail, TeamMember } from "../../types";
+import { DigestConfig, DigestEmail, TeamMember } from "../types";
 
 /**
  * Mock team members for testing
@@ -212,7 +212,7 @@ export const mockConfigs = {
       excludeSenders: [],
       excludeCategories: [],
     },
-  } as DigestConfig,
+  } as unknown as DigestConfig,
 
   malformed: {
     noTeamId: {

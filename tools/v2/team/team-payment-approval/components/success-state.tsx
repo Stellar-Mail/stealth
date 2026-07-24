@@ -25,7 +25,9 @@ export function SuccessState({ action, className, details, icon, title }: Succes
       role="status"
       aria-live="assertive"
       aria-label="Payment approval successful"
-      className={`mx-auto flex max-w-md flex-col items-center justify-center text-center py-12 px-4 ${className || ""}`}
+      className={`mx-auto flex max-w-md flex-col items-center justify-center text-center py-12 px-4 ${
+        className || ""
+      }`}
     >
       {icon ? (
         <div

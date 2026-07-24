@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["policies", "postage", "receipts"]
+members = ["policies", "postage", "receipts", "lifecycle"]
 
 [workspace.dependencies]
 soroban-sdk = "26"

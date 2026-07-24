@@ -1,38 +1,42 @@
-# Shared Team Inbox
+# Shared Team Inbox — Specification
 
-Collaborative inbox.
+Collaborative triage and response tool for team mailboxes.
 
 ## Scope
 
-- Release tier: $(System.Collections.Hashtable.Tier.ToUpperInvariant())
-- Audience: $(System.Collections.Hashtable.Audience)
-- Folder ownership: $dir/
+- Ingest messages addressed to a shared Stealth identity and display them in a collaborative feed.
+- Claim/assign messages to individual team members with visible ownership state.
+- Add internal annotation threads (team-visible, sender-invisible) on any message.
+- Reply to external senders using the shared inbox identity.
+- Track status: unassigned → claimed → in-progress → awaiting-reply → resolved.
+- Persist state via a swappable storage adapter (in-memory reference implementation).
 
-This is a self-contained tooling workspace. Do not wire this tool into the main app, routing, inbox architecture, wallet core, Stellar core, or design system unless a future integration issue explicitly allows it.
+## Non-goals
 
-Recommended internal structure:
+- Multi-inbox management.
+- SLA engine (escalation, timeout, reassignment).
+- Analytics or reporting.
+- External integrations (webhooks, Zapier, CRM).
+- Attachment processing.
+- Read receipts.
+- Bulk operations.
+- Role-based access control (flat team membership only).
 
-- components/
-- services/
-- hooks/
--     ests/
-- docs/
-  "@ | Set-Content -Path "tools/v1/team/shared-team-inbox/README.md"
-  @"
+## Architecture Overview
 
-# Shared Team Inbox Specs
+The tool follows a layered pattern: UI components call hooks that delegate to services, which use a storage adapter (interface-based, swappable). The storage layer defaults to in-memory. The tool depends on the Stealth protocol for identity resolution and message delivery proofs but does not depend on the main application's routing, mail rendering engine, wallet core, or design system.
 
-## Purpose
+## Ownership Boundary
 
-Collaborative inbox.
+All source code, tests, documentation, fixtures, and configuration live under:
 
-## Contributor boundary
+```
+tools/v1/team/shared-team-inbox/
+```
 
-All work for this tool should stay in:
+Do not import from `src/`, `tools/v2/`, or sibling tool folders. Do not modify the main application's router, mail engine, or design system. Do not add dependencies to the root `package.json` — use a local `package.json` if needed.
 
-$dir/
-
-## Required issue categories
+## Required Issue Categories
 
 - Architecture
 - Feature

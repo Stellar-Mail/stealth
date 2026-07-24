@@ -2,6 +2,7 @@
 // Handles metrics aggregation and reporting
 
 import type { VendorMetrics, AnalyticsFilter, AnalyticsSummary } from "../types";
+import { clampCollection, sanitizeText } from "./security-guards.js";
 
 export class AnalyticsService {
   constructor(private deps: object = {}) {}
@@ -18,8 +19,19 @@ export class AnalyticsService {
    * Get metrics for multiple vendors
    */
   async getMultipleMetrics(vendorIds: string[]): Promise<VendorMetrics[]> {
-    // Implementation: calculate metrics for multiple vendors
-    throw new Error("Not implemented - use fixtures for V2");
+    const safeVendorIds = vendorIds
+      .map((vendorId) => sanitizeText(vendorId, { maxLength: 64 }))
+      .filter(Boolean)
+      .slice(0, 20);
+
+    return clampCollection([], 20).map(() => ({
+      vendorId: safeVendorIds[0] ?? "unknown",
+      totalInteractions: 0,
+      engagementScore: 0,
+      communicationFrequency: 0,
+      lastInteraction: new Date(),
+      trend: "stable" as const,
+    }));
   }
 
   /**

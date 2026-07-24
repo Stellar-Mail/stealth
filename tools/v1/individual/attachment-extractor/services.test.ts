@@ -219,3 +219,28 @@ describe("AttachmentExtractor - Services", () => {
     });
   });
 });
+
+describe("AttachmentExtractor - Safety guards", () => {
+  it("should sanitize file names before returning metadata", async () => {
+    const file = new File(["payload"], "../../evil<script>.txt", { type: "text/plain" });
+    const result = await extractAttachments([file]);
+    expect(result.attachments[0].name).toBe("evil_script_.txt");
+  });
+
+  it("should reject batches with too many files before per-file work", async () => {
+    const files = [
+      new File(["a"], "a.txt", { type: "text/plain" }),
+      new File(["b"], "b.txt", { type: "text/plain" }),
+    ];
+    const result = await extractAttachments(files, { maxFiles: 1 });
+    expect(result.success).toBe(false);
+    expect(result.errors[0].reason).toBe("too_many_files");
+  });
+
+  it("should reject batches above the aggregate size budget", async () => {
+    const files = [new File(["12345"], "a.txt", { type: "text/plain" })];
+    const result = await extractAttachments(files, { maxTotalSize: 4 });
+    expect(result.success).toBe(false);
+    expect(result.errors[0].reason).toBe("batch_too_large");
+  });
+});

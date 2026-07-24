@@ -231,7 +231,7 @@ export function TeamPaymentApprovalTool({
               onApprove={handleApprove}
               onReject={handleReject}
               onCancel={handleCancel}
-              isLoading={viewState === "loading"}
+              isLoading={false}
             />
           </div>
         )}

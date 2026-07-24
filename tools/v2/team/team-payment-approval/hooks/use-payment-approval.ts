@@ -13,6 +13,7 @@ interface UsePaymentApprovalOptions {
 }
 
 export function usePaymentApproval(options: UsePaymentApprovalOptions = {}) {
+  const { onApprove, onReject } = options;
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [decisions, setDecisions] = useState<Map<string, ApprovalDecision>>(new Map());
@@ -23,8 +24,8 @@ export function usePaymentApproval(options: UsePaymentApprovalOptions = {}) {
       setError(null);
 
       try {
-        if (options.onApprove) {
-          await options.onApprove(paymentId, notes);
+        if (onApprove) {
+          await onApprove(paymentId, notes);
         }
 
         const decision: ApprovalDecision = {
@@ -44,7 +45,7 @@ export function usePaymentApproval(options: UsePaymentApprovalOptions = {}) {
         setIsLoading(false);
       }
     },
-    [options],
+    [onApprove],
   );
 
   const reject = useCallback(
@@ -53,8 +54,8 @@ export function usePaymentApproval(options: UsePaymentApprovalOptions = {}) {
       setError(null);
 
       try {
-        if (options.onReject) {
-          await options.onReject(paymentId, notes);
+        if (onReject) {
+          await onReject(paymentId, notes);
         }
 
         const decision: ApprovalDecision = {
@@ -74,7 +75,7 @@ export function usePaymentApproval(options: UsePaymentApprovalOptions = {}) {
         setIsLoading(false);
       }
     },
-    [options],
+    [onReject],
   );
 
   const getDecision = useCallback((paymentId: string) => decisions.get(paymentId), [decisions]);

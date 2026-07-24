@@ -30,6 +30,19 @@ node --test tools/v2/team/vendor-mail-tracker/tests/vendor-mail-fixtures.test.mj
 The test validates the sample vendor-mail fixture against the local review
 contract described in `specs.md`.
 
+## Security and Performance Hardening
+
+This isolated tool now includes defensive helpers for hostile or malformed
+input:
+
+- `sanitizeText` removes control characters, trims whitespace, and caps length.
+- `sanitizeVendorInput` rejects malformed vendor names, emails, or categories.
+- `clampCollection` bounds work on large arrays so expensive processing stays predictable.
+- `createSafeRecord` strips unsafe values from record payloads before they are returned.
+
+These guards are intentionally local to the V2 tool folder and do not alter the
+main mail application or shared infrastructure.
+
 ## Tracking Workflow
 
 1. Capture vendor messages from synthetic email records.

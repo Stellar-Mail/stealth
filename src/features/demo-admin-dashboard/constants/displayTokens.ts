@@ -1,4 +1,4 @@
-import type { KpiMetricKind, KpiStatus } from "../types/campaignKpi";
+import type { KpiMetricKind, KpiStatus, KpiTrend } from "../types/campaignKpi";
 
 export interface DisplayToken {
   bg: string;
@@ -438,4 +438,29 @@ export function getKpiMetricToken(metric: KpiMetricKind): DisplayToken {
 
 export function getKpiStatusToken(status: KpiStatus): DisplayToken {
   return KPI_STATUS_TOKENS[status];
+}
+
+export const KPI_TREND_TOKENS: Record<KpiTrend, DisplayToken> = {
+  up: {
+    bg: "bg-emerald-500/10",
+    text: "text-emerald-400",
+    border: "border-emerald-500/20",
+    label: "Up",
+  },
+  down: {
+    bg: "bg-rose-500/10",
+    text: "text-rose-400",
+    border: "border-rose-500/20",
+    label: "Down",
+  },
+  stable: {
+    bg: "bg-white/[0.04]",
+    text: "text-muted-foreground",
+    border: "border-white/[0.08]",
+    label: "Stable",
+  },
+};
+
+export function getKpiTrendToken(trend: KpiTrend): DisplayToken {
+  return KPI_TREND_TOKENS[trend];
 }

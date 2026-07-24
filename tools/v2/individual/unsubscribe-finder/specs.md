@@ -18,7 +18,8 @@ before any future inbox, link-following, or mailbox mutation integration.
 - Distinguish safe unsubscribe candidates from suspicious links.
 - Represent ignored transactional emails without side effects.
 - Provide fixture coverage for each local candidate status.
-- Give reviewers a single local test command.
+- Export a non-UI service boundary that can run without presentation code.
+- Give reviewers local test commands for contract and service validation.
 
 ## Out-of-Scope Behavior
 
@@ -40,6 +41,71 @@ Each expected candidate should include:
 - `safeToOffer`: boolean that controls whether the UI can offer this action
 - `sourceMessageId`: source email identifier
 - `reason`: short review note for the status choice
+
+## Service Contract
+
+The folder exposes a backend-facing service entry point at `index.ts`:
+
+```ts
+import { analyzeUnsubscribeCandidates } from "./index.ts";
+```
+
+The service accepts this request shape:
+
+```ts
+export interface UnsubscribeFinderRequest {
+  tool: "unsubscribe-finder";
+  version: 1;
+  sourceMessages: UnsubscribeFinderSourceMessage[];
+}
+```
+
+Each source message must be a synthetic email record with:
+
+- `id`
+- `type: "email"`
+- `from`
+- `subject`
+- `receivedAt`
+- `hasListUnsubscribeHeader`
+- `bodyContainsUnsubscribeLink`
+- `isTransactional`
+- `linkHost`
+
+The service returns one of two response shapes:
+
+```ts
+export interface UnsubscribeFinderSuccess {
+  status: "ok";
+  tool: "unsubscribe-finder";
+  version: 1;
+  candidates: UnsubscribeFinderCandidate[];
+  summary: UnsubscribeFinderSummary;
+  reviewNotes: string[];
+}
+
+export interface UnsubscribeFinderFailure {
+  status: "error";
+  tool: "unsubscribe-finder";
+  version: 1;
+  error: UnsubscribeFinderError;
+}
+```
+
+## Error Codes
+
+- `INVALID_REQUEST`: the request envelope is missing or has the wrong tool.
+- `EMPTY_SOURCE_MESSAGES`: the request contains no source messages.
+- `INVALID_SOURCE_MESSAGE`: a source message is missing required fields or
+  contains the wrong data types.
+- `UNSUPPORTED_VERSION`: the request uses a version the local service does not
+  recognize.
+
+## Service Boundary
+
+The folder-local service is intentionally pure and has no UI dependencies,
+network calls, or mailbox mutation behavior. It is safe to import from backend
+or test code while the folder remains isolated from presentation concerns.
 
 ## Review Rules
 
