@@ -1,5 +1,5 @@
 /**
- * Shared Team Inbox — shared types (#445).
+ * Shared Team Inbox â€” shared types (#445).
  *
  * Folder-local types only. No imports from the main application.
  */
@@ -18,10 +18,10 @@ export interface TeamMessage {
 /**
  * Triage lifecycle for a message assigned to the team.
  *   unassigned -> claimed -> in-progress -> awaiting-reply -> resolved
- * Any state may also return to claimed (re-opened) or be unassigned
- * (released). Once esolved, it is terminal.
+ * Any state may also return to `claimed` (re-opened) or be `unassigned`
+ * (released). Once `resolved`, it is terminal.
  */
-export type TriageStatus = 'unassigned' | 'claimed' | 'in-progress' | 'awaiting-reply' | 'resolved';
+export type TriageStatus = "unassigned" | "claimed" | "in-progress" | "awaiting-reply" | "resolved";
 
 /** A team-only annotation. Must never be included in any external reply. */
 export interface Annotation {
@@ -51,32 +51,3 @@ export interface TriageRecord {
   replies: TeamReply[];
   updatedAt: string; // ISO-8601
 }
-
-export type StorageEntry<T> = { id: string; data: T };
-
-export interface StorageAdapter {
-  get<T>(key: string): Promise<StorageEntry<T> | null>;
-  getAll<T>(prefix: string): Promise<StorageEntry<T>[]>;
-  set<T>(key: string, entry: StorageEntry<T>): Promise<void>;
-  delete(key: string): Promise<void>;
-}
-
-export const VALID_TRANSITIONS: Record<TriageStatus, TriageStatus[]> = {
-  unassigned: ['claimed'],
-  claimed: ['in-progress', 'unassigned'],
-  'in-progress': ['awaiting-reply', 'resolved', 'claimed'],
-  'awaiting-reply': ['resolved', 'in-progress'],
-  resolved: ['claimed'],
-};
-
-export function getNextStatuses(current: TriageStatus): TriageStatus[] {
-  return VALID_TRANSITIONS[current] ?? [];
-}
-
-export const STATUS_LABELS: Record<TriageStatus, string> = {
-  unassigned: 'Unassigned',
-  claimed: 'Claimed',
-  'in-progress': 'In Progress',
-  'awaiting-reply': 'Awaiting Reply',
-  resolved: 'Resolved',
-};

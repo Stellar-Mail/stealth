@@ -1,5 +1,5 @@
-import type { StorageAdapter, TeamMessage, Annotation, TriageStatus } from '../types';
-import { VALID_TRANSITIONS } from '../types';
+import type { StorageAdapter, TeamMessage, Annotation, TriageStatus } from './helpers';
+import { VALID_TRANSITIONS } from './helpers';
 
 export interface InboxService {
   getMessages(): Promise<TeamMessage[]>;

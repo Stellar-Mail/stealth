@@ -2,7 +2,7 @@ import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { createMemoryStorageAdapter } from '../storage/memory-adapter';
 import { createInboxService, type InboxService } from '../services/inbox.service';
 import type { TeamMessage, TriageStatus } from '../types';
-import { STATUS_LABELS } from '../types';
+import { STATUS_LABELS } from '../services/helpers';
 import { MessageFeed } from './MessageFeed';
 import { MessageDetail } from './MessageDetail';
 

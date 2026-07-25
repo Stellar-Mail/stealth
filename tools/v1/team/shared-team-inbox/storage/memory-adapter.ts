@@ -1,4 +1,4 @@
-import type { StorageAdapter, StorageEntry } from '../types';
+import type { StorageAdapter, StorageEntry } from '../services/helpers';
 
 export function createMemoryStorageAdapter(): StorageAdapter {
   const store = new Map<string, StorageEntry<unknown>>();
