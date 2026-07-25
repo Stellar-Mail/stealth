@@ -25,12 +25,22 @@ team-security-flagging/
   services/
     security-flagging.service.mjs      Core pure functions — classification, validation,
                                        status transitions
+    security-flagging-execution.service.mjs  DI-based execution service
+  guards/
+    security-guards.mjs                Pre-validation size guards and rate-limit constants
   fixtures/
     security-flag-cases.json           Test data: email signals, valid flags, hostile
                                        inputs, status transition pairs
+    execution-contract-cases.json      Execution service contract test cases
   tests/
     security-flagging.test.mjs         50 executable tests (node:test, zero deps)
+    execution-contract.test.mjs        6 execution service contract tests
+    security-guards.test.mjs           14 guard module tests
+  contract/
+    execution-contract.d.ts            TypeScript declarations for the execution contract
   docs/
+    THREAT_MODEL.md                    Threat assumptions, unsafe input catalog, mitigations
+    PERFORMANCE.md                     Performance constraints, large-dataset handling
     test-plan.md                       Scenario table, negative checks, manual checklist
     review-notes.md                    OSS contributor review guide
   specs.md                             Issue categories and contributor expectations
@@ -61,7 +71,13 @@ Or from inside the tool folder:
 node --test tests/security-flagging.test.mjs
 ```
 
-Expected output: **50 tests, 0 failures**.
+To run all tests:
+
+```
+node --test "tools/v2/team/team-security-flagging/tests/*.test.mjs"
+```
+
+Expected output: **70 tests, 0 failures** (50 core + 6 contract + 14 guard).
 
 ---
 
@@ -200,6 +216,9 @@ All fixture emails use `*.example`, `*.example.net`, `*.example.com`, and
   or MX records.
 - CRLF and null-byte injection cases are tested with inline strings in the test file
   because those characters cannot appear in JSON string literals.
+- The guard module performs serialization (`JSON.stringify`) to check payload size.
+  For very large inputs this adds O(n) on input size before any other work, which
+  is the intended trade-off — reject early rather than validate deeply first.
 - No UI component, hook, or route exists yet. Those belong in future issues.
 
 ---
@@ -211,3 +230,6 @@ All fixture emails use `*.example`, `*.example.net`, `*.example.com`, and
 - [x] No files changed outside `tools/v2/team/team-security-flagging/`.
 - [x] Fixtures contain no real personal data, credentials, or wallet addresses.
 - [x] The tool is reviewable as a self-contained mini-product change.
+- [x] Threat assumptions and unsafe inputs are documented in `docs/THREAT_MODEL.md`.
+- [x] Validation, sanitization, and guard helpers exist in `guards/security-guards.mjs`.
+- [x] Performance notes for large emails and datasets are documented in `docs/PERFORMANCE.md`.
