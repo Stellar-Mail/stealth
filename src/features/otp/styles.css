@@ -76,7 +76,8 @@
   transition:
     transform 180ms ease,
     box-shadow 180ms ease,
-    filter 180ms ease;
+    filter 180ms ease,
+    opacity 180ms ease;
 }
 
 .otp-copy-btn:hover {
@@ -88,3 +89,41 @@
   transform: translateY(0);
   filter: brightness(0.96);
 }
+
+.otp-copy-btn:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 3px oklch(0.7 0.02 270 / 0.28),
+    inset 0 1px 0 oklch(1 0 0 / 0.7),
+    inset 0 -1px 0 oklch(0 0 0 / 0.2),
+    0 8px 20px oklch(0 0 0 / 0.45);
+}
+
+.otp-copy-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+  filter: grayscale(20%);
+  transform: none;
+}
+
+.otp-copy-spinner {
+  border-radius: 9999px;
+  border: 2px solid oklch(0.16 0.005 270 / 0.2);
+  border-top-color: oklch(0.16 0.005 270 / 0.75);
+  animation: otpCopySpin 650ms linear infinite;
+}
+
+@keyframes otpCopySpin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.otp-copy-error-text {
+  color: oklch(0.75 0.18 25 / 0.9);
+}
+
