@@ -1,71 +1,105 @@
-import type { IdempotencyRecord, MailboxPolicy, Postage, Receipt, SenderRule } from "./domain";
+import type { ZodSchema } from "zod";
+import type {
+  IdempotencyRecord,
+  MailboxPolicy,
+  Postage,
+  PostageStatus,
+  Receipt,
+  SenderRule,
+} from "./domain";
+import { ApiError, DataIntegrityError, RetryExhaustedError } from "./errors";
 
-export interface AbortOptions {
-  signal?: AbortSignal;
-  timeoutMs?: number;
-}
+/**
+ * Outcome of an atomic compare-and-swap postage state transition.
+ *
+ * - "not-found": no postage record exists for the given messageId.
+ * - "conflict": the postage exists but its current status did not match the
+ *   expected status, so no transition was applied. `postage` reflects the
+ *   actual current record so callers can build a deterministic error.
+ * - "applied": the transition was applied atomically. `postage` reflects the
+ *   updated record.
+ */
+export type PostageTransitionResult =
+  | { outcome: "not-found" }
+  | { outcome: "conflict"; postage: Postage }
+  | { outcome: "applied"; postage: Postage };
 
-export class TimeoutError extends Error {
-  readonly retryable = true;
-  constructor(message = "Operation timed out") {
-    super(message);
-    this.name = "TimeoutError";
-  }
-}
+export type AcquireIdempotencyResult =
+  | { status: "acquired" }
+  | { status: "in_progress" }
+  | { status: "completed"; record: IdempotencyRecord & { state: "completed" } };
 
-export class CancelledError extends Error {
-  readonly retryable = true;
-  constructor(message = "Operation was cancelled") {
-    super(message);
-    this.name = "CancelledError";
-  }
-}
+/**
+ * Outcome of an atomic read-receipt publication.
+ *
+ * - "not-found": no receipt record exists for the given messageId.
+ * - "forbidden": the requesting actor is not a participant in the receipt
+ *   (neither sender nor recipient). The read state is never modified.
+ * - "already-read": the receipt was already marked as read on a prior call.
+ *   `readAt` reflects the original timestamp recorded on the first valid
+ *   transition, enabling callers to surface deterministic 409 responses
+ *   without a separate read round-trip.
+ * - "marked": the read timestamp was set atomically for the first time.
+ *   `receipt` reflects the updated record.
+ *
+ * ## Duplicate-call policy
+ *
+ * The first caller that observes `readAt === null` wins; every subsequent
+ * call receives `{ outcome: "already-read", readAt }`. This is a
+ * first-write-wins, idempotent-read policy: the stored timestamp is
+ * authoritative and is never overwritten.
+ */
+export type MarkReceiptReadResult =
+  | { outcome: "not-found" }
+  | { outcome: "forbidden" }
+  | { outcome: "already-read"; readAt: string }
+  | { outcome: "marked"; receipt: Receipt };
 
 export interface ApiRepository {
-  getPolicy(owner: string, opts?: AbortOptions): Promise<MailboxPolicy | null>;
-  setPolicy(owner: string, policy: MailboxPolicy, opts?: AbortOptions): Promise<MailboxPolicy>;
-  getSenderRule(owner: string, sender: string, opts?: AbortOptions): Promise<SenderRule>;
-  setSenderRule(owner: string, sender: string, rule: SenderRule, opts?: AbortOptions): Promise<SenderRule>;
-  getPostage(messageId: string, opts?: AbortOptions): Promise<Postage | null>;
-  setPostage(postage: Postage, opts?: AbortOptions): Promise<Postage>;
-  getReceipt(messageId: string, opts?: AbortOptions): Promise<Receipt | null>;
-  setReceipt(receipt: Receipt, opts?: AbortOptions): Promise<Receipt>;
-  getIdempotencyRecord(key: string, opts?: AbortOptions): Promise<IdempotencyRecord | null>;
-  setIdempotencyRecord(key: string, record: IdempotencyRecord, opts?: AbortOptions): Promise<void>;
-  getRelayQueueDepth(relayId: string, opts?: AbortOptions): Promise<number>;
-  getRelayRetryCount(relayId: string, opts?: AbortOptions): Promise<number>;
-  getRelayLastSuccessfulDelivery(relayId: string, opts?: AbortOptions): Promise<string | null>;
-  getRelayLastFailedDelivery(relayId: string, opts?: AbortOptions): Promise<string | null>;
-  getRelayDeadLetterCount(relayId: string, opts?: AbortOptions): Promise<number>;
-  getCounter(key: string, opts?: AbortOptions): Promise<number>;
-  incrementCounter(key: string, windowSeconds: number, opts?: AbortOptions): Promise<number>;
-}
+  getPolicy(owner: string): Promise<MailboxPolicy | null>;
+  setPolicy(owner: string, policy: MailboxPolicy): Promise<MailboxPolicy>;
+  getSenderRule(owner: string, sender: string): Promise<SenderRule>;
+  setSenderRule(owner: string, sender: string, rule: SenderRule): Promise<SenderRule>;
+  getPostage(messageId: string): Promise<Postage | null>;
+  setPostage(postage: Postage): Promise<Postage>;
+  /**
+   * Atomically transitions a postage record from `expectedStatus` to
+   * `nextStatus`. Implementations MUST guarantee that concurrent callers
+   * racing on the same messageId observe a single winner: exactly one call
+   * receives `{ outcome: "applied" }` and every other concurrent/subsequent
+   * call receives `{ outcome: "conflict" }` reflecting the terminal state.
+   * This must not be implemented as a plain get-then-set, since that is
+   * vulnerable to double-settlement under concurrent requests.
+   */
+  transitionPostage(
+    messageId: string,
+    expectedStatus: PostageStatus,
+    nextStatus: PostageStatus,
+  ): Promise<PostageTransitionResult>;
+  /**
+   * Insert a postage record, enforcing message-identifier uniqueness at the
+   * persistence layer. Unlike {@link ApiRepository.setPostage} (an upsert), a
+   * duplicate messageId must reject with a deterministic conflict
+   * (ApiError 409 "conflict") so duplicate records can never create ambiguous
+   * postage/receipt state. Concurrent inserts must yield exactly one winner.
+   */
+  insertPostage(postage: Postage): Promise<Postage>;
+  getReceipt(messageId: string): Promise<Receipt | null>;
+  setReceipt(receipt: Receipt): Promise<Receipt>;
+  createReceiptIfAbsent(receipt: Receipt): Promise<{ created: boolean; receipt: Receipt }>;
+  markReceiptRead(messageId: string, actor: string, now?: Date): Promise<MarkReceiptReadResult>;
+  acquireIdempotencyRecord(key: string, leaseMs: number): Promise<AcquireIdempotencyResult>;
+  getIdempotencyRecord(key: string): Promise<IdempotencyRecord | null>;
+  setIdempotencyRecord(key: string, record: IdempotencyRecord): Promise<void>;
 
-export function withTimeout<T>(promise: Promise<T>, opts?: AbortOptions): Promise<T> {
-  if (!opts?.timeoutMs && !opts?.signal) return promise;
-
-  return new Promise<T>((resolve, reject) => {
-    const timeout = opts.timeoutMs
-      ? setTimeout(() => reject(new TimeoutError()), opts.timeoutMs)
-      : undefined;
-
-    if (opts.signal) {
-      if (opts.signal.aborted) {
-        clearTimeout(timeout);
-        reject(new CancelledError());
-        return;
-      }
-      opts.signal.addEventListener("abort", () => {
-        clearTimeout(timeout);
-        reject(new CancelledError());
-      }, { once: true });
-    }
-
-    promise.then(
-      (value) => { clearTimeout(timeout); resolve(value); },
-      (err) => { clearTimeout(timeout); reject(err); },
-    );
-  });
+  getRelayQueueDepth(relayId: string): Promise<number>;
+  getRelayRetryCount(relayId: string): Promise<number>;
+  getRelayLastSuccessfulDelivery(relayId: string): Promise<string | null>;
+  getRelayLastFailedDelivery(relayId: string): Promise<string | null>;
+  getRelayDeadLetterCount(relayId: string): Promise<number>;
+  getCounter(key: string): Promise<number>;
+  incrementCounter(key: string, windowSeconds: number, amount?: number): Promise<number>;
+  reset?(): void;
 }
 
 export const defaultMailboxPolicy: MailboxPolicy = {
@@ -73,3 +107,420 @@ export const defaultMailboxPolicy: MailboxPolicy = {
   minimumPostage: "0",
   requireVerified: true,
 };
+
+// ---------------------------------------------------------------------------
+// Issue #1508: Record validation at adapter boundaries
+// ---------------------------------------------------------------------------
+
+let correlationCounter = 0;
+
+export function generateCorrelationId(): string {
+  correlationCounter += 1;
+  return `di-${Date.now()}-${correlationCounter}`;
+}
+
+export type Migration = (data: any) => any;
+
+interface RecordSchemaDef {
+  currentVersion: number;
+  schema: ZodSchema;
+  migrations: Record<number, Migration>;
+}
+
+const recordSchemas = new Map<string, RecordSchemaDef>();
+
+export function registerRecordSchema(
+  type: string,
+  currentVersion: number,
+  schema: ZodSchema,
+  migrations: Record<number, Migration> = {},
+): void {
+  recordSchemas.set(type, { currentVersion, schema, migrations });
+}
+
+export function validateRecord<T>(recordType: string, data: unknown): T {
+  const def = recordSchemas.get(recordType);
+  if (!def) return data as T;
+
+  const version =
+    typeof data === "object" && data !== null && "$v" in data ? ((data as any).$v as number) : 1;
+
+  if (version > def.currentVersion) {
+    throw new DataIntegrityError(
+      recordType,
+      generateCorrelationId(),
+      `Unsupported newer schema version ${version} for ${recordType}`,
+    );
+  }
+
+  let migratedData = data;
+  for (let v = version; v < def.currentVersion; v++) {
+    const migration = def.migrations[v];
+    if (migration) {
+      migratedData = migration(migratedData);
+      if (typeof migratedData === "object" && migratedData !== null) {
+        (migratedData as any).$v = v + 1;
+      }
+    } else {
+      throw new DataIntegrityError(
+        recordType,
+        generateCorrelationId(),
+        `Missing migration from version ${v} to ${v + 1} for ${recordType}`,
+      );
+    }
+  }
+
+  const result = def.schema.safeParse(migratedData);
+  if (!result.success) {
+    throw new DataIntegrityError(
+      recordType,
+      generateCorrelationId(),
+      `Stored ${recordType} record failed validation`,
+    );
+  }
+  return result.data as T;
+}
+
+export function versionRecord<T>(recordType: string, data: T): T {
+  const def = recordSchemas.get(recordType);
+  if (!def || typeof data !== "object" || data === null) return data;
+  return { ...data, $v: def.currentVersion } as unknown as T;
+}
+
+/**
+ * Wraps any ApiRepository to validate records at adapter boundaries.
+ * Corrupt records throw a DataIntegrityError that never leaks the
+ * corrupt payload to clients — only the record type and correlation ID
+ * are exposed.
+ */
+export class ValidatedApiRepository implements ApiRepository {
+  constructor(private readonly inner: ApiRepository) {}
+
+  async getPolicy(owner: string): Promise<MailboxPolicy | null> {
+    const raw = await this.inner.getPolicy(owner);
+    return raw ? validateRecord<MailboxPolicy>("mailboxPolicy", raw) : null;
+  }
+
+  setPolicy(owner: string, policy: MailboxPolicy): Promise<MailboxPolicy> {
+    return this.inner.setPolicy(owner, versionRecord("mailboxPolicy", policy));
+  }
+
+  async getSenderRule(owner: string, sender: string): Promise<SenderRule> {
+    const raw = await this.inner.getSenderRule(owner, sender);
+    return validateRecord<SenderRule>("senderRule", raw);
+  }
+
+  setSenderRule(owner: string, sender: string, rule: SenderRule): Promise<SenderRule> {
+    return this.inner.setSenderRule(owner, sender, versionRecord("senderRule", rule));
+  }
+
+  async getPostage(messageId: string): Promise<Postage | null> {
+    const raw = await this.inner.getPostage(messageId);
+    return raw ? validateRecord<Postage>("postage", raw) : null;
+  }
+
+  async setPostage(postage: Postage): Promise<Postage> {
+    const result = await this.inner.setPostage(versionRecord("postage", postage));
+    return validateRecord<Postage>("postage", result);
+  }
+
+  async transitionPostage(
+    messageId: string,
+    expectedStatus: PostageStatus,
+    nextStatus: PostageStatus,
+  ): Promise<PostageTransitionResult> {
+    const result = await this.inner.transitionPostage(messageId, expectedStatus, nextStatus);
+    if (result.outcome === "conflict" || result.outcome === "applied") {
+      result.postage = validateRecord<Postage>("postage", result.postage);
+    }
+    return result;
+  }
+
+  async insertPostage(postage: Postage): Promise<Postage> {
+    const result = await this.inner.insertPostage(versionRecord("postage", postage));
+    return validateRecord<Postage>("postage", result);
+  }
+
+  async getReceipt(messageId: string): Promise<Receipt | null> {
+    const raw = await this.inner.getReceipt(messageId);
+    return raw ? validateRecord<Receipt>("receipt", raw) : null;
+  }
+
+  async setReceipt(receipt: Receipt): Promise<Receipt> {
+    const result = await this.inner.setReceipt(versionRecord("receipt", receipt));
+    return validateRecord<Receipt>("receipt", result);
+  }
+
+  async createReceiptIfAbsent(receipt: Receipt): Promise<{ created: boolean; receipt: Receipt }> {
+    const result = await this.inner.createReceiptIfAbsent(versionRecord("receipt", receipt));
+    if (result.created) {
+      result.receipt = validateRecord<Receipt>("receipt", result.receipt);
+    }
+    return result;
+  }
+
+  async markReceiptRead(
+    messageId: string,
+    actor: string,
+    now?: Date,
+  ): Promise<MarkReceiptReadResult> {
+    const result = await this.inner.markReceiptRead(messageId, actor, now);
+    if (result.outcome === "marked") {
+      result.receipt = validateRecord<Receipt>("receipt", result.receipt);
+    }
+    return result;
+  }
+
+  acquireIdempotencyRecord(key: string, leaseMs: number): Promise<AcquireIdempotencyResult> {
+    return this.inner.acquireIdempotencyRecord(key, leaseMs).then((result) => {
+      if (result.status === "completed") {
+        result.record = validateRecord<IdempotencyRecord & { state: "completed" }>(
+          "idempotencyRecord",
+          result.record,
+        );
+      }
+      return result;
+    });
+  }
+
+  async getIdempotencyRecord(key: string): Promise<IdempotencyRecord | null> {
+    const raw = await this.inner.getIdempotencyRecord(key);
+    return raw ? validateRecord<IdempotencyRecord>("idempotencyRecord", raw) : null;
+  }
+
+  setIdempotencyRecord(key: string, record: IdempotencyRecord): Promise<void> {
+    return this.inner.setIdempotencyRecord(key, versionRecord("idempotencyRecord", record));
+  }
+
+  getRelayQueueDepth(relayId: string): Promise<number> {
+    return this.inner.getRelayQueueDepth(relayId);
+  }
+
+  getRelayRetryCount(relayId: string): Promise<number> {
+    return this.inner.getRelayRetryCount(relayId);
+  }
+
+  getRelayLastSuccessfulDelivery(relayId: string): Promise<string | null> {
+    return this.inner.getRelayLastSuccessfulDelivery(relayId);
+  }
+
+  getRelayLastFailedDelivery(relayId: string): Promise<string | null> {
+    return this.inner.getRelayLastFailedDelivery(relayId);
+  }
+
+  getRelayDeadLetterCount(relayId: string): Promise<number> {
+    return this.inner.getRelayDeadLetterCount(relayId);
+  }
+
+  getCounter(key: string): Promise<number> {
+    return this.inner.getCounter(key);
+  }
+
+  incrementCounter(key: string, windowSeconds: number, amount?: number): Promise<number> {
+    return this.inner.incrementCounter(key, windowSeconds, amount);
+  }
+
+  reset(): void {
+    this.inner.reset?.();
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Bounded retry policy for repository operations
+// ---------------------------------------------------------------------------
+
+export interface RetryPolicy {
+  maxAttempts: number;
+  baseDelayMs: number;
+}
+
+export const DEFAULT_RETRY_POLICY: RetryPolicy = {
+  maxAttempts: 3,
+  baseDelayMs: 200,
+};
+
+const RETRY_SAFE_OPERATIONS = new Set<string>([
+  "getPolicy",
+  "getSenderRule",
+  "getPostage",
+  "getReceipt",
+  "getIdempotencyRecord",
+  "getRelayQueueDepth",
+  "getRelayRetryCount",
+  "getRelayLastSuccessfulDelivery",
+  "getRelayLastFailedDelivery",
+  "getRelayDeadLetterCount",
+  "getCounter",
+  "setPolicy",
+  "setSenderRule",
+  "setPostage",
+  "setReceipt",
+  "createReceiptIfAbsent",
+  "markReceiptRead",
+  "setIdempotencyRecord",
+  "transitionPostage",
+  "markReceiptRead",
+]);
+
+function isRetryableError(error: unknown): boolean {
+  if (error instanceof ApiError) return error.retryable;
+  return true;
+}
+
+function calculateBackoff(attempt: number, policy: RetryPolicy): number {
+  const exponentialDelay = policy.baseDelayMs * Math.pow(2, attempt - 1);
+  const jitter = Math.random() * policy.baseDelayMs * 0.5;
+  return exponentialDelay + jitter;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Wraps any ApiRepository with a bounded retry policy.
+ *
+ * Only operations classified as retry-safe are retried automatically.
+ * Unsafe writes (insertPostage, acquireIdempotencyRecord, incrementCounter,
+ * reset) are never retried. Retries use exponential backoff with jitter.
+ * On exhaustion, a stable {@link RetryExhaustedError} is thrown.
+ */
+export class RetryableApiRepository implements ApiRepository {
+  private readonly inner: ApiRepository;
+  private readonly policy: RetryPolicy;
+
+  constructor(inner: ApiRepository, policy: RetryPolicy = DEFAULT_RETRY_POLICY) {
+    this.inner = inner;
+    this.policy = policy;
+  }
+
+  private async withRetry<T>(operation: string, fn: () => Promise<T>): Promise<T> {
+    if (!RETRY_SAFE_OPERATIONS.has(operation)) {
+      return fn();
+    }
+
+    let lastError: unknown;
+    for (let attempt = 1; attempt <= this.policy.maxAttempts; attempt++) {
+      try {
+        return await fn();
+      } catch (error) {
+        lastError = error;
+        if (!isRetryableError(error)) {
+          throw error;
+        }
+        if (attempt < this.policy.maxAttempts) {
+          await sleep(calculateBackoff(attempt, this.policy));
+        }
+      }
+    }
+    throw new RetryExhaustedError(lastError);
+  }
+
+  getPolicy(owner: string): Promise<MailboxPolicy | null> {
+    return this.withRetry("getPolicy", () => this.inner.getPolicy(owner));
+  }
+
+  setPolicy(owner: string, policy: MailboxPolicy): Promise<MailboxPolicy> {
+    return this.withRetry("setPolicy", () => this.inner.setPolicy(owner, policy));
+  }
+
+  getSenderRule(owner: string, sender: string): Promise<SenderRule> {
+    return this.withRetry("getSenderRule", () => this.inner.getSenderRule(owner, sender));
+  }
+
+  setSenderRule(owner: string, sender: string, rule: SenderRule): Promise<SenderRule> {
+    return this.withRetry("setSenderRule", () => this.inner.setSenderRule(owner, sender, rule));
+  }
+
+  getPostage(messageId: string): Promise<Postage | null> {
+    return this.withRetry("getPostage", () => this.inner.getPostage(messageId));
+  }
+
+  setPostage(postage: Postage): Promise<Postage> {
+    return this.withRetry("setPostage", () => this.inner.setPostage(postage));
+  }
+
+  transitionPostage(
+    messageId: string,
+    expectedStatus: PostageStatus,
+    nextStatus: PostageStatus,
+  ): Promise<PostageTransitionResult> {
+    return this.withRetry("transitionPostage", () =>
+      this.inner.transitionPostage(messageId, expectedStatus, nextStatus),
+    );
+  }
+
+  insertPostage(postage: Postage): Promise<Postage> {
+    return this.inner.insertPostage(postage);
+  }
+
+  getReceipt(messageId: string): Promise<Receipt | null> {
+    return this.withRetry("getReceipt", () => this.inner.getReceipt(messageId));
+  }
+
+  setReceipt(receipt: Receipt): Promise<Receipt> {
+    return this.withRetry("setReceipt", () => this.inner.setReceipt(receipt));
+  }
+
+  createReceiptIfAbsent(receipt: Receipt): Promise<{ created: boolean; receipt: Receipt }> {
+    return this.withRetry("createReceiptIfAbsent", () => this.inner.createReceiptIfAbsent(receipt));
+  }
+
+  markReceiptRead(messageId: string, actor: string, now?: Date): Promise<MarkReceiptReadResult> {
+    return this.withRetry("markReceiptRead", () =>
+      this.inner.markReceiptRead(messageId, actor, now),
+    );
+  }
+
+  acquireIdempotencyRecord(key: string, leaseMs: number): Promise<AcquireIdempotencyResult> {
+    return this.inner.acquireIdempotencyRecord(key, leaseMs);
+  }
+
+  getIdempotencyRecord(key: string): Promise<IdempotencyRecord | null> {
+    return this.withRetry("getIdempotencyRecord", () => this.inner.getIdempotencyRecord(key));
+  }
+
+  setIdempotencyRecord(key: string, record: IdempotencyRecord): Promise<void> {
+    return this.withRetry("setIdempotencyRecord", () =>
+      this.inner.setIdempotencyRecord(key, record),
+    );
+  }
+
+  getRelayQueueDepth(relayId: string): Promise<number> {
+    return this.withRetry("getRelayQueueDepth", () => this.inner.getRelayQueueDepth(relayId));
+  }
+
+  getRelayRetryCount(relayId: string): Promise<number> {
+    return this.withRetry("getRelayRetryCount", () => this.inner.getRelayRetryCount(relayId));
+  }
+
+  getRelayLastSuccessfulDelivery(relayId: string): Promise<string | null> {
+    return this.withRetry("getRelayLastSuccessfulDelivery", () =>
+      this.inner.getRelayLastSuccessfulDelivery(relayId),
+    );
+  }
+
+  getRelayLastFailedDelivery(relayId: string): Promise<string | null> {
+    return this.withRetry("getRelayLastFailedDelivery", () =>
+      this.inner.getRelayLastFailedDelivery(relayId),
+    );
+  }
+
+  getRelayDeadLetterCount(relayId: string): Promise<number> {
+    return this.withRetry("getRelayDeadLetterCount", () =>
+      this.inner.getRelayDeadLetterCount(relayId),
+    );
+  }
+
+  getCounter(key: string): Promise<number> {
+    return this.withRetry("getCounter", () => this.inner.getCounter(key));
+  }
+
+  incrementCounter(key: string, windowSeconds: number, amount?: number): Promise<number> {
+    return this.inner.incrementCounter(key, windowSeconds, amount);
+  }
+
+  reset(): void {
+    this.inner.reset?.();
+  }
+}

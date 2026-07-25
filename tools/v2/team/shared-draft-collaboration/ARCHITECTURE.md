@@ -170,3 +170,20 @@ node --test tools/v2/team/shared-draft-collaboration/tests/shared-draft.test.mjs
 | Filter   | isActive, search, combined                                       |
 | Service  | CRUD, validation, not-found, state tracking                      |
 | Security | XSS sanitization, CRLF blocking, path traversal, oversized input |
+
+---
+
+## Data Ownership
+
+- **Source of truth for drafts:** Handled in-memory by `draft.service.ts` for the local tool execution. The actual production data will be owned by the main application's database schema, which this folder does not touch or define.
+- **Fixtures:** `fixtures/drafts.fixtures.mjs` provides the deterministic sample data for UI and testing.
+
+## Dependencies
+
+- **Runtime deps:** None beyond Node APIs (for ESM versions) and TypeScript. No external SDKs.
+- **Forbidden:** Imports crossing into `src/` (main app shell, routing, inbox architecture, wallet/Stellar core, design system).
+
+## Integration Constraints
+
+- **Isolation:** The tool is completely isolated until a follow-up integration issue links it.
+- **Future Integration:** Must interface strictly through the public API exported in `index.ts`. Internal guards and service states should not be mutated directly from outside.

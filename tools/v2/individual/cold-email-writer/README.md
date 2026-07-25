@@ -1,15 +1,28 @@
 # Cold Email Writer
 
-This folder is the isolated workspace for the Cold Email Writer tool.
+Cold Email Writer exposes a deterministic, non-UI service for producing a
+plain-text outbound email draft from structured campaign data.
 
-## Ownership Boundary
+## Backend entry point
 
-All work for this tool must stay inside:
+Import `safeWriteColdEmail` from `index.ts` when handling untrusted payloads.
+It validates and sanitizes input, enforces size limits, and returns a
+discriminated result without throwing. Call `writeColdEmail` only when the
+payload has already been validated.
 
-`text
-.\tools\v2\individual\cold-email-writer\
-`
+The complete typed contract and service boundaries are documented in
+`docs/contract.md`. Typed success and failure examples are exported from
+`services/fixtures.ts`.
 
-Do not wire this tool into the main app, routing, inbox architecture, wallet core, Stellar core, database schema, or existing design system unless a future integration issue explicitly allows it.
+## Local verification
 
-See specs.md for the issue categories and contributor expectations.
+```sh
+npx vitest run tools/v2/individual/cold-email-writer/tests
+npx tsc --noEmit
+```
+
+## Ownership boundary
+
+All code, tests, fixtures, and documentation for this tool stay inside this
+folder. The module has no UI, routing, mailbox, database, or design-system
+dependencies.

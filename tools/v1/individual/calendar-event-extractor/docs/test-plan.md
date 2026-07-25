@@ -10,30 +10,37 @@
 ## Automated Cases
 
 1. Absolute date and time
+
    - Given an email with a meeting date, time, and title.
    - Expect `draft` or `ready` with title, `startAt`, confidence, and signals.
 
 2. Relative date with timezone
+
    - Given received time, timezone, and "tomorrow at 10".
    - Expect deterministic `startAt` resolution.
 
 3. Missing end time
+
    - Given a start time but no end time.
    - Expect draft with `endAt` omitted and a duration warning.
 
 4. Location extraction
+
    - Given room or venue text.
    - Expect the location field populated without altering the message.
 
 5. Duplicate event prevention
+
    - Given an existing draft for the same message and start time.
    - Expect no duplicate draft.
 
 6. Conflicting date signals
+
    - Given subject and body with different dates.
    - Expect `ambiguous` with a conflict warning.
 
 7. FYI false positive
+
    - Given a newsletter advertising an event without a personal action.
    - Expect no ready event or a low-confidence draft.
 

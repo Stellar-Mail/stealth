@@ -44,7 +44,7 @@ Add PDF summarization to compose view:
 ```typescript
 // In src/features/compose/ComposeArea.tsx
 
-import { PDFSummaryWidget } from '../pdf-summary-integration';
+import { PDFSummaryWidget } from "../pdf-summary-integration";
 
 export const ComposeArea = () => {
   return (
@@ -63,7 +63,7 @@ Detect PDFs in mail attachments:
 ```typescript
 // In src/features/mail/AttachmentHandler.tsx
 
-import { canSummarize } from '../../../tools/v2/individual/pdf-summary-tool/utils/pdfValidation';
+import { canSummarize } from "../../../tools/v2/individual/pdf-summary-tool/utils/pdfValidation";
 
 export const AttachmentHandler = ({ attachment }) => {
   if (canSummarize(attachment.file)) {
@@ -210,13 +210,11 @@ interface UsePDFSummaryIntegrationOptions {
   onError?: (error: Error) => void;
 }
 
-export function usePDFSummaryIntegration(
-  options?: UsePDFSummaryIntegrationOptions
-) {
+export function usePDFSummaryIntegration(options?: UsePDFSummaryIntegrationOptions) {
   return {
     summarizeAttachment: async (file: File) => string,
     isLoading: boolean,
-    error?: Error,
+    error: Error,
   };
 }
 ```

@@ -14,10 +14,9 @@ The envelope is a JSON object with two top-level fields: `payload` and `signatur
     "recipient": "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
     "timestamp": "2026-06-17T22:00:00Z",
     "encryption_metadata": {
-      "algorithm": "X25519-XSalsa20-Poly1305",
-      "ephemeral_public_key": "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-      "nonce": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "mac": "86355651ecbc6e969d27038e8e78e86cf0f4e1f7a0756e0766a5cfbfcae29202"
+      "algorithm": "AES-256-GCM",
+      "nonce": "e3b0c44298fc1c149afbf4c8996fb924",
+      "mac": "86355651ecbc6e969d27038e8e78e86c"
     },
     "content_commitment": "5b40cf39e4a86e969d27038e8e78e86cf0f4e1f7a0756e0766a5cfbfcae29202",
     "attachments": [
@@ -46,10 +45,12 @@ The envelope is a JSON object with two top-level fields: `payload` and `signatur
 - `recipient` (string): Stellar G-address of the recipient.
 - `timestamp` (string): ISO 8601 UTC timestamp string.
 - `encryption_metadata` (object): Encryption parameters.
-  - `algorithm` (string): The scheme name (e.g., `"X25519-XSalsa20-Poly1305"`).
-  - `ephemeral_public_key` (string): Ephemeral public key (Stellar G-address).
-  - `nonce` (string): Hex-encoded encryption nonce.
-  - `mac` (string): 32-byte hex-encoded message authentication code.
+  - `algorithm` (string): The normative v1 algorithm suite: `"AES-256-GCM"`.
+  - `nonce` (string): 12-byte (24 hex characters) randomly generated nonce.
+  - `mac` (string): 16-byte (32 hex characters) authentication tag from AES-GCM.
+  - `ephemeral_public_key` (string, optional): Reserved for future public-key encryption suites.
+  - `recipient_key_id` (string, optional): Identifier for recipient key (for key rotation).
+  - `sender_key_id` (string, optional): Identifier for sender key (for key rotation).
 - `content_commitment` (string): SHA-256 digest of the encrypted payload ciphertext.
 - `attachments` (array): List of attachment descriptors.
   - `filename` (string): File name.
@@ -65,7 +66,48 @@ The envelope is a JSON object with two top-level fields: `payload` and `signatur
 
 ---
 
-## 2. Canonical Serialization (JCS)
+## 2. Cryptographic Algorithm Suite (v1)
+
+The normative algorithm suite for v1 envelopes is **AES-256-GCM**.
+
+### Algorithm Parameters
+
+- **Encryption**: AES-256-GCM (Galois/Counter Mode)
+  - 256-bit symmetric key (randomly generated per envelope or derived via key agreement)
+  - 96-bit (12-byte) nonce, randomly generated per encryption operation
+  - 128-bit (16-byte) authentication tag, automatically appended by AES-GCM
+  - Additional Authenticated Data (AAD): Canonicalized attachment descriptors
+
+- **Content Commitment**: SHA-256 hash of the complete ciphertext (including authentication tag)
+
+- **Signature Scheme**: Ed25519 over the canonicalized payload (see section 3)
+
+### Design Rationale
+
+AES-256-GCM was selected for v1 envelopes because:
+
+1. **Native Platform Support**: Available in all modern browsers via Web Crypto API and in server environments
+2. **Hardware Acceleration**: AES-NI instructions provide high performance on most platforms
+3. **AEAD Properties**: Authenticated Encryption with Associated Data prevents tampering and provides integrity
+4. **Standardization**: NIST-approved (FIPS 140-2), widely implemented, and well-studied
+
+### Interoperability Requirements
+
+Independent implementations MUST:
+
+- Use AES-256-GCM with 12-byte random nonces for v1 envelopes
+- Include attachment descriptors (canonicalized via JCS) as Additional Authenticated Data
+- Verify the 16-byte authentication tag before accepting any decrypted plaintext
+- Validate that `encryption_metadata.algorithm` exactly equals `"AES-256-GCM"`
+- Reject envelopes with unknown or unsupported algorithm values (fail closed)
+
+### Future Algorithm Suites
+
+Future envelope versions MAY introduce additional algorithm suites (e.g., post-quantum algorithms, X25519-XSalsa20-Poly1305 for ephemeral key exchange). Implementations MUST explicitly check the `version` and `algorithm` fields and fail closed on unknown combinations.
+
+---
+
+## 3. Canonical Serialization (JCS)
 
 To verify the signature, the `payload` object must be serialized to an unambiguous, canonical byte representation. Stealth uses the **JSON Canonicalization Scheme (JCS)** as defined in [RFC 8785](https://tools.ietf.org/html/rfc8785).
 
@@ -86,7 +128,7 @@ signature = sign(private_key, jcs(payload))
 
 ---
 
-## 3. Extensibility and Fail-Closed Validation
+## 4. Extensibility and Fail-Closed Validation
 
 To allow safe feature updates, the envelope is extensible.
 

@@ -1,0 +1,118 @@
+{
+  "meta": {
+    "spec": "docs/protocol/relay-auth-replay.md",
+    "purpose": "Conformance vectors for relay request authentication and replay protection (issue #59).",
+    "note": "Signing is performed by the test harness with a fixed ed25519 keypair; payloads carrying overrides are signed AFTER overrides are applied so their signature remains valid (semantics-failing cases). 'tamper' cases mutate the payload after signing to prove canonicalization catches it."
+  },
+  "base": {
+    "version": "v1",
+    "sender": "a01bcbe720d8344a40b29b5a447fd57d2dd2ce02209a0c581c7bcf9b9706bcf8",
+    "recipient": "b01bcbe720d8344a40b29b5a447fd57d2dd2ce02209a0c581c7bcf9b9706bcf9",
+    "timestamp": "NOW",
+    "encryption_metadata": { "algorithm": "AES-256-GCM", "nonce": "00", "mac": "00" },
+    "content_commitment": "5b40cf39e4a86e969d27038e8e78e86cf0f4e1f7a0756e0766a5cfbfcae29202",
+    "attachments": [],
+    "request_nonce": "nonce-base-0000000000000000",
+    "audience": "relay:test.stealth",
+    "idempotency_key": "idem-base-0000000000000000",
+    "replay_window_seconds": 300
+  },
+  "cases": [
+    {
+      "id": "relay/positive/accepted",
+      "description": "Well-formed, fresh, correctly-signed request is accepted.",
+      "overrides": {},
+      "tamper": null,
+      "preseed": null,
+      "expected": { "ok": true }
+    },
+    {
+      "id": "relay/positive/idempotent-replay",
+      "description": "Second submission with same idempotency_key returns original (x-idempotency-replayed).",
+      "overrides": { "request_nonce": "nonce-idem-0000000000000001" },
+      "tamper": null,
+      "preseed": {
+        "idempotencyKey": "idem-base-0000000000000000",
+        "idempotency": { "accepted": true, "messageId": "prior-commitment" }
+      },
+      "expected": { "ok": true, "idempotencyReplayed": true }
+    },
+    {
+      "id": "relay/negative/cross-relay",
+      "description": "Valid signature but audience names a different relay (R4).",
+      "overrides": {
+        "audience": "relay:other.stealth",
+        "request_nonce": "nonce-xrelay-000000000000",
+        "idempotency_key": "idem-xrelay-00000000000"
+      },
+      "tamper": null,
+      "preseed": null,
+      "expected": { "error": "AUDIENCE_MISMATCH" }
+    },
+    {
+      "id": "relay/negative/stale",
+      "description": "timestamp older than the replay window (R2).",
+      "overrides": {
+        "timestamp": "STALE",
+        "request_nonce": "nonce-stale-000000000000",
+        "idempotency_key": "idem-stale-00000000000"
+      },
+      "tamper": null,
+      "preseed": null,
+      "expected": { "error": "STALE_REQUEST" }
+    },
+    {
+      "id": "relay/negative/future",
+      "description": "timestamp too far in the future (R5).",
+      "overrides": {
+        "timestamp": "FUTURE",
+        "request_nonce": "nonce-future-0000000000",
+        "idempotency_key": "idem-future-000000000"
+      },
+      "tamper": null,
+      "preseed": null,
+      "expected": { "error": "FUTURE_REQUEST" }
+    },
+    {
+      "id": "relay/negative/duplicate-nonce",
+      "description": "Same request_nonce submitted twice (R1).",
+      "overrides": {
+        "request_nonce": "nonce-dup-00000000000000",
+        "idempotency_key": "idem-dup-0000000000000"
+      },
+      "tamper": null,
+      "preseed": { "nonce": "nonce-dup-00000000000000" },
+      "expected": { "error": "REPLAY_DETECTED" }
+    },
+    {
+      "id": "relay/negative/tampered-nonce",
+      "description": "Valid signature, then nonce altered after signing (canonicalization catches it).",
+      "overrides": {
+        "request_nonce": "nonce-good-0000000000000",
+        "idempotency_key": "idem-tamper-0000000000"
+      },
+      "tamper": "nonce",
+      "preseed": null,
+      "expected": { "error": "INVALID_SIGNATURE" }
+    },
+    {
+      "id": "relay/negative/missing-fields",
+      "description": "Mandatory anti-replay field absent (INVALID_REQUEST).",
+      "overrides": { "request_nonce": null, "idempotency_key": "idem-miss-00000000000" },
+      "tamper": null,
+      "preseed": null,
+      "expected": { "error": "INVALID_REQUEST" }
+    },
+    {
+      "id": "relay/negative/bad-signature",
+      "description": "Signature computed with a different key.",
+      "overrides": {
+        "request_nonce": "nonce-badsig-0000000000",
+        "idempotency_key": "idem-badsig-00000000"
+      },
+      "tamper": null,
+      "preseed": null,
+      "expected": { "error": "INVALID_SIGNATURE", "useWrongKey": true }
+    }
+  ]
+}

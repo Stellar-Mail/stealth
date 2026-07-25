@@ -74,8 +74,7 @@ To govern the lifecycle of metadata, Stealth enforces strict rules across all co
 
 ## 3. On-Chain Address Rule
 
-> [!IMPORTANT]
-> **Plaintext addresses are never written on-chain.**
+> [!IMPORTANT] > **Plaintext addresses are never written on-chain.**
 >
 > Senders, recipients, and delegates are identified on the Stellar blockchain exclusively by cryptographically generated public keys or smart contract hashes (represented by the Soroban `Address` type). Human-readable names, email addresses, and federation handles (e.g. `alice*stealth.demo`) are strictly resolved off-chain prior to submitting any transaction.
 

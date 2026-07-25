@@ -141,7 +141,9 @@ export function processTeamEmails(
               } else {
                 errors.push({
                   emailId: email.id,
-                  message: `Invalid parsed event "${evt.title}": ${validation.errors.map((e) => e.message).join(", ")}`,
+                  message: `Invalid parsed event "${evt.title}": ${validation.errors
+                    .map((e) => e.message)
+                    .join(", ")}`,
                 });
               }
             });

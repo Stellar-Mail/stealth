@@ -45,6 +45,17 @@ From the repository root:
 npx vitest run --config tools/v2/individual/task-extractor/vitest.config.ts
 ```
 
+For detailed testing information, see [docs/TESTING.md](./docs/TESTING.md).
+
+## Documentation
+
+- **[contract.md](./docs/contract.md)** — Complete API specification and type reference
+- **[USAGE.md](./docs/USAGE.md)** — Usage examples, patterns, and best practices
+- **[TESTING.md](./docs/TESTING.md)** — Testing guide and coverage details
+- **[CONTRIBUTING.md](./docs/CONTRIBUTING.md)** — Contributor and reviewer guide
+- **[REVIEW_NOTES.md](./docs/REVIEW_NOTES.md)** — Quick validation checklist for reviewers
+- **[LIMITATIONS.md](./docs/LIMITATIONS.md)** — Known limitations and constraints
+
 ## Ownership Boundary
 
 All work for this tool must stay inside:

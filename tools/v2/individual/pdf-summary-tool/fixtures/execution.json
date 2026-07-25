@@ -1,0 +1,210 @@
+{
+  "successCases": [
+    {
+      "name": "SUMMARIZE_PDF with full settings",
+      "input": {
+        "action": "SUMMARIZE_PDF",
+        "payload": {
+          "pdfContent": "The quarterly financial report shows significant growth in revenue across all departments. Operating expenses remained stable while profit margins improved by twelve percent compared to the previous quarter. The marketing team achieved record customer acquisition rates. Research and development investments continued to yield positive results with three new product launches.",
+          "fileName": "quarterly-report.pdf",
+          "fileSizeBytes": 1048576,
+          "settings": {
+            "length": "short",
+            "style": "bullet-points",
+            "includeKeywords": true,
+            "language": "en"
+          }
+        }
+      },
+      "expectedOutput": {
+        "success": true,
+        "dataShape": {
+          "hasSummary": true,
+          "hasKeywords": true,
+          "summaryHasBullets": true
+        }
+      }
+    },
+    {
+      "name": "SUMMARIZE_PDF with default settings",
+      "input": {
+        "action": "SUMMARIZE_PDF",
+        "payload": {
+          "pdfContent": "Machine learning models have transformed the way organizations approach data analysis. These models can identify patterns in large datasets that would be impossible for humans to detect manually. From predictive analytics to natural language processing, the applications are vast and growing rapidly across industries.",
+          "fileName": "ml-overview.pdf",
+          "fileSizeBytes": 524288
+        }
+      },
+      "expectedOutput": {
+        "success": true,
+        "dataShape": {
+          "hasSummary": true,
+          "hasKeywords": false,
+          "summaryHasBullets": false
+        }
+      }
+    },
+    {
+      "name": "VALIDATE_PDF with valid file",
+      "input": {
+        "action": "VALIDATE_PDF",
+        "payload": {
+          "fileName": "report.pdf",
+          "fileSizeBytes": 2097152,
+          "mimeType": "application/pdf"
+        }
+      },
+      "expectedOutput": {
+        "success": true,
+        "data": {
+          "isValid": true,
+          "fileName": "report.pdf",
+          "fileSizeBytes": 2097152,
+          "mimeType": "application/pdf"
+        }
+      }
+    },
+    {
+      "name": "LIST_SUMMARIES returns empty initially",
+      "input": {
+        "action": "LIST_SUMMARIES"
+      },
+      "expectedOutput": {
+        "success": true,
+        "data": {
+          "summaries": [],
+          "count": 0
+        }
+      }
+    }
+  ],
+  "failureCases": [
+    {
+      "name": "SUMMARIZE_PDF missing pdfContent",
+      "input": {
+        "action": "SUMMARIZE_PDF",
+        "payload": {
+          "fileName": "report.pdf",
+          "fileSizeBytes": 1024
+        }
+      },
+      "expectedOutput": {
+        "success": false,
+        "error": {
+          "code": "INVALID_INPUT",
+          "message": "pdfContent and fileName are required for SUMMARIZE_PDF"
+        }
+      }
+    },
+    {
+      "name": "SUMMARIZE_PDF content too short",
+      "input": {
+        "action": "SUMMARIZE_PDF",
+        "payload": {
+          "pdfContent": "Too short.",
+          "fileName": "tiny.pdf",
+          "fileSizeBytes": 10
+        }
+      },
+      "expectedOutput": {
+        "success": false,
+        "error": {
+          "code": "CONTENT_TOO_SHORT",
+          "message": "Content must be at least 50 characters to summarize"
+        }
+      }
+    },
+    {
+      "name": "VALIDATE_PDF file too large",
+      "input": {
+        "action": "VALIDATE_PDF",
+        "payload": {
+          "fileName": "huge.pdf",
+          "fileSizeBytes": 104857600,
+          "mimeType": "application/pdf"
+        }
+      },
+      "expectedOutput": {
+        "success": false,
+        "error": {
+          "code": "FILE_TOO_LARGE",
+          "message": "File size 104857600 bytes exceeds maximum of 52428800 bytes"
+        }
+      }
+    },
+    {
+      "name": "VALIDATE_PDF unsupported MIME type",
+      "input": {
+        "action": "VALIDATE_PDF",
+        "payload": {
+          "fileName": "image.png",
+          "fileSizeBytes": 1024,
+          "mimeType": "image/png"
+        }
+      },
+      "expectedOutput": {
+        "success": false,
+        "error": {
+          "code": "UNSUPPORTED_FILE_TYPE",
+          "message": "MIME type \"image/png\" is not supported. Expected one of: application/pdf"
+        }
+      }
+    },
+    {
+      "name": "GET_SUMMARY not found",
+      "input": {
+        "action": "GET_SUMMARY",
+        "payload": {
+          "summaryId": "nonexistent-id"
+        }
+      },
+      "expectedOutput": {
+        "success": false,
+        "error": {
+          "code": "SUMMARY_NOT_FOUND",
+          "message": "Summary with id \"nonexistent-id\" not found"
+        }
+      }
+    },
+    {
+      "name": "DELETE_SUMMARY not found",
+      "input": {
+        "action": "DELETE_SUMMARY",
+        "payload": {
+          "summaryId": "nonexistent-id"
+        }
+      },
+      "expectedOutput": {
+        "success": false,
+        "error": {
+          "code": "SUMMARY_NOT_FOUND",
+          "message": "Summary with id \"nonexistent-id\" not found"
+        }
+      }
+    },
+    {
+      "name": "Unknown action",
+      "input": {
+        "action": "UNKNOWN_ACTION"
+      },
+      "expectedOutput": {
+        "success": false,
+        "error": {
+          "code": "ACTION_NOT_SUPPORTED",
+          "message": "Action UNKNOWN_ACTION is not supported"
+        }
+      }
+    },
+    {
+      "name": "Missing action",
+      "input": {},
+      "expectedOutput": {
+        "success": false,
+        "error": {
+          "code": "INVALID_INPUT",
+          "message": "Missing execution action"
+        }
+      }
+    }
+  ]
+}

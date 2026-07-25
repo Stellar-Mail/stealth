@@ -154,6 +154,11 @@ Contributions to this tool should include one or more of these categories:
 - [x] Responsive layout
 - [x] Error messages clear and helpful
 - [x] No modifications to main app shell, routing, or core systems
+- [x] Tool has explicit handling for malformed or hostile input (THREATS.md, services/guards.ts)
+- [x] Tool avoids unnecessary work on large datasets (docs/PERFORMANCE.md, batchSizeGuard, trimCollection)
+- [x] No existing security-sensitive app code is modified
+- [x] Files changed are limited to `tools/v2/team/team-payment-approval/`
+- [x] Contribution is reviewable as a self-contained mini-product change
 
 ## Files Changed Scope
 

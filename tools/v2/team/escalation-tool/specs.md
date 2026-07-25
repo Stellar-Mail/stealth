@@ -1,41 +1,55 @@
-# Escalation Tool
-
-Escalate conversations.
-
-## Scope
-
-- Release tier: $(System.Collections.Hashtable.Tier.ToUpperInvariant())
-- Audience: $(System.Collections.Hashtable.Audience)
-- Folder ownership: $dir/
-
-This is a self-contained tooling workspace. Do not wire this tool into the main app, routing, inbox architecture, wallet core, Stellar core, or design system unless a future integration issue explicitly allows it.
-
-Recommended internal structure:
-
-- components/
-- services/
-- hooks/
--     ests/
-- docs/
-  "@ | Set-Content -Path "tools/v2/team/escalation-tool/README.md"
-  @"
-
 # Escalation Tool Specs
 
 ## Purpose
 
-Escalate conversations.
+Provide an isolated workspace for implementing conversation escalation workflows for team users.
 
-## Contributor boundary
+## Scope
 
-All work for this tool should stay in:
+- Release tier: V2
+- Audience: Team
+- Status: Documentation and planning
+- Folder ownership:
 
-$dir/
+```text
+tools/v2/team/escalation-tool/
+```
 
-## Required issue categories
+All work for this tool must remain inside the folder above.
+
+Do not connect this tool to:
+
+- Main application routing
+- Inbox workflow
+- Authentication
+- Wallet or Stellar services
+- Mail rendering
+- Database schema
+- Shared design system
+
+Future integration should be completed only through a dedicated integration issue.
+
+## Recommended Structure
+
+```text
+components/
+services/
+hooks/
+tests/
+docs/
+fixtures/
+```
+
+## Required Issue Categories
 
 - Architecture
 - Feature
 - UI and accessibility
 - Security and performance
 - Testing and documentation
+
+## Future Integration
+
+Future work may connect this tool to the application once a dedicated integration issue is approved.
+
+Until then, all implementation, testing, and documentation should remain completely isolated.

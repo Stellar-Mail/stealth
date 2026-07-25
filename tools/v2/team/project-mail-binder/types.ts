@@ -110,3 +110,106 @@ export interface ProjectMailBinding {
   boundBy: string;
   bindingType: "automatic" | "manual";
 }
+
+// ---------------------------------------------------------------------------
+// Backend Execution Contract & Error Codes
+// ---------------------------------------------------------------------------
+
+export type BinderErrorCode =
+  | "INVALID_INPUT"
+  | "PROJECT_NOT_FOUND"
+  | "MAIL_NOT_FOUND"
+  | "INVALID_STATE"
+  | "DUPLICATE_PROJECT"
+  | "RULE_EVALUATION_ERROR"
+  | "UNHANDLED_ERROR";
+
+export interface BinderError {
+  code: BinderErrorCode;
+  message: string;
+  details?: Record<string, unknown>;
+}
+
+export type BinderResult<T> = { success: true; data: T } | { success: false; error: BinderError };
+
+// DTO Inputs
+export interface CreateProjectInput {
+  name: string;
+  description?: string;
+  color?: ProjectColor;
+  stellarAddress?: string;
+  stellarAssetCode?: string;
+  members?: string[];
+  rules?: AutoBindingRule[];
+}
+
+export interface DeleteProjectInput {
+  projectId: ProjectId;
+}
+
+export interface BindMailInput {
+  projectId: ProjectId;
+  subject: string;
+  sender: string;
+  date?: string;
+  snippet?: string;
+  body?: string;
+  bindingType?: "automatic" | "manual";
+  boundBy?: string;
+}
+
+export interface UnbindMailInput {
+  mailId: MailId;
+  projectId?: ProjectId;
+}
+
+export interface AutoBindInputEmail {
+  id: string;
+  from: string;
+  email: string;
+  subject: string;
+  preview?: string;
+  body?: string;
+  time?: string;
+}
+
+export interface AutoBindInput {
+  emails: AutoBindInputEmail[];
+}
+
+// DTO Outputs
+export interface CreateProjectOutput {
+  project: BinderProject;
+  state: BinderState;
+}
+
+export interface DeleteProjectOutput {
+  deletedProjectId: ProjectId;
+  removedMailCount: number;
+  state: BinderState;
+}
+
+export interface BindMailOutput {
+  mail: BinderMail;
+  state: BinderState;
+}
+
+export interface UnbindMailOutput {
+  unboundMailId: MailId;
+  state: BinderState;
+}
+
+export interface AutoBindOutput {
+  createdBindings: ProjectMailBinding[];
+  boundEmailCount: number;
+}
+
+// Backend Execution Boundary Interface
+export interface IBinderBackendService {
+  getState(): Promise<BinderResult<BinderState>>;
+  createProject(input: CreateProjectInput): Promise<BinderResult<CreateProjectOutput>>;
+  deleteProject(input: DeleteProjectInput): Promise<BinderResult<DeleteProjectOutput>>;
+  bindMail(input: BindMailInput): Promise<BinderResult<BindMailOutput>>;
+  unbindMail(input: UnbindMailInput): Promise<BinderResult<UnbindMailOutput>>;
+  autoBindMails(input: AutoBindInput): Promise<BinderResult<AutoBindOutput>>;
+}

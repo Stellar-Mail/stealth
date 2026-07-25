@@ -21,8 +21,9 @@ function setSeenVersion(version: string) {
 
 export function useChangelog() {
   const [seenVersion, setSeenVersionState] = useState<string | null>(getSeenVersion);
+  const [initialSeenVersion] = useState<string | null>(seenVersion);
 
-  const hasUnread = seenVersion !== LATEST_VERSION;
+  const hasUnread = initialSeenVersion !== LATEST_VERSION;
 
   const markAllSeen = useCallback(() => {
     setSeenVersion(LATEST_VERSION);
@@ -31,10 +32,10 @@ export function useChangelog() {
 
   const isEntryUnread = useCallback(
     (entryVersion: string) => {
-      if (!seenVersion) return true;
-      return entryVersion > seenVersion;
+      if (!initialSeenVersion) return true;
+      return entryVersion > initialSeenVersion;
     },
-    [seenVersion],
+    [initialSeenVersion],
   );
 
   return { entries: CHANGELOG_ENTRIES, hasUnread, markAllSeen, isEntryUnread };

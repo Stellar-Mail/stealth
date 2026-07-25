@@ -1,0 +1,15 @@
+{
+  "request": {
+    "tool": "email-template-library",
+    "version": 1,
+    "operation": "get",
+    "templateId": "template-unknown"
+  },
+  "expectedError": {
+    "code": "TEMPLATE_NOT_FOUND",
+    "message": "Template template-unknown was not found.",
+    "details": {
+      "templateId": "template-unknown"
+    }
+  }
+}

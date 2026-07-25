@@ -33,6 +33,7 @@ Documentation for the PDF Summary Tool.
 ### Reading Documentation
 
 1. Start with what you need:
+
    - **Development setup** → [DEVELOPMENT.md](./DEVELOPMENT.md)
    - **API reference** → [API.md](./API.md)
    - **Contributing** → [../CONTRIBUTOR_GUIDE.md](../CONTRIBUTOR_GUIDE.md)

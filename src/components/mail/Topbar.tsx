@@ -435,7 +435,9 @@ export function Topbar({
                             current === "personal" ? "protocol" : "personal",
                           );
                           onShowToast(
-                            `Switched to ${account === "personal" ? "Protocol" : "Personal"} mailbox`,
+                            `Switched to ${
+                              account === "personal" ? "Protocol" : "Personal"
+                            } mailbox`,
                           );
                         }}
                       />

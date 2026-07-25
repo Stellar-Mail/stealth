@@ -231,7 +231,9 @@ export function improveReadability(
         severity: "info",
         source,
         excerpt: excerptOf(text),
-        suggestion: `Split this ${words(text).length}-word paragraph; aim for ${LONG_PARAGRAPH_WORDS} words or fewer.`,
+        suggestion: `Split this ${
+          words(text).length
+        }-word paragraph; aim for ${LONG_PARAGRAPH_WORDS} words or fewer.`,
       });
     }
   }

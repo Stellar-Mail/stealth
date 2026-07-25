@@ -1,41 +1,46 @@
-# Stellar Team Payout Request
-
-Team payout requests via Stellar.
-
-## Scope
-
-- Release tier: $(System.Collections.Hashtable.Tier.ToUpperInvariant())
-- Audience: $(System.Collections.Hashtable.Audience)
-- Folder ownership: $dir/
-
-This is a self-contained tooling workspace. Do not wire this tool into the main app, routing, inbox architecture, wallet core, Stellar core, or design system unless a future integration issue explicitly allows it.
-
-Recommended internal structure:
-
-- components/
-- services/
-- hooks/
--     ests/
-- docs/
-  "@ | Set-Content -Path "tools/v2/team/stellar-team-payout-request/README.md"
-  @"
-
 # Stellar Team Payout Request Specs
 
 ## Purpose
 
-Team payout requests via Stellar.
+Provide an isolated user interface for creating and reviewing Stellar team payout requests.
 
-## Contributor boundary
+## Release Tier
 
-All work for this tool should stay in:
+V2
 
-$dir/
+## Audience
 
-## Required issue categories
+Team
+
+## Folder Ownership
+
+All work must remain inside:
+
+```text
+tools/v2/team/stellar-team-payout-request/
+```
+
+## Scope
+
+This issue implements only the local UI surface and accessibility behavior.
+
+It does not integrate with:
+
+- Main application routing
+- Authentication
+- Wallet core
+- Stellar network
+- Database
+- Shared design system
+
+## Required Issue Categories
 
 - Architecture
 - Feature
 - UI and accessibility
 - Security and performance
 - Testing and documentation
+
+## Future Integration
+
+Connecting this UI to live payout services should be completed in a dedicated follow-up issue.

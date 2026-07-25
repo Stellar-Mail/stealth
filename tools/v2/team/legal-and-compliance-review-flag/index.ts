@@ -8,3 +8,12 @@
 export * from "./contract";
 export { createReviewFlagService } from "./services/review-flag-service";
 export type { ReviewFlagBackend, ReviewFlagService } from "./services/review-flag-service";
+export {
+  InMemoryReviewFlagBackend,
+  createInMemoryReviewFlagBackend,
+  DEFAULT_REVIEW_FLAG_TIMESTAMP,
+} from "./services/in-memory-review-flag-backend";
+export type {
+  InMemoryReviewFlagBackendOptions,
+  StoredReviewFlag,
+} from "./services/in-memory-review-flag-backend";

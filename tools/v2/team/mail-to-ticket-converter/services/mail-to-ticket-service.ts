@@ -9,6 +9,13 @@ import type {
   IMailToTicketService,
 } from "../types";
 
+import {
+  sanitizeAndValidateString,
+  MAX_SUBJECT_LENGTH,
+  MAX_STRING_LENGTH,
+  ValidationError,
+} from "./guards";
+
 import sampleEmails from "../fixtures/sample-emails.json";
 import sampleTickets from "../fixtures/sample-tickets.json";
 import teamMembers from "../fixtures/team-members.json";
@@ -99,19 +106,35 @@ export function createMailToTicketService(
     async convertEmailToTicket(emailId: string, input: CreateTicketInput): Promise<Ticket> {
       await maybeSimulate();
 
+      if (!emailId || typeof emailId !== "string") {
+        throw new ValidationError("Invalid emailId.");
+      }
+
+      const safeSubject = sanitizeAndValidateString(input.subject, "subject", MAX_SUBJECT_LENGTH);
+      const safeDescription = sanitizeAndValidateString(
+        input.description,
+        "description",
+        MAX_STRING_LENGTH,
+      );
+      const safeCreatedBy = sanitizeAndValidateString(
+        input.createdBy,
+        "createdBy",
+        MAX_SUBJECT_LENGTH,
+      );
+
       const email = emails.find((e) => e.id === emailId);
       if (!email) throw new Error(`Email not found: ${emailId}`);
 
       const newTicket: Ticket = {
         id: generateId("ticket"),
         emailId,
-        subject: input.subject,
-        description: input.description,
+        subject: safeSubject,
+        description: safeDescription,
         priority: input.priority,
         status: "open",
         category: input.category,
         assignedTo: input.assignedTo ?? null,
-        createdBy: input.createdBy,
+        createdBy: safeCreatedBy,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         resolution: null,

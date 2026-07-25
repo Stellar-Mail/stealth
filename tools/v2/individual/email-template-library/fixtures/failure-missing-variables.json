@@ -1,0 +1,16 @@
+{
+  "request": {
+    "tool": "email-template-library",
+    "version": 1,
+    "operation": "render",
+    "templateId": "template-follow-up",
+    "values": { "firstName": "Avery" }
+  },
+  "expectedError": {
+    "code": "MISSING_VARIABLES",
+    "message": "Values are required for every declared template variable.",
+    "details": {
+      "missingVariables": ["topic"]
+    }
+  }
+}

@@ -6,6 +6,29 @@ export {
   type PaymentApprovalExecutorDeps,
   type PaymentApprovalStore,
 } from "./execution.service";
+export {
+  GUARD_LIMITS,
+  sanitizeText,
+  sanitizeStringField,
+  isFiniteNumber,
+  isNonEmptyString,
+  isDecisionKind,
+  isPrototypeSafe,
+  isRegexSafe,
+  safeJsonParse,
+  normalizeDate,
+  sanitizeAmount,
+  validatePaymentApprovalInput,
+  validateContext,
+  checkInputLimits,
+  sanitizeInput,
+  batchSizeGuard,
+  trimCollection,
+  safeExecuteApproval,
+  type PaymentApprovalGuardIssue,
+  type SafePaymentApprovalResult,
+  type SafeJsonResult,
+} from "./guards";
 
 import { createPaymentApprovalExecutor } from "./execution.service";
 import { paymentService } from "./payment.service";

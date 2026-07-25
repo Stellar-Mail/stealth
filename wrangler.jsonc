@@ -3,5 +3,26 @@
   "name": "stealth-mail",
   "compatibility_date": "2025-09-24",
   "compatibility_flags": ["nodejs_compat"],
-  "main": "@tanstack/react-start/server-entry",
+  "main": "src/server.ts",
+  "kv_namespaces": [
+    {
+      "binding": "STEALTH_KV",
+      "id": "placeholder-prod-id",
+      "preview_id": "placeholder-preview-id",
+    },
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "STEALTH_COORDINATOR",
+        "class_name": "StealthCoordinator",
+      },
+    ],
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["StealthCoordinator"],
+    },
+  ],
 }

@@ -1,39 +1,49 @@
 /**
  * kb-suggestion.service.ts — Knowledge Base Suggestion (non-UI service)
  *
- * Presentation-free service boundary for the KB suggestion contract. Wraps the
- * pure `suggestKb` reducer into a `KbContract` whose `execute(...)` returns
- * typed success/error results (including the NO_MATCH case) instead of throwing.
+ * Presentation-free service boundary for the KB suggestion contract.
+ * Delegates to the expandable core engine and returns typed success/error results.
  */
 
 import {
   KbErrorCode,
   ok,
+  fail,
+  suggestKb,
+  filterCorpus,
+  validateInput,
   type KbContract,
   type KbOperation,
   type KbContractOutput,
   type KbResult,
-  suggestKb,
-  validateSuggest,
-  fail,
-} from "../contract";
+  type KbCorpusFilter,
+} from "../core/engine";
 import type { KbArticle } from "../types";
 
 /** Build the KB suggestion execution contract. */
 export function createKbSuggestionService(): KbContract {
   return {
-    execute(input: KbOperation, corpus: KbArticle[]): KbResult<KbContractOutput> {
+    execute(
+      input: KbOperation,
+      corpus: KbArticle[],
+      filters: KbCorpusFilter[] = [],
+    ): KbResult<KbContractOutput> {
       try {
         if (input.operation !== "suggest") {
           return fail(KbErrorCode.InvalidInput, `Unknown operation: ${input.operation}`);
         }
-        const err = validateSuggest(input.input, corpus);
+        const err = validateInput(input.input, corpus);
         if (err) return fail(KbErrorCode.InvalidInput, err);
-        const suggestions = suggestKb(input.input.query, corpus, input.input.limit ?? 5);
+        const { suggestions, warnings } = suggestKb(
+          input.input.query,
+          corpus,
+          input.input.limit ?? 5,
+          filters,
+        );
         if (suggestions.length === 0) {
           return fail(KbErrorCode.NoMatch, "No matching articles found");
         }
-        return ok({ operation: "suggest", suggestions });
+        return ok({ operation: "suggest", suggestions, warnings });
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         return fail(KbErrorCode.InvalidInput, message);

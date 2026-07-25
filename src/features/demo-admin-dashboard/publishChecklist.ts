@@ -136,7 +136,9 @@ export function buildPublishChecklist(
         "safe-domains",
         "Recipients use safe demo domains only",
         "blocked",
-        `Unsafe addresses: ${unsafeRecipients.slice(0, 3).join(", ")}${unsafeRecipients.length > 3 ? "…" : ""}`,
+        `Unsafe addresses: ${unsafeRecipients.slice(0, 3).join(", ")}${
+          unsafeRecipients.length > 3 ? "…" : ""
+        }`,
         "Use example.com, example.org, or a *.stealth.demo handle.",
       ),
     );

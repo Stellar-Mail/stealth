@@ -360,10 +360,12 @@ const STORAGE_KEYS = {
 When integrating with main app (separate issue), you might add:
 
 1. **Server-side storage** - Sync summaries to user's account
+
    - Document: New storage service that talks to main app API
    - Add: New storage key for sync status tracking
 
 2. **Email integration** - Send summary in compose view
+
    - Document: Data flow from compose to summarization
    - Add: New hook to bridge contexts
 

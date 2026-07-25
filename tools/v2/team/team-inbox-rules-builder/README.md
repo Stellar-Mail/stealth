@@ -49,3 +49,15 @@ team-inbox-rules-builder/
 ```
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the complete architecture plan.
+
+## Security
+
+See:
+
+- docs/SECURITY.md
+
+## Performance
+
+See:
+
+- docs/PERFORMANCE.md

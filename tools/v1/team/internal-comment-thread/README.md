@@ -1,77 +1,43 @@
-# Internal Comment Thread
+# Internal Comment Thread (V1)
 
-Team-only internal annotations attached to messages in a shared inbox. Comments are visible exclusively to authorized team members and are never exposed to or delivered to the external sender under any circumstances.
+Core feature engine for the internal comment thread tool. This is built as an isolated, self-contained mini-product for the V1 release, in accordance with issue #440.
 
----
+## Overview
 
-## Purpose
+This folder contains the core logic, domain types, and deterministic fixtures for managing internal comments on entities like transactions or documents. It exposes a folder-local API surface that is not yet linked into the main app to ensure safe staging and review.
 
-Support and operations teams need a private channel to discuss context, next steps, known issues, and internal decisions about incoming messages without leaking any of that information back to the customer or external sender. This tool provides that isolated comment surface on top of Stealth's shared inbox primitives.
+## Architecture
 
-## Audience
+- **Domain Types (`types.ts`)**: Core interfaces (`User`, `Comment`, `Thread`, `ThreadWithComments`).
+- **Fixtures (`fixtures.ts`)**: Mock data to serve as an isolated data source without requiring a live database or network calls.
+- **Service Layer (`service.ts`)**: A mocked backend service (`CommentThreadService`) with simulated network latency to test loading and error states properly.
+- **React Hook (`useCommentThread.ts`)**: Folder-local React hook that exposes the service logic to potential UI layers, managing states like `threads`, `isLoading`, and `error`.
 
-- Teams operating shared support, ops, or community inboxes.
-- OSS contributors implementing team collaboration features on the Stealth protocol.
-- Maintainers who need audit trails of internal discussion that never leaves the team boundary.
+## API Documentation
 
-## Setup
+### `useCommentThread(targetId, targetType)`
 
-See [docs/setup.md](./docs/setup.md) for full instructions.
+#### Inputs
 
-Quick start:
+- `targetId` (`string`): The identifier for the entity the thread is attached to.
+- `targetType` (`string`): The type of entity (e.g., 'transaction').
 
-```bash
-cd tools/v1/team/internal-comment-thread
-bun install
-bun dev
-```
+#### Outputs
 
-Configuration is through environment variables or a `.env` file in the tool root (see `docs/setup.md`).
+- `threads`: Array of `ThreadWithComments`.
+- `isLoading`: `boolean` indicating if the initial fetch is happening.
+- `error`: `Error | null` capturing any failures in fetching or mutating.
+- `addThread(initialComment: string, authorId: string)`: Creates a new thread.
+- `addComment(threadId: string, authorId: string, content: string)`: Adds a comment to a thread.
+- `updateStatus(threadId: string, status: 'open' | 'resolved' | 'archived')`: Updates thread status.
+- `refresh()`: Refetches data.
 
-## Usage
+#### Loading and Error States
 
-### Core workflows
+- Initial load triggers `isLoading = true`.
+- Network errors or missing data (e.g., "Author not found") will be caught, setting `error` state, and the promise will reject for caller-level handling.
 
-1. **View message context** — Open a shared inbox message.
-2. **Add internal comment** — Write a note visible only to the team.
-3. **Browse team comments** — See all prior internal discussion on the same message/thread.
-4. **Edit or delete own comments** — Subject to team policy (future).
-5. **Never leak to sender** — No code path may include comment content in any reply, forward, or external notification.
+## Development and Testing
 
-### Example workflow
-
-```
-1. customer@example.com sends a message to support@stealth.xyz
-2. The shared inbox surfaces the message for the team
-3. Alice (team) adds internal comment: "Customer is on the old plan, see ticket #3192"
-4. Bob (team) sees the comment, replies to customer using the shared identity
-5. The external sender never sees Alice's or Bob's internal note
-```
-
-## Fixture Expectations
-
-When testing, fixtures should cover:
-
-- **Messages** — Sender address, subject, body, timestamp, delivery proof.
-- **Internal comments** — Author (Stealth address), body, timestamp, reference to source (message or thread).
-- **Visibility enforcement** — Every generated artifact must prove that comment text cannot reach an external address.
-- **Team roster** — List of authorized team Stealth addresses.
-
-## Known Limitations
-
-- Attachment scope (single message vs. whole thread) is undecided.
-- Reply structure (nested threads vs. flat list) is undecided.
-- No editing of other members' comments yet.
-- No @mentions or notifications inside the team.
-- No attachment of files or images to comments.
-- No search or filtering over comment history.
-- Ephemeral state by default (in-memory storage; restart loses data unless a durable adapter is connected).
-
-## OSS Review Notes
-
-- All work stays inside `tools/v1/team/internal-comment-thread/`.
-- Follow Stealth conventions: TypeScript, React (JSX), Prettier (100-char width, trailing commas).
-- Every feature change must update the test plan in `tests/README.md`.
-- Do not import from `src/` or from other tool folders.
-- **Firm rule**: comment content must never appear in any payload, header, or log that could be delivered to an external sender. This rule is non-negotiable for this tool.
-- Use Stealth protocol concepts (Stealth address, delivery proof) where applicable.
+- Run `vitest tools/v1/team/internal-comment-thread` to execute unit tests.
+- This logic is 100% deterministic and contains no secrets.

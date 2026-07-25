@@ -142,7 +142,11 @@ export function buildCampaignPublishChecklist(
       message:
         draftsMissingSubject === 0
           ? "All drafts have a subject."
-          : `${draftsMissingSubject} ${pluralize(draftsMissingSubject, "draft is", "drafts are")} missing a subject.`,
+          : `${draftsMissingSubject} ${pluralize(
+              draftsMissingSubject,
+              "draft is",
+              "drafts are",
+            )} missing a subject.`,
     },
     {
       id: "draft-bodies",
@@ -152,7 +156,11 @@ export function buildCampaignPublishChecklist(
       message:
         draftsMissingBody === 0
           ? "All drafts have body content."
-          : `${draftsMissingBody} ${pluralize(draftsMissingBody, "draft is", "drafts are")} missing body content.`,
+          : `${draftsMissingBody} ${pluralize(
+              draftsMissingBody,
+              "draft is",
+              "drafts are",
+            )} missing body content.`,
     },
     {
       id: "draft-recipients",
@@ -162,7 +170,11 @@ export function buildCampaignPublishChecklist(
       message:
         draftsWithoutRecipients === 0
           ? "All drafts have at least one recipient."
-          : `${draftsWithoutRecipients} ${pluralize(draftsWithoutRecipients, "draft has", "drafts have")} no recipients.`,
+          : `${draftsWithoutRecipients} ${pluralize(
+              draftsWithoutRecipients,
+              "draft has",
+              "drafts have",
+            )} no recipients.`,
     },
     {
       id: "no-secret-keys",
@@ -172,7 +184,11 @@ export function buildCampaignPublishChecklist(
       message:
         draftsWithSecretKeys === 0
           ? "No Stellar secret keys detected in demo drafts."
-          : `${draftsWithSecretKeys} ${pluralize(draftsWithSecretKeys, "draft appears", "drafts appear")} to contain a Stellar secret key.`,
+          : `${draftsWithSecretKeys} ${pluralize(
+              draftsWithSecretKeys,
+              "draft appears",
+              "drafts appear",
+            )} to contain a Stellar secret key.`,
     },
     {
       id: "has-tags",
@@ -192,7 +208,11 @@ export function buildCampaignPublishChecklist(
       message:
         draftsWithDuplicateRecipients === 0
           ? "No duplicate recipients detected."
-          : `${draftsWithDuplicateRecipients} ${pluralize(draftsWithDuplicateRecipients, "draft has", "drafts have")} duplicate recipients.`,
+          : `${draftsWithDuplicateRecipients} ${pluralize(
+              draftsWithDuplicateRecipients,
+              "draft has",
+              "drafts have",
+            )} duplicate recipients.`,
     },
     {
       id: "batch-size",
@@ -212,7 +232,11 @@ export function buildCampaignPublishChecklist(
       message:
         draftsWithLongSubject === 0
           ? "All draft subjects are within the recommended length."
-          : `${draftsWithLongSubject} ${pluralize(draftsWithLongSubject, "draft subject exceeds", "draft subjects exceed")} ${MAX_SUBJECT_LENGTH} characters.`,
+          : `${draftsWithLongSubject} ${pluralize(
+              draftsWithLongSubject,
+              "draft subject exceeds",
+              "draft subjects exceed",
+            )} ${MAX_SUBJECT_LENGTH} characters.`,
     },
   ];
 
