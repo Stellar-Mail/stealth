@@ -1,9 +1,8 @@
 import React from 'react';
-import type { SharedMessage } from '../types';
-import { STATUS_LABELS } from '../types';
+import type { TeamMessage } from '../types';
 
 interface MessageFeedProps {
-  messages: SharedMessage[];
+  messages: TeamMessage[];
   selectedId: string | null;
   onSelect: (id: string) => void;
 }
@@ -22,20 +21,10 @@ export function MessageFeed({ messages, selectedId, onSelect }: MessageFeedProps
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium text-gray-900">{message.subject}</p>
-              <p className="mt-0.5 text-xs text-gray-500">{message.senderAddress}</p>
+              <p className="mt-0.5 text-xs text-gray-500">{message.sender}</p>
               <p className="mt-1 truncate text-xs text-gray-400">{message.preview}</p>
             </div>
-            <span
-              className={lex-shrink-0 rounded-full px-2 py-0.5 text-xs font-medium }
-            >
-              {STATUS_LABELS[message.status]}
-            </span>
           </div>
-          {message.assigneeAddress && (
-            <p className="mt-1 text-xs text-gray-400">
-              Assigned to: {message.assigneeAddress.slice(0, 12)}...
-            </p>
-          )}
           <p className="mt-0.5 text-xs text-gray-400">
             {new Date(message.receivedAt).toLocaleString()}
           </p>

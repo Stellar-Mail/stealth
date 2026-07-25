@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { createMemoryStorageAdapter } from '../storage/memory-adapter';
 import { createInboxService, type InboxService } from '../services/inbox.service';
-import type { SharedMessage, MessageStatus } from '../types';
+import type { TeamMessage, TriageStatus } from '../types';
 import { STATUS_LABELS } from '../types';
 import { MessageFeed } from './MessageFeed';
 import { MessageDetail } from './MessageDetail';
@@ -11,16 +11,11 @@ interface SharedTeamInboxProps {
   teamAddresses: string[];
 }
 
-export function SharedTeamInbox({
-  currentUserAddress,
-  teamAddresses,
-}: SharedTeamInboxProps) {
-  const [service] = useState<InboxService>(() =>
-    createInboxService(createMemoryStorageAdapter()),
-  );
-  const [messages, setMessages] = useState<SharedMessage[]>([]);
+export function SharedTeamInbox({ currentUserAddress, teamAddresses }: SharedTeamInboxProps) {
+  const [service] = useState<InboxService>(() => createInboxService(createMemoryStorageAdapter()));
+  const [messages, setMessages] = useState<TeamMessage[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<MessageStatus | 'all'>('all');
+  const [statusFilter, setStatusFilter] = useState<TriageStatus | 'all'>('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,51 +38,13 @@ export function SharedTeamInbox({
 
   const filteredMessages = useMemo(() => {
     if (statusFilter === 'all') return messages;
-    return messages.filter((m) => m.status === statusFilter);
+    return messages;
   }, [messages, statusFilter]);
 
   const selectedMessage = useMemo(() => {
     if (!selectedId) return null;
     return messages.find((m) => m.id === selectedId) ?? null;
   }, [messages, selectedId]);
-
-  const handleAssign = useCallback(
-    async (messageId: string) => {
-      await service.assignMessage(messageId, currentUserAddress);
-      await loadMessages();
-    },
-    [service, currentUserAddress, loadMessages],
-  );
-
-  const handleRelease = useCallback(
-    async (messageId: string) => {
-      await service.releaseAssignment(messageId);
-      await loadMessages();
-    },
-    [service, loadMessages],
-  );
-
-  const handleStatusChange = useCallback(
-    async (messageId: string, newStatus: MessageStatus) => {
-      await service.updateStatus(messageId, newStatus);
-      await loadMessages();
-    },
-    [service, loadMessages],
-  );
-
-  const handleAddComment = useCallback(
-    async (messageId: string, body: string) => {
-      await service.addComment(messageId, currentUserAddress, body);
-    },
-    [service, currentUserAddress],
-  );
-
-  const handleDeleteComment = useCallback(
-    async (commentId: string) => {
-      await service.deleteComment(commentId, currentUserAddress);
-    },
-    [service, currentUserAddress],
-  );
 
   if (loading) {
     return (
@@ -117,7 +74,7 @@ export function SharedTeamInbox({
         <h1 className="text-xl font-semibold text-gray-900">Shared Team Inbox</h1>
         <select
           value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as MessageStatus | 'all')}
+          onChange={(e) => setStatusFilter(e.target.value as TriageStatus | 'all')}
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
           aria-label="Filter by status"
         >
@@ -137,24 +94,14 @@ export function SharedTeamInbox({
       ) : (
         <div className="flex gap-4">
           <div className="w-80 flex-shrink-0">
-            <MessageFeed
-              messages={filteredMessages}
-              selectedId={selectedId}
-              onSelect={setSelectedId}
-            />
+            <MessageFeed messages={filteredMessages} selectedId={selectedId} onSelect={setSelectedId} />
           </div>
           <div className="flex-1">
             {selectedMessage ? (
               <MessageDetail
                 message={selectedMessage}
                 currentUserAddress={currentUserAddress}
-                teamAddresses={teamAddresses}
                 service={service}
-                onAssign={handleAssign}
-                onRelease={handleRelease}
-                onStatusChange={handleStatusChange}
-                onAddComment={handleAddComment}
-                onDeleteComment={handleDeleteComment}
               />
             ) : (
               <div className="flex items-center justify-center py-16">

@@ -1,45 +1,55 @@
-export type MessageStatus =
-  | 'unassigned'
-  | 'claimed'
-  | 'in-progress'
-  | 'awaiting-reply'
-  | 'resolved';
+/**
+ * Shared Team Inbox — shared types (#445).
+ *
+ * Folder-local types only. No imports from the main application.
+ */
 
-export interface SharedMessage {
+/** A message delivered to the shared team identity. */
+export interface TeamMessage {
   id: string;
-  senderAddress: string;
+  /** External sender address (sender-invisible annotations never reach this). */
+  sender: string;
   subject: string;
-  body: string;
-  preview: string;
-  receivedAt: string;
-  deliveryProofHash: string;
-  status: MessageStatus;
-  assigneeAddress?: string;
+  /** Optional body preview; never serialized to an external reply automatically. */
+  preview?: string;
+  receivedAt: string; // ISO-8601
 }
 
-export interface Assignment {
-  messageId: string;
-  assignedTo: string;
-  assignedAt: string;
-  note?: string;
-}
+/**
+ * Triage lifecycle for a message assigned to the team.
+ *   unassigned -> claimed -> in-progress -> awaiting-reply -> resolved
+ * Any state may also return to claimed (re-opened) or be unassigned
+ * (released). Once esolved, it is terminal.
+ */
+export type TriageStatus = 'unassigned' | 'claimed' | 'in-progress' | 'awaiting-reply' | 'resolved';
 
-export interface InternalComment {
+/** A team-only annotation. Must never be included in any external reply. */
+export interface Annotation {
   id: string;
   messageId: string;
-  author: string;
+  author: string; // team member identity
   body: string;
-  createdAt: string;
-  deleted: boolean;
+  createdAt: string; // ISO-8601
 }
 
-export interface ActivityEvent {
+/** An external reply composed by the team using the shared identity. */
+export interface TeamReply {
   id: string;
   messageId: string;
-  actor: string;
-  action: string;
-  timestamp: string;
-  details?: string;
+  author: string; // team member who sent it
+  body: string;
+  sentAt: string; // ISO-8601
+}
+
+/** Stored record combining the message with its triage/annotation state. */
+export interface TriageRecord {
+  message: TeamMessage;
+  status: TriageStatus;
+  /** Team member currently owning the message (null when unassigned). */
+  assignee: string | null;
+  annotations: Annotation[];
+  replies: TeamReply[];
+  updatedAt: string; // ISO-8601
 }
 
 export type StorageEntry<T> = { id: string; data: T };
@@ -51,22 +61,22 @@ export interface StorageAdapter {
   delete(key: string): Promise<void>;
 }
 
-export const VALID_TRANSITIONS: Record<MessageStatus, MessageStatus[]> = {
-  'unassigned': ['claimed'],
-  'claimed': ['in-progress', 'unassigned'],
-  'in-progress': ['awaiting-reply', 'resolved'],
+export const VALID_TRANSITIONS: Record<TriageStatus, TriageStatus[]> = {
+  unassigned: ['claimed'],
+  claimed: ['in-progress', 'unassigned'],
+  'in-progress': ['awaiting-reply', 'resolved', 'claimed'],
   'awaiting-reply': ['resolved', 'in-progress'],
-  'resolved': ['in-progress'],
+  resolved: ['claimed'],
 };
 
-export function getNextStatuses(current: MessageStatus): MessageStatus[] {
+export function getNextStatuses(current: TriageStatus): TriageStatus[] {
   return VALID_TRANSITIONS[current] ?? [];
 }
 
-export const STATUS_LABELS: Record<MessageStatus, string> = {
-  'unassigned': 'Unassigned',
-  'claimed': 'Claimed',
+export const STATUS_LABELS: Record<TriageStatus, string> = {
+  unassigned: 'Unassigned',
+  claimed: 'Claimed',
   'in-progress': 'In Progress',
   'awaiting-reply': 'Awaiting Reply',
-  'resolved': 'Resolved',
+  resolved: 'Resolved',
 };
