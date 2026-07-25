@@ -272,9 +272,6 @@ export class ValidatedApiRepository implements ApiRepository {
   }
 
   acquireIdempotencyRecord(key: string, leaseMs: number): Promise<AcquireIdempotencyResult> {
-    // Acquire does not take an object payload to insert, it creates one internally.
-    // The internal DO logic is responsible for its own fields.
-    // For reads via this repo wrapper, we could validate the returned record.
     return this.inner.acquireIdempotencyRecord(key, leaseMs).then((result) => {
       if (result.status === "completed") {
         result.record = validateRecord<IdempotencyRecord & { state: "completed" }>(
