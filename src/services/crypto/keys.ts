@@ -34,6 +34,11 @@ export class KeyError extends Error {
 const AES_KEY_LENGTH_BITS = 256;
 const AES_KEY_LENGTH_BYTES = 32;
 
+/** AES-KW algorithm identifier (raw wrap/unwrap key imports). */
+const AES_KW_PARAMS: Algorithm = { name: "AES-KW" };
+/** HMAC-SHA-256 algorithm identifier (raw sign/verify key imports). */
+const HMAC_SHA256_PARAMS: HmacImportParams = { name: "HMAC", hash: "SHA-256" };
+
 /**
  * The smallest Web Crypto usage set required for each operation. Every list
  * contains exactly the usages needed to perform that one operation, no more.
@@ -57,6 +62,12 @@ export const KEY_USAGES = {
 export const SEAL_CONTENT_KEY_USAGES: KeyUsage[] = [...KEY_USAGES.seal];
 /** Decrypt-only usages for the open path. */
 export const OPEN_CONTENT_KEY_USAGES: KeyUsage[] = [...KEY_USAGES.open];
+
+/** Per-operation usage lists, materialized once as mutable arrays for import calls. */
+const WRAP_USAGES: KeyUsage[] = [...KEY_USAGES.wrap];
+const UNWRAP_USAGES: KeyUsage[] = [...KEY_USAGES.unwrap];
+const SIGN_USAGES: KeyUsage[] = [...KEY_USAGES.sign];
+const VERIFY_USAGES: KeyUsage[] = [...KEY_USAGES.verify];
 
 /** Copy into a fresh ArrayBuffer-backed view (satisfies Web Crypto BufferSource). */
 function copyBytes(bytes: Uint8Array): Uint8Array {
@@ -127,9 +138,7 @@ export function importOpenContentKey(raw: Uint8Array): Promise<CryptoKey> {
  */
 export function importKeyWrappingKey(raw: Uint8Array): Promise<CryptoKey> {
   assertAesKeyLength(raw);
-  return crypto.subtle.importKey("raw", copyBytes(raw), { name: "AES-KW" }, false, [
-    ...KEY_USAGES.wrap,
-  ]);
+  return crypto.subtle.importKey("raw", copyBytes(raw), AES_KW_PARAMS, false, WRAP_USAGES);
 }
 
 /**
@@ -139,9 +148,7 @@ export function importKeyWrappingKey(raw: Uint8Array): Promise<CryptoKey> {
  */
 export function importKeyUnwrappingKey(raw: Uint8Array): Promise<CryptoKey> {
   assertAesKeyLength(raw);
-  return crypto.subtle.importKey("raw", copyBytes(raw), { name: "AES-KW" }, false, [
-    ...KEY_USAGES.unwrap,
-  ]);
+  return crypto.subtle.importKey("raw", copyBytes(raw), AES_KW_PARAMS, false, UNWRAP_USAGES);
 }
 
 /**
@@ -150,9 +157,7 @@ export function importKeyUnwrappingKey(raw: Uint8Array): Promise<CryptoKey> {
  * - Usages: `["sign"]`. Extractable: `false`. Lifetime: per session.
  */
 export function importSigningKey(raw: Uint8Array): Promise<CryptoKey> {
-  return crypto.subtle.importKey("raw", copyBytes(raw), { name: "HMAC", hash: "SHA-256" }, false, [
-    ...KEY_USAGES.sign,
-  ]);
+  return crypto.subtle.importKey("raw", copyBytes(raw), HMAC_SHA256_PARAMS, false, SIGN_USAGES);
 }
 
 /**
@@ -161,7 +166,5 @@ export function importSigningKey(raw: Uint8Array): Promise<CryptoKey> {
  * - Usages: `["verify"]`. Extractable: `false`. Lifetime: per session.
  */
 export function importVerificationKey(raw: Uint8Array): Promise<CryptoKey> {
-  return crypto.subtle.importKey("raw", copyBytes(raw), { name: "HMAC", hash: "SHA-256" }, false, [
-    ...KEY_USAGES.verify,
-  ]);
+  return crypto.subtle.importKey("raw", copyBytes(raw), HMAC_SHA256_PARAMS, false, VERIFY_USAGES);
 }
