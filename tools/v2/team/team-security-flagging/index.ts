@@ -6,6 +6,13 @@ export {
   SecurityFlaggingErrorCode,
   SecurityFlaggingExecutionStatus,
 } from "./services/security-flagging-execution.service.mjs";
+export {
+  SecurityGuardError,
+  guardSecurityFlaggingInput,
+  guardDedupBatchSize,
+  guardAndValidate,
+  LIMITS as GuardLimits,
+} from "./guards/security-guards.mjs";
 export type {
   SecurityFlaggingDependencies,
   SecurityFlaggingError,
