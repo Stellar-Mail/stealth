@@ -12,22 +12,20 @@ export interface ContentKeyOptions {
  * Generates an AES-GCM content-encryption key.
  * By default, keys are non-extractable (`extractable: false`).
  */
-export async function generateContentKey(
-  options: ContentKeyOptions = {}
-): Promise<CryptoKey> {
+export async function generateContentKey(options: ContentKeyOptions = {}): Promise<CryptoKey> {
   const {
     length = 256,
     extractable = false, // Enforce non-extractable by default
-    usages = ['encrypt', 'decrypt'],
+    usages = ["encrypt", "decrypt"],
   } = options;
 
   return await crypto.subtle.generateKey(
     {
-      name: 'AES-GCM',
+      name: "AES-GCM",
       length,
     },
     extractable,
-    usages
+    usages,
   );
 }
 
@@ -37,26 +35,19 @@ export async function generateContentKey(
  */
 export async function sealEnvelope(
   payload: Uint8Array,
-  recipientPublicKey: CryptoKey
+  recipientPublicKey: CryptoKey,
 ): Promise<{ encryptedData: ArrayBuffer; wrappedKey: ArrayBuffer; iv: Uint8Array }> {
   // Generate non-extractable content key within the wrapping boundary
   const contentKey = await generateContentKey({ extractable: false });
   const iv = crypto.getRandomValues(new Uint8Array(12));
 
   // Encrypt payload using non-extractable key
-  const encryptedData = await crypto.subtle.encrypt(
-    { name: 'AES-GCM', iv },
-    contentKey,
-    payload
-  );
+  const encryptedData = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, contentKey, payload);
 
   // Wrap key within the boundary using Web Crypto wrapKey
-  const wrappedKey = await crypto.subtle.wrapKey(
-    'raw',
-    contentKey,
-    recipientPublicKey,
-    { name: 'RSA-OAEP' }
-  );
+  const wrappedKey = await crypto.subtle.wrapKey("raw", contentKey, recipientPublicKey, {
+    name: "RSA-OAEP",
+  });
 
   return { encryptedData, wrappedKey, iv };
 }
