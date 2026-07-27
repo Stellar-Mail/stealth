@@ -4,16 +4,16 @@ This module renders the existing Stealth Mail contacts import wizard: pulling in
 
 ## Local Files
 
-- `import/ImportSourcePicker.tsx` — the wizard's entry step; lets the user choose a source (`csv`, `provider-gmail`, `provider-outlook`, `contacts-api`, `manual`) and supplies the raw text/file for parsing.
-- `import/csvParser.ts` — `parseImportCsv` turns raw CSV/TSV text into `ImportedContactRow[]`. Auto-detects the delimiter (`,`/`;`/tab), auto-detects a header row against a fixed set of known header layouts, and falls back to positional parsing (1 column = address only, 2 columns = name+address) when no header matches. `validateImportAddress` accepts a Stellar G-address, a Stealth S-address, or a federation address (`name*domain`); anything else produces a row-level `error` string rather than throwing. `deduplicateRows` collapses same-address rows case-insensitively, keeping the last occurrence.
-- `import/identityMatcher.ts` — resolves each parsed row against the user's existing contacts/identities. Exact address matches are certain; `editDistance`-based name similarity (Levenshtein, `FUZZY_THRESHOLD = 0.6`) produces lower-confidence fuzzy matches for manual review rather than auto-merging.
-- `import/IdentityReviewTable.tsx` — the review step where a user confirms, edits, or discards each row (including its match suggestion and error state) before anything is committed.
-- `import/bulkPolicyWriter.ts` — commits the reviewed rows: writes contacts and applies the chosen `BulkTrustDefault` (`allow`/`block`/`default`) to any row the user didn't set individually.
-- `import/BulkWriteProgressPanel.tsx` — the commit-in-progress UI (per-row progress, partial-failure reporting).
-- `import/dataRetention.ts` — defines how long *import session data* (the parsed-but-not-yet-committed rows, not the final contacts) is retained: `session` (discarded on window close), `1h`/`24h`/`7d`, or `never`. `defaultRetentionForSource` picks a stricter default for pasted/CSV data (`session`) than for provider imports (`24h`), since provider imports are expected to be re-run less casually.
-- `import/ContactMigrationDialog.tsx` — the top-level dialog that sequences the above steps (pick source → parse → review/match → choose retention & bulk trust default → write).
-- `import/types.ts` / `types.ts` — the shared data contracts (`ImportedContactRow`, `ImportSource`, `IdentityMatch`, `DataRetentionPolicy`, `BulkTrustDefault`, etc.).
-- `import/index.ts` / `index.ts` — public exports for the rest of the app.
+- [`import/ImportSourcePicker.tsx`](import/ImportSourcePicker.tsx) — the wizard's entry step; lets the user choose a source (`csv`, `provider-gmail`, `provider-outlook`, `contacts-api`, `manual`) and supplies the raw text/file for parsing.
+- [`import/csvParser.ts`](import/csvParser.ts) — `parseImportCsv` turns raw CSV/TSV text into `ImportedContactRow[]`. Auto-detects the delimiter (`,`/`;`/tab), auto-detects a header row against a fixed set of known header layouts, and falls back to positional parsing (1 column = address only, 2 columns = name+address) when no header matches. `validateImportAddress` accepts a Stellar G-address, a Stealth S-address, or a federation address (`name*domain`); anything else produces a row-level `error` string rather than throwing. `deduplicateRows` collapses same-address rows case-insensitively, keeping the last occurrence.
+- [`import/identityMatcher.ts`](import/identityMatcher.ts) — resolves each parsed row against the user's existing contacts/identities. Exact address matches are certain; `editDistance`-based name similarity (Levenshtein, `FUZZY_THRESHOLD = 0.6`) produces lower-confidence fuzzy matches for manual review rather than auto-merging.
+- [`import/IdentityReviewTable.tsx`](import/IdentityReviewTable.tsx) — the review step where a user confirms, edits, or discards each row (including its match suggestion and error state) before anything is committed.
+- [`import/bulkPolicyWriter.ts`](import/bulkPolicyWriter.ts) — commits the reviewed rows: writes contacts and applies the chosen `BulkTrustDefault` (`allow`/`block`/`default`) to any row the user didn't set individually.
+- [`import/BulkWriteProgressPanel.tsx`](import/BulkWriteProgressPanel.tsx) — the commit-in-progress UI (per-row progress, partial-failure reporting).
+- [`import/dataRetention.ts`](import/dataRetention.ts) — defines how long *import session data* (the parsed-but-not-yet-committed rows, not the final contacts) is retained: `session` (discarded on window close), `1h`/`24h`/`7d`, or `never`. `defaultRetentionForSource` picks a stricter default for pasted/CSV data (`session`) than for provider imports (`24h`), since provider imports are expected to be re-run less casually.
+- [`import/ContactMigrationDialog.tsx`](import/ContactMigrationDialog.tsx) — the top-level dialog that sequences the above steps (pick source → parse → review/match → choose retention & bulk trust default → write).
+- [`import/types.ts`](import/types.ts) and [`types.ts`](types.ts) — the shared data contracts (`ImportedContactRow`, `ImportSource`, `IdentityMatch`, `DataRetentionPolicy`, `BulkTrustDefault`, etc.).
+- [`import/index.ts`](import/index.ts) and [`index.ts`](index.ts) — public exports for the rest of the app.
 
 Keep future edits inside this folder unless a small shared UI helper is already needed by multiple existing surfaces.
 
@@ -37,7 +37,7 @@ An `ImportedContactRow` carries only what the wizard needs to review and commit 
 
 ## User-Facing States
 
-- **Source selection**: `ImportSourcePicker.tsx` presents the available sources; provider-based sources imply a stricter default retention window than manual/CSV.
+- **Source selection**: `ImportSourcePicker.tsx` presents the available sources. Manual/CSV imports default to session-only retention, while provider-based sources default to `24h`.
 - **Parsed, unreviewed**: rows exist with `match`/`error` populated but `trust` still at `"default"` — nothing has been written yet.
 - **Malformed row**: a row with a non-null `error` renders in `IdentityReviewTable.tsx` with its error message visible; the user can edit the address inline or remove the row, but it does not block review/commit of the other rows.
 - **Match review**: rows with an `IdentityMatch` show the suggested existing contact for the user to confirm, override, or ignore.
@@ -54,4 +54,13 @@ An `ImportedContactRow` carries only what the wizard needs to review and commit 
 - [ ] Switch the source to a provider option and confirm the default retention policy shown is `24h` rather than the CSV default of `session`.
 - [ ] Commit a batch containing at least one row that will fail to write (if a way to force this exists in local/dev data) and confirm `BulkWriteProgressPanel.tsx` reports the partial failure rather than reporting a false "all succeeded."
 
-There is currently no automated test coverage for this feature (`import/` has no `*.test.*` files as of this handoff) — the checklist above is manual until unit/e2e tests exist for `csvParser.ts` and `identityMatcher.ts` in particular, since those two are the most logic-dense, least-UI-dependent pieces and the easiest to cover first.
+## Existing Automated Coverage
+
+The focused unit tests live outside the feature folder under `tests/unit/import/`:
+
+- [`csvParser.test.ts`](../../../tests/unit/import/csvParser.test.ts) covers parsing, validation, headers/delimiters, malformed rows, and deduplication.
+- [`identityMatcher.test.ts`](../../../tests/unit/import/identityMatcher.test.ts) covers exact, fuzzy, ambiguous, and unmatched identity results.
+- [`dataRetention.test.ts`](../../../tests/unit/import/dataRetention.test.ts) covers source defaults and expiry/cleanup behavior.
+- [`bulkPolicyWriter.test.ts`](../../../tests/unit/import/bulkPolicyWriter.test.ts) covers job construction, batching, retries, progress, and partial failures.
+
+Run them with `bun x vitest run tests/unit/import`. The checklist above remains useful for the wizard's user-visible integration states, which are not all exercised by the logic-level tests.
