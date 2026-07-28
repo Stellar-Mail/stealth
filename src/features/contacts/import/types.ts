@@ -1,10 +1,6 @@
 /** Where the contacts are coming from. */
 export type ImportSource =
-  | "csv"
-  | "provider-gmail"
-  | "provider-outlook"
-  | "contacts-api"
-  | "manual";
+  "csv" | "provider-gmail" | "provider-outlook" | "contacts-api" | "manual";
 
 /** How an imported address resolved against known identities. */
 export type MatchType = "exact" | "fuzzy" | "ambiguous" | "none";

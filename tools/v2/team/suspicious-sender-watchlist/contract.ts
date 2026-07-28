@@ -33,8 +33,7 @@ export enum WatchlistErrorCode {
 
 /** Discriminated outcome returned by every contract operation. */
 export type WatchlistResult<T> =
-  | { ok: true; value: T }
-  | { ok: false; error: WatchlistErrorCode; message: string };
+  { ok: true; value: T } | { ok: false; error: WatchlistErrorCode; message: string };
 
 /** Inputs accepted by the contract, keyed by operation. */
 export type WatchlistContractInput =

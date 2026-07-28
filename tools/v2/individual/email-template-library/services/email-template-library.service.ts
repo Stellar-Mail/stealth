@@ -117,13 +117,11 @@ export function executeEmailTemplateLibrary(
   }
 
   if (request.operation === "list") {
-    if (
-      !(
-        request.categoryId === undefined ||
-        request.categoryId === null ||
-        typeof request.categoryId === "string"
-      )
-    ) {
+    if (!(
+      request.categoryId === undefined ||
+      request.categoryId === null ||
+      typeof request.categoryId === "string"
+    )) {
       return failure(
         EMAIL_TEMPLATE_LIBRARY_ERROR_CODES.INVALID_REQUEST,
         "categoryId must be a string or null.",

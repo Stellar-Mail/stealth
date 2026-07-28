@@ -25,8 +25,7 @@ export enum NoteErrorCode {
 
 /** Discriminated outcome returned by every contract operation. */
 export type NotesResult<T> =
-  | { ok: true; value: T }
-  | { ok: false; error: NoteErrorCode; message: string };
+  { ok: true; value: T } | { ok: false; error: NoteErrorCode; message: string };
 
 /** Operations supported by the notes contract. */
 export type NotesOperation =

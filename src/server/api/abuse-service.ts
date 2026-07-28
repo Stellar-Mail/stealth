@@ -9,12 +9,7 @@ function rateLimited(retryAfterSeconds: number) {
 
 export type AbuseRoute = "postage_submit";
 export type AbuseCheck =
-  | "account"
-  | "device"
-  | "ip"
-  | "proof_failure"
-  | "relay"
-  | "sender_recipient";
+  "account" | "device" | "ip" | "proof_failure" | "relay" | "sender_recipient";
 export type AbuseOutagePolicy = "fail_closed" | "fail_open";
 
 export type AbuseDecision = {

@@ -9,12 +9,7 @@ interface RecipientPolicyBannerProps {
 }
 
 type BannerVariant =
-  | "trusted"
-  | "blocked"
-  | "postage_required"
-  | "verification_required"
-  | "loading"
-  | "error";
+  "trusted" | "blocked" | "postage_required" | "verification_required" | "loading" | "error";
 
 interface BannerConfig {
   variant: BannerVariant;

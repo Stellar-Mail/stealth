@@ -9,11 +9,7 @@ import {
 } from "../../../../src/server/api/auth/signed-request";
 
 type VectorError =
-  | "expired"
-  | "future"
-  | "invalid_signature"
-  | "malformed_request"
-  | "replayed_nonce";
+  "expired" | "future" | "invalid_signature" | "malformed_request" | "replayed_nonce";
 
 interface Vector {
   name: string;

@@ -14,13 +14,7 @@ import {
 } from "@/features/sender-conversion/types";
 
 export type BulkActionId =
-  | "archive"
-  | "star"
-  | "snooze"
-  | "mark-read"
-  | "approve"
-  | "block"
-  | "move";
+  "archive" | "star" | "snooze" | "mark-read" | "approve" | "block" | "move";
 
 export type BulkSnoozeChoice = "later-today" | "tomorrow" | "next-week";
 

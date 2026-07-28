@@ -11,11 +11,7 @@ export type ReminderState = "draft" | "no_action";
 export type ReminderConfidence = "high" | "medium" | "low";
 
 export type SignalType =
-  | "explicit_request"
-  | "absolute_date"
-  | "relative_date"
-  | "sender_hint"
-  | "low_confidence_context";
+  "explicit_request" | "absolute_date" | "relative_date" | "sender_hint" | "low_confidence_context";
 
 export interface ReminderSignal {
   type: SignalType;

@@ -13,12 +13,7 @@
 // ---------------------------------------------------------------------------
 
 export type MacroCategory =
-  | "greeting"
-  | "billing"
-  | "technical"
-  | "shipping"
-  | "refund"
-  | "general";
+  "greeting" | "billing" | "technical" | "shipping" | "refund" | "general";
 
 export interface Macro {
   id: string;
