@@ -5,6 +5,7 @@ import { getApiContext } from "@/server/api/context";
 import { hash32Schema } from "@/server/api/domain";
 import { assertPostageParticipant, getPostage } from "@/server/api/postage-service";
 import { apiSuccess, handleApiRequest } from "@/server/api/response";
+import { methodGuard } from "@/server/api/methodGuard";
 
 export const Route = createFileRoute("/api/v1/postage/$messageId")({
   server: {

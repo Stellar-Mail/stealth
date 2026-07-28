@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { checkApiReadiness } from "@/server/api/health";
 import { apiSuccess, handleApiRequest } from "@/server/api/response";
 import { getVersionInfo } from "@/server/api/version";
+import { methodGuard } from "@/server/api/methodGuard";
 
 function requestedCheck(request: Request) {
   return new URL(request.url).searchParams.get("check") === "readiness" ? "readiness" : "liveness";
@@ -10,7 +11,7 @@ function requestedCheck(request: Request) {
 
 export const Route = createFileRoute("/api/v1/health")({
   server: {
-    handlers: {
+    handlers: methodGuard({
       GET: ({ request }) =>
         handleApiRequest(request, async () => {
           const check = requestedCheck(request);

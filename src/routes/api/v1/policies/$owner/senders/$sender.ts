@@ -7,6 +7,7 @@ import { senderRuleSchema, stellarAddressSchema } from "@/server/api/domain";
 import { getSenderRule, setSenderRule } from "@/server/api/policy-service";
 import { parseJsonBody } from "@/server/api/request";
 import { apiSuccess, handleApiRequest } from "@/server/api/response";
+import { methodGuard } from "@/server/api/methodGuard";
 
 const ruleBodySchema = z.object({ rule: senderRuleSchema.exclude(["default"]) });
 
