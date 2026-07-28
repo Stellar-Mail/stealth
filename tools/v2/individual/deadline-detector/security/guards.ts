@@ -9,15 +9,15 @@ export const MAX_BATCH_SIZE = 50;
  * Sanitizes and truncates input text to protect against payload inflation & script injection.
  */
 export function sanitizeEmailInput(text: unknown): string {
-  if (typeof text !== 'string') return '';
+  if (typeof text !== "string") return "";
 
   // 1. Enforce length cap
   let cleaned = text.slice(0, MAX_EMAIL_BODY_LENGTH);
 
   // 2. Strip potential executable script tags / dangerous HTML controls
   cleaned = cleaned
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-    .replace(/javascript:/gi, '');
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
+    .replace(/javascript:/gi, "");
 
   return cleaned.trim();
 }
@@ -29,4 +29,3 @@ export function validateBatchInput<T>(items: T[]): T[] {
   if (!Array.isArray(items)) return [];
   return items.slice(0, MAX_BATCH_SIZE);
 }
-  

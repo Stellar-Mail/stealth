@@ -1,4 +1,4 @@
-import { sanitizeEmailInput, validateBatchInput } from '../security/guards';
+import { sanitizeEmailInput, validateBatchInput } from "../security/guards";
 
 export interface EmailPayload {
   id: string;
@@ -11,13 +11,22 @@ export interface DetectedDeadline {
   emailId: string;
   rawText: string;
   dueDate: string | null;
-  confidence: 'high' | 'medium' | 'low';
+  confidence: "high" | "medium" | "low";
 }
 
 // Fast pre-filter keywords to avoid unnecessary heavy regex parsing
 const TEMPORAL_KEYWORDS = [
-  'due', 'deadline', 'by', 'until', 'eod', 'eow', 
-  'asap', 'submit', 'deliver', 'complete', 'before'
+  "due",
+  "deadline",
+  "by",
+  "until",
+  "eod",
+  "eow",
+  "asap",
+  "submit",
+  "deliver",
+  "complete",
+  "before",
 ];
 
 /**
@@ -29,11 +38,11 @@ export function detectDeadlines(rawEmails: EmailPayload[]): DetectedDeadline[] {
 
   for (const email of safeEmails) {
     const cleanBody = sanitizeEmailInput(email.body);
-    const cleanSubject = sanitizeEmailInput(email.subject || '');
+    const cleanSubject = sanitizeEmailInput(email.subject || "");
     const combinedText = `${cleanSubject} ${cleanBody}`.toLowerCase();
 
     // Performance Optimization: Early exit if no temporal keywords exist
-    const hasTemporalContext = TEMPORAL_KEYWORDS.some(kw => combinedText.includes(kw));
+    const hasTemporalContext = TEMPORAL_KEYWORDS.some((kw) => combinedText.includes(kw));
     if (!hasTemporalContext) continue;
 
     // Execute safe extraction logic on sanitized input
@@ -46,7 +55,8 @@ export function detectDeadlines(rawEmails: EmailPayload[]): DetectedDeadline[] {
 
 function extractDatePatterns(emailId: string, text: string): DetectedDeadline[] {
   // ReDoS-safe simple regex patterns or localized date parser call
-  const datePattern = /\b(?:due|by|before)\s+(?:on\s+)?([A-Za-z]+\s+\d{1,2}(?:st|nd|rd|th)?|\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)\b/gi;
+  const datePattern =
+    /\b(?:due|by|before)\s+(?:on\s+)?([A-Za-z]+\s+\d{1,2}(?:st|nd|rd|th)?|\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)\b/gi;
   const matches: DetectedDeadline[] = [];
   let match: RegExpExecArray | null;
 
@@ -55,7 +65,7 @@ function extractDatePatterns(emailId: string, text: string): DetectedDeadline[] 
       emailId,
       rawText: match[0],
       dueDate: match[1] || null,
-      confidence: 'medium',
+      confidence: "medium",
     });
 
     // Safety guard against infinite loops in regex matching
@@ -64,4 +74,3 @@ function extractDatePatterns(emailId: string, text: string): DetectedDeadline[] 
 
   return matches;
 }
-
