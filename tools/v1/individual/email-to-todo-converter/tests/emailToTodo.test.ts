@@ -1,18 +1,19 @@
 import { describe, expect, it } from "vitest";
 import {
   buildTaskDraft,
-  describeConverter,
   detectPriority,
   hasConvertibleContent,
-  resolveStatusMessage,
   suggestDueDate,
-  validateAndSanitizeEmail,
-  MAX_BODY_CHARS_TO_SCAN,
-  MAX_SUBJECT_LENGTH,
+  buildTaskTitle,
+  buildTaskNotes,
   DEFAULT_DUE_DATE_OFFSET_DAYS,
   HIGH_PRIORITY_DUE_DATE_OFFSET_DAYS,
+  MAX_BODY_CHARS_TO_SCAN,
+  MAX_NOTES_LENGTH,
+  MAX_SUBJECT_LENGTH,
   type NormalizedEmail,
-} from "../ui/emailToTodoView";
+} from "../services/emailToTodo";
+import { describeConverter, resolveStatusMessage } from "../ui/emailToTodoView";
 
 function baseEmail(overrides: Partial<NormalizedEmail> = {}): NormalizedEmail {
   return {
@@ -24,57 +25,6 @@ function baseEmail(overrides: Partial<NormalizedEmail> = {}): NormalizedEmail {
     ...overrides,
   };
 }
-
-describe("validateAndSanitizeEmail", () => {
-  it("rejects non-object payloads", () => {
-    const result = validateAndSanitizeEmail(null);
-    expect(result.isValid).toBe(false);
-    expect(result.sanitizedEmail).toBeNull();
-  });
-
-  it("strips control characters and HTML-like tags from user-controlled text", () => {
-    const result = validateAndSanitizeEmail(
-      baseEmail({
-        subject: "<img src=x onerror=alert(1)> Follow up\u0000",
-        body: "<script>alert(1)</script> Please review",
-      }),
-    );
-
-    expect(result.isValid).toBe(true);
-    expect(result.sanitizedEmail?.subject).toBe("Follow up");
-    expect(result.sanitizedEmail?.body).not.toContain("<script>");
-    expect(buildTaskDraft(result.sanitizedEmail as NormalizedEmail).notes).toBe(
-      "alert(1) Please review",
-    );
-  });
-
-  it("bounds large fields before conversion", () => {
-    const result = validateAndSanitizeEmail(
-      baseEmail({
-        subject: "A".repeat(MAX_SUBJECT_LENGTH + 20),
-        body: "B".repeat(MAX_BODY_CHARS_TO_SCAN + 100),
-      }),
-    );
-
-    expect(result.isValid).toBe(true);
-    expect(result.sanitizedEmail?.subject).toHaveLength(MAX_SUBJECT_LENGTH);
-    expect(result.sanitizedEmail?.body).toHaveLength(MAX_BODY_CHARS_TO_SCAN);
-    expect(result.warnings).toEqual(
-      expect.arrayContaining([
-        "Body was truncated before scanning to avoid excessive work on large emails.",
-        "Subject was truncated to the local display limit.",
-      ]),
-    );
-  });
-
-  it("rejects malformed timestamps when a timestamp is supplied", () => {
-    const result = validateAndSanitizeEmail(baseEmail({ receivedAt: "tomorrow-ish" }));
-    expect(result.isValid).toBe(false);
-    expect(result.errors).toContain(
-      "Received timestamp must be a parseable ISO-8601 value when provided.",
-    );
-  });
-});
 
 describe("detectPriority", () => {
   it("returns high when an urgent keyword is present", () => {
@@ -89,6 +39,10 @@ describe("detectPriority", () => {
     expect(detectPriority(baseEmail({ subject: "Lunch menu", body: "Soup and salad." }))).toBe(
       "low",
     );
+  });
+
+  it("scans body text for priority keywords", () => {
+    expect(detectPriority(baseEmail({ subject: "Notes", body: "This is critical" }))).toBe("high");
   });
 });
 
@@ -108,25 +62,72 @@ describe("suggestDueDate", () => {
   });
 });
 
-describe("buildTaskDraft", () => {
-  it("builds a deterministic draft from a normalized email", () => {
-    const email = baseEmail();
-    expect(buildTaskDraft(email)).toEqual(buildTaskDraft(email));
-    const draft = buildTaskDraft(email);
-    expect(draft.title).toBe("Project kickoff notes");
-    expect(draft.sourceSender).toBe("alex@example.com");
-    expect(draft.suggestedPriority).toBe("low");
+describe("buildTaskTitle", () => {
+  it("uses the subject when present", () => {
+    expect(buildTaskTitle(baseEmail())).toBe("Project kickoff notes");
   });
 
   it("falls back to the first body line when the subject is empty", () => {
-    const draft = buildTaskDraft(
-      baseEmail({ subject: "   ", body: "Call the bank about the invoice." }),
+    expect(buildTaskTitle(baseEmail({ subject: "   ", body: "Call the bank." }))).toBe(
+      "Call the bank.",
     );
-    expect(draft.title).toBe("Call the bank about the invoice.");
   });
 
   it("falls back to a placeholder when subject and body are empty", () => {
-    expect(buildTaskDraft(baseEmail({ subject: "", body: "" })).title).toBe("Untitled task");
+    expect(buildTaskTitle(baseEmail({ subject: "", body: "" }))).toBe("Untitled task");
+  });
+
+  it("truncates long subjects", () => {
+    const longSubject = "A".repeat(MAX_SUBJECT_LENGTH + 20);
+    expect(buildTaskTitle(baseEmail({ subject: longSubject }))).toHaveLength(MAX_SUBJECT_LENGTH);
+  });
+});
+
+describe("buildTaskNotes", () => {
+  it("returns the first non-empty body line", () => {
+    expect(buildTaskNotes(baseEmail({ body: "Action item.\n\nMore details." }))).toBe(
+      "Action item.",
+    );
+  });
+
+  it("truncates and appends ellipsis for long notes", () => {
+    const longBody = "A".repeat(MAX_NOTES_LENGTH + 10);
+    expect(buildTaskNotes(baseEmail({ body: longBody }))).toBe(
+      "A".repeat(MAX_NOTES_LENGTH - 1) + "...",
+    );
+  });
+
+  it("returns empty string when body is empty", () => {
+    expect(buildTaskNotes(baseEmail({ body: "" }))).toBe("");
+  });
+});
+
+describe("buildTaskDraft", () => {
+  it("builds a deterministic draft from a normalized email", () => {
+    const email = baseEmail();
+    const first = buildTaskDraft(email);
+    const second = buildTaskDraft(email);
+    expect(first).toEqual(second);
+  });
+
+  it("includes source metadata in the draft", () => {
+    const draft = buildTaskDraft(baseEmail());
+    expect(draft.title).toBe("Project kickoff notes");
+    expect(draft.sourceSender).toBe("alex@example.com");
+    expect(draft.sourceSubject).toBe("Project kickoff notes");
+    expect(draft.suggestedPriority).toBe("low");
+  });
+
+  it("creates a draft with high priority for urgent emails", () => {
+    const draft = buildTaskDraft(baseEmail({ subject: "URGENT: issue" }));
+    expect(draft.suggestedPriority).toBe("high");
+    expect(draft.suggestedDueDate).toBe("2026-01-11");
+  });
+
+  it("produces consistent output shapes for different inputs", () => {
+    const draft = buildTaskDraft(baseEmail({ subject: "", body: "Do this now" }));
+    expect(draft.title).toBe("Do this now");
+    expect(draft.notes).toBe("Do this now");
   });
 });
 
@@ -141,6 +142,10 @@ describe("hasConvertibleContent", () => {
 
   it("is true when there is a subject", () => {
     expect(hasConvertibleContent(baseEmail({ body: "" }))).toBe(true);
+  });
+
+  it("is true when there is a body", () => {
+    expect(hasConvertibleContent(baseEmail({ subject: "" }))).toBe(true);
   });
 });
 

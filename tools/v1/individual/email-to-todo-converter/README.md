@@ -12,35 +12,34 @@ tools/v1/individual/email-to-todo-converter/
 
 Do not wire this tool into the main app, routing, inbox architecture, wallet core, Stellar core, database schema, or existing design system unless a future integration issue explicitly allows it.
 
-## Contributor Setup
+## Architecture
 
-This tool does not ship executable code yet. Until a feature issue adds the
-implementation, contributors should use the local documentation in this folder
-as the launch contract:
+The tool follows a layered architecture:
 
-- `specs.md` defines the behavior and folder ownership boundary.
-- `docs/test-plan.md` lists the acceptance scenarios that future tests should
-  cover.
-- `docs/fixtures.md` describes the fixture emails and expected task outputs.
-- `docs/security-and-performance.md` documents threat assumptions, unsafe inputs, and
-  local work limits.
-- `REVIEW_NOTES.md` gives reviewers a quick checklist for this isolated work.
+- `services/emailToTodo.ts` -- core pure engine. Deterministic functions that convert a normalized email into a task draft (title, notes, due date, priority).
+- `services/guards.ts` -- security and validation layer. Sanitizes input, enforces size limits, and provides a hardened `safeBuildTaskDraft` entry point.
+- `services/fixtures.ts` -- deterministic synthetic fixtures for testing.
+- `ui/` -- React component and view-model helpers that render the converter workflow on top of the services layer.
 
-## Intended Usage
+## Intended Use
 
-The tool converts an email into one or more actionable tasks. A future feature
-implementation should accept a normalized email object, extract the task title,
-due date, priority, source metadata, and completion state, then return a
-reviewable task draft without mutating the mailbox or main application state.
+- Convert a normalized email into a reviewable task draft.
+- Detect priority from keyword heuristics in subject/body.
+- Suggest a due date based on priority level.
+- Preserve user review before any task is saved or synced.
 
-## Security and Performance Boundary
+## Testing
 
-The local converter treats normalized email payloads as untrusted. It validates
-object shape, strips unsafe text characters and HTML-like tags, rejects malformed
-supplied timestamps, and caps body scanning before building a task draft. See
-`docs/security-and-performance.md` for the threat model and large-input notes.
+Run tests from the tool folder:
+
+```bash
+npx vitest run
+```
+
+Test files live in `tests/` and cover the core engine, guard layer, fixtures, and view-model helpers.
 
 ## Known Limitations
 
-- Main app routing, inbox integration, and persistence are intentionally out of
-  scope until a future integration issue allows them.
+- Main app routing, inbox integration, and persistence are intentionally out of scope until a future integration issue allows them.
+- Priority detection is keyword-based only; no ML or NLP.
+- Due date suggestion is a simple offset, not calendar-aware.

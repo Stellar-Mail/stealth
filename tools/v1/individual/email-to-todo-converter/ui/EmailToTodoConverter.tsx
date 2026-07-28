@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useReducer, useRef } from "react";
+import { safeBuildTaskDraft } from "../services/guards";
 import {
-  buildTaskDraft,
   describeConverter,
   hasConvertibleContent,
-  validateAndSanitizeEmail,
   type ConverterStatus,
   type EmailToTodoConverterProps,
   type TaskDraft,
@@ -49,12 +48,10 @@ export function EmailToTodoConverter(props: EmailToTodoConverterProps) {
   const draftHeadingRef = useRef<HTMLHeadingElement | null>(null);
   const errorRef = useRef<HTMLDivElement | null>(null);
 
-  // Reset the converter whenever a different email is selected.
   useEffect(() => {
     dispatch({ type: "reset", hasEmail: hasConvertibleContent(email) });
   }, [email]);
 
-  // Move focus to the most relevant region after a state change.
   useEffect(() => {
     if (state.status === "success") {
       draftHeadingRef.current?.focus();
@@ -72,22 +69,15 @@ export function EmailToTodoConverter(props: EmailToTodoConverterProps) {
       return;
     }
     dispatch({ type: "convert-start" });
-    const validation = validateAndSanitizeEmail(email);
-    if (!validation.isValid || !validation.sanitizedEmail) {
+    const result = safeBuildTaskDraft(email);
+    if (result.status === "error") {
       dispatch({
         type: "convert-error",
-        message: validation.errors[0] || "The selected email is not safe to convert.",
+        message: result.message,
       });
       return;
     }
-    try {
-      dispatch({ type: "convert-success", draft: buildTaskDraft(validation.sanitizedEmail) });
-    } catch {
-      dispatch({
-        type: "convert-error",
-        message: "Conversion failed. Please try another email.",
-      });
-    }
+    dispatch({ type: "convert-success", draft: result.draft });
   }, [email]);
 
   const handleSave = useCallback(() => {

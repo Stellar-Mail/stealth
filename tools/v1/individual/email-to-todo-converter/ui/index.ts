@@ -1,19 +1,5 @@
 export { EmailToTodoConverter } from "./EmailToTodoConverter";
-export {
-  buildTaskDraft,
-  buildTaskNotes,
-  buildTaskTitle,
-  describeConverter,
-  detectPriority,
-  hasConvertibleContent,
-  resolveStatusMessage,
-  suggestDueDate,
-  DEFAULT_DUE_DATE_OFFSET_DAYS,
-  HIGH_PRIORITY_DUE_DATE_OFFSET_DAYS,
-  HIGH_PRIORITY_KEYWORDS,
-  MAX_NOTES_LENGTH,
-  MEDIUM_PRIORITY_KEYWORDS,
-} from "./emailToTodoView";
+export { describeConverter, hasConvertibleContent, resolveStatusMessage } from "./emailToTodoView";
 export type {
   ConverterStatus,
   ConverterViewModel,
@@ -22,3 +8,16 @@ export type {
   TaskDraft,
   TaskPriority,
 } from "./emailToTodoView";
+
+export {
+  buildTaskDraft,
+  buildTaskNotes,
+  buildTaskTitle,
+  detectPriority,
+  suggestDueDate,
+  DEFAULT_DUE_DATE_OFFSET_DAYS,
+  HIGH_PRIORITY_DUE_DATE_OFFSET_DAYS,
+  HIGH_PRIORITY_KEYWORDS,
+  MAX_NOTES_LENGTH,
+  MEDIUM_PRIORITY_KEYWORDS,
+} from "../services/emailToTodo";
