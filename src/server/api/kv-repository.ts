@@ -9,6 +9,14 @@ import type {
 } from "./domain";
 import { ApiError } from "./errors";
 
+/**
+ * Issue #1544: on-disk shape for a policy record once versioning was
+ * introduced. Pre-existing records written before this change are stored as
+ * a bare `MailboxPolicy` with no `__version` field — reads treat those as
+ * version 1 for backward compatibility.
+ */
+type StoredMailboxPolicy = MailboxPolicy & { __version?: number };
+
 export class HybridApiRepository implements ApiRepository {
   constructor(
     private readonly kv: KVNamespace,
@@ -20,13 +28,24 @@ export class HybridApiRepository implements ApiRepository {
   }
 
   async getPolicy(owner: string): Promise<MailboxPolicy | null> {
-    const policy = await this.kv.get(this.key("policy", owner), "json");
-    return (policy as MailboxPolicy) ?? null;
+    const stored = await this.kv.get<StoredMailboxPolicy>(this.key("policy", owner), "json");
+    if (!stored) return null;
+    const { __version: _version, ...policy } = stored;
+    return policy as MailboxPolicy;
   }
 
   async setPolicy(owner: string, policy: MailboxPolicy): Promise<MailboxPolicy> {
-    await this.kv.put(this.key("policy", owner), JSON.stringify(policy));
+    const currentVersion = await this.getPolicyVersion(owner);
+    const stored: StoredMailboxPolicy = { ...policy, __version: currentVersion + 1 };
+    await this.kv.put(this.key("policy", owner), JSON.stringify(stored));
     return policy;
+  }
+
+  async getPolicyVersion(owner: string): Promise<number> {
+    const stored = await this.kv.get<StoredMailboxPolicy>(this.key("policy", owner), "json");
+    if (!stored) return 0;
+    // Pre-versioning records have no __version field; treat them as v1.
+    return stored.__version ?? 1;
   }
 
   async getSenderRule(owner: string, sender: string): Promise<SenderRule> {

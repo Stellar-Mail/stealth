@@ -20,9 +20,22 @@ describe("validateApiConfig", () => {
         kvBinding: {},
         coordinatorBinding: {},
         cursorSecret: "secret-value",
+        postageQuoteSecret: "quote-secret-value",
         supportedVersions: ["v1"],
       }),
     ).not.toThrow();
+  });
+
+  it("fails when production is missing the postage quote secret", () => {
+    expect(() =>
+      validateApiConfig({
+        isProd: true,
+        kvBinding: {},
+        coordinatorBinding: {},
+        cursorSecret: "secret-value",
+        supportedVersions: ["v1"],
+      }),
+    ).toThrow(/STEALTH_POSTAGE_QUOTE_SECRET/);
   });
 
   it("fails when production is missing the KV binding", () => {

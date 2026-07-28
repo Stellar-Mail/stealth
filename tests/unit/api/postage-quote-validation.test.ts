@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { MemoryApiRepository } from "../../../src/server/api/memory-repository";
 import { quotePostage } from "../../../src/server/api/postage-service";
@@ -7,8 +7,17 @@ import { stellarAddressSchema } from "../../../src/server/api/domain";
 
 const validRecipient = `G${"A".repeat(55)}`;
 const validSender = `G${"B".repeat(55)}`;
+const validMessageId = "a".repeat(64);
 
 describe("Postage Quote Validation", () => {
+  beforeEach(() => {
+    process.env.STEALTH_POSTAGE_QUOTE_SECRET = "test-postage-quote-secret";
+  });
+
+  afterEach(() => {
+    delete process.env.STEALTH_POSTAGE_QUOTE_SECRET;
+  });
+
   describe("recipient validation", () => {
     it("rejects empty recipient", () => {
       expect(() => stellarAddressSchema.parse("")).toThrow();
@@ -128,6 +137,7 @@ describe("Postage Quote Validation", () => {
       const quote = await quotePostage(createApiContext(repository), {
         recipient: validRecipient,
         sender: validSender,
+        messageId: validMessageId,
       });
 
       expect(quote).toMatchObject({
@@ -154,6 +164,7 @@ describe("Postage Quote Validation", () => {
       const quote = await quotePostage(createApiContext(repository), {
         recipient: normalizedRecipient,
         sender: normalizedSender,
+        messageId: validMessageId,
       });
 
       expect(quote).toMatchObject({

@@ -15,6 +15,7 @@ const submissionSchema = z.object({
   amount: stroopAmountSchema,
   messageId: hash32Schema,
   paymentHash: hash32Schema,
+  quote: z.string().optional(),
   recipient: stellarAddressSchema,
   sender: stellarAddressSchema,
   issuedAt: z.string().datetime(),

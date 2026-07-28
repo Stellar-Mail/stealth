@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { MemoryApiRepository } from "../../../src/server/api/memory-repository";
 import * as metrics from "../../../src/server/api/metrics";
@@ -15,6 +15,14 @@ const recipient = `G${"A".repeat(55)}`;
 const sender = `G${"B".repeat(55)}`;
 
 describe("postage service", () => {
+  beforeEach(() => {
+    process.env.STEALTH_POSTAGE_QUOTE_SECRET = "test-postage-quote-secret";
+  });
+
+  afterEach(() => {
+    delete process.env.STEALTH_POSTAGE_QUOTE_SECRET;
+  });
+
   it("returns zero postage for explicitly allowed senders", async () => {
     const repository = new MemoryApiRepository();
     await repository.setPolicy(recipient, {
