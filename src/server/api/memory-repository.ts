@@ -176,10 +176,19 @@ export class MemoryApiRepository implements ApiRepository {
     }
     const now = Date.now();
     const windowMilliseconds = windowSeconds * 1000;
-    const timestamps = this.counters.get(key) ?? [];
-    const filtered = [...timestamps, ...Array<number>(amount).fill(now)].filter(
-      (timestamp) => now - timestamp <= windowMilliseconds,
-    );
+    const timestamps = this.counters.get(key);
+    const filtered: number[] = [];
+
+    if (timestamps) {
+      for (let i = 0; i < timestamps.length; i++) {
+        if (now - timestamps[i] <= windowMilliseconds) {
+          filtered.push(timestamps[i]);
+        }
+      }
+    }
+    for (let i = 0; i < amount; i++) {
+      filtered.push(now);
+    }
     this.counters.set(key, filtered);
     return filtered.length;
   }

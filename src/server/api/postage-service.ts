@@ -94,41 +94,7 @@ export async function quotePostage(
       : 15 * 60 * 1000;
     const expiresAt = new Date(Date.now() + lifetimeMs).toISOString();
 
-    if (rule === "block") {
-      const amount = policy.minimumPostage;
-      const result = {
-        amount,
-        eligible: false,
-        reason: "sender_blocked" as const,
-        trusted: false,
-        issuedAt,
-        expiresAt,
-        digest: signQuote(input.recipient, input.sender, amount, issuedAt, expiresAt),
-      };
-
-      recordAuditEvent({
-        actor: input.sender,
-        action: "postage.quote",
-        targetType: "mailbox",
-        safeTargetReference: input.recipient,
-        result: "success",
-        requestId: context.requestId ?? "unknown",
-      });
-      return result;
-    }
-
-    const trusted = rule === "allow";
-    const amount = trusted ? "0" : policy.minimumPostage;
-
-    const result = {
-      amount,
-      eligible: true,
-      reason: trusted ? ("trusted_sender" as const) : ("mailbox_minimum" as const),
-      trusted,
-      issuedAt,
-      expiresAt,
-      digest: signQuote(input.recipient, input.sender, amount, issuedAt, expiresAt),
-    };
+    const result = buildQuoteResult(rule, policy, input, issuedAt, expiresAt);
 
     recordAuditEvent({
       actor: input.sender,
@@ -150,6 +116,32 @@ export async function quotePostage(
     });
     throw error;
   }
+}
+
+function buildQuoteResult(
+  rule: string,
+  policy: { minimumPostage: string },
+  input: { recipient: string; sender: string },
+  issuedAt: string,
+  expiresAt: string,
+) {
+  const blocked = rule === "block";
+  const trusted = !blocked && rule === "allow";
+  const amount = blocked ? policy.minimumPostage : trusted ? "0" : policy.minimumPostage;
+
+  return {
+    amount,
+    eligible: !blocked,
+    reason: blocked
+      ? ("sender_blocked" as const)
+      : trusted
+        ? ("trusted_sender" as const)
+        : ("mailbox_minimum" as const),
+    trusted,
+    issuedAt,
+    expiresAt,
+    digest: signQuote(input.recipient, input.sender, amount, issuedAt, expiresAt),
+  };
 }
 
 export async function submitPostage(
