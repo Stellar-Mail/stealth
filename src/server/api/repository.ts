@@ -57,38 +57,13 @@ export type MarkReceiptReadResult =
 
 export interface ApiRepository {
   getPolicy(owner: string): Promise<MailboxPolicy | null>;
-  setPolicy(owner: string, policy: MailboxPolicy): Promise<MailboxPolicy>;
+  setPolicy(owner: string, policy: MailboxPolicy, expectedVersion?: string): Promise<MailboxPolicy>;
   getSenderRule(owner: string, sender: string): Promise<SenderRule>;
   setSenderRule(owner: string, sender: string, rule: SenderRule): Promise<SenderRule>;
   getPostage(messageId: string): Promise<Postage | null>;
-  setPostage(postage: Postage): Promise<Postage>;
-  /**
-   * Atomically transitions a postage record from `expectedStatus` to
-   * `nextStatus`. Implementations MUST guarantee that concurrent callers
-   * racing on the same messageId observe a single winner: exactly one call
-   * receives `{ outcome: "applied" }` and every other concurrent/subsequent
-   * call receives `{ outcome: "conflict" }` reflecting the terminal state.
-   * This must not be implemented as a plain get-then-set, since that is
-   * vulnerable to double-settlement under concurrent requests.
-   */
-  transitionPostage(
-    messageId: string,
-    expectedStatus: PostageStatus,
-    nextStatus: PostageStatus,
-  ): Promise<PostageTransitionResult>;
-  /**
-   * Insert a postage record, enforcing message-identifier uniqueness at the
-   * persistence layer. Unlike {@link ApiRepository.setPostage} (an upsert), a
-   * duplicate messageId must reject with a deterministic conflict
-   * (ApiError 409 "conflict") so duplicate records can never create ambiguous
-   * postage/receipt state. Concurrent inserts must yield exactly one winner.
-   */
-  insertPostage(postage: Postage): Promise<Postage>;
+  setPostage(postage: Postage, expectedVersion?: string): Promise<Postage>;
   getReceipt(messageId: string): Promise<Receipt | null>;
-  setReceipt(receipt: Receipt): Promise<Receipt>;
-  createReceiptIfAbsent(receipt: Receipt): Promise<{ created: boolean; receipt: Receipt }>;
-  markReceiptRead(messageId: string, actor: string, now?: Date): Promise<MarkReceiptReadResult>;
-  acquireIdempotencyRecord(key: string, leaseMs: number): Promise<AcquireIdempotencyResult>;
+  setReceipt(receipt: Receipt, expectedVersion?: string): Promise<Receipt>;
   getIdempotencyRecord(key: string): Promise<IdempotencyRecord | null>;
   setIdempotencyRecord(key: string, record: IdempotencyRecord): Promise<void>;
 
