@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 
 import type { ApiRepository } from "./repository";
+import * as metrics from "./metrics";
 
 export const RATE_LIMIT_OPERATION_COSTS = Object.freeze({
   read: 1,
@@ -39,6 +40,10 @@ export async function consumeRouteQuota(
   const count = await repository.incrementCounter(`abuse:${type}:${subject}`, windowSeconds, cost);
 
   if (count > max) {
+    metrics.incrementCounter("rate_limits_total", {
+      limit_type: type,
+      operation,
+    });
     return { allowed: false, retryAfterSeconds: windowSeconds };
   }
   return { allowed: true };
@@ -67,12 +72,18 @@ export async function checkAuthFailureThrottle(
 
   const ipAcctCount = await repository.getCounter(ipAcctKey);
   if (ipAcctCount >= AUTH_FAILURE_LIMITS.ipAndAccount.max) {
+    metrics.incrementCounter("auth_failures_total", {
+      reason: "ip_account_throttled",
+    });
     return { allowed: false, retryAfterSeconds: AUTH_FAILURE_LIMITS.ipAndAccount.windowSeconds };
   }
 
   if (ipVal !== "unknown") {
     const ipWideCount = await repository.getCounter(ipWideKey);
     if (ipWideCount >= AUTH_FAILURE_LIMITS.ipWide.max) {
+      metrics.incrementCounter("auth_failures_total", {
+        reason: "ip_wide_throttled",
+      });
       return { allowed: false, retryAfterSeconds: AUTH_FAILURE_LIMITS.ipWide.windowSeconds };
     }
   }
@@ -100,6 +111,10 @@ export async function recordAuthFailure(
   if (ipVal !== "unknown") {
     await repository.incrementCounter(ipWideKey, AUTH_FAILURE_LIMITS.ipWide.windowSeconds);
   }
+
+  metrics.incrementCounter("auth_failures_total", {
+    reason: "recorded",
+  });
 
   const delaySeconds = Math.min(60, Math.pow(2, ipAcctCount - 1));
   return { delaySeconds };
