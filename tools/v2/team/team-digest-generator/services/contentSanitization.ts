@@ -1,4 +1,4 @@
-﻿/* eslint-disable no-control-regex, no-useless-escape */
+/* eslint-disable no-control-regex, no-useless-escape */
 /**
  * Content sanitization service for Team Digest Generator
  * Handles sanitization of email content to prevent XSS and injection attacks
@@ -42,12 +42,16 @@ export function sanitizeEmailContent(html: string): string {
   sanitized = sanitized.replace(/\s*on\w+\s*=\s*["'][^"']*["']/gi, "");
   sanitized = sanitized.replace(/\s*on\w+\s*=\s*[^\s>]*/gi, "");
 
-  // Remove dangerous protocols (javascript:, data:, vbscript:)
+  // Remove dangerous protocols (javascript:, data:, vbscript:) anywhere
   sanitized = sanitized.replace(/href\s*=\s*["']?(?:javascript|data|vbscript):/gi, 'href="#"');
   sanitized = sanitized.replace(/src\s*=\s*["']?(?:javascript|data|vbscript):/gi, 'src=""');
+  sanitized = sanitized.replace(/\b(?:javascript|vbscript):/gi, "");
 
   // Remove style attributes (prevent CSS-based attacks)
   sanitized = sanitized.replace(/\s*style\s*=\s*["'][^"']*["']/gi, "");
+
+  // Remove control characters (U+0000-U+001F except newline/tab, U+007F-U+009F)
+  sanitized = sanitized.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/g, "");
 
   return sanitized;
 }

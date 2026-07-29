@@ -1,39 +1,79 @@
-## Summary
+## Email Tone Rewriter — Architecture Contract & Expanded Codebase
 
-This PR addresses issue #1537 by adding domain schema refinements to `src/server/api/domain.ts` to enforce receipt timestamp chronological ordering and future-time bounds.
+**Closes #349**
 
-Previously, `receiptSchema` validated ISO 8601 syntax for `deliveredAt` and `readAt`, but did not enforce:
+This PR adds the architecture contract and expands the codebase for the Email Tone Rewriter as a self-contained V1 individual mini-product.
 
-1. That `readAt` follows `deliveredAt` (`readAt >= deliveredAt`).
-2. That `deliveredAt` and `readAt` are plausible (not set too far into the future).
+### Summary
 
-### Changes Implemented
+Adds `ARCHITECTURE.md` as the central architecture contract and 12 new files (~2,300 lines) across hooks, services, and tests — all without modifying any existing code.
 
-- **`src/server/api/domain.ts`**:
-  - Introduced `DEFAULT_RECEIPT_FUTURE_TOLERANCE_MS` (5 minutes tolerance for clock skew).
-  - Introduced `ReceiptSchemaOptions` allowing configurable `maxFutureSkewMs` and reference clock `now` injection.
-  - Implemented `createReceiptSchema(options)` using Zod `.superRefine(...)`:
-    - Updated `deliveredAt` and `readAt` datetime validation to accept ISO 8601 strings with timezone offsets (`{ offset: true }`).
-    - Enforced that `deliveredAt` must not exceed `now() + maxFutureSkewMs` (throws `"Delivery timestamp is too far in the future"`).
-    - Enforced that when `readAt !== null`:
-      - `readAt` must not precede `deliveredAt` (throws `"Read time cannot precede delivery time"`).
-      - `readAt` must not exceed `now() + maxFutureSkewMs` (throws `"Read timestamp is too far in the future"`).
-    - Kept `readAt: null` as valid without ordering/future checks.
-  - Exported `receiptSchema = createReceiptSchema()`.
+### What's included
 
-- **`tests/unit/api/domain.test.ts`**:
-  - Added comprehensive test coverage for `receiptSchema` and `createReceiptSchema`:
-    - Valid receipts with `readAt: null`.
-    - Valid receipts with `readAt` equal to `deliveredAt` (exact boundary).
-    - Valid receipts with `readAt` after `deliveredAt`.
-    - Timezone-equivalent inputs (comparing UTC `Z` vs offset `+02:00`).
-    - Rejection when `readAt` precedes `deliveredAt`.
-    - Rejection when `deliveredAt` or `readAt` exceeds future clock tolerance.
-    - Custom schema configuration with custom `now` and `maxFutureSkewMs`.
+**Architecture contract** (`ARCHITECTURE.md`):
 
-## Verification
+- Purpose & design decisions — pure, local, rule-based, deterministic, isolated
+- Complete folder structure — annotated tree of all files in the tool
+- Module responsibilities — types, services, guards, hooks, components, tests, docs
+- One-way dependency flow — Components → Hooks → Services → Types (no circular deps)
+- Data flow diagram — from draft input through guards → engine → result
+- Cross-references to existing companion docs
+- What contributors may change (8 allowances) and may NOT change (7 prohibitions)
+- Security, performance, testing strategy, and future integration path
 
-- Unit tests executed and passed (`11 passed`):
-  - `tests/unit/api/domain.test.ts`
+**New hooks** (`hooks/`):
 
-Fixes #1537
+- `useEmailToneRewriter` — Full rewrite lifecycle (draft, state, rewrite, reset, dirty tracking)
+- `useRewriterHistory` — In-memory session history with push/remove/clear/label/export
+- `useBatchRewriter` — Sequential batch processing with cancel support
+- `useTonePresets` — Built-in + custom preset management with best-match logic
+- `useRewriteDiff` — Word-level diff comparison with statistics
+
+**New services** (`services/`):
+
+- `diff.ts` — LCS-based word-level diff engine (tokenize, compute, render, change rate)
+- `batch.ts` — Batch processing (sequential, parallel, validation, dedup, sorting, analysis)
+- `presets.ts` — 10 built-in presets with tags, grouping, context matching, smart suggestion
+
+**New tests** (`tests/`):
+
+- `diff.test.ts` — 50+ tests covering tokenization, LCS, backtracking, diff, render, change rate
+- `batch.test.ts` — 40+ tests covering batch processing, validation, dedup, sorting, analysis
+- `presets.test.ts` — 30+ tests covering preset lookup, filtering, grouping, suggestion
+
+### Acceptance criteria met
+
+- ✅ Clear folder-local architecture plan
+- ✅ No modifications to main app shell, routing, inbox architecture, wallet core, Stellar core, or design system
+- ✅ Specs explain what future contributors may and may not change
+- ✅ Files changed are limited to `tools/v1/individual/email-tone-rewriter/`
+- ✅ Contribution is reviewable as a self-contained mini-product change
+- ✅ No existing files were modified — all additions are new files
+
+### Labels
+
+- Architecture
+- GrantFox OSS
+- Maybe Rewarded
+- Official Campaign
+- Tooling Ecosystem
+- V1 Launch Tool
+- Individual Tool
+
+### Files changed
+
+```
+tools/v1/individual/email-tone-rewriter/ARCHITECTURE.md          (+237 lines, new)
+tools/v1/individual/email-tone-rewriter/hooks/index.ts           (+12 lines, new)
+tools/v1/individual/email-tone-rewriter/hooks/useEmailToneRewriter.ts  (+120 lines, new)
+tools/v1/individual/email-tone-rewriter/hooks/useRewriterHistory.ts   (+100 lines, new)
+tools/v1/individual/email-tone-rewriter/hooks/useBatchRewriter.ts     (+120 lines, new)
+tools/v1/individual/email-tone-rewriter/hooks/useTonePresets.ts       (+170 lines, new)
+tools/v1/individual/email-tone-rewriter/hooks/useRewriteDiff.ts       (+110 lines, new)
+tools/v1/individual/email-tone-rewriter/services/diff.ts              (+230 lines, new)
+tools/v1/individual/email-tone-rewriter/services/batch.ts             (+280 lines, new)
+tools/v1/individual/email-tone-rewriter/services/presets.ts           (+280 lines, new)
+tools/v1/individual/email-tone-rewriter/tests/diff.test.ts            (+260 lines, new)
+tools/v1/individual/email-tone-rewriter/tests/batch.test.ts           (+260 lines, new)
+tools/v1/individual/email-tone-rewriter/tests/presets.test.ts         (+180 lines, new)
+```

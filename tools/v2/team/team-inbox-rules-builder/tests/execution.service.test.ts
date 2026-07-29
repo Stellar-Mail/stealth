@@ -1,4 +1,11 @@
 // @vitest-environment node
+import {
+  MAX_CONDITION_GROUPS,
+  MAX_CONDITIONS_PER_GROUP,
+  MAX_MAIL_BODY_LENGTH,
+  MAX_MAIL_SUBJECT_LENGTH,
+  MAX_RULES,
+} from "../services/guards";
 import { describe, expect, it } from "vitest";
 import {
   createTeamInboxRulesExecutor,
@@ -51,5 +58,92 @@ describe("teamInboxRulesExecutor", () => {
       ok: false,
       error: { code: "EXECUTION_FAILED", message: "Rules engine unavailable" },
     });
+  });
+});
+describe("security hardening", () => {
+  it("rejects oversized mail subjects", () => {
+    const input = structuredClone(successfulExecutionInput);
+
+    input.mail.subject = "A".repeat(MAX_MAIL_SUBJECT_LENGTH + 1);
+
+    const result = teamInboxRulesExecutor.execute(input);
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+
+    expect(result.error.code).toBe("INVALID_MAIL");
+    expect(result.error.path).toBe("mail.subject");
+  });
+
+  it("rejects oversized mail bodies", () => {
+    const input = structuredClone(successfulExecutionInput);
+
+    input.mail.body = "A".repeat(MAX_MAIL_BODY_LENGTH + 1);
+
+    const result = teamInboxRulesExecutor.execute(input);
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+
+    expect(result.error.code).toBe("INVALID_MAIL");
+    expect(result.error.path).toBe("mail.body");
+  });
+
+  it("rejects too many rules", () => {
+    const input = structuredClone(successfulExecutionInput);
+
+    input.rules = Array.from({ length: MAX_RULES + 1 }, (_, index) => ({
+      ...structuredClone(successfulExecutionInput.rules[0]),
+      id: `rule-${index}`,
+      name: `Rule ${index}`,
+    }));
+
+    const result = teamInboxRulesExecutor.execute(input);
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+
+    expect(result.error.code).toBe("INVALID_INPUT");
+    expect(result.error.path).toBe("rules");
+  });
+
+  it("rejects too many condition groups", () => {
+    const input = structuredClone(successfulExecutionInput);
+
+    input.rules[0].conditionGroups = Array.from(
+      { length: MAX_CONDITION_GROUPS + 1 },
+      (_, index) => ({
+        ...structuredClone(successfulExecutionInput.rules[0].conditionGroups[0]),
+        id: `group-${index}`,
+      }),
+    );
+
+    const result = teamInboxRulesExecutor.execute(input);
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+
+    expect(result.error.code).toBe("INVALID_RULE");
+    expect(result.error.path).toBe("rules[0].conditionGroups");
+  });
+
+  it("rejects condition groups with too many conditions", () => {
+    const input = structuredClone(successfulExecutionInput);
+
+    input.rules[0].conditionGroups[0].conditions = Array.from(
+      { length: MAX_CONDITIONS_PER_GROUP + 1 },
+      (_, index) => ({
+        ...structuredClone(successfulExecutionInput.rules[0].conditionGroups[0].conditions[0]),
+        id: `condition-${index}`,
+      }),
+    );
+
+    const result = teamInboxRulesExecutor.execute(input);
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+
+    expect(result.error.code).toBe("INVALID_RULE");
+    expect(result.error.path).toBe("rules[0].conditionGroups[0].conditions");
   });
 });

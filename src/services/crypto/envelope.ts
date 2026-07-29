@@ -12,11 +12,17 @@
  */
 
 import { clearSecret, digestHex, sharedPool, toBase64, toHex } from "./memory";
+import { validateEnvelopeInput } from "./limits";
 import { getCryptoTestVectors } from "./testing";
 import { createCommitment } from "./commitment";
 import { recordCryptoTelemetry, type CryptoResultCode } from "./telemetry";
-import { canonicalizeAttachmentDescriptors } from "./attachment-metadata";
 import { getDefaultSuite, getDefaultVersion } from "./suites";
+import { encodeAad } from "./aad";
+import {
+  wrapContentKeyForRecipients,
+  type WrappedKeyEntry,
+  importRecipientPublicKey,
+} from "./key-wrap";
 
 export interface EnvelopeAttachment {
   filename: string;
@@ -44,6 +50,7 @@ export interface EnvelopePayload {
   encryption_metadata: EncryptionMetadata;
   content_commitment: string;
   attachments: EnvelopeAttachment[];
+  wrapped_keys?: WrappedKeyEntry[];
 }
 
 export interface SealedEnvelope {
@@ -66,6 +73,8 @@ export interface SealEnvelopeInput {
   signal?: AbortSignal;
   recipientKeyId?: string;
   senderKeyId?: string;
+  /** Base64-encoded SPKI public keys of recipients for key wrapping. If provided, wrapped keys will be included in the envelope. */
+  recipientPublicKeys?: string[];
 }
 
 const GCM_TAG_BYTES = 16;
@@ -112,7 +121,21 @@ export async function sealEnvelope(input: SealEnvelopeInput): Promise<SealedEnve
   const defaultSuite = getDefaultSuite();
 
   try {
+    // Validate that the default suite is one we can actually encrypt with.
+    // This is a fail-fast check to prevent silent algorithm mismatches.
+    if (defaultSuite.name !== "AES-256-GCM") {
+      throw new Error(
+        `Internal error: default suite ${defaultSuite.name} is not implemented. ` +
+          `Only AES-256-GCM is supported for v1 envelopes.`,
+      );
+    }
+
     const body = input.body ?? "";
+
+    // Enforce cryptographic payload and attachment size limits before
+    // allocating any key material or performing expensive operations.
+    validateEnvelopeInput(input);
+
     if (!body.trim()) {
       throw new Error("Cannot seal an empty message body");
     }
@@ -123,6 +146,7 @@ export async function sealEnvelope(input: SealEnvelopeInput): Promise<SealedEnve
     };
 
     const { generateKey, getRandomValues, now } = getCryptoTestVectors();
+    const payloadTimestamp = now ? now() : new Date();
 
     // --- Key generation (no plaintext allocated yet) ---
     throwIfAborted();
@@ -187,7 +211,13 @@ export async function sealEnvelope(input: SealEnvelopeInput): Promise<SealedEnve
       });
     }
 
-    const aad = canonicalizeAttachmentDescriptors(descriptors);
+    const aad = encodeAad({
+      version: getDefaultVersion(),
+      sender: input.sender,
+      recipient: input.recipient,
+      timestamp: payloadTimestamp.toISOString(),
+      attachments: descriptors,
+    });
 
     // --- Body encryption ---
     throwIfAborted();
@@ -282,11 +312,31 @@ export async function sealEnvelope(input: SealEnvelopeInput): Promise<SealedEnve
     clearSecret(ciphertext);
     sharedPool.release(ivBuf);
 
+    // --- Key wrapping (if recipient public keys provided) ---
+    let wrappedKeys: WrappedKeyEntry[] | undefined;
+    if (input.recipientPublicKeys && input.recipientPublicKeys.length > 0) {
+      throwIfAborted();
+      try {
+        // Import recipient public keys
+        const recipientKeys = await Promise.all(
+          input.recipientPublicKeys.map((pkBase64) => importRecipientPublicKey(pkBase64)),
+        );
+
+        // Wrap the content key for all recipients
+        wrappedKeys = await wrapContentKeyForRecipients(key, recipientKeys);
+      } catch (error: unknown) {
+        if (error instanceof Error) {
+          throw new Error(`Key wrapping failed: ${error.message}`);
+        }
+        throw new Error("Key wrapping failed");
+      }
+    }
+
     const payload: EnvelopePayload = {
       version: getDefaultVersion() as "v1",
       sender: input.sender,
       recipient: input.recipient,
-      timestamp: now ? now().toISOString() : new Date().toISOString(),
+      timestamp: payloadTimestamp.toISOString(),
       encryption_metadata: {
         algorithm: defaultSuite.name,
         nonce: nonceHex,
@@ -296,6 +346,7 @@ export async function sealEnvelope(input: SealEnvelopeInput): Promise<SealedEnve
       },
       content_commitment: contentCommitment,
       attachments,
+      ...(wrappedKeys && wrappedKeys.length > 0 ? { wrapped_keys: wrappedKeys } : {}),
     };
 
     return { payload, ciphertext: ciphertextBase64 };

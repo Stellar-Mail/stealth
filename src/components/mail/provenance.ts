@@ -276,14 +276,14 @@ export function getEmailProvenance(email: Email): ProvenanceDetails {
     description:
       "The commitment hash registered on-chain. It proves the message was sent at a specific time without revealing its encrypted contents to the public ledger.",
     keyValuePairs: [
-      { label: "Encryption Envelope", value: "Curve25519 (X25519-XSalsa20-Poly1305)" },
+      { label: "Encryption Envelope", value: "AES-256-GCM (256-bit key, 12-byte nonce)" },
       { label: "Commitment Hash", value: rawPayloadCommitment, isCode: true },
       { label: "Ephemeral Session Key", value: ephemeralKey, isCode: true },
     ],
     get rawJson() {
       return JSON.stringify(
         {
-          envelope_type: "X25519-XSalsa20-Poly1305",
+          envelope_type: "AES-256-GCM",
           commitment_hash: rawPayloadCommitment,
           session_keys: {
             ephemeral_public_key: ephemeralKey,
@@ -471,7 +471,7 @@ export function getEmailProvenance(email: Email): ProvenanceDetails {
     payloadCommitment: {
       raw: rawPayloadCommitment,
       formatted: formatIdentifier(rawPayloadCommitment, 6, 6),
-      encryptionScheme: "Curve25519 (X25519-XSalsa20-Poly1305)",
+      encryptionScheme: "AES-256-GCM (256-bit key, 12-byte nonce)",
       ephemeralKey,
       ephemeralKeyFormatted: formatIdentifier(ephemeralKey, 6, 6),
       inspector: payloadCommitmentInspector,

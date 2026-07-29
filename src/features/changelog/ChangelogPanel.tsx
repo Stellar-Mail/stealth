@@ -1,30 +1,32 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, memo } from "react";
 import { ExternalLink, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useChangelog } from "./useChangelog";
+import { CATEGORY_CONFIG, groupEntriesByRelease } from "./helpers";
 
-const CATEGORY_CONFIG: Record<string, { label: string; styles: string }> = {
-  ui: {
-    label: "UI",
-    styles: "bg-sky-400/15 text-sky-300 border-sky-400/20 hover:bg-sky-400/20",
-  },
-  api: {
-    label: "API",
-    styles: "bg-violet-400/15 text-violet-300 border-violet-400/20 hover:bg-violet-400/20",
-  },
-  protocol: {
-    label: "Protocol",
-    styles: "bg-amber-400/15 text-amber-300 border-amber-400/20 hover:bg-amber-400/20",
-  },
-  security: {
-    label: "Security",
-    styles: "bg-rose-400/15 text-rose-300 border-rose-400/20 hover:bg-rose-400/20",
-  },
-};
+// `Intl`-backed date formatting is one of the more expensive calls a
+// component can make on every render; entries are a small, static set of
+// (version, date) pairs, so a plain module-level cache avoids reformatting
+// the same date over and over across re-renders and across mounts within
+// the same session.
+const dateFormatCache = new Map<string, string>();
+const dateFormatter = new Intl.DateTimeFormat("en-US", {
+  year: "numeric",
+  month: "long",
+  day: "numeric",
+});
+function formatReleaseDate(date: string): string {
+  let formatted = dateFormatCache.get(date);
+  if (formatted === undefined) {
+    formatted = dateFormatter.format(new Date(date));
+    dateFormatCache.set(date, formatted);
+  }
+  return formatted;
+}
 
-function CategoryBadge({ category }: { category: string }) {
+const CategoryBadge = memo(function CategoryBadge({ category }: { category: string }) {
   const config = CATEGORY_CONFIG[category];
   if (!config) {
     return (
@@ -37,16 +39,16 @@ function CategoryBadge({ category }: { category: string }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-medium transition-colors duration-200",
+        "inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-medium transition-colors duration-200 motion-reduce:transition-none",
         config.styles,
       )}
     >
       {config.label}
     </span>
   );
-}
+});
 
-function ReleaseHeader({
+const ReleaseHeader = memo(function ReleaseHeader({
   version,
   date,
   hasUnread,
@@ -55,36 +57,44 @@ function ReleaseHeader({
   date: string;
   hasUnread: boolean;
 }) {
-  const formattedDate = new Date(date).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
+  const formattedDate = formatReleaseDate(date);
 
   return (
     <div className="flex items-center justify-between gap-3">
       <div className="flex items-center gap-3">
-        <h4 className="text-xs font-semibold text-foreground">v{version}</h4>
+        <h4 className="text-xs font-semibold text-foreground">
+          <span aria-hidden="true">v{version}</span>
+          <span className="sr-only">Version {version}</span>
+        </h4>
         {hasUnread && (
-          <span
-            className="h-1.5 w-1.5 rounded-full bg-emerald-400"
-            title="New changes in this release"
-            aria-label="New changes available"
-          />
+          <div role="status" aria-label="New changes available" className="flex items-center">
+            <span
+              className="h-1.5 w-1.5 rounded-full bg-emerald-400"
+              title="New changes in this release"
+              aria-hidden="true"
+            />
+          </div>
         )}
       </div>
       <time dateTime={date} className="text-[11px] text-muted-foreground">
+        <span className="sr-only">Published on </span>
         {formattedDate}
       </time>
     </div>
   );
-}
+});
 
-function ChangelogEntry({ entry, isUnread }: { entry: any; isUnread: boolean }) {
+const ChangelogEntry = memo(function ChangelogEntry({
+  entry,
+  isUnread,
+}: {
+  entry: any;
+  isUnread: boolean;
+}) {
   return (
     <article
       className={cn(
-        "group rounded-lg border transition-all duration-200",
+        "group rounded-lg border transition-all duration-200 motion-reduce:transition-none",
         "hover:shadow-sm hover:border-white/15",
         "focus-within:ring-1 focus-within:ring-ring",
         isUnread
@@ -97,7 +107,10 @@ function ChangelogEntry({ entry, isUnread }: { entry: any; isUnread: boolean }) 
           <div className="flex-1 space-y-2 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <CategoryBadge category={entry.category} />
-              <h5 className="text-xs font-medium text-foreground leading-tight">{entry.title}</h5>
+              <h5 className="text-xs font-medium text-foreground leading-tight">
+                {entry.title}
+                {isUnread && <span className="sr-only"> (Unread)</span>}
+              </h5>
             </div>
             <p className="text-[11px] leading-relaxed text-muted-foreground">{entry.description}</p>
           </div>
@@ -109,7 +122,7 @@ function ChangelogEntry({ entry, isUnread }: { entry: any; isUnread: boolean }) 
             size="sm"
             asChild
             className={cn(
-              "mt-2 h-auto p-0 text-[11px] text-sky-400 transition-colors duration-200",
+              "mt-2 h-auto p-0 text-[11px] text-sky-400 transition-colors duration-200 motion-reduce:transition-none",
               "hover:text-sky-300 focus-visible:ring-1 focus-visible:ring-ring",
             )}
           >
@@ -119,15 +132,16 @@ function ChangelogEntry({ entry, isUnread }: { entry: any; isUnread: boolean }) 
               rel="noopener noreferrer"
               className="flex items-center gap-1"
             >
-              <ExternalLink className="h-3 w-3 flex-shrink-0" />
+              <ExternalLink className="h-3 w-3 flex-shrink-0" aria-hidden="true" />
               {entry.link.label}
+              <span className="sr-only"> (opens in a new tab)</span>
             </a>
           </Button>
         )}
       </div>
     </article>
   );
-}
+});
 
 export function ChangelogPanel() {
   const { entries, markAllSeen, isEntryUnread, hasUnread } = useChangelog();
@@ -136,15 +150,22 @@ export function ChangelogPanel() {
     markAllSeen();
   }, [markAllSeen]);
 
-  const grouped = useMemo(
-    () =>
-      entries.reduce<Record<string, typeof entries>>((acc, entry) => {
-        const key = `${entry.version}|${entry.date}`;
-        (acc[key] ??= []).push(entry);
-        return acc;
-      }, {}),
-    [entries],
-  );
+  const grouped = useMemo(() => groupEntriesByRelease(entries), [entries]);
+
+  // isEntryUnread only depends on the (stable, mount-time) initial seen
+  // version, so each entry's unread state is computed once here instead of
+  // being recomputed by calling the helper again for every entry on every
+  // render (previously called both per-group, via `.some`, and per-entry
+  // inside the render loop below).
+  const unreadByVersion = useMemo(() => {
+    const map = new Map<string, boolean>();
+    for (const entry of entries) {
+      if (!map.has(entry.version)) {
+        map.set(entry.version, isEntryUnread(entry.version));
+      }
+    }
+    return map;
+  }, [entries, isEntryUnread]);
 
   const isEmpty = entries.length === 0;
 
@@ -159,9 +180,13 @@ export function ChangelogPanel() {
               UI, API, protocol, and security changes — in plain language.
             </p>
           </div>
-          {!isEmpty && hasUnread && (
-            <div className="flex items-center gap-1.5 rounded-md bg-emerald-400/10 px-2.5 py-1.5 border border-emerald-400/20">
-              <CheckCircle2 className="h-3 w-3 text-emerald-400 flex-shrink-0" />
+          {!isEmpty && !hasUnread && (
+            <div
+              className="flex items-center gap-1.5 rounded-md bg-emerald-400/10 px-2.5 py-1.5 border border-emerald-400/20"
+              role="status"
+              aria-label="All release notes read"
+            >
+              <CheckCircle2 className="h-3 w-3 text-emerald-400 flex-shrink-0" aria-hidden="true" />
               <span className="text-[11px] font-medium text-emerald-300">All read</span>
             </div>
           )}
@@ -185,7 +210,7 @@ export function ChangelogPanel() {
         <div className="space-y-6">
           {Object.entries(grouped).map(([key, groupEntries]) => {
             const [version, date] = key.split("|");
-            const hasUnreadInGroup = groupEntries.some((e) => isEntryUnread(e.version));
+            const hasUnreadInGroup = unreadByVersion.get(version) ?? false;
 
             return (
               <section key={key} className="space-y-3">
@@ -195,7 +220,7 @@ export function ChangelogPanel() {
                     <ChangelogEntry
                       key={entry.id}
                       entry={entry}
-                      isUnread={isEntryUnread(entry.version)}
+                      isUnread={unreadByVersion.get(entry.version) ?? false}
                     />
                   ))}
                 </div>

@@ -287,8 +287,14 @@ describe("crypto/attachment-stream", () => {
     await iterator.next();
     controller.abort();
 
-    await expect(iterator.next()).rejects.toThrow(AttachmentStreamError);
-    await expect(manifest).rejects.toThrow(AttachmentStreamError);
+    // Both the iterator and manifest should reject
+    const [iteratorError, manifestError] = await Promise.all([
+      iterator.next().catch((e) => e),
+      manifest.catch((e) => e),
+    ]);
+
+    expect(iteratorError).toBeInstanceOf(AttachmentStreamError);
+    expect(manifestError).toBeInstanceOf(AttachmentStreamError);
     expect(released).toBe(true);
   });
 

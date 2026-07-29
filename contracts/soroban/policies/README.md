@@ -33,6 +33,46 @@ encoding, version semantics, and failure-path guarantees—is documented in
 [`docs/events.md`](docs/events.md) and pinned by the `event_schema` tests in
 `src/lib.rs`.
 
+## Contract Spec Regeneration Check
+
+`spec.json` feeds `scripts/generate-contract-bindings.mjs`, which emits the
+typed TypeScript client for this contract. If the contract interface changes
+without regenerating `spec.json`, the bindings silently drift from on-chain
+reality.
+
+The `spec_check` tests in `src/lib.rs` prevent that drift:
+
+- `spec_json_matches_contract_interface` decodes the XDR spec entries that the
+  soroban-sdk macros embed in the crate — the same entries a wasm build
+  publishes in its `contractspecv0` section — renders the canonical
+  `spec.json`, and fails if the committed file differs (whitespace-insensitive).
+- `spec_covers_every_public_contract_function` scans the contract source for
+  `pub fn` declarations and fails if any function is missing a spec entry, so a
+  new function cannot slip past the check.
+- `spec_covers_every_public_contract_type` does the same for the public
+  `#[contracttype]` and `#[contracterror]` declarations, so a new struct, enum,
+  or error type cannot slip past either.
+
+The check runs as part of `cargo test --workspace`, so CI fails on drift
+without an extra build step.
+
+After an interface change, regenerate and verify with:
+
+```sh
+cd contracts/soroban
+UPDATE_SPEC=1 cargo test -p stealth-policies spec_json   # rewrites spec.json
+cargo test -p stealth-policies                           # verifies
+node ../../scripts/generate-contract-bindings.mjs        # refreshes TS bindings
+```
+
+Struct fields in `spec.json` are alphabetized because the on-chain XDR spec
+sorts map keys; declaration order in Rust does not affect the ledger contract.
+The comparison ignores whitespace, so reformatting `spec.json` never triggers a
+false drift failure.
+
+The check is additive: it observes the interface the macros already export and
+does not alter any function signature, type layout, or error discriminant.
+
 ## Precedence
 
 1. Block always denies, regardless of price or mailbox defaults.

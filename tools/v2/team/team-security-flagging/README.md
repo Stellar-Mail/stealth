@@ -166,6 +166,22 @@ of these stable codes: `INVALID_INPUT`, `UNAUTHORIZED_REPORTER`,
 `DUPLICATE_FLAG`, `PERSISTENCE_FAILED`, or `INTERNAL_ERROR`. Callers should
 branch on `error.code`, not the human-readable message.
 
+### Loading and error states
+
+`executeSecurityFlagging` returns the terminal success or error output only.
+For a future UI or orchestration layer that needs lifecycle feedback, use
+`executeSecurityFlaggingWithState(input, dependencies, onState)`. It emits the
+following deterministic, folder-local states in order:
+
+| State     | When emitted                                           | Shape                                               |
+| --------- | ------------------------------------------------------ | --------------------------------------------------- |
+| `loading` | Before authorization, duplicate checks, or persistence | `{ status: "loading" }`                             |
+| `success` | A flag was persisted                                   | `{ status: "success", result: { ok: true, data } }` |
+| `error`   | Validation or a service boundary failed                | `{ status: "error", result: { ok: false, error } }` |
+
+The observer is optional and has no DOM, network, or application-shell
+dependency. Invalid observer values throw a `TypeError` before execution.
+
 Authorization, duplicate lookup, persistence, ID generation, and time are
 caller-supplied service boundaries. This makes execution deterministic in tests
 and independent of databases, transports, and presentation code.

@@ -88,59 +88,22 @@ Two views:
 - **Focus management**: visible focus rings (`ring-2` / `box-shadow`), auto-focus on detail panel mount
 - **Color contrast**: all text/background combinations exceed WCAG AA (4.5:1 for normal text, 3:1 for large text) — verified against the oklch token values
 
-## Core Logic Service
+## Core Logic & Backend Execution Service
 
-The core feature logic (introduced in Issue #640) is implemented as a set of pure functions wrapped by a `LocalBinderService` for predictable async testing and UI integration.
+The core feature logic is implemented as pure functions wrapped by two service boundaries:
 
-### Assumptions about Feature Scope
+1. `LocalBinderService` — UI-facing discriminated union state wrapper.
+2. `ProjectMailBinderBackendService` — Non-UI backend service boundary returning typed input/output DTOs (`BinderResult<T>`) and structured error codes (`BinderErrorCode`).
 
-Because the exact "Mail Binder" scope wasn't strictly defined, we assumed a minimalistic CRUD-style feature set:
+### Backend Execution Contract & Error Codes
 
-- Organizing mail items into named collections ("binders" or "projects").
-- Basic operations to **Create** and **Delete** projects.
-- Operations to **Bind** and **Unbind** mail items to projects.
-- Maintaining relationships between mails and projects without needing real external IDs.
-- Deterministic behavior: generating test IDs without relying on global unmockable `Math.random` or `Date.now()`.
+For headless execution independent of visual presentation, use `ProjectMailBinderBackendService` which implements `IBinderBackendService`:
 
-### API Surface & State Modeling
+- **Structured Results**: Returns `{ success: true, data: T }` or `{ success: false, error: BinderError }`.
+- **Structured Error Codes**: `INVALID_INPUT`, `PROJECT_NOT_FOUND`, `MAIL_NOT_FOUND`, `INVALID_STATE`, `DUPLICATE_PROJECT`, `RULE_EVALUATION_ERROR`, `UNHANDLED_ERROR`.
+- **Full Specification**: Detailed DTO contracts and headless integration examples are available in [EXECUTION_CONTRACT.md](file:///c:/Users/HR%20Gadget/Desktop/stellar/stealth/tools/v2/team/project-mail-binder/docs/EXECUTION_CONTRACT.md).
 
-The `LocalBinderService` models its results as a **discriminated union (`BinderState`)** instead of bare promises or throwing errors. This allows the UI to drive its state directly from the service output, natively supporting `empty`, `loading`, `error`, and `success` views without intermediate mapping.
-
-#### `BinderState` Shapes
-
-- `BinderStateEmpty`: `{ status: "empty" }`
-- `BinderStateLoading`: `{ status: "loading" }`
-- `BinderStateError`: `{ status: "error", message: string }`
-- `BinderStateSuccess`: `{ status: "success", projects: BinderProject[], mails: BinderMail[] }`
-
-#### Exported Service Methods (`LocalBinderService`)
-
-| Method                        | Inputs                                                         | Returns                | Possible Errors                          |
-| ----------------------------- | -------------------------------------------------------------- | ---------------------- | ---------------------------------------- |
-| `getState()`                  | None                                                           | `Promise<BinderState>` | None                                     |
-| `createProject(params)`       | `CreateProjectParams` (name, desc, color)                      | `Promise<BinderState>` | Invalid initial state, empty name        |
-| `deleteProject(id)`           | `ProjectId`                                                    | `Promise<BinderState>` | Invalid initial state, project not found |
-| `bindMail(projectId, params)` | `ProjectId`, `BindMailParams` (subject, sender, date, snippet) | `Promise<BinderState>` | Invalid initial state, project not found |
-| `unbindMail(mailId)`          | `MailId`                                                       | `Promise<BinderState>` | Invalid initial state, mail not found    |
-
-_Under the hood, all logic flows through predictable, pure functions found in `core.ts`. The service handles simulating network latency and state mutation isolation._
-
-## Running Tests
-
-```bash
-npx vitest run tools/v2/team/project-mail-binder/
-```
-
-Tests cover:
-
-- Core pure function business rules (create, delete, bind, unbind)
-- `LocalBinderService` async operations and error boundary
-- State builder shape and determinism
-- Type guard correctness
-- Fixture data validation (field shapes, referential integrity, date validity)
-- Accessibility constant integrity (labels, key mappings)
-
-## Folder Structure
+### Folder Structure
 
 ```
 tools/v2/team/project-mail-binder/
@@ -152,10 +115,19 @@ tools/v2/team/project-mail-binder/
 │   ├── ProjectList.tsx
 │   ├── ProjectMailBinder.tsx
 │   └── index.ts
+├── docs/
+│   └── EXECUTION_CONTRACT.md
 ├── fixtures/
 │   └── projects.ts
+├── services/
+│   ├── binderBackendService.ts
+│   └── projectBinderService.ts
 ├── tests/
-│   └── project-mail-binder.test.ts
+│   ├── backend-contract.test.ts
+│   ├── project-mail-binder.test.ts
+│   └── projectBinder.test.ts
+├── core.ts
+├── service.ts
 ├── index.ts
 ├── types.ts
 ├── README.md
@@ -175,3 +147,16 @@ Do not wire this tool into the main app, routing, inbox architecture, wallet cor
 ## Follow-Up
 
 > **Suggested follow-up issue**: Mount `ProjectMailBinder` in the app shell (add route, nav entry, and wire to real mail data via the existing mail service).
+
+## Contributor Notes
+
+This repository issue focuses on testing and documentation only.
+
+Reviewers should verify that:
+
+- all implementation remains isolated to `tools/v2/team/project-mail-binder/`
+- existing tests continue to pass
+- documentation reflects the current behavior of the tool
+- no integration with the main application has been introduced
+
+Future integration with routing, mailbox services, authentication, or shared application state should be handled in a separate issue.

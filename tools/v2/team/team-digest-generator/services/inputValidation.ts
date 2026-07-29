@@ -1,4 +1,4 @@
-﻿/* eslint-disable no-control-regex, no-useless-escape */
+/* eslint-disable no-control-regex, no-useless-escape */
 /**
  * Input validation service for Team Digest Generator
  * Handles validation of user input and configuration
@@ -44,6 +44,18 @@ export function validateEmail(email: string): ValidationError | null {
   }
 
   const trimmedEmail = email.trim();
+  if (
+    trimmedEmail.includes("'") ||
+    trimmedEmail.includes("--") ||
+    trimmedEmail.includes(";") ||
+    trimmedEmail.includes("=")
+  ) {
+    return {
+      field: "email",
+      message: "Invalid email format (potential injection)",
+      code: "INVALID_FORMAT",
+    };
+  }
   if (!basicEmailRegex.test(trimmedEmail)) {
     return {
       field: "email",
@@ -123,17 +135,17 @@ export function validateCronExpression(cron: string): ValidationError | null {
     };
   }
 
-  const parts = cron.trim().split(/\s+/);
-
-  if (parts.length !== 5) {
+  // Prevent ReDoS by checking string / field length first
+  if (cron.length > 100) {
     return {
       field: "cron",
-      message: "Cron expression must have exactly 5 fields (minute hour day month weekday)",
-      code: "INVALID_FIELD_COUNT",
+      message: "Cron expression exceeds max complexity",
+      code: "FIELD_TOO_COMPLEX",
     };
   }
 
-  // Prevent ReDoS by checking field length
+  const parts = cron.trim().split(/\s+/);
+
   const maxFieldLength = 50;
   for (let i = 0; i < parts.length; i++) {
     if (parts[i].length > maxFieldLength) {
@@ -143,6 +155,14 @@ export function validateCronExpression(cron: string): ValidationError | null {
         code: "FIELD_TOO_COMPLEX",
       };
     }
+  }
+
+  if (parts.length !== 5) {
+    return {
+      field: "cron",
+      message: "Cron expression must have exactly 5 fields (minute hour day month weekday)",
+      code: "INVALID_FIELD_COUNT",
+    };
   }
 
   // Validate each field

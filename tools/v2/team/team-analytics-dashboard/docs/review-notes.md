@@ -2,48 +2,55 @@
 
 ## What This Contribution Adds
 
-- Replaces the generated placeholder README with a concrete local product contract.
-- Adds a folder-local fixture that models a realistic team analytics snapshot (4 members, 1-week period).
-- Adds a zero-dependency Node test suite (9 assertions) that validates the fixture against the analytics contract.
-- Documents setup, usage, manual review steps, edge cases, and known limitations inside the tool folder.
-- Adds `services/analytics-dashboard.service.mjs` — core report generator with member status classification, top-performer/bottleneck detection, and summary aggregation.
-- Adds `services/analytics-snapshot.service.mjs` — team snapshot classifier that maps source reports to `healthy`, `watch`, `needs-attention`, or `blocked` statuses.
-- Updates both test files to import and validate the service output against fixture expectations (service integration tests).
+- Builds the tool's local user interface and accessibility surface inside `tools/v2/team/team-analytics-dashboard/`.
+- Adds folder-local React components in `components/`:
+  - `TeamAnalyticsDashboard.tsx`: Primary UI workflow with view-switching tabs (`Member Workload` vs. `Team Snapshots`), search, and status filtering.
+  - `SummaryCards.tsx`: Team-wide overview displaying email volume, backlog, average response time, SLA breaches, Top Performer, Bottleneck Member, and SLA review alerts.
+  - `MemberTable.tsx`: Accessible data table with column sorting (`aria-sort`), status badges combining icon and text, and N/A handling for away members.
+  - `SnapshotList.tsx`: Grid of team health snapshots with review flags and status badges.
+  - State Components: `EmptyState.tsx`, `LoadingState.tsx`, `ErrorState.tsx`, and `SuccessState.tsx`.
+- Adds folder-local custom hook `hooks/use-team-analytics.ts` for managing state, sorting, filtering, and simulated data refresh.
+- Adds `demo.tsx` with an interactive `TeamAnalyticsDashboardDemo` (providing toggleable Normal, Loading, Error, and Empty state buttons) and a `MinimalExample`.
+- Adds `docs/ACCESSIBILITY.md` and `docs/VISUAL_STYLE.md` documenting WCAG 2.1 AA keyboard navigation, ARIA live regions, semantic markup, and Tailwind CSS token usage.
+- Adds 27 Vitest automated component and hook tests (`tests/components.test.tsx` and `tests/hooks.test.tsx`) alongside the existing 27 Node `--test` service/fixture assertions (54 total passing tests).
 
 ## Validation Performed
 
-```bash
-node --test tools/v2/team/team-analytics-dashboard/tests/analytics-dashboard-fixtures.test.mjs
-```
-
-All 10 tests pass against the local fixture.
+### 1. UI Component & Hook Unit Tests (Vitest)
 
 ```bash
-node --test tools/v2/team/team-analytics-dashboard/tests/analytics-fixtures.test.mjs
+npx vitest run --root tools/v2/team/team-analytics-dashboard
 ```
 
-All 2 tests pass against the snapshot fixture.
+All 27 tests pass:
+
+- 7 hook tests verifying filtering, searching, sorting, and state transitions.
+- 20 component tests verifying rendering, `aria-*` attributes, keyboard activation, column sorting, and N/A edge-case rendering.
+
+### 2. Service & Fixture Integration Tests (Node --test)
+
+```bash
+node --test tools/v2/team/team-analytics-dashboard/tests/analytics-dashboard-fixtures.test.mjs tools/v2/team/team-analytics-dashboard/tests/analytics-fixtures.test.mjs tools/v2/team/team-analytics-dashboard/tests/analytics-contract.test.mjs tools/v2/team/team-analytics-dashboard/tests/analytics-guards.test.mjs
+```
+
+All 27 tests pass.
 
 ## Reviewer Focus
 
-- The contribution adds pure, deterministic service code — no UI, no live data, no app wiring.
-- The fixture covers the four member-status archetypes the dashboard must handle; reviewers should check that each archetype is realistic and distinct.
-- The summary totals are arithmetically derived from member data; the service test enforces this so implementation code cannot silently diverge.
-- The SLA threshold (4 hours) and overload thresholds (>10 open threads or >2 SLA breaches) are encoded in the service — if the product definition changes, update both the fixture and the constants in the service file.
-- The snapshot service deterministically maps source reports to dashboard-ready statuses; reviewers can trace each snapshot back to its source report.
-- No production app behavior changes from this contribution.
+- **Folder Isolation**: All UI code, state management, demo examples, documentation, and tests reside strictly within `tools/v2/team/team-analytics-dashboard/`. No modifications were made to the shared design system or main app shell.
+- **Accessibility & Keyboard Support**: Review `docs/ACCESSIBILITY.md`. Check that all sortable headers use `aria-sort`, loading/error states use `role="status"` or `role="alert"`, and away members display `"N/A"` with `aria-label="Not applicable"` rather than `0`.
+- **Visual Style Compliance**: Review `docs/VISUAL_STYLE.md`. Check that every status badge combines an icon (`✓`, `⚠️`, `ℹ️`, `⏸️`, `👀`, `🛑`) with text so status is never conveyed by color alone.
+- **Reviewable Mini-Product**: The addition of `demo.tsx` allows reviewers to interactively inspect and test all 4 UI states without needing a running backend.
 
 ## Intentionally Out of Scope
 
-- Live data aggregation from the inbox (future implementation issue)
-- UI components, charts, and accessibility markup (future feature issue)
-- Role-based permission checks for individual vs. summary views (future security issue)
-- Real-time refresh and WebSocket / polling integration (future architecture issue)
-- CSV export and shareable-link generation (future feature issue)
-- Integration with the main app routing and navigation (blocked by isolation boundary)
+- Live data aggregation from the main inbox or backend mail servers (future implementation issue).
+- Role-based permission checks for individual vs. summary views (future security issue).
+- Real-time refresh and WebSocket / polling integration (future architecture issue).
+- CSV export and shareable-link generation (future feature issue).
+- Integration with the main app routing and navigation (blocked by V2 later-release isolation boundary).
 
 ## Follow-Up Work
 
-- Add chart and table components with keyboard-accessible interactions.
+- Connect `TeamAnalyticsDashboard` to live backend analytics endpoints when integrated into the main app shell in a subsequent release tier.
 - Add role-based access checks so only managers see per-member breakdowns.
-- Add integration tests only after a future issue explicitly allows app wiring.

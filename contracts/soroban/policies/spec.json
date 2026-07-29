@@ -8,16 +8,16 @@
           "type": "bool"
         },
         {
-          "name": "require_verified",
-          "type": "bool"
+          "name": "minimum_postage",
+          "type": "i128"
         },
         {
           "name": "require_receipt",
           "type": "bool"
         },
         {
-          "name": "minimum_postage",
-          "type": "i128"
+          "name": "require_verified",
+          "type": "bool"
         }
       ]
     },

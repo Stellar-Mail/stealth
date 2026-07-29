@@ -122,9 +122,34 @@ export async function parseJsonBody<T>(
 
   validateContentLength(request, maxBytes);
 
-  const body = await request.text();
-  if (new TextEncoder().encode(body).byteLength > maxBytes) {
-    throw new ApiError(413, "bad_request", `Request body exceeds ${maxBytes} bytes`);
+  const reader = request.body?.getReader();
+  const chunks: Uint8Array[] = [];
+  let bodyBytes = 0;
+
+  if (reader) {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      bodyBytes += value.byteLength;
+      if (bodyBytes > maxBytes) {
+        await reader.cancel();
+        throw new ApiError(413, "bad_request", `Request body exceeds ${maxBytes} bytes`);
+      }
+      chunks.push(value);
+    }
+  }
+
+  const encodedBody = new Uint8Array(bodyBytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    encodedBody.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+
+  const body = new TextDecoder().decode(encodedBody);
+  if (!body.trim()) {
+    throw new ApiError(400, "bad_request", "Request body must not be empty");
   }
 
   try {

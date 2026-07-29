@@ -17,7 +17,7 @@ node --test tools/v2/team/role-based-mail-access/tests/access-guards.test.mjs
 npx vitest -c tools/v2/team/role-based-mail-access/vitest.config.ts run
 ```
 
-If you only want the reviewer checklist, start with [../tests/test-plan.md](../tests/test-plan.md) and [review-notes.md](review-notes.md).
+If you only want the reviewer checklist, start with [../tests/test-plan.md](../tests/test-plan.md) and [review-notes.md](review-notes.md). For the non-UI backend execution contract and service boundary, see [EXECUTION_CONTRACT.md](EXECUTION_CONTRACT.md).
 
 ## Visual States
 

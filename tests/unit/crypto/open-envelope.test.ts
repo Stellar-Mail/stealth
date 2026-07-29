@@ -6,7 +6,7 @@ import {
   type KeyProvider,
 } from "../../../src/services/crypto/open-envelope";
 import { createCommitment } from "../../../src/services/crypto/commitment";
-import { canonicalizeAttachmentDescriptors } from "../../../src/services/crypto/attachment-metadata";
+import { encodeAad } from "../../../src/services/crypto/aad";
 
 function toBase64(bytes: Uint8Array): string {
   let binary = "";
@@ -24,7 +24,13 @@ function toHex(bytes: Uint8Array): string {
 async function buildEnvelope(body: string, key: CryptoKey, recipient: string) {
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const plaintext = new TextEncoder().encode(body);
-  const aad = canonicalizeAttachmentDescriptors([]);
+  const aad = encodeAad({
+    version: "v1",
+    sender: "GABC",
+    recipient,
+    timestamp: "2026-07-23T12:00:00.000Z",
+    attachments: [],
+  });
   const ct = new Uint8Array(
     await crypto.subtle.encrypt(
       { name: "AES-GCM", iv, additionalData: aad as BufferSource },

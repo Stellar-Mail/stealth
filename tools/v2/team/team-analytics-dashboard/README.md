@@ -1,6 +1,6 @@
 # Team Analytics Dashboard
 
-A self-contained V2 team tool that surfaces per-member performance metrics — email volume, response times, SLA breaches, and workload balance — across a configurable time period.
+A self-contained V2 team tool that surfaces per-member performance metrics — email volume, response times, SLA breaches, and workload balance — across a configurable time period, complete with an accessible, keyboard-navigable UI surface.
 
 ## Ownership Boundary
 
@@ -18,19 +18,45 @@ integration issue explicitly allows it.
 
 ```
 team-analytics-dashboard/
-├── fixtures/
-│   ├── sample-analytics-data.json       # local contract fixture (4 members, 1 week)
-│   └── sample-team-analytics.json       # snapshot review fixture (4 teams)
+├── components/
+│   ├── EmptyState.tsx                   # accessible empty state with CTA
+│   ├── LoadingState.tsx                 # polite live region loading spinner
+│   ├── ErrorState.tsx                   # assertive alert state with retry action
+│   ├── SuccessState.tsx                 # polite success banner with dismiss
+│   ├── SummaryCards.tsx                 # team metrics summary & SLA breach alerts
+│   ├── MemberTable.tsx                  # sortable member data table with ARIA sort
+│   ├── SnapshotList.tsx                 # keyboard-navigable snapshot card grid
+│   ├── TeamAnalyticsDashboard.tsx       # main UI workflow (tabs, filters, search)
+│   └── index.ts                         # components export bundle
+├── hooks/
+│   ├── use-team-analytics.ts            # state management, sorting, filtering, refresh
+│   └── index.ts                         # hooks export bundle
 ├── services/
 │   ├── analytics-dashboard.service.mjs  # core dashboard report generator
-│   └── analytics-snapshot.service.mjs   # team snapshot classifier
+│   ├── analytics-snapshot.service.mjs   # team snapshot classifier
+│   └── index.ts                         # typed ESM service re-exports
+├── contract/
+│   └── analytics-contract.d.ts          # TypeScript data schema and contract definitions
+├── fixtures/
+│   ├── sample-analytics-data.json       # local contract fixture (4 members, 1 week)
+│   ├── sample-team-analytics.json       # snapshot review fixture (4 teams)
+│   └── index.ts                         # typed fixture and sample report exports
 ├── tests/
+│   ├── components.test.tsx              # Vitest UI component test suite (20 tests)
+│   ├── hooks.test.tsx                   # Vitest custom hook test suite (7 tests)
 │   ├── analytics-dashboard-fixtures.test.mjs   # fixture + service test suite
-│   └── analytics-fixtures.test.mjs             # snapshot fixture + service test suite
+│   ├── analytics-fixtures.test.mjs             # snapshot fixture + service test suite
+│   ├── analytics-contract.test.mjs             # contract schema test suite
+│   └── analytics-guards.test.mjs               # validation guards test suite
 ├── docs/
+│   ├── ACCESSIBILITY.md  # WCAG 2.1 AA keyboard navigation, ARIA live regions, semantics
+│   ├── VISUAL_STYLE.md   # Tailwind CSS semantic token compliance & style documentation
 │   ├── test-plan.md      # how to run and manually validate the tests
 │   └── review-notes.md   # scope, reviewer focus, and follow-up work
-├── specs.md
+├── demo.tsx              # interactive demo component with state simulation buttons
+├── index.ts              # main tool entry point exporting components, hooks, services, demo
+├── vitest.config.ts      # Vitest configuration for UI component & hook test suites
+├── specs.md              # tool specifications and release scope
 └── README.md
 ```
 
@@ -52,27 +78,25 @@ The fixture (`fixtures/sample-analytics-data.json`) defines the shape the dashbo
 
 ## Running the Tests
 
-No install step required. Run from the repository root:
+### 1. UI Component & Hook Unit Tests (Vitest)
+
+Run from the repository root:
 
 ```bash
-node --test tools/v2/team/team-analytics-dashboard/tests/analytics-dashboard-fixtures.test.mjs
+npx vitest run --root tools/v2/team/team-analytics-dashboard
 ```
 
-Expected output: 10 passing tests, 0 failures.
+Expected output: 27 passing tests (20 component tests + 7 hook tests) across 2 suites.
 
-Also run the snapshot fixture tests:
+### 2. Service & Fixture Contract Tests (Node --test)
+
+Run from the repository root:
 
 ```bash
-node --test tools/v2/team/team-analytics-dashboard/tests/analytics-fixtures.test.mjs
+node --test tools/v2/team/team-analytics-dashboard/tests/analytics-dashboard-fixtures.test.mjs tools/v2/team/team-analytics-dashboard/tests/analytics-fixtures.test.mjs tools/v2/team/team-analytics-dashboard/tests/analytics-contract.test.mjs tools/v2/team/team-analytics-dashboard/tests/analytics-guards.test.mjs
 ```
 
-Expected output: 2 passing tests, 0 failures.
-
-Or run all dashboard tests together:
-
-```bash
-node --test tools/v2/team/team-analytics-dashboard/tests/
-```
+Expected output: 27 passing tests across all 4 suites.
 
 ## Core Services
 
@@ -91,6 +115,14 @@ The snapshot service (`generateSnapshots`) classifies team source reports into d
 
 - **`computeSnapshotStatus(report)`** — maps a source report to one of `healthy`, `watch`, `needs-attention`, or `blocked` based on backlog size, response time, and data completeness.
 - **`generateSnapshots(sourceReports)`** — transforms an array of source reports into an array of analytics snapshots with computed status and review flags.
+
+## UI Surface & Accessibility
+
+- **Accessible Tab Switching**: Users can toggle between the `Member Workload` and `Team Snapshots` views using mouse clicks or keyboard arrow keys (`role="tablist"`, `role="tab"`).
+- **Sortable Performance Table**: Supports sorting by column (`Member`, `Status`, `Received`, `Handled`, `Open`, `Resolved`, `SLA Breaches`, `Avg Response Time`) with dynamic `aria-sort` indicators.
+- **Status Badges & Warning Alerts**: All badges combine symbolic icons (`✓`, `⚠️`, `ℹ️`, `⏸️`, `👀`, `🛑`) with text so state is never conveyed by color alone.
+- **Null / Away Handling**: Away members or blocked snapshots with null response time display `"N/A"` with explicit `aria-label="Not applicable"` so assistive technologies never announce ambiguous zeros.
+- **Demo Mode**: The interactive `TeamAnalyticsDashboardDemo` component in `demo.tsx` lets reviewers simulate normal, loading, error, and empty states at the click of a button.
 
 ## Fixture Scenarios
 
@@ -112,4 +144,4 @@ The fixture includes one member for each workload archetype:
 
 ## Review
 
-See `docs/test-plan.md` for the full manual review checklist and `docs/review-notes.md` for contributor scope and follow-up issues.
+See `docs/test-plan.md` for the full manual review checklist, `docs/ACCESSIBILITY.md` for WCAG 2.1 AA keyboard/ARIA details, `docs/VISUAL_STYLE.md` for Tailwind styling compliance, and `docs/review-notes.md` for contributor scope and follow-up issues.

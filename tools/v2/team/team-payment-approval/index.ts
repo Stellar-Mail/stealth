@@ -32,7 +32,35 @@ export { usePaymentApproval, usePaymentRequests } from "./hooks";
 export type { UsePaymentApprovalOptions, UsePaymentRequestsOptions } from "./hooks";
 
 // Services
-export { paymentService, decisionService, persistentDecisionService } from "./services";
+export {
+  paymentService,
+  decisionService,
+  persistentDecisionService,
+  GUARD_LIMITS,
+  sanitizeText,
+  sanitizeStringField,
+  isFiniteNumber,
+  isNonEmptyString,
+  isDecisionKind,
+  isPrototypeSafe,
+  isRegexSafe,
+  safeJsonParse,
+  normalizeDate,
+  sanitizeAmount,
+  validatePaymentApprovalInput,
+  validateContext,
+  checkInputLimits,
+  sanitizeInput,
+  batchSizeGuard,
+  trimCollection,
+  safeExecuteApproval,
+} from "./services";
+
+export type {
+  PaymentApprovalGuardIssue,
+  SafePaymentApprovalResult,
+  SafeJsonResult,
+} from "./services";
 
 // Types
 export type {

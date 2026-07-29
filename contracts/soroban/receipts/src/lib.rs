@@ -128,6 +128,34 @@ pub struct Read {
     pub receipt: Receipt,
 }
 
+/// Storage Key Migration Notes:
+///
+/// `DataKey::Guard` lives in instance storage; `DataKey::Receipt(message_id)` entries
+/// live in persistent storage (see `configure_guard`/`guard` vs. `delivered`/`read`/`get`).
+/// Soroban's `#[contracttype]` derive encodes each variant as a `Vec` whose first element
+/// is a `Symbol` built from the variant's *name* (e.g. `"Guard"`, `"Receipt"`), and decodes
+/// a previously-written key by looking that name up among the enum's current variants —
+/// the numeric declaration order is not part of the encoding. That has concrete
+/// consequences for evolving this enum without corrupting already-written ledger state:
+/// - **Never rename or remove a variant** that has ever been used to write instance or
+///   persistent storage. Renaming changes the encoded `Symbol`, so every key written
+///   under the old name becomes permanently undecodable and its ledger entry is orphaned.
+/// - **Never change a variant's tuple field types** (e.g. widening `Receipt(BytesN<32>)`
+///   to carry an extra argument). This changes the encoded shape and breaks decoding of
+///   every entry written before the change, the same way a rename does.
+/// - Reordering variants is safe on its own — decoding matches by name, not position —
+///   but new variants should still be **appended at the end** to keep the declaration
+///   order matching historical introduction order for readers and auditors, and to stay
+///   consistent with the convention used by the other Soroban contracts in this workspace
+///   (see `contracts/soroban/policies/src/lib.rs`).
+/// - If a key's structure must change, leave the old variant in place (so existing ledger
+///   entries stay readable under it) and add a new variant instead (e.g. `ReceiptV2(..)`),
+///   with an explicit read/write migration path for callers that need to move data from
+///   the old key to the new one.
+///
+/// The `storage_keys` test module below pins the encoded discriminant name for each
+/// variant, so an accidental rename fails CI instead of silently orphaning ledger data.
+/// See `docs/storage.md` for the full storage layout.
 #[contracttype]
 enum DataKey {
     Guard,
@@ -711,6 +739,58 @@ mod test {
                 .unwrap(),
             Error::GuardNotConfigured
         );
+    }
+}
+
+#[cfg(test)]
+mod storage_keys {
+    // Storage key discriminant pinning tests.
+    //
+    // `DataKey` variants are encoded by name (see the migration notes above `DataKey`),
+    // so a rename is the actual backward-compatibility hazard for this enum — not
+    // reordering. These tests pin the exact discriminant `Symbol` written for each
+    // variant; a rename fails here before it can orphan already-written ledger state.
+    extern crate std;
+
+    use super::*;
+    use soroban_sdk::{TryFromVal, Val, Vec as SorobanVec};
+    use std::string::ToString;
+
+    fn discriminant_name(env: &Env, key: &DataKey) -> std::string::String {
+        let val = Val::try_from_val(env, key).unwrap();
+        let vec: SorobanVec<Val> = SorobanVec::try_from_val(env, &val).unwrap();
+        let discriminant: soroban_sdk::Symbol =
+            soroban_sdk::Symbol::try_from_val(env, &vec.get(0).unwrap()).unwrap();
+        discriminant.to_string()
+    }
+
+    #[test]
+    fn guard_key_discriminant_is_pinned() {
+        let env = Env::default();
+        assert_eq!(discriminant_name(&env, &DataKey::Guard), "Guard");
+    }
+
+    #[test]
+    fn receipt_key_discriminant_is_pinned() {
+        let env = Env::default();
+        let key = DataKey::Receipt(BytesN::from_array(&env, &[1u8; 32]));
+        assert_eq!(discriminant_name(&env, &key), "Receipt");
+    }
+
+    #[test]
+    fn distinct_message_ids_produce_distinct_receipt_keys() {
+        let env = Env::default();
+        let contract_id = env.register(ReceiptsContract, ());
+        env.as_contract(&contract_id, || {
+            let key_a = DataKey::Receipt(BytesN::from_array(&env, &[1u8; 32]));
+            let key_b = DataKey::Receipt(BytesN::from_array(&env, &[2u8; 32]));
+
+            env.storage().persistent().set(&key_a, &1u32);
+            env.storage().persistent().set(&key_b, &2u32);
+
+            assert_eq!(env.storage().persistent().get::<_, u32>(&key_a), Some(1));
+            assert_eq!(env.storage().persistent().get::<_, u32>(&key_b), Some(2));
+        });
     }
 }
 

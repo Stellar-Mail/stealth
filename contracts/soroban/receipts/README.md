@@ -25,6 +25,14 @@ topic layout, data encoding, ordering, and stability guarantees for off-chain
 consumers — is documented in `docs/events.md` and pinned by the
 `event_schema` tests in `src/lib.rs`.
 
+## Storage
+
+`DataKey::Guard` (instance storage) and `DataKey::Receipt(message_id)` (persistent
+storage) are the contract's only storage keys. Their encoding, backward-compatible
+evolution rules, and migration plan for a future key-structure change are
+documented in `docs/storage.md` and pinned by the `storage_keys` tests in
+`src/lib.rs`.
+
 ## Authorization boundaries
 
 - `delivered` requires the sender's authorization, and the signature is bound

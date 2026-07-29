@@ -10,10 +10,13 @@ interface StatusIndicatorsProps {
 export function StatusIndicators({ stats, errors, logs }: StatusIndicatorsProps) {
   return (
     <div className="grid gap-4 md:grid-cols-3">
-      {/* Performance Stats */}
-      <div className="border border-border/80 rounded-xl bg-card/30 p-5 flex flex-col justify-between">
+      <div
+        className="border border-border/80 rounded-xl bg-card/30 p-5 flex flex-col justify-between"
+        role="region"
+        aria-label="Performance telemetry"
+      >
         <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-          <span>⚡ Performance Telemetry</span>
+          <span aria-hidden="true">⚡</span> Performance Telemetry
         </h4>
         {stats ? (
           <div className="space-y-2 text-xs">
@@ -41,35 +44,47 @@ export function StatusIndicators({ stats, errors, logs }: StatusIndicatorsProps)
         )}
       </div>
 
-      {/* Safety Logs */}
-      <div className="border border-border/80 rounded-xl bg-card/30 p-5 flex flex-col justify-between md:col-span-2">
+      <div
+        className="border border-border/80 rounded-xl bg-card/30 p-5 flex flex-col justify-between md:col-span-2"
+        role="region"
+        aria-label="Safety scanner output"
+      >
         <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-          <span>🛡️ Safety Scanner Output</span>
+          <span aria-hidden="true">🛡️</span> Safety Scanner Output
           {errors.length > 0 && (
             <span className="text-[10px] bg-rose-500/10 text-rose-500 border border-rose-500/20 px-2 py-0.5 rounded-full">
-              {errors.length} Warnings
+              {errors.length} Warning{errors.length > 1 ? "s" : ""}
             </span>
           )}
         </h4>
 
         <div className="flex-1 flex flex-col gap-3 min-h-[120px]">
-          {/* Active Logs Console */}
-          <div className="flex-1 bg-black/40 border border-border/50 rounded-lg p-3 font-mono text-[11px] text-zinc-300 max-h-[120px] overflow-y-auto space-y-1 scrollbar-thin">
+          <div
+            className="flex-1 bg-black/40 border border-border/50 rounded-lg p-3 font-mono text-[11px] text-zinc-300 max-h-[120px] overflow-y-auto space-y-1 scrollbar-thin"
+            role="log"
+            aria-live="polite"
+            aria-label="Processing log"
+          >
             {logs.length === 0 ? (
               <span className="text-zinc-500 italic">&gt; Awaiting process activation...</span>
             ) : (
               logs.map((log, i) => (
                 <div key={i} className="leading-5">
-                  <span className="text-zinc-500 mr-2">&gt;</span>
-                  {log}
+                  <span className="text-zinc-500 mr-2" aria-hidden="true">
+                    &gt;
+                  </span>
+                  <span>{log}</span>
                 </div>
               ))
             )}
           </div>
 
-          {/* Validation & Parsing Errors */}
           {errors.length > 0 && (
-            <div className="bg-rose-500/5 border border-rose-500/20 rounded-lg p-3 text-xs text-rose-400 space-y-1">
+            <div
+              className="bg-rose-500/5 border border-rose-500/20 rounded-lg p-3 text-xs text-rose-400 space-y-1"
+              role="alert"
+              aria-live="assertive"
+            >
               <span className="font-semibold block text-[11px] uppercase tracking-wider text-rose-500 mb-1">
                 Rejected / Blocked Entries:
               </span>

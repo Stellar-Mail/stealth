@@ -1,5 +1,6 @@
 import { Agent, Thread, AssignmentLog, AssignmentMetrics } from "../types";
 import { AGENT_FIXTURES, THREAD_FIXTURES } from "../fixtures/multi-agent.fixtures";
+import { sanitizeAgentAssignments, validateAssignmentPayloadSize } from "../guards";
 
 export function getThreadRequiredSpecialties(thread: Thread): string[] {
   const specialties: string[] = [];
@@ -104,6 +105,8 @@ export function createAssignmentService(
   }
 
   function assignAgent(threadId: string, agentId: string, operator = "Admin"): Thread {
+    sanitizeAgentAssignments([agentId]);
+
     const threadIdx = threads.findIndex((t) => t.id === threadId);
     if (threadIdx === -1) {
       throw new Error(`Thread ${threadId} not found.`);
@@ -319,6 +322,13 @@ export function createAssignmentService(
     priority: "low" | "medium" | "high",
     category?: string,
   ): Thread {
+    validateAssignmentPayloadSize({
+      subject,
+      snippet,
+      sender,
+      priority,
+      category,
+    });
     const newId = `thread-${String(threads.length + 1).padStart(3, "0")}`;
     const newThread: Thread = {
       id: newId,

@@ -6,6 +6,8 @@ import type {
   ConditionGroup,
 } from "../types";
 
+import { isSafeRegexPattern, MAX_CONDITIONS_PER_GROUP, MAX_PATTERN_LENGTH } from "./guards";
+
 export class RuleEngineService {
   evaluate(rule: InboxRule, mailContext: MailContext): RuleEvaluationResult {
     const matchedGroups: string[] = [];
@@ -30,13 +32,28 @@ export class RuleEngineService {
   }
 
   evaluateAll(rules: InboxRule[], mailContext: MailContext): RuleEvaluationResult[] {
-    return rules.filter((r) => r.enabled).map((rule) => this.evaluate(rule, mailContext));
+    const results: RuleEvaluationResult[] = [];
+
+    for (const rule of rules) {
+      if (!rule.enabled) {
+        continue;
+      }
+
+      results.push(this.evaluate(rule, mailContext));
+    }
+
+    return results;
   }
 
   private evaluateConditionGroup(group: ConditionGroup, mail: MailContext): boolean {
+    if (group.conditions.length > MAX_CONDITIONS_PER_GROUP) {
+      return false;
+    }
+
     if (group.logic === "and") {
       return group.conditions.every((c) => this.evaluateCondition(c, mail));
     }
+
     return group.conditions.some((c) => this.evaluateCondition(c, mail));
   }
 
@@ -56,11 +73,11 @@ export class RuleEngineService {
       case "endsWith":
         return String(fieldValue).toLowerCase().endsWith(condition.value.toLowerCase());
       case "matches":
-        try {
-          return new RegExp(condition.value, "i").test(String(fieldValue));
-        } catch {
+        if (!isSafeRegexPattern(condition.value)) {
           return false;
         }
+
+        return new RegExp(condition.value, "i").test(String(fieldValue));
       case "exists":
         return fieldValue !== undefined && fieldValue !== null && String(fieldValue).length > 0;
       case "notExists":

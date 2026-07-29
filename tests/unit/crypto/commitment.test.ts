@@ -14,7 +14,7 @@ describe("Versioned Content Commitments", () => {
 
   it("verifies a valid commitment successfully", async () => {
     const commitment = await createCommitment(testCiphertext);
-    await expect(verifyCommitment(commitment, testCiphertext)).resolves.not.toThrow();
+    await expect(verifyCommitment(commitment, testCiphertext)).resolves.toBeUndefined();
   });
 
   it("fails verification on a tampered ciphertext", async () => {

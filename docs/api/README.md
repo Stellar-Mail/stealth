@@ -57,9 +57,19 @@ client/server clock-skew tolerance on both ends of the window. Deployments can c
 with `STEALTH_AUTH_CHALLENGE_LIFETIME_MS` and `STEALTH_AUTH_CLOCK_SKEW_MS`; both values are integer
 milliseconds. The complete configuration rules are documented in [`src/config/README.md`](../../src/config/README.md).
 
-Challenges older than the configured window fail with the machine-readable error code
-`expired_challenge`. Challenges dated farther into the future than the allowed skew fail with
-`challenge_not_yet_valid`. Both errors use HTTP 422 and the standard API error envelope.
+The same window governs signed requests, so a request and the challenge it carries are never judged
+against different durations.
+
+A challenge is validated against the expiry it was issued with. Reconfiguring
+`STEALTH_AUTH_CHALLENGE_LIFETIME_MS` therefore applies to challenges issued afterwards and never
+retroactively extends or shortens ones already in flight; the configured lifetime is the fallback
+when no expiry was stamped.
+
+Challenges older than the window fail with the machine-readable error code `expired_challenge` and
+the reason `AUTH_EXPIRED`. Challenges dated farther into the future than the allowed skew fail with
+`challenge_not_yet_valid` and the reason `AUTH_NOT_YET_VALID`. Both errors use HTTP 422 and the
+standard API error envelope, and carry the reason in `details.reason` so a client can tell "your
+clock is behind" from "your clock is ahead" without parsing prose.
 
 ### Authentication nonce lifecycle
 

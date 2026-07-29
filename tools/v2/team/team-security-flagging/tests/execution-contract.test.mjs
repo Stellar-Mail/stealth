@@ -6,7 +6,9 @@ import { fileURLToPath } from "node:url";
 import {
   createSecurityFlaggingExecutor,
   executeSecurityFlagging,
+  executeSecurityFlaggingWithState,
   SecurityFlaggingErrorCode,
+  SecurityFlaggingExecutionStatus,
 } from "../services/security-flagging-execution.service.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -67,4 +69,36 @@ test("duplicate failures expose the existing flag id", async () => {
 
 test("missing dependencies are rejected during construction", () => {
   assert.throws(() => createSecurityFlaggingExecutor(), TypeError);
+});
+
+test("stateful entry point reports loading then the terminal success state", async () => {
+  const states = [];
+  const result = await executeSecurityFlaggingWithState(
+    cases.success.input,
+    dependencies(),
+    (state) => {
+      states.push(state);
+    },
+  );
+
+  assert.equal(result.ok, true);
+  assert.deepEqual(states, [
+    { status: SecurityFlaggingExecutionStatus.LOADING },
+    { status: SecurityFlaggingExecutionStatus.SUCCESS, result },
+  ]);
+});
+
+test("stateful entry point reports a terminal error state", async () => {
+  const states = [];
+  const result = await executeSecurityFlaggingWithState(
+    { ...cases.success.input, severity: "urgent" },
+    dependencies(),
+    (state) => states.push(state),
+  );
+
+  assert.equal(result.ok, false);
+  assert.deepEqual(states, [
+    { status: SecurityFlaggingExecutionStatus.LOADING },
+    { status: SecurityFlaggingExecutionStatus.ERROR, result },
+  ]);
 });

@@ -64,6 +64,8 @@ as a backend service, independent of any UI.
 - `contract.fixtures.ts` — deterministic sample items.
 - `tests/contract.test.ts` — vitest coverage of aggregation, the `topSubjectLimit`
   option, empty input, and invalid-item error paths.
+- `tests/execution-contract.ts` (#1352) — non-UI test execution contract and headless service boundary (`ITestDigestExecutionService`) for test automation.
+- `tests/EXECUTION_CONTRACT.md` (#1352) — complete contract specification, error codes (`TestDigestErrorCode`), and fixtures.
 
 Usage:
 

@@ -13,15 +13,17 @@ Do not connect this tool to the main application shell, dashboard layout, naviga
 
 ## What Lives Here
 
-- [types/index.ts](types/index.ts): shared request, policy, and log types.
+- [types/index.ts](types/index.ts): shared request, policy, log, and non-UI backend contract types.
 - [fixtures/sample-access-requests.json](fixtures/sample-access-requests.json): local fixture data with valid requests and hostile inputs.
+- [fixtures/backend-contract.ts](fixtures/backend-contract.ts): typed success and failure fixtures for headless backend execution.
 - [guards/access-guards.mjs](guards/access-guards.mjs): validation, sanitization, and size guards.
 - [services/access.service.ts](services/access.service.ts): in-memory policy and audit-log service.
+- [services/accessBackendService.ts](services/accessBackendService.ts): non-UI backend service (`RoleBasedMailAccessBackendService` and `AccessBackendService`) implementing standard result envelopes.
 - [hooks/use-role-based-access.ts](hooks/use-role-based-access.ts): React wrapper around the service.
 - [components/](components): presentational matrix, verifier, and console UI.
 - [demo.tsx](demo.tsx): isolated preview entry.
-- [tests/](tests): folder-local guard and service coverage plus the test plan.
-- [docs/](docs): contributor docs, architecture notes, accessibility guidance, and reviewer notes.
+- [tests/](tests): folder-local guard, UI service, and non-UI backend contract coverage plus the test plan.
+- [docs/](docs): contributor docs, architecture notes, accessibility guidance, reviewer notes, and [EXECUTION_CONTRACT.md](docs/EXECUTION_CONTRACT.md).
 
 ## Setup
 

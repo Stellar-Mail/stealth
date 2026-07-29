@@ -64,8 +64,14 @@ timestamp - 30 seconds <= server time <= timestamp + 5 minutes + 30 seconds
 ```
 
 Thus a request exactly 30 seconds in the future or exactly 5 minutes 30 seconds old is valid. One
-millisecond beyond either boundary is rejected. Deployments may configure these durations, but must
-publish their policy and use the same values when issuing and verifying challenges. A challenge
+millisecond beyond either boundary is rejected. Deployments configure both durations with
+`STEALTH_AUTH_CHALLENGE_LIFETIME_MS` and `STEALTH_AUTH_CLOCK_SKEW_MS`, and must publish their policy.
+One configuration governs both challenge issuance and signed-request verification, so the two halves
+of the protocol cannot disagree.
+
+When a challenge carries an explicit expiry, that expiry is authoritative and replaces
+`timestamp + lifetime` as the upper bound. Reconfiguring the lifetime therefore applies to challenges
+issued afterwards and never retroactively extends or shortens ones already in flight. A challenge
 nonce expires with its validity window and can never extend request validity.
 
 ## Verification and replay protection
@@ -91,14 +97,18 @@ authorization or business validation fails.
 
 Failures use the standard JSON API error envelope and do not echo signatures or nonce records.
 
-| Condition                                                                     | HTTP | Stable code         | Retry guidance                                      |
-| ----------------------------------------------------------------------------- | ---: | ------------------- | --------------------------------------------------- |
-| Missing/malformed header, unknown version, invalid account, invalid signature |  401 | `unauthorized`      | Obtain a new challenge and sign again.              |
-| Timestamp or challenge expired                                                |  422 | `expired_challenge` | Obtain a new challenge.                             |
-| Timestamp too far in the future                                               |  422 | `validation_error`  | Correct the clock, then sign a fresh challenge.     |
-| Nonce already consumed (replay)                                               |  409 | `conflict`          | Never retry the signed request; obtain a new nonce. |
-| Verified actor lacks endpoint permission                                      |  403 | `forbidden`         | Do not retry unchanged.                             |
-| Authentication rate limit exceeded                                            |  429 | `too_many_requests` | Honor `Retry-After`.                                |
+| Condition                                                                     | HTTP | Stable code               | `details.reason`     | Retry guidance                                      |
+| ----------------------------------------------------------------------------- | ---: | ------------------------- | -------------------- | --------------------------------------------------- |
+| Missing/malformed header, unknown version, invalid account, invalid signature |  401 | `unauthorized`            | —                    | Obtain a new challenge and sign again.              |
+| Timestamp or challenge expired                                                |  422 | `expired_challenge`       | `AUTH_EXPIRED`       | Obtain a new challenge.                             |
+| Timestamp too far in the future                                               |  422 | `challenge_not_yet_valid` | `AUTH_NOT_YET_VALID` | Correct the clock, then sign a fresh challenge.     |
+| Unparseable or inverted challenge timestamps                                  |  422 | `validation_error`        | —                    | Correct the request, then sign a fresh challenge.   |
+| Nonce already consumed (replay)                                               |  409 | `conflict`                | —                    | Never retry the signed request; obtain a new nonce. |
+| Verified actor lacks endpoint permission                                      |  403 | `forbidden`               | —                    | Do not retry unchanged.                             |
+| Authentication rate limit exceeded                                            |  429 | `too_many_requests`       | —                    | Honor `Retry-After`.                                |
+
+Both timing failures share HTTP 422, so `details.reason` is what lets a client distinguish a clock
+that is behind from one that is ahead without parsing prose.
 
 Servers should keep client-facing authentication messages generic while recording a correlation ID
 and specific internal reason. Logs must not contain raw signatures, secret material, or complete

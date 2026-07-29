@@ -2,8 +2,7 @@
 
 ## Purpose
 
-Define a self-contained review contract for team email performance analytics
-before any future dashboard, inbox, or notification integration.
+Define a self-contained review contract for team email performance analytics, including UI and accessibility surface components, before any future dashboard, inbox, or notification integration.
 
 ## Release Scope
 
@@ -14,11 +13,13 @@ before any future dashboard, inbox, or notification integration.
 
 ## In-Scope Behavior
 
-- Model team metric snapshots with synthetic source metadata.
-- Distinguish healthy teams from watch, attention, and blocked states.
-- Represent missing source data without attempting live aggregation.
-- Provide fixture coverage for each local analytics status.
-- Give reviewers a single local test command.
+- Model team metric snapshots and member performance reports with synthetic source metadata.
+- Provide accessible local UI components (`TeamAnalyticsDashboard`, `SummaryCards`, `MemberTable`, `SnapshotList`) with keyboard navigation and screen-reader support.
+- Render explicit empty, loading, error, and success states (`EmptyState`, `LoadingState`, `ErrorState`, `SuccessState`).
+- Distinguish healthy teams from watch, attention, and blocked states using combined iconography and text.
+- Represent missing source data and away members without attempting live aggregation (rendering `"N/A"` instead of zero values).
+- Provide fixture coverage and interactive demo setup (`demo.tsx`) for each local analytics status.
+- Give reviewers automated test commands for both service logic (Node `--test`) and UI components/hooks (Vitest).
 
 ## Out-of-Scope Behavior
 

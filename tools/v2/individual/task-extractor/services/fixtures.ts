@@ -71,6 +71,20 @@ export const successFixtures: SuccessFixture[] = [
     ],
   },
   {
+    name: "imperative-line-and-priorities",
+    input: {
+      messageId: "msg-imperative-001",
+      subject: "",
+      body: ["Send the invoice to accounting", "Review this when you get a chance, no hurry"].join(
+        "\n",
+      ),
+    },
+    expectedTaskTexts: [
+      "Send the invoice to accounting",
+      "Review this when you get a chance, no hurry",
+    ],
+  },
+  {
     name: "no-tasks-found",
     input: {
       messageId: "msg-none-001",

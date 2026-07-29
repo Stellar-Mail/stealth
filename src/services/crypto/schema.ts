@@ -48,17 +48,10 @@ export const envelopeAttachmentSchema = z
   })
   .strict();
 
+import { validateCriticalFields, getRegisteredCriticalFields } from "./critical-fields";
+
 // Known fields of the payload for checking critical fields
-export const KNOWN_PAYLOAD_FIELDS = new Set([
-  "version",
-  "sender",
-  "recipient",
-  "timestamp",
-  "encryption_metadata",
-  "content_commitment",
-  "attachments",
-  "critical",
-]);
+export const KNOWN_PAYLOAD_FIELDS = getRegisteredCriticalFields();
 
 // Content commitment schema: e.g. v1:sha256:hex:<64 hex chars>
 export const contentCommitmentSchema = z
@@ -81,17 +74,14 @@ export const envelopePayloadSchema = z
   })
   .passthrough() // Allow unknown fields for extensibility, but:
   .superRefine((data, ctx) => {
-    // Fail closed on unknown critical fields
-    if (data.critical && data.critical.length > 0) {
-      for (const field of data.critical) {
-        if (!KNOWN_PAYLOAD_FIELDS.has(field)) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: `Unknown mandatory critical field: ${field}`,
-            path: ["critical"],
-          });
-        }
-      }
+    try {
+      validateCriticalFields(data as Record<string, unknown>);
+    } catch (err: any) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: err?.details ?? err?.message ?? "Critical fields validation failed",
+        path: ["critical"],
+      });
     }
   });
 

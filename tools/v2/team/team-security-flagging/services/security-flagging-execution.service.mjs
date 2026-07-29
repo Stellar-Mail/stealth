@@ -20,6 +20,17 @@ export const SecurityFlaggingErrorCode = Object.freeze({
   INTERNAL_ERROR: "INTERNAL_ERROR",
 });
 
+/**
+ * Presentation-independent lifecycle states for a future caller.
+ * `loading` is emitted before any dependency is invoked; the terminal state
+ * contains the same result returned by the executor.
+ */
+export const SecurityFlaggingExecutionStatus = Object.freeze({
+  LOADING: "loading",
+  SUCCESS: "success",
+  ERROR: "error",
+});
+
 function failure(code, message, details = {}) {
   return { ok: false, error: { code, message, ...details } };
 }
@@ -113,4 +124,24 @@ export function createSecurityFlaggingExecutor(dependencies) {
 /** One-shot non-UI service entry point. */
 export function executeSecurityFlagging(input, dependencies) {
   return createSecurityFlaggingExecutor(dependencies).execute(input);
+}
+
+/**
+ * Execute while reporting deterministic lifecycle updates to a caller-supplied
+ * observer. The observer is optional and intentionally has no UI dependency.
+ */
+export async function executeSecurityFlaggingWithState(input, dependencies, onState) {
+  if (onState !== undefined && typeof onState !== "function") {
+    throw new TypeError("Security flagging state observer must be a function");
+  }
+
+  onState?.({ status: SecurityFlaggingExecutionStatus.LOADING });
+  const result = await executeSecurityFlagging(input, dependencies);
+  onState?.({
+    status: result.ok
+      ? SecurityFlaggingExecutionStatus.SUCCESS
+      : SecurityFlaggingExecutionStatus.ERROR,
+    result,
+  });
+  return result;
 }

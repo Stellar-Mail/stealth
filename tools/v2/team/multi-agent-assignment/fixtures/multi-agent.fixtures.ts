@@ -2,7 +2,7 @@ import { Agent, Thread } from "../types";
 
 export const AGENT_FIXTURES: Agent[] = [
   {
-    id: "agent-001",
+    id: "550e8400-e29b-41d4-a716-446655440001",
     name: "Alice Vance",
     role: "Support Specialist",
     email: "alice@stealth-mail.io",
@@ -12,7 +12,7 @@ export const AGENT_FIXTURES: Agent[] = [
     avatar: "👩‍💻",
   },
   {
-    id: "agent-002",
+    id: "550e8400-e29b-41d4-a716-446655440002",
     name: "Bob Chen",
     role: "Security Officer",
     email: "bob@stealth-mail.io",
@@ -22,7 +22,7 @@ export const AGENT_FIXTURES: Agent[] = [
     avatar: "👨‍✈️",
   },
   {
-    id: "agent-003",
+    id: "550e8400-e29b-41d4-a716-446655440003",
     name: "Charlie Kim",
     role: "Stellar Integrations Engineer",
     email: "charlie@stealth-mail.io",
@@ -32,7 +32,7 @@ export const AGENT_FIXTURES: Agent[] = [
     avatar: "🧙‍♂️",
   },
   {
-    id: "agent-004",
+    id: "550e8400-e29b-41d4-a716-446655440004",
     name: "Diana Prince",
     role: "Customer Success Lead",
     email: "diana@stealth-mail.io",
@@ -42,7 +42,7 @@ export const AGENT_FIXTURES: Agent[] = [
     avatar: "👩‍💼",
   },
   {
-    id: "agent-005",
+    id: "550e8400-e29b-41d4-a716-446655440005",
     name: "Evan Wright",
     role: "Junior Support Associate",
     email: "evan@stealth-mail.io",
@@ -61,7 +61,7 @@ export const THREAD_FIXTURES: Thread[] = [
       "We are observing a slight propagation delay in transactions broadcasted via freighter API. Can someone verify the ledger status?",
     sender: "freighter-support@stellar.org",
     priority: "high",
-    assignedAgentIds: ["agent-003"],
+    assignedAgentIds: ["550e8400-e29b-41d4-a716-446655440003"],
     status: "assigned",
     category: "Stellar",
     date: "2026-06-19T10:30:00Z",
@@ -73,7 +73,7 @@ export const THREAD_FIXTURES: Thread[] = [
       "An anomalous login pattern was detected from IP 198.51.100.42. Multi-factor authentication succeeded but country of origin changed.",
     sender: "security-daemon@stealth-mail.io",
     priority: "high",
-    assignedAgentIds: ["agent-002"],
+    assignedAgentIds: ["550e8400-e29b-41d4-a716-446655440002"],
     status: "assigned",
     category: "Security",
     date: "2026-06-19T11:15:00Z",
@@ -85,7 +85,10 @@ export const THREAD_FIXTURES: Thread[] = [
       "We received a invoice discrepancy report from vendor partnership accounts. The stellar payout amount didn't match the original contract rate.",
     sender: "finance@partner-inc.com",
     priority: "medium",
-    assignedAgentIds: ["agent-001", "agent-003"],
+    assignedAgentIds: [
+      "550e8400-e29b-41d4-a716-446655440001",
+      "550e8400-e29b-41d4-a716-446655440003",
+    ],
     status: "assigned",
     category: "Billing",
     date: "2026-06-19T12:00:00Z",
@@ -97,7 +100,7 @@ export const THREAD_FIXTURES: Thread[] = [
       "The new dark mode contrast is slightly low on mobile screens. Would appreciate some adjustments to contrast ratio or theme selections.",
     sender: "stealth-user-99@gmail.com",
     priority: "low",
-    assignedAgentIds: ["agent-001"],
+    assignedAgentIds: ["550e8400-e29b-41d4-a716-446655440001"],
     status: "assigned",
     category: "General",
     date: "2026-06-19T13:45:00Z",

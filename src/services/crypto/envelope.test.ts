@@ -92,7 +92,7 @@ describe("services/crypto/envelope", () => {
   it("should succeed when both data and content_hash are provided and they match", async () => {
     const data = new TextEncoder().encode("Hello Attachment").buffer;
     // Hash of "Hello Attachment"
-    const validHash = "c7a829ba2c1bb8283e3391b4501a1c8f1d3c1de5bf5cb5cff0207ed2a15c82ff";
+    const validHash = "8b1d21b03fec79fd0386efc586ab0c897c3b6d11962c764d151c5a7bc1990246";
 
     const result = await sealEnvelope({
       ...defaultInput,

@@ -44,7 +44,7 @@ const fixture = JSON.parse(
 function signatureIsValid(vector: Vector): boolean {
   return verify(
     null,
-    Buffer.from(canonicalizeSignedRequest(vector.request)),
+    Buffer.from(canonicalizeSignedRequest({ ...vector.request, version: fixture.version })),
     { key: Buffer.from(fixture.publicKeySpkiDerBase64, "base64"), format: "der", type: "spki" },
     Buffer.from(vector.request.signature, "base64"),
   );
@@ -57,15 +57,17 @@ describe("signed request v1 documentation vectors", () => {
   });
 
   it.each(fixture.vectors)("executes $name", (vector) => {
+    const requestWithVersion = { ...vector.request, version: fixture.version };
+
     if (vector.expected.error === "malformed_request") {
-      expect(() => canonicalizeSignedRequest(vector.request)).toThrow(
+      expect(() => canonicalizeSignedRequest(requestWithVersion)).toThrow(
         "Missing required signed header: host",
       );
       expect(vector.expected).not.toHaveProperty("principal");
       return;
     }
 
-    expect(canonicalizeSignedRequest(vector.request)).toBe(vector.expected.canonical);
+    expect(canonicalizeSignedRequest(requestWithVersion)).toBe(vector.expected.canonical);
     const time = signedRequestTimeStatus(
       vector.request.headers["x-stealth-timestamp"],
       Date.parse(fixture.now),

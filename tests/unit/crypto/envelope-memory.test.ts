@@ -25,12 +25,14 @@ describe("crypto/envelope — sealing", () => {
   });
 
   it("throws on empty body", async () => {
-    await expect(sealEnvelope({ ...defaultInput, body: "" })).rejects.toThrow(/empty message body/);
+    await expect(sealEnvelope({ ...defaultInput, body: "" })).rejects.toThrow(
+      /The envelope failed input validation/,
+    );
   });
 
   it("throws on whitespace-only body", async () => {
     await expect(sealEnvelope({ ...defaultInput, body: "   " })).rejects.toThrow(
-      /empty message body/,
+      /The envelope failed input validation/,
     );
   });
 

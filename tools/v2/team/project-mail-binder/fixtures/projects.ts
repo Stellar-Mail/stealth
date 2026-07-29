@@ -172,3 +172,83 @@ export function stateByName(name: "empty" | "loading" | "error" | "success"): Bi
       return successState();
   }
 }
+
+// ---------------------------------------------------------------------------
+// Contract Success & Failure Fixtures
+// ---------------------------------------------------------------------------
+
+export const validCreateProjectInputFixture = {
+  name: "Security Hardening Q4",
+  description: "Cross-functional effort on key security enhancements.",
+  color: "cyan" as const,
+  stellarAddress: "GABC123456789SECURITYADDRESSSTEL",
+  members: ["alex@stealth.network"],
+  rules: [
+    {
+      id: "rule-sec-1",
+      type: "subject" as const,
+      pattern: "Security",
+      isActive: true,
+    },
+  ],
+};
+
+export const validBindMailInputFixture = {
+  projectId: "proj-onboarding",
+  subject: "Contract Signed Confirmation",
+  sender: "legal@partner.corp",
+  date: "2026-06-21T10:00:00.000Z",
+  snippet: "The master services agreement has been signed by both parties.",
+  body: "Full agreement contents and signature verification logs.",
+};
+
+export const validAutoBindInputFixture = {
+  emails: [
+    {
+      id: "auto-mail-1",
+      from: "Security Audit",
+      email: "security@stealth.network",
+      subject: "Security Hardening Checklist Update",
+      preview: "Weekly progress update on key rotation.",
+      body: "Security measures updated successfully.",
+    },
+    {
+      id: "auto-mail-2",
+      from: "General Info",
+      email: "newsletter@example.com",
+      subject: "Weekly Newsletter",
+      preview: "Industry insights.",
+      body: "News around web3.",
+    },
+  ],
+};
+
+// Failure fixtures
+export const invalidCreateInputEmptyNameFixture = {
+  name: "   ",
+  description: "Project with whitespace name",
+  color: "blue" as const,
+};
+
+export const invalidCreateInputColorFixture = {
+  name: "Invalid Color Project",
+  color: "ultraviolet" as any,
+};
+
+export const notFoundProjectIdFixture = {
+  projectId: "proj-does-not-exist-999",
+};
+
+export const notFoundMailIdFixture = {
+  mailId: "mail-does-not-exist-999",
+};
+
+export const duplicateProjectInputFixture = {
+  name: "Client Onboarding Q3", // matches existing seed project
+  description: "Attempting to create duplicate",
+};
+
+export const invalidStateErrorFixture = {
+  code: "INVALID_STATE" as const,
+  message: "Cannot execute operation in error or loading state.",
+};

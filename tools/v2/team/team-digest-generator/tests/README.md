@@ -9,6 +9,15 @@ Unit and integration tests for the Team Digest Generator.
 - Integration tests for workflows
 - Input validation and sanitization tests
 - Performance benchmarks for large datasets
+- Headless non-UI test execution contract verification (#1352)
+
+## Non-UI Test Execution Contract (#1352)
+
+The `tests/` directory exports a presentation-free backend execution contract and service boundary (`ITestDigestExecutionService`) so test harnesses can run the digest generator independently of any presentation concerns:
+
+- **Specification**: See [EXECUTION_CONTRACT.md](EXECUTION_CONTRACT.md) for full typed input/output schemas and error codes.
+- **Service Implementation**: `createTestDigestExecutionService()` in `execution-contract.ts`.
+- **Fixtures**: Typed success and failure fixtures in `execution-contract.fixtures.ts`.
 
 ## Test Structure
 

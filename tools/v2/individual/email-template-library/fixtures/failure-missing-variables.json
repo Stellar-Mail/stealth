@@ -8,6 +8,9 @@
   },
   "expectedError": {
     "code": "MISSING_VARIABLES",
-    "missingVariables": ["topic"]
+    "message": "Values are required for every declared template variable.",
+    "details": {
+      "missingVariables": ["topic"]
+    }
   }
 }

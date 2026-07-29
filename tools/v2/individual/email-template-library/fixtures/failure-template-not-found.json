@@ -7,6 +7,9 @@
   },
   "expectedError": {
     "code": "TEMPLATE_NOT_FOUND",
-    "templateId": "template-unknown"
+    "message": "Template template-unknown was not found.",
+    "details": {
+      "templateId": "template-unknown"
+    }
   }
 }

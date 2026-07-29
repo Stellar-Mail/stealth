@@ -22,3 +22,24 @@ export type {
 
 // Contract fixtures
 export { DIGEST_FIXTURES, EMPTY_ITEMS } from "./contract.fixtures";
+
+// Non-UI Test Execution Contract (#1352)
+export {
+  createTestDigestExecutionService,
+  TestDigestExecutionService,
+  TestDigestErrorCode,
+  VALID_ITEMS_FIXTURE,
+  VALID_ACTIVITY_FIXTURE,
+  VALID_EMAIL_FIXTURE,
+  VALID_SANITIZE_FIXTURE,
+  INVALID_ITEMS_MISSING_AUTHOR,
+  INVALID_ACTIVITY_NOT_ARRAY,
+  INVALID_EMAIL_FIXTURE,
+  INVALID_OPERATION_FIXTURE,
+} from "./tests/index";
+export type {
+  ITestDigestExecutionService,
+  TestDigestOperation,
+  TestDigestOutput,
+  TestDigestResult,
+} from "./tests/index";

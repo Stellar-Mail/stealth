@@ -49,6 +49,14 @@ export type SecurityFlaggingOutput =
   | { ok: true; data: SecurityFlaggingRecord }
   | { ok: false; error: SecurityFlaggingError };
 
+/** Lifecycle updates emitted by executeSecurityFlaggingWithState. */
+export type SecurityFlaggingExecutionState =
+  | { status: "loading" }
+  | { status: "success"; result: Extract<SecurityFlaggingOutput, { ok: true }> }
+  | { status: "error"; result: Extract<SecurityFlaggingOutput, { ok: false }> };
+
+export type SecurityFlaggingStateObserver = (state: SecurityFlaggingExecutionState) => void;
+
 /** I/O and environmental behavior supplied by the backend caller. */
 export interface SecurityFlaggingDependencies {
   authorizeReporter(reporterEmail: string): boolean | Promise<boolean>;
