@@ -122,18 +122,19 @@ export function IdentityReviewTable({ rows, onChange }: Props) {
 
       <div className="flex items-center gap-2">
         <div className="relative flex-1">
-          <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+          <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by name or address…"
+            aria-label="Search contacts"
             className="w-full rounded-lg border border-white/10 bg-white/[0.04] py-1.5 pl-8 pr-3 text-xs text-foreground placeholder:text-muted-foreground/50 outline-none focus:border-white/20"
           />
         </div>
       </div>
 
       {/* filter tabs */}
-      <div className="flex flex-wrap gap-1.5 text-[11px]">
+      <div className="flex flex-wrap gap-1.5 text-[11px]" role="tablist" aria-label="Filter by match status">
         {[
           { key: "all", label: `All (${rows.length})` },
           { key: "exact", label: `Matched (${exact.length})` },
@@ -143,6 +144,8 @@ export function IdentityReviewTable({ rows, onChange }: Props) {
         ].map((t) => (
           <button
             key={t.key}
+            role="tab"
+            aria-selected={filter === t.key}
             onClick={() => setFilter(t.key)}
             className={cn(
               "rounded-md border px-2 py-0.5 transition",
@@ -157,10 +160,15 @@ export function IdentityReviewTable({ rows, onChange }: Props) {
       </div>
 
       {/* rows */}
-      <div className="max-h-[320px] overflow-y-auto space-y-1.5 pr-0.5">
+      <div
+        className="max-h-[320px] overflow-y-auto space-y-1.5 pr-0.5"
+        role="region"
+        aria-label="Contacts list"
+        tabIndex={0}
+      >
         {filtered.length === 0 && (
-          <div className="flex flex-col items-center gap-2 py-8 text-muted-foreground">
-            <Users className="h-6 w-6" />
+          <div className="flex flex-col items-center gap-2 py-8 text-muted-foreground" aria-live="polite">
+            <Users className="h-6 w-6" aria-hidden="true" />
             <p className="text-xs">No contacts in this filter.</p>
           </div>
         )}
@@ -224,13 +232,13 @@ export function IdentityReviewTable({ rows, onChange }: Props) {
               <div className="flex items-center gap-2 text-[10px]">
                 {row.match && (
                   <span className={cn("flex items-center gap-1", meta.color)}>
-                    {meta.icon}
+                    <span aria-hidden="true">{meta.icon}</span>
                     {meta.label}: {row.match.reason}
                   </span>
                 )}
                 {row.error && (
                   <span className="flex items-center gap-1 text-red-400">
-                    <AlertCircle className="h-3 w-3 shrink-0" />
+                    <AlertCircle className="h-3 w-3 shrink-0" aria-hidden="true" />
                     {row.error}
                   </span>
                 )}
