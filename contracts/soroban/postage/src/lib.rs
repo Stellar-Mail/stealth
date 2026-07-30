@@ -315,6 +315,47 @@ pub enum PostageStatus {
     Reclaimed,
 }
 
+/// Storage key for the postage contract.
+///
+/// ## Storage Layout
+///
+/// | Variant              | Space        | Written by                     | Read by                                              |
+/// |----------------------|-------------|--------------------------------|------------------------------------------------------|
+/// | `DataKey::Config`    | Instance     | `initialize` (once)            | `config`, `submit`, `quote`, `minimum`               |
+/// | `DataKey::Guard`     | Instance     | `configure_guard` (once)       | `guard`, `verify_guard` (internal), all state mutators |
+/// | `DataKey::Postage(id)` | Persistent | `submit`, then every state mutator | `get`, `submit`, `expire`, `settle`, `refund`, `dispute`, `reclaim` |
+///
+/// ## How `DataKey` is encoded
+///
+/// Soroban's `#[contracttype]` derive encodes each enum variant as a host vector whose
+/// first element is a `Symbol` built from the variant's Rust _name_ (`"Config"`,
+/// `"Guard"`, `"Postage"`), followed by any tuple fields. Decoding looks up a
+/// previously-written key by that name among the enum's _current_ variants — the
+/// numeric declaration order plays no part in the encoding. Concretely, this means:
+///
+/// - **Renaming or removing a variant that has ever written storage is unsafe.** The
+///   encoded `Symbol` changes (or disappears), so any key written under the old name
+///   becomes permanently undecodable and its ledger entry is orphaned.
+/// - **Changing a variant's tuple field types is unsafe** for the same reason: the
+///   encoded shape no longer matches what was previously persisted.
+/// - **Reordering variants is safe** on its own, since decoding is name-based, not
+///   positional. New variants should still be appended at the end to keep declaration
+///   order matching historical introduction order.
+///
+/// ## Migrating a key's structure
+///
+/// If a key's structure ever needs to change (e.g. adding a field to the `Postage`
+/// key, or introducing a tiered key), do not repurpose the existing variant:
+///
+/// 1. Leave the existing variant in place so already-written entries stay readable.
+/// 2. Add a new variant (e.g. `PostageV2(BytesN<32>, u32)`) for the new shape.
+/// 3. Give read paths an explicit fallback: try the new key first; if absent, fall
+///    back to the old key (and optionally backfill the new key on read or via a
+///    dedicated migration entry point).
+/// 4. Document the coexistence period and removal plan for the old variant.
+///
+/// The [`storage_keys`] test module pins the encoded discriminant name of each
+/// variant so an accidental rename is caught in CI before it can reach production.
 #[contracttype]
 enum DataKey {
     Config,
@@ -3130,5 +3171,59 @@ mod auth_boundaries {
         }]);
 
         client.reclaim(&msg_id);
+    }
+}
+
+#[cfg(test)]
+mod storage_keys {
+    // Storage key discriminant pinning tests.
+    //
+    // `DataKey` variants are encoded by name (see the migration notes above `DataKey`),
+    // so a rename is the actual backward-compatibility hazard for this enum — not
+    // reordering. These tests pin the exact discriminant `Symbol` written for each
+    // variant; a rename fails here before it can orphan already-written ledger state.
+    extern crate std;
+
+    use super::*;
+    use soroban_sdk::{TryFromVal, Val, Vec as SorobanVec};
+    use std::string::ToString;
+
+    fn discriminant_name(env: &Env, key: &DataKey) -> std::string::String {
+        let val = Val::try_from_val(env, key).unwrap();
+        let vec: SorobanVec<Val> = SorobanVec::try_from_val(env, &val).unwrap();
+        let discriminant: soroban_sdk::Symbol =
+            soroban_sdk::Symbol::try_from_val(env, &vec.get(0).unwrap()).unwrap();
+        discriminant.to_string()
+    }
+
+    #[test]
+    fn config_key_discriminant_is_pinned() {
+        let env = Env::default();
+        assert_eq!(discriminant_name(&env, &DataKey::Config), "Config");
+    }
+
+    #[test]
+    fn guard_key_discriminant_is_pinned() {
+        let env = Env::default();
+        assert_eq!(discriminant_name(&env, &DataKey::Guard), "Guard");
+    }
+
+    #[test]
+    fn postage_key_discriminant_is_pinned() {
+        let env = Env::default();
+        let key = DataKey::Postage(BytesN::from_array(&env, &[1u8; 32]));
+        assert_eq!(discriminant_name(&env, &key), "Postage");
+    }
+
+    #[test]
+    fn distinct_message_ids_produce_distinct_postage_keys() {
+        let env = Env::default();
+        let key_a = DataKey::Postage(BytesN::from_array(&env, &[1u8; 32]));
+        let key_b = DataKey::Postage(BytesN::from_array(&env, &[2u8; 32]));
+        let val_a = Val::try_from_val(&env, &key_a).unwrap();
+        let val_b = Val::try_from_val(&env, &key_b).unwrap();
+        let vec_a: SorobanVec<Val> = SorobanVec::try_from_val(&env, &val_a).unwrap();
+        let vec_b: SorobanVec<Val> = SorobanVec::try_from_val(&env, &val_b).unwrap();
+        assert_ne!(vec_a, vec_b, "distinct message ids must produce distinct storage keys");
     }
 }
