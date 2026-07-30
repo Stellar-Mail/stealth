@@ -83,3 +83,13 @@ export interface IMailToTicketService {
   assignTicket(ticketId: string, memberId: string): Promise<Ticket>;
   getMetrics(): Promise<TicketMetrics>;
 }
+
+// Execution contract exports
+export type {
+  MailToTicketErrorCode,
+  MailToTicketInput,
+  MailToTicketOutput,
+  MailToTicketError,
+  MailToTicketResult,
+  ExecuteMailToTicket,
+} from "./execution";
