@@ -13,6 +13,7 @@ export const mockThreads: Thread[] = [
     status: "open",
     createdAt: new Date("2026-07-20T10:00:00Z").toISOString(),
     updatedAt: new Date("2026-07-20T10:05:00Z").toISOString(),
+    version: 1,
   },
 ];
 

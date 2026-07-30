@@ -22,6 +22,15 @@ export interface Thread {
   status: "open" | "resolved" | "archived";
   createdAt: string;
   updatedAt: string;
+  version: number;
 }
 
 export type ThreadWithComments = Thread & { comments: Comment[] };
+
+export interface CommentSnippet {
+  id: string;
+  authorId: string;
+  snippet: string;
+  createdAt: string;
+  isDeleted: boolean;
+}

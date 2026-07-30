@@ -39,21 +39,36 @@ describe("CommentThreadService", () => {
     expect(thread?.comments.some((c) => c.id === newComment.id)).toBe(true);
   });
 
-  it("should update thread status", async () => {
-    const thread = await service.updateThreadStatus("th-1", "resolved");
+  it("should update thread status as admin", async () => {
+    const thread = await service.updateThreadStatus("th-1", "u-1", "resolved");
     expect(thread.status).toBe("resolved");
 
     const fetched = await service.getThread("th-1");
     expect(fetched?.status).toBe("resolved");
   });
 
-  it("should delete a comment", async () => {
+  it("should throw when non-admin tries to update thread status", async () => {
+    await expect(service.updateThreadStatus("th-1", "u-2", "resolved")).rejects.toThrow(
+      "Only admins can update thread status",
+    );
+  });
+
+  it("should delete a comment as the author", async () => {
     const threads = await service.getThreadsForTarget("txn-123", "transaction");
     const commentId = threads[0].comments[0].id;
 
-    await service.deleteComment("th-1", commentId);
+    await service.deleteComment("th-1", commentId, "u-1");
 
     const threadAfter = await service.getThread("th-1");
-    expect(threadAfter?.comments).toHaveLength(1); // One should be filtered out because it's deleted
+    expect(threadAfter?.comments).toHaveLength(1);
+  });
+
+  it("should throw when deleting another user's comment without admin role", async () => {
+    const threads = await service.getThreadsForTarget("txn-123", "transaction");
+    const commentId = threads[0].comments.find((c) => c.authorId === "u-2")!.id;
+
+    await expect(service.deleteComment("th-1", commentId, "u-1")).rejects.toThrow(
+      "Only the comment author or an admin can delete this comment",
+    );
   });
 });

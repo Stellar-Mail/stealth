@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef } from "react";
 
 type ThreadState = "idle" | "loading" | "success" | "error" | "empty";
 
@@ -10,6 +10,8 @@ interface Comment {
   content: string;
   timestamp: string;
 }
+
+const currentUserId = "u-current";
 
 const initialComments: Comment[] = [
   {
@@ -51,7 +53,7 @@ export const InternalCommentThread: React.FC = () => {
     }
 
     const commentToAdd: Comment = {
-      id: `c_${Date.now()}`,
+      id: `c_${currentUserId}_${Date.now()}`,
       author: "You (Current User)",
       role: "Team Member",
       content: newComment.trim(),

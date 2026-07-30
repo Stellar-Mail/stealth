@@ -6,9 +6,8 @@ import { CommentThreadService } from "./service";
  *
  * These tests are intentionally separate from `service.test.ts` (which covers
  * the happy paths) and focus on the branches that are easy to regress:
- * not-found errors, argument precedence, empty results, and per-instance
- * fixture isolation. See `docs/testing-and-review.md` for the full plan and the
- * shared-fixture caveat that dictates the ordering of the mutating tests.
+ * not-found errors, argument precedence, empty results, per-instance
+ * fixture isolation, input validation, and concurrent safety.
  */
 describe("CommentThreadService (edge cases)", () => {
   let service: CommentThreadService;
@@ -58,21 +57,21 @@ describe("CommentThreadService (edge cases)", () => {
   });
 
   it("throws when updating the status of a missing thread", async () => {
-    await expect(service.updateThreadStatus("th-missing", "resolved")).rejects.toThrow(
+    await expect(service.updateThreadStatus("th-missing", "u-1", "resolved")).rejects.toThrow(
       "Thread not found",
     );
   });
 
   it("throws when deleting a comment from a missing thread", async () => {
-    await expect(service.deleteComment("th-missing", "c-1")).rejects.toThrow("Thread not found");
+    await expect(service.deleteComment("th-missing", "c-1", "u-1")).rejects.toThrow("Thread not found");
   });
 
   it("throws when deleting a comment that does not exist", async () => {
-    await expect(service.deleteComment("th-1", "c-unknown")).rejects.toThrow("Comment not found");
+    await expect(service.deleteComment("th-1", "c-unknown", "u-1")).rejects.toThrow("Comment not found");
   });
 
   it("supports moving a thread to the archived status", async () => {
-    const updated = await service.updateThreadStatus("th-1", "archived");
+    const updated = await service.updateThreadStatus("th-1", "u-1", "archived");
     expect(updated.status).toBe("archived");
 
     const fetched = await service.getThread("th-1");
@@ -89,5 +88,33 @@ describe("CommentThreadService (edge cases)", () => {
 
     const inOther = await other.getThreadsForTarget("doc-isolated", "document");
     expect(inOther).toHaveLength(0);
+  });
+
+  it("rejects empty comment content", async () => {
+    await expect(service.createThread("doc-1", "document", "   ", "u-1")).rejects.toThrow(
+      "Content must not be empty",
+    );
+  });
+
+  it("rejects comments exceeding max length", async () => {
+    const longBody = "a".repeat(4001);
+    await expect(service.createThread("doc-1", "document", longBody, "u-1")).rejects.toThrow(
+      "Content exceeds maximum length of 4000 characters",
+    );
+  });
+
+  it("strips HTML from comment content", async () => {
+    const thread = await service.createThread("doc-1", "document", "<b>bold</b> text", "u-1");
+    expect(thread.comments[0].content).toBe("bold text");
+  });
+
+  it("does not mutate fixture objects across instances", async () => {
+    const service1 = new CommentThreadService();
+    const service2 = new CommentThreadService();
+
+    await service1.updateThreadStatus("th-1", "u-1", "resolved");
+
+    const inService2 = await service2.getThread("th-1");
+    expect(inService2?.status).toBe("open");
   });
 });

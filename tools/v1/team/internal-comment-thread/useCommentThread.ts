@@ -1,8 +1,10 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { commentThreadService } from "./service";
 import { ThreadWithComments, Thread } from "./types";
 
-export function useCommentThread(targetId: string, targetType: string) {
+const MAX_RENDERED_COMMENTS = 50;
+
+export function useCommentThread(targetId: string, targetType: string, currentUserId?: string) {
   const [threads, setThreads] = useState<ThreadWithComments[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
@@ -68,7 +70,8 @@ export function useCommentThread(targetId: string, targetType: string) {
 
   const updateStatus = async (threadId: string, status: Thread["status"]) => {
     try {
-      await commentThreadService.updateThreadStatus(threadId, status);
+      if (!currentUserId) throw new Error("currentUserId is required for status updates");
+      await commentThreadService.updateThreadStatus(threadId, currentUserId, status);
       setThreads((prev) =>
         prev.map((t) =>
           t.id === threadId ? { ...t, status, updatedAt: new Date().toISOString() } : t,
@@ -81,13 +84,47 @@ export function useCommentThread(targetId: string, targetType: string) {
     }
   };
 
+  const deleteComment = async (threadId: string, commentId: string) => {
+    try {
+      if (!currentUserId) throw new Error("currentUserId is required for comment deletion");
+      await commentThreadService.deleteComment(threadId, commentId, currentUserId);
+      setThreads((prev) =>
+        prev.map((t) => {
+          if (t.id === threadId) {
+            return {
+              ...t,
+              comments: t.comments.map((c) =>
+                c.id === commentId ? { ...c, isDeleted: true, updatedAt: new Date().toISOString() } : c,
+              ),
+              updatedAt: new Date().toISOString(),
+            };
+          }
+          return t;
+        }),
+      );
+    } catch (err: unknown) {
+      const errorObj = err instanceof Error ? err : new Error(String(err));
+      setError(errorObj);
+      throw errorObj;
+    }
+  };
+
+  const memoizedThreads = useMemo(() => {
+    return threads.map((thread) => ({
+      ...thread,
+      comments: thread.comments.slice(0, MAX_RENDERED_COMMENTS),
+    }));
+  }, [threads]);
+
   return {
-    threads,
+    threads: memoizedThreads,
+    rawThreads: threads,
     isLoading,
     error,
     addThread,
     addComment,
     updateStatus,
+    deleteComment,
     refresh: fetchThreads,
   };
 }
