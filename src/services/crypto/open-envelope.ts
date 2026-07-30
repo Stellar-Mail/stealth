@@ -15,6 +15,8 @@
 
 import { verifyCommitment } from "./commitment";
 import { recordCryptoTelemetry, type CryptoResultCode } from "./telemetry";
+import { canonicalizeAttachmentDescriptors } from "./attachment-metadata";
+import { migrateEnvelope } from "./migrations";
 import { validateNegotiationForOpen, getSuite, getDefaultVersion } from "./suites";
 import { encodeAad } from "./aad";
 import { unwrapContentKey, importRecipientPrivateKey, type WrappedKeyEntry } from "./key-wrap";
@@ -200,6 +202,11 @@ export async function openEnvelope(
     if (!input || typeof input !== "object") {
       throw new OpenEnvelopeError("envelope is missing", "crypto_validation_error");
     }
+    const rawPayload = (input as { payload?: unknown }).payload;
+    const ciphertextB64 = str(input.ciphertext, "ciphertext");
+
+    const migrated = migrateEnvelope(rawPayload);
+    const payload = migrated.model as unknown as RawPayload;
 
     // Fail early with version specific error to match existing tests/specs
     if ("payload" in input) {

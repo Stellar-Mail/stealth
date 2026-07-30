@@ -30,6 +30,7 @@ export function verifyEnvelopeSignature(
   payload: EnvelopePayload,
   signature: EnvelopeSignature,
   expectedSender: string,
+  originalPayload?: unknown,
 ): boolean {
   try {
     envelopePayloadSchema.parse(payload);
@@ -61,7 +62,7 @@ export function verifyEnvelopeSignature(
     return false;
   }
 
-  const canonical = canonicalizePayload(payload);
+  const canonical = canonicalizePayload(originalPayload !== undefined ? originalPayload : payload);
   const dataToSign = new TextEncoder().encode(ENVELOPE_SIGNATURE_DOMAIN + canonical);
 
   try {
