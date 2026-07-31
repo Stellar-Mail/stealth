@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, MotionConfig } from "framer-motion";
 import { AlertCircle, Users, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useFocusTrap } from "@/lib/useFocusTrap";
 import { ImportSourcePicker } from "./ImportSourcePicker";
 import { IdentityReviewTable } from "./IdentityReviewTable";
 import { BulkWriteProgressPanel } from "./BulkWriteProgressPanel";
@@ -197,6 +198,7 @@ export function ContactMigrationDialog({
   }
 
   const stepIndex = VISIBLE_STEPS.indexOf(step);
+  const dialogRef = useFocusTrap(open, onClose);
 
   return (
     <AnimatePresence>
@@ -208,32 +210,42 @@ export function ContactMigrationDialog({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
+            aria-hidden="true"
             className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
           />
-          <motion.div
-            key="migration-panel"
-            initial={{ opacity: 0, scale: 0.96, y: 12 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.96, y: 8 }}
-            transition={{ type: "spring", stiffness: 300, damping: 28 }}
-            className="glass-strong fixed left-1/2 top-1/2 z-50 w-[min(580px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl"
-          >
-            {/* header */}
-            <div className="flex items-center justify-between border-b border-white/5 px-5 py-4">
-              <div className="flex items-center gap-2.5">
-                <Users className="h-4 w-4 text-muted-foreground" />
-                <h2 className="text-sm font-semibold text-foreground">Contact migration</h2>
+          <MotionConfig reducedMotion="user">
+            <motion.div
+              key="migration-panel"
+              ref={dialogRef}
+              role="dialog"
+              aria-modal="true"
+              aria-label="Contact migration"
+              tabIndex={-1}
+              initial={{ opacity: 0, scale: 0.96, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 8 }}
+              transition={{ type: "spring", stiffness: 300, damping: 28 }}
+              className="glass-strong fixed left-1/2 top-1/2 z-50 w-[min(580px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl outline-none"
+            >
+              {/* header */}
+              <div className="flex items-center justify-between border-b border-white/5 px-5 py-4">
+                <div className="flex items-center gap-2.5">
+                  <Users className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                  <h2 className="text-sm font-semibold text-foreground" id="migration-title">
+                    Contact migration
+                  </h2>
+                </div>
+                <button
+                  onClick={onClose}
+                  aria-label="Close dialog"
+                  className="rounded-lg p-1.5 text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground"
+                >
+                  <X className="h-4 w-4" aria-hidden="true" />
+                </button>
               </div>
-              <button
-                onClick={onClose}
-                className="rounded-lg p-1.5 text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
 
             {/* step label */}
-            <div className="px-5 pt-3 pb-0">
+            <div className="px-5 pt-3 pb-0" aria-live="polite" aria-atomic="true">
               <div className="flex items-center gap-2">
                 <span className="text-[11px] font-medium text-muted-foreground">
                   Step {stepIndex + 1} of {VISIBLE_STEPS.length}
@@ -357,6 +369,7 @@ export function ContactMigrationDialog({
               </AnimatePresence>
             </div>
           </motion.div>
+          </MotionConfig>
         </>
       )}
     </AnimatePresence>

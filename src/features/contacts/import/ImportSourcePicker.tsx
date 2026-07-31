@@ -75,6 +75,20 @@ export function ImportSourcePicker({ onSelectSource }: Props) {
     [handleFile],
   );
 
+  const triggerFilePicker = useCallback(() => {
+    fileRef.current?.click();
+  }, []);
+
+  const handleDropZoneKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        triggerFilePicker();
+      }
+    },
+    [triggerFilePicker],
+  );
+
   if (mode === "csv-input") {
     return (
       <div className="space-y-5">
@@ -99,10 +113,14 @@ export function ImportSourcePicker({ onSelectSource }: Props) {
         <div
           onDragOver={(e) => e.preventDefault()}
           onDrop={handleDrop}
-          onClick={() => fileRef.current?.click()}
-          className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-white/10 bg-white/[0.02] px-4 py-6 transition hover:bg-white/[0.04]"
+          onClick={triggerFilePicker}
+          onKeyDown={handleDropZoneKeyDown}
+          role="button"
+          tabIndex={0}
+          aria-label="Upload CSV file. Drag and drop or press Enter to browse."
+          className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-white/10 bg-white/[0.02] px-4 py-6 transition hover:bg-white/[0.04] focus-visible:border-white/30 focus-visible:outline-none"
         >
-          <Upload className="h-5 w-5 text-muted-foreground" />
+          <Upload className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
           <p className="text-xs text-muted-foreground">
             Drag & drop a <span className="text-foreground">.csv</span> file or click to browse
           </p>
@@ -111,6 +129,8 @@ export function ImportSourcePicker({ onSelectSource }: Props) {
             type="file"
             accept=".csv,.tsv,text/csv,text/tab-separated-values"
             className="hidden"
+            tabIndex={-1}
+            aria-hidden="true"
             onChange={(e) => {
               const f = e.target.files?.[0];
               if (f) handleFile(f);
@@ -182,7 +202,7 @@ export function ImportSourcePicker({ onSelectSource }: Props) {
                 : "border-white/10 bg-white/[0.025] hover:bg-white/[0.05] hover:border-white/20",
             )}
           >
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/[0.06] text-muted-foreground">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/[0.06] text-muted-foreground" aria-hidden="true">
               {s.icon}
             </span>
             <div className="min-w-0 flex-1">
