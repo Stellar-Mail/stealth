@@ -1,20 +1,27 @@
-import { describe, expect, it, beforeEach } from "vitest";
+import { describe, expect, it, beforeEach, vi, afterEach } from "vitest";
 import {
   incrementCounter,
   recordHistogram,
+  recordAuditEvent,
   snapshot,
   reset,
+  setAdapter,
+  getAdapter,
   DEFAULT_LATENCY_BUCKETS,
+  METRIC_DESCRIPTORS,
   computeAvailabilitySLI,
   computeLatencySLI,
   computeAuthAvailabilitySLI,
   computePostageTransitionSLI,
   computeSLOSummary,
+  InMemoryMetricsAdapter,
+  ProductionMetricsAdapter,
+  type MetricsAdapter,
 } from "../../../src/server/api/metrics";
 
 describe("metrics", () => {
   beforeEach(() => {
-    reset();
+    setAdapter(new InMemoryMetricsAdapter());
   });
 
   describe("incrementCounter", () => {
@@ -267,6 +274,171 @@ describe("metrics", () => {
       expect(summary.authAvailability).toBeDefined();
       expect(summary.postageTransitions).toBeDefined();
       expect(summary.availability.met).toBe(true);
+    });
+  });
+
+  describe("MetricsAdapter interface", () => {
+    it("setAdapter/getAdapter round-trips", () => {
+      const custom: MetricsAdapter = {
+        incrementCounter: vi.fn(),
+        recordHistogram: vi.fn(),
+        recordAuditEvent: vi.fn(),
+      };
+      setAdapter(custom);
+      expect(getAdapter()).toBe(custom);
+    });
+
+    it("InMemoryMetricsAdapter works as a standalone instance", () => {
+      const mem = new InMemoryMetricsAdapter();
+      mem.incrementCounter("api_requests_total", { method: "GET" });
+      const snap = mem.snapshot();
+      expect(snap.counters['api_requests_total{method:"GET"}']).toBe(1);
+
+      mem.recordHistogram("api_latency", 30, { method: "GET" });
+      const hist = mem.snapshot().histograms['api_latency{method:"GET"}'];
+      expect(hist.count).toBe(1);
+
+      mem.reset();
+      expect(mem.snapshot().counters).toEqual({});
+    });
+
+    it("InMemoryMetricsAdapter snapshot is immutable", () => {
+      const mem = new InMemoryMetricsAdapter();
+      mem.incrementCounter("api_requests_total");
+      const snap1 = mem.snapshot();
+      snap1.counters["api_requests_total"] = 999;
+      expect(mem.snapshot().counters["api_requests_total"]).toBe(1);
+    });
+
+    it("InMemoryMetricsAdapter recordAuditEvent is a no-op", () => {
+      const mem = new InMemoryMetricsAdapter();
+      expect(() => mem.recordAuditEvent("test.event", { key: "val" })).not.toThrow();
+    });
+  });
+
+  describe("ProductionMetricsAdapter", () => {
+    let logs: string[];
+    let originalLog: typeof console.log;
+
+    beforeEach(() => {
+      logs = [];
+      originalLog = console.log;
+      console.log = (...args) => {
+        logs.push(args.join(" "));
+      };
+    });
+
+    afterEach(() => {
+      console.log = originalLog;
+    });
+
+    it("incrementCounter logs structured JSON", () => {
+      const prod = new ProductionMetricsAdapter();
+      prod.incrementCounter("api_requests_total", { method: "GET", status: "200" });
+      expect(logs).toHaveLength(1);
+
+      const parsed = JSON.parse(logs[0]);
+      expect(parsed._metric).toBe("counter");
+      expect(parsed.name).toBe("api_requests_total");
+      expect(parsed.labels).toEqual({ method: "GET", status: "200" });
+      expect(parsed.value).toBe(1);
+    });
+
+    it("recordHistogram logs structured JSON", () => {
+      const prod = new ProductionMetricsAdapter();
+      prod.recordHistogram("api_latency", 42, { method: "POST" });
+      expect(logs).toHaveLength(1);
+
+      const parsed = JSON.parse(logs[0]);
+      expect(parsed._metric).toBe("histogram");
+      expect(parsed.name).toBe("api_latency");
+      expect(parsed.labels).toEqual({ method: "POST" });
+      expect(parsed.value).toBe(42);
+    });
+
+    it("recordAuditEvent logs structured JSON", () => {
+      const prod = new ProductionMetricsAdapter();
+      prod.recordAuditEvent("abuse.dependency_fallback", { check: "ip", policy: "fail_open" });
+      expect(logs).toHaveLength(1);
+
+      const parsed = JSON.parse(logs[0]);
+      expect(parsed._metric).toBe("audit_event");
+      expect(parsed.name).toBe("abuse.dependency_fallback");
+      expect(parsed.fields).toEqual({ check: "ip", policy: "fail_open" });
+    });
+
+    it("drops unknown labels in production silently", () => {
+      const originalEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = "production";
+      try {
+        const prod = new ProductionMetricsAdapter();
+        prod.incrementCounter("api_requests_total", { method: "GET", unknown_label: "drop" });
+        const parsed = JSON.parse(logs[0]);
+        // unknown_label should be dropped by validateLabels in production
+        expect(parsed.labels).toEqual({ method: "GET" });
+      } finally {
+        process.env.NODE_ENV = originalEnv;
+      }
+    });
+  });
+
+  describe("adapter dispatch (setAdapter)", () => {
+    it("module-level incrementCounter delegates to the set adapter", () => {
+      const mock: MetricsAdapter = {
+        incrementCounter: vi.fn(),
+        recordHistogram: vi.fn(),
+        recordAuditEvent: vi.fn(),
+      };
+      setAdapter(mock);
+      incrementCounter("api_requests_total", { method: "GET" });
+      expect(mock.incrementCounter).toHaveBeenCalledWith("api_requests_total", { method: "GET" });
+    });
+
+    it("module-level recordHistogram delegates to the set adapter", () => {
+      const mock: MetricsAdapter = {
+        incrementCounter: vi.fn(),
+        recordHistogram: vi.fn(),
+        recordAuditEvent: vi.fn(),
+      };
+      setAdapter(mock);
+      recordHistogram("api_latency", 50, { method: "GET" });
+      expect(mock.recordHistogram).toHaveBeenCalledWith("api_latency", 50, { method: "GET" }, undefined);
+    });
+
+    it("module-level recordAuditEvent delegates to the set adapter", () => {
+      const mock: MetricsAdapter = {
+        incrementCounter: vi.fn(),
+        recordHistogram: vi.fn(),
+        recordAuditEvent: vi.fn(),
+      };
+      setAdapter(mock);
+      recordAuditEvent("test.event", { k: "v" });
+      expect(mock.recordAuditEvent).toHaveBeenCalledWith("test.event", { k: "v" });
+    });
+  });
+
+  describe("METRIC_DESCRIPTORS", () => {
+    it("documents all emitted metric names with their label keys", () => {
+      expect(METRIC_DESCRIPTORS).toHaveProperty("api_requests_total");
+      expect(METRIC_DESCRIPTORS).toHaveProperty("api_latency");
+      expect(METRIC_DESCRIPTORS).toHaveProperty("api_errors_total");
+      expect(METRIC_DESCRIPTORS).toHaveProperty("abuse_dependency_fallback");
+      expect(METRIC_DESCRIPTORS).toHaveProperty("postage_limit_rejected");
+      expect(METRIC_DESCRIPTORS).toHaveProperty("auth_failures_total");
+      expect(METRIC_DESCRIPTORS).toHaveProperty("rate_limits_total");
+      expect(METRIC_DESCRIPTORS).toHaveProperty("postage_transitions_total");
+    });
+
+    it("auth_failures_total has correct labels", () => {
+      expect(METRIC_DESCRIPTORS.auth_failures_total).toEqual(["method", "path", "reason"]);
+    });
+
+    it("rate_limits_total has correct labels", () => {
+      expect(METRIC_DESCRIPTORS.rate_limits_total).toEqual(["method", "path", "limit_type", "operation"]);
+    });
+
+    it("postage_transitions_total has correct labels", () => {
+      expect(METRIC_DESCRIPTORS.postage_transitions_total).toEqual(["from_status", "to_status", "result"]);
     });
   });
 

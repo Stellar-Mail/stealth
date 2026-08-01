@@ -85,7 +85,16 @@ export function createRouteHandler<
         mode = config.authMode;
       }
       if (mode === "required") {
-        actorId = requireActor(apiContext);
+        try {
+          actorId = requireActor(apiContext);
+        } catch (authError: any) {
+          metrics.incrementCounter("auth_failures_total", {
+            method,
+            path,
+            reason: authError?.code ?? "unauthorized",
+          });
+          throw authError;
+        }
       } else if (mode === "optional") {
         try {
           actorId = requireActor(apiContext);
@@ -98,10 +107,20 @@ export function createRouteHandler<
       if (config.authPolicy) {
         // If policy requires an authenticated actor but none is present, fail closed
         if (!actorId) {
+          metrics.incrementCounter("auth_failures_total", {
+            method,
+            path,
+            reason: "missing_actor",
+          });
           throw new ApiError(401, "unauthorized", "Authentication required for policy evaluation");
         }
         const authorized = await Promise.resolve(config.authPolicy(actorId, request));
         if (!authorized) {
+          metrics.incrementCounter("auth_failures_total", {
+            method,
+            path,
+            reason: "policy_rejected",
+          });
           throw new ApiError(403, "forbidden", "Authorization policy rejected the request");
         }
       }
@@ -112,6 +131,11 @@ export function createRouteHandler<
         let subject: string;
         if (config.rateLimit.type === "account") {
           if (!actorId) {
+            metrics.incrementCounter("auth_failures_total", {
+              method,
+              path,
+              reason: "rate_limit_no_auth",
+            });
             throw new ApiError(401, "unauthorized", "Account rate limit requires authentication");
           }
           subject = actorId;
@@ -129,6 +153,12 @@ export function createRouteHandler<
           config.rateLimit.operation,
         );
         if (!limit.allowed) {
+          metrics.incrementCounter("rate_limits_total", {
+            method,
+            path,
+            limit_type: config.rateLimit.type,
+            operation: config.rateLimit.operation,
+          });
           throw new ApiError(
             429,
             "too_many_requests",

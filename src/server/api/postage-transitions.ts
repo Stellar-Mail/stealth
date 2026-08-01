@@ -18,6 +18,7 @@
  */
 
 import type { PostageStatus } from "./domain";
+import * as metrics from "./metrics";
 
 /** Stable, non-secret error code (no postage/record data is leaked). */
 export class PostageTransitionError extends Error {
@@ -54,6 +55,16 @@ export function isAllowedTransition(from: PostageStatus, to: PostageStatus): boo
  */
 export function validatePostageTransition(from: PostageStatus, to: PostageStatus): void {
   if (!isAllowedTransition(from, to)) {
+    metrics.incrementCounter("postage_transitions_total", {
+      from_status: from,
+      to_status: to,
+      result: "denied",
+    });
     throw new PostageTransitionError(`Illegal postage transition: ${from} -> ${to}`);
   }
+  metrics.incrementCounter("postage_transitions_total", {
+    from_status: from,
+    to_status: to,
+    result: "allowed",
+  });
 }
