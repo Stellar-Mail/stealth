@@ -7,12 +7,14 @@ import type {
   Receipt,
   SenderRule,
   StoredEnvelope,
+  UsernameRecord,
 } from "../../../src/server/api/domain";
 import type {
   AcquireIdempotencyResult,
   ApiRepository,
   InsertEnvelopeResult,
   PostageTransitionResult,
+  ReserveUsernameResult,
 } from "../../../src/server/api/repository";
 import {
   RetryableApiRepository,
@@ -87,6 +89,14 @@ class FailingRepository implements ApiRepository {
   async insertPostage(postage: Postage): Promise<Postage> {
     this.maybeFail("insertPostage");
     return this.inner.insertPostage(postage);
+  }
+  async getUsernameRecord(username: string): Promise<UsernameRecord | null> {
+    this.maybeFail("getUsernameRecord");
+    return this.inner.getUsernameRecord(username);
+  }
+  async reserveUsernameIfAbsent(record: UsernameRecord): Promise<ReserveUsernameResult> {
+    this.maybeFail("reserveUsernameIfAbsent");
+    return this.inner.reserveUsernameIfAbsent(record);
   }
   async getReceipt(messageId: string): Promise<Receipt | null> {
     this.maybeFail("getReceipt");

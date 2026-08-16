@@ -2,6 +2,7 @@ import type {
   ApiRepository,
   InsertEnvelopeResult,
   PostageTransitionResult,
+  ReserveUsernameResult,
   UpdateUserResult,
 } from "./repository";
 import type {
@@ -15,6 +16,7 @@ import type {
   SenderRule,
   StoredEnvelope,
   User,
+  UsernameRecord,
 } from "./domain";
 import { ApiError } from "./errors";
 
@@ -87,6 +89,27 @@ export class HybridApiRepository implements ApiRepository {
     }
     await this.kv.put(this.key("postage", postage.messageId), JSON.stringify(postage));
     return postage;
+  }
+
+  // Reservation uniqueness is authoritative in the coordinator (see
+  // StealthCoordinator.reserveUsernameIfAbsent); KV is mirrored on success
+  // purely as a fast-read cache, mirroring the receipt read/write pattern.
+  async getUsernameRecord(username: string): Promise<UsernameRecord | null> {
+    const coordinated = await this.getStub().getUsernameRecord(username);
+    if (coordinated) return coordinated;
+
+    const record = await this.kv.get(this.key("username", username), "json");
+    if (!record) return null;
+
+    return record as UsernameRecord;
+  }
+
+  async reserveUsernameIfAbsent(record: UsernameRecord): Promise<ReserveUsernameResult> {
+    const result = await this.getStub().reserveUsernameIfAbsent(record);
+    if (result.outcome === "reserved") {
+      await this.kv.put(this.key("username", record.username), JSON.stringify(result.record));
+    }
+    return result;
   }
 
   async getReceipt(messageId: string): Promise<Receipt | null> {

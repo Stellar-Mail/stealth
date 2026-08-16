@@ -7,11 +7,13 @@ import type {
   Receipt,
   StoredEnvelope,
   User,
+  UsernameRecord,
 } from "./domain";
 import type {
   AcquireIdempotencyResult,
   InsertEnvelopeResult,
   PostageTransitionResult,
+  ReserveUsernameResult,
   UpdateUserResult,
 } from "./repository";
 import { ApiError } from "./errors";
@@ -323,6 +325,29 @@ export class StealthCoordinator extends DurableObjectBase {
   async setCredential(credential: Credential): Promise<Credential> {
     await this.ctx.storage.put(`credential:${credential.userId}`, credential);
     return credential;
+  }
+
+  // Issue #1910: username *reservation* is a uniqueness constraint over
+  // identity itself, so (like postage settlement) it must live in this
+  // Durable Object's transactional storage rather than eventually-consistent
+  // KV. Independent of the BETA-002 user:username:* index above — see the
+  // note in memory-repository.ts for how the two relate.
+  async getUsernameRecord(username: string): Promise<UsernameRecord | null> {
+    const record = (await this.ctx.storage.get(`username:${username}`)) as
+      | UsernameRecord
+      | undefined;
+    return record ?? null;
+  }
+
+  async reserveUsernameIfAbsent(record: UsernameRecord): Promise<ReserveUsernameResult> {
+    return this.runExclusive(`username:${record.username}`, async () => {
+      const existing = await this.getUsernameRecord(record.username);
+      if (existing) {
+        return { outcome: "taken" as const, record: existing };
+      }
+      await this.ctx.storage.put(`username:${record.username}`, record);
+      return { outcome: "reserved" as const, record };
+    });
   }
 
   async getCounter(key: string): Promise<number> {

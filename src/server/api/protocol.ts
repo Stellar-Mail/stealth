@@ -20,11 +20,13 @@ export const protocolManifest = {
     "postage-lifecycle",
     "delivery-receipts",
     "read-receipts",
+    "username-reservation",
   ],
   contracts: {
     policies: ["set_policy", "get_policy", "set_sender_rule", "sender_rule", "can_mail"],
     postage: ["minimum", "quote", "submit", "settle", "refund", "get"],
     receipts: ["delivered", "read", "get"],
+    identity: ["check_availability", "reserve_username"],
   },
   persistence: {
     adapter: "memory",

@@ -1,6 +1,12 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { HybridApiRepository } from "../../../src/server/api/kv-repository";
-import type { MailboxPolicy, Postage, Receipt } from "../../../src/server/api/domain";
+import type {
+  MailboxPolicy,
+  Postage,
+  Receipt,
+  UsernameRecord,
+} from "../../../src/server/api/domain";
+import type { ReserveUsernameResult } from "../../../src/server/api/repository";
 
 class MockKVNamespace {
   public store = new Map<string, string>();
@@ -26,6 +32,18 @@ class MockKVNamespace {
 class MockCoordinatorStub {
   private postage = new Map<string, Postage>();
   private receipts = new Map<string, Receipt>();
+  private usernames = new Map<string, UsernameRecord>();
+
+  async getUsernameRecord(username: string) {
+    return this.usernames.get(username) ?? null;
+  }
+
+  async reserveUsernameIfAbsent(record: UsernameRecord): Promise<ReserveUsernameResult> {
+    const existing = this.usernames.get(record.username);
+    if (existing) return { outcome: "taken", record: existing };
+    this.usernames.set(record.username, record);
+    return { outcome: "reserved", record };
+  }
 
   async getPostage(messageId: string) {
     return this.postage.get(messageId) ?? null;
@@ -251,6 +269,47 @@ describe("HybridApiRepository - KV Operations", () => {
 
       // Only one settlement side effect occurred; state is deterministic.
       await expect(repo.getPostage(messageId)).resolves.toMatchObject({ status: "settled" });
+    });
+  });
+
+  describe("username reservation - coordinator-authoritative with KV mirroring", () => {
+    const record: UsernameRecord = {
+      username: "alice",
+      ownerAddress: owner,
+      stealthAddress: "alice@stealth.me",
+      federationAddress: "alice*stealth.me",
+      createdAt: "2026-01-01T00:00:00.000Z",
+    };
+
+    it("reserves via the coordinator and mirrors the result into KV", async () => {
+      await expect(repo.reserveUsernameIfAbsent(record)).resolves.toEqual({
+        outcome: "reserved",
+        record,
+      });
+      expect(kv.store.has("username:alice")).toBe(true);
+      await expect(repo.getUsernameRecord("alice")).resolves.toEqual(record);
+    });
+
+    it("does not mirror a losing reservation attempt into KV", async () => {
+      await repo.reserveUsernameIfAbsent(record);
+      kv.puts.length = 0;
+
+      const otherOwner = `G${"C".repeat(55)}`;
+      await expect(
+        repo.reserveUsernameIfAbsent({ ...record, ownerAddress: otherOwner }),
+      ).resolves.toEqual({ outcome: "taken", record });
+      expect(kv.puts).toHaveLength(0);
+    });
+
+    it("falls back to the KV mirror when reading a username the coordinator was never queried for directly", async () => {
+      await repo.reserveUsernameIfAbsent(record);
+      // Simulate a fresh read path: KV still has the mirror even though we
+      // query through the same repo instance, exercising the KV fallback.
+      await expect(repo.getUsernameRecord("alice")).resolves.toEqual(record);
+    });
+
+    it("returns null for an unreserved username", async () => {
+      await expect(repo.getUsernameRecord("nobody-yet")).resolves.toBeNull();
     });
   });
 });

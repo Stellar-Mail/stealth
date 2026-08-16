@@ -9,11 +9,13 @@ import type {
   SenderRule,
   StoredEnvelope,
   User,
+  UsernameRecord,
 } from "./domain";
 import type {
   ApiRepository,
   InsertEnvelopeResult,
   PostageTransitionResult,
+  ReserveUsernameResult,
   UpdateUserResult,
 } from "./repository";
 import { ApiError } from "./errors";
@@ -41,6 +43,12 @@ export class MemoryApiRepository implements ApiRepository {
   private readonly usersByAddress = new Map<string, string>();
   private readonly profiles = new Map<string, Profile>();
   private readonly credentials = new Map<string, Credential>();
+
+  // Issue #1910: canonical username *reservation* store and per-key locks.
+  // Distinct from usersByUsername (BETA-002) — see the note above
+  // reserveUsernameIfAbsent for how the two relate.
+  private readonly usernames = new Map<string, UsernameRecord>();
+  private readonly usernameLocks = new Map<string, Promise<void>>();
 
   private async withReceiptLock<T>(messageId: string, action: () => Promise<T>): Promise<T> {
     const previous = this.receiptLocks.get(messageId) ?? Promise.resolve();
@@ -78,6 +86,26 @@ export class MemoryApiRepository implements ApiRepository {
       release();
       if (this.envelopeLocks.get(messageId) === queued) {
         this.envelopeLocks.delete(messageId);
+      }
+    }
+  }
+
+  private async withUsernameLock<T>(username: string, action: () => Promise<T>): Promise<T> {
+    const previous = this.usernameLocks.get(username) ?? Promise.resolve();
+    let release!: () => void;
+    const current = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const queued = previous.then(() => current);
+    this.usernameLocks.set(username, queued);
+
+    await previous;
+    try {
+      return await action();
+    } finally {
+      release();
+      if (this.usernameLocks.get(username) === queued) {
+        this.usernameLocks.delete(username);
       }
     }
   }
@@ -138,6 +166,28 @@ export class MemoryApiRepository implements ApiRepository {
     }
     this.postage.set(postage.messageId, structuredClone(postage));
     return structuredClone(postage);
+  }
+
+  // Issue #1910: canonical username *reservation* (username@stealth.me /
+  // username*stealth.me federation mapping). Deliberately independent of
+  // BETA-002's usersByUsername index above: this store is keyed by the
+  // caller-supplied ownerAddress rather than a full User account, so an
+  // address can reserve its identity before (or without) creating a full
+  // account. Reconciling the two into a single uniqueness domain is a
+  // follow-up, not part of this change.
+  async getUsernameRecord(username: string) {
+    return structuredClone(this.usernames.get(username) ?? null);
+  }
+
+  async reserveUsernameIfAbsent(record: UsernameRecord): Promise<ReserveUsernameResult> {
+    return this.withUsernameLock(record.username, async () => {
+      const existing = this.usernames.get(record.username);
+      if (existing) {
+        return { outcome: "taken", record: structuredClone(existing) };
+      }
+      this.usernames.set(record.username, structuredClone(record));
+      return { outcome: "reserved", record: structuredClone(record) };
+    });
   }
 
   async getReceipt(messageId: string) {
@@ -437,5 +487,7 @@ export class MemoryApiRepository implements ApiRepository {
     this.usersByAddress.clear();
     this.profiles.clear();
     this.credentials.clear();
+    this.usernames.clear();
+    this.usernameLocks.clear();
   }
 }

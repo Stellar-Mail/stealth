@@ -90,7 +90,8 @@
               "duplicate_receipt",
               "duplicate_postage",
               "invalid_quote",
-              "request_in_progress"
+              "request_in_progress",
+              "username_taken"
             ],
             "example": "invalid_state_transition"
           },
@@ -127,6 +128,74 @@
           },
           "requireVerified": {
             "type": "boolean"
+          }
+        }
+      },
+      "Username": {
+        "type": "string",
+        "description": "Canonical (normalized, lowercased, confusable-folded) Stealth username.",
+        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$",
+        "minLength": 3,
+        "maxLength": 30,
+        "example": "alice"
+      },
+      "UsernameAvailability": {
+        "type": "object",
+        "required": ["username", "available"],
+        "additionalProperties": false,
+        "properties": {
+          "username": {
+            "$ref": "#/components/schemas/Username"
+          },
+          "available": {
+            "type": "boolean",
+            "description": "Whether the canonical username is currently reservable. Never reveals ownership."
+          }
+        }
+      },
+      "UsernameReservationRequest": {
+        "type": "object",
+        "required": ["username"],
+        "additionalProperties": false,
+        "properties": {
+          "username": {
+            "type": "string",
+            "description": "Raw candidate username; normalized server-side before reservation.",
+            "maxLength": 128,
+            "example": "Alice"
+          }
+        }
+      },
+      "UsernameRecord": {
+        "type": "object",
+        "required": [
+          "username",
+          "ownerAddress",
+          "stealthAddress",
+          "federationAddress",
+          "createdAt"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "username": {
+            "$ref": "#/components/schemas/Username"
+          },
+          "ownerAddress": {
+            "$ref": "#/components/schemas/StellarAddress"
+          },
+          "stealthAddress": {
+            "type": "string",
+            "description": "Human-facing Stealth address.",
+            "example": "alice@stealth.me"
+          },
+          "federationAddress": {
+            "type": "string",
+            "description": "SEP-2 Stellar federation address (username*domain), resolved via the federation server.",
+            "example": "alice*stealth.me"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
@@ -277,7 +346,8 @@
                   "duplicate_receipt",
                   "duplicate_postage",
                   "invalid_quote",
-                  "request_in_progress"
+                  "request_in_progress",
+                  "username_taken"
                 ]
               },
               "message": {
@@ -440,6 +510,12 @@
             "message": "An equivalent request is already in progress",
             "retryable": true,
             "description": "A matching operation currently holds the idempotency lease."
+          },
+          "username_taken": {
+            "status": 409,
+            "message": "The requested username is not available",
+            "retryable": false,
+            "description": "A reservation already exists for this normalized username."
           }
         }
       }
@@ -1132,6 +1208,170 @@
                       }
                     }
                   }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/identity/usernames/{username}/availability": {
+      "get": {
+        "operationId": "getUsernameAvailability",
+        "summary": "Check canonical username availability",
+        "x-stability": "stable",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/UsernameAvailability"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity — malformed, out-of-bounds-length, or reserved-word username",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/identity/usernames": {
+      "post": {
+        "operationId": "reserveUsername",
+        "summary": "Atomically reserve a canonical Stealth username",
+        "x-max-body-bytes": 4096,
+        "security": [
+          {
+            "StellarSignedRequest": []
+          }
+        ],
+        "x-stability": "stable",
+        "requestBody": {
+          "description": "Candidate username to reserve for the authenticated actor.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UsernameReservationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Reserved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/UsernameRecord"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict — username_taken or an in-flight idempotent duplicate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity — malformed, out-of-bounds-length, or reserved-word username",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }

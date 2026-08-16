@@ -243,6 +243,71 @@ export function runRepositoryContractTests(
       });
     });
 
+    describe("username reservation", () => {
+      const record = {
+        username: "alice",
+        ownerAddress: owner,
+        stealthAddress: "alice@stealth.me",
+        federationAddress: "alice*stealth.me",
+        createdAt: "2026-01-01T00:00:00.000Z",
+      };
+
+      it("returns null for an unreserved username", async () => {
+        await expect(repo.getUsernameRecord("alice")).resolves.toBeNull();
+      });
+
+      it("reserves an absent username and round-trips it via getUsernameRecord", async () => {
+        await expect(repo.reserveUsernameIfAbsent(record)).resolves.toEqual({
+          outcome: "reserved",
+          record,
+        });
+        await expect(repo.getUsernameRecord("alice")).resolves.toEqual(record);
+      });
+
+      it("reports the existing owner as 'taken' on a second reservation attempt", async () => {
+        await repo.reserveUsernameIfAbsent(record);
+
+        const otherOwner = `G${"C".repeat(55)}`;
+        await expect(
+          repo.reserveUsernameIfAbsent({
+            ...record,
+            ownerAddress: otherOwner,
+            createdAt: "2026-01-02T00:00:00.000Z",
+          }),
+        ).resolves.toEqual({ outcome: "taken", record });
+
+        // The original reservation is never overwritten by a losing attempt.
+        await expect(repo.getUsernameRecord("alice")).resolves.toEqual(record);
+      });
+
+      it("isolates reservations across distinct usernames", async () => {
+        await repo.reserveUsernameIfAbsent(record);
+        await expect(repo.getUsernameRecord("bob")).resolves.toBeNull();
+      });
+
+      it("allows exactly one winner out of concurrent reservation attempts", async () => {
+        const results = await Promise.all(
+          Array.from({ length: 5 }, (_, index) =>
+            repo.reserveUsernameIfAbsent({
+              ...record,
+              ownerAddress: `G${String(index).repeat(55)}`.slice(0, 56),
+            }),
+          ),
+        );
+
+        const reserved = results.filter((result) => result.outcome === "reserved");
+        const taken = results.filter((result) => result.outcome === "taken");
+        expect(reserved).toHaveLength(1);
+        expect(taken).toHaveLength(4);
+
+        // Every loser observed the single winner's record, not its own payload.
+        const winner = reserved[0]!.record;
+        for (const result of taken) {
+          expect(result.record).toEqual(winner);
+        }
+      });
+    });
+
     describe("counters", () => {
       it("starts at zero and increments within a window", async () => {
         await expect(repo.getCounter("rl:test")).resolves.toBe(0);

@@ -22,10 +22,12 @@ import { Route as ApiV1PostageQuoteRouteImport } from './routes/api/v1/postage/q
 import { Route as ApiV1PostageMessageIdRouteImport } from './routes/api/v1/postage/$messageId'
 import { Route as ApiV1PoliciesEvaluateRouteImport } from './routes/api/v1/policies/evaluate'
 import { Route as ApiV1PoliciesOwnerRouteImport } from './routes/api/v1/policies/$owner'
+import { Route as ApiV1IdentityUsernamesIndexRouteImport } from './routes/api/v1/identity/usernames/index'
 import { Route as ApiV1ReceiptsMessageIdReadRouteImport } from './routes/api/v1/receipts/$messageId/read'
 import { Route as ApiV1PostageMessageIdSettleRouteImport } from './routes/api/v1/postage/$messageId/settle'
 import { Route as ApiV1PostageMessageIdRefundRouteImport } from './routes/api/v1/postage/$messageId/refund'
 import { Route as ApiV1PoliciesOwnerSendersSenderRouteImport } from './routes/api/v1/policies/$owner/senders/$sender'
+import { Route as ApiV1IdentityUsernamesUsernameAvailabilityRouteImport } from './routes/api/v1/identity/usernames/$username/availability'
 
 const MotionGalleryRoute = MotionGalleryRouteImport.update({
   id: '/motion-gallery',
@@ -92,6 +94,12 @@ const ApiV1PoliciesOwnerRoute = ApiV1PoliciesOwnerRouteImport.update({
   path: '/api/v1/policies/$owner',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1IdentityUsernamesIndexRoute =
+  ApiV1IdentityUsernamesIndexRouteImport.update({
+    id: '/api/v1/identity/usernames/',
+    path: '/api/v1/identity/usernames/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiV1ReceiptsMessageIdReadRoute =
   ApiV1ReceiptsMessageIdReadRouteImport.update({
     id: '/read',
@@ -116,6 +124,12 @@ const ApiV1PoliciesOwnerSendersSenderRoute =
     path: '/senders/$sender',
     getParentRoute: () => ApiV1PoliciesOwnerRoute,
   } as any)
+const ApiV1IdentityUsernamesUsernameAvailabilityRoute =
+  ApiV1IdentityUsernamesUsernameAvailabilityRouteImport.update({
+    id: '/api/v1/identity/usernames/$username/availability',
+    path: '/api/v1/identity/usernames/$username/availability',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -134,6 +148,8 @@ export interface FileRoutesByFullPath {
   '/api/v1/postage/$messageId/refund': typeof ApiV1PostageMessageIdRefundRoute
   '/api/v1/postage/$messageId/settle': typeof ApiV1PostageMessageIdSettleRoute
   '/api/v1/receipts/$messageId/read': typeof ApiV1ReceiptsMessageIdReadRoute
+  '/api/v1/identity/usernames/': typeof ApiV1IdentityUsernamesIndexRoute
+  '/api/v1/identity/usernames/$username/availability': typeof ApiV1IdentityUsernamesUsernameAvailabilityRoute
   '/api/v1/policies/$owner/senders/$sender': typeof ApiV1PoliciesOwnerSendersSenderRoute
 }
 export interface FileRoutesByTo {
@@ -153,6 +169,8 @@ export interface FileRoutesByTo {
   '/api/v1/postage/$messageId/refund': typeof ApiV1PostageMessageIdRefundRoute
   '/api/v1/postage/$messageId/settle': typeof ApiV1PostageMessageIdSettleRoute
   '/api/v1/receipts/$messageId/read': typeof ApiV1ReceiptsMessageIdReadRoute
+  '/api/v1/identity/usernames': typeof ApiV1IdentityUsernamesIndexRoute
+  '/api/v1/identity/usernames/$username/availability': typeof ApiV1IdentityUsernamesUsernameAvailabilityRoute
   '/api/v1/policies/$owner/senders/$sender': typeof ApiV1PoliciesOwnerSendersSenderRoute
 }
 export interface FileRoutesById {
@@ -173,6 +191,8 @@ export interface FileRoutesById {
   '/api/v1/postage/$messageId/refund': typeof ApiV1PostageMessageIdRefundRoute
   '/api/v1/postage/$messageId/settle': typeof ApiV1PostageMessageIdSettleRoute
   '/api/v1/receipts/$messageId/read': typeof ApiV1ReceiptsMessageIdReadRoute
+  '/api/v1/identity/usernames/': typeof ApiV1IdentityUsernamesIndexRoute
+  '/api/v1/identity/usernames/$username/availability': typeof ApiV1IdentityUsernamesUsernameAvailabilityRoute
   '/api/v1/policies/$owner/senders/$sender': typeof ApiV1PoliciesOwnerSendersSenderRoute
 }
 export interface FileRouteTypes {
@@ -194,6 +214,8 @@ export interface FileRouteTypes {
     | '/api/v1/postage/$messageId/refund'
     | '/api/v1/postage/$messageId/settle'
     | '/api/v1/receipts/$messageId/read'
+    | '/api/v1/identity/usernames/'
+    | '/api/v1/identity/usernames/$username/availability'
     | '/api/v1/policies/$owner/senders/$sender'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -213,6 +235,8 @@ export interface FileRouteTypes {
     | '/api/v1/postage/$messageId/refund'
     | '/api/v1/postage/$messageId/settle'
     | '/api/v1/receipts/$messageId/read'
+    | '/api/v1/identity/usernames'
+    | '/api/v1/identity/usernames/$username/availability'
     | '/api/v1/policies/$owner/senders/$sender'
   id:
     | '__root__'
@@ -232,6 +256,8 @@ export interface FileRouteTypes {
     | '/api/v1/postage/$messageId/refund'
     | '/api/v1/postage/$messageId/settle'
     | '/api/v1/receipts/$messageId/read'
+    | '/api/v1/identity/usernames/'
+    | '/api/v1/identity/usernames/$username/availability'
     | '/api/v1/policies/$owner/senders/$sender'
   fileRoutesById: FileRoutesById
 }
@@ -249,6 +275,8 @@ export interface RootRouteChildren {
   ApiV1ReceiptsMessageIdRoute: typeof ApiV1ReceiptsMessageIdRouteWithChildren
   ApiV1PostageIndexRoute: typeof ApiV1PostageIndexRoute
   ApiV1ReceiptsIndexRoute: typeof ApiV1ReceiptsIndexRoute
+  ApiV1IdentityUsernamesIndexRoute: typeof ApiV1IdentityUsernamesIndexRoute
+  ApiV1IdentityUsernamesUsernameAvailabilityRoute: typeof ApiV1IdentityUsernamesUsernameAvailabilityRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -344,6 +372,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1PoliciesOwnerRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/identity/usernames/': {
+      id: '/api/v1/identity/usernames/'
+      path: '/api/v1/identity/usernames'
+      fullPath: '/api/v1/identity/usernames/'
+      preLoaderRoute: typeof ApiV1IdentityUsernamesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/receipts/$messageId/read': {
       id: '/api/v1/receipts/$messageId/read'
       path: '/read'
@@ -371,6 +406,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/v1/policies/$owner/senders/$sender'
       preLoaderRoute: typeof ApiV1PoliciesOwnerSendersSenderRouteImport
       parentRoute: typeof ApiV1PoliciesOwnerRoute
+    }
+    '/api/v1/identity/usernames/$username/availability': {
+      id: '/api/v1/identity/usernames/$username/availability'
+      path: '/api/v1/identity/usernames/$username/availability'
+      fullPath: '/api/v1/identity/usernames/$username/availability'
+      preLoaderRoute: typeof ApiV1IdentityUsernamesUsernameAvailabilityRouteImport
+      parentRoute: typeof rootRouteImport
     }
   }
 }
@@ -429,6 +471,9 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1ReceiptsMessageIdRoute: ApiV1ReceiptsMessageIdRouteWithChildren,
   ApiV1PostageIndexRoute: ApiV1PostageIndexRoute,
   ApiV1ReceiptsIndexRoute: ApiV1ReceiptsIndexRoute,
+  ApiV1IdentityUsernamesIndexRoute: ApiV1IdentityUsernamesIndexRoute,
+  ApiV1IdentityUsernamesUsernameAvailabilityRoute:
+    ApiV1IdentityUsernamesUsernameAvailabilityRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

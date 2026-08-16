@@ -13,6 +13,7 @@ import {
   profileSchema,
   credentialSchema,
   storedEnvelopeSchema,
+  usernameRecordSchema,
 } from "./domain";
 import { ApiError } from "./errors";
 
@@ -195,6 +196,7 @@ registerRecordSchema("receipt", 1, receiptSchema);
 registerRecordSchema("user", 1, userSchema);
 registerRecordSchema("profile", 1, profileSchema);
 registerRecordSchema("credential", 1, credentialSchema);
+registerRecordSchema("usernameRecord", 1, usernameRecordSchema);
 // v1 -> v2 (Issue #1498): records now carry a requestDigest binding the
 // lease/response to the exact request payload that created it. Legacy
 // records predate this and never bore a client-supplied payload we can

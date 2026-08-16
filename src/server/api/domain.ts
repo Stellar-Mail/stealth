@@ -111,6 +111,24 @@ export type PostageStatus = z.infer<typeof postageStatusSchema>;
 export type Receipt = z.infer<typeof receiptSchema>;
 export type SenderRule = z.infer<typeof senderRuleSchema>;
 
+// ---------------------------------------------------------------------------
+// Issue #1910: canonical username reservation record.
+//
+// `username` is always the already-canonicalized value (see
+// src/features/identity/username.ts) — this schema does not re-derive
+// canonicalization, it only shapes the persisted record.
+// ---------------------------------------------------------------------------
+
+export const usernameRecordSchema = z.object({
+  username: z.string().min(1).max(64),
+  ownerAddress: stellarAddressSchema,
+  stealthAddress: z.string().min(1).max(128),
+  federationAddress: z.string().min(1).max(128),
+  createdAt: z.string().datetime(),
+});
+
+export type UsernameRecord = z.infer<typeof usernameRecordSchema>;
+
 export const idempotencyRecordSchema = z.discriminatedUnion("state", [
   z.object({
     state: z.literal("in_progress"),

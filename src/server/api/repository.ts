@@ -10,6 +10,7 @@ import type {
   SenderRule,
   StoredEnvelope,
   User,
+  UsernameRecord,
 } from "./domain";
 import { ApiError, DataIntegrityError, RetryExhaustedError } from "./errors";
 
@@ -84,6 +85,22 @@ export type UpdateUserResult =
   | { updated: true; user: User }
   | { updated: false; current: User | null };
 
+/**
+ * Outcome of an atomic "reserve if absent" username claim.
+ *
+ * - "reserved": this call won the race and the record now reflects `record`.
+ * - "taken": a reservation already existed for this normalized username
+ *   (either from an earlier call or a concurrent winner); `record` reflects
+ *   the existing owner, never the caller's requested payload.
+ *
+ * Implementations MUST guarantee exactly one winner across concurrent calls
+ * for the same normalized username (Issue #1910), the same way
+ * {@link ApiRepository.createReceiptIfAbsent} guarantees it for receipts.
+ */
+export type ReserveUsernameResult =
+  | { outcome: "reserved"; record: UsernameRecord }
+  | { outcome: "taken"; record: UsernameRecord };
+
 export interface ApiRepository {
   getPolicy(owner: string): Promise<MailboxPolicy | null>;
   setPolicy(owner: string, policy: MailboxPolicy): Promise<MailboxPolicy>;
@@ -113,6 +130,15 @@ export interface ApiRepository {
    * postage/receipt state. Concurrent inserts must yield exactly one winner.
    */
   insertPostage(postage: Postage): Promise<Postage>;
+
+  /** Reads the current reservation for a normalized username, or null if unclaimed. */
+  getUsernameRecord(username: string): Promise<UsernameRecord | null>;
+  /**
+   * Atomically reserves a normalized username, keyed by `record.username`.
+   * See {@link ReserveUsernameResult} for the exactly-one-winner contract.
+   */
+  reserveUsernameIfAbsent(record: UsernameRecord): Promise<ReserveUsernameResult>;
+
   getReceipt(messageId: string): Promise<Receipt | null>;
   setReceipt(receipt: Receipt): Promise<Receipt>;
   createReceiptIfAbsent(receipt: Receipt): Promise<{ created: boolean; receipt: Receipt }>;
@@ -314,6 +340,19 @@ export class ValidatedApiRepository implements ApiRepository {
   async insertPostage(postage: Postage): Promise<Postage> {
     const result = await this.inner.insertPostage(versionRecord("postage", postage));
     return validateRecord<Postage>("postage", result);
+  }
+
+  async getUsernameRecord(username: string): Promise<UsernameRecord | null> {
+    const raw = await this.inner.getUsernameRecord(username);
+    return raw ? validateRecord<UsernameRecord>("usernameRecord", raw) : null;
+  }
+
+  async reserveUsernameIfAbsent(record: UsernameRecord): Promise<ReserveUsernameResult> {
+    const result = await this.inner.reserveUsernameIfAbsent(
+      versionRecord("usernameRecord", record),
+    );
+    result.record = validateRecord<UsernameRecord>("usernameRecord", result.record);
+    return result;
   }
 
   async getReceipt(messageId: string): Promise<Receipt | null> {
@@ -524,6 +563,8 @@ const RETRY_SAFE_OPERATIONS = new Set<string>([
   "getCredential",
   "setCredential",
   "getEnvelope",
+  "getUsernameRecord",
+  "reserveUsernameIfAbsent",
 ]);
 
 function isRetryableError(error: unknown): boolean {
@@ -616,6 +657,16 @@ export class RetryableApiRepository implements ApiRepository {
 
   insertPostage(postage: Postage): Promise<Postage> {
     return this.inner.insertPostage(postage);
+  }
+
+  getUsernameRecord(username: string): Promise<UsernameRecord | null> {
+    return this.withRetry("getUsernameRecord", () => this.inner.getUsernameRecord(username));
+  }
+
+  reserveUsernameIfAbsent(record: UsernameRecord): Promise<ReserveUsernameResult> {
+    return this.withRetry("reserveUsernameIfAbsent", () =>
+      this.inner.reserveUsernameIfAbsent(record),
+    );
   }
 
   getReceipt(messageId: string): Promise<Receipt | null> {

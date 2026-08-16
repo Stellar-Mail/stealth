@@ -130,6 +130,12 @@ export const API_ERROR_REGISTRY = {
     retryable: true,
     description: "A matching operation currently holds the idempotency lease.",
   },
+  username_taken: {
+    status: 409,
+    message: "The requested username is not available",
+    retryable: false,
+    description: "A reservation already exists for this normalized username.",
+  },
 } as const satisfies Record<string, ApiErrorDefinition>;
 
 export type ApiErrorCode = keyof typeof API_ERROR_REGISTRY;

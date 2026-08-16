@@ -115,6 +115,70 @@ export const openApiDocument = {
           },
         },
       },
+      Username: {
+        type: "string",
+        description: "Canonical (normalized, lowercased, confusable-folded) Stealth username.",
+        pattern: "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$",
+        minLength: 3,
+        maxLength: 30,
+        example: "alice",
+      },
+      UsernameAvailability: {
+        type: "object",
+        required: ["username", "available"],
+        additionalProperties: false,
+        properties: {
+          username: {
+            $ref: "#/components/schemas/Username",
+          },
+          available: {
+            type: "boolean",
+            description:
+              "Whether the canonical username is currently reservable. Never reveals ownership.",
+          },
+        },
+      },
+      UsernameReservationRequest: {
+        type: "object",
+        required: ["username"],
+        additionalProperties: false,
+        properties: {
+          username: {
+            type: "string",
+            description: "Raw candidate username; normalized server-side before reservation.",
+            maxLength: 128,
+            example: "Alice",
+          },
+        },
+      },
+      UsernameRecord: {
+        type: "object",
+        required: ["username", "ownerAddress", "stealthAddress", "federationAddress", "createdAt"],
+        additionalProperties: false,
+        properties: {
+          username: {
+            $ref: "#/components/schemas/Username",
+          },
+          ownerAddress: {
+            $ref: "#/components/schemas/StellarAddress",
+          },
+          stealthAddress: {
+            type: "string",
+            description: "Human-facing Stealth address.",
+            example: "alice@stealth.me",
+          },
+          federationAddress: {
+            type: "string",
+            description:
+              "SEP-2 Stellar federation address (username*domain), resolved via the federation server.",
+            example: "alice*stealth.me",
+          },
+          createdAt: {
+            type: "string",
+            format: "date-time",
+          },
+        },
+      },
       ValidationErrorItem: {
         type: "object",
         required: ["path", "rule", "message"],
@@ -972,6 +1036,142 @@ export const openApiDocument = {
                 schema: {
                   $ref: "#/components/schemas/ErrorEnvelope",
                 },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/identity/usernames/{username}/availability": {
+      get: {
+        operationId: "getUsernameAvailability",
+        summary: "Check canonical username availability",
+        "x-stability": "stable",
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Success",
+            content: {
+              "application/json": {
+                schema: {
+                  allOf: [
+                    { $ref: "#/components/schemas/SuccessEnvelope" },
+                    {
+                      type: "object",
+                      properties: {
+                        data: { $ref: "#/components/schemas/UsernameAvailability" },
+                      },
+                    },
+                  ],
+                },
+              },
+            },
+          },
+          "422": {
+            description:
+              "Unprocessable Entity — malformed, out-of-bounds-length, or reserved-word username",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorEnvelope" },
+              },
+            },
+          },
+          "429": {
+            description: "Too Many Requests",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorEnvelope" },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorEnvelope" },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/identity/usernames": {
+      post: {
+        operationId: "reserveUsername",
+        summary: "Atomically reserve a canonical Stealth username",
+        "x-max-body-bytes": 4 * 1024,
+        security: [
+          {
+            StellarSignedRequest: [],
+          },
+        ],
+        "x-stability": "stable",
+        requestBody: {
+          description: "Candidate username to reserve for the authenticated actor.",
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/UsernameReservationRequest" },
+            },
+          },
+        },
+        responses: {
+          default: { description: "" },
+          "201": {
+            description: "Reserved",
+            content: {
+              "application/json": {
+                schema: {
+                  allOf: [
+                    { $ref: "#/components/schemas/SuccessEnvelope" },
+                    {
+                      type: "object",
+                      properties: {
+                        data: { $ref: "#/components/schemas/UsernameRecord" },
+                      },
+                    },
+                  ],
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorEnvelope" },
+              },
+            },
+          },
+          "409": {
+            description: "Conflict — username_taken or an in-flight idempotent duplicate",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorEnvelope" },
+              },
+            },
+          },
+          "422": {
+            description:
+              "Unprocessable Entity — malformed, out-of-bounds-length, or reserved-word username",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorEnvelope" },
+              },
+            },
+          },
+          "429": {
+            description: "Too Many Requests",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorEnvelope" },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorEnvelope" },
               },
             },
           },
