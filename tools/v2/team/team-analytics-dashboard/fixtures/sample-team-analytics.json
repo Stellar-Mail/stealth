@@ -1,0 +1,93 @@
+{
+  "tool": "team-analytics-dashboard",
+  "version": 1,
+  "sourceReports": [
+    {
+      "id": "report-support-001",
+      "team": "Support",
+      "period": "2026-W25",
+      "totalThreads": 140,
+      "averageFirstResponseHours": 2.4,
+      "openBacklog": 8,
+      "hasCompleteSourceData": true
+    },
+    {
+      "id": "report-sales-002",
+      "team": "Sales",
+      "period": "2026-W25",
+      "totalThreads": 92,
+      "averageFirstResponseHours": 6.5,
+      "openBacklog": 24,
+      "hasCompleteSourceData": true
+    },
+    {
+      "id": "report-ops-003",
+      "team": "Operations",
+      "period": "2026-W25",
+      "totalThreads": 76,
+      "averageFirstResponseHours": 18.2,
+      "openBacklog": 31,
+      "hasCompleteSourceData": true
+    },
+    {
+      "id": "report-finance-004",
+      "team": "Finance",
+      "period": "2026-W25",
+      "totalThreads": 0,
+      "averageFirstResponseHours": null,
+      "openBacklog": 0,
+      "hasCompleteSourceData": false
+    }
+  ],
+  "expectedSnapshots": [
+    {
+      "id": "snapshot-support-001",
+      "team": "Support",
+      "period": "2026-W25",
+      "status": "healthy",
+      "totalThreads": 140,
+      "averageFirstResponseHours": 2.4,
+      "openBacklog": 8,
+      "sourceReportId": "report-support-001",
+      "reviewRequired": false
+    },
+    {
+      "id": "snapshot-sales-002",
+      "team": "Sales",
+      "period": "2026-W25",
+      "status": "watch",
+      "totalThreads": 92,
+      "averageFirstResponseHours": 6.5,
+      "openBacklog": 24,
+      "sourceReportId": "report-sales-002",
+      "reviewRequired": false
+    },
+    {
+      "id": "snapshot-ops-003",
+      "team": "Operations",
+      "period": "2026-W25",
+      "status": "needs-attention",
+      "totalThreads": 76,
+      "averageFirstResponseHours": 18.2,
+      "openBacklog": 31,
+      "sourceReportId": "report-ops-003",
+      "reviewRequired": true
+    },
+    {
+      "id": "snapshot-finance-004",
+      "team": "Finance",
+      "period": "2026-W25",
+      "status": "blocked",
+      "totalThreads": 0,
+      "averageFirstResponseHours": null,
+      "openBacklog": 0,
+      "sourceReportId": "report-finance-004",
+      "reviewRequired": true
+    }
+  ],
+  "reviewNotes": [
+    "The fixture uses synthetic team reports only.",
+    "Backlog and response-time thresholds are local to this fixture and should be configurable later.",
+    "Live analytics aggregation and personal productivity scoring remain out of scope."
+  ]
+}

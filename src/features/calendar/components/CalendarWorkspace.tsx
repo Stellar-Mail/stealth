@@ -123,7 +123,38 @@ export function CalendarWorkspace({
       return date.getMonth() === month.getMonth() && date.getFullYear() === month.getFullYear();
     });
   }, [month, selectedDate, view, visibleEvents]);
-  const eventDates = visibleEvents.map((event) => parseISO(event.date));
+  const eventDates = useMemo(
+    () => visibleEvents.map((event) => parseISO(event.date)),
+    [visibleEvents],
+  );
+  // Precompute per-calendar event counts once (O(events)) instead of filtering
+  // the full event list for every calendar row each render (O(calendars × events)).
+  const eventCountByCalendar = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const event of events) {
+      counts.set(event.calendarId, (counts.get(event.calendarId) ?? 0) + 1);
+    }
+    return counts;
+  }, [events]);
+  const visibleCalendarCount = visibleIds.size;
+  const emptyState =
+    visibleCalendarCount === 0
+      ? {
+          title: "All calendars are hidden",
+          description: "Turn on a calendar in the sidebar to restore scheduled mail events.",
+          action: "Create event",
+        }
+      : view === "agenda"
+        ? {
+            title: "No events on this day",
+            description: "Create a schedule from this mailbox context or choose another day.",
+            action: "Create event",
+          }
+        : {
+            title: "No visible events this month",
+            description: "Try another month or create a new schedule from the selected date.",
+            action: "Create event",
+          };
 
   const openNewEvent = () => {
     setEditorEvent(null);
@@ -252,7 +283,11 @@ export function CalendarWorkspace({
                       <button
                         key={calendar.id}
                         onClick={() => onToggleCalendar(calendar.id)}
-                        className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-xs transition hover:bg-white/[0.05]"
+                        aria-pressed={calendar.visible}
+                        className={cn(
+                          "flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-xs transition hover:bg-white/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20",
+                          !calendar.visible && "text-muted-foreground",
+                        )}
                       >
                         <span
                           className={cn(
@@ -265,7 +300,7 @@ export function CalendarWorkspace({
                         </span>
                         <span className="flex-1">{calendar.name}</span>
                         <span className="text-[10px] text-muted-foreground">
-                          {events.filter((event) => event.calendarId === calendar.id).length}
+                          {eventCountByCalendar.get(calendar.id) ?? 0}
                         </span>
                       </button>
                     ))}
@@ -310,7 +345,7 @@ export function CalendarWorkspace({
                       disabled={!calendarName.trim()}
                       className="ml-auto rounded-md border border-white/10 px-2 py-1 text-[10px] transition hover:bg-white/[0.06] disabled:opacity-40"
                     >
-                      Add
+                      {calendarName.trim() ? "Add" : "Name required"}
                     </button>
                   </div>
                 </form>
@@ -365,12 +400,12 @@ export function CalendarWorkspace({
                     <div className="grid min-h-56 place-items-center rounded-2xl border border-dashed border-white/10 bg-white/[0.02] text-center">
                       <div>
                         <CalendarDays className="mx-auto h-6 w-6 text-muted-foreground" />
-                        <p className="mt-3 text-sm font-medium">No events here</p>
+                        <p className="mt-3 text-sm font-medium">{emptyState.title}</p>
                         <p className="mt-1 text-xs text-muted-foreground">
-                          Create an event or choose another day.
+                          {emptyState.description}
                         </p>
                         <button onClick={openNewEvent} className="calendar-primary-button mt-4">
-                          <Plus className="h-3.5 w-3.5" /> Create event
+                          <Plus className="h-3.5 w-3.5" /> {emptyState.action}
                         </button>
                       </div>
                     </div>
@@ -383,6 +418,7 @@ export function CalendarWorkspace({
                           onClick={() => setSelectedId(event.id)}
                           className={cn(
                             "calendar-event-row group grid w-full grid-cols-[64px_5px_1fr_auto] items-center gap-3 rounded-xl border p-3 text-left transition",
+                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20",
                             selectedId === event.id
                               ? "border-white/20 bg-white/[0.08]"
                               : "border-white/8 bg-white/[0.025] hover:border-white/14 hover:bg-white/[0.05]",
@@ -498,6 +534,22 @@ function EventDetails({
   onReminderChange: (reminder: string) => void;
   onShowToast: (message: string) => void;
 }) {
+  const [copyStatus, setCopyStatus] = useState<"idle" | "copying" | "copied">("idle");
+
+  const copyDetails = async () => {
+    setCopyStatus("copying");
+    try {
+      await navigator.clipboard?.writeText(`${event.title} - ${event.date} ${event.time}`);
+      setCopyStatus("copied");
+      onShowToast("Event details copied");
+    } catch {
+      setCopyStatus("idle");
+      onShowToast("Copy failed");
+      return;
+    }
+    window.setTimeout(() => setCopyStatus("idle"), 1200);
+  };
+
   return (
     <div>
       <div className="flex items-start justify-between gap-3">
@@ -584,13 +636,16 @@ function EventDetails({
           </button>
         )}
         <button
-          onClick={() => {
-            navigator.clipboard?.writeText(`${event.title} - ${event.date} ${event.time}`);
-            onShowToast("Event details copied");
-          }}
+          onClick={copyDetails}
+          disabled={copyStatus === "copying"}
           className="calendar-control"
         >
-          <Copy className="h-3.5 w-3.5" /> Copy details
+          <Copy className="h-3.5 w-3.5" />{" "}
+          {copyStatus === "copying"
+            ? "Copying"
+            : copyStatus === "copied"
+              ? "Copied"
+              : "Copy details"}
         </button>
       </div>
 
@@ -683,7 +738,12 @@ function EventEditor({
             </p>
             <h3 className="mt-1 text-xl font-semibold">{event ? "Edit event" : "Create event"}</h3>
           </div>
-          <button type="button" onClick={onClose} className="calendar-icon-button">
+          <button
+            type="button"
+            onClick={onClose}
+            className="calendar-icon-button"
+            aria-label="Close event editor"
+          >
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -780,7 +840,7 @@ function EventEditor({
             Cancel
           </button>
           <button type="submit" disabled={!draft.title.trim()} className="calendar-primary-button">
-            {event ? "Save changes" : "Create event"}
+            {draft.title.trim() ? (event ? "Save changes" : "Create event") : "Add title first"}
           </button>
         </div>
       </motion.form>

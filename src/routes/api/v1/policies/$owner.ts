@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { requireActorMatches } from "@/server/api/actor";
-import { mailboxPolicySchema, stellarAddressSchema } from "@/server/api/domain";
+import { parseDelegationHeader, requireActorMatches } from "@/server/api/actor";
+import { mailboxPolicyWriteSchema, stellarAddressSchema } from "@/server/api/domain";
 import { getApiContext } from "@/server/api/context";
 import { getMailboxPolicy, setMailboxPolicy } from "@/server/api/policy-service";
 import { parseJsonBody } from "@/server/api/request";
@@ -12,16 +12,27 @@ export const Route = createFileRoute("/api/v1/policies/$owner")({
     handlers: {
       GET: ({ request, params }) =>
         handleApiRequest(request, async () => {
+          const context = await getApiContext(request);
           const owner = stellarAddressSchema.parse(params.owner);
-          const result = await getMailboxPolicy(getApiContext().repository, owner);
+          const result = await getMailboxPolicy(context.repository, owner);
           return apiSuccess(request, result);
         }),
       PUT: ({ request, params }) =>
         handleApiRequest(request, async () => {
+          const context = await getApiContext(request);
           const owner = stellarAddressSchema.parse(params.owner);
-          requireActorMatches(request, owner);
-          const policy = await parseJsonBody(request, mailboxPolicySchema);
-          const result = await setMailboxPolicy(getApiContext().repository, owner, policy);
+          requireActorMatches(
+            context,
+            owner,
+            parseDelegationHeader(request, "policy:update", `mailbox:${owner}:policy`),
+          );
+          const body = await parseJsonBody(request, mailboxPolicyWriteSchema, {
+            route: "PUT /policies/{owner}",
+          });
+          const { requireReceipt, ...policy } = body;
+          const result = await setMailboxPolicy(context.repository, owner, policy, {
+            requireReceipt,
+          });
           return apiSuccess(request, result);
         }),
     },

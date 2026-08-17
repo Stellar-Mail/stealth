@@ -1,15 +1,20 @@
-# Shared Team Inbox
+# Shared Team Inbox (V1)
 
-This folder is the isolated workspace for the Shared Team Inbox tool.
+Isolated architecture contract for the Shared Team Inbox tool.
 
-## Ownership Boundary
+## Directory Structure
 
-All work for this tool must stay inside:
+This folder acts as a self-contained mini-product for the V1 Launch Tool.
 
-`text
-.\tools\v1\team\shared-team-inbox\
-`
+- `/docs`: Contains `ARCHITECTURE.md` (boundaries and data ownership) and `CONTRACT.md` (contributor guidelines).
+- `/components`: Local UI components.
+- `/services`: Local business logic and mocked API services.
+- `/hooks`: Data and state management hooks.
+- `/types`: Type definitions.
+- `/tests`: Local unit tests.
 
-Do not wire this tool into the main app, routing, inbox architecture, wallet core, Stellar core, database schema, or existing design system unless a future integration issue explicitly allows it.
+## Goal
 
-See specs.md for the issue categories and contributor expectations.
+The goal of this directory is to build the Shared Team Inbox tool so it is ready for launch, but keep the work entirely isolated until an explicit integration issue links it.
+
+Please read `docs/CONTRACT.md` before making any contributions to ensure strict compliance with the isolation requirements.

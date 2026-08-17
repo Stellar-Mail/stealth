@@ -1,0 +1,101 @@
+{
+  "tool": "job-application-email-helper",
+  "version": 1,
+  "sourceRequests": [
+    {
+      "id": "request-referral-001",
+      "type": "application-draft",
+      "candidate": "Alex Example",
+      "role": "Frontend Engineer",
+      "company": "Northstar Labs",
+      "hasResume": true,
+      "hasPortfolio": true,
+      "hasContactConsent": true,
+      "requestedAt": "2026-06-15T08:35:00Z"
+    },
+    {
+      "id": "request-cold-002",
+      "type": "application-draft",
+      "candidate": "Riley Example",
+      "role": "Product Engineer",
+      "company": "Atlas Systems",
+      "hasResume": true,
+      "hasPortfolio": false,
+      "hasContactConsent": true,
+      "requestedAt": "2026-06-15T14:10:00Z"
+    },
+    {
+      "id": "request-consent-003",
+      "type": "application-draft",
+      "candidate": "Morgan Example",
+      "role": "Support Engineer",
+      "company": "Blue River Apps",
+      "hasResume": true,
+      "hasPortfolio": true,
+      "hasContactConsent": false,
+      "requestedAt": "2026-06-16T10:20:00Z"
+    },
+    {
+      "id": "request-follow-up-004",
+      "type": "application-draft",
+      "candidate": "Jamie Example",
+      "role": "QA Automation Engineer",
+      "company": "Evergreen Tools",
+      "hasResume": true,
+      "hasPortfolio": true,
+      "hasContactConsent": true,
+      "requestedAt": "2026-06-16T15:55:00Z"
+    }
+  ],
+  "expectedDrafts": [
+    {
+      "id": "draft-referral-001",
+      "role": "Frontend Engineer",
+      "company": "Northstar Labs",
+      "purpose": "referral",
+      "status": "ready",
+      "tone": "warm",
+      "requiredFields": ["candidate", "role", "company", "resume", "portfolio", "consent"],
+      "sourceRequestId": "request-referral-001",
+      "reviewRequired": false
+    },
+    {
+      "id": "draft-cold-002",
+      "role": "Product Engineer",
+      "company": "Atlas Systems",
+      "purpose": "cold-application",
+      "status": "needs-review",
+      "tone": "concise",
+      "requiredFields": ["candidate", "role", "company", "resume", "portfolio", "consent"],
+      "sourceRequestId": "request-cold-002",
+      "reviewRequired": true
+    },
+    {
+      "id": "draft-consent-003",
+      "role": "Support Engineer",
+      "company": "Blue River Apps",
+      "purpose": "cold-application",
+      "status": "blocked",
+      "tone": "formal",
+      "requiredFields": ["candidate", "role", "company", "resume", "consent"],
+      "sourceRequestId": "request-consent-003",
+      "reviewRequired": true
+    },
+    {
+      "id": "draft-follow-up-004",
+      "role": "QA Automation Engineer",
+      "company": "Evergreen Tools",
+      "purpose": "follow-up",
+      "status": "sent-sample",
+      "tone": "concise",
+      "requiredFields": ["candidate", "role", "company", "resume", "portfolio", "consent"],
+      "sourceRequestId": "request-follow-up-004",
+      "reviewRequired": false
+    }
+  ],
+  "reviewNotes": [
+    "The fixture uses synthetic candidates, companies, and requests only.",
+    "Blocked drafts model missing consent and must not trigger sending behavior.",
+    "Live sending, attachments, recruiter discovery, and resume parsing remain out of scope."
+  ]
+}

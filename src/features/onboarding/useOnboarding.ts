@@ -124,7 +124,11 @@ export function useOnboarding(options: {
     } finally {
       setIsSubmitting(false);
     }
-  }, [options, progress.draft]);
+    // Depend on options.onComplete (not the whole options object): callers pass
+    // useOnboarding({ onComplete }) with a fresh object literal every render, so
+    // depending on `options` rebuilt this callback on every render. Narrowing to
+    // the function keeps `submit` stable while onComplete is stable.
+  }, [options.onComplete, progress.draft]);
 
   return {
     step: progress.step,

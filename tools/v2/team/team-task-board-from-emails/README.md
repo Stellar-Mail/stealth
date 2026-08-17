@@ -30,6 +30,17 @@ node --test tools/v2/team/team-task-board-from-emails/tests/task-board-fixtures.
 The test uses Node's built-in test runner and validates the sample email fixture
 against the expected task board contract.
 
+Run the execution-contract test from the repository root:
+
+```bash
+node --test tools/v2/team/team-task-board-from-emails/tests/task-board-contract.test.mjs
+```
+
+This validates the non-UI `createTaskFromEmail` entry point: successful
+email→task conversion, invalid/malformed inputs, authorization failures, and
+unexpected internal failures. See `CONTRACT.md` for the full schema and
+error-code catalog.
+
 ## Tool Workflow
 
 1. Collect task-oriented emails from a shared team mailbox.
@@ -53,11 +64,16 @@ about the expected behavior without running the main app.
 
 ## Documentation Map
 
+- `docs/architecture.md` defines the internal module boundaries, data ownership, and integration constraints.
 - `specs.md` defines the local product contract and boundaries.
 - `docs/test-plan.md` lists manual and automated review steps.
 - `docs/review-notes.md` explains what was validated and what remains out of
   scope until a future implementation issue.
 - `tests/task-board-fixtures.test.mjs` validates the fixture contract.
+- `CONTRACT.md` documents the backend-facing execution contract (typed input/output, stable error codes, service boundaries, extension guidance).
+- `tests/task-board-contract.test.mjs` validates the execution contract (success, validation, authorization, internal-failure).
+- `contract/task-board-contract.d.ts` declares the typed input/output/error-code contract.
+- `guards/` and `services/task-board-execution.service.mjs` implement the non-UI `createTaskFromEmail` entry point.
 
 ## Known Limitations
 

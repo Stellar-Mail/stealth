@@ -1,0 +1,20 @@
+[package]
+name = "stealth-lifecycle"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+doctest = false
+
+[features]
+default = ["contract"]
+contract = []
+
+[dependencies]
+soroban-sdk = { workspace = true }
+stealth-policies = { path = "../policies" }
+
+[dev-dependencies]
+soroban-sdk = { workspace = true, features = ["testutils"] }

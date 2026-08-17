@@ -13,3 +13,10 @@ export type DraftAction =
   | { type: "loadDraft"; payload: Draft }
   | { type: "editDraft"; payload: Partial<Draft> }
   | { type: "resetDraft" };
+
+export interface DraftFilters {
+  searchQuery?: string;
+  recipient?: string;
+  subject?: string;
+  body?: string;
+}

@@ -1,0 +1,65 @@
+[
+  {
+    "id": "mtg-001",
+    "title": "Architecture Review",
+    "scheduledAt": "2026-06-23T10:00:00Z",
+    "durationMinutes": 60,
+    "requiredSkills": ["technical", "architecture"],
+    "effort": 3,
+    "priority": 10
+  },
+  {
+    "id": "mtg-002",
+    "title": "Sprint Planning",
+    "scheduledAt": "2026-06-23T14:00:00Z",
+    "durationMinutes": 90,
+    "requiredSkills": ["planning"],
+    "effort": 2,
+    "priority": 9
+  },
+  {
+    "id": "mtg-003",
+    "title": "UX Design Review",
+    "scheduledAt": "2026-06-24T09:00:00Z",
+    "durationMinutes": 45,
+    "requiredSkills": ["design", "ux"],
+    "effort": 1,
+    "priority": 7
+  },
+  {
+    "id": "mtg-004",
+    "title": "Stakeholder Sync",
+    "scheduledAt": "2026-06-24T11:00:00Z",
+    "durationMinutes": 30,
+    "requiredSkills": ["stakeholder"],
+    "effort": 1,
+    "priority": 8
+  },
+  {
+    "id": "mtg-005",
+    "title": "Security Audit Kickoff",
+    "scheduledAt": "2026-06-25T13:00:00Z",
+    "durationMinutes": 60,
+    "requiredSkills": ["security", "technical"],
+    "effort": 2,
+    "priority": 10
+  },
+  {
+    "id": "mtg-006",
+    "title": "Roadmap Quarterly",
+    "scheduledAt": "2026-06-25T15:00:00Z",
+    "durationMinutes": 120,
+    "requiredSkills": ["roadmap"],
+    "effort": 3,
+    "priority": 6
+  },
+  {
+    "id": "mtg-007",
+    "title": "All-Hands",
+    "scheduledAt": "2026-06-26T10:00:00Z",
+    "durationMinutes": 30,
+    "requiredSkills": [],
+    "effort": 1,
+    "priority": 5
+  }
+]

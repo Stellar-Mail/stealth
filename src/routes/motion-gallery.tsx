@@ -444,7 +444,9 @@ const preference = motionPresets.getMotionPreference();`}
                                     <AnimationPreview
                                       key={resetKey}
                                       variant={preset.variant}
-                                      isInteractive={preset.isInteractive}
+                                      isInteractive={
+                                        "isInteractive" in preset ? preset.isInteractive : undefined
+                                      }
                                       onReset={() => setResetKey((k) => k + 1)}
                                     />
                                   </motion.div>

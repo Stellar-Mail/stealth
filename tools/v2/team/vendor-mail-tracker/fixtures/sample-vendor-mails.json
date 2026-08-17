@@ -1,0 +1,97 @@
+{
+  "tool": "vendor-mail-tracker",
+  "version": 1,
+  "sourceMessages": [
+    {
+      "id": "message-onboarding-001",
+      "type": "email",
+      "from": "implementation@example.test",
+      "subject": "Vendor onboarding steps",
+      "receivedAt": "2026-06-15T08:40:00Z",
+      "body": "Please confirm the data-processing checklist before kickoff.",
+      "hasRequiredDocument": true,
+      "vendorResponded": true
+    },
+    {
+      "id": "message-security-002",
+      "type": "email",
+      "from": "security-review@example.test",
+      "subject": "Security questionnaire pending",
+      "receivedAt": "2026-06-15T13:25:00Z",
+      "body": "We sent the security questionnaire to the vendor and are waiting for their answers.",
+      "hasRequiredDocument": true,
+      "vendorResponded": false
+    },
+    {
+      "id": "message-invoice-003",
+      "type": "email",
+      "from": "billing@example.test",
+      "subject": "Invoice dispute needs supporting document",
+      "receivedAt": "2026-06-16T09:10:00Z",
+      "body": "The vendor invoice total changed, but the revised purchase order is missing.",
+      "hasRequiredDocument": false,
+      "vendorResponded": true
+    },
+    {
+      "id": "message-renewal-004",
+      "type": "email",
+      "from": "procurement@example.test",
+      "subject": "Renewal complete",
+      "receivedAt": "2026-06-16T16:50:00Z",
+      "body": "The vendor renewal has been reviewed and marked complete by procurement.",
+      "hasRequiredDocument": true,
+      "vendorResponded": true
+    }
+  ],
+  "expectedThreads": [
+    {
+      "id": "thread-onboarding-001",
+      "vendor": "Atlas Implementation",
+      "owner": "implementation",
+      "priority": "medium",
+      "status": "open",
+      "lastContactAt": "2026-06-15T08:40:00Z",
+      "nextActionDueAt": "2026-06-17T17:00:00Z",
+      "sourceMessageId": "message-onboarding-001",
+      "reviewRequired": true
+    },
+    {
+      "id": "thread-security-002",
+      "vendor": "Northstar Security",
+      "owner": "security",
+      "priority": "high",
+      "status": "waiting-on-vendor",
+      "lastContactAt": "2026-06-15T13:25:00Z",
+      "nextActionDueAt": "2026-06-18T12:00:00Z",
+      "sourceMessageId": "message-security-002",
+      "reviewRequired": true
+    },
+    {
+      "id": "thread-invoice-003",
+      "vendor": "Blue River Billing",
+      "owner": "finance",
+      "priority": "high",
+      "status": "blocked",
+      "lastContactAt": "2026-06-16T09:10:00Z",
+      "nextActionDueAt": "2026-06-17T09:00:00Z",
+      "sourceMessageId": "message-invoice-003",
+      "reviewRequired": true
+    },
+    {
+      "id": "thread-renewal-004",
+      "vendor": "Evergreen Procurement",
+      "owner": "procurement",
+      "priority": "low",
+      "status": "resolved",
+      "lastContactAt": "2026-06-16T16:50:00Z",
+      "nextActionDueAt": null,
+      "sourceMessageId": "message-renewal-004",
+      "reviewRequired": false
+    }
+  ],
+  "reviewNotes": [
+    "The fixture uses synthetic example.test messages only.",
+    "Staleness thresholds are local to this fixture and should be configurable later.",
+    "Live mailbox ingestion, vendor notifications, and attachment storage stay out of scope."
+  ]
+}

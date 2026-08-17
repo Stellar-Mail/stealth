@@ -1,0 +1,34 @@
+[
+  {
+    "id": "alice",
+    "name": "Alice Pham",
+    "role": "engineering-lead",
+    "skills": ["technical", "architecture", "planning"],
+    "currentMeetingLoad": 2,
+    "weeklyCapacity": 5
+  },
+  {
+    "id": "bob",
+    "name": "Bob Okafor",
+    "role": "designer",
+    "skills": ["design", "ux", "planning"],
+    "currentMeetingLoad": 1,
+    "weeklyCapacity": 4
+  },
+  {
+    "id": "cara",
+    "name": "Cara Mendes",
+    "role": "product-manager",
+    "skills": ["planning", "stakeholder", "roadmap", "technical"],
+    "currentMeetingLoad": 3,
+    "weeklyCapacity": 6
+  },
+  {
+    "id": "dan",
+    "name": "Dan Xu",
+    "role": "engineer",
+    "skills": ["technical", "security"],
+    "currentMeetingLoad": 0,
+    "weeklyCapacity": 3
+  }
+]

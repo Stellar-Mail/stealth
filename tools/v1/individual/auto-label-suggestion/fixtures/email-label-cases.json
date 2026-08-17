@@ -1,0 +1,47 @@
+[
+  {
+    "id": "invoice-overdue",
+    "from": "billing@example-vendor.com",
+    "subject": "Invoice INV-1042 is due today",
+    "snippet": "Please review and pay the attached invoice before end of day.",
+    "bodyPreview": "The payment link expires tonight. Contact billing if you need the PO updated.",
+    "existingLabels": [],
+    "expectedLabels": ["Finance", "Action needed"]
+  },
+  {
+    "id": "stellar-payout",
+    "from": "payments@stellar.example",
+    "subject": "USDC payout confirmation",
+    "snippet": "Your USDC payout was sent to wallet GBZX... with memo GF-328.",
+    "bodyPreview": "Transaction hash: 7f0a1c9e. Keep this for reconciliation.",
+    "existingLabels": ["Receipts"],
+    "expectedLabels": ["Finance", "Stellar"]
+  },
+  {
+    "id": "security-code",
+    "from": "security@example-mail.com",
+    "subject": "Your verification code",
+    "snippet": "Use this one-time code to finish signing in.",
+    "bodyPreview": "If you did not request this code, reset your password immediately.",
+    "existingLabels": [],
+    "expectedLabels": ["Security"]
+  },
+  {
+    "id": "calendar-reschedule",
+    "from": "maya@example.com",
+    "subject": "Reschedule tomorrow's onboarding review",
+    "snippet": "Can we move the review to 3 PM? Please confirm before noon.",
+    "bodyPreview": "I added the agenda and the latest notes to the invite.",
+    "existingLabels": ["Team"],
+    "expectedLabels": ["Calendar", "Action needed"]
+  },
+  {
+    "id": "newsletter-product-update",
+    "from": "updates@example-product.com",
+    "subject": "June product update and release digest",
+    "snippet": "This month's release digest covers improvements, tips, and events.",
+    "bodyPreview": "You can unsubscribe or update email preferences at any time.",
+    "existingLabels": [],
+    "expectedLabels": ["Newsletter"]
+  }
+]

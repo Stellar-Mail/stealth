@@ -10,12 +10,17 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as MotionGalleryRouteImport } from './routes/motion-gallery'
+import { Route as PolicyEditorRouteRouteImport } from './routes/policy-editor/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiV1ProtocolRouteImport } from './routes/api/v1/protocol'
 import { Route as ApiV1OpenapiDotjsonRouteImport } from './routes/api/v1/openapi[.]json'
 import { Route as ApiV1HealthRouteImport } from './routes/api/v1/health'
 import { Route as ApiV1ReceiptsIndexRouteImport } from './routes/api/v1/receipts/index'
 import { Route as ApiV1PostageIndexRouteImport } from './routes/api/v1/postage/index'
+import { Route as ApiV1RelayVersionRouteImport } from './routes/api/v1/relay/version'
+import { Route as ApiV1RelayReadinessRouteImport } from './routes/api/v1/relay/readiness'
+import { Route as ApiV1RelayMessagesRouteImport } from './routes/api/v1/relay/messages'
+import { Route as ApiV1RelayHealthRouteImport } from './routes/api/v1/relay/health'
 import { Route as ApiV1ReceiptsMessageIdRouteImport } from './routes/api/v1/receipts/$messageId'
 import { Route as ApiV1PostageQuoteRouteImport } from './routes/api/v1/postage/quote'
 import { Route as ApiV1PostageMessageIdRouteImport } from './routes/api/v1/postage/$messageId'
@@ -34,6 +39,11 @@ import { Route as ApiV1AttachmentsAttachmentIdChunksChunkIndexRouteImport } from
 const MotionGalleryRoute = MotionGalleryRouteImport.update({
   id: '/motion-gallery',
   path: '/motion-gallery',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PolicyEditorRouteRoute = PolicyEditorRouteRouteImport.update({
+  id: '/policy-editor',
+  path: '/policy-editor',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -64,6 +74,26 @@ const ApiV1ReceiptsIndexRoute = ApiV1ReceiptsIndexRouteImport.update({
 const ApiV1PostageIndexRoute = ApiV1PostageIndexRouteImport.update({
   id: '/api/v1/postage/',
   path: '/api/v1/postage/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1RelayVersionRoute = ApiV1RelayVersionRouteImport.update({
+  id: '/api/v1/relay/version',
+  path: '/api/v1/relay/version',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1RelayReadinessRoute = ApiV1RelayReadinessRouteImport.update({
+  id: '/api/v1/relay/readiness',
+  path: '/api/v1/relay/readiness',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1RelayMessagesRoute = ApiV1RelayMessagesRouteImport.update({
+  id: '/api/v1/relay/messages',
+  path: '/api/v1/relay/messages',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1RelayHealthRoute = ApiV1RelayHealthRouteImport.update({
+  id: '/api/v1/relay/health',
+  path: '/api/v1/relay/health',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiV1ReceiptsMessageIdRoute = ApiV1ReceiptsMessageIdRouteImport.update({
@@ -148,6 +178,7 @@ const ApiV1AttachmentsAttachmentIdChunksChunkIndexRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/policy-editor': typeof PolicyEditorRouteRoute
   '/motion-gallery': typeof MotionGalleryRoute
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
@@ -159,6 +190,10 @@ export interface FileRoutesByFullPath {
   '/api/v1/postage/$messageId': typeof ApiV1PostageMessageIdRouteWithChildren
   '/api/v1/postage/quote': typeof ApiV1PostageQuoteRoute
   '/api/v1/receipts/$messageId': typeof ApiV1ReceiptsMessageIdRouteWithChildren
+  '/api/v1/relay/health': typeof ApiV1RelayHealthRoute
+  '/api/v1/relay/messages': typeof ApiV1RelayMessagesRoute
+  '/api/v1/relay/readiness': typeof ApiV1RelayReadinessRoute
+  '/api/v1/relay/version': typeof ApiV1RelayVersionRoute
   '/api/v1/postage/': typeof ApiV1PostageIndexRoute
   '/api/v1/receipts/': typeof ApiV1ReceiptsIndexRoute
   '/api/v1/attachments/$attachmentId/finalize': typeof ApiV1AttachmentsAttachmentIdFinalizeRoute
@@ -171,6 +206,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/policy-editor': typeof PolicyEditorRouteRoute
   '/motion-gallery': typeof MotionGalleryRoute
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
@@ -182,6 +218,10 @@ export interface FileRoutesByTo {
   '/api/v1/postage/$messageId': typeof ApiV1PostageMessageIdRouteWithChildren
   '/api/v1/postage/quote': typeof ApiV1PostageQuoteRoute
   '/api/v1/receipts/$messageId': typeof ApiV1ReceiptsMessageIdRouteWithChildren
+  '/api/v1/relay/health': typeof ApiV1RelayHealthRoute
+  '/api/v1/relay/messages': typeof ApiV1RelayMessagesRoute
+  '/api/v1/relay/readiness': typeof ApiV1RelayReadinessRoute
+  '/api/v1/relay/version': typeof ApiV1RelayVersionRoute
   '/api/v1/postage': typeof ApiV1PostageIndexRoute
   '/api/v1/receipts': typeof ApiV1ReceiptsIndexRoute
   '/api/v1/attachments/$attachmentId/finalize': typeof ApiV1AttachmentsAttachmentIdFinalizeRoute
@@ -195,6 +235,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/policy-editor': typeof PolicyEditorRouteRoute
   '/motion-gallery': typeof MotionGalleryRoute
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
@@ -206,6 +247,10 @@ export interface FileRoutesById {
   '/api/v1/postage/$messageId': typeof ApiV1PostageMessageIdRouteWithChildren
   '/api/v1/postage/quote': typeof ApiV1PostageQuoteRoute
   '/api/v1/receipts/$messageId': typeof ApiV1ReceiptsMessageIdRouteWithChildren
+  '/api/v1/relay/health': typeof ApiV1RelayHealthRoute
+  '/api/v1/relay/messages': typeof ApiV1RelayMessagesRoute
+  '/api/v1/relay/readiness': typeof ApiV1RelayReadinessRoute
+  '/api/v1/relay/version': typeof ApiV1RelayVersionRoute
   '/api/v1/postage/': typeof ApiV1PostageIndexRoute
   '/api/v1/receipts/': typeof ApiV1ReceiptsIndexRoute
   '/api/v1/attachments/$attachmentId/finalize': typeof ApiV1AttachmentsAttachmentIdFinalizeRoute
@@ -220,6 +265,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/policy-editor'
     | '/motion-gallery'
     | '/api/v1/health'
     | '/api/v1/openapi.json'
@@ -231,6 +277,10 @@ export interface FileRouteTypes {
     | '/api/v1/postage/$messageId'
     | '/api/v1/postage/quote'
     | '/api/v1/receipts/$messageId'
+    | '/api/v1/relay/health'
+    | '/api/v1/relay/messages'
+    | '/api/v1/relay/readiness'
+    | '/api/v1/relay/version'
     | '/api/v1/postage/'
     | '/api/v1/receipts/'
     | '/api/v1/attachments/$attachmentId/finalize'
@@ -243,6 +293,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/policy-editor'
     | '/motion-gallery'
     | '/api/v1/health'
     | '/api/v1/openapi.json'
@@ -254,6 +305,10 @@ export interface FileRouteTypes {
     | '/api/v1/postage/$messageId'
     | '/api/v1/postage/quote'
     | '/api/v1/receipts/$messageId'
+    | '/api/v1/relay/health'
+    | '/api/v1/relay/messages'
+    | '/api/v1/relay/readiness'
+    | '/api/v1/relay/version'
     | '/api/v1/postage'
     | '/api/v1/receipts'
     | '/api/v1/attachments/$attachmentId/finalize'
@@ -266,6 +321,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/policy-editor'
     | '/motion-gallery'
     | '/api/v1/health'
     | '/api/v1/openapi.json'
@@ -277,6 +333,10 @@ export interface FileRouteTypes {
     | '/api/v1/postage/$messageId'
     | '/api/v1/postage/quote'
     | '/api/v1/receipts/$messageId'
+    | '/api/v1/relay/health'
+    | '/api/v1/relay/messages'
+    | '/api/v1/relay/readiness'
+    | '/api/v1/relay/version'
     | '/api/v1/postage/'
     | '/api/v1/receipts/'
     | '/api/v1/attachments/$attachmentId/finalize'
@@ -290,6 +350,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  PolicyEditorRouteRoute: typeof PolicyEditorRouteRoute
   MotionGalleryRoute: typeof MotionGalleryRoute
   ApiV1HealthRoute: typeof ApiV1HealthRoute
   ApiV1OpenapiDotjsonRoute: typeof ApiV1OpenapiDotjsonRoute
@@ -301,8 +362,21 @@ export interface RootRouteChildren {
   ApiV1PostageMessageIdRoute: typeof ApiV1PostageMessageIdRouteWithChildren
   ApiV1PostageQuoteRoute: typeof ApiV1PostageQuoteRoute
   ApiV1ReceiptsMessageIdRoute: typeof ApiV1ReceiptsMessageIdRouteWithChildren
+  ApiV1RelayHealthRoute: typeof ApiV1RelayHealthRoute
+  ApiV1RelayMessagesRoute: typeof ApiV1RelayMessagesRoute
+  ApiV1RelayReadinessRoute: typeof ApiV1RelayReadinessRoute
+  ApiV1RelayVersionRoute: typeof ApiV1RelayVersionRoute
   ApiV1PostageIndexRoute: typeof ApiV1PostageIndexRoute
   ApiV1ReceiptsIndexRoute: typeof ApiV1ReceiptsIndexRoute
+  ApiV1IdentityKeysKeyIdRoute: typeof ApiV1IdentityKeysKeyIdRoute
+  ApiV1IdentityKeysRetireRoute: typeof ApiV1IdentityKeysRetireRoute
+  ApiV1IdentityKeysRevokeRoute: typeof ApiV1IdentityKeysRevokeRoute
+  ApiV1IdentityKeysRotateRoute: typeof ApiV1IdentityKeysRotateRoute
+  ApiV1WalletLinkAddressRoute: typeof ApiV1WalletLinkAddressRoute
+  ApiV1WalletLinkChallengeRoute: typeof ApiV1WalletLinkChallengeRoute
+  ApiV1WalletLinkVerifyRoute: typeof ApiV1WalletLinkVerifyRoute
+  ApiV1IdentityKeysIndexRoute: typeof ApiV1IdentityKeysIndexRoute
+  ApiV1WalletLinkIndexRoute: typeof ApiV1WalletLinkIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -312,6 +386,13 @@ declare module '@tanstack/react-router' {
       path: '/motion-gallery'
       fullPath: '/motion-gallery'
       preLoaderRoute: typeof MotionGalleryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/policy-editor': {
+      id: '/policy-editor'
+      path: '/policy-editor'
+      fullPath: '/policy-editor'
+      preLoaderRoute: typeof PolicyEditorRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -354,6 +435,34 @@ declare module '@tanstack/react-router' {
       path: '/api/v1/postage'
       fullPath: '/api/v1/postage/'
       preLoaderRoute: typeof ApiV1PostageIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/relay/version': {
+      id: '/api/v1/relay/version'
+      path: '/api/v1/relay/version'
+      fullPath: '/api/v1/relay/version'
+      preLoaderRoute: typeof ApiV1RelayVersionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/relay/readiness': {
+      id: '/api/v1/relay/readiness'
+      path: '/api/v1/relay/readiness'
+      fullPath: '/api/v1/relay/readiness'
+      preLoaderRoute: typeof ApiV1RelayReadinessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/relay/messages': {
+      id: '/api/v1/relay/messages'
+      path: '/api/v1/relay/messages'
+      fullPath: '/api/v1/relay/messages'
+      preLoaderRoute: typeof ApiV1RelayMessagesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/relay/health': {
+      id: '/api/v1/relay/health'
+      path: '/api/v1/relay/health'
+      fullPath: '/api/v1/relay/health'
+      preLoaderRoute: typeof ApiV1RelayHealthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/receipts/$messageId': {
@@ -479,10 +588,14 @@ const ApiV1AttachmentsAttachmentIdRouteWithChildren =
   )
 
 interface ApiV1PoliciesOwnerRouteChildren {
+  ApiV1PoliciesOwnerProvisionRoute: typeof ApiV1PoliciesOwnerProvisionRoute
+  ApiV1PoliciesOwnerReconciliationRoute: typeof ApiV1PoliciesOwnerReconciliationRoute
   ApiV1PoliciesOwnerSendersSenderRoute: typeof ApiV1PoliciesOwnerSendersSenderRoute
 }
 
 const ApiV1PoliciesOwnerRouteChildren: ApiV1PoliciesOwnerRouteChildren = {
+  ApiV1PoliciesOwnerProvisionRoute: ApiV1PoliciesOwnerProvisionRoute,
+  ApiV1PoliciesOwnerReconciliationRoute: ApiV1PoliciesOwnerReconciliationRoute,
   ApiV1PoliciesOwnerSendersSenderRoute: ApiV1PoliciesOwnerSendersSenderRoute,
 }
 
@@ -520,6 +633,7 @@ const ApiV1ReceiptsMessageIdRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  PolicyEditorRouteRoute: PolicyEditorRouteRoute,
   MotionGalleryRoute: MotionGalleryRoute,
   ApiV1HealthRoute: ApiV1HealthRoute,
   ApiV1OpenapiDotjsonRoute: ApiV1OpenapiDotjsonRoute,
@@ -532,8 +646,21 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1PostageMessageIdRoute: ApiV1PostageMessageIdRouteWithChildren,
   ApiV1PostageQuoteRoute: ApiV1PostageQuoteRoute,
   ApiV1ReceiptsMessageIdRoute: ApiV1ReceiptsMessageIdRouteWithChildren,
+  ApiV1RelayHealthRoute: ApiV1RelayHealthRoute,
+  ApiV1RelayMessagesRoute: ApiV1RelayMessagesRoute,
+  ApiV1RelayReadinessRoute: ApiV1RelayReadinessRoute,
+  ApiV1RelayVersionRoute: ApiV1RelayVersionRoute,
   ApiV1PostageIndexRoute: ApiV1PostageIndexRoute,
   ApiV1ReceiptsIndexRoute: ApiV1ReceiptsIndexRoute,
+  ApiV1IdentityKeysKeyIdRoute: ApiV1IdentityKeysKeyIdRoute,
+  ApiV1IdentityKeysRetireRoute: ApiV1IdentityKeysRetireRoute,
+  ApiV1IdentityKeysRevokeRoute: ApiV1IdentityKeysRevokeRoute,
+  ApiV1IdentityKeysRotateRoute: ApiV1IdentityKeysRotateRoute,
+  ApiV1WalletLinkAddressRoute: ApiV1WalletLinkAddressRoute,
+  ApiV1WalletLinkChallengeRoute: ApiV1WalletLinkChallengeRoute,
+  ApiV1WalletLinkVerifyRoute: ApiV1WalletLinkVerifyRoute,
+  ApiV1IdentityKeysIndexRoute: ApiV1IdentityKeysIndexRoute,
+  ApiV1WalletLinkIndexRoute: ApiV1WalletLinkIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

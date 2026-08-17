@@ -478,7 +478,7 @@ function InlineReplyComposer({
                       : "border-amber-200/20 bg-amber-200/[0.06] text-amber-100",
                 )}
               >
-                {recipient.address} · {recipient.policyType ?? "default"} · postage{" "}
+                {recipient.address} · {recipient.policyType || "default"} · postage{" "}
                 {recipient.postage}
               </span>
             ))}

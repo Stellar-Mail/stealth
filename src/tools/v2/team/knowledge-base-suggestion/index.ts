@@ -1,0 +1,1 @@
+export { KnowledgeBaseSuggestion } from "./KnowledgeBaseSuggestion";

@@ -1,15 +1,59 @@
 # Role-Based Mail Access
 
-This folder is the isolated workspace for the Role-Based Mail Access tool.
+Release tier: V2
+Audience: team
 
-## Ownership Boundary
+Role-Based Mail Access is an isolated tool for checking whether a team member can read, write, assign, delete, or manage mail threads based on a declared role policy.
 
-All work for this tool must stay inside:
+## Isolation Boundary
 
-`text
-.\tools\v2\team\role-based-mail-access\
-`
+All work for this issue stays inside `tools/v2/team/role-based-mail-access/`.
 
-Do not wire this tool into the main app, routing, inbox architecture, wallet core, Stellar core, database schema, or existing design system unless a future integration issue explicitly allows it.
+Do not connect this tool to the main application shell, dashboard layout, navigation, authentication, wallet core, mail rendering engine, inbox architecture, routing, Stellar integration, database schema, or design system.
 
-See specs.md for the issue categories and contributor expectations.
+## What Lives Here
+
+- [types/index.ts](types/index.ts): shared request, policy, log, and non-UI backend contract types.
+- [fixtures/sample-access-requests.json](fixtures/sample-access-requests.json): local fixture data with valid requests and hostile inputs.
+- [fixtures/backend-contract.ts](fixtures/backend-contract.ts): typed success and failure fixtures for headless backend execution.
+- [guards/access-guards.mjs](guards/access-guards.mjs): validation, sanitization, and size guards.
+- [services/access.service.ts](services/access.service.ts): in-memory policy and audit-log service.
+- [services/accessBackendService.ts](services/accessBackendService.ts): non-UI backend service (`RoleBasedMailAccessBackendService` and `AccessBackendService`) implementing standard result envelopes.
+- [hooks/use-role-based-access.ts](hooks/use-role-based-access.ts): React wrapper around the service.
+- [components/](components): presentational matrix, verifier, and console UI.
+- [demo.tsx](demo.tsx): isolated preview entry.
+- [tests/](tests): folder-local guard, UI service, and non-UI backend contract coverage plus the test plan.
+- [docs/](docs): contributor docs, architecture notes, accessibility guidance, reviewer notes, and [EXECUTION_CONTRACT.md](docs/EXECUTION_CONTRACT.md).
+
+## Setup
+
+1. Install the repo dependencies from the project root if they are not already present.
+2. Keep changes inside this tool folder so the issue remains reviewable on its own.
+
+## Usage
+
+Run the local checks from the repository root:
+
+```bash
+node --test tools/v2/team/role-based-mail-access/tests/access-guards.test.mjs
+npx vitest -c tools/v2/team/role-based-mail-access/vitest.config.ts run
+```
+
+For a quick contributor checklist, start with [tests/test-plan.md](tests/test-plan.md) and then read [docs/review-notes.md](docs/review-notes.md).
+
+## Fixtures
+
+The fixture set is intentionally small and reviewable:
+
+- 5 valid requests that cover every role and a mix of allowed and denied actions
+- 19 hostile inputs that exercise the guard layer
+- boundary limits for team size, attachment count, role length, thread ID length, and email length
+
+See [fixtures/sample-access-requests.json](fixtures/sample-access-requests.json) for the exact payloads.
+
+## Known Limitations
+
+- The tool is in-memory only; there is no persistence layer.
+- The tool does not integrate with the main mail app yet.
+- There is no mailbox routing, wallet, Stellar, or database work in this issue.
+- Future app wiring should be handled in a separate follow-up issue.

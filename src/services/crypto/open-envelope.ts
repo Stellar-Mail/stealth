@@ -1,0 +1,429 @@
+/**
+ * Inbound envelope decryption path (#1685).
+ *
+ * The crypto folder exposed `sealEnvelope` only; there was no parser, verifier,
+ * key-unwrap, or decrypt operation. Inbound encrypted messages could not be
+ * processed safely by the client.
+ *
+ * This module adds `openEnvelope` with strict parsing, version checks, content
+ * commitment validation, authenticated AES-256-GCM decryption, and typed
+ * results. Tampered payloads, ciphertext, tags, or wrapped keys fail closed,
+ * and errors never expose plaintext or secret material. The recipient key is
+ * supplied via an injected `KeyProvider` (the integration layer resolves and
+ * unwraps it), keeping this module self-contained and independently mergeable.
+ */
+
+import { verifyCommitment } from "./commitment";
+import { recordCryptoTelemetry, type CryptoResultCode } from "./telemetry";
+import { validateNegotiationForOpen, getSuite, getDefaultVersion } from "./suites";
+import { encodeAad } from "./aad";
+import { unwrapContentKey, importRecipientPrivateKey, type WrappedKeyEntry } from "./key-wrap";
+import { sealedEnvelopeSchema } from "./schema";
+
+/** Minimal non-secret error carrying a stable code (no key/plaintext leakage). */
+export class OpenEnvelopeError extends Error {
+  readonly code:
+    | "crypto_version_error"
+    | "crypto_integrity_error"
+    | "crypto_decryption_error"
+    | "crypto_validation_error";
+  constructor(
+    message: string,
+    code:
+      | "crypto_version_error"
+      | "crypto_integrity_error"
+      | "crypto_decryption_error"
+      | "crypto_validation_error",
+  ) {
+    super(message);
+    this.name = "OpenEnvelopeError";
+    this.code = code;
+  }
+}
+
+/** Supplies the recipient's AES-GCM key for decryption (integration-owned). */
+export interface KeyProvider {
+  /**
+   * Resolve the content-encryption key for the recipient.
+   * If wrapped_keys are provided, the provider should use the recipient's private key to unwrap.
+   * Otherwise, it should resolve the key via legacy key resolution.
+   */
+  resolveKey(
+    recipient: string,
+    recipientKeyId?: string,
+    wrappedKeys?: WrappedKeyEntry[],
+  ): Promise<CryptoKey>;
+}
+
+/**
+ * Key provider that uses wrapped keys if available, with recipient private key.
+ * This is a helper for direct unwrapping without legacy key resolution.
+ */
+export class WrappedKeyProvider implements KeyProvider {
+  constructor(private recipientPrivateKeyPkcs8Base64: string) {}
+
+  async resolveKey(
+    _recipient: string,
+    _recipientKeyId?: string,
+    wrappedKeys?: WrappedKeyEntry[],
+  ): Promise<CryptoKey> {
+    if (!wrappedKeys || wrappedKeys.length === 0) {
+      throw new OpenEnvelopeError(
+        "no wrapped keys available and no legacy key resolution",
+        "crypto_decryption_error",
+      );
+    }
+
+    const privateKey = await importRecipientPrivateKey(this.recipientPrivateKeyPkcs8Base64);
+    const unwrapped = await unwrapContentKey(privateKey, wrappedKeys);
+
+    if (!unwrapped) {
+      throw new OpenEnvelopeError(
+        "no matching wrapped key entry found for recipient",
+        "crypto_decryption_error",
+      );
+    }
+
+    return unwrapped;
+  }
+}
+
+const GCM_TAG_BYTES = 16;
+const SUPPORTED_VERSION = getDefaultVersion();
+
+export interface OpenedEnvelope {
+  sender: string;
+  recipient: string;
+  timestamp: string;
+  body: string;
+  attachments: ReadonlyArray<{
+    filename: string;
+    content_type: string;
+    size_bytes: number;
+    content_hash: string;
+  }>;
+  recipientKeyId?: string;
+  senderKeyId?: string;
+}
+
+/** Shape we accept (structural — we validate fields individually). */
+interface RawPayload {
+  version?: unknown;
+  sender?: unknown;
+  recipient?: unknown;
+  timestamp?: unknown;
+  encryption_metadata?: {
+    algorithm?: unknown;
+    nonce?: unknown;
+    mac?: unknown;
+    ephemeral_public_key?: unknown;
+    recipient_key_id?: unknown;
+    sender_key_id?: unknown;
+  };
+  content_commitment?: unknown;
+  attachments?: unknown;
+  wrapped_keys?: unknown;
+}
+
+function fromHex(hex: string): Uint8Array<ArrayBuffer> {
+  const clean = hex.trim().toLowerCase();
+  if (clean.length === 0 || clean.length % 2 !== 0 || /[^0-9a-f]/.test(clean)) {
+    throw new OpenEnvelopeError("invalid hex encoding", "crypto_validation_error");
+  }
+  const out = new Uint8Array(new ArrayBuffer(clean.length / 2));
+  for (let i = 0; i < out.length; i += 1) {
+    out[i] = parseInt(clean.slice(i * 2, i * 2 + 2), 16);
+  }
+  return out;
+}
+
+function fromBase64(b64: string): Uint8Array<ArrayBuffer> {
+  const clean = b64.trim();
+  if (!/^[A-Za-z0-9+/=]+$/.test(clean)) {
+    throw new OpenEnvelopeError("invalid base64 encoding", "crypto_validation_error");
+  }
+  const binary = atob(clean);
+  const out = new Uint8Array(new ArrayBuffer(binary.length));
+  for (let i = 0; i < binary.length; i += 1) {
+    out[i] = binary.charCodeAt(i);
+  }
+  return out;
+}
+
+async function sha256Hex(data: Uint8Array): Promise<string> {
+  const copy = new Uint8Array(new ArrayBuffer(data.length));
+  copy.set(data);
+  const digest = await crypto.subtle.digest("SHA-256", copy);
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+function str(value: unknown, field: string): string {
+  if (typeof value !== "string" || value.length === 0) {
+    throw new OpenEnvelopeError(`missing or invalid ${field}`, "crypto_validation_error");
+  }
+  return value;
+}
+
+function num(value: unknown, field: string): number {
+  if (typeof value === "number" && !Number.isNaN(value) && value >= 0) {
+    return value;
+  }
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    if (!Number.isNaN(parsed) && parsed >= 0) {
+      return parsed;
+    }
+  }
+  throw new OpenEnvelopeError(`missing or invalid ${field}`, "crypto_validation_error");
+}
+
+/**
+ * Open (decrypt) a sealed envelope.
+ *
+ * @param input  The sealed envelope: `{ payload, ciphertext }` as produced by
+ *               `sealEnvelope` (ciphertext is base64 of ciphertext+GCM tag).
+ * @param keys   A `KeyProvider` returning the recipient's AES-GCM key.
+ * @returns      The verified, decrypted envelope contents.
+ * @throws       OpenEnvelopeError on any parse/integrity/decryption failure.
+ */
+export async function openEnvelope(
+  input: { payload: unknown; ciphertext: unknown },
+  keys: KeyProvider,
+): Promise<OpenedEnvelope> {
+  const startTime = performance.now();
+  let result: CryptoResultCode = "success";
+  let algorithm = "";
+
+  try {
+    if (!input || typeof input !== "object") {
+      throw new OpenEnvelopeError("envelope is missing", "crypto_validation_error");
+    }
+
+    // Fail early with version specific error to match existing tests/specs
+    if ("payload" in input) {
+      const pObj = (input as any).payload;
+      if (pObj && typeof pObj === "object" && "version" in pObj) {
+        if (pObj.version !== SUPPORTED_VERSION) {
+          throw new OpenEnvelopeError(
+            `unsupported envelope version: ${String(pObj.version)}`,
+            "crypto_version_error",
+          );
+        }
+      }
+    }
+
+    // Perform strict Zod runtime schema validation
+    let validated;
+    try {
+      validated = sealedEnvelopeSchema.parse(input);
+    } catch (err) {
+      throw new OpenEnvelopeError(
+        err instanceof Error ? err.message : "Envelope validation failed",
+        "crypto_validation_error",
+      );
+    }
+
+    const payload = validated.payload;
+    const ciphertextB64 = validated.ciphertext;
+
+    const sender = payload.sender;
+    const recipient = payload.recipient;
+    const timestamp = payload.timestamp;
+    const meta = payload.encryption_metadata;
+    algorithm = meta.algorithm;
+
+    // Validate version + suite combination against the fail-closed registry.
+    try {
+      validateNegotiationForOpen(payload.version, algorithm);
+    } catch (err) {
+      if (err instanceof Error && "code" in err) {
+        const code = (err as { code: string }).code;
+        if (code === "crypto_version_error") {
+          throw new OpenEnvelopeError(
+            `unsupported envelope version: ${String(payload.version)}`,
+            "crypto_version_error",
+          );
+        }
+        if (code === "crypto_algorithm_error") {
+          throw new OpenEnvelopeError(
+            `unsupported algorithm: ${algorithm}`,
+            "crypto_validation_error",
+          );
+        }
+      }
+      throw new OpenEnvelopeError("validation failed", "crypto_validation_error");
+    }
+    const nonceHex = meta.nonce;
+    const macHex = meta.mac;
+    const commitment = payload.content_commitment;
+
+    // 1) Decode ciphertext.
+    let ciphertext: Uint8Array<ArrayBuffer>;
+    try {
+      ciphertext = fromBase64(ciphertextB64);
+    } catch {
+      throw new OpenEnvelopeError("ciphertext is not valid base64", "crypto_validation_error");
+    }
+    if (ciphertext.length < GCM_TAG_BYTES) {
+      throw new OpenEnvelopeError("ciphertext shorter than auth tag", "crypto_integrity_error");
+    }
+
+    // 2) Content commitment: Parse and verify versioned format.
+    try {
+      await verifyCommitment(commitment, ciphertext);
+    } catch (err) {
+      if (err instanceof Error) {
+        if (err.message.includes("mismatch") || err.message.includes("crypto_commitment_error")) {
+          throw new OpenEnvelopeError("content commitment mismatch", "crypto_integrity_error");
+        }
+        throw new OpenEnvelopeError(err.message, "crypto_validation_error");
+      }
+      throw new OpenEnvelopeError(
+        "content commitment verification failed",
+        "crypto_integrity_error",
+      );
+    }
+
+    // 3) Recompute and compare the auth tag against the declared mac.
+    const declaredTag = fromHex(macHex);
+    const actualTag = ciphertext.slice(ciphertext.length - GCM_TAG_BYTES);
+    if (declaredTag.length !== GCM_TAG_BYTES || !constantTimeEqual(declaredTag, actualTag)) {
+      throw new OpenEnvelopeError("auth tag mismatch", "crypto_integrity_error");
+    }
+
+    // 4) Resolve recipient key and decrypt (fail closed on any mismatch).
+    const recipientKeyId = meta.recipient_key_id;
+    const senderKeyId = meta.sender_key_id;
+
+    // Parse wrapped keys if present
+    let wrappedKeys: WrappedKeyEntry[] | undefined;
+    if (Array.isArray(payload.wrapped_keys)) {
+      try {
+        wrappedKeys = payload.wrapped_keys.map((entry) => {
+          if (!entry || typeof entry !== "object") {
+            throw new Error("invalid wrapped key entry");
+          }
+          return {
+            ephemeralPublicKey: str(
+              (entry as { ephemeralPublicKey?: unknown }).ephemeralPublicKey,
+              "wrapped_key.ephemeralPublicKey",
+            ),
+            blindedRecipientId: str(
+              (entry as { blindedRecipientId?: unknown }).blindedRecipientId,
+              "wrapped_key.blindedRecipientId",
+            ),
+            wrappedKey: str(
+              (entry as { wrappedKey?: unknown }).wrappedKey,
+              "wrapped_key.wrappedKey",
+            ),
+            nonce: str((entry as { nonce?: unknown }).nonce, "wrapped_key.nonce"),
+          };
+        });
+      } catch (err) {
+        if (err instanceof OpenEnvelopeError) {
+          throw err;
+        }
+        throw new OpenEnvelopeError("invalid wrapped_keys format", "crypto_validation_error");
+      }
+    }
+
+    let key: CryptoKey;
+    try {
+      key = await keys.resolveKey(recipient, recipientKeyId, wrappedKeys);
+    } catch {
+      throw new OpenEnvelopeError("recipient key unavailable", "crypto_decryption_error");
+    }
+
+    const parsedAttachments = payload.attachments.map((a) => ({
+      filename: a.filename,
+      content_type: a.content_type,
+      size_bytes: a.size_bytes,
+      content_hash: a.content_hash,
+    }));
+
+    const aad = encodeAad({
+      version: payload.version,
+      sender: payload.sender,
+      recipient: payload.recipient,
+      timestamp: payload.timestamp,
+      attachments: parsedAttachments,
+    });
+
+    const iv = fromHex(nonceHex);
+    const ivCopy = new Uint8Array(new ArrayBuffer(iv.length));
+    ivCopy.set(iv);
+    const ctCopy = new Uint8Array(new ArrayBuffer(ciphertext.length));
+    ctCopy.set(ciphertext);
+
+    // Decrypt the full ciphertext (Web Crypto verifies the trailing GCM tag and
+    // fails closed on tamper or wrong key).
+    let decrypted: ArrayBuffer;
+    try {
+      decrypted = await crypto.subtle.decrypt(
+        { name: "AES-GCM", iv: ivCopy, additionalData: aad as BufferSource },
+        key,
+        ctCopy,
+      );
+    } catch {
+      throw new OpenEnvelopeError(
+        "decryption failed (wrong key or tampered)",
+        "crypto_decryption_error",
+      );
+    }
+
+    const body = new TextDecoder().decode(new Uint8Array(decrypted));
+
+    return {
+      sender,
+      recipient,
+      timestamp,
+      body,
+      attachments: parsedAttachments,
+      recipientKeyId,
+      senderKeyId,
+    };
+  } catch (error: unknown) {
+    result = mapOpenEnvelopeError(error);
+    throw error;
+  } finally {
+    const durationMs = Math.max(1, Math.round(performance.now() - startTime));
+    const suiteName = getSuite(algorithm)?.name ?? algorithm;
+    recordCryptoTelemetry({
+      operation: "open",
+      suite: suiteName,
+      result,
+      durationMs,
+    });
+  }
+}
+
+function mapOpenEnvelopeError(error: unknown): CryptoResultCode {
+  if (error !== null && typeof error === "object" && "code" in error) {
+    const code = (error as { code: unknown }).code;
+    if (typeof code === "string") {
+      switch (code) {
+        case "crypto_version_error":
+          return "error_version";
+        case "crypto_integrity_error":
+          return "error_integrity";
+        case "crypto_decryption_error":
+          return "error_decrypt";
+        case "crypto_validation_error":
+          return "error_validation";
+      }
+    }
+  }
+  return "error_parse";
+}
+
+/** Constant-time byte comparison (no early-exit timing leak). */
+function constantTimeEqual(a: Uint8Array, b: Uint8Array): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i += 1) {
+    diff |= a[i] ^ b[i];
+  }
+  return diff === 0;
+}

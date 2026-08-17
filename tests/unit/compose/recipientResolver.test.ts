@@ -222,4 +222,81 @@ describe("recipientResolver", () => {
       });
     });
   });
+
+  describe("policy integration", () => {
+    it("allow-listed trusted contact yields policyType allow and verified state", async () => {
+      const blocked = new Set<string>();
+      const context: RecipientResolutionContext = {
+        resolveContact: vi.fn().mockResolvedValue({
+          id: "trusted-1",
+          name: "Trusted Alice",
+          address: "GBRPYHIL2CI3WHZDTOOQFC6EB4KJJGUJGU7XYBNBNQ2LMCAKLKZ6DXA",
+          publicKey: "pk_trusted",
+          trusted: true,
+        }),
+      };
+
+      const result = await resolveRecipient("trusted-alice", blocked, context);
+      expect(result.state).toBe("verified");
+      expect(result.policyType).toBe("allow");
+      expect(result.encryptionKey).toBe("pk_trusted");
+      // Trusted contacts should have their encryption key available
+      expect(result.encryptionKey).toBeTruthy();
+    });
+
+    it("non-trusted contact yields policyType default and verified state", async () => {
+      const blocked = new Set<string>();
+      const context: RecipientResolutionContext = {
+        resolveContact: vi.fn().mockResolvedValue({
+          id: "unknown-1",
+          name: "Unknown Bob",
+          address: "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+          publicKey: undefined,
+          trusted: false,
+        }),
+      };
+
+      const result = await resolveRecipient("unknown-bob", blocked, context);
+      expect(result.state).toBe("verified");
+      expect(result.policyType).toBe("default");
+    });
+
+    it("blocked recipient via context yields state blocked and policyType block", async () => {
+      const blocked = new Set<string>();
+      const context: RecipientResolutionContext = {
+        isBlockedRecipient: vi.fn().mockResolvedValue(true),
+      };
+
+      const result = await resolveRecipient("alice*example.com", blocked, context);
+      expect(result.state).toBe("blocked");
+      expect(result.policyType).toBe("block");
+    });
+
+    it("unresolved unknown recipient yields policyType default", async () => {
+      const blocked = new Set<string>();
+      const context: RecipientResolutionContext = {
+        resolveContact: vi.fn().mockResolvedValue(null),
+        isBlockedRecipient: vi.fn().mockResolvedValue(false),
+      };
+
+      const result = await resolveRecipient("unknown-alias", blocked, context);
+      expect(result.state).toBe("unknown");
+      expect(result.policyType).toBe("default");
+    });
+
+    it("federation-resolved recipient yields policyType default (no trust override)", async () => {
+      const blocked = new Set<string>();
+      const context: RecipientResolutionContext = {
+        resolveFederation: vi.fn().mockResolvedValue({
+          publicKey: "GBRPYHIL2CI3WHZDTOOQFC6EB4KJJGUJGU7XYBNBNQ2LMCAKLKZ6DXA",
+          domain: "example.com",
+        }),
+      };
+
+      const result = await resolveRecipient("alice*example.com", blocked, context);
+      expect(result.state).toBe("verified");
+      expect(result.policyType).toBe("default");
+      expect(result.message).toContain("Stellar federation");
+    });
+  });
 });

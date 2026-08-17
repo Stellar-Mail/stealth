@@ -1,0 +1,97 @@
+{
+  "tool": "unsubscribe-finder",
+  "version": 1,
+  "sourceMessages": [
+    {
+      "id": "message-newsletter-001",
+      "type": "email",
+      "from": "weekly@example.test",
+      "subject": "Weekly product newsletter",
+      "receivedAt": "2026-06-15T07:45:00Z",
+      "hasListUnsubscribeHeader": true,
+      "bodyContainsUnsubscribeLink": true,
+      "isTransactional": false,
+      "linkHost": "unsubscribe.example.test"
+    },
+    {
+      "id": "message-promo-002",
+      "type": "email",
+      "from": "offers@example.test",
+      "subject": "Limited promotion",
+      "receivedAt": "2026-06-15T11:30:00Z",
+      "hasListUnsubscribeHeader": false,
+      "bodyContainsUnsubscribeLink": true,
+      "isTransactional": false,
+      "linkHost": "offers.example.test"
+    },
+    {
+      "id": "message-suspicious-003",
+      "type": "email",
+      "from": "security-alert@example.test",
+      "subject": "Unusual login detected",
+      "receivedAt": "2026-06-16T09:20:00Z",
+      "hasListUnsubscribeHeader": false,
+      "bodyContainsUnsubscribeLink": true,
+      "isTransactional": false,
+      "linkHost": "unknown-example.test"
+    },
+    {
+      "id": "message-receipt-004",
+      "type": "email",
+      "from": "billing@example.test",
+      "subject": "Your receipt",
+      "receivedAt": "2026-06-16T16:15:00Z",
+      "hasListUnsubscribeHeader": false,
+      "bodyContainsUnsubscribeLink": false,
+      "isTransactional": true,
+      "linkHost": null
+    }
+  ],
+  "expectedCandidates": [
+    {
+      "id": "candidate-newsletter-001",
+      "sender": "weekly.example.test",
+      "method": "header",
+      "status": "detected",
+      "confidence": 0.96,
+      "safeToOffer": true,
+      "sourceMessageId": "message-newsletter-001",
+      "reason": "List-Unsubscribe header is available on a non-transactional newsletter."
+    },
+    {
+      "id": "candidate-promo-002",
+      "sender": "offers.example.test",
+      "method": "body-link",
+      "status": "needs-review",
+      "confidence": 0.74,
+      "safeToOffer": false,
+      "sourceMessageId": "message-promo-002",
+      "reason": "Body-only unsubscribe link should be reviewed before action."
+    },
+    {
+      "id": "candidate-suspicious-003",
+      "sender": "security-alert.example.test",
+      "method": "body-link",
+      "status": "unsafe",
+      "confidence": 0.2,
+      "safeToOffer": false,
+      "sourceMessageId": "message-suspicious-003",
+      "reason": "Suspicious sender context and unknown link host make the action unsafe."
+    },
+    {
+      "id": "candidate-receipt-004",
+      "sender": "billing.example.test",
+      "method": "none",
+      "status": "ignored",
+      "confidence": 0,
+      "safeToOffer": false,
+      "sourceMessageId": "message-receipt-004",
+      "reason": "Transactional receipt has no unsubscribe signal."
+    }
+  ],
+  "reviewNotes": [
+    "The fixture uses synthetic example.test messages only.",
+    "Unsafe and body-link-only candidates are intentionally not offered as actions.",
+    "Live unsubscribe execution must remain out of scope until a future safety issue defines it."
+  ]
+}

@@ -1,41 +1,48 @@
-# Mail-to-Ticket Converter
-
-Convert mail into tickets.
-
-## Scope
-
-- Release tier: $(System.Collections.Hashtable.Tier.ToUpperInvariant())
-- Audience: $(System.Collections.Hashtable.Audience)
-- Folder ownership: $dir/
-
-This is a self-contained tooling workspace. Do not wire this tool into the main app, routing, inbox architecture, wallet core, Stellar core, or design system unless a future integration issue explicitly allows it.
-
-Recommended internal structure:
-
-- components/
-- services/
-- hooks/
--     ests/
-- docs/
-  "@ | Set-Content -Path "tools/v2/team/mail-to-ticket-converter/README.md"
-  @"
-
-# Mail-to-Ticket Converter Specs
+# Mail-to-Ticket Converter Specification
 
 ## Purpose
 
-Convert mail into tickets.
+Convert a normalized email into a ticket draft that a team member can review
+before a future integration submits it to an external ticket system.
 
-## Contributor boundary
+## Future Inputs
 
-All work for this tool should stay in:
+- Message identifier and thread identifier
+- Subject and plain-text body
+- Sender and recipient metadata
+- Received timestamp
+- Optional attachments represented as metadata only
+- Team-provided conversion rules and destination project identifier
 
-$dir/
+The tool must receive these values through a folder-local typed contract. It must
+not read the main inbox store, authentication context, or database directly.
 
-## Required issue categories
+## Future Outputs
 
-- Architecture
-- Feature
-- UI and accessibility
-- Security and performance
-- Testing and documentation
+- Ticket title and description
+- Source message reference
+- Suggested priority, labels, and assignee identifiers
+- Attachment references without attachment content mutation
+- Validation warnings that require team review
+
+Conversion produces a draft. Creating a ticket in an external system is an
+integration concern and is outside this issue.
+
+## Functional Boundaries
+
+The future mini-product may normalize email input, apply deterministic mapping
+rules, produce ticket drafts, expose local review components, and provide local
+fixtures and tests.
+
+It may not send mail, mutate inbox data, create routes, access wallets or Stellar,
+write to the application database, or call a ticket provider directly without a
+separate approved integration issue.
+
+## Contributor Rules
+
+Future contributors may add or refine folder-local types, pure conversion logic,
+adapters defined behind local interfaces, local UI components, fixtures, and tests.
+
+Future contributors may not import main-app features, modify global configuration,
+change routing or navigation, alter the design system, or move ownership of source
+mail data into this tool.

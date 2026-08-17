@@ -1,5 +1,5 @@
 import type { UnknownSenderPolicy } from "@/features/preferences";
-import type { MailboxPolicy } from "@/server/api/domain";
+import type { ChainMailboxPolicy, MailboxPolicy } from "@/server/api/domain";
 
 export type OnboardingStep =
   | "identity"
@@ -72,5 +72,20 @@ export function draftToMailboxPolicy(draft: OnboardingDraft): MailboxPolicy {
   return {
     ...SENDER_RULE_TO_POLICY[draft.unknownSenderRule],
     minimumPostage: xlmToStroops(draft.minimumPostage),
+  };
+}
+
+/**
+ * Build the full on-chain mailbox policy for the completed onboarding draft,
+ * including the delivery-receipt preference. This is the privacy-safe beta
+ * default that provisioning schedules for the testnet contract write, and it
+ * matches the beta default's "request unknown senders, zero minimum postage,
+ * no forced receipts" starting point when the user accepts every default.
+ */
+export function draftToBetaDefaults(draft: OnboardingDraft): ChainMailboxPolicy {
+  return {
+    ...SENDER_RULE_TO_POLICY[draft.unknownSenderRule],
+    minimumPostage: xlmToStroops(draft.minimumPostage),
+    requireReceipt: draft.receiptOnDelivery,
   };
 }

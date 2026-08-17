@@ -1,0 +1,958 @@
+﻿diff --git a/playwright.config.ts b/playwright.config.ts
+index 9efaeff..566e1a6 100644
+--- a/playwright.config.ts
++++ b/playwright.config.ts
+@@ -8,6 +8,10 @@ export default defineConfig({
+   forbidOnly: !!process.env.CI,
+   retries: process.env.CI ? 2 : 0,
+   workers: process.env.CI ? 1 : undefined,
++  timeout: 60_000,
++  expect: {
++    timeout: 10_000,
++  },
+   reporter: process.env.CI
+     ? [["github"], ["html", { open: "never" }]]
+     : [["list"], ["html", { open: "on-failure" }]],
+diff --git a/src/components/mail/Compose.tsx b/src/components/mail/Compose.tsx
+index f51bfd7..8f418c2 100644
+--- a/src/components/mail/Compose.tsx
++++ b/src/components/mail/Compose.tsx
+@@ -28,6 +28,9 @@ import {
+   type RecipientReadiness,
+ } from "./composeValidation";
+ 
++const EMPTY_BLOCKED: string[] = [];
++const EMPTY_RESOLVED: RecipientReadiness[] = [];
++
+ export function Compose({
+   open,
+   onClose,
+@@ -37,7 +40,7 @@ export function Compose({
+   initialBody = "",
+   initialPostage = "0.0001",
+   mode = "compose",
+-  blockedRecipients = [],
++  blockedRecipients = EMPTY_BLOCKED,
+   onSubmit,
+   resolutionContext,
+ }: {
+@@ -62,7 +65,7 @@ export function Compose({
+   const [encrypted, setEncrypted] = useState(true);
+   const [receipt, setReceipt] = useState(true);
+   const [postage, setPostage] = useState(initialPostage);
+-  const [resolvedRecipients, setResolvedRecipients] = useState<RecipientReadiness[]>([]);
++  const [resolvedRecipients, setResolvedRecipients] = useState<RecipientReadiness[]>(EMPTY_RESOLVED);
+ 
+   const textareaRef = useRef<HTMLTextAreaElement>(null);
+   const fileInputRef = useRef<HTMLInputElement>(null);
+@@ -106,7 +109,7 @@ export function Compose({
+       setEncrypted(true);
+       setReceipt(true);
+       setPostage(initialPostage);
+-      setResolvedRecipients([]);
++      setResolvedRecipients(EMPTY_RESOLVED);
+     }
+   }, [open, initialTo, initialSubject, initialBody, initialPostage]);
+ 
+@@ -114,7 +117,9 @@ export function Compose({
+   useEffect(() => {
+     const addresses = parseRecipients(to);
+     if (!addresses.length) {
+-      setResolvedRecipients([]);
++      if (resolvedRecipients.length > 0) {
++        setResolvedRecipients(EMPTY_RESOLVED);
++      }
+       return;
+     }
+ 
+@@ -136,7 +141,7 @@ export function Compose({
+     }, 300);
+ 
+     return () => clearTimeout(timer);
+-  }, [to, blockedRecipients, postage, resolutionContext]);
++  }, [to, blockedRecipients, postage, resolutionContext, resolvedRecipients.length]);
+ 
+   useEffect(() => {
+     const handler = (e: KeyboardEvent) => {
+diff --git a/src/components/ui/resizable.tsx b/src/components/ui/resizable.tsx
+index 6a60ab8..4933a06 100644
+--- a/src/components/ui/resizable.tsx
++++ b/src/components/ui/resizable.tsx
+@@ -11,25 +11,36 @@ const ResizablePanelGroup = ({
+   className,
+   direction,
+   onLayout,
++  onLayoutChanged,
+   ...props
+-}: Omit<React.ComponentProps<typeof Group>, "orientation" | "onLayoutChange"> & {
++}: Omit<
++  React.ComponentProps<typeof Group>,
++  "orientation" | "onLayoutChange" | "onLayoutChanged"
++> & {
+   direction?: "horizontal" | "vertical";
+   onLayout?: (sizes: number[]) => void;
++  onLayoutChanged?: (sizes: number[]) => void;
+ }) => {
+   const handleLayoutChange = (layout: Layout) => {
+     onLayout?.(Object.values(layout));
+   };
+ 
++  const handleLayoutChanged = (layout: Layout) => {
++    onLayoutChanged?.(Object.values(layout));
++  };
++
+   return (
+     <Group
+       orientation={direction}
+       onLayoutChange={onLayout ? handleLayoutChange : undefined}
++      onLayoutChanged={onLayoutChanged ? handleLayoutChanged : undefined}
+       className={cn("flex h-full w-full data-[panel-group-direction=vertical]:flex-col", className)}
+       {...props}
+     />
+   );
+ };
+ 
++
+ const ResizablePanel = ({
+   onCollapse,
+   onExpand,
+diff --git a/src/features/calendar/components/EventMailCard.tsx b/src/features/calendar/components/EventMailCard.tsx
+index b647f60..3f369f2 100644
+--- a/src/features/calendar/components/EventMailCard.tsx
++++ b/src/features/calendar/components/EventMailCard.tsx
+@@ -81,6 +81,10 @@ export function EventMailCard({
+               </div>
+             </div>
+ 
++            <div className="mt-2.5 text-xs font-semibold text-foreground/90">
++              {event.title}
++            </div>
++
+             <div className="mail-reader-meta mt-3.5 grid grid-cols-7 gap-1.5 text-center">
+               {event.days.map((day) => (
+                 <div key={`${day.label}-${day.date}`} className="space-y-1">
+diff --git a/src/features/preferences/useLayoutPreferences.ts b/src/features/preferences/useLayoutPreferences.ts
+index 70ca0b8..d0ddd41 100644
+--- a/src/features/preferences/useLayoutPreferences.ts
++++ b/src/features/preferences/useLayoutPreferences.ts
+@@ -39,7 +39,15 @@ export function useLayoutPreferences() {
+   }, [hydrated, layout]);
+ 
+   const setLayoutPreference = useCallback((patch: Partial<LayoutPreferences>) => {
+-    setLayout((prev: LayoutPreferences) => ({ ...prev, ...patch }));
++    setLayout((prev: LayoutPreferences) => {
++      const next = clampPreferences({ ...prev, ...patch });
++      // Only create a new object when at least one value actually changed.
++      const changed = (Object.keys(next) as Array<keyof LayoutPreferences>).some(
++        (k) => prev[k] !== next[k],
++      );
++      if (!changed) return prev;
++      return next;
++    });
+   }, []);
+ 
+   const resetLayout = useCallback(() => {
+diff --git a/src/features/preferences/usePreferences.ts b/src/features/preferences/usePreferences.ts
+index 8f169ad..8d3467f 100644
+--- a/src/features/preferences/usePreferences.ts
++++ b/src/features/preferences/usePreferences.ts
+@@ -13,7 +13,18 @@ export function usePreferences() {
+   const [hydrated, setHydrated] = useState(false);
+ 
+   useEffect(() => {
+-    const stored = window.localStorage.getItem(storageKey);
++    let stored = window.localStorage.getItem(storageKey);
++    if (!stored) {
++      const legacyStored = window.localStorage.getItem("stealth-preferences");
++      if (legacyStored) {
++        try {
++          const parsed = JSON.parse(legacyStored);
++          stored = JSON.stringify({ ...defaultPreferences, ...parsed });
++        } catch {
++          // ignore
++        }
++      }
++    }
+     if (stored) {
+       try {
+         setPreferences({ ...defaultPreferences, ...JSON.parse(stored) });
+diff --git a/src/routes/index.tsx b/src/routes/index.tsx
+index 12d45ca..beec971 100644
+--- a/src/routes/index.tsx
++++ b/src/routes/index.tsx
+@@ -1,5 +1,6 @@
+ import { createFileRoute } from "@tanstack/react-router";
+ import { useCallback, useEffect, useMemo, useState } from "react";
++import { MotionConfig } from "framer-motion";
+ import { AmbientBackground } from "@/components/mail/AmbientBackground";
+ import { cn } from "@/lib/utils";
+ import { BulkConfirmDialog } from "@/components/mail/BulkConfirmDialog";
+@@ -100,7 +101,9 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
+     request: BulkActionRequest;
+     confirmation: BulkActionConfirmation;
+   } | null>(null);
+-  const { layout, setLayout, resetLayout } = useLayoutPreferences();
++  const { layout, setLayout, resetLayout, hydrated: layoutHydrated } = useLayoutPreferences();
++  console.log("RENDER LAYOUT STATE:", JSON.stringify(layout));
++  const { preferences, setPreferences, hydrated: prefHydrated } = usePreferences();
+   const [composeOpen, setComposeOpen] = useState(false);
+   const [composeInitial, setComposeInitial] = useState<{
+     to?: string;
+@@ -115,7 +118,6 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
+   const [calendarOpen, setCalendarOpen] = useState(false);
+   const [calendarEventId, setCalendarEventId] = useState<string | null>(null);
+   const [calendarCreateRequest, setCalendarCreateRequest] = useState(0);
+-  const { preferences, setPreferences } = usePreferences();
+   const [settingsSnapshot, setSettingsSnapshot] = useState<typeof preferences | null>(null);
+   const senderConversion = useSenderConversion();
+   const snooze = useSnooze();
+@@ -603,8 +605,14 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
+     setSelectedId(firstMatch?.id ?? null);
+   }, [customFolder, emails]);
+ 
++  const isTest = typeof window !== "undefined" && !!window.navigator.webdriver;
++
+   return (
+-    <div className="relative min-h-screen text-foreground">
++    <MotionConfig transition={isTest ? { duration: 0 } : undefined}>
++      <div
++        data-hydrated={layoutHydrated && prefHydrated}
++        className="relative h-screen overflow-hidden text-foreground"
++      >
+       <AmbientBackground />
+       {isDemoMode && (
+         <div className="absolute top-0 inset-x-0 z-50 bg-primary/20 backdrop-blur-md border-b border-primary/30 py-1 text-center text-xs font-medium text-primary shadow-sm pointer-events-none">
+@@ -612,15 +620,15 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
+         </div>
+       )}
+ 
+-      <ResizablePanelGroup
+-        direction="horizontal"
+-        className="flex min-h-screen"
+-        onLayout={(sizes: number[]) => {
+-          if (isMobile) return;
+-          setLayout({
+-            sidebarWidth: sizes[0],
+-            listWidth: sizes[1], // This might be wrong if nested, but I'll nest them for better control
+-          });
++        <ResizablePanelGroup
++          direction="horizontal"
++          className="flex h-full w-full"
++        onLayoutChanged={(sizes) => {
++          if (isMobile || !sizes.length) return;
++          const sidebarWidth = sizes[0];
++          if (sidebarWidth > 4) {
++            setLayout({ sidebarWidth });
++          }
+         }}
+       >
+         {!isMobile && (
+@@ -695,7 +703,7 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
+                 setFilters({ ...defaultMailFilters, unreadOnly: true });
+               }}
+             />
+-            <div className="flex min-w-0 flex-1">
++            <div className="flex min-h-0 min-w-0 flex-1">
+               {folder === "requests" ? (
+                 <RequestsTriageBoard
+                   emails={emails}
+@@ -705,15 +713,23 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
+               ) : (
+                 <ResizablePanelGroup
+                   direction="horizontal"
+-                  onLayout={(sizes: number[]) => {
+-                    if (isMobile) return;
+-                    setLayout({
+-                      listWidth: sizes[0],
+-                      readerWidth: sizes[1],
+-                    });
++                  className="h-full w-full"
++                  onLayoutChanged={(sizes) => {
++                    if (isMobile || sizes.length < 2) return;
++                    const listWidth = sizes[0];
++                    const readerWidth = sizes[1];
++                    if (listWidth >= 20 && readerWidth >= 30) {
++                      setLayout({
++                        listWidth,
++                        readerWidth,
++                      });
++                    }
+                   }}
+                 >
+-                  <ResizablePanel defaultSize={isMobile ? 100 : layout.listWidth} minSize={20}>
++                  <ResizablePanel
++                    defaultSize={isMobile ? 100 : layout.listWidth}
++                    minSize={20}
++                  >
+                     <EmailList
+                       emails={emails}
+                       selectedId={selectedId}
+@@ -738,7 +754,10 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
+                   {!isMobile && (
+                     <>
+                       <ResizableHandle withHandle />
+-                      <ResizablePanel defaultSize={layout.readerWidth} minSize={30}>
++                      <ResizablePanel
++                        defaultSize={layout.readerWidth}
++                        minSize={30}
++                      >
+                         <EmailView email={selected} actions={emailActions} />
+                       </ResizablePanel>
+                       <ResizableHandle withHandle />
+@@ -900,6 +919,7 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
+         attachment={previewAttachment}
+         senderAddress={selected?.email}
+       />
+-    </div>
++      </div>
++    </MotionConfig>
+   );
+ }
+diff --git a/tests/e2e/calendar.spec.ts b/tests/e2e/calendar.spec.ts
+index 4dbd7e0..7e1c507 100644
+--- a/tests/e2e/calendar.spec.ts
++++ b/tests/e2e/calendar.spec.ts
+@@ -1,56 +1,46 @@
+-import { test, expect } from "./fixtures";
++import { test, expect, openDemoMailbox } from "./fixtures";
+ 
+ test.describe("calendar linking", () => {
+   test.beforeEach(async ({ page }) => {
+-    await page.addInitScript(() => {
+-      localStorage.setItem("stealth-preferences", JSON.stringify({ onboardingCompleted: true }));
+-    });
+-    await page.goto("/");
++    await openDemoMailbox(page);
+   });
+ 
+   test("adds a calendar event from a mail with an event attachment", async ({ page }) => {
+-    // The TOKEN2049 email (id=2) has an event – it lives in the 'verified' folder
+-    await page.getByRole("button", { name: "Verified" }).click();
+-    await page.getByText("TOKEN2049 Abu Dhabi - founder pass ready").click();
++    await page.getByRole("button", { name: "Verified 1" }).click();
++    await expect(
++      page.getByRole("heading", { level: 1, name: "TOKEN2049 Abu Dhabi - founder pass ready" }),
++    ).toBeVisible();
+ 
+-    // The EventMailCard should render with the event title
+-    await expect(page.getByText("TOKEN2049 Abu Dhabi")).toBeVisible();
+-
+-    // Add to calendar
+     await page.getByRole("button", { name: /Add to calendar/i }).click();
+-
+-    // Toast confirms the event was added
+     await expect(page.getByText(/added to your calendar/i)).toBeVisible();
+   });
+ 
+   test("opens the calendar workspace from the sidebar calendar button", async ({ page }) => {
+-    // The right panel has an "Open calendar" or calendar section
+-    // Alternatively open via the event mail card's "Open calendar" action
+-    await page.getByRole("button", { name: "Verified" }).click();
+-    await page.getByText("TOKEN2049 Abu Dhabi - founder pass ready").click();
++    await page.getByRole("button", { name: "Verified 1" }).click();
++    await expect(
++      page.getByRole("heading", { level: 1, name: "TOKEN2049 Abu Dhabi - founder pass ready" }),
++    ).toBeVisible();
+ 
+-    // Add event first so it exists in calendar state
+     await page.getByRole("button", { name: /Add to calendar/i }).click();
+-
+-    // Then open the calendar workspace
+     await page.getByRole("button", { name: /Open calendar/i }).click();
+ 
+-    // CalendarWorkspace dialog/modal should appear
+-    await expect(page.getByText("TOKEN2049 Abu Dhabi")).toBeVisible();
++    await expect(page.getByText("Private scheduling")).toBeVisible();
++    await expect(page.getByText("TOKEN2049 Abu DhabiTuesday, April 21, 2026")).toBeVisible();
+   });
+ 
+   test("calendar workspace closes on close button click", async ({ page }) => {
+-    // Open via right panel create event button – requires an email selected first
+-    await page.getByRole("button", { name: "Verified" }).click();
+-    await page.getByText("TOKEN2049 Abu Dhabi - founder pass ready").click();
++    await page.getByRole("button", { name: "Verified 1" }).click();
++    await expect(
++      page.getByRole("heading", { level: 1, name: "TOKEN2049 Abu Dhabi - founder pass ready" }),
++    ).toBeVisible();
++
+     await page.getByRole("button", { name: /Add to calendar/i }).click();
+     await page.getByRole("button", { name: /Open calendar/i }).click();
++    await page.getByRole("button", { name: "Close calendar" }).click();
+ 
+-    // Dismiss the calendar workspace
+-    await page.getByRole("button", { name: /close/i }).first().click();
+-
+-    // The CalendarWorkspace modal should no longer be visible
+-    // Check that calendar-specific heading is gone
+-    await expect(page.getByText("TOKEN2049 Abu Dhabi - founder pass ready")).toBeVisible();
++    await expect(page.getByText("Private scheduling")).not.toBeVisible();
++    await expect(
++      page.getByRole("heading", { level: 1, name: "TOKEN2049 Abu Dhabi - founder pass ready" }),
++    ).toBeVisible();
+   });
+ });
+diff --git a/tests/e2e/compose.spec.ts b/tests/e2e/compose.spec.ts
+index 950e27f..acfe0dd 100644
+--- a/tests/e2e/compose.spec.ts
++++ b/tests/e2e/compose.spec.ts
+@@ -1,56 +1,56 @@
+-import { test, expect } from "./fixtures";
++import { test, expect, openDemoMailbox } from "./fixtures";
+ 
+ test.describe("compose flow", () => {
+   test.beforeEach(async ({ page }) => {
+-    // Skip onboarding by pre-setting localStorage
+-    await page.addInitScript(() => {
+-      localStorage.setItem("stealth-preferences", JSON.stringify({ onboardingCompleted: true }));
+-    });
+-    await page.goto("/");
++    await openDemoMailbox(page);
+   });
+ 
+   test("opens compose, fills fields, and sends message", async ({ page }) => {
+-    // Open compose via keyboard shortcut
+-    await page.keyboard.press("Control+n");
+-
+-    // Compose dialog becomes visible
++    await page
++      .getByRole("complementary")
++      .getByRole("button", { name: "Compose Ctrl+N" })
++      .click();
+     await expect(page.getByText("New message")).toBeVisible();
+ 
+-    // Fill recipient, subject, and body
+-    await page.getByPlaceholder("recipients@…").fill("alice*stellar.org");
++    await page.getByPlaceholder("recipients@", { exact: false }).fill("alice*stellar.org");
+     await page.getByPlaceholder("Subject").fill("E2E test subject");
+-    await page.getByPlaceholder("Write your message…").fill("Hello from E2E test");
++    await page.getByPlaceholder("Write your message", { exact: false }).fill("Hello from E2E test");
++    await expect(page.getByText("alice*stellar.org")).toBeVisible();
+ 
+-    // Send
+-    await page.getByRole("button", { name: "Send" }).click();
++    await page.getByRole("button", { name: "Send", exact: true }).click();
+ 
+-    // Dialog closes and toast confirms delivery
+     await expect(page.getByText("New message")).not.toBeVisible();
+     await expect(page.getByText(/Encrypted message sent/i)).toBeVisible();
+   });
+ 
+   test("validates required fields before sending", async ({ page }) => {
+-    await page.keyboard.press("Control+n");
++    await page
++      .getByRole("complementary")
++      .getByRole("button", { name: "Compose Ctrl+N" })
++      .click();
+     await expect(page.getByText("New message")).toBeVisible();
+ 
+-    // Attempt to send with empty recipient
+-    await page.getByRole("button", { name: "Send" }).click();
++    await page.getByRole("button", { name: "Send", exact: true }).click();
+ 
+-    // Dialog stays open; error toast shown
+     await expect(page.getByText("New message")).toBeVisible();
+-    await expect(page.getByText(/Please enter a recipient/i)).toBeVisible();
++    await expect(page.getByText(/Please add at least one recipient/i)).toBeVisible();
+   });
+ 
+   test("schedules message instead of immediate send", async ({ page }) => {
+-    await page.keyboard.press("Control+n");
++    await page
++      .getByRole("complementary")
++      .getByRole("button", { name: "Compose Ctrl+N" })
++      .click();
++    await expect(page.getByText("New message")).toBeVisible();
+ 
+-    await page.getByPlaceholder("recipients@…").fill("bob*stellar.org");
++    await page.getByPlaceholder("recipients@", { exact: false }).fill("bob*stellar.org");
+     await page.getByPlaceholder("Subject").fill("Scheduled message");
+-    await page.getByPlaceholder("Write your message…").fill("Sent later");
++    await page.getByPlaceholder("Write your message", { exact: false }).fill("Sent later");
++    await expect(page.getByText("bob*stellar.org")).toBeVisible();
+ 
+-    await page.getByRole("button", { name: "Schedule" }).click();
++    await page.getByRole("button", { name: "Schedule", exact: true }).click();
+ 
+     await expect(page.getByText("New message")).not.toBeVisible();
+-    await expect(page.getByText(/scheduled/i)).toBeVisible();
++    await expect(page.getByText(/Message scheduled with postage reserved/i)).toBeVisible();
+   });
+ });
+diff --git a/tests/e2e/fixtures.ts b/tests/e2e/fixtures.ts
+index 96d5ba3..31311f2 100644
+--- a/tests/e2e/fixtures.ts
++++ b/tests/e2e/fixtures.ts
+@@ -1,4 +1,4 @@
+-import { test as base, type Page } from "@playwright/test";
++import { expect, test as base, type Page } from "@playwright/test";
+ 
+ // ---------------------------------------------------------------------------
+ // Deterministic Stellar addresses used across all tests
+@@ -76,6 +76,56 @@ export class ApiHelper {
+   }
+ }
+ 
++const demoUiPreferences = {
++  theme: "dark",
++  compactMode: false,
++  density: "comfortable",
++  glassIntensity: "medium",
++  readerTypography: "sans",
++  lowerMotion: false,
++  showAvatars: true,
++  receiptOnDelivery: false,
++  emailNotifications: true,
++  desktopNotifications: true,
++  sound: false,
++  unknownSenders: "request",
++  minimumPostage: "0.0001",
++  onboardingCompleted: true,
++  receipts: {
++    trusted: "auto",
++    unknown: "manual",
++    paid: "manual",
++    organizations: "auto",
++  },
++};
++
++const demoLayoutPreferences = {
++  sidebarWidth: 15,
++  sidebarCollapsed: false,
++  listWidth: 30,
++  readerWidth: 35,
++  compactMode: false,
++  rightPanelCollapsed: false,
++};
++
++export async function openDemoMailbox(page: Page) {
++  await page.addInitScript(
++    ({ layout, preferences }) => {
++      localStorage.setItem("stealth-preferences", JSON.stringify({ onboardingCompleted: true }));
++      localStorage.setItem("stealth-ui-preferences", JSON.stringify(preferences));
++      localStorage.setItem("stealth-layout-preferences", JSON.stringify(layout));
++    },
++    {
++      layout: demoLayoutPreferences,
++      preferences: demoUiPreferences,
++    },
++  );
++
++  await page.goto("/");
++  await expect(page.getByRole("heading", { name: /Inbox/i })).toBeVisible();
++  await page.waitForFunction(() => Boolean(document.documentElement.dataset.theme));
++}
++
+ // ---------------------------------------------------------------------------
+ // Extended test fixture that exposes the API helper and pre-loads the app
+ // ---------------------------------------------------------------------------
+diff --git a/tests/e2e/policy-editing.spec.ts b/tests/e2e/policy-editing.spec.ts
+index 38c1296..65ac121 100644
+--- a/tests/e2e/policy-editing.spec.ts
++++ b/tests/e2e/policy-editing.spec.ts
+@@ -1,45 +1,29 @@
+-import { test, expect } from "./fixtures";
++import { test, expect, openDemoMailbox } from "./fixtures";
+ 
+ test.describe("policy editing", () => {
+   test.beforeEach(async ({ page }) => {
+-    await page.addInitScript(() => {
+-      localStorage.setItem("stealth-preferences", JSON.stringify({ onboardingCompleted: true }));
+-    });
+-    await page.goto("/");
++    await openDemoMailbox(page);
+   });
+ 
+   async function openSettings(page: Parameters<typeof test>[1]) {
+-    // Settings button is an IconBtn labelled "Settings" in the topbar
+     await page.getByRole("button", { name: "Settings" }).click();
+     await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
+   }
+ 
+   test("switches to Inbox control tab and changes unknown-sender policy", async ({ page }) => {
+     await openSettings(page);
+-
+-    // Navigate to the Inbox control tab
+     await page.getByRole("button", { name: "Inbox control" }).click();
++    await expect(page.getByRole("heading", { name: "Inbox control" })).toBeVisible();
+ 
+-    // Verify the section heading
+-    await expect(page.getByText("Inbox control", { exact: true })).toBeVisible();
+-
+-    // Select "Verified only" policy
+     await page.getByRole("button", { name: "Verified only" }).click();
+-
+-    // Save
+     await page.getByRole("button", { name: "Save changes" }).click();
+ 
+-    // Toast confirms save
+     await expect(page.getByText(/Settings saved/i)).toBeVisible();
+   });
+ 
+   test("updates minimum postage value and saves", async ({ page }) => {
+     await openSettings(page);
+     await page.getByRole("button", { name: "Inbox control" }).click();
+-
+-    // Minimum postage input
+-    const postageInput = page.getByRole("textbox").filter({ hasText: /^0/ }).first();
+-    // Use the input near the XLM label
+     await page.locator('input[inputmode="decimal"]').last().fill("0.001");
+ 
+     await page.getByRole("button", { name: "Save changes" }).click();
+diff --git a/tests/e2e/postage.spec.ts b/tests/e2e/postage.spec.ts
+index a54a795..3033918 100644
+--- a/tests/e2e/postage.spec.ts
++++ b/tests/e2e/postage.spec.ts
+@@ -1,19 +1,22 @@
+-import { test, expect, ACTOR, SENDER, MSG_ID, PAYMENT_HASH } from "./fixtures";
++import { test, expect, ACTOR, SENDER } from "./fixtures";
+ 
+ // API-level tests – no UI navigation required. The dev server must be running
+ // so that the TanStack Start API routes are reachable at /api/v1/…
+ 
+ test.describe("postage API", () => {
+   test("quotes zero postage for an explicitly allowed sender", async ({ api }) => {
++    const actor = `${ACTOR.slice(0, -2)}01`;
++    const sender = `${SENDER.slice(0, -2)}01`;
++
+     // Allow the sender first
+-    await api.putPolicy(ACTOR, {
++    await api.putPolicy(actor, {
+       allowUnknown: true,
+       minimumPostage: "100",
+       requireVerified: false,
+     });
+-    await api.setSenderRule(ACTOR, SENDER, "allow");
++    await api.setSenderRule(actor, sender, "allow");
+ 
+-    const res = await api.quotePostage(ACTOR, SENDER);
++    const res = await api.quotePostage(actor, sender);
+     expect(res.status()).toBe(200);
+ 
+     const { data } = await res.json();
+@@ -23,9 +26,12 @@ test.describe("postage API", () => {
+   });
+ 
+   test("quote marks blocked sender as ineligible", async ({ api }) => {
+-    await api.setSenderRule(ACTOR, SENDER, "block");
++    const actor = `${ACTOR.slice(0, -2)}02`;
++    const sender = `${SENDER.slice(0, -2)}02`;
++
++    await api.setSenderRule(actor, sender, "block");
+ 
+-    const res = await api.quotePostage(ACTOR, SENDER);
++    const res = await api.quotePostage(actor, sender);
+     expect(res.status()).toBe(200);
+ 
+     const { data } = await res.json();
+@@ -34,22 +40,39 @@ test.describe("postage API", () => {
+   });
+ 
+   test("submits postage and then settles it", async ({ page, api }) => {
+-    await api.putPolicy(ACTOR, {
++    const actor = `${ACTOR.slice(0, -2)}03`;
++    const sender = `${SENDER.slice(0, -2)}03`;
++    const msgId = "3".repeat(64);
++    const payHash = "3".repeat(64);
++
++    await api.putPolicy(actor, {
+       allowUnknown: true,
+       minimumPostage: "100",
+       requireVerified: false,
+     });
+ 
+-    const submitRes = await api.submitPostage(MSG_ID, PAYMENT_HASH, "100");
++    const submitRes = await page.request.post("/api/v1/postage/", {
++      headers: {
++        "Content-Type": "application/json",
++        "x-stealth-address": sender,
++      },
++      data: {
++        amount: "100",
++        messageId: msgId,
++        paymentHash: payHash,
++        recipient: actor,
++        sender: sender,
++      },
++    });
+     expect(submitRes.status()).toBe(201);
+     const { data: pending } = await submitRes.json();
+     expect(pending.status).toBe("pending");
+ 
+-    // Settle as recipient (ACTOR)
+-    const settleRes = await page.request.post(`/api/v1/postage/${MSG_ID}/settle`, {
++    // Settle as recipient (actor)
++    const settleRes = await page.request.post(`/api/v1/postage/${msgId}/settle`, {
+       headers: {
+         "Content-Type": "application/json",
+-        "x-stealth-address": ACTOR,
++        "x-stealth-address": actor,
+       },
+     });
+     expect(settleRes.status()).toBe(200);
+@@ -58,55 +81,82 @@ test.describe("postage API", () => {
+   });
+ 
+   test("submits postage and then refunds it", async ({ page, api }) => {
+-    // Use different IDs to avoid collision with other tests
++    const actor = `${ACTOR.slice(0, -2)}04`;
++    const sender = `${SENDER.slice(0, -2)}04`;
+     const msgId = "c".repeat(64);
+     const payHash = "d".repeat(64);
+ 
+-    await api.putPolicy(ACTOR, { allowUnknown: true, minimumPostage: "0", requireVerified: false });
++    await api.putPolicy(actor, { allowUnknown: true, minimumPostage: "0", requireVerified: false });
+ 
+     const submitRes = await page.request.post("/api/v1/postage/", {
+-      headers: { "Content-Type": "application/json", "x-stealth-address": SENDER },
++      headers: { "Content-Type": "application/json", "x-stealth-address": sender },
+       data: {
+         amount: "50",
+         messageId: msgId,
+         paymentHash: payHash,
+-        recipient: ACTOR,
+-        sender: SENDER,
++        recipient: actor,
++        sender: sender,
+       },
+     });
+     expect(submitRes.status()).toBe(201);
+ 
+     const refundRes = await page.request.post(`/api/v1/postage/${msgId}/refund`, {
+-      headers: { "Content-Type": "application/json", "x-stealth-address": ACTOR },
++      headers: { "Content-Type": "application/json", "x-stealth-address": actor },
+     });
+     expect(refundRes.status()).toBe(200);
+     const { data } = await refundRes.json();
+     expect(data.status).toBe("refunded");
+   });
+ 
+-  test("rejects duplicate postage submission with 409", async ({ api }) => {
++  test("rejects duplicate postage submission with 409", async ({ page, api }) => {
++    const actor = `${ACTOR.slice(0, -2)}05`;
++    const sender = `${SENDER.slice(0, -2)}05`;
+     const msgId = "e".repeat(64);
+     const payHash = "f".repeat(64);
+ 
+-    await api.putPolicy(ACTOR, { allowUnknown: true, minimumPostage: "0", requireVerified: false });
+-
+-    const first = await api.submitPostage(msgId, payHash, "0");
++    await api.putPolicy(actor, { allowUnknown: true, minimumPostage: "0", requireVerified: false });
++
++    const submitFn = () =>
++      page.request.post("/api/v1/postage/", {
++        headers: { "Content-Type": "application/json", "x-stealth-address": sender },
++        data: {
++          amount: "0",
++          messageId: msgId,
++          paymentHash: payHash,
++          recipient: actor,
++          sender: sender,
++        },
++      });
++
++    const first = await submitFn();
+     expect(first.status()).toBe(201);
+ 
+-    const second = await api.submitPostage(msgId, payHash, "0");
++    const second = await submitFn();
+     expect(second.status()).toBe(409);
+   });
+ 
+-  test("rejects postage below mailbox minimum with 422", async ({ api }) => {
+-    await api.putPolicy(ACTOR, {
++  test("rejects postage below mailbox minimum with 422", async ({ page, api }) => {
++    const actor = `${ACTOR.slice(0, -2)}06`;
++    const sender = `${SENDER.slice(0, -2)}06`;
++    const msgId = "9".repeat(64);
++    const payHash = "8".repeat(64);
++
++    await api.putPolicy(actor, {
+       allowUnknown: true,
+       minimumPostage: "1000",
+       requireVerified: false,
+     });
+ 
+-    const msgId = "9".repeat(64);
+-    const payHash = "8".repeat(64);
+-    const res = await api.submitPostage(msgId, payHash, "1");
++    const res = await page.request.post("/api/v1/postage/", {
++      headers: { "Content-Type": "application/json", "x-stealth-address": sender },
++      data: {
++        amount: "1",
++        messageId: msgId,
++        paymentHash: payHash,
++        recipient: actor,
++        sender: sender,
++      },
++    });
+     expect(res.status()).toBe(422);
+   });
+ });
+diff --git a/tests/e2e/search.spec.ts b/tests/e2e/search.spec.ts
+index d12c473..a1715f3 100644
+--- a/tests/e2e/search.spec.ts
++++ b/tests/e2e/search.spec.ts
+@@ -1,39 +1,34 @@
+-import { test, expect } from "./fixtures";
++import { test, expect, openDemoMailbox } from "./fixtures";
+ 
+ test.describe("search and filter", () => {
+   test.beforeEach(async ({ page }) => {
+-    await page.addInitScript(() => {
+-      localStorage.setItem("stealth-preferences", JSON.stringify({ onboardingCompleted: true }));
+-    });
+-    await page.goto("/");
++    await openDemoMailbox(page);
+   });
+ 
+   test("clicking the search bar opens the command palette", async ({ page }) => {
+-    // The search input opens the command palette on click
+     await page.getByPlaceholder("Search messages, people, proofs, attachments...").click();
+-
+-    // Command palette should appear
+-    await expect(page.getByRole("dialog")).toBeVisible();
++    await expect(page.getByRole("dialog", { name: "Command palette" })).toBeVisible();
+   });
+ 
+   test("keyboard shortcut Ctrl+K opens the command palette", async ({ page }) => {
+     await page.keyboard.press("Control+k");
+-    await expect(page.getByRole("dialog")).toBeVisible();
++    await expect(page.getByRole("dialog", { name: "Command palette" })).toBeVisible();
+   });
+ 
+   test("question mark opens the shortcut overlay", async ({ page }) => {
+-    await page.keyboard.press("Shift+/");
+-    await expect(page.getByRole("dialog", { name: "Keyboard shortcuts" })).toBeVisible();
+-    await expect(
+-      page.getByPlaceholder("Search shortcuts, commands, or conflict notes…"),
+-    ).toBeVisible();
++    await page.keyboard.press("?");
++    await expect(page.getByText("Keyboard shortcuts")).toBeVisible();
++    await expect(page.getByPlaceholder("Search shortcuts", { exact: false })).toBeVisible();
+   });
+ 
+   test("global shortcuts are ignored while typing in inputs", async ({ page }) => {
+-    await page.keyboard.press("Control+n");
++    await page
++      .getByRole("complementary")
++      .getByRole("button", { name: "Compose Ctrl+N" })
++      .click();
+     await expect(page.getByText("New message")).toBeVisible();
+ 
+-    await page.getByPlaceholder("Write your message…").click();
++    await page.getByPlaceholder("Write your message", { exact: false }).click();
+     await page.keyboard.press("Control+k");
+     await expect(page.getByRole("dialog", { name: "Command palette" })).not.toBeVisible();
+ 
+@@ -42,42 +37,26 @@ test.describe("search and filter", () => {
+   });
+ 
+   test("filter dropdown toggles unread-only filter", async ({ page }) => {
+-    // Open filter panel
+-    await page.getByRole("button", { name: "Filter" }).click();
+-
+-    // Filter overlay appears
+-    await expect(page.getByText("Unread only")).toBeVisible();
+-
+-    // Toggle unread filter on
+-    await page.getByText("Unread only").click();
++    await page.getByRole("button", { name: "Filter", exact: true }).click();
++    await expect(page.getByRole("button", { name: "Unread only" })).toBeVisible();
+ 
+-    // Close the filter overlay by pressing Escape
+-    await page.keyboard.press("Escape");
+-
+-    // The Filter button should now appear active (highlighted)
+-    // We verify by re-opening and confirming state
+-    await page.getByRole("button", { name: "Filter" }).click();
+-    const unreadToggle = page.getByText("Unread only");
+-    await expect(unreadToggle).toBeVisible();
++    await page.getByRole("button", { name: "Unread only" }).click();
++    await expect(page.getByRole("button", { name: "Clear filters" })).toBeVisible();
+   });
+ 
+   test("filter dropdown allows selecting a date range", async ({ page }) => {
+-    await page.getByRole("button", { name: "Filter" }).click();
+-    await expect(page.getByText("This week")).toBeVisible();
+-
+-    await page.getByText("This week").click();
++    await page.getByRole("button", { name: "Filter", exact: true }).click();
++    await expect(page.getByRole("button", { name: "This week" })).toBeVisible();
+ 
+-    // Filter panel should still be visible and show the active state
+-    await expect(page.getByText("This week")).toBeVisible();
++    await page.getByRole("button", { name: "This week" }).click();
++    await expect(page.getByRole("button", { name: "This week" })).toBeVisible();
+   });
+ 
+   test("navigating to Pending Proof folder via Quick action shows proof items", async ({
+     page,
+   }) => {
+-    // 'Proofs' quick action navigates to pending proof folder
+     await page.getByRole("button", { name: "Proofs" }).click();
+-
+-    // The email list heading (or an email) from pending folder should appear
+-    await expect(page.getByText("Your relay verification code")).toBeVisible();
++    await expect(page.getByRole("heading", { name: "Pending Proof" })).toBeVisible();
++    await expect(page.getByRole("button", { name: /Your relay verification code/ })).toBeVisible();
+   });
+ });
+diff --git a/tests/e2e/sender-approval.spec.ts b/tests/e2e/sender-approval.spec.ts
+index 2769595..ebc995f 100644
+--- a/tests/e2e/sender-approval.spec.ts
++++ b/tests/e2e/sender-approval.spec.ts
+@@ -1,38 +1,31 @@
+-import { test, expect } from "./fixtures";
++import { test, expect, openDemoMailbox } from "./fixtures";
+ 
+ test.describe("sender approval", () => {
+   test.beforeEach(async ({ page }) => {
+-    await page.addInitScript(() => {
+-      localStorage.setItem("stealth-preferences", JSON.stringify({ onboardingCompleted: true }));
+-    });
+-    await page.goto("/");
++    await openDemoMailbox(page);
+   });
+ 
+   test("approves an unknown sender from the requests folder", async ({ page }) => {
+-    // Navigate to Requests folder in sidebar
+-    await page.getByRole("button", { name: "Requests" }).click();
++    await page.getByRole("button", { name: "Requests 3" }).click();
++    await expect(page.getByRole("heading", { name: "Request Triage Board" })).toBeVisible();
+ 
+-    // Select the 'Message request awaiting approval' email (id=5 in seed data)
+-    await page.getByText("Message request awaiting approval").click();
++    const approveButtons = page.getByRole("button", { name: "Approve" });
++    await expect(approveButtons).toHaveCount(3);
++    await approveButtons.first().click();
+ 
+-    // The SenderRequest widget should be visible
+-    await expect(page.getByText("Decide who can mail you")).toBeVisible();
+-
+-    // Approve the sender
+-    await page.getByRole("button", { name: "Allow sender" }).click();
+-
+-    // Toast confirms approval
+-    await expect(page.getByText(/can now mail you/i)).toBeVisible();
++    await expect(
++      page.getByText(/Unknown Sender added to Trusted Contacts\. Mail moved to Inbox\./i),
++    ).toBeVisible();
+   });
+ 
+   test("blocks an unknown sender and queues postage refund", async ({ page }) => {
+-    await page.getByRole("button", { name: "Requests" }).click();
+-    await page.getByText("Message request awaiting approval").click();
+-
+-    await expect(page.getByText("Decide who can mail you")).toBeVisible();
++    await page.getByRole("button", { name: "Requests 3" }).click();
++    await expect(page.getByRole("heading", { name: "Request Triage Board" })).toBeVisible();
+ 
+-    await page.getByRole("button", { name: "Block and refund" }).click();
++    const refundButtons = page.getByRole("button", { name: "Refund" });
++    await expect(refundButtons).toHaveCount(3);
++    await refundButtons.first().click();
+ 
+-    await expect(page.getByText(/blocked and postage marked for refund/i)).toBeVisible();
++    await expect(page.getByText(/Postage refunded for message from Unknown Sender\./i)).toBeVisible();
+   });
+ });

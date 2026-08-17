@@ -31,6 +31,30 @@ export type MailLocation = Exclude<MailFolder, VirtualMailFolder>;
 export type SenderPolicy = "allow" | "verify" | "block";
 
 export type ReceiptState = "none" | "pending" | "sent";
+
+/**
+ * Encrypted payload status for messages in the encrypted folder.
+ * - `locked`     : payload present but key not yet loaded — body must not render.
+ * - `verifying`  : decryption key found, integrity check in progress.
+ * - `decrypted`  : payload verified and unlocked, body can render.
+ * - `failed`     : decryption or integrity check failed; body must not render.
+ */
+export type PayloadStatus = "locked" | "verifying" | "decrypted" | "failed";
+
+/**
+ * Failure reason discriminator for the `failed` status.
+ * Used to present specific error copy and targeted retry / report CTAs.
+ */
+export type PayloadFailureReason = "key" | "payload" | "relay" | "integrity";
+
+export type EncryptedPayload = {
+  /** Current verification/unlock state for this payload. */
+  status: PayloadStatus;
+  /** Short opaque ID shown in the diagnostic copy and clipboard button. */
+  diagnosticId: string;
+  /** Only set when status === "failed". */
+  failureReason?: PayloadFailureReason;
+};
 /**
  * Reminder metadata attached when a message is snoozed. Persisted on the email
  * so the snoozed folder can show when it returns and offer edit/undo.
@@ -67,6 +91,7 @@ export type Email = {
   snooze?: SnoozeState;
   postageAmount?: string;
   verifiedSender?: boolean;
+  encryptedPayload?: EncryptedPayload;
 };
 
 export type MailFilters = {
@@ -322,6 +347,65 @@ export const emails: Email[] = [
       { name: "stealth-payload.bin", size: "256 B", type: "bin" },
     ],
     avatarColor: c(0),
+    encryptedPayload: {
+      status: "decrypted",
+      diagnosticId: "dec-7a3f-c18e",
+    },
+  },
+  {
+    id: "6-b",
+    from: "Kael Ortega",
+    email: "kael*nexus.io",
+    subject: "Sealed proposal — open to verify",
+    preview: "Unlock the encrypted envelope to read the funding proposal…",
+    body: "Unlock the encrypted envelope to read the funding proposal. The payload is sealed with your registered public key.",
+    time: "Yesterday",
+    unread: true,
+    starred: false,
+    folder: "encrypted",
+    labels: ["Encrypted", "Proposal"],
+    avatarColor: c(1),
+    encryptedPayload: {
+      status: "locked",
+      diagnosticId: "lck-4b2a-9d01",
+    },
+  },
+  {
+    id: "6-c",
+    from: "Cipher Relay",
+    email: "relay*cipher.network",
+    subject: "Verifying message integrity…",
+    preview: "Integrity check is running. Stand by for the decrypted payload.",
+    body: "Integrity check is running. Stand by for the decrypted payload.",
+    time: "Today",
+    unread: true,
+    starred: false,
+    folder: "encrypted",
+    labels: ["Encrypted", "Verifying"],
+    avatarColor: c(2),
+    encryptedPayload: {
+      status: "verifying",
+      diagnosticId: "vfy-8c5d-2e47",
+    },
+  },
+  {
+    id: "6-d",
+    from: "Vault Node",
+    email: "vault*stealth.network",
+    subject: "Decryption failed — payload corrupted",
+    preview: "The payload failed integrity verification. Possible relay tampering detected.",
+    body: "The payload failed integrity verification. Possible relay tampering detected.",
+    time: "2 days ago",
+    unread: false,
+    starred: false,
+    folder: "encrypted",
+    labels: ["Encrypted", "Failed"],
+    avatarColor: c(3),
+    encryptedPayload: {
+      status: "failed",
+      diagnosticId: "flt-1e9b-5f62",
+      failureReason: "integrity",
+    },
   },
   {
     id: "7",

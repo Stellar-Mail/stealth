@@ -1,0 +1,131 @@
+import type { PayloadDescriptor } from "../types/payloadDescriptor";
+
+export const PAYLOAD_DESCRIPTOR_CATALOG: PayloadDescriptor[] = [
+  {
+    id: "payload-pdf-brief",
+    kind: "pdf",
+    label: "Quarterly briefing",
+    fileName: "quarterly-briefing.pdf",
+    contentType: "application/pdf",
+    sizeLabel: "1.2 MB",
+    summary: "Synthetic PDF brief with sample charts, footnotes, and placeholder metadata.",
+    samplePreview: "Page 1: Demo summary for a public review deck.",
+    tags: ["demo", "brief", "pdf"],
+  },
+  {
+    id: "payload-pdf-terms",
+    kind: "pdf",
+    label: "Policy snapshot",
+    fileName: "policy-snapshot.pdf",
+    contentType: "application/pdf",
+    sizeLabel: "840 KB",
+    summary: "Read-only policy snapshot used to demonstrate attachment metadata.",
+    samplePreview: "Policy section: Sample review notes for a demo workflow.",
+    tags: ["demo", "policy", "pdf"],
+  },
+  {
+    id: "payload-image-cover",
+    kind: "image",
+    label: "Cover image",
+    fileName: "cover-image.png",
+    contentType: "image/png",
+    sizeLabel: "420 KB",
+    summary: "A safe placeholder cover image for previewing message attachments.",
+    samplePreview: "Preview tile: bright gradient with fake dashboard annotations.",
+    tags: ["demo", "image", "preview"],
+  },
+  {
+    id: "payload-image-chart",
+    kind: "image",
+    label: "Metrics chart",
+    fileName: "metrics-chart.webp",
+    contentType: "image/webp",
+    sizeLabel: "260 KB",
+    summary: "A deterministic chart image that mirrors common analytics screenshots.",
+    samplePreview: "Bar chart: sample values 18, 36, 52, and 74.",
+    tags: ["demo", "chart", "image"],
+  },
+  {
+    id: "payload-text-notes",
+    kind: "text",
+    label: "Meeting notes",
+    fileName: "meeting-notes.txt",
+    contentType: "text/plain",
+    sizeLabel: "18 KB",
+    summary: "Plain-text notes for testing line wrapping and content previews.",
+    samplePreview: "Agenda: review samples, confirm labels, and publish the demo draft.",
+    tags: ["demo", "notes", "text"],
+  },
+  {
+    id: "payload-text-summary",
+    kind: "text",
+    label: "Status summary",
+    fileName: "status-summary.txt",
+    contentType: "text/plain",
+    sizeLabel: "9 KB",
+    summary: "A short summary block that shows trimmed text previews in the UI.",
+    samplePreview: "Status: All demo checks are green and ready for review.",
+    tags: ["demo", "summary", "text"],
+  },
+  {
+    id: "payload-key-public",
+    kind: "key",
+    label: "Public key bundle",
+    fileName: "public-key.pem",
+    contentType: "application/x-pem-file",
+    sizeLabel: "4 KB",
+    summary: "A public key sample used to demonstrate certificate-style metadata.",
+    samplePreview: "BEGIN PUBLIC KEY\nMIIB...\nEND PUBLIC KEY",
+    tags: ["demo", "key", "public"],
+  },
+  {
+    id: "payload-key-private",
+    kind: "key",
+    label: "Signing key stub",
+    fileName: "signing-key.txt",
+    contentType: "text/plain",
+    sizeLabel: "3 KB",
+    summary: "A safe placeholder key stub for showing how key-related payloads are labeled.",
+    samplePreview: "Signing key stub: demo-0001-not-real",
+    tags: ["demo", "key", "stub"],
+  },
+  {
+    id: "payload-encrypted-report",
+    kind: "encrypted",
+    label: "Encrypted report",
+    fileName: "encrypted-report.bin",
+    contentType: "application/octet-stream",
+    sizeLabel: "512 KB",
+    summary: "Encrypted sample payload used to demonstrate protected attachment handling.",
+    samplePreview: "Ciphertext preview: 4f 73 6e 65 74 20 64 65 6d 6f",
+    tags: ["demo", "encrypted", "blob"],
+  },
+  {
+    id: "payload-encrypted-archive",
+    kind: "encrypted",
+    label: "Encrypted archive",
+    fileName: "encrypted-archive.bin",
+    contentType: "application/octet-stream",
+    sizeLabel: "1.1 MB",
+    summary: "A second encrypted blob that shows archive-style payload metadata.",
+    samplePreview: "Header preview: demo-encrypted-bundle-v2",
+    tags: ["demo", "encrypted", "archive"],
+  },
+];
+
+export function getPayloadDescriptorCatalog(): PayloadDescriptor[] {
+  return [...PAYLOAD_DESCRIPTOR_CATALOG];
+}
+
+export function getPayloadDescriptorsByKind(): Record<
+  PayloadDescriptor["kind"],
+  PayloadDescriptor[]
+> {
+  return {
+    pdf: PAYLOAD_DESCRIPTOR_CATALOG.filter((entry) => entry.kind === "pdf"),
+    image: PAYLOAD_DESCRIPTOR_CATALOG.filter((entry) => entry.kind === "image"),
+    text: PAYLOAD_DESCRIPTOR_CATALOG.filter((entry) => entry.kind === "text"),
+    key: PAYLOAD_DESCRIPTOR_CATALOG.filter((entry) => entry.kind === "key"),
+    encrypted: PAYLOAD_DESCRIPTOR_CATALOG.filter((entry) => entry.kind === "encrypted"),
+  };
+}

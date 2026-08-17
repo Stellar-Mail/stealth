@@ -19,17 +19,6 @@ function getLastFailedDelivery(diagnostics: RelayDiagnosticsResponse) {
   return diagnostics.lastFailureAt ?? null;
 }
 
-function isEmptyDiagnostics(diagnostics: RelayDiagnosticsResponse) {
-  return (
-    diagnostics.status === "healthy" &&
-    diagnostics.queueDepth === 0 &&
-    diagnostics.retryCount === 0 &&
-    diagnostics.deadLetterCount === 0 &&
-    getLastSuccessfulDelivery(diagnostics) === null &&
-    getLastFailedDelivery(diagnostics) === null
-  );
-}
-
 function formatLastDelivery(diagnostics: RelayDiagnosticsResponse) {
   const lastDelivery = getLastSuccessfulDelivery(diagnostics);
 
@@ -48,7 +37,11 @@ function formatLastDelivery(diagnostics: RelayDiagnosticsResponse) {
 
 function LoadingCard() {
   return (
-    <Card className="border-[#1e2430] bg-[#13161b] shadow-none">
+    <Card
+      className="border-[#1e2430] bg-[#13161b] shadow-none"
+      role="status"
+      aria-label="Loading diagnostic metrics"
+    >
       <div className="space-y-4 p-5">
         <Skeleton className="h-3 w-32 bg-slate-800/80" />
         <Skeleton className="h-8 w-40 bg-slate-800/80" />
@@ -58,11 +51,15 @@ function LoadingCard() {
   );
 }
 
-function ErrorCard() {
+function ErrorCard({ message }: { message?: string }) {
   return (
-    <Card className="border-rose-500/40 bg-rose-950/20 shadow-none">
+    <Card
+      className="border-rose-500/40 bg-rose-950/20 shadow-none"
+      role="alert"
+      aria-live="assertive"
+    >
       <div className="p-5 text-sm text-rose-100">
-        Diagnostics unavailable — check your connection and try again
+        {message ?? "Diagnostics unavailable — check your connection and try again"}
       </div>
     </Card>
   );
@@ -75,7 +72,8 @@ export function RelayDiagnosticsDashboard({ relayId }: { relayId: string }) {
       const response = await fetch(`/relays/${encodeURIComponent(relayId)}/diagnostics`);
 
       if (!response.ok) {
-        throw new Error("Diagnostics unavailable");
+        const errData = await response.json().catch(() => null);
+        throw new Error(errData?.message || "Diagnostics unavailable");
       }
 
       return (await response.json()) as RelayDiagnosticsResponse;
@@ -97,12 +95,11 @@ export function RelayDiagnosticsDashboard({ relayId }: { relayId: string }) {
   }
 
   if (query.isError || !query.data) {
-    return <ErrorCard />;
+    return <ErrorCard message={query.error?.message} />;
   }
 
   const diagnostics = query.data;
-  const empty = isEmptyDiagnostics(diagnostics);
-  const status = empty ? "empty" : diagnostics.status;
+  const status = diagnostics.status;
 
   return (
     <div className="space-y-4">

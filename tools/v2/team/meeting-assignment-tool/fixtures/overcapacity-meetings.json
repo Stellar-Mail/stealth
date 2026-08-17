@@ -1,0 +1,20 @@
+[
+  {
+    "id": "mtg-oc-001",
+    "title": "Full Sprint Review",
+    "scheduledAt": "2026-07-02T10:00:00Z",
+    "durationMinutes": 120,
+    "requiredSkills": ["planning"],
+    "effort": 10,
+    "priority": 10
+  },
+  {
+    "id": "mtg-oc-002",
+    "title": "Exhaustive Architecture Audit",
+    "scheduledAt": "2026-07-02T14:00:00Z",
+    "durationMinutes": 180,
+    "requiredSkills": ["technical"],
+    "effort": 10,
+    "priority": 9
+  }
+]

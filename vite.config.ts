@@ -9,7 +9,7 @@ import tsConfigPaths from "vite-tsconfig-paths";
 export default defineConfig(({ command }) => ({
   server: {
     host: "::",
-    port: 8080,
+    port: 5173,
   },
   resolve: {
     alias: {
@@ -23,6 +23,12 @@ export default defineConfig(({ command }) => ({
       "@tanstack/react-query",
       "@tanstack/query-core",
     ],
+  },
+  // cloudflare:workers is a virtual module provided by workerd at runtime only.
+  // Exclude it from Vite's dep pre-bundler (dev) and SSR bundler so it is never
+  // resolved as a real package in either vite dev or e2e (playwright + vite dev).
+  optimizeDeps: {
+    exclude: ["cloudflare:workers"],
   },
   plugins: [
     tailwindcss(),

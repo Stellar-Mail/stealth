@@ -1,0 +1,127 @@
+{
+  "tool": "deadline-detector",
+  "version": 1,
+  "runContext": {
+    "now": "2026-06-18T09:00:00Z",
+    "timezone": "Asia/Tokyo"
+  },
+  "sourceMessages": [
+    {
+      "id": "msg-renewal-001",
+      "type": "invoice",
+      "sender": "billing@example.test",
+      "subject": "Renewal deadline due 2026-06-20",
+      "body": "Please renew by 2026-06-20 at 17:00 to avoid service interruption.",
+      "receivedAt": "2026-06-18T00:30:00Z",
+      "containsPersonalData": false,
+      "userTimezone": "Asia/Tokyo"
+    },
+    {
+      "id": "msg-submit-002",
+      "type": "project-update",
+      "sender": "project@example.test",
+      "subject": "Submit final notes tomorrow",
+      "body": "The project notes are due tomorrow before 11:00. Please confirm when submitted.",
+      "receivedAt": "2026-06-18T02:15:00Z",
+      "containsPersonalData": false,
+      "userTimezone": "Asia/Tokyo"
+    },
+    {
+      "id": "msg-ambiguous-003",
+      "type": "email",
+      "sender": "team@example.test",
+      "subject": "Can you handle this soon?",
+      "body": "We should probably finish the response next week, but no exact commitment was provided.",
+      "receivedAt": "2026-06-18T03:45:00Z",
+      "containsPersonalData": false,
+      "userTimezone": "Asia/Tokyo"
+    },
+    {
+      "id": "msg-overdue-004",
+      "type": "calendar-forward",
+      "sender": "events@example.test",
+      "subject": "Registration expired 2026-06-14",
+      "body": "This is a reminder that the conference registration deadline was 2026-06-14.",
+      "receivedAt": "2026-06-18T04:00:00Z",
+      "containsPersonalData": false,
+      "userTimezone": "Asia/Tokyo"
+    },
+    {
+      "id": "msg-digest-005",
+      "type": "email",
+      "sender": "news@example.test",
+      "subject": "Weekly digest",
+      "body": "Newsletter only. No action required and no deadline action should be created.",
+      "receivedAt": "2026-06-18T05:30:00Z",
+      "containsPersonalData": false,
+      "userTimezone": "Asia/Tokyo"
+    }
+  ],
+  "expectedDeadlines": [
+    {
+      "id": "deadline-msg-renewal-001",
+      "sourceMessageId": "msg-renewal-001",
+      "title": "Renewal deadline due 2026-06-20",
+      "dueDate": "2026-06-20",
+      "dueTime": "17:00",
+      "timezone": "Asia/Tokyo",
+      "status": "detected",
+      "urgency": "soon",
+      "confidence": 0.96,
+      "reviewRequired": false
+    },
+    {
+      "id": "deadline-msg-submit-002",
+      "sourceMessageId": "msg-submit-002",
+      "title": "Submit final notes tomorrow",
+      "dueDate": "2026-06-19",
+      "dueTime": "11:00",
+      "timezone": "Asia/Tokyo",
+      "status": "detected",
+      "urgency": "soon",
+      "confidence": 0.96,
+      "reviewRequired": false
+    },
+    {
+      "id": "deadline-msg-ambiguous-003",
+      "sourceMessageId": "msg-ambiguous-003",
+      "title": "Can you handle this soon?",
+      "dueDate": "2026-06-25",
+      "dueTime": null,
+      "timezone": "Asia/Tokyo",
+      "status": "needs-review",
+      "urgency": "soon",
+      "confidence": 0.58,
+      "reviewRequired": true
+    },
+    {
+      "id": "deadline-msg-overdue-004",
+      "sourceMessageId": "msg-overdue-004",
+      "title": "Registration expired 2026-06-14",
+      "dueDate": "2026-06-14",
+      "dueTime": null,
+      "timezone": "Asia/Tokyo",
+      "status": "missed",
+      "urgency": "overdue",
+      "confidence": 0.95,
+      "reviewRequired": true
+    },
+    {
+      "id": "deadline-msg-digest-005",
+      "sourceMessageId": "msg-digest-005",
+      "title": "Weekly digest",
+      "dueDate": null,
+      "dueTime": null,
+      "timezone": "Asia/Tokyo",
+      "status": "ignored",
+      "urgency": "unknown",
+      "confidence": 0.1,
+      "reviewRequired": true
+    }
+  ],
+  "reviewNotes": [
+    "All senders, subjects, and message bodies are synthetic.",
+    "Detected deadlines are safe to offer as reminder candidates but do not create reminders automatically.",
+    "Ambiguous, missed, and ignored rows require manual review before any future integration takes action."
+  ]
+}

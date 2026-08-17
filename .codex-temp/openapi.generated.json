@@ -1,0 +1,1342 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Stealth Mail API",
+    "version": "1.0.0",
+    "description": "Development API for mailbox policy, Stellar postage proofs, and delivery receipts."
+  },
+  "servers": [
+    {
+      "url": "/api/v1"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "StellarSignedRequest": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "SEP-10 JWT",
+        "description": "Authenticates a Stellar account through the [SEP-10 Web Authentication](https://github.com/stellar/stellar-protocol/blob/master/ecosystem/sep-0010.md) challenge flow. Fetch a short-lived challenge transaction from the service's WEB_AUTH_ENDPOINT, verify the server signature and transaction fields, sign the challenge with an authorized Stellar account signer, and exchange the signed transaction for a token. Send that token on protected API calls as `Authorization: Bearer <SEP-10-token>`. Never send a Stellar secret seed. The server derives the actor from the verified token and enforces challenge expiry and replay protection; `x-stealth-address` alone is not proof of identity.",
+        "x-required-headers": ["Authorization"],
+        "x-signing-specification": "https://github.com/stellar/stellar-protocol/blob/master/ecosystem/sep-0010.md",
+        "x-challenge-flow": [
+          "Request a challenge transaction from the WEB_AUTH_ENDPOINT for the Stellar account.",
+          "Validate the challenge according to SEP-10 before signing it.",
+          "Sign the challenge with an authorized account signer and return the signed transaction.",
+          "Use the returned short-lived token in the Authorization header for protected operations."
+        ],
+        "x-header-example": "Authorization: Bearer <SEP-10-token>"
+      },
+      "ActorHeader": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-stealth-address",
+        "description": "Development actor transport. Production must derive this identity from a verified signed session."
+      }
+    },
+    "schemas": {
+      "ApiMeta": {
+        "type": "object",
+        "required": ["requestId", "timestamp"],
+        "properties": {
+          "requestId": {
+            "type": "string",
+            "description": "Unique request identifier for tracing."
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Server timestamp of the response."
+          }
+        }
+      },
+      "SuccessEnvelope": {
+        "type": "object",
+        "required": ["data", "meta"],
+        "properties": {
+          "data": {
+            "type": "object",
+            "description": "Operation-specific response payload."
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta"
+          }
+        }
+      },
+      "DomainError": {
+        "type": "object",
+        "required": ["code", "message"],
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Stable domain error code.",
+            "enum": [
+              "bad_request",
+              "conflict",
+              "forbidden",
+              "internal_error",
+              "method_not_allowed",
+              "not_found",
+              "unauthorized",
+              "validation_error",
+              "too_many_requests",
+              "data_integrity_error",
+              "expired_challenge",
+              "idempotency_mismatch",
+              "invalid_state_transition",
+              "insufficient_postage",
+              "duplicate_receipt",
+              "duplicate_postage",
+              "invalid_quote",
+              "request_in_progress"
+            ],
+            "example": "invalid_state_transition"
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable explanation of the error."
+          },
+          "details": {
+            "description": "Optional structured error details."
+          }
+        }
+      },
+      "StellarAddress": {
+        "type": "string",
+        "pattern": "^G[A-Z2-7]{55}$"
+      },
+      "Hash32": {
+        "type": "string",
+        "pattern": "^[a-f0-9]{64}$"
+      },
+      "StroopAmount": {
+        "type": "string",
+        "pattern": "^(0|[1-9][0-9]*)$"
+      },
+      "MailboxPolicy": {
+        "type": "object",
+        "required": ["allowUnknown", "minimumPostage", "requireVerified"],
+        "properties": {
+          "allowUnknown": {
+            "type": "boolean"
+          },
+          "minimumPostage": {
+            "$ref": "#/components/schemas/StroopAmount"
+          },
+          "requireVerified": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ValidationErrorItem": {
+        "type": "object",
+        "required": ["path", "rule", "message"],
+        "additionalProperties": false,
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Safe request field path using dot and bracket notation; root errors use $.",
+            "examples": ["recipient", "tags[0]", "$"]
+          },
+          "rule": {
+            "type": "string",
+            "description": "Application-owned validation rule code, independent of validator libraries.",
+            "enum": [
+              "invalid_type",
+              "format",
+              "min_length",
+              "max_length",
+              "minimum",
+              "maximum",
+              "missing",
+              "unknown_field",
+              "invalid_value"
+            ]
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable validation guidance. Rejected input values are never echoed."
+          }
+        }
+      },
+      "ValidationErrorDetails": {
+        "type": "object",
+        "required": ["validationErrors"],
+        "additionalProperties": false,
+        "properties": {
+          "validationErrors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ValidationErrorItem"
+            }
+          }
+        }
+      },
+      "PolicyEvaluationDecision": {
+        "type": "object",
+        "required": ["allowed", "reasonCode", "message"],
+        "additionalProperties": false,
+        "properties": {
+          "allowed": {
+            "type": "boolean",
+            "description": "True if the sender is allowed to mail the recipient."
+          },
+          "reasonCode": {
+            "type": "string",
+            "description": "Stable reason code for the policy outcome.",
+            "enum": [
+              "sender_allowed",
+              "sender_blocked",
+              "unknown_senders_disabled",
+              "verification_required",
+              "insufficient_postage",
+              "policy_satisfied"
+            ]
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable but non-authoritative explanation of the decision."
+          }
+        }
+      },
+      "RetryClassification": {
+        "type": "string",
+        "enum": ["permanent", "transient", "rate_limit", "conflict"],
+        "description": "Stable machine-readable classification of retry eligibility."
+      },
+      "ErrorEnvelope": {
+        "type": "object",
+        "required": ["error", "meta"],
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "type": "object",
+            "required": ["code", "message", "retryable", "retryClassification"],
+            "additionalProperties": false,
+            "properties": {
+              "code": {
+                "type": "string",
+                "description": "Stable domain-specific error code.",
+                "enum": [
+                  "bad_request",
+                  "conflict",
+                  "forbidden",
+                  "internal_error",
+                  "method_not_allowed",
+                  "not_found",
+                  "unauthorized",
+                  "validation_error",
+                  "too_many_requests",
+                  "data_integrity_error",
+                  "expired_challenge",
+                  "idempotency_mismatch",
+                  "invalid_state_transition",
+                  "insufficient_postage",
+                  "duplicate_receipt",
+                  "duplicate_postage",
+                  "invalid_quote",
+                  "request_in_progress"
+                ]
+              },
+              "message": {
+                "type": "string",
+                "description": "Human-readable explanation of the error."
+              },
+              "retryable": {
+                "type": "boolean",
+                "description": "Indicates whether the request can be retried."
+              },
+              "retryClassification": {
+                "$ref": "#/components/schemas/RetryClassification"
+              },
+              "retryAfter": {
+                "type": "integer",
+                "description": "Optional delay in seconds before retrying the request."
+              },
+              "details": {
+                "type": "object",
+                "description": "Structured contextual error details."
+              }
+            }
+          },
+          "meta": {
+            "type": "object",
+            "required": ["requestId", "timestamp"],
+            "additionalProperties": false,
+            "properties": {
+              "requestId": {
+                "type": "string"
+              },
+              "timestamp": {
+                "type": "string",
+                "format": "date-time"
+              }
+            }
+          }
+        }
+      },
+      "ApiErrorRegistry": {
+        "type": "object",
+        "description": "Stable error-code metadata. This schema is generated from the runtime registry.",
+        "x-error-registry": {
+          "bad_request": {
+            "status": 400,
+            "message": "The request is invalid",
+            "retryable": false,
+            "description": "The request could not be parsed or is malformed."
+          },
+          "conflict": {
+            "status": 409,
+            "message": "The request conflicts with the current resource state",
+            "retryable": true,
+            "description": "A non-domain-specific resource conflict occurred."
+          },
+          "forbidden": {
+            "status": 403,
+            "message": "The requested operation is not permitted",
+            "retryable": false,
+            "description": "The authenticated actor is not permitted to perform the operation."
+          },
+          "internal_error": {
+            "status": 500,
+            "message": "An unexpected server error occurred",
+            "retryable": true,
+            "description": "The server encountered an unexpected condition."
+          },
+          "method_not_allowed": {
+            "status": 405,
+            "message": "The method is not allowed for this resource",
+            "retryable": false,
+            "description": "The resource does not support the requested HTTP method."
+          },
+          "not_found": {
+            "status": 404,
+            "message": "The requested resource was not found",
+            "retryable": false,
+            "description": "The requested resource does not exist or is not visible to the actor."
+          },
+          "unauthorized": {
+            "status": 401,
+            "message": "Authentication is required",
+            "retryable": false,
+            "description": "Valid authentication credentials were not provided."
+          },
+          "validation_error": {
+            "status": 422,
+            "message": "Request validation failed",
+            "retryable": false,
+            "description": "One or more request fields failed validation."
+          },
+          "too_many_requests": {
+            "status": 429,
+            "message": "Too many requests",
+            "retryable": true,
+            "description": "A request rate limit was exceeded."
+          },
+          "data_integrity_error": {
+            "status": 500,
+            "message": "Stored data failed integrity validation",
+            "retryable": true,
+            "description": "Stored data did not satisfy the server's integrity checks."
+          },
+          "expired_challenge": {
+            "status": 422,
+            "message": "The challenge has expired",
+            "retryable": false,
+            "description": "The submitted authentication or quote challenge is no longer valid."
+          },
+          "idempotency_mismatch": {
+            "status": 409,
+            "message": "The idempotency key was already used for a different request",
+            "retryable": false,
+            "description": "An idempotency key was reused with a different request payload."
+          },
+          "invalid_state_transition": {
+            "status": 409,
+            "message": "The requested state transition is invalid",
+            "retryable": false,
+            "description": "The resource cannot transition from its current state as requested."
+          },
+          "insufficient_postage": {
+            "status": 422,
+            "message": "The postage amount is below the required minimum",
+            "retryable": false,
+            "description": "The supplied postage does not meet the recipient mailbox minimum."
+          },
+          "duplicate_receipt": {
+            "status": 409,
+            "message": "A receipt already exists for this message",
+            "retryable": false,
+            "description": "A delivery receipt has already been recorded for the message."
+          },
+          "duplicate_postage": {
+            "status": 409,
+            "message": "Postage already exists for this message",
+            "retryable": false,
+            "description": "A postage record has already been submitted for the message."
+          },
+          "invalid_quote": {
+            "status": 422,
+            "message": "The postage quote is invalid",
+            "retryable": false,
+            "description": "The supplied postage quote failed integrity validation."
+          },
+          "request_in_progress": {
+            "status": 409,
+            "message": "An equivalent request is already in progress",
+            "retryable": true,
+            "description": "A matching operation currently holds the idempotency lease."
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "operationId": "getHealth",
+        "summary": "Read service health",
+        "x-stability": "stable",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/protocol": {
+      "get": {
+        "operationId": "getProtocol",
+        "summary": "Discover protocol capabilities",
+        "x-stability": "stable",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/openapi.json": {
+      "get": {
+        "operationId": "getOpenApi",
+        "summary": "Read this OpenAPI document",
+        "x-stability": "stable",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/policies/{owner}": {
+      "get": {
+        "operationId": "getMailboxPolicy",
+        "summary": "Read mailbox policy",
+        "x-stability": "stable",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": ""
+          }
+        }
+      },
+      "put": {
+        "operationId": "replaceMailboxPolicy",
+        "summary": "Replace mailbox policy",
+        "security": [
+          {
+            "StellarSignedRequest": []
+          }
+        ],
+        "x-stability": "stable",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/policies/{owner}/senders/{sender}": {
+      "get": {
+        "operationId": "getSenderOverride",
+        "summary": "Read a sender override",
+        "x-stability": "stable",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": ""
+          }
+        }
+      },
+      "put": {
+        "operationId": "setSenderOverride",
+        "summary": "Set a sender override",
+        "security": [
+          {
+            "StellarSignedRequest": []
+          }
+        ],
+        "x-stability": "stable",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": ""
+          }
+        }
+      },
+      "delete": {
+        "operationId": "resetSenderOverride",
+        "summary": "Reset a sender override",
+        "security": [
+          {
+            "StellarSignedRequest": []
+          }
+        ],
+        "x-stability": "stable",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/policies/evaluate": {
+      "post": {
+        "operationId": "evaluateMailboxPolicy",
+        "summary": "Evaluate whether a sender can mail a recipient",
+        "x-stability": "stable",
+        "responses": {
+          "200": {
+            "description": "Policy evaluation decision",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/PolicyEvaluationDecision"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/postage": {
+      "post": {
+        "operationId": "submitPostageProof",
+        "summary": "Submit a postage proof",
+        "security": [
+          {
+            "StellarSignedRequest": []
+          }
+        ],
+        "x-stability": "stable",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/postage/quote": {
+      "post": {
+        "operationId": "quotePostage",
+        "summary": "Quote recipient postage requirements",
+        "x-stability": "stable",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/postage/{messageId}": {
+      "get": {
+        "operationId": "getPostageState",
+        "summary": "Read participant postage state",
+        "security": [
+          {
+            "StellarSignedRequest": []
+          }
+        ],
+        "x-stability": "stable",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/postage/{messageId}/settle": {
+      "post": {
+        "operationId": "settlePostage",
+        "summary": "Settle pending postage",
+        "security": [
+          {
+            "StellarSignedRequest": []
+          }
+        ],
+        "x-stability": "stable",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/postage/{messageId}/refund": {
+      "post": {
+        "operationId": "refundPostage",
+        "summary": "Mark pending postage for refund",
+        "security": [
+          {
+            "StellarSignedRequest": []
+          }
+        ],
+        "x-stability": "stable",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/receipts": {
+      "post": {
+        "operationId": "recordDelivery",
+        "summary": "Record message delivery",
+        "security": [
+          {
+            "StellarSignedRequest": []
+          }
+        ],
+        "x-stability": "stable",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/receipts/{messageId}": {
+      "get": {
+        "operationId": "getReceiptState",
+        "summary": "Read participant receipt state",
+        "security": [
+          {
+            "StellarSignedRequest": []
+          }
+        ],
+        "x-stability": "stable",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/receipts/{messageId}/read": {
+      "post": {
+        "operationId": "recordReadAcknowledgment",
+        "summary": "Record recipient read acknowledgment",
+        "security": [
+          {
+            "StellarSignedRequest": []
+          }
+        ],
+        "x-stability": "deprecated",
+        "deprecated": true,
+        "x-deprecation": {
+          "reason": "Replaced by delivery-receipts streaming.",
+          "sunset": "2026-12-31",
+          "migration": "/receipts/{messageId}"
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    }
+  }
+}

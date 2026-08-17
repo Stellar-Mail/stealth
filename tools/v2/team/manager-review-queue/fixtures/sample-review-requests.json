@@ -1,0 +1,122 @@
+{
+  "validRequests": [
+    {
+      "id": "valid-001",
+      "reviewId": "review-2026-001",
+      "status": "pending",
+      "priority": "high",
+      "submitterEmail": "alice@example.test",
+      "note": "Please review the attached expense report.",
+      "subject": "Q2 Expense Report Review",
+      "tags": ["finance", "q2"]
+    },
+    {
+      "id": "valid-002",
+      "reviewId": "REVIEW_URGENT_42",
+      "status": "approved",
+      "priority": "critical",
+      "submitterEmail": "bob.smith+reviews@company.test",
+      "note": "Approved after discussion with legal.",
+      "subject": "Contract Amendment — Vendor X",
+      "tags": ["legal", "vendor"]
+    },
+    {
+      "id": "valid-003",
+      "reviewId": "rev-escalated-007",
+      "status": "escalated",
+      "priority": "medium",
+      "submitterEmail": "mgr@team.example.test",
+      "note": "",
+      "subject": "Policy update for remote access",
+      "tags": []
+    }
+  ],
+  "hostileInputs": [
+    {
+      "id": "hostile-001",
+      "field": "reviewId",
+      "value": "../../etc/passwd",
+      "reason": "path traversal attempt"
+    },
+    {
+      "id": "hostile-002",
+      "field": "reviewId",
+      "value": "<script>alert(1)</script>",
+      "reason": "XSS in ID field"
+    },
+    {
+      "id": "hostile-003",
+      "field": "reviewId",
+      "value": "review; DROP TABLE reviews--",
+      "reason": "SQL injection attempt"
+    },
+    {
+      "id": "hostile-004",
+      "field": "submitterEmail",
+      "value": "user@evil.test\r\nBcc: victim@example.test",
+      "reason": "CRLF header injection"
+    },
+    {
+      "id": "hostile-005",
+      "field": "submitterEmail",
+      "value": "user\u0000@evil.test",
+      "reason": "null byte in email"
+    },
+    {
+      "id": "hostile-006",
+      "field": "submitterEmail",
+      "value": "@nodomain",
+      "reason": "missing local part"
+    },
+    {
+      "id": "hostile-007",
+      "field": "status",
+      "value": "superApproved",
+      "reason": "status not in allowlist"
+    },
+    {
+      "id": "hostile-008",
+      "field": "status",
+      "value": "PENDING",
+      "reason": "wrong case — not in allowlist"
+    },
+    {
+      "id": "hostile-009",
+      "field": "priority",
+      "value": "CRITICAL",
+      "reason": "wrong case — not in allowlist"
+    },
+    {
+      "id": "hostile-010",
+      "field": "priority",
+      "value": "urgent",
+      "reason": "priority not in allowlist"
+    }
+  ],
+  "edgeCases": [
+    {
+      "id": "edge-001",
+      "description": "Note with control characters should be sanitized",
+      "note": "Valid text\u0000with\u001Fcontrol\u007Fchars",
+      "expectedSanitized": "Valid textwithcontrolchars"
+    },
+    {
+      "id": "edge-002",
+      "description": "Subject with CRLF injection should be sanitized",
+      "subject": "Subject Line\r\nX-Injected: yes",
+      "expectedSanitized": "Subject LineX-Injected: yes"
+    },
+    {
+      "id": "edge-003",
+      "description": "Empty string note should return empty string",
+      "note": "",
+      "expectedSanitized": ""
+    },
+    {
+      "id": "edge-004",
+      "description": "Note that is only whitespace should trim to empty",
+      "note": "   \t  ",
+      "expectedSanitized": ""
+    }
+  ]
+}

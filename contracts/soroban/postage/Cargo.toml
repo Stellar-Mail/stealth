@@ -13,3 +13,5 @@ soroban-sdk = { workspace = true }
 
 [dev-dependencies]
 soroban-sdk = { workspace = true, features = ["testutils"] }
+stealth-lifecycle = { path = "../lifecycle", features = ["contract"] }
+stealth-policies = { path = "../policies" }

@@ -55,18 +55,23 @@ services:
 
   relay:
     build:
-      context: ./src/relay
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: src/relay/Dockerfile
     depends_on:
       - horizon
       - redis
     ports:
       - "3000:3000"
     environment:
-      - HORIZON_URL=http://horizon:8000
-      - REDIS_URL=redis://redis:6379
+      - STEALTH_STELLAR_NETWORK=testnet
+      - STEALTH_HORIZON_URL=http://horizon:8000
+      - PORT=3000
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://localhost:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
       interval: 10s
       timeout: 5s
       retries: 5

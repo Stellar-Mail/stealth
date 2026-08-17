@@ -1,41 +1,30 @@
-# Role-Based Mail Access
+# Role-Based Mail Access Specs
 
-Permissions system.
+Release tier: V2  
+Audience: team
+
+This folder contains a self-contained tool for role-based mail access checks. It is intentionally isolated from the main application until a future integration issue explicitly allows wiring.
 
 ## Scope
 
-- Release tier: $(System.Collections.Hashtable.Tier.ToUpperInvariant())
-- Audience: $(System.Collections.Hashtable.Audience)
-- Folder ownership: $dir/
+- local guard validation and sanitization
+- in-memory policy evaluation and audit logs
+- React hook and presentational UI for the isolated demo
+- folder-local fixtures, tests, and contributor documentation
 
-This is a self-contained tooling workspace. Do not wire this tool into the main app, routing, inbox architecture, wallet core, Stellar core, or design system unless a future integration issue explicitly allows it.
+## Non-Goals
 
-Recommended internal structure:
+- no routing or shell changes
+- no inbox architecture changes
+- no mail rendering engine changes
+- no authentication, wallet, Stellar, or database work
 
-- components/
-- services/
-- hooks/
--     ests/
-- docs/
-  "@ | Set-Content -Path "tools/v2/team/role-based-mail-access/README.md"
-  @"
+## Contributor Review
 
-# Role-Based Mail Access Specs
+Start with:
 
-## Purpose
+- [README.md](README.md)
+- [tests/test-plan.md](tests/test-plan.md)
+- [docs/review-notes.md](docs/review-notes.md)
 
-Permissions system.
-
-## Contributor boundary
-
-All work for this tool should stay in:
-
-$dir/
-
-## Required issue categories
-
-- Architecture
-- Feature
-- UI and accessibility
-- Security and performance
-- Testing and documentation
+Keep every file touched by this issue inside `tools/v2/team/role-based-mail-access/`.

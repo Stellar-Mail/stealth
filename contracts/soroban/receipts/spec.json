@@ -1,0 +1,46 @@
+{
+  "structs": [
+    {
+      "name": "Receipt",
+      "fields": [
+        { "name": "message_id", "type": "bytes32" },
+        { "name": "payload_hash", "type": "bytes32" },
+        { "name": "protocol_version", "type": "u32" },
+        { "name": "sender", "type": "address" },
+        { "name": "recipient", "type": "address" },
+        { "name": "delivered_at", "type": "u64" },
+        { "name": "read_at", "type": "option:u64" }
+      ]
+    }
+  ],
+  "enums": [],
+  "errors": [
+    { "name": "DuplicateReceipt", "value": 1 },
+    { "name": "ReceiptNotFound", "value": 2 },
+    { "name": "AlreadyRead", "value": 3 },
+    { "name": "CommitmentMismatch", "value": 4 }
+  ],
+  "functions": [
+    {
+      "name": "delivered",
+      "inputs": [
+        { "name": "message_id", "type": "bytes32" },
+        { "name": "payload_hash", "type": "bytes32" },
+        { "name": "protocol_version", "type": "u32" },
+        { "name": "sender", "type": "address" },
+        { "name": "recipient", "type": "address" }
+      ],
+      "output": "result:udt:Receipt:Error"
+    },
+    {
+      "name": "read",
+      "inputs": [{ "name": "message_id", "type": "bytes32" }],
+      "output": "result:udt:Receipt:Error"
+    },
+    {
+      "name": "get",
+      "inputs": [{ "name": "message_id", "type": "bytes32" }],
+      "output": "result:udt:Receipt:Error"
+    }
+  ]
+}

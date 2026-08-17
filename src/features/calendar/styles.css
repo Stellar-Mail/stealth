@@ -116,6 +116,20 @@
   background: oklch(1 0 0 / 0.075);
 }
 
+.calendar-control:focus-visible,
+.calendar-primary-button:focus-visible,
+.calendar-icon-button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px oklch(1 0 0 / 0.1);
+}
+
+.calendar-control:disabled,
+.calendar-icon-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+  transform: none;
+}
+
 .calendar-primary-button {
   color: oklch(0.16 0.006 270);
   background: oklch(0.94 0.005 270);

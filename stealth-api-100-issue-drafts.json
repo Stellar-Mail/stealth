@@ -1,0 +1,913 @@
+{
+  "repository": "Stellar-Mail/stealth",
+  "purpose": "Repository-grounded API issue drafts for review and workflow-based publication",
+  "important": [
+    "These are drafts, not published GitHub issues.",
+    "Codex must inspect the current branch and verify every source_evidence statement before retaining an issue.",
+    "Codex must remove or rewrite any issue already implemented, duplicated by an open issue, or unsupported by current code.",
+    "Codex must not create issues during validation. It should first output a validated JSON file and workflow for manual execution.",
+    "Every retained issue must keep the three campaign labels."
+  ],
+  "issues": [
+    {
+      "draft_id": "API-001",
+      "title": "Replace trusted actor headers with cryptographically verified Stellar authentication",
+      "description": "## Repository evidence\nThe current actor helper accepts `x-stealth-address` after checking only that it is shaped like a Stellar G-address.\n\n## Problem\nA caller-controlled address header is identification, not proof that the caller controls the corresponding Stellar account.\n\n## Proposed implementation\nIntroduce signed-request authentication using a server challenge or canonical request payload, Stellar signature verification, expiration, domain separation, and replay protection. Populate a verified principal in request context and migrate protected routes away from trusting the raw header.\n\n## Acceptance criteria\n- [ ] Supplying only `x-stealth-address` is insufficient to authenticate a protected request.\n- [ ] Valid Stellar signatures authenticate the expected account.\n- [ ] Invalid, expired, wrong-domain, and replayed signatures are rejected with stable error codes.\n- [ ] Unit tests cover successful authentication and all rejection paths.\n\n## Repository area\n`src/server/api/actor.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/actor.ts",
+      "source_evidence": "The current actor helper accepts `x-stealth-address` after checking only that it is shaped like a Stellar G-address.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-002",
+      "title": "Add one-time nonce issuance for signed API authentication",
+      "description": "## Repository evidence\nThe repository currently has no shared nonce lifecycle in the inspected API foundation.\n\n## Problem\nSigned authentication needs an unpredictable, purpose-bound, expiring challenge that cannot be reused.\n\n## Proposed implementation\nAdd a nonce service that issues cryptographically random challenges, binds each challenge to actor and purpose, records expiry, and supports atomic one-time consumption.\n\n## Acceptance criteria\n- [ ] Nonces use a cryptographically secure random source.\n- [ ] Each nonce records actor, purpose, creation time, and expiry.\n- [ ] A nonce can be consumed successfully only once.\n- [ ] Tests cover expiry, replay, actor mismatch, purpose mismatch, and concurrent consumption.\n\n## Repository area\n`src/server/api/auth/nonce-service.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/auth/nonce-service.ts",
+      "source_evidence": "The repository currently has no shared nonce lifecycle in the inspected API foundation.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-003",
+      "title": "Create a verified ApiPrincipal model for authenticated requests",
+      "description": "## Repository evidence\nThe inspected API context exposes only the repository dependency.\n\n## Problem\nRoutes need a trusted request-scoped identity object instead of repeatedly reading caller-controlled headers.\n\n## Proposed implementation\nDefine a typed `ApiPrincipal` containing the verified Stellar address, authentication method, authentication time, and authorization metadata. Add it to the request context and distinguish anonymous from authenticated requests.\n\n## Acceptance criteria\n- [ ] A typed principal is available to authenticated handlers.\n- [ ] Anonymous and authenticated contexts are explicit.\n- [ ] Protected handlers do not parse identity directly from request headers.\n- [ ] Tests demonstrate that headers cannot forge the principal.\n\n## Repository area\n`src/server/api/context.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/context.ts",
+      "source_evidence": "The inspected API context exposes only the repository dependency.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-004",
+      "title": "Bind authenticated signatures to HTTP method, route, and body digest",
+      "description": "## Repository evidence\nA future signature verifier must avoid accepting a signature for a different operation.\n\n## Problem\nSigning only a nonce or address can permit cross-endpoint or payload substitution if the signed material is not fully scoped.\n\n## Proposed implementation\nDefine a canonical signing payload containing version, HTTP method, canonical route, body hash, nonce, issued-at time, and audience. Verify the same canonical representation server-side.\n\n## Acceptance criteria\n- [ ] A signature for one method cannot authorize another method.\n- [ ] A signature for one route cannot authorize another route.\n- [ ] Changing the body invalidates the signature.\n- [ ] Canonicalization fixtures are deterministic across equivalent requests.\n\n## Repository area\n`src/server/api/auth`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/auth",
+      "source_evidence": "A future signature verifier must avoid accepting a signature for a different operation.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-005",
+      "title": "Add authentication challenge expiration and clock-skew handling",
+      "description": "## Repository evidence\nThe current API foundation has no inspected challenge timestamp policy.\n\n## Problem\nSigned requests need a narrow validity window while still tolerating reasonable client/server clock differences.\n\n## Proposed implementation\nIntroduce configurable challenge lifetime and bounded clock-skew tolerance. Return distinct machine-readable errors for not-yet-valid and expired authentication material.\n\n## Acceptance criteria\n- [ ] Authentication validity windows are configurable.\n- [ ] A documented clock-skew allowance is applied.\n- [ ] Expired and not-yet-valid requests return stable error codes.\n- [ ] Boundary-time tests use a controllable clock.\n\n## Repository area\n`src/server/api/auth`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/auth",
+      "source_evidence": "The current API foundation has no inspected challenge timestamp policy.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-006",
+      "title": "Add key rotation support to API signature verification",
+      "description": "## Repository evidence\nAuthentication is being designed around account-controlled signatures, but verifier versioning and key rotation are not represented in the current foundation.\n\n## Problem\nLong-lived clients and accounts need a safe migration path when signing keys or verification algorithms change.\n\n## Proposed implementation\nVersion the authentication envelope and support a bounded set of active verification schemes. Document how old schemes are deprecated and how verification failures are reported.\n\n## Acceptance criteria\n- [ ] Authentication envelopes carry an explicit version.\n- [ ] The verifier supports configured active versions.\n- [ ] Unsupported versions return a stable error.\n- [ ] Tests cover overlapping migration windows and removed versions.\n\n## Repository area\n`src/server/api/auth`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/auth",
+      "source_evidence": "Authentication is being designed around account-controlled signatures, but verifier versioning and key rotation are not represented in the current foundation.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-007",
+      "title": "Prevent authentication replay across deployments and runtime instances",
+      "description": "## Repository evidence\nThe inspected context currently uses process-local global memory.\n\n## Problem\nReplay protection stored only in one process can fail when requests reach another isolate or after a restart.\n\n## Proposed implementation\nBack nonce consumption with durable shared storage and use an atomic consume operation so all runtime instances observe the same replay state.\n\n## Acceptance criteria\n- [ ] Nonce state is shared across runtime instances.\n- [ ] Only one concurrent consumer succeeds.\n- [ ] Replay prevention survives process restart.\n- [ ] Integration tests exercise two independent API contexts.\n\n## Repository area\n`src/server/api/auth/nonce-service.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/auth/nonce-service.ts",
+      "source_evidence": "The inspected context currently uses process-local global memory.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-008",
+      "title": "Introduce explicit authentication requirements in route definitions",
+      "description": "## Repository evidence\nThe current `handleApiRequest` helper only normalizes thrown errors.\n\n## Problem\nWithout declarative route policy, endpoints can accidentally omit authentication or implement it inconsistently.\n\n## Proposed implementation\nExtend the route wrapper so every route declares `public`, `optional`, or `required` authentication and optionally declares an authorization policy.\n\n## Acceptance criteria\n- [ ] Every migrated API route declares an authentication mode.\n- [ ] Protected routes fail closed when authentication configuration is missing.\n- [ ] Public routes do not unnecessarily invoke protected logic.\n- [ ] Tests verify each mode and middleware order.\n\n## Repository area\n`src/server/api/handler.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/handler.ts",
+      "source_evidence": "The current `handleApiRequest` helper only normalizes thrown errors.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-009",
+      "title": "Add authorization policy helpers for actor-owned resources",
+      "description": "## Repository evidence\nThe existing helper compares a header-derived actor with an expected address.\n\n## Problem\nOwnership checks should operate on a verified principal and produce consistent errors and audit metadata.\n\n## Proposed implementation\nReplace header-based ownership comparison with reusable authorization helpers that accept `ApiPrincipal`, resource owner, action, and safe resource metadata.\n\n## Acceptance criteria\n- [ ] Authorization uses the verified principal.\n- [ ] Ownership mismatch returns a stable forbidden code.\n- [ ] Authorization decisions emit structured audit metadata.\n- [ ] Tests cover owner, non-owner, anonymous, and delegated access.\n\n## Repository area\n`src/server/api/actor.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/actor.ts",
+      "source_evidence": "The existing helper compares a header-derived actor with an expected address.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-010",
+      "title": "Add delegated authorization support for mailbox operations",
+      "description": "## Repository evidence\nCurrent inspected authorization supports only direct equality between actor and expected address.\n\n## Problem\nTeam, recovery, and delegated mailbox workflows require narrowly scoped authority without sharing the owner's credentials.\n\n## Proposed implementation\nDefine a delegation model with grantor, delegate, allowed actions, resource scope, issue time, expiry, and revocation. Integrate it with authorization helpers.\n\n## Acceptance criteria\n- [ ] Delegations are action- and resource-scoped.\n- [ ] Expired and revoked delegations are rejected.\n- [ ] A delegate cannot expand its own authority.\n- [ ] Tests cover valid, over-scoped, expired, and revoked grants.\n\n## Repository area\n`src/server/api/auth`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/auth",
+      "source_evidence": "Current inspected authorization supports only direct equality between actor and expected address.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-011",
+      "title": "Add authentication failure throttling without leaking account existence",
+      "description": "## Repository evidence\nThe error model contains `too_many_requests`, but the inspected foundation does not show a concrete authentication throttle.\n\n## Problem\nRepeated invalid signatures or challenges can consume resources and become an account-enumeration channel.\n\n## Proposed implementation\nRate-limit authentication failures using privacy-preserving keys and uniform public responses. Apply escalating delays or temporary blocks without confirming whether an address exists.\n\n## Acceptance criteria\n- [ ] Repeated failures are throttled.\n- [ ] Responses do not reveal account existence.\n- [ ] Successful authentication is not blocked by another actor's failures.\n- [ ] Tests cover isolation, refill, and uniform error behavior.\n\n## Repository area\n`src/server/api/rate-limit.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/rate-limit.ts",
+      "source_evidence": "The error model contains `too_many_requests`, but the inspected foundation does not show a concrete authentication throttle.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-012",
+      "title": "Document the API authentication protocol with executable vectors",
+      "description": "## Repository evidence\nThe inspected API authentication behavior is currently represented by code helpers rather than a complete signed-request protocol document.\n\n## Problem\nExternal clients need an exact, testable definition of canonicalization, signing, verification, expiry, and replay rules.\n\n## Proposed implementation\nWrite a versioned authentication specification and add fixtures containing canonical payloads, signatures, expected principals, and invalid examples.\n\n## Acceptance criteria\n- [ ] The document defines all signed fields and canonicalization rules.\n- [ ] Fixtures are checked in automated tests.\n- [ ] At least one valid and several invalid vectors are included.\n- [ ] Examples contain no real secrets.\n\n## Repository area\n`docs/security`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "docs/security",
+      "source_evidence": "The inspected API authentication behavior is currently represented by code helpers rather than a complete signed-request protocol document.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-013",
+      "title": "Create one request-scoped API context for the full execution lifecycle",
+      "description": "## Repository evidence\nThe inspected context returns a repository, while response helpers independently derive request metadata.\n\n## Problem\nAuthentication, logging, metrics, services, and responses need one immutable request context to prevent mismatched identifiers and duplicated parsing.\n\n## Proposed implementation\nCreate a request context at the API boundary containing request ID, start time, principal, route ID, environment bindings, logger, metrics, and repository references.\n\n## Acceptance criteria\n- [ ] One context is created per incoming request.\n- [ ] The same request ID reaches logs, metrics, audit events, and responses.\n- [ ] Context construction is testable with dependency injection.\n- [ ] Handlers no longer derive shared metadata independently.\n\n## Repository area\n`src/server/api/context.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/context.ts",
+      "source_evidence": "The inspected context returns a repository, while response helpers independently derive request metadata.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-014",
+      "title": "Generate server-owned request IDs and validate optional client correlation IDs",
+      "description": "## Repository evidence\nThe inspected response helper accepts any non-empty incoming `x-request-id` as the request ID.\n\n## Problem\nArbitrary client values can be oversized, misleading, duplicated, or unsuitable for internal correlation.\n\n## Proposed implementation\nAlways generate a canonical server request ID. Accept a separate optional client correlation ID only after validating length and allowed characters.\n\n## Acceptance criteria\n- [ ] Every request receives a server-generated identifier.\n- [ ] Client identifiers cannot replace the server identifier.\n- [ ] Malformed or oversized correlation IDs are handled consistently.\n- [ ] Tests cover missing, valid, invalid, and repeated headers.\n\n## Repository area\n`src/server/api/response.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/response.ts",
+      "source_evidence": "The inspected response helper accepts any non-empty incoming `x-request-id` as the request ID.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-015",
+      "title": "Propagate request IDs through repository and domain service calls",
+      "description": "## Repository evidence\nThe current inspected context and repository interface do not visibly carry request correlation metadata.\n\n## Problem\nFailures spanning HTTP, repository, and contract layers are difficult to diagnose when correlation stops at the response boundary.\n\n## Proposed implementation\nPass safe operation context into repository and domain service methods or bind it through request-scoped dependencies.\n\n## Acceptance criteria\n- [ ] Repository errors can be correlated to the originating request.\n- [ ] Request IDs appear in structured logs and audit events.\n- [ ] Domain models are not polluted with transport-only fields.\n- [ ] Tests confirm propagation across at least one complete route.\n\n## Repository area\n`src/server/api/context.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/context.ts",
+      "source_evidence": "The current inspected context and repository interface do not visibly carry request correlation metadata.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-016",
+      "title": "Add structured API logging with default sensitive-data redaction",
+      "description": "## Repository evidence\nNo structured logger was present in the inspected shared API files.\n\n## Problem\nAuthentication data, signatures, message contents, and recovery material must not be accidentally written to logs.\n\n## Proposed implementation\nIntroduce a structured logger with an allowlist of safe fields and recursive redaction for headers and objects. Log route ID, request ID, status, duration, and safe error classification.\n\n## Acceptance criteria\n- [ ] Authorization material, signatures, nonces, and bodies are redacted by default.\n- [ ] Logs use structured fields rather than interpolated request objects.\n- [ ] Redaction tests cover nested values and case-insensitive headers.\n- [ ] Logger failures do not fail API requests.\n\n## Repository area\n`src/server/api/logging.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/logging.ts",
+      "source_evidence": "No structured logger was present in the inspected shared API files.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-017",
+      "title": "Add safe internal reporting for unexpected API exceptions",
+      "description": "## Repository evidence\nUnknown errors are converted to a generic 500 response, but the inspected code does not report the original failure.\n\n## Problem\nClients should receive no internal detail, while maintainers still need the exception, route, and request context.\n\n## Proposed implementation\nAdd an internal error reporter invoked only for unexpected failures. Preserve the generic public response and redact sensitive context.\n\n## Acceptance criteria\n- [ ] Unexpected errors are recorded with request ID and route ID.\n- [ ] Public responses never contain stack traces or internal messages.\n- [ ] Known `ApiError` instances are not misclassified as unexpected.\n- [ ] Reporter failures cannot replace the original response.\n\n## Repository area\n`src/server/api/errors.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/errors.ts",
+      "source_evidence": "Unknown errors are converted to a generic 500 response, but the inspected code does not report the original failure.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-018",
+      "title": "Define a stable public validation error schema",
+      "description": "## Repository evidence\nThe inspected error normalizer returns `ZodError.flatten()` directly as public details.\n\n## Problem\nExposing library-specific error output couples clients to Zod and may leak inconsistent details.\n\n## Proposed implementation\nMap validation errors into an application-owned schema with a safe field path, stable rule code, and human-readable message.\n\n## Acceptance criteria\n- [ ] No Zod-specific response shape is exposed.\n- [ ] Input values are never echoed in validation details.\n- [ ] OpenAPI documents the stable schema.\n- [ ] Contract tests lock the public format.\n\n## Repository area\n`src/server/api/errors.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/errors.ts",
+      "source_evidence": "The inspected error normalizer returns `ZodError.flatten()` directly as public details.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-019",
+      "title": "Create a central registry of domain-specific API error codes",
+      "description": "## Repository evidence\nThe inspected error union contains broad codes such as `bad_request`, `conflict`, and `validation_error`.\n\n## Problem\nClients should not parse messages to distinguish expired challenges, idempotency mismatches, invalid transitions, insufficient postage, or duplicate receipts.\n\n## Proposed implementation\nCreate a central error registry mapping stable domain codes to HTTP status, default safe message, retryability, and documentation.\n\n## Acceptance criteria\n- [ ] Known domain failures use stable machine-readable codes.\n- [ ] Each code maps to one documented HTTP status.\n- [ ] Routes do not create ad hoc codes.\n- [ ] Tests verify uniqueness and complete OpenAPI exposure.\n\n## Repository area\n`src/server/api/errors.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/errors.ts",
+      "source_evidence": "The inspected error union contains broad codes such as `bad_request`, `conflict`, and `validation_error`.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-020",
+      "title": "Add retryability metadata to API error responses",
+      "description": "## Repository evidence\nThe current inspected error envelope exposes code, message, and optional details only.\n\n## Problem\nClients need to distinguish permanent failures from requests that may succeed after waiting or refreshing state.\n\n## Proposed implementation\nAdd a stable retry classification and optional retry-after metadata for rate limits, transient dependencies, and temporary conflicts.\n\n## Acceptance criteria\n- [ ] Retryability is machine-readable.\n- [ ] Permanent validation failures are never marked retryable.\n- [ ] Retry-after values use a documented unit and format.\n- [ ] OpenAPI and tests cover all retry classifications.\n\n## Repository area\n`src/server/api/errors.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/errors.ts",
+      "source_evidence": "The current inspected error envelope exposes code, message, and optional details only.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-021",
+      "title": "Standardize method-not-allowed responses and Allow headers",
+      "description": "## Repository evidence\nThe shared error type includes `method_not_allowed`, but route-wide behavior was not shown in the inspected foundation.\n\n## Problem\nUnsupported methods should return consistent JSON envelopes and an accurate `Allow` header.\n\n## Proposed implementation\nAdd a reusable method guard or route wrapper behavior that rejects unsupported methods uniformly.\n\n## Acceptance criteria\n- [ ] Unsupported methods return 405 with the shared error envelope.\n- [ ] The `Allow` header lists the supported methods.\n- [ ] HEAD and OPTIONS behavior is explicitly defined.\n- [ ] Tests cover representative routes.\n\n## Repository area\n`src/routes/api/v1`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/routes/api/v1",
+      "source_evidence": "The shared error type includes `method_not_allowed`, but route-wide behavior was not shown in the inspected foundation.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-022",
+      "title": "Add consistent cache-control policies by API response type",
+      "description": "## Repository evidence\nThe inspected response helper applies `cache-control: no-store` to every response.\n\n## Problem\nSensitive responses should remain non-cacheable, while public immutable metadata may benefit from explicit safe caching and validators.\n\n## Proposed implementation\nIntroduce centrally defined cache policies and require routes to choose an approved policy. Default to no-store.\n\n## Acceptance criteria\n- [ ] Sensitive and authenticated responses remain `no-store`.\n- [ ] Public cacheable responses use explicit max-age and validation rules.\n- [ ] Routes cannot set contradictory cache headers.\n- [ ] Tests cover each approved policy.\n\n## Repository area\n`src/server/api/response.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/response.ts",
+      "source_evidence": "The inspected response helper applies `cache-control: no-store` to every response.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-023",
+      "title": "Add security headers to JSON API responses",
+      "description": "## Repository evidence\nThe inspected shared response headers set content type, cache control, and request ID only.\n\n## Problem\nAPI responses should consistently include applicable hardening headers to reduce MIME confusion and unsafe embedding.\n\n## Proposed implementation\nAdd centrally managed headers such as `X-Content-Type-Options: nosniff` and an appropriate content security/frame policy where applicable.\n\n## Acceptance criteria\n- [ ] All API JSON responses include the approved security headers.\n- [ ] Headers are documented and tested.\n- [ ] Route-specific headers cannot silently remove mandatory protections.\n- [ ] CORS behavior remains separately configurable.\n\n## Repository area\n`src/server/api/response.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/response.ts",
+      "source_evidence": "The inspected shared response headers set content type, cache control, and request ID only.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-024",
+      "title": "Implement an explicit API CORS policy",
+      "description": "## Repository evidence\nNo shared CORS policy was visible in the inspected API foundation.\n\n## Problem\nA public or browser-consumed API needs an allowlist-based policy rather than implicit or route-specific behavior.\n\n## Proposed implementation\nAdd configurable origin validation, allowed methods and headers, preflight handling, credentials policy, and safe `Vary` headers.\n\n## Acceptance criteria\n- [ ] Only configured origins receive access.\n- [ ] Preflight responses list accurate methods and headers.\n- [ ] Wildcard origins are not combined with credentials.\n- [ ] Tests cover allowed, denied, null, and preflight origins.\n\n## Repository area\n`src/server/api/handler.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/handler.ts",
+      "source_evidence": "No shared CORS policy was visible in the inspected API foundation.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-025",
+      "title": "Reject empty JSON bodies with a dedicated API error",
+      "description": "## Repository evidence\nThe inspected parser passes an empty string to `JSON.parse`, producing the same class of failure as malformed JSON.\n\n## Problem\nClients should be able to distinguish a missing required body from syntactically invalid JSON.\n\n## Proposed implementation\nDetect empty and whitespace-only bodies before parsing, with an explicit opt-in for endpoints that allow no body.\n\n## Acceptance criteria\n- [ ] Empty required bodies return a stable code.\n- [ ] Whitespace-only bodies behave consistently.\n- [ ] Malformed JSON remains distinguishable.\n- [ ] Tests cover required and optional-body handlers.\n\n## Repository area\n`src/server/api/request.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/request.ts",
+      "source_evidence": "The inspected parser passes an empty string to `JSON.parse`, producing the same class of failure as malformed JSON.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-026",
+      "title": "Parse JSON Content-Type values using media-type rules",
+      "description": "## Repository evidence\nThe inspected parser accepts any Content-Type containing the substring `application/json`.\n\n## Problem\nSubstring matching can accept malformed values and does not clearly define support for structured JSON suffixes.\n\n## Proposed implementation\nUse a standards-aware media-type parser and document the exact accepted media types and parameters.\n\n## Acceptance criteria\n- [ ] `application/json` with valid parameters is accepted.\n- [ ] Malformed and unsupported media types return 415.\n- [ ] Structured-suffix JSON support is explicit.\n- [ ] Tests cover casing, parameters, malformed syntax, and near matches.\n\n## Repository area\n`src/server/api/request.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/request.ts",
+      "source_evidence": "The inspected parser accepts any Content-Type containing the substring `application/json`.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-027",
+      "title": "Validate Content-Length before parsing request bodies",
+      "description": "## Repository evidence\nThe inspected parser converts `Content-Length` with `Number()` and does not explicitly reject negative, non-integer, non-numeric, or contradictory values.\n\n## Problem\nMalformed length metadata can create inconsistent body-limit behavior.\n\n## Proposed implementation\nStrictly parse the declared length while retaining measured encoded bytes as the final authority.\n\n## Acceptance criteria\n- [ ] Negative, fractional, and non-numeric lengths are rejected.\n- [ ] Missing length remains supported.\n- [ ] Measured body size still enforces the limit.\n- [ ] Tests cover contradictory declared and actual lengths.\n\n## Repository area\n`src/server/api/request.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/request.ts",
+      "source_evidence": "The inspected parser converts `Content-Length` with `Number()` and does not explicitly reject negative, non-integer, non-numeric, or contradictory values.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-028",
+      "title": "Enforce request body limits while streaming",
+      "description": "## Repository evidence\nThe inspected parser reads the entire body as text before checking its measured encoded length when Content-Length is absent or inaccurate.\n\n## Problem\nAn undeclared oversized body can consume unnecessary memory before rejection.\n\n## Proposed implementation\nRead the stream incrementally, stop after the configured byte limit, cancel the remaining stream, and then decode valid input.\n\n## Acceptance criteria\n- [ ] Oversized streamed bodies are rejected before full buffering.\n- [ ] Limits apply to encoded bytes.\n- [ ] The stream is cancelled after limit violation.\n- [ ] Tests include chunked requests without Content-Length.\n\n## Repository area\n`src/server/api/request.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/request.ts",
+      "source_evidence": "The inspected parser reads the entire body as text before checking its measured encoded length when Content-Length is absent or inaccurate.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-029",
+      "title": "Configure request body limits by endpoint and payload category",
+      "description": "## Repository evidence\nThe inspected parser uses one default 64 KiB limit unless a caller passes a number.\n\n## Problem\nDifferent payloads have different legitimate sizes and abuse risks, and scattered numeric limits are difficult to audit.\n\n## Proposed implementation\nCreate a central body-limit registry keyed by stable route or payload category and have route definitions select from approved values.\n\n## Acceptance criteria\n- [ ] Default and route-specific limits are centrally declared.\n- [ ] Routes cannot silently disable enforcement.\n- [ ] OpenAPI documents relevant limits.\n- [ ] Tests verify every configured category.\n\n## Repository area\n`src/server/api/request.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/request.ts",
+      "source_evidence": "The inspected parser uses one default 64 KiB limit unless a caller passes a number.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-030",
+      "title": "Reject duplicate single-valued query parameters",
+      "description": "## Repository evidence\nThe inspected query parser uses `Object.fromEntries`, which silently collapses duplicate keys.\n\n## Problem\nRequests such as `limit=10&limit=100` should not depend on parameter order.\n\n## Proposed implementation\nParse query parameters schema-aware: reject duplicates for scalar fields while preserving all values for explicitly multi-valued fields.\n\n## Acceptance criteria\n- [ ] Duplicate scalar parameters return a validation error.\n- [ ] Array parameters preserve all entries.\n- [ ] Error details identify the duplicated field.\n- [ ] Tests cover cursor, limit, and one multi-valued field.\n\n## Repository area\n`src/server/api/request.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/request.ts",
+      "source_evidence": "The inspected query parser uses `Object.fromEntries`, which silently collapses duplicate keys.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-031",
+      "title": "Normalize and validate API query strings before schema parsing",
+      "description": "## Repository evidence\nThe inspected parser forwards URLSearchParams entries directly into Zod.\n\n## Problem\nControl characters, unexpected Unicode normalization, excessively long values, and empty keys should be handled consistently before domain validation.\n\n## Proposed implementation\nAdd query-level size limits and normalization rules without changing valid encoded values unexpectedly.\n\n## Acceptance criteria\n- [ ] Total query length and per-value length limits are enforced.\n- [ ] Empty parameter names are rejected.\n- [ ] Control characters are rejected.\n- [ ] Normalization behavior is documented and tested.\n\n## Repository area\n`src/server/api/request.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/request.ts",
+      "source_evidence": "The inspected parser forwards URLSearchParams entries directly into Zod.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-032",
+      "title": "Add signed opaque cursor encoding for pagination",
+      "description": "## Repository evidence\nThe inspected pagination schema accepts any non-empty cursor string.\n\n## Problem\nClients should not be able to modify continuation position, actor scope, filters, or ordering state.\n\n## Proposed implementation\nImplement a versioned opaque cursor containing the full continuation key and query scope, protected by a server-side signature or authenticated encoding.\n\n## Acceptance criteria\n- [ ] Tampered cursors are rejected.\n- [ ] Cursors are bound to actor and query scope where applicable.\n- [ ] Cursor versions are explicit.\n- [ ] Tests cover cross-actor reuse and filter changes.\n\n## Repository area\n`src/server/api/pagination.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/pagination.ts",
+      "source_evidence": "The inspected pagination schema accepts any non-empty cursor string.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-033",
+      "title": "Require deterministic total ordering for every paginated query",
+      "description": "## Repository evidence\nThe shared pagination input exists, but deterministic ordering requirements were not visible in the inspected foundation.\n\n## Problem\nCursor pagination can skip or duplicate records when sort values tie or concurrent inserts occur.\n\n## Proposed implementation\nDocument and enforce a stable ordering with a unique tie-breaker for each paginated repository method.\n\n## Acceptance criteria\n- [ ] Each paginated method declares its sort fields.\n- [ ] Equal primary sort values use a unique tie-breaker.\n- [ ] Cursor payloads contain the complete continuation key.\n- [ ] Tests cover ties and concurrent inserts.\n\n## Repository area\n`src/server/api/repository.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/repository.ts",
+      "source_evidence": "The shared pagination input exists, but deterministic ordering requirements were not visible in the inspected foundation.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-034",
+      "title": "Add a centralized route wrapper for API cross-cutting concerns",
+      "description": "## Repository evidence\nThe inspected `handleApiRequest` helper only catches errors and converts them to API failures.\n\n## Problem\nAuthentication, context creation, validation, rate limiting, logging, metrics, and response serialization can drift when assembled manually per route.\n\n## Proposed implementation\nCreate a declarative route wrapper with a documented middleware order and typed route configuration.\n\n## Acceptance criteria\n- [ ] Routes declare authentication, validation, rate-limit, and cache policies.\n- [ ] Middleware order is deterministic.\n- [ ] Metrics and logs run for success and failure.\n- [ ] Existing routes can migrate incrementally with tests.\n\n## Repository area\n`src/server/api/handler.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/handler.ts",
+      "source_evidence": "The inspected `handleApiRequest` helper only catches errors and converts them to API failures.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-035",
+      "title": "Replace the process-local API repository with environment-backed persistence",
+      "description": "## Repository evidence\nThe inspected context stores a `MemoryApiRepository` on `globalThis`.\n\n## Problem\nProcess-local state can disappear after restart and diverge across Cloudflare isolates or server instances.\n\n## Proposed implementation\nAdd a production repository adapter selected through runtime bindings. Keep the memory adapter for unit tests and local development.\n\n## Acceptance criteria\n- [ ] Production does not depend on process-local memory.\n- [ ] Persistent records survive independent API contexts.\n- [ ] Missing production bindings fail with an explicit configuration error.\n- [ ] Integration tests exercise the production adapter contract.\n\n## Repository area\n`src/server/api/context.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/context.ts",
+      "source_evidence": "The inspected context stores a `MemoryApiRepository` on `globalThis`.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-036",
+      "title": "Add repository contract tests shared by memory and production adapters",
+      "description": "## Repository evidence\nA memory repository test exists, but production-adapter parity is not guaranteed by the inspected foundation.\n\n## Problem\nDifferent adapters can diverge on ordering, conflicts, missing records, and idempotency behavior.\n\n## Proposed implementation\nCreate one reusable repository conformance suite that runs against every adapter.\n\n## Acceptance criteria\n- [ ] The same suite runs against memory and production adapters.\n- [ ] CRUD, ordering, conflict, and not-found semantics are covered.\n- [ ] Adapter-specific setup does not change expected behavior.\n- [ ] CI fails when an adapter violates the contract.\n\n## Repository area\n`src/server/api/repository.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/repository.ts",
+      "source_evidence": "A memory repository test exists, but production-adapter parity is not guaranteed by the inspected foundation.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-037",
+      "title": "Add optimistic concurrency tokens to mutable API records",
+      "description": "## Repository evidence\nThe inspected domain schemas do not expose record versions and the current context uses an in-memory repository.\n\n## Problem\nConcurrent policy, receipt, or postage updates can overwrite each other without detection.\n\n## Proposed implementation\nAdd version or ETag-style tokens and require expected-version checks for mutable operations.\n\n## Acceptance criteria\n- [ ] Mutable records carry a concurrency token.\n- [ ] Updates can require an expected token.\n- [ ] Stale updates return a stable conflict code.\n- [ ] Tests demonstrate that only one conflicting update succeeds.\n\n## Repository area\n`src/server/api/repository.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/repository.ts",
+      "source_evidence": "The inspected domain schemas do not expose record versions and the current context uses an in-memory repository.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-038",
+      "title": "Add atomic state-transition methods for postage records",
+      "description": "## Repository evidence\nPostage records have pending, settled, and refunded statuses in the inspected domain schema.\n\n## Problem\nGeneric read-then-write logic is vulnerable to races between settlement and refund requests.\n\n## Proposed implementation\nExpose atomic transition operations that validate the current state and persist the new state in one operation.\n\n## Acceptance criteria\n- [ ] Only allowed transitions succeed.\n- [ ] Settlement and refund cannot both win concurrently.\n- [ ] Terminal retries are deterministic.\n- [ ] Concurrency tests cover competing transitions.\n\n## Repository area\n`src/server/api/repository.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/repository.ts",
+      "source_evidence": "Postage records have pending, settled, and refunded statuses in the inspected domain schema.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-039",
+      "title": "Add atomic read-receipt publication",
+      "description": "## Repository evidence\nReceipt records include nullable `readAt`, indicating a one-way read-state transition.\n\n## Problem\nConcurrent read notifications should not produce conflicting timestamps or duplicate side effects.\n\n## Proposed implementation\nProvide an atomic operation that sets read time once according to a documented duplicate policy.\n\n## Acceptance criteria\n- [ ] The first valid read transition is stored atomically.\n- [ ] Duplicate calls follow a documented deterministic policy.\n- [ ] Unauthorized actors cannot set read state.\n- [ ] Tests cover concurrent duplicate calls.\n\n## Repository area\n`src/server/api/repository.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/repository.ts",
+      "source_evidence": "Receipt records include nullable `readAt`, indicating a one-way read-state transition.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-040",
+      "title": "Implement durable idempotency storage for all mutating routes",
+      "description": "## Repository evidence\nThe inspected domain schema contains idempotency status, body, and creation time, and unit tests exist for an idempotency service.\n\n## Problem\nIdempotency must survive restarts and work across instances to prevent duplicated payments or mutations.\n\n## Proposed implementation\nPersist idempotency records using actor, method, route, and key, and store a canonical request digest.\n\n## Acceptance criteria\n- [ ] Duplicate identical requests replay the stored response.\n- [ ] A reused key with a different payload returns 409.\n- [ ] Concurrent duplicates execute the operation once.\n- [ ] Behavior survives independent API contexts.\n\n## Repository area\n`src/server/api/idempotency-service.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/idempotency-service.ts",
+      "source_evidence": "The inspected domain schema contains idempotency status, body, and creation time, and unit tests exist for an idempotency service.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-041",
+      "title": "Represent in-progress idempotency operations explicitly",
+      "description": "## Repository evidence\nThe inspected idempotency schema stores a completed response shape but does not visibly represent an in-progress owner or lease.\n\n## Problem\nTwo requests arriving together need a safe way to coordinate before a response exists.\n\n## Proposed implementation\nAdd an in-progress state with ownership or lease metadata, completion transition, expiry, and recovery behavior.\n\n## Acceptance criteria\n- [ ] Only one request acquires a new idempotency operation.\n- [ ] Followers wait, retry, or receive a documented response.\n- [ ] Abandoned in-progress records can recover after lease expiry.\n- [ ] Tests cover concurrency and worker failure.\n\n## Repository area\n`src/server/api/idempotency-service.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/idempotency-service.ts",
+      "source_evidence": "The inspected idempotency schema stores a completed response shape but does not visibly represent an in-progress owner or lease.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-042",
+      "title": "Add retention and cleanup for expired idempotency records",
+      "description": "## Repository evidence\nThe inspected idempotency record contains a creation time but no visible expiration field.\n\n## Problem\nRecords will grow indefinitely without a retention policy.\n\n## Proposed implementation\nAdd configurable expiry and a cleanup job or repository method that never deletes active operations.\n\n## Acceptance criteria\n- [ ] Completed records receive an expiry time.\n- [ ] Retention is configurable.\n- [ ] Active records are excluded from cleanup.\n- [ ] Cleanup emits bounded metrics and has boundary tests.\n\n## Repository area\n`src/server/api/idempotency-service.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/idempotency-service.ts",
+      "source_evidence": "The inspected idempotency record contains a creation time but no visible expiration field.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-043",
+      "title": "Canonicalize request bodies before computing idempotency digests",
+      "description": "## Repository evidence\nPayload mismatch protection requires a deterministic digest, but no canonical JSON strategy was visible in the inspected foundation.\n\n## Problem\nSemantically identical JSON with different key order should not be treated as a different request, while genuinely different values must conflict.\n\n## Proposed implementation\nDefine canonical JSON serialization for supported request shapes and hash the canonical bytes.\n\n## Acceptance criteria\n- [ ] Object key order does not change the digest.\n- [ ] Array order remains significant.\n- [ ] Numeric and string distinctions remain significant.\n- [ ] Canonicalization fixtures are deterministic.\n\n## Repository area\n`src/server/api/idempotency-service.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/idempotency-service.ts",
+      "source_evidence": "Payload mismatch protection requires a deterministic digest, but no canonical JSON strategy was visible in the inspected foundation.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-044",
+      "title": "Add repository-level uniqueness constraints for message identifiers",
+      "description": "## Repository evidence\nMessage IDs are validated as 32-byte hashes, but storage uniqueness behavior was not visible in the inspected foundation.\n\n## Problem\nDuplicate message records can create ambiguous postage and receipt state.\n\n## Proposed implementation\nEnforce uniqueness at the persistence layer and map violations to a stable conflict error.\n\n## Acceptance criteria\n- [ ] Duplicate message insertion cannot create two records.\n- [ ] Concurrent inserts yield one winner.\n- [ ] Conflict responses are deterministic.\n- [ ] Adapter conformance tests cover uniqueness.\n\n## Repository area\n`src/server/api/repository.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/repository.ts",
+      "source_evidence": "Message IDs are validated as 32-byte hashes, but storage uniqueness behavior was not visible in the inspected foundation.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-045",
+      "title": "Add persistence schema versioning and migrations",
+      "description": "## Repository evidence\nMoving from memory storage to durable storage introduces schema evolution that is not represented in the inspected context.\n\n## Problem\nFuture changes to policies, postage, receipts, and authentication records need controlled migrations.\n\n## Proposed implementation\nDefine schema versions, forward migrations, startup compatibility checks, and rollback guidance.\n\n## Acceptance criteria\n- [ ] The current schema has an explicit version.\n- [ ] Migrations are deterministic and tested from at least one prior fixture.\n- [ ] Unsupported newer schemas fail safely.\n- [ ] Deployment documentation includes migration order and rollback.\n\n## Repository area\n`src/server/api/repository.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/repository.ts",
+      "source_evidence": "Moving from memory storage to durable storage introduces schema evolution that is not represented in the inspected context.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-046",
+      "title": "Add repository timeouts and cancellation support",
+      "description": "## Repository evidence\nThe inspected repository access is synchronous in context and no timeout policy was visible.\n\n## Problem\nSlow persistence calls should not consume the entire request budget or continue after the client/request is cancelled.\n\n## Proposed implementation\nPass an abort signal or deadline through repository operations and map timeouts to a stable transient error.\n\n## Acceptance criteria\n- [ ] Repository methods accept cancellation or a deadline.\n- [ ] Timed-out calls return a stable retryable error.\n- [ ] Work is cancelled when the request aborts where supported.\n- [ ] Tests use a deliberately slow adapter.\n\n## Repository area\n`src/server/api/repository.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/repository.ts",
+      "source_evidence": "The inspected repository access is synchronous in context and no timeout policy was visible.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-047",
+      "title": "Add transient persistence retry policy with safe operation classification",
+      "description": "## Repository evidence\nNo shared persistence retry behavior was visible in the inspected foundation.\n\n## Problem\nBlind retries can duplicate mutations, while no retries can make harmless reads fragile.\n\n## Proposed implementation\nCreate a bounded retry policy that distinguishes idempotent reads, idempotency-protected writes, and unsafe operations.\n\n## Acceptance criteria\n- [ ] Only classified retry-safe operations retry automatically.\n- [ ] Backoff and attempt limits are configurable.\n- [ ] Retry exhaustion returns a stable transient error.\n- [ ] Tests verify no duplicate unsafe writes.\n\n## Repository area\n`src/server/api/repository.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/repository.ts",
+      "source_evidence": "No shared persistence retry behavior was visible in the inspected foundation.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-048",
+      "title": "Add data retention rules for API domain records",
+      "description": "## Repository evidence\nThe inspected schemas define creation and event timestamps but no repository-wide retention policy.\n\n## Problem\nPostage, receipt, nonce, audit, and idempotency records have different legal and operational lifetimes.\n\n## Proposed implementation\nDefine retention classes and safe deletion/anonymization behavior for each record type.\n\n## Acceptance criteria\n- [ ] Each persisted record type has a documented retention class.\n- [ ] Deletion does not break required financial or audit integrity.\n- [ ] Cleanup is testable and observable.\n- [ ] Sensitive identifiers are removed or anonymized as specified.\n\n## Repository area\n`src/server/api/repository.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/repository.ts",
+      "source_evidence": "The inspected schemas define creation and event timestamps but no repository-wide retention policy.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-049",
+      "title": "Add backup and restore verification for production API storage",
+      "description": "## Repository evidence\nThe inspected API currently uses memory storage, and no API persistence recovery procedure was established in the reviewed files.\n\n## Problem\nDurable storage is incomplete without tested recovery from accidental deletion, corruption, or deployment failure.\n\n## Proposed implementation\nDocument backup frequency, restore steps, recovery objectives, and a recurring restore-verification procedure.\n\n## Acceptance criteria\n- [ ] Backup and restore steps are documented.\n- [ ] A non-production restore test is automated or reproducible.\n- [ ] Recovery point and recovery time objectives are stated.\n- [ ] Secrets and personal data remain protected during recovery.\n\n## Repository area\n`docs/deployment`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "docs/deployment",
+      "source_evidence": "The inspected API currently uses memory storage, and no API persistence recovery procedure was established in the reviewed files.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-050",
+      "title": "Add repository corruption and invalid-record handling",
+      "description": "## Repository evidence\nThe inspected domain uses Zod schemas, but behavior for malformed persisted records was not visible.\n\n## Problem\nA corrupted or older record should not crash unrelated requests or be silently trusted.\n\n## Proposed implementation\nValidate records at adapter boundaries and return a classified internal data-integrity error with safe diagnostics.\n\n## Acceptance criteria\n- [ ] Persisted records are validated before use.\n- [ ] Corrupt records do not leak their contents to clients.\n- [ ] Errors include safe record type and request correlation.\n- [ ] Tests inject malformed stored data.\n\n## Repository area\n`src/server/api/repository.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/repository.ts",
+      "source_evidence": "The inspected domain uses Zod schemas, but behavior for malformed persisted records was not visible.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-051",
+      "title": "Replace the no-op API counter with a production metrics adapter",
+      "description": "## Repository evidence\nThe inspected `incrementCounter` implementation is empty.\n\n## Problem\nAPI activity and failures are currently invisible through this abstraction.\n\n## Proposed implementation\nDefine a metrics interface plus production and in-memory adapters. Instrument request totals, outcomes, authentication failures, rate limits, and domain transitions.\n\n## Acceptance criteria\n- [ ] Counter calls produce observable values in production.\n- [ ] Tests can inspect an in-memory adapter.\n- [ ] Metrics failures do not fail requests.\n- [ ] All emitted metric names are documented.\n\n## Repository area\n`src/server/api/metrics.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/metrics.ts",
+      "source_evidence": "The inspected `incrementCounter` implementation is empty.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-052",
+      "title": "Add API request latency histograms",
+      "description": "## Repository evidence\nThe inspected metrics file only exposes a no-op counter and has no duration measurement.\n\n## Problem\nLatency regressions and slow dependencies cannot be detected with request counts alone.\n\n## Proposed implementation\nRecord end-to-end and selected dependency durations using stable route and outcome labels.\n\n## Acceptance criteria\n- [ ] Latency is recorded for every API request.\n- [ ] Buckets or summaries are appropriate for expected durations.\n- [ ] Route labels use templates, not raw paths.\n- [ ] Tests verify success and failure observations.\n\n## Repository area\n`src/server/api/metrics.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/metrics.ts",
+      "source_evidence": "The inspected metrics file only exposes a no-op counter and has no duration measurement.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-053",
+      "title": "Prevent unbounded metric-label cardinality",
+      "description": "## Repository evidence\nThe inspected counter accepts arbitrary metric and label strings.\n\n## Problem\nAddresses, message IDs, request IDs, or error text could create unbounded series and expose sensitive data.\n\n## Proposed implementation\nDefine typed metric descriptors with approved finite labels and reject unknown labels in tests/development.\n\n## Acceptance criteria\n- [ ] Every metric has an allowlisted label schema.\n- [ ] No user-controlled identifier is used as a label.\n- [ ] Unknown labels fail fast outside production.\n- [ ] A cardinality test varies user inputs without increasing series count.\n\n## Repository area\n`src/server/api/metrics.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/metrics.ts",
+      "source_evidence": "The inspected counter accepts arbitrary metric and label strings.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-054",
+      "title": "Add structured audit events for security-sensitive API actions",
+      "description": "## Repository evidence\nNo shared audit event service was visible in the inspected API foundation.\n\n## Problem\nAuthentication, delegation, policy changes, postage transitions, and receipt publication require durable accountability distinct from debug logs.\n\n## Proposed implementation\nCreate a typed audit service with actor, action, target type, safe target reference, result, request ID, and timestamp.\n\n## Acceptance criteria\n- [ ] Security-sensitive actions emit audit events.\n- [ ] Audit records exclude message content and secrets.\n- [ ] Events are durably stored or forwarded.\n- [ ] Tests verify success and denied-action events.\n\n## Repository area\n`src/server/api/audit.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/audit.ts",
+      "source_evidence": "No shared audit event service was visible in the inspected API foundation.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-055",
+      "title": "Implement per-principal and anonymous API rate limiting",
+      "description": "## Repository evidence\nThe inspected error code set includes `too_many_requests`, but no concrete limiter was present in the reviewed shared files.\n\n## Problem\nUnauthenticated abuse and authenticated high-volume callers need isolation and bounded resource use.\n\n## Proposed implementation\nAdd a distributed limiter keyed by verified principal where available and a privacy-preserving network key for public endpoints.\n\n## Acceptance criteria\n- [ ] Authenticated actors have isolated limits.\n- [ ] Anonymous callers are limited without storing raw sensitive network data longer than necessary.\n- [ ] Responses include retry guidance.\n- [ ] Tests cover exhaustion, refill, and isolation.\n\n## Repository area\n`src/server/api/rate-limit.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/rate-limit.ts",
+      "source_evidence": "The inspected error code set includes `too_many_requests`, but no concrete limiter was present in the reviewed shared files.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-056",
+      "title": "Add weighted rate-limit costs for expensive API operations",
+      "description": "## Repository evidence\nA single request count does not reflect the different cost of reads, signature verification, policy evaluation, and payment transitions.\n\n## Problem\nAttackers can target expensive operations while remaining under a simple request-count limit.\n\n## Proposed implementation\nLet route definitions declare an operation cost and consume the corresponding quota atomically.\n\n## Acceptance criteria\n- [ ] Route costs are centrally configured.\n- [ ] Expensive operations consume more quota than simple reads.\n- [ ] Cost cannot be set from user input.\n- [ ] Tests verify weighted exhaustion.\n\n## Repository area\n`src/server/api/rate-limit.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/rate-limit.ts",
+      "source_evidence": "A single request count does not reflect the different cost of reads, signature verification, policy evaluation, and payment transitions.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-057",
+      "title": "Implement readiness checks for required API dependencies",
+      "description": "## Repository evidence\nA health route exists, but the inspected snippets do not establish dependency readiness semantics.\n\n## Problem\nA process can be alive while storage, signing configuration, or required bindings are unavailable.\n\n## Proposed implementation\nSeparate liveness from readiness and check required dependencies with strict timeouts and safe output.\n\n## Acceptance criteria\n- [ ] Liveness does not depend on optional external systems.\n- [ ] Readiness fails when required storage or bindings are unavailable.\n- [ ] Checks have bounded timeouts.\n- [ ] Responses reveal no secrets or internal connection details.\n\n## Repository area\n`src/routes/api/v1/health.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/routes/api/v1/health.ts",
+      "source_evidence": "A health route exists, but the inspected snippets do not establish dependency readiness semantics.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-058",
+      "title": "Add a startup configuration validation endpoint-safe gate",
+      "description": "## Repository evidence\nThe inspected context lazily creates a memory repository and does not visibly validate production bindings.\n\n## Problem\nMisconfigured deployments should fail clearly before serving partial or unsafe API behavior.\n\n## Proposed implementation\nValidate required environment bindings, secrets, supported versions, and storage adapters at startup or first initialization.\n\n## Acceptance criteria\n- [ ] Missing required configuration produces a clear deployment failure.\n- [ ] Secret values are never logged.\n- [ ] Validation distinguishes development and production requirements.\n- [ ] Tests cover valid and invalid configurations.\n\n## Repository area\n`src/server/api/context.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/context.ts",
+      "source_evidence": "The inspected context lazily creates a memory repository and does not visibly validate production bindings.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-059",
+      "title": "Add dependency health metrics without high-cardinality labels",
+      "description": "## Repository evidence\nMetrics are currently a no-op and dependency state is not represented.\n\n## Problem\nOperators need to identify storage or contract-service failures without exposing connection details.\n\n## Proposed implementation\nEmit bounded availability and latency metrics for required dependencies using fixed dependency identifiers.\n\n## Acceptance criteria\n- [ ] Each required dependency has availability and latency metrics.\n- [ ] Labels are finite and contain no URLs or account identifiers.\n- [ ] Timeouts and failures are classified consistently.\n- [ ] Tests verify metric emission.\n\n## Repository area\n`src/server/api/metrics.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/metrics.ts",
+      "source_evidence": "Metrics are currently a no-op and dependency state is not represented.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-060",
+      "title": "Add API service-level objective indicators",
+      "description": "## Repository evidence\nThe inspected metrics implementation does not yet produce data for availability or latency objectives.\n\n## Problem\nA production API needs measurable reliability targets tied to user-visible outcomes.\n\n## Proposed implementation\nDefine SLIs for successful requests, latency, authentication availability, and critical postage transitions, with initial SLO targets and alerting guidance.\n\n## Acceptance criteria\n- [ ] Each SLI has an exact numerator and denominator.\n- [ ] Excluded traffic is documented.\n- [ ] Targets and measurement windows are stated.\n- [ ] Metrics implementation can compute the indicators.\n\n## Repository area\n`docs/deployment`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "docs/deployment",
+      "source_evidence": "The inspected metrics implementation does not yet produce data for availability or latency objectives.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-061",
+      "title": "Add bounded sampling for high-volume API logs",
+      "description": "## Repository evidence\nA structured logger is needed, but unrestricted success logging can become expensive and noisy.\n\n## Problem\nLogging should preserve all security failures and unexpected errors while sampling routine successful traffic predictably.\n\n## Proposed implementation\nAdd configurable, deterministic sampling based on route and request ID, with non-sampled aggregate metrics.\n\n## Acceptance criteria\n- [ ] Unexpected errors and denied security actions are never sampled out.\n- [ ] Routine successes can be sampled by configured rate.\n- [ ] Sampling decisions are deterministic per request.\n- [ ] Metrics still count all requests.\n\n## Repository area\n`src/server/api/logging.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/logging.ts",
+      "source_evidence": "A structured logger is needed, but unrestricted success logging can become expensive and noisy.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-062",
+      "title": "Add trace-context propagation for API dependency calls",
+      "description": "## Repository evidence\nThe inspected foundation has request IDs but no distributed trace context.\n\n## Problem\nCalls spanning API handlers, storage, relay, and Stellar services are difficult to diagnose as one operation.\n\n## Proposed implementation\nParse supported trace headers safely, create spans for major dependencies, and propagate context without trusting arbitrary baggage.\n\n## Acceptance criteria\n- [ ] Each request creates or joins a valid trace.\n- [ ] Invalid trace headers are ignored safely.\n- [ ] Dependency calls receive child context.\n- [ ] Sensitive baggage is not propagated.\n\n## Repository area\n`src/server/api/context.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/context.ts",
+      "source_evidence": "The inspected foundation has request IDs but no distributed trace context.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-063",
+      "title": "Add operational alerts for authentication and rate-limit anomalies",
+      "description": "## Repository evidence\nAuthentication and rate limiting are critical controls, but no alert definitions were present in the inspected shared foundation.\n\n## Problem\nLarge spikes in invalid signatures, replay attempts, or throttling can indicate abuse or a broken client release.\n\n## Proposed implementation\nDefine bounded alert conditions based on rates and error budgets, with investigation guidance that avoids exposing user data.\n\n## Acceptance criteria\n- [ ] Alerts cover invalid signatures, replay attempts, and sustained throttling.\n- [ ] Thresholds use rates rather than raw identifiers.\n- [ ] Runbooks identify safe diagnostic fields.\n- [ ] Alerts are testable with synthetic metrics.\n\n## Repository area\n`docs/deployment`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "docs/deployment",
+      "source_evidence": "Authentication and rate limiting are critical controls, but no alert definitions were present in the inspected shared foundation.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-064",
+      "title": "Expose API build and protocol versions safely",
+      "description": "## Repository evidence\nThe inspected API has versioned routes and protocol code, but a safe runtime version response was not established.\n\n## Problem\nClients and operators need to correlate behavior with a release without exposing source paths or secrets.\n\n## Proposed implementation\nExpose a public build identifier and supported API/protocol versions through health or metadata, sourced from immutable build configuration.\n\n## Acceptance criteria\n- [ ] The response includes a non-secret build identifier.\n- [ ] Supported API and protocol versions are explicit.\n- [ ] Values cannot be modified by request input.\n- [ ] Tests verify production and development behavior.\n\n## Repository area\n`src/routes/api/v1/health.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/routes/api/v1/health.ts",
+      "source_evidence": "The inspected API has versioned routes and protocol code, but a safe runtime version response was not established.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-065",
+      "title": "Generate OpenAPI schemas from shared Zod domain definitions",
+      "description": "## Repository evidence\nThe repository has shared Zod schemas and an OpenAPI implementation with unit tests.\n\n## Problem\nManually duplicated schemas can drift from runtime validation.\n\n## Proposed implementation\nAdopt a supported schema-generation path or a tested conversion layer so API documentation and runtime validators share one source of truth.\n\n## Acceptance criteria\n- [ ] Documented request and response schemas originate from shared definitions.\n- [ ] Unsupported Zod constructs fail clearly.\n- [ ] Generated OpenAPI remains deterministic.\n- [ ] Tests compare representative runtime and documented validation.\n\n## Repository area\n`src/server/api/openapi.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/openapi.ts",
+      "source_evidence": "The repository has shared Zod schemas and an OpenAPI implementation with unit tests.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-066",
+      "title": "Add OpenAPI-runtime route coverage verification",
+      "description": "## Repository evidence\nAn OpenAPI unit test exists, but complete route parity was not demonstrated in the inspected snippets.\n\n## Problem\nImplemented routes can be missing from the specification, and documented methods can cease to exist.\n\n## Proposed implementation\nBuild a test that enumerates API route definitions and compares method/path coverage with OpenAPI.\n\n## Acceptance criteria\n- [ ] Every public API route appears in OpenAPI.\n- [ ] Every documented method maps to an implemented route.\n- [ ] Intentional exclusions require an explicit allowlist.\n- [ ] CI fails on drift.\n\n## Repository area\n`tests/unit/api/openapi.test.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "tests/unit/api/openapi.test.ts",
+      "source_evidence": "An OpenAPI unit test exists, but complete route parity was not demonstrated in the inspected snippets.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-067",
+      "title": "Document the shared API success and error envelopes in OpenAPI",
+      "description": "## Repository evidence\nThe inspected response helper wraps all results in `data/meta` or `error/meta` envelopes.\n\n## Problem\nClients need these envelopes represented consistently across every operation.\n\n## Proposed implementation\nDefine reusable OpenAPI components for metadata, success envelopes, validation errors, domain errors, and request IDs.\n\n## Acceptance criteria\n- [ ] All operations reference the shared envelope components.\n- [ ] Request ID and timestamp are documented.\n- [ ] Error examples use stable domain codes.\n- [ ] OpenAPI tests validate references.\n\n## Repository area\n`src/server/api/openapi.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/openapi.ts",
+      "source_evidence": "The inspected response helper wraps all results in `data/meta` or `error/meta` envelopes.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-068",
+      "title": "Add OpenAPI security schemes for signed Stellar requests",
+      "description": "## Repository evidence\nThe future authentication model will use signed requests, while the existing actor header is not sufficient proof.\n\n## Problem\nClient generators and integrators need the exact required headers and signing workflow documented.\n\n## Proposed implementation\nDefine a custom security scheme and operation-level requirements, with links to the canonical signing specification.\n\n## Acceptance criteria\n- [ ] Protected operations declare the signed-request scheme.\n- [ ] Public operations do not require it.\n- [ ] Required headers and challenge flow are documented.\n- [ ] Examples contain no real credentials.\n\n## Repository area\n`src/server/api/openapi.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/openapi.ts",
+      "source_evidence": "The future authentication model will use signed requests, while the existing actor header is not sufficient proof.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-069",
+      "title": "Add operation IDs and stability checks to every OpenAPI operation",
+      "description": "## Repository evidence\nStable operation identifiers were not confirmed in the inspected OpenAPI snippets.\n\n## Problem\nGenerated clients can break when operation IDs are missing, duplicated, or changed accidentally.\n\n## Proposed implementation\nAssign semantic operation IDs and add tests for uniqueness and intentional changes.\n\n## Acceptance criteria\n- [ ] Every operation has an operation ID.\n- [ ] Operation IDs are unique.\n- [ ] A snapshot or registry detects accidental renames.\n- [ ] Naming conventions are documented.\n\n## Repository area\n`src/server/api/openapi.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/openapi.ts",
+      "source_evidence": "Stable operation identifiers were not confirmed in the inspected OpenAPI snippets.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-070",
+      "title": "Add OpenAPI examples for every domain error family",
+      "description": "## Repository evidence\nThe current issue draft included some policy errors, but broad domain error coverage is needed.\n\n## Problem\nIntegrators should see realistic, safe examples for authentication, validation, conflict, postage, receipt, policy, and rate-limit failures.\n\n## Proposed implementation\nCreate reusable examples tied to the central error registry.\n\n## Acceptance criteria\n- [ ] Each error family has at least one example.\n- [ ] Examples match the runtime envelope.\n- [ ] No sensitive or real user data appears.\n- [ ] Tests ensure example codes exist in the registry.\n\n## Repository area\n`src/server/api/openapi.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/openapi.ts",
+      "source_evidence": "The current issue draft included some policy errors, but broad domain error coverage is needed.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-071",
+      "title": "Publish API deprecation metadata and sunset rules",
+      "description": "## Repository evidence\nThe API uses a `/v1` namespace, but deprecation behavior was not represented in the inspected foundation.\n\n## Problem\nClients need predictable notice before fields, operations, or versions are removed.\n\n## Proposed implementation\nDefine deprecation periods, response headers, OpenAPI flags, migration links, and sunset enforcement rules.\n\n## Acceptance criteria\n- [ ] Deprecated operations are marked in OpenAPI.\n- [ ] Responses can include standard deprecation and sunset metadata.\n- [ ] A minimum support window is documented.\n- [ ] Tests cover deprecated route headers.\n\n## Repository area\n`src/server/api/openapi.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/openapi.ts",
+      "source_evidence": "The API uses a `/v1` namespace, but deprecation behavior was not represented in the inspected foundation.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-072",
+      "title": "Add API version negotiation and unsupported-version errors",
+      "description": "## Repository evidence\nVersioned routes exist, but no shared negotiation behavior was visible in the inspected foundation.\n\n## Problem\nClients using an unsupported version should receive a precise response rather than an ambiguous 404.\n\n## Proposed implementation\nAdd a version registry and consistent unsupported-version handling at the API boundary.\n\n## Acceptance criteria\n- [ ] Supported versions are centrally declared.\n- [ ] Unsupported versions return a stable error with safe upgrade guidance.\n- [ ] Health metadata exposes supported versions.\n- [ ] Tests cover supported, old, and future versions.\n\n## Repository area\n`src/server/api/protocol.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/protocol.ts",
+      "source_evidence": "Versioned routes exist, but no shared negotiation behavior was visible in the inspected foundation.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-073",
+      "title": "Add backward-compatibility contract tests for API v1",
+      "description": "## Repository evidence\nThe repository has API unit tests, but a stable external contract suite was not demonstrated.\n\n## Problem\nRefactoring can accidentally change status codes, envelopes, fields, or error codes relied upon by clients.\n\n## Proposed implementation\nCreate black-box contract fixtures for representative v1 success and failure responses and run them in CI.\n\n## Acceptance criteria\n- [ ] Fixtures cover authentication, policy, postage, and receipts.\n- [ ] Breaking response changes fail CI.\n- [ ] Intentional changes require explicit fixture updates and review.\n- [ ] Dynamic fields are normalized safely.\n\n## Repository area\n`tests/unit/api`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "tests/unit/api",
+      "source_evidence": "The repository has API unit tests, but a stable external contract suite was not demonstrated.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-074",
+      "title": "Add schema compatibility checks for additive API changes",
+      "description": "## Repository evidence\nOpenAPI generation exists, but automated breaking-change detection was not shown.\n\n## Problem\nRemoving fields, narrowing schemas, or changing status codes can break clients even when tests pass.\n\n## Proposed implementation\nCompare the generated specification with the main-branch baseline using an API compatibility checker.\n\n## Acceptance criteria\n- [ ] CI identifies breaking OpenAPI changes.\n- [ ] Additive changes pass by default.\n- [ ] Approved exceptions require explicit review metadata.\n- [ ] Generated artifacts are deterministic.\n\n## Repository area\n`src/server/api/openapi.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/openapi.ts",
+      "source_evidence": "OpenAPI generation exists, but automated breaking-change detection was not shown.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-075",
+      "title": "Validate OpenAPI examples against their schemas",
+      "description": "## Repository evidence\nOpenAPI examples can drift from the schemas and runtime behavior.\n\n## Problem\nIncorrect examples reduce trust and can generate broken sample clients.\n\n## Proposed implementation\nAdd a test that resolves component references and validates every request and response example against its declared schema.\n\n## Acceptance criteria\n- [ ] All examples validate in CI.\n- [ ] Invalid references fail clearly.\n- [ ] Examples with dynamic timestamps use valid fixed fixtures.\n- [ ] The validator covers reusable components.\n\n## Repository area\n`tests/unit/api/openapi.test.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "tests/unit/api/openapi.test.ts",
+      "source_evidence": "OpenAPI examples can drift from the schemas and runtime behavior.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-076",
+      "title": "Add a machine-readable API error-code catalogue endpoint or artifact",
+      "description": "## Repository evidence\nA central error registry will exist, but clients need a stable way to consume or verify it.\n\n## Problem\nDuplicating the catalogue manually across documentation can create drift.\n\n## Proposed implementation\nGenerate a versioned JSON artifact or public metadata response from the registry, excluding internal-only errors.\n\n## Acceptance criteria\n- [ ] The catalogue is generated from the source registry.\n- [ ] Internal-only errors are excluded.\n- [ ] Each entry includes status, retryability, and summary.\n- [ ] OpenAPI links to or embeds the catalogue.\n\n## Repository area\n`src/server/api/errors.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/errors.ts",
+      "source_evidence": "A central error registry will exist, but clients need a stable way to consume or verify it.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-077",
+      "title": "Add canonical Stellar address normalization at all API boundaries",
+      "description": "## Repository evidence\nThe inspected schema trims and validates uppercase Stellar G-address syntax.\n\n## Problem\nAddress handling should be identical across headers, paths, query parameters, bodies, storage keys, and signatures.\n\n## Proposed implementation\nCreate one canonical address parser and ensure all API entry points and repository keys use its output.\n\n## Acceptance criteria\n- [ ] All accepted addresses normalize identically.\n- [ ] Lowercase or malformed forms follow a documented policy.\n- [ ] Storage lookups cannot create duplicate logical actors.\n- [ ] Tests cover every input location.\n\n## Repository area\n`src/server/api/domain.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/domain.ts",
+      "source_evidence": "The inspected schema trims and validates uppercase Stellar G-address syntax.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-078",
+      "title": "Add explicit maximums for integer-string postage amounts",
+      "description": "## Repository evidence\nThe inspected amount schema validates non-negative integer strings up to Soroban i128.\n\n## Problem\nVery long invalid inputs still require parsing and error handling, and business-level maximums may be lower than the type limit.\n\n## Proposed implementation\nAdd a pre-parse digit-length bound and a separately configurable business maximum where appropriate.\n\n## Acceptance criteria\n- [ ] Excessively long strings are rejected before BigInt conversion.\n- [ ] Soroban type limits remain enforced.\n- [ ] Business maximum violations use a stable code.\n- [ ] Boundary tests cover zero, maximum, and overflow.\n\n## Repository area\n`src/server/api/domain.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/domain.ts",
+      "source_evidence": "The inspected amount schema validates non-negative integer strings up to Soroban i128.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-079",
+      "title": "Enforce receipt timestamp ordering and future-time bounds",
+      "description": "## Repository evidence\nThe inspected receipt schema validates timestamp syntax but does not visibly enforce that read time follows delivery time or that timestamps are plausible.\n\n## Problem\nChronologically invalid receipts can corrupt user-visible and audit state.\n\n## Proposed implementation\nAdd domain refinements for delivery/read ordering and configurable future-clock tolerance.\n\n## Acceptance criteria\n- [ ] Read time cannot precede delivery time.\n- [ ] Excessively future timestamps are rejected.\n- [ ] Null read time remains valid.\n- [ ] Tests cover exact boundaries and timezone-equivalent inputs.\n\n## Repository area\n`src/server/api/domain.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/domain.ts",
+      "source_evidence": "The inspected receipt schema validates timestamp syntax but does not visibly enforce that read time follows delivery time or that timestamps are plausible.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-080",
+      "title": "Enforce postage lifecycle invariants in the domain layer",
+      "description": "## Repository evidence\nThe inspected postage schema validates fields independently and defines pending, settled, and refunded states.\n\n## Problem\nState-specific requirements should not rely only on individual route code.\n\n## Proposed implementation\nRepresent transitions and state invariants in a domain service or discriminated model rather than accepting arbitrary status changes.\n\n## Acceptance criteria\n- [ ] Only documented transitions are possible.\n- [ ] Terminal states cannot return to pending.\n- [ ] Invalid transitions return stable domain errors.\n- [ ] Property or table-driven tests cover the transition matrix.\n\n## Repository area\n`src/server/api/domain.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api/domain.ts",
+      "source_evidence": "The inspected postage schema validates fields independently and defines pending, settled, and refunded states.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-081",
+      "title": "Add actor authorization tests across every policy mutation route",
+      "description": "## Repository evidence\nPolicy services and actor tests exist, but complete route-level ownership coverage was not established in the inspected snippets.\n\n## Problem\nOne unprotected nested route could let a caller change another mailbox's sender rules.\n\n## Proposed implementation\nEnumerate every policy mutation and add black-box tests for owner, non-owner, anonymous, and delegated principals.\n\n## Acceptance criteria\n- [ ] Every mutation route has authorization tests.\n- [ ] Non-owners receive the same stable forbidden code.\n- [ ] No mutation occurs after denied authorization.\n- [ ] Delegated behavior follows explicit scopes.\n\n## Repository area\n`src/routes/api/v1/policies`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/routes/api/v1/policies",
+      "source_evidence": "Policy services and actor tests exist, but complete route-level ownership coverage was not established in the inspected snippets.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-082",
+      "title": "Add audit records for mailbox policy and sender-rule changes",
+      "description": "## Repository evidence\nThe current generated issue file mentioned audit coverage for one sender mutation path only.\n\n## Problem\nAll policy changes, including defaults and deletions, should be attributable and reviewable.\n\n## Proposed implementation\nEmit structured audit events containing actor, owner, action, before/after safe summaries, and request ID.\n\n## Acceptance criteria\n- [ ] Create, update, and delete operations emit events.\n- [ ] Sensitive values and full payloads are excluded.\n- [ ] Denied changes can be audited separately.\n- [ ] Tests verify event fields and no-event-on-failed-write behavior.\n\n## Repository area\n`src/routes/api/v1/policies`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/routes/api/v1/policies",
+      "source_evidence": "The current generated issue file mentioned audit coverage for one sender mutation path only.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-083",
+      "title": "Add deterministic policy evaluation vectors for all decision branches",
+      "description": "## Repository evidence\nA policy-service test exists, and the generated draft proposed selected vectors.\n\n## Problem\nPolicy evaluation controls mail admission and postage requirements, so every branch needs stable regression fixtures.\n\n## Proposed implementation\nBuild table-driven fixtures for allow, block, default, verified requirements, minimum postage, missing policy, and delegation.\n\n## Acceptance criteria\n- [ ] Every decision branch has at least one fixture.\n- [ ] Expected decisions and reason codes are explicit.\n- [ ] Failures identify the mismatched branch.\n- [ ] Fixtures are reusable by protocol or integration tests.\n\n## Repository area\n`tests/unit/api/policy-service.test.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "tests/unit/api/policy-service.test.ts",
+      "source_evidence": "A policy-service test exists, and the generated draft proposed selected vectors.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-084",
+      "title": "Make policy evaluation reason codes part of the public contract",
+      "description": "## Repository evidence\nA boolean or generic decision is insufficient for clients to explain required action safely.\n\n## Problem\nClients need stable reasons such as blocked sender, verification required, or insufficient postage without parsing text.\n\n## Proposed implementation\nReturn a documented decision object with stable reason codes and only the minimum safe metadata.\n\n## Acceptance criteria\n- [ ] Every policy outcome has a reason code.\n- [ ] Reason codes are documented in OpenAPI.\n- [ ] Messages remain human-readable but non-authoritative.\n- [ ] Tests cover every code.\n\n## Repository area\n`src/routes/api/v1/policies/evaluate.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/routes/api/v1/policies/evaluate.ts",
+      "source_evidence": "A boolean or generic decision is insufficient for clients to explain required action safely.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-085",
+      "title": "Add postage quote expiration and stale-quote rejection",
+      "description": "## Repository evidence\nPostage quote validation exists in current drafts, but quote lifetime was not established in the inspected foundation.\n\n## Problem\nA quote can become invalid when policy, pricing, ledger state, or configuration changes.\n\n## Proposed implementation\nAttach issue and expiry times plus a quote identifier or digest, and verify the quote at submission.\n\n## Acceptance criteria\n- [ ] Quotes have a bounded configurable lifetime.\n- [ ] Expired or modified quotes are rejected with stable codes.\n- [ ] Submission verifies quote scope and recipient.\n- [ ] Tests cover expiry and policy changes.\n\n## Repository area\n`src/routes/api/v1/postage`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/routes/api/v1/postage",
+      "source_evidence": "Postage quote validation exists in current drafts, but quote lifetime was not established in the inspected foundation.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-086",
+      "title": "Bind postage quotes to sender, recipient, message, and policy version",
+      "description": "## Repository evidence\nThe domain model includes sender, recipient, message ID, and amount, but quote binding behavior was not established.\n\n## Problem\nA valid quote must not be reusable for another message or party.\n\n## Proposed implementation\nInclude all relevant scope fields and the evaluated policy version in the signed or integrity-protected quote.\n\n## Acceptance criteria\n- [ ] Changing sender, recipient, message ID, amount, or policy version invalidates the quote.\n- [ ] Quote verification is deterministic.\n- [ ] Tests cover every substituted field.\n- [ ] No secret server state is exposed.\n\n## Repository area\n`src/routes/api/v1/postage`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/routes/api/v1/postage",
+      "source_evidence": "The domain model includes sender, recipient, message ID, and amount, but quote binding behavior was not established.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-087",
+      "title": "Add idempotent postage settlement with atomic terminal-state handling",
+      "description": "## Repository evidence\nA postage service test and regression test exist, and the generated draft identified settlement retries.\n\n## Problem\nNetwork retries and concurrent requests must not settle escrow twice or produce contradictory outcomes.\n\n## Proposed implementation\nUse durable idempotency plus an atomic pending-to-settled transition and return the original terminal response on safe retries.\n\n## Acceptance criteria\n- [ ] Only one settlement side effect occurs.\n- [ ] Concurrent requests return deterministic outcomes.\n- [ ] Retry after success is safe.\n- [ ] Invalid-state settlement uses a stable domain code.\n\n## Repository area\n`src/routes/api/v1/postage/$messageId/settle.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/routes/api/v1/postage/$messageId/settle.ts",
+      "source_evidence": "A postage service test and regression test exist, and the generated draft identified settlement retries.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-088",
+      "title": "Add idempotent postage refunds with atomic conflict handling",
+      "description": "## Repository evidence\nThe generated draft identified refund retry risk, and postage has a refunded terminal state.\n\n## Problem\nRefund and settlement requests can race or be retried after client timeouts.\n\n## Proposed implementation\nProtect refunds with durable idempotency and an atomic pending-to-refunded transition.\n\n## Acceptance criteria\n- [ ] Only one refund side effect occurs.\n- [ ] Refund cannot win after settlement.\n- [ ] Retry after refund returns a deterministic response.\n- [ ] Concurrency tests cover settlement-versus-refund.\n\n## Repository area\n`src/routes/api/v1/postage/$messageId/refund.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/routes/api/v1/postage/$messageId/refund.ts",
+      "source_evidence": "The generated draft identified refund retry risk, and postage has a refunded terminal state.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-089",
+      "title": "Add a complete postage transition audit trail",
+      "description": "## Repository evidence\nPostage transitions are financially significant, while shared audit behavior was not established in the inspected foundation.\n\n## Problem\nQuotes, submissions, settlements, refunds, disputes, and reclaims should be traceable without logging message content.\n\n## Proposed implementation\nEmit durable typed audit events for each attempted and completed transition.\n\n## Acceptance criteria\n- [ ] Every postage transition emits a result event.\n- [ ] Events include actor, message reference, prior/new state, and request ID.\n- [ ] Payment secrets and message content are excluded.\n- [ ] Tests cover success, rejection, and retry behavior.\n\n## Repository area\n`src/routes/api/v1/postage`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/routes/api/v1/postage",
+      "source_evidence": "Postage transitions are financially significant, while shared audit behavior was not established in the inspected foundation.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-090",
+      "title": "Add receipt publication authorization for sender and recipient roles",
+      "description": "## Repository evidence\nThe repository has receipt service tests and a receipts README, but complete role boundaries were not established in the inspected snippets.\n\n## Problem\nDelivery and read receipts may have different authorized actors and should not be publishable by arbitrary callers.\n\n## Proposed implementation\nDefine role-specific authorization for delivery and read transitions using the verified principal.\n\n## Acceptance criteria\n- [ ] Only documented roles can publish each receipt type.\n- [ ] Unauthorized attempts do not mutate state.\n- [ ] Delegation is explicitly scoped if supported.\n- [ ] Route-level tests cover every role.\n\n## Repository area\n`src/routes/api/v1/receipts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/routes/api/v1/receipts",
+      "source_evidence": "The repository has receipt service tests and a receipts README, but complete role boundaries were not established in the inspected snippets.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-091",
+      "title": "Make duplicate receipt publication deterministic",
+      "description": "## Repository evidence\nReceipt records have delivery and optional read timestamps, and duplicate behavior was raised in earlier drafts.\n\n## Problem\nClients will retry receipt publication after timeouts; duplicates should not create inconsistent timestamps or repeated side effects.\n\n## Proposed implementation\nDefine idempotency and timestamp precedence for duplicate delivery and read calls.\n\n## Acceptance criteria\n- [ ] Identical duplicates replay the same result.\n- [ ] Conflicting timestamps follow a documented policy.\n- [ ] Only one audit/domain side effect occurs.\n- [ ] Tests cover sequential and concurrent duplicates.\n\n## Repository area\n`src/routes/api/v1/receipts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/routes/api/v1/receipts",
+      "source_evidence": "Receipt records have delivery and optional read timestamps, and duplicate behavior was raised in earlier drafts.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-092",
+      "title": "Add receipt timestamp authenticity and server-observed time",
+      "description": "## Repository evidence\nThe domain accepts client-provided ISO timestamps.\n\n## Problem\nClient clocks can be wrong or manipulated, so audit and ordering need a trusted server-observed time alongside claimed event time.\n\n## Proposed implementation\nStore both claimed event time and server receipt time, validate skew, and document which timestamp drives each behavior.\n\n## Acceptance criteria\n- [ ] Server-observed time is recorded for every receipt transition.\n- [ ] Excessive claimed-time skew is rejected or classified.\n- [ ] Ordering rules are explicit.\n- [ ] Tests use a controllable server clock.\n\n## Repository area\n`src/routes/api/v1/receipts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/routes/api/v1/receipts",
+      "source_evidence": "The domain accepts client-provided ISO timestamps.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-093",
+      "title": "Add abuse-service integration at the central API boundary",
+      "description": "## Repository evidence\nAn abuse-service unit test exists, but central route integration was not established in the inspected snippets.\n\n## Problem\nAbuse controls can be bypassed if individual routes forget to call the service.\n\n## Proposed implementation\nIntegrate abuse evaluation into the route wrapper with route-specific policy and verified-principal context.\n\n## Acceptance criteria\n- [ ] Configured routes invoke abuse checks before domain mutation.\n- [ ] Denied requests use stable public errors.\n- [ ] No sensitive abuse score is exposed.\n- [ ] Integration tests cover allowed, denied, and unavailable-service behavior.\n\n## Repository area\n`tests/unit/api/abuse-service.test.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "tests/unit/api/abuse-service.test.ts",
+      "source_evidence": "An abuse-service unit test exists, but central route integration was not established in the inspected snippets.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-094",
+      "title": "Define fail-open and fail-closed behavior for abuse-service outages",
+      "description": "## Repository evidence\nAn abuse service exists, but dependency-failure policy was not established in the inspected snippets.\n\n## Problem\nA service outage should not produce accidental universal access or universal denial without an explicit risk decision.\n\n## Proposed implementation\nClassify routes by outage policy, document the rationale, and emit metrics and audit events for fallback decisions.\n\n## Acceptance criteria\n- [ ] Every protected route has an explicit outage policy.\n- [ ] High-risk mutations can fail closed where required.\n- [ ] Fallback decisions are observable.\n- [ ] Tests simulate timeout and dependency failure.\n\n## Repository area\n`src/server/api`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "src/server/api",
+      "source_evidence": "An abuse service exists, but dependency-failure policy was not established in the inspected snippets.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-095",
+      "title": "Add property-based tests for shared API domain schemas",
+      "description": "## Repository evidence\nThe repository has unit tests for actor, domain, request, response, policy, postage, receipt, idempotency, and memory repository behavior.\n\n## Problem\nExample tests may miss malformed Unicode, numeric boundaries, timestamp combinations, and unexpected object shapes.\n\n## Proposed implementation\nAdd property-based generators for Stellar addresses, hashes, amount strings, timestamps, policies, postage, and receipts.\n\n## Acceptance criteria\n- [ ] Generators cover valid and invalid values.\n- [ ] Failures report reproducible seeds.\n- [ ] Critical numeric and timestamp invariants are asserted.\n- [ ] The suite runs within a bounded CI time.\n\n## Repository area\n`tests/unit/api`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "tests/unit/api",
+      "source_evidence": "The repository has unit tests for actor, domain, request, response, policy, postage, receipt, idempotency, and memory repository behavior.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-096",
+      "title": "Add API fuzz tests for malformed JSON, headers, and query strings",
+      "description": "## Repository evidence\nThe shared parser handles content type, size, JSON, and query schemas, but adversarial parser coverage was not established.\n\n## Problem\nUnexpected encodings and malformed transport metadata often reveal crashes or inconsistent responses.\n\n## Proposed implementation\nAdd bounded fuzz cases for JSON bytes, media types, Content-Length values, duplicate headers, and query encodings.\n\n## Acceptance criteria\n- [ ] Malformed inputs never crash the test process.\n- [ ] Failures always use the shared error envelope.\n- [ ] No input can bypass configured size limits.\n- [ ] A fixed corpus runs in normal CI.\n\n## Repository area\n`tests/unit/api/request.test.ts`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "tests/unit/api/request.test.ts",
+      "source_evidence": "The shared parser handles content type, size, JSON, and query schemas, but adversarial parser coverage was not established.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-097",
+      "title": "Add API security regression tests for authentication and authorization bypasses",
+      "description": "## Repository evidence\nThe repository has actor tests, but the current actor model trusts a header and a new signed model will add more paths.\n\n## Problem\nSecurity fixes need permanent regression cases for forged identity, replay, route substitution, and ownership bypass.\n\n## Proposed implementation\nCreate a dedicated security suite exercising the public HTTP boundary rather than only helper functions.\n\n## Acceptance criteria\n- [ ] Forged actor headers fail.\n- [ ] Replayed signatures fail.\n- [ ] Signatures cannot move across routes or bodies.\n- [ ] Non-owners cannot mutate protected resources.\n\n## Repository area\n`tests/unit/api`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "tests/unit/api",
+      "source_evidence": "The repository has actor tests, but the current actor model trusts a header and a new signed model will add more paths.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-098",
+      "title": "Add API load tests for rate limiting, pagination, and concurrent transitions",
+      "description": "## Repository evidence\nThe repository has unit and Playwright scripts, but no API concurrency/load suite was identified in the inspected files.\n\n## Problem\nCorrectness under single requests does not prove behavior during bursts or competing payment transitions.\n\n## Proposed implementation\nAdd a reproducible load harness for bounded local or staging tests, with scenarios for reads, pagination, authentication, and settlement/refund races.\n\n## Acceptance criteria\n- [ ] The harness reports latency and error distributions.\n- [ ] Rate limits behave as configured under bursts.\n- [ ] No duplicate terminal transitions occur.\n- [ ] Test data and teardown are isolated.\n\n## Repository area\n`tests`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "tests",
+      "source_evidence": "The repository has unit and Playwright scripts, but no API concurrency/load suite was identified in the inspected files.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-099",
+      "title": "Add CI checks for OpenAPI drift, error registry drift, and generated artifacts",
+      "description": "## Repository evidence\nThe repository has a CI workflow and generated/derived API artifacts, but complete drift checks were not established in the inspected snippets.\n\n## Problem\nGenerated specifications and catalogues can become stale even when source tests pass.\n\n## Proposed implementation\nRegenerate deterministic API artifacts in CI and fail when the working tree changes.\n\n## Acceptance criteria\n- [ ] OpenAPI generation is deterministic.\n- [ ] Error-code catalogue generation is checked.\n- [ ] CI prints the stale artifact paths.\n- [ ] The check does not modify unrelated lockfiles.\n\n## Repository area\n`.github/workflows/ci.yml`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": ".github/workflows/ci.yml",
+      "source_evidence": "The repository has a CI workflow and generated/derived API artifacts, but complete drift checks were not established in the inspected snippets.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    },
+    {
+      "draft_id": "API-100",
+      "title": "Add a production API release checklist and rollback runbook",
+      "description": "## Repository evidence\nA release-gates document exists, while the proposed API work introduces authentication, persistence, migrations, and financial state transitions.\n\n## Problem\nOperators need explicit pre-deploy validation and a safe rollback path that accounts for irreversible schema or state changes.\n\n## Proposed implementation\nExtend release gates with API contract checks, migration readiness, storage backup, authentication key readiness, observability, canary checks, and rollback decision points.\n\n## Acceptance criteria\n- [ ] The checklist covers configuration, migrations, backups, metrics, and security keys.\n- [ ] Rollback limitations for irreversible changes are explicit.\n- [ ] A canary validation sequence is documented.\n- [ ] The runbook links to health and recovery procedures.\n\n## Repository area\n`docs/deployment/RELEASE_GATES.md`",
+      "labels": ["Maybe Rewarded", "GrantFox OSS", "Official Campaign | FWC26", "api"],
+      "repository_area": "docs/deployment/RELEASE_GATES.md",
+      "source_evidence": "A release-gates document exists, while the proposed API work introduces authentication, persistence, migrations, and financial state transitions.",
+      "validation_status": "Codex must re-check against the current branch before publishing"
+    }
+  ]
+}

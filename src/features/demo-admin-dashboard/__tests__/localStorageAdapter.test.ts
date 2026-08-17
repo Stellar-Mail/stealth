@@ -126,6 +126,7 @@ describe("localStorageAdapter - Draft Dataset and Campaign Snapshots", () => {
       targetAudience: "Beta Users",
       tags: ["tag1"],
       timestamp: "2026-06-16T10:00:00Z",
+      status: "draft",
       drafts: dataset,
     },
   ];

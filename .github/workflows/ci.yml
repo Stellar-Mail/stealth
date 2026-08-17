@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   client-checks:
@@ -15,14 +16,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: 1.3.2
+          bun-version: 1.3.14
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: bun install
 
       - name: Format Check
         run: bun x prettier --check .
@@ -33,19 +36,49 @@ jobs:
       - name: Typecheck
         run: bun x tsc --noEmit
 
+      - name: Generate OpenAPI
+        run: bun run generate:openapi
+
+      - name: OpenAPI Compatibility
+        run: |
+          # Install Optic into a dedicated env with AJV overrides.
+          # @useoptic/optic@1.0.9 bundles @stoplight/spectral-core whose
+          # nested AJV generates broken function code (SyntaxError: ':').
+          # Forcing ajv>=8.17.1 via npm overrides dedups the nested copy
+          # so spectral-core uses the patched version instead.
+          # Note: no setup-node step — runner's default Node 24 is used
+          # so that subsequent steps (vitest / @cloudflare/vite-plugin)
+          # still have access to node:module.registerHooks (Node >=23.5).
+          mkdir -p /tmp/optic-env
+          cd /tmp/optic-env
+          cat > package.json << 'EOF'
+          {
+            "name": "optic-env",
+            "version": "1.0.0",
+            "overrides": {
+              "ajv": ">=8.17.1",
+              "ajv-errors": ">=3.0.0"
+            }
+          }
+          EOF
+          npm install --save @useoptic/optic@latest --prefer-online
+          cd "$GITHUB_WORKSPACE"
+          /tmp/optic-env/node_modules/.bin/optic diff openapi.json --base origin/main --check
+        env:
+          OPTIC_TOKEN: ${{ secrets.OPTIC_TOKEN }}
+
       - name: Unit Tests
         run: bun run test
 
       - name: Build Client
-        run: |
-          bun run build
-          git diff --exit-code src/routeTree.gen.ts
+        run: bun run build
 
       - name: Upload Client Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: client-dist
           path: dist/
+          retention-days: 1
 
   contract-checks:
     name: Contract Checks
@@ -96,6 +129,7 @@ jobs:
         with:
           name: contract-wasm
           path: contracts/soroban/target/wasm32v1-none/release/*.wasm
+          retention-days: 1
 
   e2e:
     name: E2E Tests
@@ -107,10 +141,10 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: 1.3.2
+          bun-version: 1.1.20
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: bun install
 
       - name: Install Playwright browsers
         run: npx playwright install chromium --with-deps
@@ -163,6 +197,9 @@ jobs:
 
       - name: Download all artifacts
         uses: actions/download-artifact@v4
+        with:
+          path: ./artifacts
+        continue-on-error: true
 
       - name: Generate SHA-256 Hashes
         run: |

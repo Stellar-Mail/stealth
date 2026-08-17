@@ -1,0 +1,62 @@
+{
+  "successCases": [
+    {
+      "input": {
+        "action": "CREATE_REMINDER",
+        "payload": {
+          "contactId": "cnt-001",
+          "action": "Follow up email",
+          "dueDate": "2026-07-20T00:00:00.000Z"
+        }
+      },
+      "expectedOutput": {
+        "success": true,
+        "data": {
+          "id": "rem-123",
+          "status": "PENDING"
+        }
+      }
+    },
+    {
+      "input": {
+        "action": "COMPLETE_REMINDER",
+        "payload": {
+          "reminderId": "rem-123"
+        }
+      },
+      "expectedOutput": {
+        "success": true,
+        "data": {
+          "id": "rem-123",
+          "status": "COMPLETED"
+        }
+      }
+    }
+  ],
+  "failureCases": [
+    {
+      "input": {
+        "action": "CREATE_REMINDER"
+      },
+      "expectedOutput": {
+        "success": false,
+        "error": {
+          "code": "INVALID_INPUT",
+          "message": "contactId and dueDate are required for CREATE_REMINDER"
+        }
+      }
+    },
+    {
+      "input": {
+        "action": "UNKNOWN_ACTION"
+      },
+      "expectedOutput": {
+        "success": false,
+        "error": {
+          "code": "ACTION_NOT_SUPPORTED",
+          "message": "Action UNKNOWN_ACTION is not supported"
+        }
+      }
+    }
+  ]
+}

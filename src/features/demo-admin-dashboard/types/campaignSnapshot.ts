@@ -1,4 +1,6 @@
-import { Draft } from "./draft";
+import type { Draft } from "./draft";
+
+export type CampaignStatus = "active" | "draft" | "needs-review" | "archived";
 
 export interface CampaignSnapshot {
   id: string;
@@ -7,6 +9,9 @@ export interface CampaignSnapshot {
   targetAudience: string;
   tags: string[];
   timestamp: string;
+  status: CampaignStatus;
   drafts: Draft[];
-  status?: "active" | "draft" | "needs-review" | "archived";
+  draftCount?: number;
+  createdAt?: string;
+  data?: Draft[];
 }

@@ -155,7 +155,7 @@ export function useCalendar() {
   };
 }
 
-function to24HourTime(value: string) {
+export function to24HourTime(value: string) {
   const match = value.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
   if (!match) return "09:00";
   let hour = Number(match[1]);
@@ -164,7 +164,7 @@ function to24HourTime(value: string) {
   return `${String(hour).padStart(2, "0")}:${match[2]}`;
 }
 
-function addOneHour(value: string) {
+export function addOneHour(value: string) {
   const [hours, minutes] = value.split(":").map(Number);
   return `${String((hours + 1) % 24).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
 }

@@ -1,38 +1,31 @@
 # Customer Support Macro Tool
 
-Reusable responses.
+## Purpose
+
+Create and manage reusable customer support response templates.
 
 ## Scope
 
-- Release tier: $(System.Collections.Hashtable.Tier.ToUpperInvariant())
-- Audience: $(System.Collections.Hashtable.Audience)
-- Folder ownership: $dir/
+- Release tier: V1
+- Audience: Team
+- Folder ownership:
+  `tools/v1/team/customer-support-macro-tool/`
 
-This is a self-contained tooling workspace. Do not wire this tool into the main app, routing, inbox architecture, wallet core, Stellar core, or design system unless a future integration issue explicitly allows it.
+This is a self-contained tooling workspace.
 
-Recommended internal structure:
+Do not wire this tool into the main application, routing, inbox architecture, wallet core, Stellar integration, database schema, or shared design system unless a future integration issue explicitly allows it.
+
+## Recommended Internal Structure
 
 - components/
 - services/
 - hooks/
--     ests/
+- tests/
 - docs/
-  "@ | Set-Content -Path "tools/v1/team/customer-support-macro-tool/README.md"
-  @"
+- fixtures/
+- types/
 
-# Customer Support Macro Tool Specs
-
-## Purpose
-
-Reusable responses.
-
-## Contributor boundary
-
-All work for this tool should stay in:
-
-$dir/
-
-## Required issue categories
+## Required Issue Categories
 
 - Architecture
 - Feature

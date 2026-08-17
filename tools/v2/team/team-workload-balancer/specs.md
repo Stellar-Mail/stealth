@@ -1,41 +1,66 @@
 # Team Workload Balancer
 
-Distribute workload.
+Balance workload across team members using an isolated, accessible user interface.
 
 ## Scope
 
-- Release tier: $(System.Collections.Hashtable.Tier.ToUpperInvariant())
-- Audience: $(System.Collections.Hashtable.Audience)
-- Folder ownership: $dir/
+- **Release tier:** V2
+- **Audience:** Team
+- **Folder ownership:** `tools/v2/team/team-workload-balancer/`
 
-This is a self-contained tooling workspace. Do not wire this tool into the main app, routing, inbox architecture, wallet core, Stellar core, or design system unless a future integration issue explicitly allows it.
+This is a self-contained tooling workspace.
 
-Recommended internal structure:
+Do **not** connect this tool to:
 
-- components/
-- services/
-- hooks/
--     ests/
-- docs/
-  "@ | Set-Content -Path "tools/v2/team/team-workload-balancer/README.md"
-  @"
+- application routing
+- dashboard
+- inbox architecture
+- authentication
+- wallet core
+- Stellar integration
+- database schema
+- shared design system
 
-# Team Workload Balancer Specs
+unless a future integration issue explicitly permits it.
 
 ## Purpose
 
-Distribute workload.
+Provide an isolated interface for viewing and balancing workload assignments while supporting accessibility and future integration.
 
-## Contributor boundary
+## Recommended Structure
 
-All work for this tool should stay in:
+```text
+components/
+services/
+hooks/
+fixtures/
+tests/
+docs/
+```
 
-$dir/
+## Contributor Boundary
 
-## Required issue categories
+All implementation for this issue must remain inside:
+
+```text
+tools/v2/team/team-workload-balancer/
+```
+
+No files outside this directory should be modified.
+
+## Required Issue Categories
 
 - Architecture
 - Feature
 - UI and accessibility
 - Security and performance
 - Testing and documentation
+
+## Acceptance Criteria
+
+- Folder-local UI components implemented
+- Empty, loading, error, and success states provided
+- Keyboard and screen-reader support documented
+- Visual style documented without modifying shared design tokens
+- No integration with the main application
+- Changes remain isolated and independently reviewable

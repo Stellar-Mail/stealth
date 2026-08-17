@@ -1,0 +1,114 @@
+{
+  "teamMembers": [
+    {
+      "memberId": "alice",
+      "name": "Alice Lopez",
+      "skills": ["support", "sales"],
+      "currentLoad": 8,
+      "capacity": 20
+    },
+    {
+      "memberId": "bob",
+      "name": "Bob Chen",
+      "skills": ["support", "engineering"],
+      "currentLoad": 12,
+      "capacity": 24
+    },
+    {
+      "memberId": "cara",
+      "name": "Cara Patel",
+      "skills": ["sales", "research"],
+      "currentLoad": 5,
+      "capacity": 20
+    }
+  ],
+  "workItems": [
+    {
+      "taskId": "task-urgent-engineering",
+      "summary": "Resolve engineering outage",
+      "effort": 10,
+      "priority": 3,
+      "requiredSkills": ["engineering"]
+    },
+    {
+      "taskId": "task-sales-proposal",
+      "summary": "Prepare sales proposal",
+      "effort": 8,
+      "priority": 2,
+      "requiredSkills": ["sales"]
+    },
+    {
+      "taskId": "task-accounting-review",
+      "summary": "Review accounting request",
+      "effort": 6,
+      "priority": 2,
+      "requiredSkills": ["accounting"]
+    },
+    {
+      "taskId": "task-research-brief",
+      "summary": "Draft research brief",
+      "effort": 3,
+      "priority": 1,
+      "requiredSkills": ["research"]
+    },
+    {
+      "taskId": "task-support-bug",
+      "summary": "Fix support bug",
+      "effort": 4,
+      "priority": 1,
+      "requiredSkills": ["support"]
+    }
+  ],
+  "expectedAssignments": [
+    {
+      "taskId": "task-urgent-engineering",
+      "assigneeId": "bob",
+      "assigneeName": "Bob Chen",
+      "status": "assigned",
+      "reason": "matched",
+      "effort": 10,
+      "priority": 3,
+      "requiredSkills": ["engineering"]
+    },
+    {
+      "taskId": "task-accounting-review",
+      "assigneeId": null,
+      "assigneeName": null,
+      "status": "unassigned",
+      "reason": "skill mismatch",
+      "effort": 6,
+      "priority": 2,
+      "requiredSkills": ["accounting"]
+    },
+    {
+      "taskId": "task-sales-proposal",
+      "assigneeId": "cara",
+      "assigneeName": "Cara Patel",
+      "status": "assigned",
+      "reason": "matched",
+      "effort": 8,
+      "priority": 2,
+      "requiredSkills": ["sales"]
+    },
+    {
+      "taskId": "task-research-brief",
+      "assigneeId": "cara",
+      "assigneeName": "Cara Patel",
+      "status": "assigned",
+      "reason": "matched",
+      "effort": 3,
+      "priority": 1,
+      "requiredSkills": ["research"]
+    },
+    {
+      "taskId": "task-support-bug",
+      "assigneeId": "alice",
+      "assigneeName": "Alice Lopez",
+      "status": "assigned",
+      "reason": "matched",
+      "effort": 4,
+      "priority": 1,
+      "requiredSkills": ["support"]
+    }
+  ]
+}

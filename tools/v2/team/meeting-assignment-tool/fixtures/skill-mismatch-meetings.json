@@ -1,0 +1,20 @@
+[
+  {
+    "id": "mtg-sm-001",
+    "title": "Quantum Physics Review",
+    "scheduledAt": "2026-07-01T10:00:00Z",
+    "durationMinutes": 60,
+    "requiredSkills": ["quantum-physics"],
+    "effort": 1,
+    "priority": 10
+  },
+  {
+    "id": "mtg-sm-002",
+    "title": "Marine Biology Workshop",
+    "scheduledAt": "2026-07-01T14:00:00Z",
+    "durationMinutes": 45,
+    "requiredSkills": ["marine-biology", "deep-sea"],
+    "effort": 2,
+    "priority": 8
+  }
+]

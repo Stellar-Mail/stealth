@@ -1,0 +1,132 @@
+import { Agent, Thread } from "../types";
+
+export const AGENT_FIXTURES: Agent[] = [
+  {
+    id: "550e8400-e29b-41d4-a716-446655440001",
+    name: "Alice Vance",
+    role: "Support Specialist",
+    email: "alice@stealth-mail.io",
+    status: "active",
+    workload: 2,
+    specialties: ["support", "general", "billing"],
+    avatar: "👩‍💻",
+  },
+  {
+    id: "550e8400-e29b-41d4-a716-446655440002",
+    name: "Bob Chen",
+    role: "Security Officer",
+    email: "bob@stealth-mail.io",
+    status: "active",
+    workload: 1,
+    specialties: ["security", "compliance"],
+    avatar: "👨‍✈️",
+  },
+  {
+    id: "550e8400-e29b-41d4-a716-446655440003",
+    name: "Charlie Kim",
+    role: "Stellar Integrations Engineer",
+    email: "charlie@stealth-mail.io",
+    status: "active",
+    workload: 2,
+    specialties: ["stellar", "billing", "technical"],
+    avatar: "🧙‍♂️",
+  },
+  {
+    id: "550e8400-e29b-41d4-a716-446655440004",
+    name: "Diana Prince",
+    role: "Customer Success Lead",
+    email: "diana@stealth-mail.io",
+    status: "busy",
+    workload: 0,
+    specialties: ["technical", "escalation", "support"],
+    avatar: "👩‍💼",
+  },
+  {
+    id: "550e8400-e29b-41d4-a716-446655440005",
+    name: "Evan Wright",
+    role: "Junior Support Associate",
+    email: "evan@stealth-mail.io",
+    status: "offline",
+    workload: 0,
+    specialties: ["general", "support"],
+    avatar: "👨‍🎓",
+  },
+];
+
+export const THREAD_FIXTURES: Thread[] = [
+  {
+    id: "thread-001",
+    subject: "Stellar Network Sync Delay on Account G...",
+    snippet:
+      "We are observing a slight propagation delay in transactions broadcasted via freighter API. Can someone verify the ledger status?",
+    sender: "freighter-support@stellar.org",
+    priority: "high",
+    assignedAgentIds: ["550e8400-e29b-41d4-a716-446655440003"],
+    status: "assigned",
+    category: "Stellar",
+    date: "2026-06-19T10:30:00Z",
+  },
+  {
+    id: "thread-002",
+    subject: "Security Warning: Suspicious Login Attempt",
+    snippet:
+      "An anomalous login pattern was detected from IP 198.51.100.42. Multi-factor authentication succeeded but country of origin changed.",
+    sender: "security-daemon@stealth-mail.io",
+    priority: "high",
+    assignedAgentIds: ["550e8400-e29b-41d4-a716-446655440002"],
+    status: "assigned",
+    category: "Security",
+    date: "2026-06-19T11:15:00Z",
+  },
+  {
+    id: "thread-003",
+    subject: "Billing Query: Stellar Payout Invoice INV-2026-88",
+    snippet:
+      "We received a invoice discrepancy report from vendor partnership accounts. The stellar payout amount didn't match the original contract rate.",
+    sender: "finance@partner-inc.com",
+    priority: "medium",
+    assignedAgentIds: [
+      "550e8400-e29b-41d4-a716-446655440001",
+      "550e8400-e29b-41d4-a716-446655440003",
+    ],
+    status: "assigned",
+    category: "Billing",
+    date: "2026-06-19T12:00:00Z",
+  },
+  {
+    id: "thread-004",
+    subject: "General Feedback: User Preferences for Dark Mode Contrast",
+    snippet:
+      "The new dark mode contrast is slightly low on mobile screens. Would appreciate some adjustments to contrast ratio or theme selections.",
+    sender: "stealth-user-99@gmail.com",
+    priority: "low",
+    assignedAgentIds: ["550e8400-e29b-41d4-a716-446655440001"],
+    status: "assigned",
+    category: "General",
+    date: "2026-06-19T13:45:00Z",
+  },
+  {
+    id: "thread-005",
+    subject: "API Integration Failure: HTTP 502 Bad Gateway",
+    snippet:
+      "Client endpoints are receiving 502 Bad Gateway errors when calling the mail/send endpoint. Please check API gateway gateway error logs.",
+    sender: "developer-support@client.com",
+    priority: "medium",
+    assignedAgentIds: [],
+    status: "unassigned",
+    category: "Technical",
+    date: "2026-06-19T14:10:00Z",
+  },
+  {
+    id: "thread-006",
+    subject: "Urgent Payout Escrow Lock-up",
+    snippet:
+      "A critical failure has occurred while trying to lock the escrow funds on Stellar blockchain. Immediate manual intervention needed.",
+    sender: "payout-agent@stealth.net",
+    priority: "high",
+    assignedAgentIds: [],
+    status: "unassigned",
+    category: "Stellar",
+    date: "2026-06-19T15:00:00Z",
+  },
+];

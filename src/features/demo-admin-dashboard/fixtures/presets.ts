@@ -1,4 +1,7 @@
 import type { PresetScenario } from "../types";
+import { encryptedCampaignPreset } from "./encryptedCampaignPreset";
+import { conferenceCampaignPreset } from "./conferenceCampaignPreset";
+import { investorNurtureCampaignPreset } from "./investorNurtureCampaignPreset";
 
 export const PRESET_SCENARIOS: PresetScenario[] = [
   {
@@ -235,6 +238,92 @@ export const PRESET_SCENARIOS: PresetScenario[] = [
     ],
   },
   {
+    id: "paid-sender-request",
+    name: "Paid Sender Request",
+    description:
+      "Simulates a sender who paid postage and is waiting for a reviewer to approve the request.",
+    stats: [
+      { label: "Active Accounts", value: "11", delta: "+1" },
+      { label: "Messages Sent", value: "832", delta: "+9%" },
+      { label: "Pending Requests", value: "6", delta: "+2" },
+      { label: "Total Postage (XLM)", value: "1,310.0", delta: "+18.4" },
+    ],
+    accounts: [
+      { name: "Alice Demo", address: "GABCD...1234", balance: "500.0 XLM", type: "User" },
+      { name: "Bob Demo", address: "GBCDE...2345", balance: "320.0 XLM", type: "User" },
+      { name: "Moderator Demo", address: "GMODR...9999", balance: "750.0 XLM", type: "Reviewer" },
+      { name: "Relay South", address: "GSRLY...SOUT", balance: "980.0 XLM", type: "Relay" },
+    ],
+    mail: [
+      {
+        subject: "Payment received for message request",
+        status: "pending",
+        folder: "requests",
+        from: "Sender Review",
+        email: "review*stealth.demo",
+        body: "A sender has paid postage and is awaiting review. Please confirm that the sender is allowed to continue.",
+        time: "14m ago",
+        unread: true,
+        starred: false,
+        labels: ["Request", "Paid"],
+        avatarColor: "#58616f",
+        postageAmount: "10000000",
+        verifiedSender: false,
+      },
+      {
+        subject: "Postage confirmation ready",
+        status: "delivered",
+        folder: "inbox",
+        from: "Billing Bot",
+        email: "billing@example.org",
+        body: "This is a synthetic confirmation that postage was captured for the pending request.",
+        time: "22m ago",
+        unread: false,
+        starred: false,
+        labels: ["Billing"],
+        avatarColor: "#6d7482",
+      },
+    ],
+    attachments: [
+      {
+        id: "att-paid-request",
+        fileName: "payment_receipt.pdf",
+        fileSize: "88 KB",
+        fileType: "PDF Document",
+        messageSubject: "Payment received for message request",
+        sender: "review*stealth.demo",
+      },
+    ],
+    events: [
+      {
+        id: "evt-paid-request-review",
+        title: "Paid Sender Request Review",
+        date: "2026-06-16",
+        time: "1:30 PM",
+        location: "Review Queue",
+        organizer: "moderator*stealth.demo",
+        status: "tentative",
+      },
+    ],
+    auditEvents: [
+      {
+        action: "Postage payment captured for sender review",
+        actor: "billing@example.org",
+        timestamp: "2026-06-16T13:12:00Z",
+      },
+      {
+        action: "Manual approval queue updated",
+        actor: "moderator*stealth.demo",
+        timestamp: "2026-06-16T13:15:00Z",
+      },
+      {
+        action: "Sender request marked pending review",
+        actor: "system",
+        timestamp: "2026-06-16T13:18:00Z",
+      },
+    ],
+  },
+  {
     id: "receipt-settlement",
     name: "Receipt Settlement",
     description:
@@ -344,4 +433,103 @@ export const PRESET_SCENARIOS: PresetScenario[] = [
       },
     ],
   },
+  {
+    id: "encrypted-provenance",
+    name: "Encrypted & Provenance",
+    description:
+      "Simulates end-to-end encrypted payloads and cryptographic provenance logs registered on-chain.",
+    stats: [
+      { label: "Active Accounts", value: "14", delta: "+1" },
+      { label: "Messages Sent", value: "852", delta: "+18%" },
+      { label: "Pending Requests", value: "2", delta: "-1" },
+      { label: "Total Postage (XLM)", value: "1,241.2", delta: "+0.7" },
+    ],
+    accounts: [
+      { name: "Alice Demo", address: "GABCD...1234", balance: "500.0 XLM", type: "User" },
+      { name: "Bob Demo", address: "GBCDE...2345", balance: "320.0 XLM", type: "User" },
+      {
+        name: "Relay Secured",
+        address: "GCREL...SECD",
+        balance: "1,850.0 XLM",
+        type: "Relay (Active)",
+        relayMetadata: {
+          nodeUri: "relay-sec*stealth.demo",
+          latency: "22ms",
+          signatureScheme: "Ed25519",
+          status: "verified",
+          owner: "GDSEC...OWNR",
+        },
+      },
+      {
+        name: "Key Registry",
+        address: "CCKEY...REGY",
+        balance: "12,000.0 XLM",
+        type: "Soroban Contract",
+      },
+    ],
+    mail: [
+      {
+        subject: "Confidential Project Spec",
+        status: "delivered",
+        folder: "encrypted",
+        from: "Alice Demo",
+        email: "alice*stealth.demo",
+        body: "This is a simulated encrypted email body. The payload hash is registered on-chain. Decryption key was exchanged using Curve25519.",
+        time: "Just now",
+        unread: true,
+        starred: true,
+        labels: ["Encrypted", "Project"],
+        avatarColor: "#2e7d32",
+        verifiedSender: true,
+        proofMetadata: {
+          messageHash: "0x0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0bd8c7e9",
+          paymentHash: "0x0bpay0bpay0bpay0bpay0bpay0bpay0bpay0bpay0bpay0bpay0bpayf12a3d",
+          diagnosticId: "d1f038c7-4b1d-44a6-8968-3e5f4923050b",
+          contractAddress: "CBKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK9999",
+          latency: "22ms",
+          signature: "Ed25519 [0x0b0b0b0b0b0b0b0b0b0b0bf31b]",
+          postageStatus: "settled",
+        },
+      },
+    ],
+    attachments: [
+      {
+        id: "att-encrypted-spec",
+        fileName: "project_specification.enc.json",
+        fileSize: "8.4 KB",
+        fileType: "Encrypted JSON",
+        messageSubject: "Confidential Project Spec",
+        sender: "alice*stealth.demo",
+      },
+    ],
+    events: [
+      {
+        id: "evt-key-rotation",
+        title: "Ephemeral Key Exchange Session",
+        date: "2026-06-16",
+        time: "10:15 AM",
+        location: "Soroban VM Key Exchange",
+        organizer: "system",
+        status: "confirmed",
+      },
+    ],
+    auditEvents: [
+      {
+        action: "Ephemeral session key generated via Curve25519",
+        actor: "system",
+        timestamp: "2026-06-16T10:15:00Z",
+      },
+      {
+        action: "Payload commitment hash 0x0b0b...c7e9 registered to CCKEY...REGY",
+        actor: "relay-sec*stealth.demo",
+        timestamp: "2026-06-16T10:16:00Z",
+      },
+      {
+        action: "Message payload successfully decrypted by Bob Demo client",
+        actor: "Bob Demo",
+        timestamp: "2026-06-16T10:17:00Z",
+      },
+    ],
+  },
+  investorNurtureCampaignPreset,
 ];
