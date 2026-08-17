@@ -2,6 +2,10 @@ export type Attachment = {
   name: string;
   size: string;
   type: "file" | "image";
+  attachmentId?: string;
+  commitment?: string;
+  progress?: number;
+  status?: "uploading" | "finalized" | "error" | "cancelled";
 };
 
 export type ComposeMode = "compose" | "reply" | "reply-all" | "forward" | "schedule";

@@ -1,3 +1,4 @@
+import { AttachmentStorageService } from "@/services/storage/attachment-storage";
 import type { MailboxPolicy, Postage, Receipt, SenderRule } from "./domain";
 import type { ApiRepository } from "./repository";
 
@@ -11,6 +12,11 @@ export class MemoryApiRepository implements ApiRepository {
   private readonly receipts = new Map<string, Receipt>();
   private readonly senderRules = new Map<string, SenderRule>();
   private readonly counters = new Map<string, number[]>();
+  private readonly attachmentStorage = new AttachmentStorageService();
+
+  getAttachmentStorage(): AttachmentStorageService {
+    return this.attachmentStorage;
+  }
 
   async getPolicy(owner: string) {
     return structuredClone(this.policies.get(owner) ?? null);
@@ -90,5 +96,6 @@ export class MemoryApiRepository implements ApiRepository {
     this.receipts.clear();
     this.senderRules.clear();
     this.counters.clear();
+    this.attachmentStorage.reset();
   }
 }

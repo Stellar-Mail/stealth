@@ -18,6 +18,7 @@ import { TrustBadge, type TrustState } from "@/features/design-system";
 import { cn } from "@/lib/utils";
 import { resolveRecipients } from "@/features/compose/recipientResolver";
 
+import { useAttachmentUpload } from "@/hooks/useAttachmentUpload";
 import {
   getRecipientReadiness,
   parseRecipients,
@@ -157,21 +158,67 @@ export function Compose({
     return () => window.removeEventListener("keydown", handler);
   }, [open, onClose, emojiOpen, insertAtCursor]);
 
+  const { uploadFile, cancelUpload } = useAttachmentUpload();
+
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>, type: "file" | "image") => {
     const files = e.target.files;
     if (!files) return;
 
-    const newAttachments: Attachment[] = Array.from(files).map((file) => ({
-      name: file.name,
-      size: formatFileSize(file.size),
-      type,
-    }));
+    const sender =
+      resolutionContext?.currentActor || "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+    const recipientAddresses = parseRecipients(to);
+    const recipient = recipientAddresses[0] || sender;
+    const messageId = `msg_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
-    setAttachments([...attachments, ...newAttachments]);
+    Array.from(files).forEach(async (file) => {
+      const initialAtt: Attachment = {
+        name: file.name,
+        size: formatFileSize(file.size),
+        type,
+        progress: 0,
+        status: "uploading",
+      };
+
+      setAttachments((prev) => [...prev, initialAtt]);
+
+      try {
+        const result = await uploadFile(file, { messageId, sender, recipient });
+        if (result) {
+          setAttachments((prev) =>
+            prev.map((att) =>
+              att.name === file.name
+                ? {
+                    ...att,
+                    attachmentId: result.attachmentId,
+                    commitment: result.commitment,
+                    progress: 100,
+                    status: "finalized",
+                  }
+                : att,
+            ),
+          );
+        }
+      } catch {
+        setAttachments((prev) =>
+          prev.map((att) =>
+            att.name === file.name ? { ...att, status: "error", progress: 0 } : att,
+          ),
+        );
+      }
+    });
+
     e.target.value = ""; // Reset input
   };
 
   const removeAttachment = (index: number) => {
+    const att = attachments[index];
+    if (att && att.status === "uploading") {
+      const sender =
+        resolutionContext?.currentActor ||
+        "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+      const fileId = `${att.name}_${att.size}_`;
+      cancelUpload(fileId, sender);
+    }
     setAttachments(attachments.filter((_, i) => i !== index));
   };
 
@@ -300,9 +347,28 @@ export function Compose({
                       )}
                       <span className="text-xs text-foreground">{att.name}</span>
                       <span className="text-[10px] text-muted-foreground">{att.size}</span>
+                      {att.status === "uploading" && (
+                        <div className="flex items-center gap-1.5 ml-1">
+                          <div className="h-1 w-12 rounded-full bg-white/10 overflow-hidden">
+                            <div
+                              className="h-full bg-emerald-400 transition-all duration-150"
+                              style={{ width: `${att.progress || 0}%` }}
+                            />
+                          </div>
+                          <span className="text-[9px] font-mono text-emerald-400">
+                            {att.progress || 0}%
+                          </span>
+                        </div>
+                      )}
+                      {att.status === "error" && (
+                        <span className="text-[9px] text-red-400 font-semibold ml-1">
+                          Upload error
+                        </span>
+                      )}
                       <button
                         onClick={() => removeAttachment(i)}
                         className="ml-1 rounded p-0.5 text-muted-foreground transition hover:bg-white/[0.08] hover:text-foreground"
+                        title={att.status === "uploading" ? "Cancel upload" : "Remove attachment"}
                       >
                         <X className="h-3 w-3" />
                       </button>

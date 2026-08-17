@@ -1,4 +1,5 @@
 import type { MailboxPolicy, Postage, Receipt, SenderRule } from "./domain";
+import type { AttachmentStorageService } from "@/services/storage/attachment-storage";
 
 export interface ApiRepository {
   getPolicy(owner: string): Promise<MailboxPolicy | null>;
@@ -10,6 +11,7 @@ export interface ApiRepository {
   getReceipt(messageId: string): Promise<Receipt | null>;
   setReceipt(receipt: Receipt): Promise<Receipt>;
 
+  getAttachmentStorage(): AttachmentStorageService;
   getRelayQueueDepth(relayId: string): Promise<number>;
   getRelayRetryCount(relayId: string): Promise<number>;
   getRelayLastSuccessfulDelivery(relayId: string): Promise<string | null>;

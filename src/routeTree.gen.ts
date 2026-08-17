@@ -21,10 +21,15 @@ import { Route as ApiV1PostageQuoteRouteImport } from './routes/api/v1/postage/q
 import { Route as ApiV1PostageMessageIdRouteImport } from './routes/api/v1/postage/$messageId'
 import { Route as ApiV1PoliciesEvaluateRouteImport } from './routes/api/v1/policies/evaluate'
 import { Route as ApiV1PoliciesOwnerRouteImport } from './routes/api/v1/policies/$owner'
+import { Route as ApiV1AttachmentsInitiateRouteImport } from './routes/api/v1/attachments/initiate'
+import { Route as ApiV1AttachmentsAttachmentIdRouteImport } from './routes/api/v1/attachments/$attachmentId'
 import { Route as ApiV1ReceiptsMessageIdReadRouteImport } from './routes/api/v1/receipts/$messageId/read'
 import { Route as ApiV1PostageMessageIdSettleRouteImport } from './routes/api/v1/postage/$messageId/settle'
 import { Route as ApiV1PostageMessageIdRefundRouteImport } from './routes/api/v1/postage/$messageId/refund'
+import { Route as ApiV1AttachmentsAttachmentIdMetaRouteImport } from './routes/api/v1/attachments/$attachmentId/meta'
+import { Route as ApiV1AttachmentsAttachmentIdFinalizeRouteImport } from './routes/api/v1/attachments/$attachmentId/finalize'
 import { Route as ApiV1PoliciesOwnerSendersSenderRouteImport } from './routes/api/v1/policies/$owner/senders/$sender'
+import { Route as ApiV1AttachmentsAttachmentIdChunksChunkIndexRouteImport } from './routes/api/v1/attachments/$attachmentId/chunks/$chunkIndex'
 
 const MotionGalleryRoute = MotionGalleryRouteImport.update({
   id: '/motion-gallery',
@@ -86,6 +91,18 @@ const ApiV1PoliciesOwnerRoute = ApiV1PoliciesOwnerRouteImport.update({
   path: '/api/v1/policies/$owner',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1AttachmentsInitiateRoute =
+  ApiV1AttachmentsInitiateRouteImport.update({
+    id: '/api/v1/attachments/initiate',
+    path: '/api/v1/attachments/initiate',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiV1AttachmentsAttachmentIdRoute =
+  ApiV1AttachmentsAttachmentIdRouteImport.update({
+    id: '/api/v1/attachments/$attachmentId',
+    path: '/api/v1/attachments/$attachmentId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiV1ReceiptsMessageIdReadRoute =
   ApiV1ReceiptsMessageIdReadRouteImport.update({
     id: '/read',
@@ -104,11 +121,29 @@ const ApiV1PostageMessageIdRefundRoute =
     path: '/refund',
     getParentRoute: () => ApiV1PostageMessageIdRoute,
   } as any)
+const ApiV1AttachmentsAttachmentIdMetaRoute =
+  ApiV1AttachmentsAttachmentIdMetaRouteImport.update({
+    id: '/meta',
+    path: '/meta',
+    getParentRoute: () => ApiV1AttachmentsAttachmentIdRoute,
+  } as any)
+const ApiV1AttachmentsAttachmentIdFinalizeRoute =
+  ApiV1AttachmentsAttachmentIdFinalizeRouteImport.update({
+    id: '/finalize',
+    path: '/finalize',
+    getParentRoute: () => ApiV1AttachmentsAttachmentIdRoute,
+  } as any)
 const ApiV1PoliciesOwnerSendersSenderRoute =
   ApiV1PoliciesOwnerSendersSenderRouteImport.update({
     id: '/senders/$sender',
     path: '/senders/$sender',
     getParentRoute: () => ApiV1PoliciesOwnerRoute,
+  } as any)
+const ApiV1AttachmentsAttachmentIdChunksChunkIndexRoute =
+  ApiV1AttachmentsAttachmentIdChunksChunkIndexRouteImport.update({
+    id: '/chunks/$chunkIndex',
+    path: '/chunks/$chunkIndex',
+    getParentRoute: () => ApiV1AttachmentsAttachmentIdRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -117,6 +152,8 @@ export interface FileRoutesByFullPath {
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
   '/api/v1/protocol': typeof ApiV1ProtocolRoute
+  '/api/v1/attachments/$attachmentId': typeof ApiV1AttachmentsAttachmentIdRouteWithChildren
+  '/api/v1/attachments/initiate': typeof ApiV1AttachmentsInitiateRoute
   '/api/v1/policies/$owner': typeof ApiV1PoliciesOwnerRouteWithChildren
   '/api/v1/policies/evaluate': typeof ApiV1PoliciesEvaluateRoute
   '/api/v1/postage/$messageId': typeof ApiV1PostageMessageIdRouteWithChildren
@@ -124,9 +161,12 @@ export interface FileRoutesByFullPath {
   '/api/v1/receipts/$messageId': typeof ApiV1ReceiptsMessageIdRouteWithChildren
   '/api/v1/postage/': typeof ApiV1PostageIndexRoute
   '/api/v1/receipts/': typeof ApiV1ReceiptsIndexRoute
+  '/api/v1/attachments/$attachmentId/finalize': typeof ApiV1AttachmentsAttachmentIdFinalizeRoute
+  '/api/v1/attachments/$attachmentId/meta': typeof ApiV1AttachmentsAttachmentIdMetaRoute
   '/api/v1/postage/$messageId/refund': typeof ApiV1PostageMessageIdRefundRoute
   '/api/v1/postage/$messageId/settle': typeof ApiV1PostageMessageIdSettleRoute
   '/api/v1/receipts/$messageId/read': typeof ApiV1ReceiptsMessageIdReadRoute
+  '/api/v1/attachments/$attachmentId/chunks/$chunkIndex': typeof ApiV1AttachmentsAttachmentIdChunksChunkIndexRoute
   '/api/v1/policies/$owner/senders/$sender': typeof ApiV1PoliciesOwnerSendersSenderRoute
 }
 export interface FileRoutesByTo {
@@ -135,6 +175,8 @@ export interface FileRoutesByTo {
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
   '/api/v1/protocol': typeof ApiV1ProtocolRoute
+  '/api/v1/attachments/$attachmentId': typeof ApiV1AttachmentsAttachmentIdRouteWithChildren
+  '/api/v1/attachments/initiate': typeof ApiV1AttachmentsInitiateRoute
   '/api/v1/policies/$owner': typeof ApiV1PoliciesOwnerRouteWithChildren
   '/api/v1/policies/evaluate': typeof ApiV1PoliciesEvaluateRoute
   '/api/v1/postage/$messageId': typeof ApiV1PostageMessageIdRouteWithChildren
@@ -142,9 +184,12 @@ export interface FileRoutesByTo {
   '/api/v1/receipts/$messageId': typeof ApiV1ReceiptsMessageIdRouteWithChildren
   '/api/v1/postage': typeof ApiV1PostageIndexRoute
   '/api/v1/receipts': typeof ApiV1ReceiptsIndexRoute
+  '/api/v1/attachments/$attachmentId/finalize': typeof ApiV1AttachmentsAttachmentIdFinalizeRoute
+  '/api/v1/attachments/$attachmentId/meta': typeof ApiV1AttachmentsAttachmentIdMetaRoute
   '/api/v1/postage/$messageId/refund': typeof ApiV1PostageMessageIdRefundRoute
   '/api/v1/postage/$messageId/settle': typeof ApiV1PostageMessageIdSettleRoute
   '/api/v1/receipts/$messageId/read': typeof ApiV1ReceiptsMessageIdReadRoute
+  '/api/v1/attachments/$attachmentId/chunks/$chunkIndex': typeof ApiV1AttachmentsAttachmentIdChunksChunkIndexRoute
   '/api/v1/policies/$owner/senders/$sender': typeof ApiV1PoliciesOwnerSendersSenderRoute
 }
 export interface FileRoutesById {
@@ -154,6 +199,8 @@ export interface FileRoutesById {
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
   '/api/v1/protocol': typeof ApiV1ProtocolRoute
+  '/api/v1/attachments/$attachmentId': typeof ApiV1AttachmentsAttachmentIdRouteWithChildren
+  '/api/v1/attachments/initiate': typeof ApiV1AttachmentsInitiateRoute
   '/api/v1/policies/$owner': typeof ApiV1PoliciesOwnerRouteWithChildren
   '/api/v1/policies/evaluate': typeof ApiV1PoliciesEvaluateRoute
   '/api/v1/postage/$messageId': typeof ApiV1PostageMessageIdRouteWithChildren
@@ -161,9 +208,12 @@ export interface FileRoutesById {
   '/api/v1/receipts/$messageId': typeof ApiV1ReceiptsMessageIdRouteWithChildren
   '/api/v1/postage/': typeof ApiV1PostageIndexRoute
   '/api/v1/receipts/': typeof ApiV1ReceiptsIndexRoute
+  '/api/v1/attachments/$attachmentId/finalize': typeof ApiV1AttachmentsAttachmentIdFinalizeRoute
+  '/api/v1/attachments/$attachmentId/meta': typeof ApiV1AttachmentsAttachmentIdMetaRoute
   '/api/v1/postage/$messageId/refund': typeof ApiV1PostageMessageIdRefundRoute
   '/api/v1/postage/$messageId/settle': typeof ApiV1PostageMessageIdSettleRoute
   '/api/v1/receipts/$messageId/read': typeof ApiV1ReceiptsMessageIdReadRoute
+  '/api/v1/attachments/$attachmentId/chunks/$chunkIndex': typeof ApiV1AttachmentsAttachmentIdChunksChunkIndexRoute
   '/api/v1/policies/$owner/senders/$sender': typeof ApiV1PoliciesOwnerSendersSenderRoute
 }
 export interface FileRouteTypes {
@@ -174,6 +224,8 @@ export interface FileRouteTypes {
     | '/api/v1/health'
     | '/api/v1/openapi.json'
     | '/api/v1/protocol'
+    | '/api/v1/attachments/$attachmentId'
+    | '/api/v1/attachments/initiate'
     | '/api/v1/policies/$owner'
     | '/api/v1/policies/evaluate'
     | '/api/v1/postage/$messageId'
@@ -181,9 +233,12 @@ export interface FileRouteTypes {
     | '/api/v1/receipts/$messageId'
     | '/api/v1/postage/'
     | '/api/v1/receipts/'
+    | '/api/v1/attachments/$attachmentId/finalize'
+    | '/api/v1/attachments/$attachmentId/meta'
     | '/api/v1/postage/$messageId/refund'
     | '/api/v1/postage/$messageId/settle'
     | '/api/v1/receipts/$messageId/read'
+    | '/api/v1/attachments/$attachmentId/chunks/$chunkIndex'
     | '/api/v1/policies/$owner/senders/$sender'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -192,6 +247,8 @@ export interface FileRouteTypes {
     | '/api/v1/health'
     | '/api/v1/openapi.json'
     | '/api/v1/protocol'
+    | '/api/v1/attachments/$attachmentId'
+    | '/api/v1/attachments/initiate'
     | '/api/v1/policies/$owner'
     | '/api/v1/policies/evaluate'
     | '/api/v1/postage/$messageId'
@@ -199,9 +256,12 @@ export interface FileRouteTypes {
     | '/api/v1/receipts/$messageId'
     | '/api/v1/postage'
     | '/api/v1/receipts'
+    | '/api/v1/attachments/$attachmentId/finalize'
+    | '/api/v1/attachments/$attachmentId/meta'
     | '/api/v1/postage/$messageId/refund'
     | '/api/v1/postage/$messageId/settle'
     | '/api/v1/receipts/$messageId/read'
+    | '/api/v1/attachments/$attachmentId/chunks/$chunkIndex'
     | '/api/v1/policies/$owner/senders/$sender'
   id:
     | '__root__'
@@ -210,6 +270,8 @@ export interface FileRouteTypes {
     | '/api/v1/health'
     | '/api/v1/openapi.json'
     | '/api/v1/protocol'
+    | '/api/v1/attachments/$attachmentId'
+    | '/api/v1/attachments/initiate'
     | '/api/v1/policies/$owner'
     | '/api/v1/policies/evaluate'
     | '/api/v1/postage/$messageId'
@@ -217,9 +279,12 @@ export interface FileRouteTypes {
     | '/api/v1/receipts/$messageId'
     | '/api/v1/postage/'
     | '/api/v1/receipts/'
+    | '/api/v1/attachments/$attachmentId/finalize'
+    | '/api/v1/attachments/$attachmentId/meta'
     | '/api/v1/postage/$messageId/refund'
     | '/api/v1/postage/$messageId/settle'
     | '/api/v1/receipts/$messageId/read'
+    | '/api/v1/attachments/$attachmentId/chunks/$chunkIndex'
     | '/api/v1/policies/$owner/senders/$sender'
   fileRoutesById: FileRoutesById
 }
@@ -229,6 +294,8 @@ export interface RootRouteChildren {
   ApiV1HealthRoute: typeof ApiV1HealthRoute
   ApiV1OpenapiDotjsonRoute: typeof ApiV1OpenapiDotjsonRoute
   ApiV1ProtocolRoute: typeof ApiV1ProtocolRoute
+  ApiV1AttachmentsAttachmentIdRoute: typeof ApiV1AttachmentsAttachmentIdRouteWithChildren
+  ApiV1AttachmentsInitiateRoute: typeof ApiV1AttachmentsInitiateRoute
   ApiV1PoliciesOwnerRoute: typeof ApiV1PoliciesOwnerRouteWithChildren
   ApiV1PoliciesEvaluateRoute: typeof ApiV1PoliciesEvaluateRoute
   ApiV1PostageMessageIdRoute: typeof ApiV1PostageMessageIdRouteWithChildren
@@ -324,6 +391,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1PoliciesOwnerRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/attachments/initiate': {
+      id: '/api/v1/attachments/initiate'
+      path: '/api/v1/attachments/initiate'
+      fullPath: '/api/v1/attachments/initiate'
+      preLoaderRoute: typeof ApiV1AttachmentsInitiateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/attachments/$attachmentId': {
+      id: '/api/v1/attachments/$attachmentId'
+      path: '/api/v1/attachments/$attachmentId'
+      fullPath: '/api/v1/attachments/$attachmentId'
+      preLoaderRoute: typeof ApiV1AttachmentsAttachmentIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/receipts/$messageId/read': {
       id: '/api/v1/receipts/$messageId/read'
       path: '/read'
@@ -345,6 +426,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1PostageMessageIdRefundRouteImport
       parentRoute: typeof ApiV1PostageMessageIdRoute
     }
+    '/api/v1/attachments/$attachmentId/meta': {
+      id: '/api/v1/attachments/$attachmentId/meta'
+      path: '/meta'
+      fullPath: '/api/v1/attachments/$attachmentId/meta'
+      preLoaderRoute: typeof ApiV1AttachmentsAttachmentIdMetaRouteImport
+      parentRoute: typeof ApiV1AttachmentsAttachmentIdRoute
+    }
+    '/api/v1/attachments/$attachmentId/finalize': {
+      id: '/api/v1/attachments/$attachmentId/finalize'
+      path: '/finalize'
+      fullPath: '/api/v1/attachments/$attachmentId/finalize'
+      preLoaderRoute: typeof ApiV1AttachmentsAttachmentIdFinalizeRouteImport
+      parentRoute: typeof ApiV1AttachmentsAttachmentIdRoute
+    }
     '/api/v1/policies/$owner/senders/$sender': {
       id: '/api/v1/policies/$owner/senders/$sender'
       path: '/senders/$sender'
@@ -352,8 +447,36 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1PoliciesOwnerSendersSenderRouteImport
       parentRoute: typeof ApiV1PoliciesOwnerRoute
     }
+    '/api/v1/attachments/$attachmentId/chunks/$chunkIndex': {
+      id: '/api/v1/attachments/$attachmentId/chunks/$chunkIndex'
+      path: '/chunks/$chunkIndex'
+      fullPath: '/api/v1/attachments/$attachmentId/chunks/$chunkIndex'
+      preLoaderRoute: typeof ApiV1AttachmentsAttachmentIdChunksChunkIndexRouteImport
+      parentRoute: typeof ApiV1AttachmentsAttachmentIdRoute
+    }
   }
 }
+
+interface ApiV1AttachmentsAttachmentIdRouteChildren {
+  ApiV1AttachmentsAttachmentIdFinalizeRoute: typeof ApiV1AttachmentsAttachmentIdFinalizeRoute
+  ApiV1AttachmentsAttachmentIdMetaRoute: typeof ApiV1AttachmentsAttachmentIdMetaRoute
+  ApiV1AttachmentsAttachmentIdChunksChunkIndexRoute: typeof ApiV1AttachmentsAttachmentIdChunksChunkIndexRoute
+}
+
+const ApiV1AttachmentsAttachmentIdRouteChildren: ApiV1AttachmentsAttachmentIdRouteChildren =
+  {
+    ApiV1AttachmentsAttachmentIdFinalizeRoute:
+      ApiV1AttachmentsAttachmentIdFinalizeRoute,
+    ApiV1AttachmentsAttachmentIdMetaRoute:
+      ApiV1AttachmentsAttachmentIdMetaRoute,
+    ApiV1AttachmentsAttachmentIdChunksChunkIndexRoute:
+      ApiV1AttachmentsAttachmentIdChunksChunkIndexRoute,
+  }
+
+const ApiV1AttachmentsAttachmentIdRouteWithChildren =
+  ApiV1AttachmentsAttachmentIdRoute._addFileChildren(
+    ApiV1AttachmentsAttachmentIdRouteChildren,
+  )
 
 interface ApiV1PoliciesOwnerRouteChildren {
   ApiV1PoliciesOwnerSendersSenderRoute: typeof ApiV1PoliciesOwnerSendersSenderRoute
@@ -401,6 +524,9 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1HealthRoute: ApiV1HealthRoute,
   ApiV1OpenapiDotjsonRoute: ApiV1OpenapiDotjsonRoute,
   ApiV1ProtocolRoute: ApiV1ProtocolRoute,
+  ApiV1AttachmentsAttachmentIdRoute:
+    ApiV1AttachmentsAttachmentIdRouteWithChildren,
+  ApiV1AttachmentsInitiateRoute: ApiV1AttachmentsInitiateRoute,
   ApiV1PoliciesOwnerRoute: ApiV1PoliciesOwnerRouteWithChildren,
   ApiV1PoliciesEvaluateRoute: ApiV1PoliciesEvaluateRoute,
   ApiV1PostageMessageIdRoute: ApiV1PostageMessageIdRouteWithChildren,

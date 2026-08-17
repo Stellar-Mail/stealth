@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+import { sanitizeFilename, sanitizeContentType } from "@/services/crypto/attachment-stream";
 
 // Mock database of file contents
 const MOCK_FILE_CONTENTS: Record<string, string | { [key: string]: any }> = {
@@ -127,6 +128,9 @@ export type Attachment = {
   name: string;
   size: string;
   type: string;
+  attachmentId?: string;
+  commitment?: string;
+  url?: string;
 };
 
 interface AttachmentPreviewDrawerProps {
@@ -219,22 +223,67 @@ export function AttachmentPreviewDrawer({
     return "application/octet-stream";
   };
 
-  const handleDownload = () => {
+  const [downloading, setDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
+
+  const handleDownload = async () => {
+    const safeName = sanitizeFilename(attachment.name);
+
+    if (attachment.attachmentId) {
+      setDownloading(true);
+      setDownloadError(null);
+      try {
+        const actor = senderAddress || "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+        const res = await fetch(`/api/v1/attachments/${attachment.attachmentId}`, {
+          headers: {
+            "x-stealth-address": actor,
+          },
+        });
+
+        if (!res.ok) {
+          throw new Error(`Authenticated download failed (status ${res.status})`);
+        }
+
+        const headerCommitment = res.headers.get("x-attachment-commitment");
+        if (
+          attachment.commitment &&
+          headerCommitment &&
+          headerCommitment.toLowerCase() !== attachment.commitment.toLowerCase()
+        ) {
+          throw new Error("Cryptographic commitment mismatch! Download aborted.");
+        }
+
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = safeName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      } catch (err: any) {
+        setDownloadError(err.message || "Failed to download attachment");
+      } finally {
+        setDownloading(false);
+      }
+      return;
+    }
+
     if (isImage) {
       const link = document.createElement("a");
-      // Use locally copied image or fall back to base image path
-      link.href = `/${attachment.name}`;
-      link.download = attachment.name;
+      link.href = `/${safeName}`;
+      link.download = safeName;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
     } else {
       const text = getMockFileString();
-      const blob = new Blob([text], { type: getMimeType(type) });
+      const blob = new Blob([text], { type: sanitizeContentType(getMimeType(type), safeName) });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = attachment.name;
+      link.download = safeName;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
