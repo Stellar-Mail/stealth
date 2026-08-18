@@ -13,9 +13,13 @@
  *   <motion.div {...motionPresets.entrance.slideUp()} />
  */
 
-// Check if user prefers reduced motion
-const prefersReducedMotion =
-  typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+/**
+ * Helper function to check if user prefers reduced motion dynamically
+ */
+export function isReducedMotion(): boolean {
+  if (typeof window === "undefined") return false;
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
 
 // Base animation configuration
 const baseConfig = {
@@ -33,7 +37,7 @@ const reducedConfig = {
   springDamping: 999,
 } as const;
 
-const getConfig = () => (prefersReducedMotion ? reducedConfig : baseConfig);
+const getConfig = () => (isReducedMotion() ? reducedConfig : baseConfig);
 
 export type AnimationPreset = {
   initial: Record<string, any>;
@@ -55,11 +59,12 @@ export const entrance = {
    */
   slideUp: (custom?: number): AnimationPreset => {
     const config = getConfig();
+    const reduced = isReducedMotion();
     return {
-      initial: { opacity: 0, y: 16 + (custom ?? 0) },
+      initial: reduced ? { opacity: 0 } : { opacity: 0, y: 16 + (custom ?? 0) },
       animate: { opacity: 1, y: 0 },
       transition: {
-        type: "spring",
+        type: reduced ? "tween" : "spring",
         stiffness: config.springStiffness,
         damping: config.springDamping,
         duration: config.duration,
@@ -88,11 +93,12 @@ export const entrance = {
    */
   scaleIn: (scale: number = 0.96): AnimationPreset => {
     const config = getConfig();
+    const reduced = isReducedMotion();
     return {
-      initial: { opacity: 0, scale },
+      initial: reduced ? { opacity: 0 } : { opacity: 0, scale },
       animate: { opacity: 1, scale: 1 },
       transition: {
-        type: "spring",
+        type: reduced ? "tween" : "spring",
         stiffness: config.springStiffness,
         damping: config.springDamping,
         duration: config.duration,
@@ -106,11 +112,12 @@ export const entrance = {
    */
   slideLeft: (distance: number = 24): AnimationPreset => {
     const config = getConfig();
+    const reduced = isReducedMotion();
     return {
-      initial: { opacity: 0, x: -distance },
+      initial: reduced ? { opacity: 0 } : { opacity: 0, x: -distance },
       animate: { opacity: 1, x: 0 },
       transition: {
-        type: "spring",
+        type: reduced ? "tween" : "spring",
         stiffness: config.springStiffness,
         damping: config.springDamping,
         duration: config.duration,
@@ -124,11 +131,12 @@ export const entrance = {
    */
   slideRight: (distance: number = 24): AnimationPreset => {
     const config = getConfig();
+    const reduced = isReducedMotion();
     return {
-      initial: { opacity: 0, x: distance },
+      initial: reduced ? { opacity: 0 } : { opacity: 0, x: distance },
       animate: { opacity: 1, x: 0 },
       transition: {
-        type: "spring",
+        type: reduced ? "tween" : "spring",
         stiffness: config.springStiffness,
         damping: config.springDamping,
         duration: config.duration,
@@ -148,12 +156,13 @@ export const exit = {
    */
   slideDown: (custom?: number): AnimationPreset => {
     const config = getConfig();
+    const reduced = isReducedMotion();
     return {
       initial: { opacity: 1, y: 0 },
-      exit: { opacity: 0, y: 16 + (custom ?? 0) },
+      exit: reduced ? { opacity: 0 } : { opacity: 0, y: 16 + (custom ?? 0) },
       animate: { opacity: 1, y: 0 },
       transition: {
-        type: "spring",
+        type: reduced ? "tween" : "spring",
         stiffness: config.springStiffness,
         damping: config.springDamping,
         duration: config.duration,
@@ -183,12 +192,13 @@ export const exit = {
    */
   scaleOut: (scale: number = 0.96): AnimationPreset => {
     const config = getConfig();
+    const reduced = isReducedMotion();
     return {
       initial: { opacity: 1, scale: 1 },
-      exit: { opacity: 0, scale },
+      exit: reduced ? { opacity: 0 } : { opacity: 0, scale },
       animate: { opacity: 1, scale: 1 },
       transition: {
-        type: "spring",
+        type: reduced ? "tween" : "spring",
         stiffness: config.springStiffness,
         damping: config.springDamping,
         duration: config.duration,
@@ -202,12 +212,13 @@ export const exit = {
    */
   slideToLeft: (distance: number = 24): AnimationPreset => {
     const config = getConfig();
+    const reduced = isReducedMotion();
     return {
       initial: { opacity: 1, x: 0 },
-      exit: { opacity: 0, x: -distance },
+      exit: reduced ? { opacity: 0 } : { opacity: 0, x: -distance },
       animate: { opacity: 1, x: 0 },
       transition: {
-        type: "spring",
+        type: reduced ? "tween" : "spring",
         stiffness: config.springStiffness,
         damping: config.springDamping,
         duration: config.duration,
@@ -221,12 +232,13 @@ export const exit = {
    */
   slideToRight: (distance: number = 24): AnimationPreset => {
     const config = getConfig();
+    const reduced = isReducedMotion();
     return {
       initial: { opacity: 1, x: 0 },
-      exit: { opacity: 0, x: distance },
+      exit: reduced ? { opacity: 0 } : { opacity: 0, x: distance },
       animate: { opacity: 1, x: 0 },
       transition: {
-        type: "spring",
+        type: reduced ? "tween" : "spring",
         stiffness: config.springStiffness,
         damping: config.springDamping,
         duration: config.duration,
@@ -246,16 +258,18 @@ export const promote = {
    * Good for buttons, cards, interactive elements
    */
   scale: (scale: number = 1.02): AnimationPreset => {
+    const config = getConfig();
+    const reduced = isReducedMotion();
     return {
       initial: { scale: 1 },
       animate: { scale: 1 },
-      whileHover: { scale },
-      whileTap: { scale: scale * 0.98 },
+      whileHover: reduced ? undefined : { scale },
+      whileTap: reduced ? undefined : { scale: scale * 0.98 },
       transition: {
-        type: "spring",
+        type: reduced ? "tween" : "spring",
         stiffness: 400,
         damping: 17,
-        duration: 0.2,
+        duration: config.duration,
       },
     };
   },
@@ -265,19 +279,23 @@ export const promote = {
    * Good for cards, elevated elements
    */
   lift: (): AnimationPreset => {
+    const config = getConfig();
+    const reduced = isReducedMotion();
     return {
       initial: { y: 0, boxShadow: "0px 1px 3px rgba(0, 0, 0, 0.1)" },
       animate: { y: 0 },
-      whileHover: {
-        y: -4,
-        boxShadow: "0px 8px 24px rgba(0, 0, 0, 0.15)",
-      },
-      whileTap: { y: -2 },
+      whileHover: reduced
+        ? undefined
+        : {
+            y: -4,
+            boxShadow: "0px 8px 24px rgba(0, 0, 0, 0.15)",
+          },
+      whileTap: reduced ? undefined : { y: -2 },
       transition: {
-        type: "spring",
+        type: reduced ? "tween" : "spring",
         stiffness: 400,
         damping: 17,
-        duration: 0.2,
+        duration: config.duration,
       },
     };
   },
@@ -287,12 +305,14 @@ export const promote = {
    * Good for focus states, highlighting active items
    */
   glow: (): AnimationPreset => {
+    const config = getConfig();
+    const reduced = isReducedMotion();
     return {
       initial: { opacity: 1 },
       animate: { opacity: 1 },
-      whileHover: { opacity: 1.1 },
+      whileHover: reduced ? undefined : { opacity: 1.1 },
       transition: {
-        duration: 0.2,
+        duration: config.duration,
       },
     };
   },
@@ -310,12 +330,13 @@ export const remove = {
    */
   spinOut: (): AnimationPreset => {
     const config = getConfig();
+    const reduced = isReducedMotion();
     return {
       initial: { opacity: 1, rotate: 0, scale: 1 },
-      exit: { opacity: 0, rotate: 90, scale: 0.8 },
+      exit: reduced ? { opacity: 0 } : { opacity: 0, rotate: 90, scale: 0.8 },
       animate: { opacity: 1, rotate: 0, scale: 1 },
       transition: {
-        type: "spring",
+        type: reduced ? "tween" : "spring",
         stiffness: config.springStiffness,
         damping: config.springDamping,
         duration: config.duration,
@@ -348,12 +369,13 @@ export const remove = {
    */
   slideAwayRight: (): AnimationPreset => {
     const config = getConfig();
+    const reduced = isReducedMotion();
     return {
       initial: { opacity: 1, x: 0 },
-      exit: { opacity: 0, x: 100 },
+      exit: reduced ? { opacity: 0 } : { opacity: 0, x: 100 },
       animate: { opacity: 1, x: 0 },
       transition: {
-        type: "spring",
+        type: reduced ? "tween" : "spring",
         stiffness: config.springStiffness,
         damping: config.springDamping,
         duration: config.duration,
@@ -374,11 +396,12 @@ export const confirm = {
    */
   bounce: (): AnimationPreset => {
     const config = getConfig();
+    const reduced = isReducedMotion();
     return {
-      initial: { opacity: 0, scale: 0.8, y: 12 },
+      initial: reduced ? { opacity: 0 } : { opacity: 0, scale: 0.8, y: 12 },
       animate: { opacity: 1, scale: 1, y: 0 },
       transition: {
-        type: "spring",
+        type: reduced ? "tween" : "spring",
         stiffness: config.springStiffness,
         damping: config.springDamping,
         duration: config.duration,
@@ -392,11 +415,12 @@ export const confirm = {
    */
   pulse: (): AnimationPreset => {
     const config = getConfig();
+    const reduced = isReducedMotion();
     return {
       initial: { scale: 1 },
-      animate: { scale: [1, 1.05, 1] },
+      animate: reduced ? { scale: 1 } : { scale: [1, 1.05, 1] },
       transition: {
-        duration: config.duration * 1.5,
+        duration: config.duration * (reduced ? 1 : 1.5),
         ease: "easeInOut",
       },
     };
@@ -408,11 +432,12 @@ export const confirm = {
    */
   checkmark: (): AnimationPreset => {
     const config = getConfig();
+    const reduced = isReducedMotion();
     return {
-      initial: { opacity: 0, scale: 0 },
+      initial: reduced ? { opacity: 0 } : { opacity: 0, scale: 0 },
       animate: { opacity: 1, scale: 1 },
       transition: {
-        type: "spring",
+        type: reduced ? "tween" : "spring",
         stiffness: config.springStiffness,
         damping: config.springDamping,
         duration: config.duration,
@@ -433,11 +458,12 @@ export const danger = {
    */
   shake: (): AnimationPreset => {
     const config = getConfig();
+    const reduced = isReducedMotion();
     return {
       initial: { x: 0 },
-      animate: { x: [0, -6, 6, -6, 0] },
+      animate: reduced ? { x: 0 } : { x: [0, -6, 6, -6, 0] },
       transition: {
-        duration: config.duration * 1.2,
+        duration: config.duration * (reduced ? 1 : 1.2),
         ease: "easeInOut",
       },
     };
@@ -449,11 +475,12 @@ export const danger = {
    */
   pulse: (): AnimationPreset => {
     const config = getConfig();
+    const reduced = isReducedMotion();
     return {
       initial: { opacity: 1 },
-      animate: { opacity: [1, 0.7, 1] },
+      animate: reduced ? { opacity: 1 } : { opacity: [1, 0.7, 1] },
       transition: {
-        duration: config.duration * 1.5,
+        duration: config.duration * (reduced ? 1 : 1.5),
         ease: "easeInOut",
       },
     };
@@ -465,11 +492,12 @@ export const danger = {
    */
   spinWarn: (): AnimationPreset => {
     const config = getConfig();
+    const reduced = isReducedMotion();
     return {
-      initial: { opacity: 0, rotate: -180 },
+      initial: reduced ? { opacity: 0 } : { opacity: 0, rotate: -180 },
       animate: { opacity: 1, rotate: 0 },
       transition: {
-        type: "spring",
+        type: reduced ? "tween" : "spring",
         stiffness: config.springStiffness,
         damping: config.springDamping,
         duration: config.duration,
@@ -605,7 +633,7 @@ export const easings = {
  * Helper function to check if user prefers reduced motion
  */
 export function getMotionPreference(): "full" | "reduced" {
-  return prefersReducedMotion ? "reduced" : "full";
+  return isReducedMotion() ? "reduced" : "full";
 }
 
 /**
@@ -623,6 +651,7 @@ export const motionPresets = {
   durations,
   easings,
   getMotionPreference,
+  isReducedMotion,
 } as const;
 
 export type MotionPreset = typeof motionPresets;
