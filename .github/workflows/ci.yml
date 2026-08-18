@@ -137,7 +137,7 @@ jobs:
     # Keep the browser, its OS libraries, and the Playwright package aligned.
     # This avoids installing system packages from an external apt mirror during
     # the check, which can be unavailable or cancelled by the runner.
-    container: mcr.microsoft.com/playwright:v1.61.0-noble
+    container: mcr.microsoft.com/playwright:v1.62.1-noble
     needs: [client-checks]
     steps:
       - uses: actions/checkout@v4
