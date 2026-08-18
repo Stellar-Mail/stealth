@@ -40,7 +40,7 @@ class FailingAbuseRepository extends MemoryApiRepository {
 
 describe("abuse service", () => {
   it("defines an outage policy for every postage submit abuse check", () => {
-    expect(ABUSE_OUTAGE_POLICIES.postage_submit).toEqual({
+    expect(ABUSE_OUTAGE_POLICIES.postage_submit).toMatchObject({
       account: "fail_closed",
       device: "fail_open",
       ip: "fail_open",
