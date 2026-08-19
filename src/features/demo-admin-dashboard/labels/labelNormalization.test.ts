@@ -32,7 +32,10 @@ describe("toLabelId", () => {
 
 describe("createLabel", () => {
   it("builds a label from a raw name", () => {
-    expect(createLabel("Follow up")).toEqual({ id: "follow-up", name: "Follow up" });
+    expect(createLabel("Follow up")).toEqual({
+      id: "follow-up",
+      name: "Follow up",
+    });
   });
 
   it("keeps a provided color", () => {

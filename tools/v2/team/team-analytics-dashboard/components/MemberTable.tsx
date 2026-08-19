@@ -161,7 +161,11 @@ export function MemberTable({
                   }}
                   className={`transition-colors ${
                     isSelected ? "bg-primary/10" : "hover:bg-muted/50"
-                  } ${onSelectMember ? "cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary" : ""}`}
+                  } ${
+                    onSelectMember
+                      ? "cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+                      : ""
+                  }`}
                 >
                   <th scope="row" className="px-4 py-3 font-medium text-left">
                     {displayName}

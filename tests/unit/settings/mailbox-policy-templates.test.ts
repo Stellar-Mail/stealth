@@ -36,7 +36,10 @@ describe("mailbox policy templates", () => {
 
     expect(saved.id).toBe("custom");
     expect(saved.sourceTemplateId).toBe("investor-inbox");
-    expect(saved.policy).toEqual({ unknownSenders: "verified", minimumPostage: "0.25" });
+    expect(saved.policy).toEqual({
+      unknownSenders: "verified",
+      minimumPostage: "0.25",
+    });
   });
 
   it("rehydrates a saved custom template back into preferences", () => {

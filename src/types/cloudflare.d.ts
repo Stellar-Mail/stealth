@@ -106,3 +106,17 @@ declare module "cloudflare:workers" {
     constructor(ctx: DurableObjectState, env: any);
   }
 }
+
+declare module "cloudflare:sockets" {
+  export interface Socket {
+    write(data: string): void;
+    close(): void;
+    startTls(): Socket;
+    addEventListener(type: string, listener: (event: unknown) => void): void;
+  }
+  export function connect(options: {
+    hostname: string;
+    port: number;
+    secureTransport: "on" | "off" | "starttls";
+  }): Socket;
+}

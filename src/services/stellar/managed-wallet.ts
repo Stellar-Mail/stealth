@@ -7,11 +7,22 @@ import {
   Transaction,
 } from "@stellar/stellar-sdk";
 import type { BetaRuntimeConfig } from "../../config/schema";
+import {
+  type ManagedWalletRecord,
+  type ManagedWalletStore,
+  type MasterKeyProvider,
+  rewrapManagedWallet,
+  sealManagedWalletSeed,
+  withManagedWalletSeed,
+} from "../crypto/managed-wallet-envelope";
 import { type ManagedWalletIntent, validateIntent } from "../../server/api/authorization/intents";
 import { recordAuditEvent } from "../../server/api/audit";
 
 export class ManagedWalletService {
-  constructor(private config: BetaRuntimeConfig) {}
+  constructor(
+    private readonly config: BetaRuntimeConfig,
+    private readonly custody?: { store: ManagedWalletStore; keys: MasterKeyProvider },
+  ) {}
 
   public async signTransaction(
     intent: ManagedWalletIntent,
@@ -23,15 +34,9 @@ export class ManagedWalletService {
       // 1. Validate intent (throws if invalid)
       validateIntent(intent, actorAddress, this.config);
 
-      const operatorSecret = this.config.secrets?.operatorSecret;
-      if (!operatorSecret) {
-        throw new Error("Managed wallet not configured: missing operator secret");
-      }
-      const operatorKeypair = Keypair.fromSecret(operatorSecret);
-      const networkPassphrase = this.config.network.networkPassphrase;
-
       // 2. Parse the XDR to verify it matches the intent and doesn't contain arbitrary operations
       let tx: Transaction;
+      const networkPassphrase = this.config.network.networkPassphrase;
       try {
         tx = new Transaction(transactionXdr, networkPassphrase);
       } catch (err) {
@@ -54,7 +59,7 @@ export class ManagedWalletService {
       this.verifyOperationMatchesIntent(op, intent, this.config);
 
       // 3. Sign the transaction
-      tx.sign(operatorKeypair);
+      await this.signWithCustody(actorAddress, tx);
 
       // 4. Emit success audit event
       recordAuditEvent({
@@ -80,6 +85,60 @@ export class ManagedWalletService {
       throw error;
     }
   }
+  /** Provisioning is intentionally separate from signing and stores only a sealed record. */
+  public async provisionWallet(owner: string, seed: string): Promise<ManagedWalletRecord> {
+    if (!this.custody) throw new Error("Managed wallet custody is not configured");
+    const address = Keypair.fromSecret(seed).publicKey();
+    const existing = await this.custody.store.get(owner);
+    if (existing) {
+      if (existing.envelope.address !== address) throw new Error("Managed wallet already exists");
+      return existing; // duplicate provisioning is safe and does not rotate key material.
+    }
+    const record: ManagedWalletRecord = {
+      owner,
+      envelope: await sealManagedWalletSeed(seed, address, this.custody.keys),
+      updatedAt: new Date().toISOString(),
+    };
+    if (!(await this.custody.store.compareAndSet(owner, null, record))) {
+      const raced = await this.custody.store.get(owner);
+      if (raced?.envelope.address === address) return raced;
+      throw new Error("Managed wallet provisioning conflict");
+    }
+    return record;
+  }
+
+  /** Rotation rewraps the data key only; the encrypted seed and Stellar address remain unchanged. */
+  public async rotateWalletKey(
+    owner: string,
+    targetVersion?: string,
+  ): Promise<ManagedWalletRecord> {
+    if (!this.custody) throw new Error("Managed wallet custody is not configured");
+    const current = await this.custody.store.get(owner);
+    if (!current) throw new Error("Managed wallet was not found");
+    const envelope = await rewrapManagedWallet(current.envelope, this.custody.keys, targetVersion);
+    if (envelope === current.envelope) return current;
+    const updated = { ...current, envelope, updatedAt: new Date().toISOString() };
+    if (!(await this.custody.store.compareAndSet(owner, current.updatedAt, updated))) {
+      throw new Error("Managed wallet rotation conflict");
+    }
+    return updated;
+  }
+
+  private async signWithCustody(owner: string, tx: Transaction): Promise<void> {
+    if (this.custody) {
+      const record = await this.custody.store.get(owner);
+      if (!record || record.owner !== owner) throw new Error("Managed wallet access denied");
+      return withManagedWalletSeed(record.envelope, this.custody.keys, (seed) => {
+        const keypair = Keypair.fromSecret(seed);
+        if (keypair.publicKey() !== record.envelope.address)
+          throw new Error("Managed wallet integrity check failed");
+        tx.sign(keypair);
+      });
+    }
+    const operatorSecret = this.config.secrets?.operatorSecret;
+    if (!operatorSecret) throw new Error("Managed wallet not configured");
+    tx.sign(Keypair.fromSecret(operatorSecret));
+  }
 
   private getSafeTargetReference(intent: ManagedWalletIntent): string {
     switch (intent.type) {
@@ -91,6 +150,8 @@ export class ManagedWalletService {
         return `lifecycle:${intent.userAddress}`;
       case "receipt":
         return `receipt:${intent.recipientAddress}`;
+      case "keys":
+        return `keys:${intent.ownerAddress}:${intent.operation}`;
     }
   }
 

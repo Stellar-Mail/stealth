@@ -31,7 +31,11 @@ export class ApiHelper {
 
   async putPolicy(
     actor = ACTOR,
-    policy = { allowUnknown: true, minimumPostage: "0", requireVerified: false },
+    policy = {
+      allowUnknown: true,
+      minimumPostage: "0",
+      requireVerified: false,
+    },
   ) {
     return this.page.request.put(`/api/v1/policies/${actor}`, {
       headers: this.headers(actor),
@@ -58,10 +62,10 @@ export class ApiHelper {
     });
   }
 
-  async quotePostage(recipient = ACTOR, sender = SENDER) {
+  async quotePostage(recipient = ACTOR, sender = SENDER, messageId = MSG_ID) {
     return this.page.request.post("/api/v1/postage/quote", {
       headers: this.headers(sender),
-      data: { recipient, sender },
+      data: { recipient, sender, messageId },
     });
   }
 
@@ -72,7 +76,7 @@ export class ApiHelper {
     recipient = ACTOR,
     sender = SENDER,
   ) {
-    const quoteRes = await this.quotePostage(recipient, sender);
+    const quoteRes = await this.quotePostage(recipient, sender, messageId);
     const { data: quoteData } = await quoteRes.json();
 
     return this.page.request.post("/api/v1/postage/", {
@@ -83,6 +87,9 @@ export class ApiHelper {
         paymentHash,
         recipient,
         sender,
+        asset: quoteData.asset,
+        policyVersion: quoteData.policyVersion,
+        network: quoteData.network,
         issuedAt: quoteData.issuedAt,
         expiresAt: quoteData.expiresAt,
         quoteDigest: quoteData.digest,

@@ -1,18 +1,16 @@
 import type { RegistrationRequest, RegistrationResponse } from "@/features/identity/registration";
 import { maskEmail } from "@/features/identity/registration";
+import { loadRuntimeConfig } from "@/config";
 import type { ApiContext } from "../context";
 import type { Credential, Profile, User } from "../domain";
 import { ApiError } from "../errors";
 import { hashPassword } from "./password";
+import { provisionManagedStellarWallet } from "../account-provisioning";
+import { prepareManagedWalletSecret } from "@/services/stellar/account-provision";
+import { createFundingAdapter } from "@/services/stellar/funding-adapter";
 
 const SIGNUP_RATE_LIMIT_WINDOW_SECONDS = 60 * 60;
 const MAX_SIGNUPS_PER_IP = 10;
-const BASE32 = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
-
-function generatedAccountAddress(): string {
-  const bytes = crypto.getRandomValues(new Uint8Array(55));
-  return `G${Array.from(bytes, (byte) => BASE32[byte % BASE32.length]).join("")}`;
-}
 
 export async function registerWithPassword(
   apiContext: ApiContext,
@@ -26,18 +24,27 @@ export async function registerWithPassword(
     });
   }
 
-  const now = new Date().toISOString();
+  const now = new Date();
+  const nowIso = now.toISOString();
   const userId = `usr_${crypto.randomUUID().replace(/-/g, "")}`;
   const { hash, salt } = await hashPassword(input.password);
+
+  const config = loadRuntimeConfig();
+  const storageSecret = config.secrets?.storageSecret ?? "dev-storage-secret-change-me";
+  const prepared = await prepareManagedWalletSecret({
+    userId,
+    storageSecret,
+    now,
+  });
+
   const user: User = {
     userId,
-    // This is an internal unique placeholder, not an external wallet connection.
-    address: generatedAccountAddress(),
+    address: prepared.address,
     email: input.email,
     username: input.username,
     status: "pending_verification",
-    createdAt: now,
-    updatedAt: now,
+    createdAt: nowIso,
+    updatedAt: nowIso,
     version: 1,
   };
   const credential: Credential = {
@@ -46,26 +53,36 @@ export async function registerWithPassword(
     authMethod: "password_hash",
     secretHash: `${hash}:${salt}`,
     walletKeyRef: `pending_${userId}`,
-    createdAt: now,
-    updatedAt: now,
+    createdAt: nowIso,
+    updatedAt: nowIso,
   };
   const profile: Profile = {
     userId,
     username: input.username,
     displayName: input.displayName,
-    createdAt: now,
-    updatedAt: now,
+    createdAt: nowIso,
+    updatedAt: nowIso,
   };
 
   try {
     await apiContext.repository.createUser(user, credential, profile);
   } catch (error) {
     if (error instanceof ApiError && error.code === "conflict") {
-      // Keep email and username ownership private.
       throw new ApiError("conflict");
     }
     throw error;
   }
+
+  await provisionManagedStellarWallet(apiContext.repository, userId, config, {
+    fundingAdapter: createFundingAdapter({
+      useFake: config.profile === "development" || config.profile === "test",
+    }),
+    storageSecret,
+    now,
+    prepared,
+    accountId: userId,
+    origin: ip,
+  });
 
   await apiContext.repository.incrementCounter(rateLimitKey, SIGNUP_RATE_LIMIT_WINDOW_SECONDS, 1);
   return {

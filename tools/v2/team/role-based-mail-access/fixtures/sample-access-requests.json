@@ -59,20 +59,36 @@
       "value": "admin trailing-space ",
       "reason": "whitespace-padded role not in allowlist"
     },
-    { "field": "role", "value": "admin; DROP TABLE roles--", "reason": "SQL-style injection" },
+    {
+      "field": "role",
+      "value": "admin; DROP TABLE roles--",
+      "reason": "SQL-style injection"
+    },
     {
       "field": "role",
       "value": "аdmin",
       "reason": "homoglyph attack — Cyrillic U+0430 replacing Latin a"
     },
-    { "field": "role", "value": "superadmin", "reason": "non-existent role escalation attempt" },
+    {
+      "field": "role",
+      "value": "superadmin",
+      "reason": "non-existent role escalation attempt"
+    },
     {
       "field": "role",
       "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       "reason": "oversized role string (65 chars)"
     },
-    { "field": "accessLevel", "value": "superwrite", "reason": "non-existent access level" },
-    { "field": "accessLevel", "value": "*", "reason": "wildcard escalation attempt" },
+    {
+      "field": "accessLevel",
+      "value": "superwrite",
+      "reason": "non-existent access level"
+    },
+    {
+      "field": "accessLevel",
+      "value": "*",
+      "reason": "wildcard escalation attempt"
+    },
     {
       "field": "email",
       "value": "user@evil.test\r\nBcc: victim@example.test",
@@ -83,15 +99,27 @@
       "value": "user@evil.test\nX-Injected: yes",
       "reason": "LF-only header injection"
     },
-    { "field": "email", "value": "@missinglocal.test", "reason": "missing local part" },
+    {
+      "field": "email",
+      "value": "@missinglocal.test",
+      "reason": "missing local part"
+    },
     { "field": "email", "value": "user@", "reason": "missing domain after @" },
-    { "field": "email", "value": "nodomain", "reason": "missing @ and domain entirely" },
+    {
+      "field": "email",
+      "value": "nodomain",
+      "reason": "missing @ and domain entirely"
+    },
     {
       "field": "threadId",
       "value": "../../../other-team/secret",
       "reason": "path traversal attempt"
     },
-    { "field": "threadId", "value": "thread 001", "reason": "space in threadId" },
+    {
+      "field": "threadId",
+      "value": "thread 001",
+      "reason": "space in threadId"
+    },
     {
       "field": "threadId",
       "value": "<script>alert(1)</script>",

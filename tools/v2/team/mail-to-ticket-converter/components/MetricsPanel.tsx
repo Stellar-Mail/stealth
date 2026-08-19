@@ -22,10 +22,22 @@ export function MetricsPanel({ metrics, onRetry }: MetricsPanelProps) {
 
 function MetricsDisplay({ metrics }: { metrics: TicketMetrics }) {
   const statCards = [
-    { label: "Total", value: metrics.totalTickets, color: "text-[--text-primary]" },
+    {
+      label: "Total",
+      value: metrics.totalTickets,
+      color: "text-[--text-primary]",
+    },
     { label: "Open", value: metrics.openTickets, color: "text-yellow-400" },
-    { label: "In Progress", value: metrics.inProgressTickets, color: "text-blue-400" },
-    { label: "Resolved", value: metrics.resolvedTickets, color: "text-green-400" },
+    {
+      label: "In Progress",
+      value: metrics.inProgressTickets,
+      color: "text-blue-400",
+    },
+    {
+      label: "Resolved",
+      value: metrics.resolvedTickets,
+      color: "text-green-400",
+    },
     { label: "Closed", value: metrics.closedTickets, color: "text-gray-400" },
   ];
 

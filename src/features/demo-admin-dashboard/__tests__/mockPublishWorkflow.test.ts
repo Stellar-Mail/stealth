@@ -22,7 +22,9 @@ describe("mockPublishWorkflow", () => {
   });
 
   it("rejects publishing without queued draft data", () => {
-    const failed = mockPublishReducer(initialMockPublishState, { type: "start" });
+    const failed = mockPublishReducer(initialMockPublishState, {
+      type: "start",
+    });
 
     expect(failed.status).toBe("failed");
     expect(failed.error).toBe("Add at least one demo draft before publishing.");

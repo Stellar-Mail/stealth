@@ -13,9 +13,15 @@ import { openApiDocument } from "../../../src/server/api/openapi";
 const schema = z.object({ value: z.string() });
 
 function jsonRequest(body: string, contentLength?: number) {
-  const headers: Record<string, string> = { "content-type": "application/json" };
+  const headers: Record<string, string> = {
+    "content-type": "application/json",
+  };
   if (contentLength !== undefined) headers["content-length"] = String(contentLength);
-  return new Request("https://stealth.test/api", { method: "POST", headers, body });
+  return new Request("https://stealth.test/api", {
+    method: "POST",
+    headers,
+    body,
+  });
 }
 
 describe("body-limit registry (#1487)", () => {
@@ -37,7 +43,9 @@ describe("body-limit registry (#1487)", () => {
 
   it("resolves every configured route key to its category cap", () => {
     for (const [routeKey, category] of Object.entries(ROUTE_BODY_LIMITS)) {
-      const bytes = resolveBodyLimit({ route: routeKey as keyof typeof ROUTE_BODY_LIMITS });
+      const bytes = resolveBodyLimit({
+        route: routeKey as keyof typeof ROUTE_BODY_LIMITS,
+      });
       expect(bytes).toBe(BODY_LIMIT_CATEGORIES[category]);
     }
   });
@@ -56,7 +64,9 @@ describe("body-limit registry (#1487)", () => {
   });
 
   it("enforces the selected category cap against the actual body", async () => {
-    const oversized = JSON.stringify({ value: "x".repeat(BODY_LIMIT_CATEGORIES.minimal) });
+    const oversized = JSON.stringify({
+      value: "x".repeat(BODY_LIMIT_CATEGORIES.minimal),
+    });
     await expect(parseJsonBody(jsonRequest(oversized), schema, "minimal")).rejects.toMatchObject({
       status: 413,
     });
@@ -99,6 +109,11 @@ describe("body-limit registry (#1487)", () => {
       "quotePostage",
       "recordDelivery",
       "submitRelayMessage",
+      "createContact",
+      "updateContact",
+      "mergeContacts",
+      "previewContactImport",
+      "commitContactImport",
     ]) {
       expect(documented.get(opId), `${opId} documents x-max-body-bytes`).toBeGreaterThan(0);
     }

@@ -153,12 +153,24 @@
     }
   ],
   "hostileInputs": [
-    { "field": "email", "value": "@missinglocal.test", "reason": "missing local part" },
+    {
+      "field": "email",
+      "value": "@missinglocal.test",
+      "reason": "missing local part"
+    },
     { "field": "email", "value": "nodomain", "reason": "missing @ sign" },
     { "field": "email", "value": "", "reason": "empty string" },
     { "field": "email", "value": "user@", "reason": "missing domain" },
-    { "field": "threadId", "value": "../../../etc/passwd", "reason": "path traversal" },
-    { "field": "threadId", "value": "<script>alert(1)</script>", "reason": "XSS attempt" },
+    {
+      "field": "threadId",
+      "value": "../../../etc/passwd",
+      "reason": "path traversal"
+    },
+    {
+      "field": "threadId",
+      "value": "<script>alert(1)</script>",
+      "reason": "XSS attempt"
+    },
     { "field": "threadId", "value": "thread 001", "reason": "space in ID" },
     { "field": "severity", "value": "CRITICAL", "reason": "wrong case" },
     { "field": "severity", "value": "extreme", "reason": "unknown value" },
@@ -177,7 +189,11 @@
       { "from": "escalated", "to": "dismissed" }
     ],
     "invalid": [
-      { "from": "new", "to": "escalated", "reason": "cannot skip under-review" },
+      {
+        "from": "new",
+        "to": "escalated",
+        "reason": "cannot skip under-review"
+      },
       { "from": "new", "to": "resolved", "reason": "cannot skip under-review" },
       { "from": "resolved", "to": "new", "reason": "terminal status" },
       { "from": "resolved", "to": "under-review", "reason": "terminal status" },

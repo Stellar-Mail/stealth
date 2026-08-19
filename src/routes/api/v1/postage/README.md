@@ -34,13 +34,26 @@ Quote request:
 
 - `recipient`: Stellar address.
 - `sender`: Stellar address.
+- `messageId`: 32-byte hash encoded as 64 hex characters — the quote is bound
+  to this message and can never be reused for another one (BETA-039 / #1946).
 
 Quote response:
 
 - `amount`: required postage in stroops.
 - `eligible`: whether the sender may proceed.
-- `reason`: `trusted_sender`, `mailbox_minimum`, or `sender_blocked`.
+- `reason`: `trusted_sender`, `mailbox_minimum`, `sender_blocked`, or
+  `insufficient_balance`.
 - `trusted`: whether a sender rule grants zero-postage trust.
+- `messageId`: the message identity the quote is bound to.
+- `asset`: configured testnet asset the quote is bound to.
+- `policyVersion`: recipient policy version the quote is bound to.
+- `network`: network passphrase the quote is bound to.
+- `fee`: `{ bps, amount }` estimated fee in stroops.
+- `balance`: `{ available, sufficient }` sender balance guidance (nulls when
+  the server cannot observe a live balance).
+- `retryAfterSeconds`: seconds until the quote expires (re-quote hint).
+- `issuedAt` / `expiresAt`: quote validity window.
+- `digest`: HMAC binding every field above.
 
 Submit request:
 
@@ -49,6 +62,11 @@ Submit request:
 - `paymentHash`: 32-byte payment proof hash encoded as 64 hex characters.
 - `recipient`: Stellar address.
 - `sender`: Stellar address and required actor.
+- `asset`: asset the quote was bound to (must match the current testnet asset).
+- `policyVersion`: policy version the quote was bound to (must be current).
+- `network`: network the quote was bound to (must match the current network).
+- `issuedAt` / `expiresAt`: quote validity window from the quote response.
+- `quoteDigest`: HMAC digest from the quote response.
 
 Postage records persist as `pending`, `settled`, or `refunded`.
 
@@ -81,17 +99,19 @@ Clients should branch on `error.code`, not on `message` text. Every response als
 
 ### Error codes
 
-| Code                 | HTTP status     | Raised when                                                                                       | Retryable |
-| -------------------- | --------------- | ------------------------------------------------------------------------------------------------- | --------- |
-| `bad_request`        | 400 / 413 / 415 | Invalid JSON body, body over 64 KB, or non-JSON `Content-Type`                                    | No        |
-| `unauthorized`       | 401             | Missing or invalid `x-stealth-address` actor header                                               | No        |
-| `forbidden`          | 403             | Actor does not match the sender, recipient blocked the sender, or a non-participant tried to read | No        |
-| `not_found`          | 404             | No postage record exists for the message id                                                       | No        |
-| `conflict`           | 409             | Duplicate submit, or settle/refund of already-resolved postage                                    | No        |
-| `validation_error`   | 422             | Schema validation failed, or amount is below the mailbox minimum                                  | No        |
-| `too_many_requests`  | 429             | Account, IP, device, sender-recipient, or relay rate limit hit                                    | Yes       |
-| `method_not_allowed` | 405             | HTTP method not supported on the route                                                            | No        |
-| `internal_error`     | 500             | Unexpected server error                                                                           | Yes       |
+| Code                 | HTTP status     | Raised when                                                                                                                       | Retryable |
+| -------------------- | --------------- | --------------------------------------------------------------------------------------------------------------------------------- | --------- |
+| `bad_request`        | 400 / 413 / 415 | Invalid JSON body, body over 64 KB, or non-JSON `Content-Type`                                                                    | No        |
+| `unauthorized`       | 401             | Missing or invalid `x-stealth-address` actor header                                                                               | No        |
+| `forbidden`          | 403             | Actor does not match the sender, recipient blocked the sender, or a non-participant tried to read                                 | No        |
+| `not_found`          | 404             | No postage record exists for the message id                                                                                       | No        |
+| `conflict`           | 409             | Duplicate submit, or settle/refund of already-resolved postage                                                                    | No        |
+| `validation_error`   | 422             | Schema validation failed, or amount is below the mailbox minimum                                                                  | No        |
+| `expired_challenge`  | 422             | Quote was already expired at submission time                                                                                      | No        |
+| `invalid_quote`      | 422             | Quote digest is tampered, reused for another message/recipient, bound to a different asset/network, or policy changed after issue | No        |
+| `too_many_requests`  | 429             | Account, IP, device, sender-recipient, or relay rate limit hit                                                                    | Yes       |
+| `method_not_allowed` | 405             | HTTP method not supported on the route                                                                                            | No        |
+| `internal_error`     | 500             | Unexpected server error                                                                                                           | Yes       |
 
 ### Retryable vs non-retryable
 
@@ -101,11 +121,11 @@ Clients should branch on `error.code`, not on `message` text. Every response als
 
 ### Errors by endpoint
 
-**`POST /api/v1/postage/quote`** — quote a sender/recipient pair (no actor header required).
+**`POST /api/v1/postage/quote`** — quote a sender/recipient/message triple (no actor header required).
 
 - `415` / `413` / `400` `bad_request` — malformed request body.
-- `422` `validation_error` — `recipient` or `sender` is missing or not a valid Stellar G-address.
-- `200` — returns `amount`, `eligible`, `reason`, and `trusted`. A blocked sender is reported as `eligible: false`, not as an error.
+- `422` `validation_error` — `recipient` or `sender` is missing or not a valid Stellar G-address, or `messageId` is not a 64-character hex hash.
+- `200` — returns `amount`, `eligible`, `reason`, `trusted`, plus the bound fields `messageId`, `asset`, `policyVersion`, `network`, `fee`, `balance`, `retryAfterSeconds`, `issuedAt`, `expiresAt`, and `digest`. A blocked sender is reported as `eligible: false`, not as an error.
 
 **`POST /api/v1/postage/`** — submit postage as the sender.
 
@@ -113,6 +133,8 @@ Clients should branch on `error.code`, not on `message` text. Every response als
 - `403` `forbidden` — actor does not match `sender`, or the recipient has blocked the sender.
 - `400` / `413` / `415` `bad_request` — malformed request body.
 - `422` `validation_error` — schema invalid, or `amount` is below the mailbox minimum (`details.minimumPostage`).
+- `422` `expired_challenge` — the quote was already expired when submitted; fetch a fresh quote and retry.
+- `422` `invalid_quote` — the quote digest does not match the submission (tampered `amount`/`recipient`/`sender`/`messageId`, a quote bound to a different `asset`/`network`, or a recipient policy that changed after the quote was issued); fetch a fresh quote for the exact message against the current policy and retry.
 - `429` `too_many_requests` — a rate limit was hit (`details.retryAfterSeconds`).
 - `409` `conflict` — postage already exists for this message id (unless replayed with an idempotency key).
 - `201` — record created with status `pending`.

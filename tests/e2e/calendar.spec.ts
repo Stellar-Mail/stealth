@@ -8,7 +8,10 @@ test.describe("calendar linking", () => {
   test("adds a calendar event from a mail with an event attachment", async ({ page }) => {
     await page.getByRole("button", { name: "Verified 1" }).click();
     await expect(
-      page.getByRole("heading", { level: 1, name: "TOKEN2049 Abu Dhabi - founder pass ready" }),
+      page.getByRole("heading", {
+        level: 1,
+        name: "TOKEN2049 Abu Dhabi - founder pass ready",
+      }),
     ).toBeVisible();
 
     await page.getByRole("button", { name: /Add to calendar/i }).click();
@@ -18,7 +21,10 @@ test.describe("calendar linking", () => {
   test("opens the calendar workspace from the sidebar calendar button", async ({ page }) => {
     await page.getByRole("button", { name: "Verified 1" }).click();
     await expect(
-      page.getByRole("heading", { level: 1, name: "TOKEN2049 Abu Dhabi - founder pass ready" }),
+      page.getByRole("heading", {
+        level: 1,
+        name: "TOKEN2049 Abu Dhabi - founder pass ready",
+      }),
     ).toBeVisible();
 
     await page.getByRole("button", { name: /Add to calendar/i }).click();
@@ -31,7 +37,10 @@ test.describe("calendar linking", () => {
   test("calendar workspace closes on close button click", async ({ page }) => {
     await page.getByRole("button", { name: "Verified 1" }).click();
     await expect(
-      page.getByRole("heading", { level: 1, name: "TOKEN2049 Abu Dhabi - founder pass ready" }),
+      page.getByRole("heading", {
+        level: 1,
+        name: "TOKEN2049 Abu Dhabi - founder pass ready",
+      }),
     ).toBeVisible();
 
     await page.getByRole("button", { name: /Add to calendar/i }).click();
@@ -40,7 +49,10 @@ test.describe("calendar linking", () => {
 
     await expect(page.getByText("Private scheduling")).not.toBeVisible();
     await expect(
-      page.getByRole("heading", { level: 1, name: "TOKEN2049 Abu Dhabi - founder pass ready" }),
+      page.getByRole("heading", {
+        level: 1,
+        name: "TOKEN2049 Abu Dhabi - founder pass ready",
+      }),
     ).toBeVisible();
   });
   test("calendar workspace handles manual event creation and deletion", async ({ page }) => {

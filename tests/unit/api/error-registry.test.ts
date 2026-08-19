@@ -23,7 +23,11 @@ describe("API error registry", () => {
     ["duplicate_receipt", 409],
   ] as const)("constructs %s from its registered defaults", (code, status) => {
     const error = new ApiError(code);
-    expect(error).toMatchObject({ code, status, message: API_ERROR_REGISTRY[code].message });
+    expect(error).toMatchObject({
+      code,
+      status,
+      message: API_ERROR_REGISTRY[code].message,
+    });
   });
 
   it("does not allow route and server handlers to use unregistered error codes", () => {

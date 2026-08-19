@@ -86,9 +86,9 @@ mkdirSync(OUTPUT_DIR, { recursive: true });
 writeFileSync(OUTPUT, JSON.stringify(resolved, null, 2) + "\n", "utf8");
 
 console.log(
-  `✓ Generated ${OUTPUT.replace(ROOT, ".")} from ${required.length} environment variable(s): ${required
-    .map((name) => name.replace(/^STEALTH_/, ""))
-    .join(", ")}.`,
+  `✓ Generated ${OUTPUT.replace(ROOT, ".")} from ${
+    required.length
+  } environment variable(s): ${required.map((name) => name.replace(/^STEALTH_/, "")).join(", ")}.`,
 );
 console.log(
   "  Deploy with: wrangler deploy --env preview|production --config .wrangler/generated/wrangler.jsonc",

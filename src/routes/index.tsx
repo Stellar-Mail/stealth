@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MotionConfig } from "framer-motion";
 import { AmbientBackground } from "@/components/mail/AmbientBackground";
 import { cn } from "@/lib/utils";
+import { useSession, sessionActor, useMailbox } from "@/features/mail";
 import { BulkConfirmDialog } from "@/components/mail/BulkConfirmDialog";
 import { Sidebar } from "@/components/mail/Sidebar";
 import { Topbar } from "@/components/mail/Topbar";
@@ -25,8 +26,6 @@ import {
 } from "@/components/mail/bulk-actions";
 import {
   defaultMailFilters,
-  deriveProof,
-  emails as initialEmails,
   getEmailsForFolder,
   getFolderLabel,
   mailFolders,
@@ -76,7 +75,10 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Stealth" },
-      { name: "description", content: "Stealth is a cryptographic mail client built on Stellar." },
+      {
+        name: "description",
+        content: "Stealth is a cryptographic mail client built on Stellar.",
+      },
       { property: "og:title", content: "Stealth" },
       {
         property: "og:description",
@@ -88,7 +90,12 @@ export const Route = createFileRoute("/")({
 });
 
 function IndexPage() {
-  return <MailApp isDemoMode />;
+  // Demo mode is a development-only escape hatch: `import.meta.env.DEV` is
+  // statically false in production builds, so the demo branch (and its dynamic
+  // import of the mock fixtures) is removed by the bundler. The production app
+  // shell has no route to `initialEmails` or the demo adapter.
+  const isDemo = import.meta.env.DEV;
+  return <MailApp isDemoMode={isDemo} />;
 }
 
 function delay(ms: number) {
@@ -98,8 +105,8 @@ function delay(ms: number) {
 function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
   const [showSenderJourney, setShowSenderJourney] = useState(false);
   const [folder, setFolder] = useState<MailFolder>("inbox");
-  const [emails, setEmails] = useState<Email[]>(initialEmails);
-  const [selectedId, setSelectedId] = useState<string | null>(initialEmails[0].id);
+  const [emails, setEmails] = useState<Email[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [bulkProgress, setBulkProgress] = useState<BulkProgressState | null>(null);
   const [bulkFailures, setBulkFailures] = useState<BulkFailure[]>([]);
@@ -136,6 +143,44 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
   const [proofInspectorOpen, setProofInspectorOpen] = useState(false);
   const [proofInspectorQuery, setProofInspectorQuery] = useState("");
   const [authModalOpen, setAuthModalOpen] = useState(false);
+
+  // Typed live data path (BETA-051 / Issue #1958). The app shell consumes the
+  // typed mailbox hook. Demo fixtures are only reachable through a dev-only
+  // dynamic import gated on `import.meta.env.DEV` — statically false in
+  // production, so the bundler removes the branch and the mock module entirely.
+  const session = useSession({ enabled: !isDemoMode });
+  const actor = sessionActor(session.data);
+  const mailbox = useMailbox({
+    actor: actor ?? "anonymous",
+    enabled: Boolean(actor) && !isDemoMode,
+  });
+  const mailboxEmails = mailbox.data ?? [];
+  const mailboxHydrated = useRef(false);
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    if (mailboxHydrated.current) return;
+    let cancelled = false;
+    void import("@/features/mail/demo/demo-data").then(({ getDemoEmails }) => {
+      if (cancelled) return;
+      const demo = getDemoEmails();
+      setEmails(demo);
+      setSelectedId((current) => current ?? demo[0]?.id ?? null);
+      mailboxHydrated.current = true;
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (isDemoMode) return;
+    if (!mailboxEmails.length) return;
+    if (mailboxHydrated.current) return;
+    setEmails(mailboxEmails);
+    setSelectedId((current) => current ?? mailboxEmails[0]?.id ?? null);
+    mailboxHydrated.current = true;
+  }, [isDemoMode, mailboxEmails]);
 
   const handleOpenMessageFromInspector = useCallback((email: Email) => {
     setCustomFolder(null);
@@ -427,7 +472,9 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
       return;
     }
     if (action === "translate") {
-      updateEmail(email.id, { labels: [...(email.labels ?? []), "Translated"] });
+      updateEmail(email.id, {
+        labels: [...(email.labels ?? []), "Translated"],
+      });
       showToast("Translation view enabled");
       return;
     }

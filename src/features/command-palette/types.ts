@@ -294,5 +294,8 @@ export type ResolvedCommand = Omit<CommandDescriptor, "availability"> & {
  * selection change without measurable cost on fixtures or future API data.
  */
 export function buildCommands(ctx: CommandContext): ResolvedCommand[] {
-  return COMMANDS.map((command) => ({ ...command, availability: command.availability(ctx) }));
+  return COMMANDS.map((command) => ({
+    ...command,
+    availability: command.availability(ctx),
+  }));
 }

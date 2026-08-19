@@ -106,7 +106,10 @@ describe("authentication challenge timing", () => {
   it("accepts the exact boundary of a stamped expiry", () => {
     const expiresAt = NOW - clockSkewMs;
     expect(() =>
-      validateAuthChallengeTimestamp(NOW - lifetimeMs, { ...options, expiresAt }),
+      validateAuthChallengeTimestamp(NOW - lifetimeMs, {
+        ...options,
+        expiresAt,
+      }),
     ).not.toThrow();
     expectCode(
       () =>
@@ -122,7 +125,11 @@ describe("authentication challenge timing", () => {
   it("rejects unparseable and inverted challenge timestamps", () => {
     expectCode(() => validateAuthChallengeTimestamp("not-a-date", options), "validation_error");
     expectCode(
-      () => validateAuthChallengeTimestamp(NOW, { ...options, expiresAt: "not-a-date" }),
+      () =>
+        validateAuthChallengeTimestamp(NOW, {
+          ...options,
+          expiresAt: "not-a-date",
+        }),
       "validation_error",
     );
     expectCode(

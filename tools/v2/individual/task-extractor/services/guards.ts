@@ -153,7 +153,12 @@ export function safeExtractTasks(input: unknown, options?: unknown): SafeTaskExt
       status: "error",
       code: "invalid-input",
       message: "Input must include a non-empty messageId and string subject and body.",
-      issues: [{ code: "invalid-input", message: "Input failed structural validation." }],
+      issues: [
+        {
+          code: "invalid-input",
+          message: "Input failed structural validation.",
+        },
+      ],
     };
   }
   if (!validateOptions(options)) {
@@ -161,7 +166,12 @@ export function safeExtractTasks(input: unknown, options?: unknown): SafeTaskExt
       status: "error",
       code: "invalid-options",
       message: `Options must use a maxTasks between 1 and ${MAX_TASKS_LIMIT} and a minConfidence of low, medium, or high.`,
-      issues: [{ code: "invalid-options", message: "Options failed structural validation." }],
+      issues: [
+        {
+          code: "invalid-options",
+          message: "Options failed structural validation.",
+        },
+      ],
     };
   }
   if (!isSupportedLanguage(input.language)) {

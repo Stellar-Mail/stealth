@@ -16,7 +16,7 @@ describe("Live Testnet Workflow", () => {
       return;
     }
 
-    server = new rpc.Server("https://soroban-rpc.testnet.stellar.org");
+    server = new rpc.Server("https://soroban-testnet.stellar.org");
   });
 
   it("can read policies contract", async () => {

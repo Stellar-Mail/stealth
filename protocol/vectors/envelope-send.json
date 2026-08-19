@@ -1,0 +1,35 @@
+{
+  "meta": {
+    "spec": "protocol/messages/envelope_spec.md",
+    "purpose": "Conformance vectors for the canonical multi-recipient send envelope (issue #1953). Drives src/services/crypto/envelope.ts sealEnvelope plus openEnvelope with per-recipient wrapped-key unwrapping.",
+    "note": "Sealing is randomized (fresh AES key, IV, ephemeral ECDH), so the fixture pins the fixed send inputs (sender, recipient accounts, unicode body, attachment descriptor, recipient key ids) and the structural invariants every compliant seal must satisfy. Tamper cases are applied to a freshly sealed envelope and must fail closed."
+  },
+  "sender": "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+  "recipients": {
+    "primary": {
+      "account": "GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+      "keyId": "enc-vec-2026-0001"
+    },
+    "secondary": {
+      "account": "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+      "keyId": "enc-vec-2026-0002"
+    }
+  },
+  "unicodeBody": "Grüße, sélöm! — Stealth ✓ 安全的",
+  "attachment": {
+    "filename": "invitation.txt",
+    "content_type": "text/plain",
+    "size_bytes": 32,
+    "content_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "invariants": {
+    "version": "v1",
+    "algorithm": "AES-256-GCM",
+    "recipientKeyId": "enc-vec-2026-0001",
+    "wrappedKeysPerRecipient": 1,
+    "bodyNonceHexLength": 24,
+    "bodyMacHexLength": 32,
+    "blindedRecipientIdHexLength": 64,
+    "attachmentMetadataAlgorithm": "AES-256-GCM"
+  }
+}

@@ -85,7 +85,9 @@ describe("Edge Cases - Date and Time", () => {
 
   it("handles dates at month boundaries", () => {
     const result = extractTasks(
-      makeInput({ body: "- [ ] Complete by 2026-01-31\n- [ ] Submit by 2026-02-01" }),
+      makeInput({
+        body: "- [ ] Complete by 2026-01-31\n- [ ] Submit by 2026-02-01",
+      }),
     );
     expect(result.tasks[0].dueAtHint).toBe("2026-01-31");
     expect(result.tasks[1].dueAtHint).toBe("2026-02-01");
@@ -238,7 +240,10 @@ describe("Edge Cases - Task Extraction Rules", () => {
 
   it("processes subject as a single line", () => {
     const result = extractTasks(
-      makeInput({ subject: "Please review and Please send feedback", body: "" }),
+      makeInput({
+        subject: "Please review and Please send feedback",
+        body: "",
+      }),
     );
     expect(result.tasks).toHaveLength(1); // Single line, single match
   });
@@ -267,7 +272,9 @@ describe("Edge Cases - Options and Limits", () => {
 
   it("filters medium confidence correctly", () => {
     const body = "Send the report\n- review the deck\n- [ ] Book the room";
-    const result = extractTasks(makeInput({ body }), { minConfidence: "medium" });
+    const result = extractTasks(makeInput({ body }), {
+      minConfidence: "medium",
+    });
     expect(result.tasks.length).toBeLessThan(3);
     expect(result.tasks.every((t) => t.confidence !== "low")).toBe(true);
   });

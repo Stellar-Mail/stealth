@@ -31,7 +31,9 @@ export function AttachmentExtractorDemo() {
       // Simulate partial failure
       const mockFiles = [
         new File(["data"], "valid.jpg", { type: "image/jpeg" }),
-        new File(["data"], "toolargeimage.bin", { type: "application/octet-stream" }),
+        new File(["data"], "toolargeimage.bin", {
+          type: "application/octet-stream",
+        }),
       ];
       await extract(mockFiles, {
         allowedMimeTypes: ["image/jpeg"],

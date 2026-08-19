@@ -43,7 +43,10 @@ export interface TeamAnalyticsDashboardProps {
   onDismissSuccess?: () => void;
 }
 
-const MEMBER_STATUS_OPTIONS: Array<{ label: string; value: "all" | MemberStatus }> = [
+const MEMBER_STATUS_OPTIONS: Array<{
+  label: string;
+  value: "all" | MemberStatus;
+}> = [
   { label: "All", value: "all" },
   { label: "Active", value: "active" },
   { label: "Overloaded", value: "overloaded" },
@@ -51,7 +54,10 @@ const MEMBER_STATUS_OPTIONS: Array<{ label: string; value: "all" | MemberStatus 
   { label: "Away", value: "away" },
 ];
 
-const SNAPSHOT_STATUS_OPTIONS: Array<{ label: string; value: "all" | SnapshotStatus }> = [
+const SNAPSHOT_STATUS_OPTIONS: Array<{
+  label: string;
+  value: "all" | SnapshotStatus;
+}> = [
   { label: "All", value: "all" },
   { label: "Healthy", value: "healthy" },
   { label: "Watch", value: "watch" },

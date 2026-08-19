@@ -9,9 +9,24 @@ const CONFIDENCE_META: Record<
   ReminderConfidence,
   { label: string; bg: string; text: string; dot: string }
 > = {
-  high: { label: "High", bg: "bg-green-50", text: "text-green-800", dot: "bg-green-500" },
-  medium: { label: "Medium", bg: "bg-amber-50", text: "text-amber-800", dot: "bg-amber-500" },
-  low: { label: "Low", bg: "bg-gray-50", text: "text-gray-700", dot: "bg-gray-400" },
+  high: {
+    label: "High",
+    bg: "bg-green-50",
+    text: "text-green-800",
+    dot: "bg-green-500",
+  },
+  medium: {
+    label: "Medium",
+    bg: "bg-amber-50",
+    text: "text-amber-800",
+    dot: "bg-amber-500",
+  },
+  low: {
+    label: "Low",
+    bg: "bg-gray-50",
+    text: "text-gray-700",
+    dot: "bg-gray-400",
+  },
 };
 
 const SIGNAL_LABELS: Record<string, string> = {

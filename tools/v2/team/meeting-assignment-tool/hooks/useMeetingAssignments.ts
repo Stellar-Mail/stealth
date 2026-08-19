@@ -14,7 +14,9 @@ export function useMeetingAssignments(): {
   state: LoadState<AssignmentResult>;
   reload: () => void;
 } {
-  const [state, setState] = useState<LoadState<AssignmentResult>>({ status: "loading" });
+  const [state, setState] = useState<LoadState<AssignmentResult>>({
+    status: "loading",
+  });
   const [nonce, setNonce] = useState(0);
 
   const reload = useCallback(() => setNonce((n) => n + 1), []);

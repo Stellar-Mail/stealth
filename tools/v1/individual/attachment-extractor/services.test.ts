@@ -91,7 +91,9 @@ describe("AttachmentExtractor - Services", () => {
     });
 
     it("should reject oversized files", () => {
-      const result = validateFile(MOCK_FILES.oversized, { maxFileSize: 10 * 1024 * 1024 });
+      const result = validateFile(MOCK_FILES.oversized, {
+        maxFileSize: 10 * 1024 * 1024,
+      });
       expect(result.valid).toBe(false);
       expect(result.error?.reason).toBe("file_too_large");
     });
@@ -222,7 +224,9 @@ describe("AttachmentExtractor - Services", () => {
 
 describe("AttachmentExtractor - Safety guards", () => {
   it("should sanitize file names before returning metadata", async () => {
-    const file = new File(["payload"], "../../evil<script>.txt", { type: "text/plain" });
+    const file = new File(["payload"], "../../evil<script>.txt", {
+      type: "text/plain",
+    });
     const result = await extractAttachments([file]);
     expect(result.attachments[0].name).toBe("evil_script_.txt");
   });

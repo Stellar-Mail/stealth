@@ -20,7 +20,9 @@ describe("MemoryApiRepository", () => {
     });
     await repository.setSenderRule(owner, sender, "allow");
 
-    await expect(repository.getPolicy(owner)).resolves.toMatchObject({ minimumPostage: "100" });
+    await expect(repository.getPolicy(owner)).resolves.toMatchObject({
+      minimumPostage: "100",
+    });
     await expect(repository.getSenderRule(owner, sender)).resolves.toBe("allow");
   });
 

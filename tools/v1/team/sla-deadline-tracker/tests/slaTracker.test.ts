@@ -42,7 +42,9 @@ describe("evaluateSla (#450)", () => {
 
   it("classifies on-track when remaining time exceeds the warn window", () => {
     const ev = evaluateSla(
-      item({ deadlineAt: new Date(FIXED_NOW + 2 * 60 * 60 * 1000).toISOString() }),
+      item({
+        deadlineAt: new Date(FIXED_NOW + 2 * 60 * 60 * 1000).toISOString(),
+      }),
       policy,
       FIXED_NOW,
     );
@@ -89,13 +91,22 @@ describe("summarizeSla (#450)", () => {
 
   it("returns an empty summary for no items", () => {
     const summary = summarizeSla([], policy, FIXED_NOW);
-    expect(summary).toEqual({ total: 0, responded: 0, onTrack: 0, dueSoon: 0, breached: 0 });
+    expect(summary).toEqual({
+      total: 0,
+      responded: 0,
+      onTrack: 0,
+      dueSoon: 0,
+      breached: 0,
+    });
   });
 
   it("is a single pass (no sorting) and safe for large arrays", () => {
     const many: SlaTrackedItem[] = Array.from({ length: 5000 }, (_, i) =>
       // i=0 has deadline exactly at now (remaining 0 -> due-soon, not breached)
-      item({ id: `bulk-${i}`, deadlineAt: new Date(FIXED_NOW - i - 1).toISOString() }),
+      item({
+        id: `bulk-${i}`,
+        deadlineAt: new Date(FIXED_NOW - i - 1).toISOString(),
+      }),
     );
     const summary = summarizeSla(many, policy, FIXED_NOW);
     expect(summary.total).toBe(5000);

@@ -1752,6 +1752,7 @@ dependencies = [
 name = "stealth-receipts"
 version = "0.1.0"
 dependencies = [
+ "proptest",
  "soroban-sdk",
  "stealth-lifecycle",
  "stealth-policies",

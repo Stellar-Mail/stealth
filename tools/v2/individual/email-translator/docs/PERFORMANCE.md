@@ -439,7 +439,7 @@ function useTranslation() {
 **Solution:**
 
 ```typescript
-import { useVirtualizer } from '@tanstack/react-virtual';
+import { useVirtualizer } from "@tanstack/react-virtual";
 
 function TranslationHistory({ entries }: { entries: TranslationEntry[] }) {
   const parentRef = useRef<HTMLDivElement>(null);
@@ -452,16 +452,16 @@ function TranslationHistory({ entries }: { entries: TranslationEntry[] }) {
   });
 
   return (
-    <div ref={parentRef} style={{ height: '400px', overflow: 'auto' }}>
-      <div style={{ height: `${virtualizer.getTotalSize()}px`, position: 'relative' }}>
-        {virtualizer.getVirtualItems().map(virtualItem => (
+    <div ref={parentRef} style={{ height: "400px", overflow: "auto" }}>
+      <div style={{ height: `${virtualizer.getTotalSize()}px`, position: "relative" }}>
+        {virtualizer.getVirtualItems().map((virtualItem) => (
           <div
             key={virtualItem.index}
             style={{
-              position: 'absolute',
+              position: "absolute",
               top: 0,
               left: 0,
-              width: '100%',
+              width: "100%",
               transform: `translateY(${virtualItem.start}px)`,
             }}
           >
@@ -481,10 +481,10 @@ function TranslationHistory({ entries }: { entries: TranslationEntry[] }) {
 **Solution:**
 
 ```typescript
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense } from "react";
 
-const TranslationHistory = lazy(() => import('./TranslationHistory'));
-const AdvancedSettings = lazy(() => import('./AdvancedSettings'));
+const TranslationHistory = lazy(() => import("./TranslationHistory"));
+const AdvancedSettings = lazy(() => import("./AdvancedSettings"));
 
 function EmailTranslatorShell() {
   const [showHistory, setShowHistory] = useState(false);

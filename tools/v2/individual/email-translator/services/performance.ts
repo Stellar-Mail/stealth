@@ -447,7 +447,11 @@ export class RateLimitedQueue {
   /**
    * Gets queue statistics
    */
-  getStats(): { queueLength: number; processing: boolean; requestsPerMinute: number } {
+  getStats(): {
+    queueLength: number;
+    processing: boolean;
+    requestsPerMinute: number;
+  } {
     return {
       queueLength: this.queue.length,
       processing: this.processing,
@@ -617,7 +621,10 @@ export function checkMemoryLimit(estimatedSize: number, thresholdMb: number = 50
 /**
  * Gets current memory usage (if available)
  */
-export function getMemoryUsage(): { heapUsed: number; heapTotal: number } | null {
+export function getMemoryUsage(): {
+  heapUsed: number;
+  heapTotal: number;
+} | null {
   const memory = (performance as any).memory;
 
   if (memory) {

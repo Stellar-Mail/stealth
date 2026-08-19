@@ -11,7 +11,10 @@ describe("validation error contract", () => {
       tags: z.array(z.string().min(3)),
     });
 
-    const parsed = schema.safeParse({ recipient: "secret-token", tags: ["no"] });
+    const parsed = schema.safeParse({
+      recipient: "secret-token",
+      tags: ["no"],
+    });
     expect(parsed.success).toBe(false);
 
     const apiError = normalizeApiError(parsed.error);
@@ -44,7 +47,9 @@ describe("validation error contract", () => {
 
   it("classifies rate limit errors as rate_limited and retryable, preserving delay", () => {
     const error = normalizeApiError(
-      new ApiError(429, "too_many_requests", "Too many requests", { retryAfterSeconds: 15 }),
+      new ApiError(429, "too_many_requests", "Too many requests", {
+        retryAfterSeconds: 15,
+      }),
     );
     expect(error.retryable).toBe(true);
     expect(error.retryClassification).toBe("rate_limit");

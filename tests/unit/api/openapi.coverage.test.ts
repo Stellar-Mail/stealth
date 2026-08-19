@@ -41,6 +41,11 @@ describe("OpenAPI route coverage", () => {
         "/relay/readiness",
         "/relay/version",
         "/relay/messages",
+        "/contacts",
+        "/contacts/{contactId}",
+        "/contacts/merge",
+        "/contacts/import/preview",
+        "/contacts/import/commit",
       ]),
     );
   });

@@ -53,7 +53,11 @@ describe("detectConflicts", () => {
   });
 
   it("does NOT detect duplicate-id when id matches and subject/body are identical", () => {
-    const draft = makeDraft({ id: "draft-1", subject: "Same", body: "Same body" });
+    const draft = makeDraft({
+      id: "draft-1",
+      subject: "Same",
+      body: "Same body",
+    });
     const existing = [draft];
     const incoming = [{ ...draft }];
 
@@ -64,9 +68,19 @@ describe("detectConflicts", () => {
 
   it("detects sender-collision when same recipient domain but different content", () => {
     const existing = [
-      makeDraft({ id: "e1", subject: "Existing", recipients: ["alice@acme.demo"] }),
+      makeDraft({
+        id: "e1",
+        subject: "Existing",
+        recipients: ["alice@acme.demo"],
+      }),
     ];
-    const incoming = [makeDraft({ id: "i1", subject: "Incoming", recipients: ["bob@acme.demo"] })];
+    const incoming = [
+      makeDraft({
+        id: "i1",
+        subject: "Incoming",
+        recipients: ["bob@acme.demo"],
+      }),
+    ];
 
     const conflicts = detectConflicts(incoming, existing);
     const senderConflict = conflicts.find((c) => c.type === "sender-collision");

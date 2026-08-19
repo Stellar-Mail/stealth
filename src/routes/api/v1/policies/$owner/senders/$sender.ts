@@ -8,7 +8,9 @@ import { getSenderRule, setSenderRule } from "@/server/api/policy-service";
 import { parseJsonBody } from "@/server/api/request";
 import { apiSuccess, handleApiRequest } from "@/server/api/response";
 
-const ruleBodySchema = z.object({ rule: senderRuleSchema.exclude(["default"]) });
+const ruleBodySchema = z.object({
+  rule: senderRuleSchema.exclude(["default"]),
+});
 
 export const Route = createFileRoute("/api/v1/policies/$owner/senders/$sender")({
   server: {

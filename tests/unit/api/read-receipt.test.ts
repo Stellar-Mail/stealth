@@ -38,7 +38,9 @@ describe("markReceiptRead — atomic read-receipt publication (#1497)", () => {
     const repo = await repoWithReceipt();
     await repo.markReceiptRead(messageId, outsider);
     // readAt must still be null — forbidden calls must not write
-    await expect(repo.getReceipt(messageId)).resolves.toMatchObject({ readAt: null });
+    await expect(repo.getReceipt(messageId)).resolves.toMatchObject({
+      readAt: null,
+    });
   });
 
   // -------------------------------------------------------------------------

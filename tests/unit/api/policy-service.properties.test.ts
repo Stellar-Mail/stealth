@@ -71,7 +71,10 @@ describe("evaluateMailboxPolicy (property)", () => {
             verified,
           });
 
-          expect(result).toMatchObject({ allowed: true, reason: "sender_allowed" });
+          expect(result).toMatchObject({
+            allowed: true,
+            reason: "sender_allowed",
+          });
         },
       ),
       { numRuns: NUM_RUNS },
@@ -97,7 +100,10 @@ describe("evaluateMailboxPolicy (property)", () => {
             verified,
           });
 
-          expect(result).toMatchObject({ allowed: false, reason: "sender_blocked" });
+          expect(result).toMatchObject({
+            allowed: false,
+            reason: "sender_blocked",
+          });
         },
       ),
       { numRuns: NUM_RUNS },

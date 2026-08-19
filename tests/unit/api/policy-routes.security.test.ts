@@ -121,7 +121,9 @@ describe("policy mutation route actor authorization", () => {
       });
 
       expect(response.status).toBe(403);
-      await expect(response.json()).resolves.toMatchObject({ error: { code: "forbidden" } });
+      await expect(response.json()).resolves.toMatchObject({
+        error: { code: "forbidden" },
+      });
       await expect(getMailboxPolicy(repo, owner)).resolves.toMatchObject({
         policy: {
           allowUnknown: false,
@@ -144,8 +146,12 @@ describe("policy mutation route actor authorization", () => {
         });
 
         expect(response.status).toBe(401);
-        await expect(response.json()).resolves.toMatchObject({ error: { code: "unauthorized" } });
-        await expect(getMailboxPolicy(repo, owner)).resolves.toMatchObject({ source: "default" });
+        await expect(response.json()).resolves.toMatchObject({
+          error: { code: "unauthorized" },
+        });
+        await expect(getMailboxPolicy(repo, owner)).resolves.toMatchObject({
+          source: "default",
+        });
       },
     );
 
@@ -197,8 +203,12 @@ describe("policy mutation route actor authorization", () => {
         });
 
         expect(response.status).toBe(403);
-        await expect(response.json()).resolves.toMatchObject({ error: { code: "forbidden" } });
-        await expect(getMailboxPolicy(repo, owner)).resolves.toMatchObject({ source: "default" });
+        await expect(response.json()).resolves.toMatchObject({
+          error: { code: "forbidden" },
+        });
+        await expect(getMailboxPolicy(repo, owner)).resolves.toMatchObject({
+          source: "default",
+        });
       },
     );
   });
@@ -221,7 +231,9 @@ describe("policy mutation route actor authorization", () => {
       });
 
       expect(response.status).toBe(403);
-      await expect(response.json()).resolves.toMatchObject({ error: { code: "forbidden" } });
+      await expect(response.json()).resolves.toMatchObject({
+        error: { code: "forbidden" },
+      });
       await expect(repo.getSenderRule(owner, targetSender)).resolves.toBe("default");
     });
 
@@ -232,7 +244,9 @@ describe("policy mutation route actor authorization", () => {
       });
 
       expect(response.status).toBe(401);
-      await expect(response.json()).resolves.toMatchObject({ error: { code: "unauthorized" } });
+      await expect(response.json()).resolves.toMatchObject({
+        error: { code: "unauthorized" },
+      });
       await expect(repo.getSenderRule(owner, targetSender)).resolves.toBe("default");
     });
 
@@ -291,7 +305,9 @@ describe("policy mutation route actor authorization", () => {
         });
 
         expect(response.status).toBe(403);
-        await expect(response.json()).resolves.toMatchObject({ error: { code: "forbidden" } });
+        await expect(response.json()).resolves.toMatchObject({
+          error: { code: "forbidden" },
+        });
         await expect(repo.getSenderRule(owner, targetSender)).resolves.toBe("default");
       },
     );
@@ -320,7 +336,9 @@ describe("policy mutation route actor authorization", () => {
       });
 
       expect(response.status).toBe(403);
-      await expect(response.json()).resolves.toMatchObject({ error: { code: "forbidden" } });
+      await expect(response.json()).resolves.toMatchObject({
+        error: { code: "forbidden" },
+      });
       await expect(repo.getSenderRule(owner, targetSender)).resolves.toBe("block");
     });
 
@@ -331,7 +349,9 @@ describe("policy mutation route actor authorization", () => {
       });
 
       expect(response.status).toBe(401);
-      await expect(response.json()).resolves.toMatchObject({ error: { code: "unauthorized" } });
+      await expect(response.json()).resolves.toMatchObject({
+        error: { code: "unauthorized" },
+      });
       await expect(repo.getSenderRule(owner, targetSender)).resolves.toBe("block");
     });
 
@@ -390,7 +410,9 @@ describe("policy mutation route actor authorization", () => {
         });
 
         expect(response.status).toBe(403);
-        await expect(response.json()).resolves.toMatchObject({ error: { code: "forbidden" } });
+        await expect(response.json()).resolves.toMatchObject({
+          error: { code: "forbidden" },
+        });
         await expect(repo.getSenderRule(owner, targetSender)).resolves.toBe("block");
       },
     );

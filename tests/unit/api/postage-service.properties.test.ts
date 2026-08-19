@@ -44,7 +44,13 @@ describe("submitPostage (property)", () => {
           await expect(
             submitPostage(
               createApiContext(repository),
-              { amount: amount.toString(), messageId, paymentHash, recipient, sender },
+              {
+                amount: amount.toString(),
+                messageId,
+                paymentHash,
+                recipient,
+                sender,
+              },
               NOW,
             ),
           ).rejects.toMatchObject({ status: 422 });
@@ -71,7 +77,13 @@ describe("submitPostage (property)", () => {
 
           const result = await submitPostage(
             createApiContext(repository),
-            { amount: amount.toString(), messageId, paymentHash, recipient, sender },
+            {
+              amount: amount.toString(),
+              messageId,
+              paymentHash,
+              recipient,
+              sender,
+            },
             NOW,
           );
 
@@ -106,7 +118,13 @@ describe("submitPostage (property)", () => {
 
           await submitPostage(
             context,
-            { amount: amountA.toString(), messageId, paymentHash: paymentHashA, recipient, sender },
+            {
+              amount: amountA.toString(),
+              messageId,
+              paymentHash: paymentHashA,
+              recipient,
+              sender,
+            },
             NOW,
           );
 

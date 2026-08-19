@@ -93,7 +93,10 @@ describe("buildCampaignPublishChecklist", () => {
   });
 
   it("warns when the campaign has no tags", () => {
-    const report = buildCampaignPublishChecklist({ ...baseCampaign(), tags: [] });
+    const report = buildCampaignPublishChecklist({
+      ...baseCampaign(),
+      tags: [],
+    });
 
     expect(report.ready).toBe(true);
     expect(itemById(report, "has-tags")?.status).toBe("fail");
@@ -164,7 +167,10 @@ describe("isCampaignReadyToPublish", () => {
 
 describe("summarizeCampaignPublishChecklist", () => {
   it("summarizes a ready campaign that still has warnings", () => {
-    const report = buildCampaignPublishChecklist({ ...baseCampaign(), tags: [] });
+    const report = buildCampaignPublishChecklist({
+      ...baseCampaign(),
+      tags: [],
+    });
 
     expect(summarizeCampaignPublishChecklist(report)).toBe(
       "Campaign is ready for mock publish with 1 warning.",
@@ -172,7 +178,10 @@ describe("summarizeCampaignPublishChecklist", () => {
   });
 
   it("summarizes blockers when the campaign is not ready", () => {
-    const report = buildCampaignPublishChecklist({ ...baseCampaign(), name: "" });
+    const report = buildCampaignPublishChecklist({
+      ...baseCampaign(),
+      name: "",
+    });
 
     expect(summarizeCampaignPublishChecklist(report)).toBe(report.summary);
     expect(report.summary.startsWith("Campaign is not ready")).toBe(true);

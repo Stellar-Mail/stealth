@@ -70,7 +70,9 @@ describe("campaign mock publish flow", () => {
   });
 
   it("reports in-progress stages when stopped early", () => {
-    const result = runMockCampaignPublish(snapshot(), { stopAfter: "stage-drafts" });
+    const result = runMockCampaignPublish(snapshot(), {
+      stopAfter: "stage-drafts",
+    });
 
     expect(result.status).toBe("in-progress");
     expect(result.stages[0].status).toBe("complete");
@@ -81,7 +83,9 @@ describe("campaign mock publish flow", () => {
   });
 
   it("rolls back only the completed stages in reverse order", () => {
-    const result = runMockCampaignPublish(snapshot(), { stopAfter: "stage-drafts" });
+    const result = runMockCampaignPublish(snapshot(), {
+      stopAfter: "stage-drafts",
+    });
     const plan = rollbackCampaignPublish(result);
 
     expect(plan.steps.map((step) => step.id)).toEqual(["stage-drafts", "validate"]);

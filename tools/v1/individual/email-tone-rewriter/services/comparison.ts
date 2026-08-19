@@ -217,7 +217,11 @@ export function findLongestTone(draft: RewriteRequest): ToneId | null {
 /**
  * Returns the word count range across all tones for a draft.
  */
-export function wordCountRange(draft: RewriteRequest): { min: number; max: number; range: number } {
+export function wordCountRange(draft: RewriteRequest): {
+  min: number;
+  max: number;
+  range: number;
+} {
   const comparison = compareAllTones(draft);
   const validResults = comparison.results.filter((r) => r.rewrite !== null);
 

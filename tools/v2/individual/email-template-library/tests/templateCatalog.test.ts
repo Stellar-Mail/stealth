@@ -27,7 +27,10 @@ describe("validateTemplateCatalog (#490)", () => {
     expect(result.ok).toBe(false);
     expect(result.issues).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ code: "DUPLICATE_TEMPLATE_ID", templateId: "a" }),
+        expect.objectContaining({
+          code: "DUPLICATE_TEMPLATE_ID",
+          templateId: "a",
+        }),
       ]),
     );
   });

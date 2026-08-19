@@ -37,7 +37,10 @@ describe("review queue contract — result helpers", () => {
 describe("review queue contract — fetch (success)", () => {
   it("returns filtered, paginated items with a total count", async () => {
     const contract = createReviewQueueContract(undefined, 0);
-    const res = await contract.execute({ operation: "fetch", input: VALID_FETCH_INPUT });
+    const res = await contract.execute({
+      operation: "fetch",
+      input: VALID_FETCH_INPUT,
+    });
     expect(res.ok).toBe(true);
     if (res.ok && res.value.operation === "fetch") {
       expect(res.value.result.items.every((i) => i.status === "pending")).toBe(true);
@@ -48,14 +51,20 @@ describe("review queue contract — fetch (success)", () => {
 describe("review queue contract — fetch (failure)", () => {
   it("rejects a negative limit", async () => {
     const contract = createReviewQueueContract(undefined, 0);
-    const res = await contract.execute({ operation: "fetch", input: INVALID_LIMIT_FETCH_INPUT });
+    const res = await contract.execute({
+      operation: "fetch",
+      input: INVALID_LIMIT_FETCH_INPUT,
+    });
     expect(res.ok).toBe(false);
     if (!res.ok) expect(res.error).toBe(ReviewErrorCode.InvalidInput);
   });
 
   it("rejects a limit above MAX_QUEUE_SIZE", async () => {
     const contract = createReviewQueueContract(undefined, 0);
-    const res = await contract.execute({ operation: "fetch", input: OVERSIZED_LIMIT_FETCH_INPUT });
+    const res = await contract.execute({
+      operation: "fetch",
+      input: OVERSIZED_LIMIT_FETCH_INPUT,
+    });
     expect(res.ok).toBe(false);
     if (!res.ok) expect(res.error).toBe(ReviewErrorCode.InvalidInput);
   });

@@ -50,4 +50,7 @@ export interface RelayPersistence {
 
   /** Record one permanent delivery failure for observability. */
   recordDeadLetter(): Promise<void>;
+
+  /** Query envelopes in the relay queue for a specific recipient. */
+  listRecipientQueue(recipient: string): Promise<RelayEnvelope[]>;
 }

@@ -4,7 +4,9 @@ import { ApiError } from "../../../../src/server/api/errors";
 
 describe("validateAuthVersion", () => {
   it("accepts a version that is in the active set", () => {
-    const config = { activeVersions: new Set(["STEALTH-AUTH-V1", "STEALTH-AUTH-V2"]) };
+    const config = {
+      activeVersions: new Set(["STEALTH-AUTH-V1", "STEALTH-AUTH-V2"]),
+    };
     expect(() => validateAuthVersion("STEALTH-AUTH-V1", config)).not.toThrow();
     expect(() => validateAuthVersion("STEALTH-AUTH-V2", config)).not.toThrow();
   });
@@ -27,12 +29,16 @@ describe("validateAuthVersion", () => {
 
   it("models overlapping migration windows correctly", () => {
     // Both v1 and v2 are active during a migration window
-    const migrationConfig = { activeVersions: new Set(["STEALTH-AUTH-V1", "STEALTH-AUTH-V2"]) };
+    const migrationConfig = {
+      activeVersions: new Set(["STEALTH-AUTH-V1", "STEALTH-AUTH-V2"]),
+    };
     expect(() => validateAuthVersion("STEALTH-AUTH-V1", migrationConfig)).not.toThrow();
     expect(() => validateAuthVersion("STEALTH-AUTH-V2", migrationConfig)).not.toThrow();
 
     // After migration, v1 is deprecated
-    const postMigrationConfig = { activeVersions: new Set(["STEALTH-AUTH-V2"]) };
+    const postMigrationConfig = {
+      activeVersions: new Set(["STEALTH-AUTH-V2"]),
+    };
     expect(() => validateAuthVersion("STEALTH-AUTH-V1", postMigrationConfig)).toThrowError(
       ApiError,
     );

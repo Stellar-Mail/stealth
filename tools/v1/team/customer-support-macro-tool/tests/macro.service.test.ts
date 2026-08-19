@@ -47,7 +47,11 @@ describe("createMacro", () => {
   });
 
   it("trims whitespace from the title", () => {
-    const macro = createMacro({ title: "  Spaced  ", body: "b", category: "general" });
+    const macro = createMacro({
+      title: "  Spaced  ",
+      body: "b",
+      category: "general",
+    });
     expect(macro.title).toBe("Spaced");
   });
 
@@ -212,7 +216,9 @@ describe("interpolateMacro", () => {
   });
 
   it("works with a body that has no variables", () => {
-    const result = interpolateMacro(FIXTURE_MACRO_NO_VARS.body, { anything: "ignored" });
+    const result = interpolateMacro(FIXTURE_MACRO_NO_VARS.body, {
+      anything: "ignored",
+    });
     expect(result).toBe(FIXTURE_MACRO_NO_VARS.body);
   });
 
@@ -286,7 +292,9 @@ describe("searchMacros", () => {
   });
 
   it("returns empty array when no macros match the category", () => {
-    const result = searchMacros([FIXTURE_MACRO_NO_VARS], { category: "billing" });
+    const result = searchMacros([FIXTURE_MACRO_NO_VARS], {
+      category: "billing",
+    });
     // FIXTURE_MACRO_NO_VARS is "general" so should not match
     expect(result).toEqual([]);
   });
@@ -385,12 +393,20 @@ describe("validateMacroInput", () => {
   });
 
   it("returns error when title is empty string", () => {
-    const errors = validateMacroInput({ title: "", body: "b", category: "general" });
+    const errors = validateMacroInput({
+      title: "",
+      body: "b",
+      category: "general",
+    });
     expect(errors.some((e) => e.field === "title")).toBe(true);
   });
 
   it("returns error when title is whitespace-only", () => {
-    const errors = validateMacroInput({ title: "   ", body: "b", category: "general" });
+    const errors = validateMacroInput({
+      title: "   ",
+      body: "b",
+      category: "general",
+    });
     expect(errors.some((e) => e.field === "title")).toBe(true);
   });
 

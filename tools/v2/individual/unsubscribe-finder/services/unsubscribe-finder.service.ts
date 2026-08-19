@@ -51,7 +51,10 @@ function validateSourceMessage(
   | { valid: true; message: UnsubscribeFinderSourceMessage }
   | { valid: false; invalidFields: string[] } {
   if (!isRecord(value)) {
-    return { valid: false, invalidFields: ["id", "type", "from", "subject", "receivedAt"] };
+    return {
+      valid: false,
+      invalidFields: ["id", "type", "from", "subject", "receivedAt"],
+    };
   }
 
   const invalidFields: string[] = [];

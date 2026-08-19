@@ -37,7 +37,10 @@ describe("audit log contract — result helpers", () => {
 describe("audit log contract — listEntries (success)", () => {
   it("returns filtered, paginated entries with a total count", async () => {
     const contract = createAuditLogContract(undefined, 0);
-    const res = await contract.execute({ operation: "listEntries", input: VALID_LIST_INPUT });
+    const res = await contract.execute({
+      operation: "listEntries",
+      input: VALID_LIST_INPUT,
+    });
     expect(res.ok).toBe(true);
     if (res.ok && res.value.operation === "listEntries") {
       expect(res.value.result.entries.every((e) => e.severity === "warning")).toBe(true);
@@ -80,7 +83,10 @@ describe("audit log contract — listEntries (failure)", () => {
 describe("audit log contract — getEntry (success)", () => {
   it("returns the matching entry", async () => {
     const contract = createAuditLogContract(undefined, 0);
-    const res = await contract.execute({ operation: "getEntry", input: VALID_GET_ENTRY_INPUT });
+    const res = await contract.execute({
+      operation: "getEntry",
+      input: VALID_GET_ENTRY_INPUT,
+    });
     expect(res.ok).toBe(true);
     if (res.ok && res.value.operation === "getEntry") {
       expect(res.value.entry.id).toBe("log_001");
@@ -91,14 +97,20 @@ describe("audit log contract — getEntry (success)", () => {
 describe("audit log contract — getEntry (failure)", () => {
   it("rejects a missing entryId", async () => {
     const contract = createAuditLogContract(undefined, 0);
-    const res = await contract.execute({ operation: "getEntry", input: MISSING_ENTRY_ID_INPUT });
+    const res = await contract.execute({
+      operation: "getEntry",
+      input: MISSING_ENTRY_ID_INPUT,
+    });
     expect(res.ok).toBe(false);
     if (!res.ok) expect(res.error).toBe(AuditErrorCode.InvalidInput);
   });
 
   it("returns EntryNotFound for an unknown id", async () => {
     const contract = createAuditLogContract(undefined, 0);
-    const res = await contract.execute({ operation: "getEntry", input: UNKNOWN_ENTRY_ID_INPUT });
+    const res = await contract.execute({
+      operation: "getEntry",
+      input: UNKNOWN_ENTRY_ID_INPUT,
+    });
     expect(res.ok).toBe(false);
     if (!res.ok) expect(res.error).toBe(AuditErrorCode.EntryNotFound);
   });

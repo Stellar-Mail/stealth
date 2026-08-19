@@ -25,7 +25,9 @@ function delegation(overrides: Partial<MailboxDelegation> = {}): MailboxDelegati
 }
 
 function delegatedRequest() {
-  return new Request("https://stealth.test/api", { headers: { [ACTOR_HEADER]: sender } });
+  return new Request("https://stealth.test/api", {
+    headers: { [ACTOR_HEADER]: sender },
+  });
 }
 
 describe("API actor guard", () => {
@@ -85,7 +87,12 @@ describe("API actor guard", () => {
         delegations: [delegation({ expiresAt: "2026-07-21T12:00:00.000Z" })],
         now,
       }),
-    ).toThrowError(expect.objectContaining({ status: 403, message: "The delegation has expired" }));
+    ).toThrowError(
+      expect.objectContaining({
+        status: 403,
+        message: "The delegation has expired",
+      }),
+    );
   });
 
   it("rejects a revoked delegation", () => {
@@ -97,7 +104,10 @@ describe("API actor guard", () => {
         now,
       }),
     ).toThrowError(
-      expect.objectContaining({ status: 403, message: "The delegation has been revoked" }),
+      expect.objectContaining({
+        status: 403,
+        message: "The delegation has been revoked",
+      }),
     );
   });
 

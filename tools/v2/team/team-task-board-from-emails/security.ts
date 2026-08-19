@@ -74,7 +74,10 @@ export function sanitizeEmail(email: Email): {
 } {
   const issues: SecurityIssue[] = [];
   if (!email || typeof email !== "object") {
-    return { value: email, issues: [{ field: "email", message: "email is required" }] };
+    return {
+      value: email,
+      issues: [{ field: "email", message: "email is required" }],
+    };
   }
 
   if (typeof email.id !== "string" || email.id.trim().length === 0) {
@@ -129,23 +132,38 @@ export function sanitizeTaskCard(card: TaskCard): {
 } {
   const issues: SecurityIssue[] = [];
   if (!card || typeof card !== "object") {
-    return { value: card, issues: [{ field: "card", message: "card is required" }] };
+    return {
+      value: card,
+      issues: [{ field: "card", message: "card is required" }],
+    };
   }
 
   if (typeof card.id !== "string" || card.id.trim().length === 0) {
     issues.push({ field: "id", message: "id is required" });
   }
   if (typeof card.priority !== "string" || !PRIORITIES.includes(card.priority)) {
-    issues.push({ field: "priority", message: "priority must be low|medium|high" });
+    issues.push({
+      field: "priority",
+      message: "priority must be low|medium|high",
+    });
   }
   if (typeof card.status !== "string" || !STATUSES.includes(card.status)) {
-    issues.push({ field: "status", message: "status must be new|triage|blocked|done" });
+    issues.push({
+      field: "status",
+      message: "status must be new|triage|blocked|done",
+    });
   }
   if (!isValidDueDate(card.dueDate)) {
-    issues.push({ field: "dueDate", message: "dueDate must be YYYY-MM-DD or null" });
+    issues.push({
+      field: "dueDate",
+      message: "dueDate must be YYYY-MM-DD or null",
+    });
   }
   if (typeof card.sourceEmailId !== "string" || card.sourceEmailId.trim().length === 0) {
-    issues.push({ field: "sourceEmailId", message: "sourceEmailId is required" });
+    issues.push({
+      field: "sourceEmailId",
+      message: "sourceEmailId is required",
+    });
   }
 
   const value: TaskCard = {
@@ -174,12 +192,18 @@ export function validateEmailBatch(emails: Email[]): SecurityIssue[] {
     return [{ field: "emails", message: "emails must be an array" }];
   }
   if (emails.length > MAX_EMAILS) {
-    issues.push({ field: "emails", message: `too many emails (max ${MAX_EMAILS})` });
+    issues.push({
+      field: "emails",
+      message: `too many emails (max ${MAX_EMAILS})`,
+    });
   }
   for (const email of emails) {
     const { issues: eIssues } = sanitizeEmail(email);
     for (const i of eIssues)
-      issues.push({ field: `emails.${email?.id ?? "?"}:${i.field}`, message: i.message });
+      issues.push({
+        field: `emails.${email?.id ?? "?"}:${i.field}`,
+        message: i.message,
+      });
   }
   return issues;
 }

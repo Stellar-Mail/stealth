@@ -108,7 +108,10 @@ describe("BETA-006 & BETA-007: Password Login, Session Renewal, Rotation & Expir
 
   describe("authenticateWithPassword", () => {
     it("logs in successfully using valid email and password", async () => {
-      await seedTestUser({ email: "bob@stealth.mail", password: "MyPassword!1" });
+      await seedTestUser({
+        email: "bob@stealth.mail",
+        password: "MyPassword!1",
+      });
 
       const result = await authenticateWithPassword(apiContext, {
         identifier: "bob@stealth.mail",
@@ -126,7 +129,10 @@ describe("BETA-006 & BETA-007: Password Login, Session Renewal, Rotation & Expir
     });
 
     it("logs in successfully using valid username and password", async () => {
-      await seedTestUser({ username: "charlie_stealth", password: "MyPassword!1" });
+      await seedTestUser({
+        username: "charlie_stealth",
+        password: "MyPassword!1",
+      });
 
       const result = await authenticateWithPassword(apiContext, {
         identifier: "Charlie_Stealth", // test case-insensitivity
@@ -282,7 +288,11 @@ describe("BETA-006 & BETA-007: Password Login, Session Renewal, Rotation & Expir
       const authResult = await authenticateWithPassword(
         apiContext,
         { identifier: user.email, password: defaultPassword },
-        { now: () => currentTime, idleTtlSeconds: 1800, absoluteTtlSeconds: 86400 },
+        {
+          now: () => currentTime,
+          idleTtlSeconds: 1800,
+          absoluteTtlSeconds: 86400,
+        },
       );
 
       const initialExpiresAt = authResult.session.expiresAt;
@@ -333,7 +343,11 @@ describe("BETA-006 & BETA-007: Password Login, Session Renewal, Rotation & Expir
       const authResult = await authenticateWithPassword(
         apiContext,
         { identifier: user.email, password: defaultPassword },
-        { now: () => startTime, idleTtlSeconds: 1800, absoluteTtlSeconds: 3600 },
+        {
+          now: () => startTime,
+          idleTtlSeconds: 1800,
+          absoluteTtlSeconds: 3600,
+        },
       );
 
       // Validate at +20 minutes (extends idle to 10:50:00)
@@ -382,7 +396,9 @@ describe("BETA-006 & BETA-007: Password Login, Session Renewal, Rotation & Expir
       const oldSessionId = authResult.session.sessionId;
 
       const renewTime = new Date("2026-06-01T10:15:00.000Z");
-      const renewed = await renewSession(apiContext, oldSessionId, { now: () => renewTime });
+      const renewed = await renewSession(apiContext, oldSessionId, {
+        now: () => renewTime,
+      });
 
       expect(renewed.session.sessionId).not.toBe(oldSessionId);
       expect(renewed.session.rotatedFromSessionId).toBe(oldSessionId);
@@ -411,7 +427,9 @@ describe("BETA-006 & BETA-007: Password Login, Session Renewal, Rotation & Expir
 
       // Request 1 rotates oldSessionId to newSessionId at 10:15:00
       const renewTime = new Date("2026-06-01T10:15:00.000Z");
-      const renewed = await renewSession(apiContext, oldSessionId, { now: () => renewTime });
+      const renewed = await renewSession(apiContext, oldSessionId, {
+        now: () => renewTime,
+      });
 
       // Concurrent Request 2 arrives 2 seconds later (within 10s grace period) still using oldSessionId
       const concurrentTime = new Date("2026-06-01T10:15:02.000Z");
@@ -437,7 +455,9 @@ describe("BETA-006 & BETA-007: Password Login, Session Renewal, Rotation & Expir
 
       // Legitimate user renews session at 10:15:00
       const renewTime = new Date("2026-06-01T10:15:00.000Z");
-      const renewed = await renewSession(apiContext, oldSessionId, { now: () => renewTime });
+      const renewed = await renewSession(apiContext, oldSessionId, {
+        now: () => renewTime,
+      });
       const newSessionId = renewed.session.sessionId;
 
       // Attacker attempts to reuse oldSessionId 30 seconds later (past 10s grace window)

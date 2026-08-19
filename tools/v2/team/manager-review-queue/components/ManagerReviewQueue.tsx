@@ -18,7 +18,9 @@ export const ManagerReviewQueue: React.FC = () => {
   const loadQueue = async () => {
     setState((prev) => ({ ...prev, isLoading: true, error: null }));
     try {
-      const response = await fetchReviewQueue({ filters: { status: "pending" } });
+      const response = await fetchReviewQueue({
+        filters: { status: "pending" },
+      });
       setState({
         isLoading: false,
         error: null,

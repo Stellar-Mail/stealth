@@ -25,7 +25,11 @@ describe("dateUtils", () => {
   it("getLocalTimeZone fallback when Intl fails", () => {
     const originalIntl = global.Intl;
     // Replace Intl with undefined to trigger the catch block
-    Object.defineProperty(global, "Intl", { value: undefined, writable: true, configurable: true });
+    Object.defineProperty(global, "Intl", {
+      value: undefined,
+      writable: true,
+      configurable: true,
+    });
 
     expect(getLocalTimeZone()).toBe("local time");
 

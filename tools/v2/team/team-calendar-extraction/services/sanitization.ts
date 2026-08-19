@@ -49,7 +49,10 @@ export function sanitizeText(text: string, maxLength = 1000): string {
  * Sanitize HTML content by stripping scripts, iframes, style tags, forms,
  * events handlers, and dangerous URL protocols.
  */
-export function sanitizeHtml(html: string): { content: string; actionsTaken: number } {
+export function sanitizeHtml(html: string): {
+  content: string;
+  actionsTaken: number;
+} {
   if (!html || typeof html !== "string") {
     return { content: "", actionsTaken: 0 };
   }
@@ -59,15 +62,27 @@ export function sanitizeHtml(html: string): { content: string; actionsTaken: num
 
   const patterns = [
     // Remove script tags and content
-    { regex: /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, desc: "script tags" },
+    {
+      regex: /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
+      desc: "script tags",
+    },
     // Remove iframe tags and content
-    { regex: /<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, desc: "iframe tags" },
+    {
+      regex: /<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi,
+      desc: "iframe tags",
+    },
     // Remove object tags and content
-    { regex: /<object\b[^<]*(?:(?!<\/object>)<[^<]*)*<\/object>/gi, desc: "object tags" },
+    {
+      regex: /<object\b[^<]*(?:(?!<\/object>)<[^<]*)*<\/object>/gi,
+      desc: "object tags",
+    },
     // Remove embed tags
     { regex: /<embed\b[^>]*>/gi, desc: "embed tags" },
     // Remove form elements
-    { regex: /<form\b[^<]*(?:(?!<\/form>)<[^<]*)*<\/form>/gi, desc: "form tags" },
+    {
+      regex: /<form\b[^<]*(?:(?!<\/form>)<[^<]*)*<\/form>/gi,
+      desc: "form tags",
+    },
     { regex: /<input\b[^>]*>/gi, desc: "input elements" },
     { regex: /<button\b[^>]*>/gi, desc: "button elements" },
     // Remove event handlers

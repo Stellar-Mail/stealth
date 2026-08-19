@@ -85,7 +85,10 @@ describe("multi-recipient envelope", () => {
     const envelope = await sealMultiRecipient(encoder.encode("do not tamper"), [alice]);
     const tampered = {
       ...envelope,
-      body: { ...envelope.body, ciphertext: tamperBase64(envelope.body.ciphertext, 0) },
+      body: {
+        ...envelope.body,
+        ciphertext: tamperBase64(envelope.body.ciphertext, 0),
+      },
     };
     await expect(openMultiRecipient(tampered, alice.id, alice.keyMaterial)).rejects.toMatchObject({
       code: "crypto_decrypt_error",

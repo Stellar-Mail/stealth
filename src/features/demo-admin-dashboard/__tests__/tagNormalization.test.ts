@@ -167,7 +167,11 @@ describe("normalizeCampaignTag", () => {
   });
 
   it("coerces unknown color to default", () => {
-    const tag: CampaignTag = { id: "1", name: "test", color: "invalid" as never };
+    const tag: CampaignTag = {
+      id: "1",
+      name: "test",
+      color: "invalid" as never,
+    };
     expect(normalizeCampaignTag(tag).color).toBe("default");
   });
 });

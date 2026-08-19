@@ -12,8 +12,18 @@ const initialMockProjects: Project[] = [
     stellarAssetCode: "XLM",
     members: ["lina*vantage.studio", "marcus*northwind.io"],
     rules: [
-      { id: "rule-1", type: "subject", pattern: "Soroban|Contract", isActive: true },
-      { id: "rule-2", type: "sender", pattern: "receipts*stealth.network", isActive: true },
+      {
+        id: "rule-1",
+        type: "subject",
+        pattern: "Soroban|Contract",
+        isActive: true,
+      },
+      {
+        id: "rule-2",
+        type: "sender",
+        pattern: "receipts*stealth.network",
+        isActive: true,
+      },
     ],
     createdAt: new Date().toISOString(),
   },
@@ -24,7 +34,14 @@ const initialMockProjects: Project[] = [
     stellarAddress: "GBA2H7I6J4S7JOPL23DOP12IOP235HJDKSOPP234DSIOP27J",
     stellarAssetCode: "VNTG",
     members: ["lina*vantage.studio", "nadia*atlas.dev"],
-    rules: [{ id: "rule-3", type: "subject", pattern: "Q2 brand|Vantage", isActive: true }],
+    rules: [
+      {
+        id: "rule-3",
+        type: "subject",
+        pattern: "Q2 brand|Vantage",
+        isActive: true,
+      },
+    ],
     createdAt: new Date().toISOString(),
   },
 ];

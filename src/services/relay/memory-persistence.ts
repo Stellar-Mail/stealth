@@ -53,6 +53,13 @@ export class MemoryRelayPersistence implements RelayPersistence {
     this.deadLetterCount++;
   }
 
+  async listRecipientQueue(recipient: string): Promise<RelayEnvelope[]> {
+    const norm = recipient.toUpperCase().trim();
+    return this.queue
+      .filter((env) => env.recipient.toUpperCase().trim() === norm)
+      .map((env) => ({ ...env }));
+  }
+
   /** Test/ops hook: simulate a storage outage. */
   setAvailable(available: boolean): void {
     this.available = available;
