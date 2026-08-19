@@ -29,13 +29,15 @@ import {
   MAILBOX_POLICY_TEMPLATES,
   buildCustomMailboxPolicyTemplate,
   findMailboxPolicyTemplate,
-  mailboxPolicyTemplateMatchesPreferences,
-  savedCustomTemplateToPreferences,
-  templateToPreferences,
+  mailboxPolicyTemplateMatchesPolicy,
+  savedCustomTemplateToPolicy,
+  templateToPolicy,
   type MailboxPolicyTemplateId,
   type MailboxPolicyTemplate,
   type SavedMailboxPolicyTemplate,
 } from "@/features/settings/mailbox-policy-templates";
+import { useSession, sessionActor } from "@/features/mail/useSession";
+import { useMailboxPolicy, useUpdateMailboxPolicy } from "@/features/mail/usePolicy";
 import { AuditLog } from "@/features/audit-log";
 import { ChangelogPanel, useChangelog } from "@/features/changelog";
 import { ExternalWalletSettings } from "@/features/settings/external-wallet-linking";
@@ -584,8 +586,20 @@ function InboxSettings({
   preferences: UiPreferences;
   onChange: (preferences: UiPreferences) => void;
 }) {
+  const { data: session } = useSession({ enabled: open });
+  const owner = sessionActor(session);
+  const { data: reconciliation, isLoading } = useMailboxPolicy(owner, open);
+  const updatePolicy = useUpdateMailboxPolicy(owner);
+
+  // Use a default for the very first render before API loads
+  const livePolicy = reconciliation?.offchain.policy ?? {
+    allowUnknown: true,
+    requireVerified: false,
+    minimumPostage: "0.01",
+  };
+
   const [previewTemplateId, setPreviewTemplateId] = useState<MailboxPolicyTemplateId | "custom">(
-    () => findMailboxPolicyTemplate(preferences)?.id ?? "custom",
+    () => findMailboxPolicyTemplate(livePolicy)?.id ?? "custom",
   );
   const [savedCustomTemplate, setSavedCustomTemplate] = useState<SavedMailboxPolicyTemplate | null>(
     null,
@@ -593,61 +607,46 @@ function InboxSettings({
 
   useEffect(() => {
     if (!open) return;
-    setPreviewTemplateId(findMailboxPolicyTemplate(preferences)?.id ?? "custom");
-  }, [open, preferences]);
+    if (reconciliation?.offchain.policy) {
+      setPreviewTemplateId(
+        findMailboxPolicyTemplate(reconciliation.offchain.policy)?.id ?? "custom",
+      );
+    }
+  }, [open, reconciliation?.offchain.policy]);
 
-  const currentDraft = useMemo(
-    () => ({
-      unknownSenders: preferences.unknownSenders,
-      minimumPostage: preferences.minimumPostage,
-    }),
-    [preferences.unknownSenders, preferences.minimumPostage],
-  );
-
-  const liveTemplate = useMemo(() => findMailboxPolicyTemplate(currentDraft), [currentDraft]);
+  const liveTemplate = useMemo(() => findMailboxPolicyTemplate(livePolicy), [livePolicy]);
 
   const selectedPreview = useMemo(
     () =>
       previewTemplateId === "custom"
         ? (savedCustomTemplate ??
-          buildCustomMailboxPolicyTemplate(currentDraft, liveTemplate?.id ?? null))
+          buildCustomMailboxPolicyTemplate(livePolicy, liveTemplate?.id ?? null))
         : (MAILBOX_POLICY_TEMPLATES.find((template) => template.id === previewTemplateId) ?? null),
-    [previewTemplateId, savedCustomTemplate, currentDraft, liveTemplate?.id],
+    [previewTemplateId, savedCustomTemplate, livePolicy, liveTemplate?.id],
   );
 
-  const selectedPreferences = useMemo(
+  const selectedPolicy = useMemo(
     () =>
       previewTemplateId === "custom"
         ? savedCustomTemplate
-          ? savedCustomTemplateToPreferences(savedCustomTemplate)
-          : currentDraft
+          ? savedCustomTemplateToPolicy(savedCustomTemplate)
+          : livePolicy
         : selectedPreview
-          ? templateToPreferences(selectedPreview as MailboxPolicyTemplate)
-          : currentDraft,
-    [previewTemplateId, savedCustomTemplate, currentDraft, selectedPreview],
+          ? templateToPolicy(selectedPreview as MailboxPolicyTemplate)
+          : livePolicy,
+    [previewTemplateId, savedCustomTemplate, livePolicy, selectedPreview],
   );
 
   const previewMatchesCurrent = useMemo(
     () =>
       previewTemplateId === "custom"
         ? savedCustomTemplate
-          ? savedCustomTemplate.policy.unknownSenders === preferences.unknownSenders &&
-            savedCustomTemplate.policy.minimumPostage === preferences.minimumPostage
+          ? mailboxPolicyTemplateMatchesPolicy(savedCustomTemplate, livePolicy)
           : true
         : selectedPreview
-          ? mailboxPolicyTemplateMatchesPreferences(
-              selectedPreview as MailboxPolicyTemplate,
-              currentDraft,
-            )
+          ? mailboxPolicyTemplateMatchesPolicy(selectedPreview as MailboxPolicyTemplate, livePolicy)
           : false,
-    [
-      previewTemplateId,
-      savedCustomTemplate,
-      preferences.unknownSenders,
-      preferences.minimumPostage,
-      selectedPreview,
-      currentDraft,
-    ],
+    [previewTemplateId, savedCustomTemplate, livePolicy, selectedPreview],
   );
 
   const applyingWillReplaceCurrent = useMemo(
@@ -668,59 +667,42 @@ function InboxSettings({
     if (previewTemplateId === "custom") {
       if (!savedCustomTemplate) {
         setSavedCustomTemplate(
-          buildCustomMailboxPolicyTemplate(currentDraft, liveTemplate?.id ?? null),
+          buildCustomMailboxPolicyTemplate(livePolicy, liveTemplate?.id ?? null),
         );
         return;
       }
-
-      onChange({
-        ...preferences,
-        ...savedCustomTemplateToPreferences(savedCustomTemplate),
-      });
+      updatePolicy.mutate(savedCustomTemplateToPolicy(savedCustomTemplate));
       return;
     }
-
-    onChange({
-      ...preferences,
-      ...templateToPreferences(selectedPreview as MailboxPolicyTemplate),
-    });
+    updatePolicy.mutate(templateToPolicy(selectedPreview as MailboxPolicyTemplate));
   }, [
     selectedPreview,
     previewTemplateId,
     savedCustomTemplate,
-    currentDraft,
+    livePolicy,
     liveTemplate?.id,
-    onChange,
-    preferences,
+    updatePolicy,
   ]);
 
   const handleSaveCustom = useCallback(() => {
-    setSavedCustomTemplate(
-      buildCustomMailboxPolicyTemplate(currentDraft, liveTemplate?.id ?? null),
-    );
+    setSavedCustomTemplate(buildCustomMailboxPolicyTemplate(livePolicy, liveTemplate?.id ?? null));
     setPreviewTemplateId("custom");
-  }, [currentDraft, liveTemplate?.id]);
+  }, [livePolicy, liveTemplate?.id]);
 
   const updateUnknownSenders = useCallback(
-    (unknownSenders: UiPreferences["unknownSenders"]) => {
+    (allowUnknown: boolean, requireVerified: boolean) => {
       setPreviewTemplateId("custom");
-      onChange({
-        ...preferences,
-        unknownSenders,
-      });
+      updatePolicy.mutate({ ...livePolicy, allowUnknown, requireVerified });
     },
-    [onChange, preferences],
+    [livePolicy, updatePolicy],
   );
 
   const updateMinimumPostage = useCallback(
     (minimumPostage: string) => {
       setPreviewTemplateId("custom");
-      onChange({
-        ...preferences,
-        minimumPostage,
-      });
+      updatePolicy.mutate({ ...livePolicy, minimumPostage });
     },
-    [onChange, preferences],
+    [livePolicy, updatePolicy],
   );
 
   return (
@@ -843,13 +825,13 @@ function InboxSettings({
                       Exact values
                     </span>
                     <span className="mt-1 block text-foreground">
-                      {selectedPreferences.unknownSenders === "request"
+                      {selectedPolicy.allowUnknown && !selectedPolicy.requireVerified
                         ? "Request approval"
-                        : selectedPreferences.unknownSenders === "verified"
+                        : selectedPolicy.allowUnknown && selectedPolicy.requireVerified
                           ? "Verified only"
                           : "Allowlist only"}
                       {" | "}
-                      {selectedPreferences.minimumPostage} XLM
+                      {selectedPolicy.minimumPostage} XLM
                     </span>
                   </div>
                 </div>
@@ -893,9 +875,9 @@ function InboxSettings({
             <PreviewStat
               label="Unknown sender handling"
               value={
-                selectedPreferences.unknownSenders === "request"
+                selectedPolicy.allowUnknown && !selectedPolicy.requireVerified
                   ? "Request approval"
-                  : selectedPreferences.unknownSenders === "verified"
+                  : selectedPolicy.allowUnknown && selectedPolicy.requireVerified
                     ? "Verified only"
                     : "Allowlist only"
               }
@@ -907,7 +889,7 @@ function InboxSettings({
             />
             <PreviewStat
               label="Minimum postage"
-              value={`${selectedPreferences.minimumPostage} XLM`}
+              value={`${selectedPolicy.minimumPostage} XLM`}
               meta={
                 previewTemplateId === "custom"
                   ? "Current draft postage value."
@@ -999,27 +981,32 @@ function InboxSettings({
           <div className="grid gap-2">
             {[
               {
-                value: "request",
+                value: { allowUnknown: true, requireVerified: false },
                 label: "Request approval",
                 description: "Hold unknown senders in a review queue. You approve individually.",
               },
               {
-                value: "verified",
+                value: { allowUnknown: true, requireVerified: true },
                 label: "Verified only",
                 description: "Require cryptographic identity verification before admission.",
               },
               {
-                value: "block",
+                value: { allowUnknown: false, requireVerified: false },
                 label: "Trusted contacts only",
                 description: "Reject every unknown sender. Only your allowlist gets through.",
               },
-            ].map((policy) => {
-              const isActive = preferences.unknownSenders === policy.value;
+            ].map((policyOption) => {
+              const isActive =
+                livePolicy.allowUnknown === policyOption.value.allowUnknown &&
+                livePolicy.requireVerified === policyOption.value.requireVerified;
               return (
                 <button
-                  key={policy.value}
+                  key={policyOption.label}
                   onClick={() =>
-                    updateUnknownSenders(policy.value as UiPreferences["unknownSenders"])
+                    updateUnknownSenders(
+                      policyOption.value.allowUnknown,
+                      policyOption.value.requireVerified,
+                    )
                   }
                   aria-pressed={isActive}
                   className={cn(
@@ -1031,7 +1018,7 @@ function InboxSettings({
                 >
                   <div className="flex items-center justify-between gap-3">
                     <span className="block text-sm font-medium text-foreground">
-                      {policy.label}
+                      {policyOption.label}
                     </span>
                     {isActive && (
                       <span className="shrink-0 rounded-full bg-emerald-400/15 px-2 py-0.5 text-[10px] font-medium text-emerald-300">
@@ -1040,7 +1027,7 @@ function InboxSettings({
                     )}
                   </div>
                   <span className="mt-1 block text-xs text-muted-foreground">
-                    {policy.description}
+                    {policyOption.description}
                   </span>
                 </button>
               );
@@ -1048,7 +1035,42 @@ function InboxSettings({
           </div>
         </div>
 
-        <PostageInput value={preferences.minimumPostage} onChange={updateMinimumPostage} />
+        <PostageInput value={livePolicy.minimumPostage} onChange={updateMinimumPostage} />
+        {reconciliation?.state === "pending_write" && (
+          <div className="rounded-xl border border-sky-300/20 bg-sky-300/[0.08] p-3 flex items-start gap-2">
+            <RefreshCw
+              className="h-4 w-4 text-sky-400 shrink-0 mt-0.5 animate-spin"
+              aria-hidden="true"
+            />
+            <div>
+              <p className="text-sm font-medium text-sky-200">Syncing policy to chain...</p>
+              <p className="mt-1 text-xs text-sky-100/70">
+                Your mailbox policy is being written to the testnet contract. This may take a
+                moment.
+              </p>
+            </div>
+          </div>
+        )}
+        {reconciliation?.writeIntent?.status === "failed" && (
+          <div className="rounded-xl border border-rose-300/20 bg-rose-300/[0.08] p-3 flex flex-col gap-2">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="h-4 w-4 text-rose-400 shrink-0 mt-0.5" aria-hidden="true" />
+              <div>
+                <p className="text-sm font-medium text-rose-200">Failed to sync policy to chain</p>
+                <p className="mt-1 text-xs text-rose-100/70">
+                  {reconciliation.writeIntent.lastError ?? "An unknown error occurred during sync."}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => updatePolicy.mutate({ ...livePolicy })}
+              disabled={updatePolicy.isPending}
+              className="self-end rounded-lg bg-rose-500/20 px-3 py-1.5 text-xs font-semibold text-rose-300 hover:bg-rose-500/30 transition disabled:opacity-50"
+            >
+              Retry sync
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

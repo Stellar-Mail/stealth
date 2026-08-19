@@ -20,6 +20,7 @@ import type {
   MailboxPolicyWrite,
   MailboxQueueResponse,
   MailboxSettings,
+  PolicyReconciliation,
   PostageQuote,
   PublicProfile,
   PublicWalletStatus,
@@ -185,8 +186,10 @@ export class RequestsClient {
 export class PoliciesClient {
   constructor(private readonly client: ApiClient) {}
 
-  get(owner: string, signal?: AbortSignal): Promise<MailboxPolicy> {
-    return this.client.get<MailboxPolicy>(`/policies/${encodeURIComponent(owner)}`, { signal });
+  get(owner: string, signal?: AbortSignal): Promise<PolicyReconciliation> {
+    return this.client.get<PolicyReconciliation>(`/policies/${encodeURIComponent(owner)}`, {
+      signal,
+    });
   }
 
   update(owner: string, policy: MailboxPolicyWrite, signal?: AbortSignal): Promise<MailboxPolicy> {
@@ -260,8 +263,8 @@ export class SettingsClient {
   ) {}
 
   async read(owner: string, signal?: AbortSignal): Promise<MailboxSettings> {
-    const policy = await this.policies.get(owner, signal);
-    return { policy, requireReceipt: false };
+    const reconciliation = await this.policies.get(owner, signal);
+    return { policy: reconciliation.offchain.policy!, requireReceipt: false };
   }
 
   update(owner: string, policy: MailboxPolicyWrite, signal?: AbortSignal): Promise<MailboxPolicy> {

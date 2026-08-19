@@ -163,6 +163,45 @@ export interface MailboxPolicyWrite {
   requireReceipt?: boolean;
 }
 
+export interface ChainMailboxPolicy {
+  allowUnknown: boolean;
+  minimumPostage: string;
+  requireVerified: boolean;
+  requireReceipt: boolean;
+}
+
+export type PolicyWriteStatus = "pending" | "submitted" | "confirmed" | "failed";
+
+export type PolicyReconciliationState =
+  | "not_provisioned"
+  | "pending_write"
+  | "synced"
+  | "chain_ahead"
+  | "diverged";
+
+export interface PolicyReconciliation {
+  owner: string;
+  state: PolicyReconciliationState;
+  offchain: {
+    policy: MailboxPolicy | null;
+    source: "default" | "configured" | null;
+    version: number | null;
+  };
+  chain: {
+    policy: MailboxPolicy | null;
+    version: number | null;
+  };
+  writeIntent: {
+    status: PolicyWriteStatus;
+    version: number;
+    policy: ChainMailboxPolicy;
+    scheduledAt: string;
+    updatedAt: string;
+    failureCount: number;
+    lastError: string | null;
+  } | null;
+}
+
 // ---------------------------------------------------------------------------
 // Postage
 // ---------------------------------------------------------------------------

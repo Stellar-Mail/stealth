@@ -1,9 +1,21 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Surface, ActionButton, useFeedback } from "@/features/design-system";
-import { Check, X, Shield, ShieldAlert, Code, Loader2, AlertCircle } from "lucide-react";
+import {
+  Check,
+  X,
+  Shield,
+  ShieldAlert,
+  Code,
+  Loader2,
+  AlertCircle,
+  RefreshCw,
+  AlertTriangle,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { simulateSenderAdmission } from "./-simulate-sender";
+import { useSession, sessionActor } from "@/features/mail/useSession";
+import { useMailboxPolicy, useUpdateMailboxPolicy } from "@/features/mail/usePolicy";
 
 export const Route = createFileRoute("/policy-editor")({
   component: PolicyEditorPage,
@@ -17,11 +29,22 @@ const SENDER_LABELS: Record<"trusted" | "blocked" | "verified" | "unverified", s
 };
 
 function PolicyEditorPage() {
+  const { data: session } = useSession();
+  const owner = sessionActor(session);
+  const { data: reconciliation, isLoading } = useMailboxPolicy(owner);
+  const updatePolicy = useUpdateMailboxPolicy(owner);
+
   const [allowUnknown, setAllowUnknown] = useState(true);
   const [requireVerified, setRequireVerified] = useState(false);
   const [minimumPostage, setMinimumPostage] = useState(0.01);
-  const [isSaving, setIsSaving] = useState(false);
-  const [apiError, setApiError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (reconciliation?.offchain.policy) {
+      setAllowUnknown(reconciliation.offchain.policy.allowUnknown);
+      setRequireVerified(reconciliation.offchain.policy.requireVerified);
+      setMinimumPostage(parseFloat(reconciliation.offchain.policy.minimumPostage));
+    }
+  }, [reconciliation?.offchain.policy]);
 
   const { notify } = useFeedback();
 
@@ -32,26 +55,18 @@ function PolicyEditorPage() {
   };
 
   const handleSave = async () => {
-    setIsSaving(true);
-    setApiError(null);
-    try {
-      const res = await fetch("/api/v1/policy", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || `Validation/Authorization failed with status ${res.status}`);
-      }
-      notify("Policy saved successfully!", { tone: "success" });
-    } catch (e: any) {
-      setApiError(e.message);
-      notify("Failed to save policy", { tone: "danger" });
-    } finally {
-      setIsSaving(false);
-    }
+    updatePolicy.mutate(payload, {
+      onSuccess: () => {
+        notify("Policy saved successfully!", { tone: "success" });
+      },
+      onError: () => {
+        notify("Failed to save policy", { tone: "danger" });
+      },
+    });
   };
+
+  const isSaving = updatePolicy.isPending;
+  const apiError = updatePolicy.error?.message ?? null;
 
   const verificationDisabled = !allowUnknown;
   const postageDisabled = !allowUnknown;
@@ -314,6 +329,48 @@ function PolicyEditorPage() {
                     <p className="font-medium text-rose-200 mb-0.5">Save failed</p>
                     <p className="text-rose-300/80 break-words">{apiError}</p>
                   </div>
+                </div>
+              )}
+
+              {reconciliation?.state === "pending_write" && (
+                <div className="mt-4 rounded-xl border border-sky-300/20 bg-sky-300/[0.08] p-3 flex items-start gap-2">
+                  <RefreshCw
+                    className="h-4 w-4 text-sky-400 shrink-0 mt-0.5 animate-spin"
+                    aria-hidden="true"
+                  />
+                  <div>
+                    <p className="text-sm font-medium text-sky-200">Syncing policy to chain...</p>
+                    <p className="mt-1 text-xs text-sky-100/70">
+                      Your mailbox policy is being written to the testnet contract. This may take a
+                      moment.
+                    </p>
+                  </div>
+                </div>
+              )}
+              {reconciliation?.writeIntent?.status === "failed" && (
+                <div className="mt-4 rounded-xl border border-rose-300/20 bg-rose-300/[0.08] p-3 flex flex-col gap-2">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle
+                      className="h-4 w-4 text-rose-400 shrink-0 mt-0.5"
+                      aria-hidden="true"
+                    />
+                    <div>
+                      <p className="text-sm font-medium text-rose-200">
+                        Failed to sync policy to chain
+                      </p>
+                      <p className="mt-1 text-xs text-rose-100/70">
+                        {reconciliation.writeIntent.lastError ??
+                          "An unknown error occurred during sync."}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => updatePolicy.mutate(payload)}
+                    disabled={updatePolicy.isPending}
+                    className="self-end rounded-lg bg-rose-500/20 px-3 py-1.5 text-xs font-semibold text-rose-300 hover:bg-rose-500/30 transition disabled:opacity-50"
+                  >
+                    Retry sync
+                  </button>
                 </div>
               )}
             </Surface>

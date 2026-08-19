@@ -5,7 +5,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { sharedTypedApi as api, queryKeys, cacheInvalidations } from "@/lib/api";
-import type { MailboxPolicy, MailboxPolicyWrite } from "@/lib/api";
+import type { MailboxPolicy, MailboxPolicyWrite, PolicyReconciliation } from "@/lib/api";
 
 /** Reads the mailbox policy for an owner through the typed policies client. */
 export function useMailboxPolicy(owner: string | null, enabled = true) {
