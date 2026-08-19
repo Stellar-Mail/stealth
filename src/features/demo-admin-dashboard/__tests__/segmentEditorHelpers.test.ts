@@ -116,7 +116,11 @@ describe("validateSegment", () => {
   });
 
   it("warns on empty criteria", () => {
-    const seg = makeSegment({ label: "OK", criteria: [], personaIds: ["persona-01"] });
+    const seg = makeSegment({
+      label: "OK",
+      criteria: [],
+      personaIds: ["persona-01"],
+    });
     const result = validateSegment(seg);
     const warn = result.errors.find((e) => e.field === "criteria");
     expect(warn).toBeDefined();

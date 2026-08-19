@@ -26,7 +26,8 @@ export type CryptoOperation =
   | "key_resolve"
   | "kdf"
   | "nonce_generate"
-  | "identity_normalize";
+  | "identity_normalize"
+  | "relay_auth_verify";
 
 /** Fixed result codes (maps to existing CryptoErrorCode taxonomy). */
 export type CryptoResultCode =

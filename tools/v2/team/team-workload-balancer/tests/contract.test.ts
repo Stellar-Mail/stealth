@@ -42,7 +42,11 @@ describe("workload contract — balance", () => {
       unassignedItems: SAMPLE_UNASSIGNED,
       members: SAMPLE_MEMBERS,
       allItems: SAMPLE_ALL_ITEMS,
-      config: { strategy: "least-loaded", prioritizeBy: null, considerSkills: false },
+      config: {
+        strategy: "least-loaded",
+        prioritizeBy: null,
+        considerSkills: false,
+      },
     });
     expect(res.ok).toBe(true);
     if (res.ok && res.value.operation === "balance") {
@@ -59,7 +63,11 @@ describe("workload contract — balance", () => {
       unassignedItems: SAMPLE_UNASSIGNED,
       members: SAMPLE_MEMBERS,
       allItems: SAMPLE_ALL_ITEMS,
-      config: { strategy: "round-robin", prioritizeBy: null, considerSkills: false },
+      config: {
+        strategy: "round-robin",
+        prioritizeBy: null,
+        considerSkills: false,
+      },
     });
     expect(res.ok).toBe(true);
     if (res.ok && res.value.operation === "balance") {
@@ -74,7 +82,11 @@ describe("workload contract — balance", () => {
       unassignedItems: SAMPLE_UNASSIGNED,
       members: undefined as never,
       allItems: SAMPLE_ALL_ITEMS,
-      config: { strategy: "least-loaded", prioritizeBy: null, considerSkills: false },
+      config: {
+        strategy: "least-loaded",
+        prioritizeBy: null,
+        considerSkills: false,
+      },
     });
     expect(res.ok).toBe(false);
     if (!res.ok) expect(res.error).toBe(WorkloadErrorCode.InvalidInput);

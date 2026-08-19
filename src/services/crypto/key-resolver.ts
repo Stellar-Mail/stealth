@@ -1,5 +1,5 @@
 /**
- * Secure recipient key-resolution interface (#1712).
+ * Secure recipient key-resolution interface (#1712, #1934 BETA-027).
  *
  * The crypto implementation has no abstraction for locating a recipient
  * encryption public key or validating its provenance. Without identity
@@ -13,6 +13,7 @@
 
 import { getCryptoTestVectors } from "./testing";
 import { recordCryptoTelemetry, type CryptoResultCode } from "./telemetry";
+import { fromBase64, fromHex } from "./codec";
 
 /** Minimal non-secret error carrying a stable code (no key/plaintext leakage). */
 export class ResolverError extends Error {
@@ -40,13 +41,22 @@ export interface ResolvedKey {
   notAfter: string;
   /** Whether the key has been revoked. */
   revoked: boolean;
+  /** ISO timestamp when the key was revoked (if revoked). */
+  revokedAt?: string | null;
   /** How the key was obtained. */
   provenance: KeyProvenance;
+  /** Key version in directory lifecycle. */
+  version?: number;
 }
 
 /** A resolver locates and returns a validated key for a recipient. */
 export interface RecipientKeyResolver {
   resolve(recipient: string): Promise<ResolvedKey>;
+}
+
+/** Resolves historical keys for decrypting or verifying older messages. */
+export interface HistoricalKeyResolver {
+  resolveHistorical(recipient: string, keyId: string, timestamp?: Date): Promise<ResolvedKey>;
 }
 
 function parseIso(value: string): number {
@@ -87,6 +97,45 @@ export function validateResolvedKey(
 }
 
 /**
+ * Validates a key for historical message verification.
+ * - Active / Rotated / Retired keys are valid if messageTimestamp was within [notBefore, notAfter].
+ * - Revoked keys are permitted ONLY if messageTimestamp is strictly BEFORE revokedAt.
+ */
+export function validateHistoricalKey(
+  key: ResolvedKey,
+  recipient: string,
+  messageTimestamp: Date | string,
+): ResolvedKey {
+  if (key.recipient !== recipient) {
+    throw new ResolverError("resolved key is not bound to the requested recipient");
+  }
+  if (!key.publicKey || key.publicKey.length === 0) {
+    throw new ResolverError("resolved key has no public key material");
+  }
+
+  const msgMs =
+    typeof messageTimestamp === "string" ? parseIso(messageTimestamp) : messageTimestamp.getTime();
+  const notBeforeMs = parseIso(key.notBefore);
+  const notAfterMs = parseIso(key.notAfter);
+
+  if (msgMs < notBeforeMs || msgMs > notAfterMs) {
+    throw new ResolverError("message timestamp is outside key validity window");
+  }
+
+  if (key.revoked) {
+    if (!key.revokedAt) {
+      throw new ResolverError("revoked key is missing revocation timestamp");
+    }
+    const revokedMs = parseIso(key.revokedAt);
+    if (msgMs >= revokedMs) {
+      throw new ResolverError("message timestamp postdates key revocation");
+    }
+  }
+
+  return key;
+}
+
+/**
  * Resolve and validate in one step. Implementations provide a resolver; this
  * guarantees the returned key is safe to use for wrapping.
  */
@@ -111,6 +160,80 @@ export async function resolveTrustedKey(
       result,
       durationMs,
     });
+  }
+}
+
+/**
+ * Concrete Key Directory Resolver bridging to the versioned public key directory.
+ */
+export class DirectoryRecipientKeyResolver implements RecipientKeyResolver, HistoricalKeyResolver {
+  constructor(
+    private readonly directoryFetcher: (owner: string) => Promise<{
+      currentKeys: { encryption?: any; signing?: any };
+      historicalKeys: any[];
+      allKeys: any[];
+    } | null>,
+  ) {}
+
+  public async resolve(recipient: string): Promise<ResolvedKey> {
+    const dir = await this.directoryFetcher(recipient);
+    if (!dir || !dir.currentKeys?.encryption) {
+      throw new ResolverError(`No active encryption key found for recipient ${recipient}`);
+    }
+
+    const currentKey = dir.currentKeys.encryption;
+    return this.toResolvedKey(currentKey, recipient);
+  }
+
+  public async resolveHistorical(
+    recipient: string,
+    keyId: string,
+    timestamp?: Date,
+  ): Promise<ResolvedKey> {
+    const dir = await this.directoryFetcher(recipient);
+    if (!dir) {
+      throw new ResolverError(`Key directory not found for recipient ${recipient}`);
+    }
+
+    const key = dir.allKeys.find((k: any) => k.keyId === keyId);
+    if (!key) {
+      throw new ResolverError(`Key ${keyId} not found in directory for recipient ${recipient}`);
+    }
+
+    const resolved = this.toResolvedKey(key, recipient);
+    if (timestamp) {
+      return validateHistoricalKey(resolved, recipient, timestamp);
+    }
+    return resolved;
+  }
+
+  private toResolvedKey(rawKey: any, recipient: string): ResolvedKey {
+    let pubKeyBytes: Uint8Array;
+    if (typeof rawKey.publicKey === "string") {
+      try {
+        if (/^[0-9a-fA-F]+$/.test(rawKey.publicKey)) {
+          pubKeyBytes = fromHex(rawKey.publicKey);
+        } else {
+          pubKeyBytes = fromBase64(rawKey.publicKey);
+        }
+      } catch {
+        pubKeyBytes = new TextEncoder().encode(rawKey.publicKey);
+      }
+    } else {
+      pubKeyBytes = rawKey.publicKey;
+    }
+
+    return {
+      recipient,
+      publicKey: pubKeyBytes,
+      keyId: rawKey.keyId,
+      notBefore: rawKey.notBefore,
+      notAfter: rawKey.notAfter,
+      revoked: rawKey.status === "revoked",
+      revokedAt: rawKey.revokedAt ?? null,
+      provenance: "trusted-directory",
+      version: rawKey.version,
+    };
   }
 }
 

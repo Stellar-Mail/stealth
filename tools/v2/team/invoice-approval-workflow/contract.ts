@@ -107,7 +107,11 @@ export function applyInvoiceOperation(
         );
       const decision: ApprovalDecision =
         op.operation === "approve"
-          ? { decision: "approved", approver: op.approver, at: now.toISOString() }
+          ? {
+              decision: "approved",
+              approver: op.approver,
+              at: now.toISOString(),
+            }
           : {
               decision: "rejected",
               approver: op.approver,

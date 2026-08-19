@@ -207,7 +207,9 @@ Object.defineProperty(enLocaleFilter, "name", { value: "en-locale" });
 export function excludeDeprecatedFilter(article: KbArticle): boolean {
   return article.deprecated !== true;
 }
-Object.defineProperty(excludeDeprecatedFilter, "name", { value: "exclude-deprecated" });
+Object.defineProperty(excludeDeprecatedFilter, "name", {
+  value: "exclude-deprecated",
+});
 
 /** A filter that limits to a specific team. */
 export function teamFilter(team: string): KbCorpusFilter {

@@ -16,7 +16,11 @@ export const SETTINGS_SHORTCUTS: SettingShortcut[] = [
     label: "Unknown sender policy",
     keywords: ["policy", "senders", "spam"],
   },
-  { id: "minimum-postage", label: "Minimum postage", keywords: ["postage", "fee", "xlm", "price"] },
+  {
+    id: "minimum-postage",
+    label: "Minimum postage",
+    keywords: ["postage", "fee", "xlm", "price"],
+  },
   {
     id: "appearance",
     label: "Appearance & theme",
@@ -142,7 +146,11 @@ export function buildPaletteModel(
       title: COMMAND_GROUP_LABEL[group],
       rows: commands
         .filter((command) => command.group === group)
-        .map((command) => ({ type: "command" as const, key: command.id, command })),
+        .map((command) => ({
+          type: "command" as const,
+          key: command.id,
+          command,
+        })),
     })).filter((section) => section.rows.length > 0);
   }
 
@@ -192,7 +200,11 @@ export function buildPaletteModel(
     sections.push({
       id: "senders",
       title: "Senders",
-      rows: senders.map((email) => ({ type: "sender", key: `sender-${email.id}`, email })),
+      rows: senders.map((email) => ({
+        type: "sender",
+        key: `sender-${email.id}`,
+        email,
+      })),
     });
   }
 

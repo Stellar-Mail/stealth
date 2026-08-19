@@ -39,7 +39,10 @@ describe("Postage Quote Endpoint Validation", () => {
 
     it("returns validation error for malformed recipient (wrong prefix)", () => {
       try {
-        quoteSchema.parse({ recipient: `M${"A".repeat(55)}`, sender: validSender });
+        quoteSchema.parse({
+          recipient: `M${"A".repeat(55)}`,
+          sender: validSender,
+        });
         expect.fail("Should have thrown validation error");
       } catch (error) {
         const apiError = normalizeApiError(error);
@@ -50,7 +53,10 @@ describe("Postage Quote Endpoint Validation", () => {
 
     it("returns validation error for malformed sender (wrong prefix)", () => {
       try {
-        quoteSchema.parse({ recipient: validRecipient, sender: `X${"B".repeat(55)}` });
+        quoteSchema.parse({
+          recipient: validRecipient,
+          sender: `X${"B".repeat(55)}`,
+        });
         expect.fail("Should have thrown validation error");
       } catch (error) {
         const apiError = normalizeApiError(error);

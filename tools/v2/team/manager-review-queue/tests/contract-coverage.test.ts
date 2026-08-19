@@ -93,7 +93,10 @@ describe("fetch — filters and pagination", () => {
 
   it("rejects a negative offset", async () => {
     const contract = createReviewQueueContract(seed(), 0);
-    const res = await contract.execute({ operation: "fetch", input: { offset: -1 } });
+    const res = await contract.execute({
+      operation: "fetch",
+      input: { offset: -1 },
+    });
     expect(res.ok).toBe(false);
     if (!res.ok) expect(res.error).toBe(ReviewErrorCode.InvalidInput);
   });
@@ -144,7 +147,10 @@ describe("updateStatus — transitions and persistence", () => {
     const contract = createReviewQueueContract(seed(), 0);
     const res = await contract.execute({
       operation: "updateStatus",
-      input: { itemId: "a1", newStatus: "archived" as unknown as ReviewItem["status"] },
+      input: {
+        itemId: "a1",
+        newStatus: "archived" as unknown as ReviewItem["status"],
+      },
     });
     expect(res.ok).toBe(false);
     if (!res.ok) expect(res.error).toBe(ReviewErrorCode.InvalidInput);
@@ -170,14 +176,19 @@ describe("contract primitives", () => {
   });
 
   it("validateUpdateStatusInput rejects a whitespace itemId", () => {
-    const res = validateUpdateStatusInput({ itemId: "   ", newStatus: "approved" });
+    const res = validateUpdateStatusInput({
+      itemId: "   ",
+      newStatus: "approved",
+    });
     expect(res.ok).toBe(false);
     if (!res.ok) expect(res.error).toBe(ReviewErrorCode.InvalidInput);
   });
 
   it("applyReviewOperation returns InvalidInput for an unrecognised operation", () => {
     const store = new Map<string, ReviewItem>();
-    const res = applyReviewOperation(store, { operation: "delete" } as unknown as ReviewOperation);
+    const res = applyReviewOperation(store, {
+      operation: "delete",
+    } as unknown as ReviewOperation);
     expect(res.ok).toBe(false);
     if (!res.ok) expect(res.error).toBe(ReviewErrorCode.InvalidInput);
   });

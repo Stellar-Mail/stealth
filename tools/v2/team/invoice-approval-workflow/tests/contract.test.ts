@@ -36,7 +36,10 @@ describe("invoice approval contract — result helpers", () => {
 describe("invoice approval contract — lifecycle", () => {
   it("submit creates a pending invoice with a generated id", () => {
     const contract = createInvoiceApprovalContract();
-    const res = contract.execute({ operation: "submit", input: VALID_SUBMIT_INPUT });
+    const res = contract.execute({
+      operation: "submit",
+      input: VALID_SUBMIT_INPUT,
+    });
     expect(res.ok).toBe(true);
     if (res.ok && res.value.operation === "submit") {
       expect(res.value.invoice.id).toMatch(/^inv-\d{3}$/);
@@ -47,10 +50,17 @@ describe("invoice approval contract — lifecycle", () => {
 
   it("approve moves a pending invoice to approved with a decision", () => {
     const contract = createInvoiceApprovalContract();
-    const sub = contract.execute({ operation: "submit", input: VALID_SUBMIT_INPUT });
+    const sub = contract.execute({
+      operation: "submit",
+      input: VALID_SUBMIT_INPUT,
+    });
     expect(sub.ok).toBe(true);
     const id = sub.ok && sub.value.operation === "submit" ? sub.value.invoice.id : "";
-    const res = contract.execute({ operation: "approve", id, approver: "lead@acme.example.com" });
+    const res = contract.execute({
+      operation: "approve",
+      id,
+      approver: "lead@acme.example.com",
+    });
     expect(res.ok).toBe(true);
     if (res.ok && res.value.operation === "approve") {
       expect(res.value.invoice.status).toBe("approved");
@@ -61,7 +71,10 @@ describe("invoice approval contract — lifecycle", () => {
 
   it("reject records a reason and moves the invoice to rejected", () => {
     const contract = createInvoiceApprovalContract();
-    const sub = contract.execute({ operation: "submit", input: VALID_SUBMIT_INPUT });
+    const sub = contract.execute({
+      operation: "submit",
+      input: VALID_SUBMIT_INPUT,
+    });
     const id = sub.ok && sub.value.operation === "submit" ? sub.value.invoice.id : "";
     const res = contract.execute({
       operation: "reject",
@@ -126,9 +139,16 @@ describe("invoice approval contract — error handling", () => {
 
   it("approve of an already-decided invoice maps to InvalidState (no throw)", () => {
     const contract = createInvoiceApprovalContract();
-    const sub = contract.execute({ operation: "submit", input: VALID_SUBMIT_INPUT });
+    const sub = contract.execute({
+      operation: "submit",
+      input: VALID_SUBMIT_INPUT,
+    });
     const id = sub.ok && sub.value.operation === "submit" ? sub.value.invoice.id : "";
-    contract.execute({ operation: "approve", id, approver: "lead@acme.example.com" });
+    contract.execute({
+      operation: "approve",
+      id,
+      approver: "lead@acme.example.com",
+    });
     const res: InvoiceResult<InvoiceContractOutput> = contract.execute({
       operation: "approve",
       id,

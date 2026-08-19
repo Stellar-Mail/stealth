@@ -54,7 +54,11 @@ describe("analyzeSentiment", () => {
     const result = analyzeSentiment(makeInput({ body: "The update is not good." }));
     expect(result.sentiment).toBe("negative");
     expect(result.stats.negationFlips).toBe(1);
-    expect(result.signals[0]).toMatchObject({ term: "good", polarity: "negative", negated: true });
+    expect(result.signals[0]).toMatchObject({
+      term: "good",
+      polarity: "negative",
+      negated: true,
+    });
   });
 
   it("handles contraction negations within the lookback window", () => {

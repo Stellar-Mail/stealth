@@ -107,7 +107,12 @@ describe("ExecutionService — determinism", () => {
         pdfContent: SAMPLE_CONTENT,
         fileName: "determinism-test.pdf",
         fileSizeBytes: 1024,
-        settings: { length: "short", style: "paragraph", includeKeywords: false, language: "en" },
+        settings: {
+          length: "short",
+          style: "paragraph",
+          includeKeywords: false,
+          language: "en",
+        },
       },
     };
 

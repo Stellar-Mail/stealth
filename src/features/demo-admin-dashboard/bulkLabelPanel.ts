@@ -72,7 +72,12 @@ export function applyBulkLabelEdit(
           applied.push(label);
         }
       }
-      changes.push({ id: message.id, subject: message.subject, applied, skipped });
+      changes.push({
+        id: message.id,
+        subject: message.subject,
+        applied,
+        skipped,
+      });
       return applied.length === 0 ? message : { ...message, labels: nextLabels };
     }
 
@@ -84,7 +89,12 @@ export function applyBulkLabelEdit(
         skipped.push(label);
       }
     }
-    changes.push({ id: message.id, subject: message.subject, applied, skipped });
+    changes.push({
+      id: message.id,
+      subject: message.subject,
+      applied,
+      skipped,
+    });
     return applied.length === 0
       ? message
       : {

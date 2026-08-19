@@ -16,10 +16,30 @@ export const PRESET_SCENARIOS: PresetScenario[] = [
       { label: "Total Postage (XLM)", value: "1,240.5", delta: "+45.2" },
     ],
     accounts: [
-      { name: "Alice Demo", address: "GABCD...1234", balance: "500.0 XLM", type: "User" },
-      { name: "Bob Demo", address: "GBCDE...2345", balance: "320.0 XLM", type: "User" },
-      { name: "Relay East", address: "GCDEF...3456", balance: "1,200.0 XLM", type: "Relay" },
-      { name: "Relay West", address: "GDEFG...4567", balance: "980.0 XLM", type: "Relay" },
+      {
+        name: "Alice Demo",
+        address: "GABCD...1234",
+        balance: "500.0 XLM",
+        type: "User",
+      },
+      {
+        name: "Bob Demo",
+        address: "GBCDE...2345",
+        balance: "320.0 XLM",
+        type: "User",
+      },
+      {
+        name: "Relay East",
+        address: "GCDEF...3456",
+        balance: "1,200.0 XLM",
+        type: "Relay",
+      },
+      {
+        name: "Relay West",
+        address: "GDEFG...4567",
+        balance: "980.0 XLM",
+        type: "Relay",
+      },
       {
         name: "Relay Node 07",
         address: "GCRLY...N007",
@@ -123,10 +143,30 @@ export const PRESET_SCENARIOS: PresetScenario[] = [
       { label: "Total Postage (XLM)", value: "1,240.5", delta: "+45.2" },
     ],
     accounts: [
-      { name: "Alice Demo", address: "GABCD...1234", balance: "500.0 XLM", type: "User" },
-      { name: "Bob Demo", address: "GBCDE...2345", balance: "320.0 XLM", type: "User" },
-      { name: "Relay East", address: "GCDEF...3456", balance: "1,200.0 XLM", type: "Relay" },
-      { name: "Relay West", address: "GDEFG...4567", balance: "980.0 XLM", type: "Relay" },
+      {
+        name: "Alice Demo",
+        address: "GABCD...1234",
+        balance: "500.0 XLM",
+        type: "User",
+      },
+      {
+        name: "Bob Demo",
+        address: "GBCDE...2345",
+        balance: "320.0 XLM",
+        type: "User",
+      },
+      {
+        name: "Relay East",
+        address: "GCDEF...3456",
+        balance: "1,200.0 XLM",
+        type: "Relay",
+      },
+      {
+        name: "Relay West",
+        address: "GDEFG...4567",
+        balance: "980.0 XLM",
+        type: "Relay",
+      },
       {
         name: "Stellar Bridge Relay",
         address: "GCSBR...BREG",
@@ -249,10 +289,30 @@ export const PRESET_SCENARIOS: PresetScenario[] = [
       { label: "Total Postage (XLM)", value: "1,310.0", delta: "+18.4" },
     ],
     accounts: [
-      { name: "Alice Demo", address: "GABCD...1234", balance: "500.0 XLM", type: "User" },
-      { name: "Bob Demo", address: "GBCDE...2345", balance: "320.0 XLM", type: "User" },
-      { name: "Moderator Demo", address: "GMODR...9999", balance: "750.0 XLM", type: "Reviewer" },
-      { name: "Relay South", address: "GSRLY...SOUT", balance: "980.0 XLM", type: "Relay" },
+      {
+        name: "Alice Demo",
+        address: "GABCD...1234",
+        balance: "500.0 XLM",
+        type: "User",
+      },
+      {
+        name: "Bob Demo",
+        address: "GBCDE...2345",
+        balance: "320.0 XLM",
+        type: "User",
+      },
+      {
+        name: "Moderator Demo",
+        address: "GMODR...9999",
+        balance: "750.0 XLM",
+        type: "Reviewer",
+      },
+      {
+        name: "Relay South",
+        address: "GSRLY...SOUT",
+        balance: "980.0 XLM",
+        type: "Relay",
+      },
     ],
     mail: [
       {
@@ -335,10 +395,30 @@ export const PRESET_SCENARIOS: PresetScenario[] = [
       { label: "Total Postage (XLM)", value: "1,240.5001", delta: "+0.0001" },
     ],
     accounts: [
-      { name: "Alice Demo", address: "GABCD...1234", balance: "500.0 XLM", type: "User" },
-      { name: "Bob Demo", address: "GBCDE...2345", balance: "320.0 XLM", type: "User" },
-      { name: "Relay East", address: "GCDEF...3456", balance: "1,200.0001 XLM", type: "Relay" },
-      { name: "Relay West", address: "GDEFG...4567", balance: "980.0 XLM", type: "Relay" },
+      {
+        name: "Alice Demo",
+        address: "GABCD...1234",
+        balance: "500.0 XLM",
+        type: "User",
+      },
+      {
+        name: "Bob Demo",
+        address: "GBCDE...2345",
+        balance: "320.0 XLM",
+        type: "User",
+      },
+      {
+        name: "Relay East",
+        address: "GCDEF...3456",
+        balance: "1,200.0001 XLM",
+        type: "Relay",
+      },
+      {
+        name: "Relay West",
+        address: "GDEFG...4567",
+        balance: "980.0 XLM",
+        type: "Relay",
+      },
       {
         name: "Receipt Contract",
         address: "CCLC7...RECP",
@@ -445,8 +525,18 @@ export const PRESET_SCENARIOS: PresetScenario[] = [
       { label: "Total Postage (XLM)", value: "1,241.2", delta: "+0.7" },
     ],
     accounts: [
-      { name: "Alice Demo", address: "GABCD...1234", balance: "500.0 XLM", type: "User" },
-      { name: "Bob Demo", address: "GBCDE...2345", balance: "320.0 XLM", type: "User" },
+      {
+        name: "Alice Demo",
+        address: "GABCD...1234",
+        balance: "500.0 XLM",
+        type: "User",
+      },
+      {
+        name: "Bob Demo",
+        address: "GBCDE...2345",
+        balance: "320.0 XLM",
+        type: "User",
+      },
       {
         name: "Relay Secured",
         address: "GCREL...SECD",

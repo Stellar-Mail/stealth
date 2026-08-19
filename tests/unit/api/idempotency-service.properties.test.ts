@@ -131,10 +131,16 @@ describe("withIdempotency (property)", () => {
           const repository = new MemoryApiRepository();
           const scope = { actor, method, route, rawKey };
 
-          await withIdempotency(repository, scope, bodyA, async () => ({ status: 200, body: {} }));
+          await withIdempotency(repository, scope, bodyA, async () => ({
+            status: 200,
+            body: {},
+          }));
 
           await expect(
-            withIdempotency(repository, scope, bodyB, async () => ({ status: 200, body: {} })),
+            withIdempotency(repository, scope, bodyB, async () => ({
+              status: 200,
+              body: {},
+            })),
           ).rejects.toMatchObject({ code: "idempotency_mismatch" });
         },
       ),

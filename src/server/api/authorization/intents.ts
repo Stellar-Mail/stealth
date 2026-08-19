@@ -4,7 +4,13 @@ export type ManagedWalletIntent =
   | { type: "policy"; ownerAddress: string }
   | { type: "postage"; senderAddress: string; amountStroops: string }
   | { type: "lifecycle"; userAddress: string }
-  | { type: "receipt"; recipientAddress: string };
+  | { type: "receipt"; recipientAddress: string }
+  | {
+      type: "keys";
+      ownerAddress: string;
+      operation: "publish" | "rotate" | "retire" | "revoke";
+      keyId?: string;
+    };
 
 export function validateIntent(
   intent: ManagedWalletIntent,
@@ -41,6 +47,11 @@ export function validateIntent(
     case "receipt":
       if (intent.recipientAddress !== actorAddress) {
         throw new Error("Actor mismatch: cannot sign receipt emission for another user");
+      }
+      break;
+    case "keys":
+      if (intent.ownerAddress !== actorAddress) {
+        throw new Error("Actor mismatch: cannot sign key directory operation for another user");
       }
       break;
     default:

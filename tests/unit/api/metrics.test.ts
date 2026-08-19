@@ -19,7 +19,11 @@ describe("metrics", () => {
 
   describe("incrementCounter", () => {
     it("increments a named counter", () => {
-      incrementCounter("api_requests_total", { method: "GET", path: "/api/test", status: "200" });
+      incrementCounter("api_requests_total", {
+        method: "GET",
+        path: "/api/test",
+        status: "200",
+      });
       const snap = snapshot();
       expect(snap.counters['api_requests_total{method:"GET",path:"/api/test",status:"200"}']).toBe(
         1,
@@ -27,8 +31,16 @@ describe("metrics", () => {
     });
 
     it("increments multiple times", () => {
-      incrementCounter("api_requests_total", { method: "POST", path: "/api/data", status: "201" });
-      incrementCounter("api_requests_total", { method: "POST", path: "/api/data", status: "201" });
+      incrementCounter("api_requests_total", {
+        method: "POST",
+        path: "/api/data",
+        status: "201",
+      });
+      incrementCounter("api_requests_total", {
+        method: "POST",
+        path: "/api/data",
+        status: "201",
+      });
       const snap = snapshot();
       expect(snap.counters['api_requests_total{method:"POST",path:"/api/data",status:"201"}']).toBe(
         2,
@@ -36,8 +48,16 @@ describe("metrics", () => {
     });
 
     it("separates counters by labels", () => {
-      incrementCounter("api_requests_total", { method: "GET", path: "/api/a", status: "200" });
-      incrementCounter("api_requests_total", { method: "POST", path: "/api/b", status: "400" });
+      incrementCounter("api_requests_total", {
+        method: "GET",
+        path: "/api/a",
+        status: "200",
+      });
+      incrementCounter("api_requests_total", {
+        method: "POST",
+        path: "/api/b",
+        status: "400",
+      });
       const snap = snapshot();
       expect(Object.keys(snap.counters)).toHaveLength(2);
     });
@@ -51,7 +71,11 @@ describe("metrics", () => {
 
   describe("recordHistogram", () => {
     it("records a value into the correct bucket", () => {
-      recordHistogram("api_latency", 30, { method: "GET", path: "/api/test", status: "200" });
+      recordHistogram("api_latency", 30, {
+        method: "GET",
+        path: "/api/test",
+        status: "200",
+      });
       const snap = snapshot();
       const hist = snap.histograms['api_latency{method:"GET",path:"/api/test",status:"200"}'];
       expect(hist).toBeDefined();
@@ -95,8 +119,16 @@ describe("metrics", () => {
     });
 
     it("separates histograms by labels", () => {
-      recordHistogram("api_latency", 10, { method: "GET", path: "/api/a", status: "200" });
-      recordHistogram("api_latency", 200, { method: "POST", path: "/api/b", status: "500" });
+      recordHistogram("api_latency", 10, {
+        method: "GET",
+        path: "/api/a",
+        status: "200",
+      });
+      recordHistogram("api_latency", 200, {
+        method: "POST",
+        path: "/api/b",
+        status: "500",
+      });
 
       const snap = snapshot();
       expect(Object.keys(snap.histograms)).toHaveLength(2);

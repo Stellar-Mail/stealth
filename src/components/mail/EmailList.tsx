@@ -297,7 +297,11 @@ export function EmailList({
                 key={e.id}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.03, duration: 0.25, ease: [0.2, 0.8, 0.2, 1] }}
+                transition={{
+                  delay: idx * 0.03,
+                  duration: 0.25,
+                  ease: [0.2, 0.8, 0.2, 1],
+                }}
               >
                 <div className="flex items-start gap-2 px-1">
                   <Checkbox
@@ -338,7 +342,11 @@ export function EmailList({
               key={e.id}
               initial={false}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: idx * 0.02, duration: 0.25, ease: [0.2, 0.8, 0.2, 1] }}
+              transition={{
+                delay: idx * 0.02,
+                duration: 0.25,
+                ease: [0.2, 0.8, 0.2, 1],
+              }}
             >
               <div
                 className="flex items-start gap-2"
@@ -382,7 +390,11 @@ export function EmailList({
                         background:
                           "radial-gradient(circle at 18% 22%, oklch(1 0 0 / 0.12), transparent 36%), linear-gradient(135deg, oklch(1 0 0 / 0.08), oklch(1 0 0 / 0.025) 44%, oklch(1 0 0 / 0.01))",
                       }}
-                      transition={{ type: "spring", stiffness: 400, damping: 32 }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 400,
+                        damping: 32,
+                      }}
                     />
                   )}
                   {showAvatars && (

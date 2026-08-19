@@ -12,7 +12,11 @@ type Props = {
 
 const PRESETS: Array<{ label: string; value: string; hint: string }> = [
   { label: "Free", value: "0", hint: "Anyone can reach you at no cost" },
-  { label: "0.001 XLM", value: "0.001", hint: "Light friction for mass senders" },
+  {
+    label: "0.001 XLM",
+    value: "0.001",
+    hint: "Light friction for mass senders",
+  },
   { label: "0.01 XLM", value: "0.01", hint: "Meaningful cost per message" },
 ];
 

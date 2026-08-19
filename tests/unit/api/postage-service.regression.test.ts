@@ -17,7 +17,11 @@ describe("postage service regression coverage", () => {
     });
 
     await expect(
-      quotePostage(createApiContext(repository), { recipient, sender }),
+      quotePostage(createApiContext(repository), {
+        recipient,
+        sender,
+        messageId: "a".repeat(64),
+      }),
     ).resolves.toMatchObject({
       amount: "100",
       eligible: true,

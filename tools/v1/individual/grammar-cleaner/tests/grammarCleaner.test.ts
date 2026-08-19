@@ -66,7 +66,9 @@ describe("cleanGrammar", () => {
   });
 
   it("returns no issues for clean text", () => {
-    const result = cleanGrammar({ bodyText: "The meeting is at three o'clock." });
+    const result = cleanGrammar({
+      bodyText: "The meeting is at three o'clock.",
+    });
     expect(result.status).toBe("ok");
     if (result.status !== "ok") return;
     expect(result.result.issueCount).toBe(0);
@@ -143,7 +145,9 @@ describe("guards", () => {
   });
 
   it("rejects attachments before grammar processing", () => {
-    const issue = checkDatasetLimits({ attachments: [{ name: "invoice.html" }] });
+    const issue = checkDatasetLimits({
+      attachments: [{ name: "invoice.html" }],
+    });
     expect(issue).not.toBeNull();
     expect(issue!.code).toBe("unsupported-dataset");
   });
@@ -155,7 +159,9 @@ describe("guards", () => {
   });
 
   it("rejects team datasets outside individual scope", () => {
-    const issue = checkDatasetLimits({ teamMembers: [{ id: "a" }, { id: "b" }] });
+    const issue = checkDatasetLimits({
+      teamMembers: [{ id: "a" }, { id: "b" }],
+    });
     expect(issue).not.toBeNull();
     expect(issue!.code).toBe("unsupported-dataset");
   });
@@ -189,7 +195,9 @@ describe("guards", () => {
   });
 
   it("safeCleanGrammar rejects oversized input before engine runs", () => {
-    const result = safeCleanGrammar({ bodyText: "x".repeat(GUARD_LIMITS.maxBodyChars + 1) });
+    const result = safeCleanGrammar({
+      bodyText: "x".repeat(GUARD_LIMITS.maxBodyChars + 1),
+    });
     if (result.status !== "error") return;
     expect(result.code).toBe("input-too-large");
   });

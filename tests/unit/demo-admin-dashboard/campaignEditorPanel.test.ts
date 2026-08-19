@@ -26,7 +26,14 @@ describe("CampaignEditorPanel shell", () => {
       description: "Fake demo records for recovery.",
       targetAudience: "Mailbox admins",
       tagsInput: "recovery",
-      drafts: [{ id: "d1", subject: "Test", body: "Body", recipients: ["a@stealth.demo"] }],
+      drafts: [
+        {
+          id: "d1",
+          subject: "Test",
+          body: "Body",
+          recipients: ["a@stealth.demo"],
+        },
+      ],
     };
     expect(getCampaignEditorEmptyState(state)).toBeNull();
   });
@@ -38,7 +45,14 @@ describe("CampaignEditorPanel shell", () => {
       description: "Fake demo records for recovery.",
       targetAudience: "Mailbox admins",
       tagsInput: "recovery",
-      drafts: [{ id: "d1", subject: "Test", body: "Body", recipients: ["a@stealth.demo"] }],
+      drafts: [
+        {
+          id: "d1",
+          subject: "Test",
+          body: "Body",
+          recipients: ["a@stealth.demo"],
+        },
+      ],
     };
     const result = validateCampaignEditorState(state);
     expect(result.valid).toBe(true);

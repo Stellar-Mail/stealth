@@ -36,7 +36,10 @@ export class CommentThreadService {
     for (const thread of this.threads.values()) {
       if (thread.targetId === targetId && thread.targetType === targetType) {
         const threadComments = this.comments.get(thread.id) || [];
-        result.push({ ...thread, comments: threadComments.filter((c) => !c.isDeleted) });
+        result.push({
+          ...thread,
+          comments: threadComments.filter((c) => !c.isDeleted),
+        });
       }
     }
     return result;

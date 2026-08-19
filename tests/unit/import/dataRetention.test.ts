@@ -121,8 +121,14 @@ describe("saveSession / loadSessions / clearSessions", () => {
   });
 
   it("maintains multiple sessions in order (most recent first)", () => {
-    const oldest = makeSession({ id: "oldest", createdAt: "2024-01-01T00:00:00Z" });
-    const newest = makeSession({ id: "newest", createdAt: "2024-06-01T00:00:00Z" });
+    const oldest = makeSession({
+      id: "oldest",
+      createdAt: "2024-01-01T00:00:00Z",
+    });
+    const newest = makeSession({
+      id: "newest",
+      createdAt: "2024-06-01T00:00:00Z",
+    });
 
     saveSession(oldest);
     saveSession(newest);

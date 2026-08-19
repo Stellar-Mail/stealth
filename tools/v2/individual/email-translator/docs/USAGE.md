@@ -312,7 +312,7 @@ const englishEmail = getSampleEmail("english", "medium");
 const spanishEmail = getSampleEmail("spanish", "short");
 
 // Use in tests or development
-<EmailTranslatorTool sourceText={englishEmail} />
+<EmailTranslatorTool sourceText={englishEmail} />;
 ```
 
 ---

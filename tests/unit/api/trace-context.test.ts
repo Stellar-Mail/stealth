@@ -132,7 +132,9 @@ describe("Global Fetch Header Injection Integration", () => {
 
     try {
       await traceContextStorage.run(fetchContext, async () => {
-        const req = new Request("https://stellar.service/txn", { method: "POST" });
+        const req = new Request("https://stellar.service/txn", {
+          method: "POST",
+        });
         await fetch(req);
       });
 

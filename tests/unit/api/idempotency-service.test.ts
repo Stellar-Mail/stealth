@@ -106,16 +106,22 @@ describe("Idempotency Service", () => {
       const repository = new MemoryApiRepository();
       await acquireIdempotency(repository, scope(), { amount: 1 });
 
-      const result = await acquireIdempotency(repository, scope(), { amount: 2 });
+      const result = await acquireIdempotency(repository, scope(), {
+        amount: 2,
+      });
       expect(result.status).toBe("conflict");
     });
 
     it("returns conflict when a completed record is reused with a different payload", async () => {
       const repository = new MemoryApiRepository();
       await acquireIdempotency(repository, scope(), { amount: 1 });
-      await recordIdempotency(repository, scope(), { amount: 1 }, 200, { ok: true });
+      await recordIdempotency(repository, scope(), { amount: 1 }, 200, {
+        ok: true,
+      });
 
-      const result = await acquireIdempotency(repository, scope(), { amount: 2 });
+      const result = await acquireIdempotency(repository, scope(), {
+        amount: 2,
+      });
       expect(result.status).toBe("conflict");
     });
   });
@@ -130,10 +136,18 @@ describe("Idempotency Service", () => {
       };
 
       const first = await withIdempotency(repository, scope(), { amount: 1 }, operation);
-      expect(first).toEqual({ status: 201, body: { executions: 1 }, replayed: false });
+      expect(first).toEqual({
+        status: 201,
+        body: { executions: 1 },
+        replayed: false,
+      });
 
       const second = await withIdempotency(repository, scope(), { amount: 1 }, operation);
-      expect(second).toEqual({ status: 201, body: { executions: 1 }, replayed: true });
+      expect(second).toEqual({
+        status: 201,
+        body: { executions: 1 },
+        replayed: true,
+      });
       expect(executions).toBe(1);
     });
 
@@ -167,7 +181,10 @@ describe("Idempotency Service", () => {
       ).rejects.toMatchObject({ code: "request_in_progress", status: 409 });
 
       releaseFirst();
-      await expect(first).resolves.toMatchObject({ status: 201, replayed: false });
+      await expect(first).resolves.toMatchObject({
+        status: 201,
+        replayed: false,
+      });
     });
 
     it("caches only the configured error statuses for replay", async () => {
@@ -212,7 +229,11 @@ describe("Idempotency Service", () => {
       const retry = await withIdempotency(repository, scope(), { amount: 1 }, flaky, {
         cacheableErrorStatuses: [409],
       });
-      expect(retry).toEqual({ status: 201, body: { ok: true }, replayed: false });
+      expect(retry).toEqual({
+        status: 201,
+        body: { ok: true },
+        replayed: false,
+      });
       expect(executions).toBe(2);
     });
 

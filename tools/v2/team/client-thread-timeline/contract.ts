@@ -33,7 +33,11 @@ export type TimelineResult<T> =
 
 /** Operations supported by the timeline contract. */
 export type TimelineOperation =
-  | { operation: "buildTimeline"; input: BuildTimelineInput; order?: TimelineOrder }
+  | {
+      operation: "buildTimeline";
+      input: BuildTimelineInput;
+      order?: TimelineOrder;
+    }
   | { operation: "getThread"; input: GetThreadInput };
 
 /** Outputs produced by the timeline contract, keyed by operation. */

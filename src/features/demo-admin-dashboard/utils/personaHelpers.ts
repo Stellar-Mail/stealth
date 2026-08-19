@@ -25,7 +25,10 @@ export function removePersonaFromSegment(
   segment: EditableSegment,
   personaId: string,
 ): EditableSegment {
-  return { ...segment, personaIds: segment.personaIds.filter((id) => id !== personaId) };
+  return {
+    ...segment,
+    personaIds: segment.personaIds.filter((id) => id !== personaId),
+  };
 }
 
 export function getPersonasForSegment(segment: EditableSegment, pool: Persona[]): Persona[] {

@@ -4,12 +4,21 @@ import { openApiDocument } from "../../../src/server/api/openapi";
 
 // Issue #1527: every OpenAPI operation must have a unique, stable operationId.
 describe("OpenAPI operation IDs", () => {
-  const operations: { path: string; method: string; operationId?: string; stability?: string }[] =
-    [];
+  const operations: {
+    path: string;
+    method: string;
+    operationId?: string;
+    stability?: string;
+  }[] = [];
   for (const [path, ops] of Object.entries(openApiDocument.paths)) {
     for (const [method, op] of Object.entries(ops as Record<string, Record<string, unknown>>)) {
       const o = op as { operationId?: string; "x-stability"?: string };
-      operations.push({ path, method, operationId: o.operationId, stability: o["x-stability"] });
+      operations.push({
+        path,
+        method,
+        operationId: o.operationId,
+        stability: o["x-stability"],
+      });
     }
   }
 

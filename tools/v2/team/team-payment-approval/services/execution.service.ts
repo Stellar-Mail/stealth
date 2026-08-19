@@ -62,7 +62,11 @@ function validateInput(input: PaymentApprovalInput): {
   field: string;
 } | null {
   if (typeof input.paymentId !== "string" || input.paymentId.trim() === "") {
-    return { code: "VALIDATION_FAILED", message: "paymentId is required", field: "paymentId" };
+    return {
+      code: "VALIDATION_FAILED",
+      message: "paymentId is required",
+      field: "paymentId",
+    };
   }
   if (typeof input.approverId !== "string" || input.approverId.trim() === "") {
     return {
@@ -79,7 +83,11 @@ function validateInput(input: PaymentApprovalInput): {
     };
   }
   if (input.notes !== undefined && typeof input.notes !== "string") {
-    return { code: "VALIDATION_FAILED", message: "notes must be a string", field: "notes" };
+    return {
+      code: "VALIDATION_FAILED",
+      message: "notes must be a string",
+      field: "notes",
+    };
   }
   if (
     input.decidedAt !== undefined &&

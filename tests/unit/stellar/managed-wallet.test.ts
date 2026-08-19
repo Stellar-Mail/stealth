@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { ManagedWalletService } from "../../../src/services/stellar/managed-wallet";
+import {
+  MemoryManagedWalletStore,
+  VersionedMasterKeyProvider,
+  withManagedWalletSeed,
+} from "../../../src/services/crypto/managed-wallet-envelope";
 import type { BetaRuntimeConfig } from "../../../src/config/schema";
 import {
   Keypair,
@@ -110,5 +115,103 @@ describe("Managed Wallet Boundary", () => {
     await expect(wallet.signTransaction(intent, actorAddress, txXdr, "req-123")).rejects.toThrow(
       "Only invokeHostFunction operations are allowed",
     );
+  });
+});
+
+describe("managed wallet envelope custody", () => {
+  const contractId = "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABSC4";
+  const networkPassphrase = "Test SDF Network ; September 2015";
+
+  async function keys(active = "v2", versions = ["v1", "v2"]) {
+    const encoded: Record<string, string> = {};
+    for (const version of versions) {
+      encoded[version] = btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(32))));
+    }
+    return VersionedMasterKeyProvider.fromBase64(active, encoded);
+  }
+
+  function config(): BetaRuntimeConfig {
+    return {
+      network: { stellarNetwork: "testnet", networkPassphrase, rpcUrl: "http://localhost" },
+      contract: {
+        registryContractId: contractId,
+        postageContractId: contractId,
+        domainTag: "test",
+        protocolVersion: "1",
+      },
+      environment: "beta",
+      secrets: {},
+    } as any;
+  }
+
+  function transaction(source: string) {
+    return new TransactionBuilder(new Account(source, "1"), { fee: "100", networkPassphrase })
+      .addOperation(new Contract(contractId).call("set_policy"))
+      .setTimeout(30)
+      .build()
+      .toXDR();
+  }
+
+  it("persists no seed, rotates only its wrapped data key, and still signs", async () => {
+    const walletKey = Keypair.random();
+    const store = new MemoryManagedWalletStore();
+    const service = new ManagedWalletService(config(), { store, keys: await keys() });
+    const initial = await service.provisionWallet(walletKey.publicKey(), walletKey.secret());
+
+    expect(JSON.stringify(initial)).not.toContain(walletKey.secret());
+    expect(initial.envelope.masterKeyVersion).toBe("v2");
+    const rotated = await service.rotateWalletKey(walletKey.publicKey(), "v1");
+    expect(rotated.envelope.address).toBe(initial.envelope.address);
+    expect(rotated.envelope.encryptedSeed).toBe(initial.envelope.encryptedSeed);
+    expect(rotated.envelope.masterKeyVersion).toBe("v1");
+
+    const signed = await service.signTransaction(
+      { type: "policy", ownerAddress: walletKey.publicKey() },
+      walletKey.publicKey(),
+      transaction(walletKey.publicKey()),
+    );
+    expect(new Transaction(signed, networkPassphrase).signatures).toHaveLength(1);
+  });
+
+  it("fails closed for tampering, missing old keys, and unauthorized owners", async () => {
+    const walletKey = Keypair.random();
+    const store = new MemoryManagedWalletStore();
+    const provider = await keys("v1", ["v1"]);
+    const service = new ManagedWalletService(config(), { store, keys: provider });
+    const record = await service.provisionWallet(walletKey.publicKey(), walletKey.secret());
+    const tampered = {
+      ...record,
+      envelope: { ...record.envelope, seedTag: "AAAAAAAAAAAAAAAAAAAAAA==" },
+    };
+    await store.compareAndSet(walletKey.publicKey(), record.updatedAt, tampered);
+    await expect(
+      service.signTransaction(
+        { type: "policy", ownerAddress: walletKey.publicKey() },
+        walletKey.publicKey(),
+        transaction(walletKey.publicKey()),
+      ),
+    ).rejects.toThrow("Managed wallet cryptographic operation failed");
+
+    const stranger = Keypair.random().publicKey();
+    await expect(
+      service.signTransaction(
+        { type: "policy", ownerAddress: stranger },
+        stranger,
+        transaction(stranger),
+      ),
+    ).rejects.toThrow("Managed wallet access denied");
+  });
+
+  it("does not expose decrypted seed outside the scoped callback", async () => {
+    const key = Keypair.random();
+    const provider = await keys("v1", ["v1"]);
+    const store = new MemoryManagedWalletStore();
+    const service = new ManagedWalletService(config(), { store, keys: provider });
+    const record = await service.provisionWallet(key.publicKey(), key.secret());
+    let observed = "";
+    await withManagedWalletSeed(record.envelope, provider, (seed) => {
+      observed = seed;
+    });
+    expect(observed).toBe(key.secret());
   });
 });

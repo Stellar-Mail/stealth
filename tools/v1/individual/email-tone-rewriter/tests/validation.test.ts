@@ -58,7 +58,10 @@ describe("validateDraft", () => {
   });
 
   it("rejects non-string body text", () => {
-    const result = validateDraft({ ...VALID_DRAFT, bodyText: 123 as unknown as string });
+    const result = validateDraft({
+      ...VALID_DRAFT,
+      bodyText: 123 as unknown as string,
+    });
     expect(result.valid).toBe(false);
   });
 
@@ -69,7 +72,10 @@ describe("validateDraft", () => {
   });
 
   it("rejects unsupported tone", () => {
-    const result = validateDraft({ ...VALID_DRAFT, tone: "sarcastic" as RewriteRequest["tone"] });
+    const result = validateDraft({
+      ...VALID_DRAFT,
+      tone: "sarcastic" as RewriteRequest["tone"],
+    });
     expect(result.valid).toBe(false);
     expect(result.errors.some((e) => e.code === "unsupported-value")).toBe(true);
   });
@@ -81,7 +87,10 @@ describe("validateDraft", () => {
   });
 
   it("rejects oversized body", () => {
-    const result = validateDraft({ ...VALID_DRAFT, bodyText: "x".repeat(20001) });
+    const result = validateDraft({
+      ...VALID_DRAFT,
+      bodyText: "x".repeat(20001),
+    });
     expect(result.valid).toBe(false);
     expect(result.errors.some((e) => e.code === "too-long")).toBe(true);
   });
@@ -104,23 +113,35 @@ describe("validateDraft", () => {
   });
 
   it("detects unsafe script content", () => {
-    const result = validateDraft({ ...VALID_DRAFT, bodyText: "<script>alert('xss')</script>" });
+    const result = validateDraft({
+      ...VALID_DRAFT,
+      bodyText: "<script>alert('xss')</script>",
+    });
     expect(result.valid).toBe(false);
     expect(result.errors.some((e) => e.code === "unsafe-content")).toBe(true);
   });
 
   it("detects javascript: URIs", () => {
-    const result = validateDraft({ ...VALID_DRAFT, bodyText: "Click javascript:void(0)" });
+    const result = validateDraft({
+      ...VALID_DRAFT,
+      bodyText: "Click javascript:void(0)",
+    });
     expect(result.valid).toBe(false);
   });
 
   it("detects event handlers", () => {
-    const result = validateDraft({ ...VALID_DRAFT, bodyText: "onclick=alert(1)" });
+    const result = validateDraft({
+      ...VALID_DRAFT,
+      bodyText: "onclick=alert(1)",
+    });
     expect(result.valid).toBe(false);
   });
 
   it("warns on excessive punctuation", () => {
-    const result = validateDraft({ ...VALID_DRAFT, bodyText: "Hello!!!!! What???" });
+    const result = validateDraft({
+      ...VALID_DRAFT,
+      bodyText: "Hello!!!!! What???",
+    });
     expect(result.warnings.length).toBeGreaterThan(0);
   });
 
@@ -133,7 +154,10 @@ describe("validateDraft", () => {
   });
 
   it("warns on repeated words", () => {
-    const result = validateDraft({ ...VALID_DRAFT, bodyText: "the the document is ready" });
+    const result = validateDraft({
+      ...VALID_DRAFT,
+      bodyText: "the the document is ready",
+    });
     expect(result.warnings.length).toBeGreaterThan(0);
   });
 
@@ -223,9 +247,12 @@ describe("isDraftComplete", () => {
   });
 
   it("returns false for unsupported tone", () => {
-    expect(isDraftComplete({ ...VALID_DRAFT, tone: "invalid" as RewriteRequest["tone"] })).toBe(
-      false,
-    );
+    expect(
+      isDraftComplete({
+        ...VALID_DRAFT,
+        tone: "invalid" as RewriteRequest["tone"],
+      }),
+    ).toBe(false);
   });
 });
 

@@ -11,14 +11,12 @@ This document defines threat assumptions, unsafe inputs, and mitigation strategi
 ### What We Assume Is Unsafe
 
 1. **User Input**
-
    - Team member email addresses and names (unvalidated)
    - Schedule expressions (cron or custom format)
    - Filter rules and exclusion lists
    - Configuration from untrusted sources
 
 2. **Email Content**
-
    - Subject lines from any sender
    - Email bodies (HTML, rich text, plain text)
    - Attachments (filenames, metadata)
@@ -62,11 +60,19 @@ function validateEmail(email: string): ValidationError | null {
   const rfc5322 = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   if (!email || email.length > maxLength) {
-    return { field: "email", message: "Invalid email length", code: "INVALID_LENGTH" };
+    return {
+      field: "email",
+      message: "Invalid email length",
+      code: "INVALID_LENGTH",
+    };
   }
 
   if (!rfc5322.test(email.trim())) {
-    return { field: "email", message: "Invalid email format", code: "INVALID_FORMAT" };
+    return {
+      field: "email",
+      message: "Invalid email format",
+      code: "INVALID_FORMAT",
+    };
   }
 
   return null;
@@ -125,18 +131,30 @@ function validateScheduleExpression(schedule: ScheduleExpression): ValidationErr
 
   // Validate timezone if provided
   if (timezone && !isValidTimezone(timezone)) {
-    return { field: "timezone", message: "Invalid timezone", code: "INVALID_TIMEZONE" };
+    return {
+      field: "timezone",
+      message: "Invalid timezone",
+      code: "INVALID_TIMEZONE",
+    };
   }
 
   if (type === "daily") {
     const timeRegex = /^([0-1][0-9]|2[0-3]):[0-5][0-9]$/;
     if (!timeRegex.test(value)) {
-      return { field: "schedule", message: "Invalid daily time format", code: "INVALID_TIME" };
+      return {
+        field: "schedule",
+        message: "Invalid daily time format",
+        code: "INVALID_TIME",
+      };
     }
   } else if (type === "weekly") {
     const weeklyRegex = /^[0-6]\s([0-1][0-9]|2[0-3]):[0-5][0-9]$/;
     if (!weeklyRegex.test(value)) {
-      return { field: "schedule", message: "Invalid weekly format", code: "INVALID_WEEKLY" };
+      return {
+        field: "schedule",
+        message: "Invalid weekly format",
+        code: "INVALID_WEEKLY",
+      };
     }
   } else if (type === "cron") {
     const cronError = validateCronExpression(value);
@@ -150,14 +168,22 @@ function validateCronExpression(cron: string): ValidationError | null {
   const parts = cron.trim().split(/\s+/);
 
   if (parts.length !== 5) {
-    return { field: "schedule", message: "Cron must have 5 fields", code: "INVALID_CRON" };
+    return {
+      field: "schedule",
+      message: "Cron must have 5 fields",
+      code: "INVALID_CRON",
+    };
   }
 
   const [minute, hour, day, month, weekday] = parts;
 
   // Prevent ReDoS by checking part length
   if (parts.some((p) => p.length > 50)) {
-    return { field: "schedule", message: "Cron field too complex", code: "CRON_TOO_COMPLEX" };
+    return {
+      field: "schedule",
+      message: "Cron field too complex",
+      code: "CRON_TOO_COMPLEX",
+    };
   }
 
   const ranges = [
@@ -170,7 +196,11 @@ function validateCronExpression(cron: string): ValidationError | null {
 
   for (const { field, min, max, name } of ranges) {
     if (!isValidCronField(field, min, max)) {
-      return { field: "schedule", message: `Invalid cron ${name}`, code: "INVALID_CRON_FIELD" };
+      return {
+        field: "schedule",
+        message: `Invalid cron ${name}`,
+        code: "INVALID_CRON_FIELD",
+      };
     }
   }
 
@@ -205,7 +235,11 @@ function validateFilterRules(filters: DigestFilters): ValidationError | null {
     }
     for (const sender of filters.excludeSenders) {
       if (sender.length > 500) {
-        return { field: "excludeSenders", message: "Rule too long", code: "RULE_TOO_LONG" };
+        return {
+          field: "excludeSenders",
+          message: "Rule too long",
+          code: "RULE_TOO_LONG",
+        };
       }
       const err = validateEmail(sender);
       if (err) return err;
@@ -334,7 +368,11 @@ function validateAttachment(
 
   // Check for path traversal
   if (filename.includes("..") || filename.includes("/") || filename.includes("\\")) {
-    return { field: "attachment", message: "Invalid filename format", code: "PATH_TRAVERSAL" };
+    return {
+      field: "attachment",
+      message: "Invalid filename format",
+      code: "PATH_TRAVERSAL",
+    };
   }
 
   // Check allowed characters
@@ -348,7 +386,11 @@ function validateAttachment(
 
   // Check size
   if (sizeBytes > 100 * 1024 * 1024) {
-    return { field: "attachment", message: "File too large", code: "FILE_TOO_LARGE" };
+    return {
+      field: "attachment",
+      message: "File too large",
+      code: "FILE_TOO_LARGE",
+    };
   }
 
   return null;

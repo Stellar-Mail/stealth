@@ -175,7 +175,11 @@ export async function withIdempotency<T>(
     const cacheable = options.cacheableErrorStatuses ?? [];
     if (error instanceof ApiError && cacheable.includes(error.status)) {
       await recordIdempotency(repository, scope, rawBody, error.status, {
-        error: { code: error.code, message: error.message, details: error.details },
+        error: {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+        },
       });
     } else {
       // Transient failure: don't leave a live lease behind, or a legitimate

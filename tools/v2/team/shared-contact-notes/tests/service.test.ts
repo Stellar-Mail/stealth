@@ -200,7 +200,9 @@ describe("NoteService", () => {
 
     it("should preserve fields not included in update", async () => {
       const service = createService(seedNotes);
-      const updated = await service.update("note-alice-1", { content: "Only content changed" });
+      const updated = await service.update("note-alice-1", {
+        content: "Only content changed",
+      });
 
       expect(updated.content).toBe("Only content changed");
       expect(updated.contactId).toBe("contact-alice");
@@ -209,7 +211,9 @@ describe("NoteService", () => {
 
     it("should trim content on update", async () => {
       const service = createService(seedNotes);
-      const updated = await service.update("note-alice-1", { content: "  trimmed  " });
+      const updated = await service.update("note-alice-1", {
+        content: "  trimmed  ",
+      });
 
       expect(updated.content).toBe("trimmed");
     });
@@ -246,7 +250,9 @@ describe("NoteService", () => {
 
     it("should persist update changes", async () => {
       const service = createService(seedNotes);
-      await service.update("note-carol-1", { content: "Updated public key info" });
+      await service.update("note-carol-1", {
+        content: "Updated public key info",
+      });
       const retrieved = await service.getById("note-carol-1");
 
       expect(retrieved.content).toBe("Updated public key info");

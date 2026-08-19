@@ -24,16 +24,25 @@ export function simulateSenderAdmission(
   type: SimulatedSenderType,
 ): SenderAdmission {
   if (type === "trusted") {
-    return { allowed: true, reason: "Sender is explicitly trusted in contact list." };
+    return {
+      allowed: true,
+      reason: "Sender is explicitly trusted in contact list.",
+    };
   }
   if (type === "blocked") {
     return { allowed: false, reason: "Sender is explicitly blocked." };
   }
   if (!controls.allowUnknown) {
-    return { allowed: false, reason: "Unknown senders are disabled completely." };
+    return {
+      allowed: false,
+      reason: "Unknown senders are disabled completely.",
+    };
   }
   if (controls.requireVerified && type === "unverified") {
-    return { allowed: false, reason: "Sender lacks verified cryptographic identity." };
+    return {
+      allowed: false,
+      reason: "Sender lacks verified cryptographic identity.",
+    };
   }
   if (controls.minimumPostage > 0) {
     return {

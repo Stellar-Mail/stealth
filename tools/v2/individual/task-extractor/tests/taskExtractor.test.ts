@@ -54,7 +54,9 @@ describe("extractTasks", () => {
 
   it("captures the requested action from request phrases", () => {
     const result = extractTasks(
-      makeInput({ body: "Could you please share the meeting notes with the team?" }),
+      makeInput({
+        body: "Could you please share the meeting notes with the team?",
+      }),
     );
     expect(result.tasks).toHaveLength(1);
     expect(result.tasks[0]).toMatchObject({
@@ -86,7 +88,9 @@ describe("extractTasks", () => {
   it("filters below minConfidence without changing stronger tasks", () => {
     const body = "Send the invoice to the client\n- [ ] Book the venue";
     const all = extractTasks(makeInput({ body }));
-    const filtered = extractTasks(makeInput({ body }), { minConfidence: "medium" });
+    const filtered = extractTasks(makeInput({ body }), {
+      minConfidence: "medium",
+    });
     expect(all.tasks).toHaveLength(2);
     expect(filtered.tasks).toHaveLength(1);
     expect(filtered.tasks[0].text).toBe("Book the venue");
@@ -190,7 +194,10 @@ describe("extractTasks", () => {
   });
 
   it("does not mutate the caller's input", () => {
-    const input = makeInput({ subject: "Sprint prep", body: "- [ ] Update the roadmap deck" });
+    const input = makeInput({
+      subject: "Sprint prep",
+      body: "- [ ] Update the roadmap deck",
+    });
     const snapshot = JSON.parse(JSON.stringify(input));
     extractTasks(input);
     expect(input).toEqual(snapshot);

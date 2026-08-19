@@ -13,7 +13,11 @@ export function searchTemplates(templates: MessageTemplate[], query: string): Me
   if (!q) return templates;
 
   return templates
-    .map((template, index) => ({ template, index, score: scoreTemplate(template, q) }))
+    .map((template, index) => ({
+      template,
+      index,
+      score: scoreTemplate(template, q),
+    }))
     .filter((entry) => entry.score > 0)
     .sort((a, b) => b.score - a.score || a.index - b.index)
     .map((entry) => entry.template);
@@ -41,5 +45,8 @@ export function groupByCategory(
     bucket.push(template);
     groups.set(template.category, bucket);
   }
-  return Array.from(groups, ([category, items]) => ({ category, templates: items }));
+  return Array.from(groups, ([category, items]) => ({
+    category,
+    templates: items,
+  }));
 }
