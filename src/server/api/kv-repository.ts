@@ -1,7 +1,9 @@
 import type {
   ApiRepository,
+  CompareSetSenderRuleResult,
   InsertEnvelopeResult,
   PostageTransitionResult,
+  SenderRuleEntry,
   UpdateUserResult,
 } from "./repository";
 import type {
@@ -17,6 +19,8 @@ import type {
   Receipt,
   RetiredSession,
   SenderRule,
+  SenderRuleRecord,
+  SenderRuleWriteIntent,
   Session,
   StoredEnvelope,
   User,
@@ -54,18 +58,106 @@ export class HybridApiRepository implements ApiRepository {
   }
 
   async getSenderRule(owner: string, sender: string): Promise<SenderRule> {
-    const rule = await this.kv.get(this.key("sender-rule", owner, sender), "text");
-    return (rule as SenderRule) ?? "default";
+    const record = await this.getSenderRuleRecord(owner, sender);
+    return record?.rule ?? "default";
   }
 
   async setSenderRule(owner: string, sender: string, rule: SenderRule): Promise<SenderRule> {
-    const ruleKey = this.key("sender-rule", owner, sender);
-    if (rule === "default") {
-      await this.kv.delete(ruleKey);
-    } else {
-      await this.kv.put(ruleKey, rule);
+    const result = await this.compareAndSetSenderRule(owner, sender, rule);
+    if (result.outcome === "conflict") {
+      throw new ApiError(409, "conflict", "Sender rule version conflict");
     }
     return rule;
+  }
+
+  async getSenderRuleRecord(owner: string, sender: string): Promise<SenderRuleRecord | null> {
+    const recordKey = this.key("sender-rule-record", owner, sender);
+    const stored = (await this.kv.get(recordKey, "json")) as SenderRuleRecord | null;
+    if (stored) return stored;
+
+    const legacy = await this.kv.get(this.key("sender-rule", owner, sender), "text");
+    if (!legacy || legacy === "default") return null;
+    return {
+      rule: legacy as SenderRule,
+      version: 1,
+      updatedAt: new Date(0).toISOString(),
+    };
+  }
+
+  async compareAndSetSenderRule(
+    owner: string,
+    sender: string,
+    rule: SenderRule,
+    expectedVersion?: number,
+    now = new Date(),
+  ): Promise<CompareSetSenderRuleResult> {
+    const recordKey = this.key("sender-rule-record", owner, sender);
+    const legacyKey = this.key("sender-rule", owner, sender);
+    const current = await this.getSenderRuleRecord(owner, sender);
+
+    if (expectedVersion !== undefined) {
+      const actualVersion = current?.version ?? 0;
+      if (actualVersion !== expectedVersion) {
+        return { outcome: "conflict", current };
+      }
+    }
+
+    const nextVersion = (current?.version ?? 0) + 1;
+    const iso = now.toISOString();
+
+    if (rule === "default") {
+      await this.kv.delete(recordKey);
+      await this.kv.delete(legacyKey);
+      return {
+        outcome: "applied",
+        record: { rule: "default", version: nextVersion, updatedAt: iso },
+      };
+    }
+
+    const record: SenderRuleRecord = { rule, version: nextVersion, updatedAt: iso };
+    await this.kv.put(recordKey, JSON.stringify(record));
+    await this.kv.put(legacyKey, rule);
+    return { outcome: "applied", record };
+  }
+
+  async listSenderRuleRecords(owner: string): Promise<SenderRuleEntry[]> {
+    const prefix = this.key("sender-rule-record", owner);
+    const listed = await this.kv.list({ prefix: `${prefix}:` });
+    const entries: SenderRuleEntry[] = [];
+    for (const item of listed.keys) {
+      const sender = item.name.slice(`${prefix}:`.length);
+      const record = (await this.kv.get(item.name, "json")) as SenderRuleRecord | null;
+      if (!record || record.rule === "default") continue;
+      entries.push({ sender, record });
+    }
+    return entries.sort((left, right) => left.sender.localeCompare(right.sender));
+  }
+
+  async getSenderRuleWriteIntent(
+    owner: string,
+    sender: string,
+  ): Promise<SenderRuleWriteIntent | null> {
+    const intent = await this.kv.get(this.key("sender-rule-write", owner, sender), "json");
+    return (intent as SenderRuleWriteIntent) ?? null;
+  }
+
+  async setSenderRuleWriteIntent(intent: SenderRuleWriteIntent): Promise<SenderRuleWriteIntent> {
+    await this.kv.put(
+      this.key("sender-rule-write", intent.owner, intent.sender),
+      JSON.stringify(intent),
+    );
+    return intent;
+  }
+
+  async listSenderRuleWriteIntents(owner: string): Promise<SenderRuleWriteIntent[]> {
+    const prefix = this.key("sender-rule-write", owner);
+    const listed = await this.kv.list({ prefix: `${prefix}:` });
+    const intents: SenderRuleWriteIntent[] = [];
+    for (const item of listed.keys) {
+      const intent = (await this.kv.get(item.name, "json")) as SenderRuleWriteIntent | null;
+      if (intent) intents.push(intent);
+    }
+    return intents.sort((left, right) => left.sender.localeCompare(right.sender));
   }
 
   async getPostage(messageId: string): Promise<Postage | null> {

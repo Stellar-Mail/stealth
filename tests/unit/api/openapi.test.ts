@@ -13,6 +13,7 @@ describe("OpenAPI document", () => {
         "/postage/{messageId}/settle",
         "/receipts",
         "/receipts/{messageId}/read",
+        "/mailbox/sync",
       ]),
     );
   });
@@ -31,6 +32,9 @@ describe("OpenAPI document", () => {
       { StellarSignedRequest: [] },
     ]);
     expect(openApiDocument.paths["/postage/{messageId}"].get.security).toEqual([
+      { StellarSignedRequest: [] },
+    ]);
+    expect(openApiDocument.paths["/mailbox/sync"].post.security).toEqual([
       { StellarSignedRequest: [] },
     ]);
   });

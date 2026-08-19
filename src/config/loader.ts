@@ -4,7 +4,7 @@ import {
   type ConfigProfile,
   type PublicConfig,
 } from "./schema";
-import { validateRegistryDrift } from "./registry";
+import { loadManifest, validateRegistryDrift } from "./registry";
 
 const DEFAULT_ALLOWED_METHODS = ["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "PATCH"];
 
@@ -165,6 +165,11 @@ export function loadRuntimeConfig(options: LoadConfigOptions = {}): BetaRuntimeC
   const postageContractId =
     (env.STEALTH_POSTAGE_CONTRACT_ID as string) ??
     "CBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB";
+  const manifest = loadManifest();
+  const policiesContractId =
+    (env.STEALTH_POLICIES_CONTRACT_ID as string) ??
+    manifest?.contracts?.policies?.contractId ??
+    "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC";
   const domainTag = (env.STEALTH_DOMAIN_TAG as string) ?? "Stealth_Mail_Protocol";
   const protocolVersion = (env.STEALTH_PROTOCOL_VERSION as string) ?? "v1";
 
@@ -284,6 +289,7 @@ export function loadRuntimeConfig(options: LoadConfigOptions = {}): BetaRuntimeC
     contract: {
       registryContractId,
       postageContractId,
+      policiesContractId,
       domainTag,
       protocolVersion,
     },
@@ -410,6 +416,7 @@ export function formatConfigMatrix(config: BetaRuntimeConfig): string {
     `[Contract]`,
     `  Registry Contract:     ${config.contract.registryContractId}`,
     `  Postage Contract:      ${config.contract.postageContractId}`,
+    `  Policies Contract:     ${config.contract.policiesContractId}`,
     `  Domain Tag:            ${config.contract.domainTag}`,
     `  Protocol Version:      ${config.contract.protocolVersion}`,
     `[Origin & CORS]`,

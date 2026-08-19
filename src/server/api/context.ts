@@ -5,6 +5,8 @@ import type { ApiRepository } from "./repository";
 import {
   mailboxPolicySchema,
   senderRuleSchema,
+  senderRuleRecordSchema,
+  senderRuleWriteIntentSchema,
   postageSchema,
   receiptSchema,
   idempotencyRecordSchema,
@@ -193,6 +195,8 @@ globalThis.fetch = function (input: RequestInfo | URL, init?: RequestInit): Prom
 // Register schemas once at module init for Issue #1508 record validation
 registerRecordSchema("mailboxPolicy", 1, mailboxPolicySchema);
 registerRecordSchema("senderRule", 1, senderRuleSchema);
+registerRecordSchema("senderRuleRecord", 1, senderRuleRecordSchema);
+registerRecordSchema("senderRuleWriteIntent", 1, senderRuleWriteIntentSchema);
 registerRecordSchema("postage", 1, postageSchema);
 registerRecordSchema("receipt", 1, receiptSchema);
 registerRecordSchema("user", 1, userSchema);

@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Surface, ActionButton, useFeedback } from "@/features/design-system";
 import { Check, X, Shield, ShieldAlert, Code, Loader2, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -9,6 +9,18 @@ export const Route = createFileRoute("/policy-editor")({
   component: PolicyEditorPage,
 });
 
+const DEMO_OWNER = `G${"A".repeat(55)}`;
+const OWNER_STORAGE_KEY = "stealth-policy-editor-owner";
+
+type PolicySyncStatus = "pending" | "confirmed" | "failed" | "drift";
+
+const SYNC_LABELS: Record<PolicySyncStatus, string> = {
+  pending: "Pending testnet sync",
+  confirmed: "Confirmed on testnet",
+  failed: "Testnet sync failed",
+  drift: "Out of sync with testnet",
+};
+
 const SENDER_LABELS: Record<"trusted" | "blocked" | "verified" | "unverified", string> = {
   trusted: "Trusted sender",
   blocked: "Blocked sender",
@@ -17,36 +29,95 @@ const SENDER_LABELS: Record<"trusted" | "blocked" | "verified" | "unverified", s
 };
 
 function PolicyEditorPage() {
+  const [owner] = useState(
+    () => localStorage.getItem(OWNER_STORAGE_KEY) ?? DEMO_OWNER,
+  );
   const [allowUnknown, setAllowUnknown] = useState(true);
   const [requireVerified, setRequireVerified] = useState(false);
   const [minimumPostage, setMinimumPostage] = useState(0.01);
+  const [policyVersion, setPolicyVersion] = useState(0);
+  const [syncStatus, setSyncStatus] = useState<PolicySyncStatus>("pending");
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [apiError, setApiError] = useState<string | null>(null);
 
   const { notify } = useFeedback();
 
+  useEffect(() => {
+    localStorage.setItem(OWNER_STORAGE_KEY, owner);
+  }, [owner]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadPolicy() {
+      setIsLoading(true);
+      setApiError(null);
+      try {
+        const res = await fetch(`/api/v1/policies/${owner}`);
+        if (!res.ok) throw new Error(`Failed to load policy (${res.status})`);
+        const body = await res.json();
+        const policy = body.data?.policy;
+        if (policy && !cancelled) {
+          setAllowUnknown(policy.allowUnknown);
+          setRequireVerified(policy.requireVerified);
+          setMinimumPostage(Number(policy.minimumPostage) / 10_000_000 || 0);
+        }
+        const reconciliation = await fetch(`/api/v1/policies/${owner}/reconciliation`);
+        if (reconciliation.ok) {
+          const reconBody = await reconciliation.json();
+          const state = reconBody.data?.state;
+          if (state === "synced") setSyncStatus("confirmed");
+          else if (state === "diverged") setSyncStatus("drift");
+          else if (reconBody.data?.writeIntent?.status === "failed") setSyncStatus("failed");
+          else setSyncStatus("pending");
+          setPolicyVersion(reconBody.data?.writeIntent?.version ?? 0);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setApiError(error instanceof Error ? error.message : "Failed to load policy");
+        }
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    }
+    void loadPolicy();
+    return () => {
+      cancelled = true;
+    };
+  }, [owner]);
+
   const payload = {
     allowUnknown,
     requireVerified,
-    minimumPostage: minimumPostage.toString(),
+    minimumPostage: String(Math.round(minimumPostage * 10_000_000)),
+    expectedVersion: policyVersion,
   };
 
   const handleSave = async () => {
     setIsSaving(true);
     setApiError(null);
     try {
-      const res = await fetch("/api/v1/policy", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch(`/api/v1/policies/${owner}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "x-stealth-address": owner,
+        },
         body: JSON.stringify(payload),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || `Validation/Authorization failed with status ${res.status}`);
+        throw new Error(
+          err.error?.message || `Validation/Authorization failed with status ${res.status}`,
+        );
       }
+      const body = await res.json();
+      setPolicyVersion(body.data?.version ?? policyVersion + 1);
+      setSyncStatus(body.data?.sync ?? "pending");
       notify("Policy saved successfully!", { tone: "success" });
-    } catch (e: any) {
-      setApiError(e.message);
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Failed to save policy";
+      setApiError(message);
       notify("Failed to save policy", { tone: "danger" });
     } finally {
       setIsSaving(false);
@@ -63,6 +134,20 @@ function PolicyEditorPage() {
           <h1 className="text-3xl font-bold">Mailbox Policy Editor</h1>
           <p className="text-muted-foreground mt-2">
             Tune your inbox admission rules and preview the live impact before saving.
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Owner: <code className="font-mono">{owner}</code>
+          </p>
+          <p
+            className={cn(
+              "inline-flex items-center gap-2 mt-3 text-xs font-medium px-2 py-1 rounded-full",
+              syncStatus === "confirmed" && "bg-emerald-500/10 text-emerald-400",
+              syncStatus === "pending" && "bg-amber-500/10 text-amber-300",
+              syncStatus === "failed" && "bg-red-500/10 text-red-300",
+              syncStatus === "drift" && "bg-orange-500/10 text-orange-300",
+            )}
+          >
+            {SYNC_LABELS[syncStatus]}
           </p>
         </div>
 

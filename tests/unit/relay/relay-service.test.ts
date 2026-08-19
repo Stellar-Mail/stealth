@@ -31,7 +31,23 @@ function makeConfig(overrides: Partial<RelayServiceConfig> = {}): RelayServiceCo
 function makeService(config: RelayServiceConfig = makeConfig()) {
   const persistence = new MemoryRelayPersistence();
   const worker = new InProcessRelayWorker(persistence);
-  return { persistence, worker, service: new RelayService(persistence, worker, config) };
+  const admission = {
+    evaluate: async () => ({
+      allowed: true as const,
+      disposition: "request" as const,
+      reason: "policy_satisfied" as const,
+      rule: "default" as const,
+      policyVersion: 1,
+      requiredPostage: "0",
+      source: "offchain" as const,
+      evaluatedAt: "2026-08-19T21:00:00.000Z",
+    }),
+  };
+  return {
+    persistence,
+    worker,
+    service: new RelayService(persistence, worker, config, { admission }),
+  };
 }
 
 function validInput() {
@@ -55,6 +71,12 @@ class FailingPersistence implements RelayPersistence {
   }
   async getDeadLetterCount(): Promise<number> {
     return 0;
+  }
+  async getAdmission() {
+    return null;
+  }
+  async recordAdmission(record: { messageId: string }) {
+    return { record: record as never, duplicate: false };
   }
   async enqueue(_envelope: RelayEnvelope): Promise<{ messageId: string }> {
     return { messageId };
@@ -181,12 +203,14 @@ describe("RelayService submit", () => {
     expect(result.accepted).toBe(true);
     expect(result.messageId).toBe(messageId);
     expect(result.queueDepth).toBe(1);
+    expect(result.admission.disposition).toBe("request");
     expect(persistence.getMessage(messageId)).toMatchObject({
       sender,
       recipient,
       recipientDomain: "example.com",
       ttlMs: 60_000,
       receivedAt: expect.any(String),
+      admission: expect.objectContaining({ allowed: true, disposition: "request" }),
     });
   });
 

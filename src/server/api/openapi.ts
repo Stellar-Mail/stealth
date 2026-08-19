@@ -528,6 +528,69 @@ export const openApiDocument = {
             type: "integer",
             description: "Delivery TTL in milliseconds.",
           },
+          postage: {
+            allOf: [{ $ref: "#/components/schemas/StroopAmount" }],
+            description: "Attached postage in stroops. Defaults to 0.",
+          },
+          verified: {
+            type: "boolean",
+            description: "Whether the sender identity has been verified. Defaults to false.",
+          },
+          receipt: {
+            type: "boolean",
+            description: "Whether the sender attached a delivery-receipt commitment. Defaults to false.",
+          },
+        },
+      },
+      RelayAdmissionDecision: {
+        type: "object",
+        required: [
+          "allowed",
+          "disposition",
+          "reason",
+          "policyVersion",
+          "requiredPostage",
+          "rule",
+          "source",
+          "evaluatedAt",
+        ],
+        additionalProperties: false,
+        properties: {
+          allowed: { type: "boolean" },
+          disposition: {
+            type: "string",
+            enum: ["trusted", "request", "verified", "priced", "blocked"],
+            description: "Sender-facing admission class enforced at the relay.",
+          },
+          reason: {
+            type: "string",
+            enum: [
+              "sender_allowed",
+              "sender_blocked",
+              "unknown_senders_disabled",
+              "verification_required",
+              "receipt_required",
+              "insufficient_postage",
+              "policy_satisfied",
+              "tier_satisfied",
+            ],
+          },
+          rule: { type: "string", enum: ["allow", "block", "default"] },
+          policyVersion: {
+            type: "integer",
+            minimum: 0,
+            description: "Policy version evaluated at admission time. Immutable after persist.",
+          },
+          requiredPostage: { $ref: "#/components/schemas/StroopAmount" },
+          source: {
+            type: "string",
+            enum: ["chain", "offchain", "stale_chain_fallback"],
+          },
+          evaluatedAt: { type: "string", format: "date-time" },
+          message: {
+            type: "string",
+            description: "Human-readable but non-authoritative explanation of the decision.",
+          },
         },
       },
       RelaySubmissionResult: {
@@ -539,6 +602,80 @@ export const openApiDocument = {
           messageId: { $ref: "#/components/schemas/Hash32" },
           queueDepth: { type: "integer" },
           service: { type: "string", description: "Service name." },
+          replayed: {
+            type: "boolean",
+            description: "True when this response is the original recorded admission.",
+          },
+          admission: { $ref: "#/components/schemas/RelayAdmissionDecision" },
+        },
+      },
+      MailboxSyncRequest: {
+        type: "object",
+        required: ["deviceId"],
+        additionalProperties: false,
+        properties: {
+          deviceId: {
+            type: "string",
+            minLength: 1,
+            maxLength: 128,
+            description: "Stable per-device identifier used to bind the durable cursor.",
+          },
+          cursor: {
+            type: "string",
+            description:
+              "Opaque signed cursor from the previous sync. Omit for an initial or bounded full resync.",
+          },
+          limit: {
+            type: "integer",
+            minimum: 1,
+            maximum: 200,
+            description: "Maximum events to return. Defaults to 100.",
+          },
+        },
+      },
+      MailboxSyncEvent: {
+        type: "object",
+        required: ["seq", "type", "messageId", "occurredAt", "recipient"],
+        additionalProperties: false,
+        properties: {
+          seq: { type: "integer", minimum: 1 },
+          type: { type: "string", enum: ["upsert", "state", "tombstone"] },
+          messageId: { $ref: "#/components/schemas/Hash32" },
+          occurredAt: { type: "string", format: "date-time" },
+          recipient: { $ref: "#/components/schemas/StellarAddress" },
+          sender: { $ref: "#/components/schemas/StellarAddress" },
+          ciphertext: {
+            type: "string",
+            description: "Encrypted payload only. Never plaintext or a quarantined body.",
+          },
+          objectKey: { type: "string" },
+          state: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              unread: { type: "boolean" },
+              starred: { type: "boolean" },
+              folder: { type: "string" },
+            },
+          },
+          reason: { type: "string", enum: ["deleted", "expired", "user"] },
+        },
+      },
+      MailboxSyncResult: {
+        type: "object",
+        required: ["mode", "events", "cursor", "hasMore"],
+        additionalProperties: false,
+        properties: {
+          mode: { type: "string", enum: ["initial", "delta"] },
+          events: {
+            type: "array",
+            items: { $ref: "#/components/schemas/MailboxSyncEvent" },
+          },
+          cursor: {
+            type: "string",
+            description: "Opaque signed cursor acknowledging the last returned seq.",
+          },
+          hasMore: { type: "boolean" },
         },
       },
     },
@@ -1964,7 +2101,9 @@ export const openApiDocument = {
     "/relay/messages": {
       post: {
         operationId: "submitRelayMessage",
-        summary: "Submit an encrypted message to the relay",
+        summary: "Submit an encrypted message to the relay after mailbox policy admission",
+        description:
+          "Evaluates the recipient's current trust/request/verified/priced/blocked policy before accepting the payload. Blocked messages never reach payload storage. The recorded policy version is immutable.",
         "x-max-body-bytes": 2 * 1024 * 1024,
         security: [
           {
@@ -2027,7 +2166,8 @@ export const openApiDocument = {
             },
           },
           "403": {
-            description: "Forbidden",
+            description:
+              "Forbidden — actor mismatch, or mailbox policy denied the sender (blocked, unknown, or verification required). The payload is not stored.",
             content: {
               "application/json": {
                 schema: {
@@ -2047,7 +2187,8 @@ export const openApiDocument = {
             },
           },
           "422": {
-            description: "Unprocessable Entity — Request payload validation failure",
+            description:
+              "Unprocessable Entity — request validation failed, or attached postage is below the recipient mailbox minimum. The payload is not stored.",
             content: {
               "application/json": {
                 schema: {
@@ -2073,6 +2214,94 @@ export const openApiDocument = {
                 schema: {
                   $ref: "#/components/schemas/ErrorEnvelope",
                 },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/mailbox/sync": {
+      post: {
+        operationId: "syncMailbox",
+        summary: "Incrementally synchronize a recipient mailbox from a durable cursor",
+        description:
+          "Returns initial or delta mailbox events after the caller's last acknowledged cursor. Expired cursors require a bounded full resync. Quarantined payloads are never included.",
+        "x-stability": "stable",
+        "x-max-body-bytes": 16 * 1024,
+        security: [{ StellarSignedRequest: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/MailboxSyncRequest" },
+            },
+          },
+        },
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Incremental mailbox events and the next durable cursor.",
+            content: {
+              "application/json": {
+                schema: {
+                  allOf: [
+                    { $ref: "#/components/schemas/SuccessEnvelope" },
+                    {
+                      type: "object",
+                      properties: {
+                        data: { $ref: "#/components/schemas/MailboxSyncResult" },
+                      },
+                    },
+                  ],
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Bad Request",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorEnvelope" },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorEnvelope" },
+              },
+            },
+          },
+          "403": {
+            description: "Forbidden",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorEnvelope" },
+              },
+            },
+          },
+          "410": {
+            description: "Cursor expired — client must start a bounded full resync.",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorEnvelope" },
+              },
+            },
+          },
+          "422": {
+            description: "Validation Error",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorEnvelope" },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorEnvelope" },
               },
             },
           },

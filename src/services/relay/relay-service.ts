@@ -1,5 +1,5 @@
 /**
- * Relay receiving service (Issue #1935 BETA-028).
+ * Relay receiving service (Issue #1935 BETA-028 / Issue #1943 BETA-036).
  *
  * This is the domain service behind the relay health contract and message
  * submission endpoint. It is transport-agnostic: the same instance backs the
@@ -14,11 +14,26 @@
  *
  * Health and readiness responses are deliberately free of secrets, URLs, and
  * user data so they can be served by unauthenticated load balancers.
+ *
+ * Submit evaluates the recipient's current mailbox policy before any payload
+ * is stored. Blocked decisions persist evidence only; ciphertext never reaches
+ * the queue or object store. The recorded policy version is immutable.
  */
 import { z } from "zod";
 
-import { hash32Schema, stellarAddressSchema } from "@/server/api/domain";
-import type { RelayPersistence } from "./persistence";
+import { ApiError } from "@/server/api/errors";
+import {
+  hash32Schema,
+  stellarAddressSchema,
+  stroopAmountSchema,
+  type AdmissionEvidence,
+} from "@/server/api/domain";
+import {
+  admissionDenialError,
+  type RelayAdmissionEvaluator,
+} from "./admission";
+import type { RelayObjectStore } from "./object-store";
+import type { RelayAdmissionRecord, RelayPersistence } from "./persistence";
 import type { RelayWorker } from "./worker";
 
 export const RELAY_SERVICE_NAME = "stealth-relay";
@@ -46,6 +61,9 @@ export const relaySubmissionSchema = z.object({
     .min(1, "Payload must not be empty")
     .max(RELAY_MAX_PAYLOAD_BYTES, `Payload exceeds ${RELAY_MAX_PAYLOAD_BYTES} bytes`),
   ttlMs: z.number().int().positive().max(MAX_RELAY_TTL_MS).optional(),
+  postage: stroopAmountSchema.optional().default("0"),
+  verified: z.boolean().optional().default(false),
+  receipt: z.boolean().optional().default(false),
 });
 
 export type RelaySubmissionInput = z.infer<typeof relaySubmissionSchema>;
@@ -89,9 +107,17 @@ export interface RelayServiceConfig {
 }
 
 export interface RelaySubmitResult {
-  accepted: boolean;
+  accepted: true;
   messageId: string;
   queueDepth: number;
+  admission: AdmissionEvidence;
+  replayed: boolean;
+}
+
+export interface RelayServiceOptions {
+  admission?: RelayAdmissionEvaluator;
+  objectStore?: RelayObjectStore;
+  now?: () => Date;
 }
 
 export interface ReadinessOptions {
@@ -108,12 +134,25 @@ function isValidHttpUrl(value: string): boolean {
   }
 }
 
+function payloadToBytes(payload: string): Uint8Array {
+  return new TextEncoder().encode(payload);
+}
+
 export class RelayService {
+  private readonly admission?: RelayAdmissionEvaluator;
+  private readonly objectStore?: RelayObjectStore;
+  private readonly now: () => Date;
+
   constructor(
     private readonly persistence: RelayPersistence,
     private readonly worker: RelayWorker,
     private readonly config: RelayServiceConfig,
-  ) {}
+    options: RelayServiceOptions = {},
+  ) {
+    this.admission = options.admission;
+    this.objectStore = options.objectStore;
+    this.now = options.now ?? (() => new Date());
+  }
 
   /**
    * Liveness probe. Always reports ok with no secrets so infrastructure can
@@ -169,9 +208,11 @@ export class RelayService {
   }
 
   /**
-   * Accept a relay message into the queue. Input is re-validated at the domain
-   * boundary (never trusted from the caller) and a {@link ZodError} is thrown
-   * for invalid payloads.
+   * Accept a relay message into the queue after evaluating the recipient's
+   * current mailbox policy. A previously recorded admission is replayed as-is
+   * so a later policy change cannot rewrite the decision. Blocked messages
+   * persist evidence only — the payload never reaches object storage or the
+   * delivery queue.
    */
   async submit(input: RelaySubmissionInput): Promise<RelaySubmitResult> {
     const parsed = relaySubmissionSchema.safeParse(input);
@@ -179,21 +220,98 @@ export class RelayService {
       throw parsed.error;
     }
 
-    const envelope = {
+    const existing = await this.persistence.getAdmission(parsed.data.messageId);
+    if (existing) {
+      return this.completeAdmittedSubmission(existing, parsed.data, true);
+    }
+
+    if (!this.admission) {
+      throw new ApiError(
+        503,
+        "dependency_unavailable",
+        "Relay policy admission is not configured",
+      );
+    }
+
+    const evidence = await this.admission.evaluate({
+      owner: parsed.data.recipient,
+      sender: parsed.data.sender,
+      postage: parsed.data.postage,
+      verified: parsed.data.verified,
+      receipt: parsed.data.receipt,
+    });
+    const recordedAt = this.now().toISOString();
+
+    // Persist the decision before any ciphertext write so a concurrent retry
+    // cannot store a payload after a recorded block, and a later policy
+    // change cannot replace the snapshotted version.
+    const claimed = await this.persistence.recordAdmission({
       messageId: parsed.data.messageId,
       sender: parsed.data.sender,
       recipient: parsed.data.recipient,
-      recipientDomain: parsed.data.recipientDomain,
-      payload: parsed.data.payload,
-      ttlMs: parsed.data.ttlMs ?? DEFAULT_RELAY_TTL_MS,
-      receivedAt: new Date().toISOString(),
-    };
+      admission: evidence,
+      payloadStored: evidence.allowed,
+      recordedAt,
+    });
+    if (claimed.duplicate) {
+      return this.completeAdmittedSubmission(claimed.record, parsed.data, true);
+    }
+    if (!evidence.allowed) {
+      throw admissionDenialError(evidence);
+    }
 
-    await this.persistence.enqueue(envelope);
+    return this.completeAdmittedSubmission(claimed.record, parsed.data, false);
+  }
+
+  /**
+   * Finishes an admitted submission (store payload, enqueue) or replays a
+   * recorded denial. Enqueue is idempotent, so retries of an admitted
+   * message heal a crash between recordAdmission and enqueue.
+   */
+  private async completeAdmittedSubmission(
+    existing: RelayAdmissionRecord,
+    input: RelaySubmissionInput,
+    replayed: boolean,
+  ): Promise<RelaySubmitResult> {
+    if (!existing.admission.allowed) {
+      throw admissionDenialError(existing.admission);
+    }
+
+    let payloadKey = existing.payloadKey;
+    if (this.objectStore && !payloadKey) {
+      payloadKey = await this.objectStore.storeEnvelopeBody({
+        messageId: input.messageId,
+        ownerAddress: input.recipient,
+        contentType: "application/octet-stream",
+        bytes: payloadToBytes(input.payload),
+      });
+    }
+
+    try {
+      await this.persistence.enqueue({
+        messageId: input.messageId,
+        sender: input.sender,
+        recipient: input.recipient,
+        recipientDomain: input.recipientDomain,
+        payload: input.payload,
+        ttlMs: input.ttlMs ?? DEFAULT_RELAY_TTL_MS,
+        receivedAt: existing.recordedAt,
+        admission: existing.admission,
+        payloadKey,
+      });
+    } catch (error) {
+      if (payloadKey && this.objectStore && payloadKey !== existing.payloadKey) {
+        await this.objectStore.deleteObject(payloadKey).catch(() => undefined);
+      }
+      throw error;
+    }
+
     return {
       accepted: true,
-      messageId: envelope.messageId,
+      messageId: existing.messageId,
       queueDepth: await this.persistence.getQueueDepth(),
+      admission: existing.admission,
+      replayed,
     };
   }
 

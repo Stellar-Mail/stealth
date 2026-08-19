@@ -5,10 +5,14 @@ import { parseDelegationHeader, requireActorMatches } from "@/server/api/actor";
 import { getApiContext } from "@/server/api/context";
 import { senderRuleSchema, stellarAddressSchema } from "@/server/api/domain";
 import { getSenderRule, setSenderRule } from "@/server/api/policy-service";
+import { syncSenderRuleWrite } from "@/server/api/policy-sync-service";
 import { parseJsonBody } from "@/server/api/request";
 import { apiSuccess, handleApiRequest } from "@/server/api/response";
 
-const ruleBodySchema = z.object({ rule: senderRuleSchema.exclude(["default"]) });
+const ruleBodySchema = z.object({
+  rule: senderRuleSchema.exclude(["default"]),
+  expectedVersion: z.number().int().min(0).optional(),
+});
 
 export const Route = createFileRoute("/api/v1/policies/$owner/senders/$sender")({
   server: {
@@ -34,10 +38,19 @@ export const Route = createFileRoute("/api/v1/policies/$owner/senders/$sender")(
               `mailbox:${owner}:senders:${sender}`,
             ),
           );
-          const { rule } = await parseJsonBody(request, ruleBodySchema, {
+          const { rule, expectedVersion } = await parseJsonBody(request, ruleBodySchema, {
             route: "PUT /policies/{owner}/senders/{sender}",
           });
-          return apiSuccess(request, await setSenderRule(context.repository, owner, sender, rule));
+          const result = await setSenderRule(context.repository, owner, sender, rule, {
+            expectedVersion,
+          });
+          await syncSenderRuleWrite(
+            context.repository,
+            owner,
+            sender,
+            context.requestId ?? "policy-sync",
+          );
+          return apiSuccess(request, await getSenderRule(context.repository, owner, sender));
         }),
       DELETE: ({ request, params }) =>
         handleApiRequest(request, async () => {
@@ -55,7 +68,22 @@ export const Route = createFileRoute("/api/v1/policies/$owner/senders/$sender")(
           );
           return apiSuccess(
             request,
-            await setSenderRule(context.repository, owner, sender, "default"),
+            await (async () => {
+              const result = await setSenderRule(
+                context.repository,
+                owner,
+                sender,
+                "default",
+              );
+              await syncSenderRuleWrite(
+                context.repository,
+                owner,
+                sender,
+                context.requestId ?? "policy-sync",
+              );
+              void result;
+              return getSenderRule(context.repository, owner, sender);
+            })(),
           );
         }),
     },

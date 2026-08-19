@@ -1,11 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { z } from "zod";
 
 import { parseDelegationHeader, requireActorMatches } from "@/server/api/actor";
 import { mailboxPolicyWriteSchema, stellarAddressSchema } from "@/server/api/domain";
 import { getApiContext } from "@/server/api/context";
 import { getMailboxPolicy, setMailboxPolicy } from "@/server/api/policy-service";
+import { syncMailboxPolicyWrite } from "@/server/api/policy-sync-service";
 import { parseJsonBody } from "@/server/api/request";
 import { apiSuccess, handleApiRequest } from "@/server/api/response";
+
+const mailboxPolicyPutSchema = mailboxPolicyWriteSchema.extend({
+  expectedVersion: z.number().int().min(0).optional(),
+});
 
 export const Route = createFileRoute("/api/v1/policies/$owner")({
   server: {
@@ -26,13 +32,19 @@ export const Route = createFileRoute("/api/v1/policies/$owner")({
             owner,
             parseDelegationHeader(request, "policy:update", `mailbox:${owner}:policy`),
           );
-          const body = await parseJsonBody(request, mailboxPolicyWriteSchema, {
+          const body = await parseJsonBody(request, mailboxPolicyPutSchema, {
             route: "PUT /policies/{owner}",
           });
-          const { requireReceipt, ...policy } = body;
+          const { requireReceipt, expectedVersion, ...policy } = body;
           const result = await setMailboxPolicy(context.repository, owner, policy, {
             requireReceipt,
+            expectedVersion,
           });
+          await syncMailboxPolicyWrite(
+            context.repository,
+            owner,
+            context.requestId ?? "policy-sync",
+          );
           return apiSuccess(request, result);
         }),
     },

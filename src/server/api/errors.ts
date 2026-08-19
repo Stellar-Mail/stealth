@@ -130,6 +130,13 @@ export const API_ERROR_REGISTRY = {
     retryable: true,
     description: "A matching operation currently holds the idempotency lease.",
   },
+  cursor_expired: {
+    status: 410,
+    message: "The mailbox sync cursor has expired",
+    retryable: false,
+    description:
+      "The supplied mailbox sync cursor is past its lifetime or older than the retained event window. The client must start a bounded full resync without a cursor.",
+  },
 } as const satisfies Record<string, ApiErrorDefinition>;
 
 export type ApiErrorCode = keyof typeof API_ERROR_REGISTRY;

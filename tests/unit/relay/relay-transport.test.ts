@@ -34,7 +34,19 @@ function makeConfig(overrides: Partial<RelayServiceConfig> = {}): RelayServiceCo
 function makeService(config: RelayServiceConfig = makeConfig()) {
   const persistence = new MemoryRelayPersistence();
   const worker = new InProcessRelayWorker(persistence);
-  return new RelayService(persistence, worker, config);
+  const admission = {
+    evaluate: async () => ({
+      allowed: true as const,
+      disposition: "request" as const,
+      reason: "policy_satisfied" as const,
+      rule: "default" as const,
+      policyVersion: 1,
+      requiredPostage: "0",
+      source: "offchain" as const,
+      evaluatedAt: "2026-08-19T21:00:00.000Z",
+    }),
+  };
+  return new RelayService(persistence, worker, config, { admission });
 }
 
 function getRequest(path = "/api/v1/relay/health") {
@@ -168,6 +180,12 @@ describe("relay message submission endpoint", () => {
         messageId,
         queueDepth: 1,
         service: "stealth-relay",
+        replayed: false,
+        admission: {
+          allowed: true,
+          disposition: "request",
+          reason: "policy_satisfied",
+        },
       },
     });
   });

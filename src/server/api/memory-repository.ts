@@ -11,14 +11,18 @@ import type {
   Receipt,
   RetiredSession,
   SenderRule,
+  SenderRuleRecord,
+  SenderRuleWriteIntent,
   Session,
   StoredEnvelope,
   User,
 } from "./domain";
 import type {
   ApiRepository,
+  CompareSetSenderRuleResult,
   InsertEnvelopeResult,
   PostageTransitionResult,
+  SenderRuleEntry,
   UpdateUserResult,
 } from "./repository";
 import { ApiError } from "./errors";
@@ -32,7 +36,8 @@ export class MemoryApiRepository implements ApiRepository {
   private readonly policyWriteIntents = new Map<string, PolicyWriteIntent>();
   private readonly postage = new Map<string, Postage>();
   private readonly receipts = new Map<string, Receipt>();
-  private readonly senderRules = new Map<string, SenderRule>();
+  private readonly senderRuleRecords = new Map<string, SenderRuleRecord>();
+  private readonly senderRuleWriteIntents = new Map<string, SenderRuleWriteIntent>();
   private readonly counters = new Map<string, number[]>();
   private readonly idempotency = new Map<string, IdempotencyRecord>();
   private readonly externalWallets = new Map<string, ExternalWallet[]>();
@@ -113,14 +118,95 @@ export class MemoryApiRepository implements ApiRepository {
   }
 
   async getSenderRule(owner: string, sender: string) {
-    return this.senderRules.get(key(owner, sender)) ?? "default";
+    const record = await this.getSenderRuleRecord(owner, sender);
+    return record?.rule ?? "default";
   }
 
   async setSenderRule(owner: string, sender: string, rule: SenderRule) {
-    const ruleKey = key(owner, sender);
-    if (rule === "default") this.senderRules.delete(ruleKey);
-    else this.senderRules.set(ruleKey, rule);
+    const result = await this.compareAndSetSenderRule(owner, sender, rule);
+    if (result.outcome === "conflict") {
+      throw new ApiError(409, "conflict", "Sender rule version conflict");
+    }
     return rule;
+  }
+
+  async getSenderRuleRecord(owner: string, sender: string): Promise<SenderRuleRecord | null> {
+    return structuredClone(this.senderRuleRecords.get(key(owner, sender)) ?? null);
+  }
+
+  async compareAndSetSenderRule(
+    owner: string,
+    sender: string,
+    rule: SenderRule,
+    expectedVersion?: number,
+    now = new Date(),
+  ): Promise<CompareSetSenderRuleResult> {
+    const ruleKey = key(owner, sender);
+    const current = this.senderRuleRecords.get(ruleKey) ?? null;
+
+    if (expectedVersion !== undefined) {
+      const actualVersion = current?.version ?? 0;
+      if (actualVersion !== expectedVersion) {
+        return { outcome: "conflict", current: structuredClone(current) };
+      }
+    }
+
+    if (rule === "default") {
+      this.senderRuleRecords.delete(ruleKey);
+      return {
+        outcome: "applied",
+        record: {
+          rule: "default",
+          version: (current?.version ?? 0) + 1,
+          updatedAt: now.toISOString(),
+        },
+      };
+    }
+
+    const record: SenderRuleRecord = {
+      rule,
+      version: (current?.version ?? 0) + 1,
+      updatedAt: now.toISOString(),
+    };
+    this.senderRuleRecords.set(ruleKey, structuredClone(record));
+    return { outcome: "applied", record: structuredClone(record) };
+  }
+
+  async listSenderRuleRecords(owner: string): Promise<SenderRuleEntry[]> {
+    const prefix = `${owner}:`;
+    const entries: SenderRuleEntry[] = [];
+    for (const [compound, record] of this.senderRuleRecords.entries()) {
+      if (!compound.startsWith(prefix)) continue;
+      if (record.rule === "default") continue;
+      entries.push({
+        sender: compound.slice(prefix.length),
+        record: structuredClone(record),
+      });
+    }
+    return entries.sort((left, right) => left.sender.localeCompare(right.sender));
+  }
+
+  async getSenderRuleWriteIntent(
+    owner: string,
+    sender: string,
+  ): Promise<SenderRuleWriteIntent | null> {
+    return structuredClone(this.senderRuleWriteIntents.get(key(owner, sender)) ?? null);
+  }
+
+  async setSenderRuleWriteIntent(intent: SenderRuleWriteIntent): Promise<SenderRuleWriteIntent> {
+    this.senderRuleWriteIntents.set(key(intent.owner, intent.sender), structuredClone(intent));
+    return structuredClone(intent);
+  }
+
+  async listSenderRuleWriteIntents(owner: string): Promise<SenderRuleWriteIntent[]> {
+    const prefix = `${owner}:`;
+    const intents: SenderRuleWriteIntent[] = [];
+    for (const [compound, intent] of this.senderRuleWriteIntents.entries()) {
+      if (compound.startsWith(prefix)) {
+        intents.push(structuredClone(intent));
+      }
+    }
+    return intents.sort((left, right) => left.sender.localeCompare(right.sender));
   }
 
   async getPostage(messageId: string) {
@@ -541,7 +627,8 @@ export class MemoryApiRepository implements ApiRepository {
     this.policyWriteIntents.clear();
     this.postage.clear();
     this.receipts.clear();
-    this.senderRules.clear();
+    this.senderRuleRecords.clear();
+    this.senderRuleWriteIntents.clear();
     this.counters.clear();
     this.idempotency.clear();
     this.externalWallets.clear();

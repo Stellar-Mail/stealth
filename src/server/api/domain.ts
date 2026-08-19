@@ -169,6 +169,85 @@ export type PostageStatus = z.infer<typeof postageStatusSchema>;
 export type Receipt = z.infer<typeof receiptSchema>;
 export type SenderRule = z.infer<typeof senderRuleSchema>;
 
+// ---------------------------------------------------------------------------
+// BETA-036 (Issue #1943) — relay admission decision evidence
+//
+// Snapshotted at accept time so a later policy change cannot rewrite history.
+// The record is safe to persist and return: no payload, no plaintext, no secrets.
+// ---------------------------------------------------------------------------
+
+export const admissionDispositionSchema = z.enum([
+  "trusted",
+  "request",
+  "verified",
+  "priced",
+  "blocked",
+]);
+
+export const admissionReasonSchema = z.enum([
+  "sender_allowed",
+  "sender_blocked",
+  "unknown_senders_disabled",
+  "verification_required",
+  "receipt_required",
+  "insufficient_postage",
+  "policy_satisfied",
+  "tier_satisfied",
+]);
+
+export const admissionSourceSchema = z.enum(["chain", "offchain", "stale_chain_fallback"]);
+
+export const admissionEvidenceSchema = z.object({
+  allowed: z.boolean(),
+  disposition: admissionDispositionSchema,
+  reason: admissionReasonSchema,
+  rule: senderRuleSchema,
+  policyVersion: z.number().int().nonnegative(),
+  requiredPostage: stroopAmountSchema,
+  source: admissionSourceSchema,
+  evaluatedAt: z.string().datetime(),
+});
+
+export type AdmissionDisposition = z.infer<typeof admissionDispositionSchema>;
+export type AdmissionReason = z.infer<typeof admissionReasonSchema>;
+export type AdmissionSource = z.infer<typeof admissionSourceSchema>;
+export type AdmissionEvidence = z.infer<typeof admissionEvidenceSchema>;
+
+// ---------------------------------------------------------------------------
+// BETA-037 — versioned sender rules and durable chain-write intents
+// ---------------------------------------------------------------------------
+
+export const senderRuleRecordSchema = z.object({
+  rule: senderRuleSchema,
+  version: z.number().int().positive(),
+  updatedAt: z.string().datetime(),
+});
+
+/**
+ * Durable intent to write a sender override to the Policies contract.
+ * Mirrors {@link PolicyWriteIntent} idempotency: version bumps only on genuine
+ * rule changes; retries of the same rule re-arm at the same version.
+ */
+export const senderRuleWriteIntentSchema = z.object({
+  owner: stellarAddressSchema,
+  sender: stellarAddressSchema,
+  rule: senderRuleSchema,
+  offchainVersion: z.number().int().nonnegative(),
+  status: policyWriteStatusSchema,
+  scheduledAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+  failureCount: z.number().int().nonnegative().default(0),
+  lastError: z.string().max(300).nullable().default(null),
+  txHash: z.string().nullable().default(null),
+});
+
+/** Client-facing chain sync status for policy and sender-rule mutations. */
+export const policySyncStatusSchema = z.enum(["pending", "confirmed", "failed", "drift"]);
+
+export type SenderRuleRecord = z.infer<typeof senderRuleRecordSchema>;
+export type SenderRuleWriteIntent = z.infer<typeof senderRuleWriteIntentSchema>;
+export type PolicySyncStatus = z.infer<typeof policySyncStatusSchema>;
+
 export const idempotencyRecordSchema = z.discriminatedUnion("state", [
   z.object({
     state: z.literal("in_progress"),

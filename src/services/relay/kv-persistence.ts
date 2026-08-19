@@ -6,7 +6,12 @@
  * so readiness probes never scan user data. Delivery is drained by a scheduled
  * worker, so {@link dequeue} is a best-effort read that is not atomic.
  */
-import type { RelayEnvelope, RelayPersistence } from "./persistence";
+import type {
+  RelayAdmissionRecord,
+  RelayEnvelope,
+  RelayPersistence,
+  RecordAdmissionResult,
+} from "./persistence";
 
 export class KvRelayPersistence implements RelayPersistence {
   private static readonly PING_KEY = "relay:ping";
@@ -14,6 +19,8 @@ export class KvRelayPersistence implements RelayPersistence {
   private static readonly RETRY_KEY = "relay:retry";
   private static readonly DEAD_LETTER_KEY = "relay:dead-letter";
   private static readonly MESSAGE_PREFIX = "relay:message:";
+  private static readonly QUEUE_IDS_KEY = "relay:queue:ids";
+  private static readonly ADMISSION_PREFIX = "relay:admission:";
 
   constructor(private readonly kv: KVNamespace) {}
 
@@ -33,25 +40,54 @@ export class KvRelayPersistence implements RelayPersistence {
     return this.readCounter(KvRelayPersistence.DEAD_LETTER_KEY);
   }
 
-  async enqueue(envelope: RelayEnvelope): Promise<{ messageId: string }> {
-    const existing = await this.kv.get(
-      `${KvRelayPersistence.MESSAGE_PREFIX}${envelope.messageId}`,
-      "json",
-    );
+  async getAdmission(messageId: string): Promise<RelayAdmissionRecord | null> {
+    const raw = await this.kv.get(`${KvRelayPersistence.ADMISSION_PREFIX}${messageId}`, "json");
+    return raw ? (raw as RelayAdmissionRecord) : null;
+  }
+
+  async recordAdmission(record: RelayAdmissionRecord): Promise<RecordAdmissionResult> {
+    const existing = await this.getAdmission(record.messageId);
     if (existing) {
-      return { messageId: envelope.messageId };
+      return { record: existing, duplicate: true };
     }
+    await this.kv.put(
+      `${KvRelayPersistence.ADMISSION_PREFIX}${record.messageId}`,
+      JSON.stringify(record),
+    );
+    return { record, duplicate: false };
+  }
+
+  async enqueue(envelope: RelayEnvelope): Promise<{ messageId: string }> {
+    const ids = await this.readQueueIds();
+    const alreadyQueued = ids.includes(envelope.messageId);
     await this.kv.put(
       `${KvRelayPersistence.MESSAGE_PREFIX}${envelope.messageId}`,
       JSON.stringify(envelope),
     );
-    const depth = await this.getQueueDepth();
-    await this.kv.put(KvRelayPersistence.QUEUE_DEPTH_KEY, String(depth + 1));
+    if (!alreadyQueued) {
+      ids.push(envelope.messageId);
+      await this.kv.put(KvRelayPersistence.QUEUE_IDS_KEY, JSON.stringify(ids));
+      await this.kv.put(KvRelayPersistence.QUEUE_DEPTH_KEY, String(ids.length));
+    }
     return { messageId: envelope.messageId };
   }
 
   async dequeue(): Promise<RelayEnvelope | null> {
-    return null;
+    const ids = await this.readQueueIds();
+    const messageId = ids.shift();
+    if (!messageId) return null;
+    const envelope = (await this.kv.get(
+      `${KvRelayPersistence.MESSAGE_PREFIX}${messageId}`,
+      "json",
+    )) as RelayEnvelope | null;
+    await this.kv.put(KvRelayPersistence.QUEUE_IDS_KEY, JSON.stringify(ids));
+    await this.kv.put(KvRelayPersistence.QUEUE_DEPTH_KEY, String(ids.length));
+    return envelope;
+  }
+
+  private async readQueueIds(): Promise<string[]> {
+    const raw = (await this.kv.get(KvRelayPersistence.QUEUE_IDS_KEY, "json")) as string[] | null;
+    return Array.isArray(raw) ? raw.filter((id) => typeof id === "string") : [];
   }
 
   async recordRetry(): Promise<void> {

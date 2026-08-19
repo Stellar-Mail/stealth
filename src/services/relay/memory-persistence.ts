@@ -4,11 +4,18 @@
  * Used by the Docker entry and development builds. Not durable across restarts;
  * the Cloudflare deployment uses {@link KvRelayPersistence} instead.
  */
-import type { RelayEnvelope, RelayPersistence } from "./persistence";
+import type {
+  RelayAdmissionRecord,
+  RelayEnvelope,
+  RelayPersistence,
+  RecordAdmissionResult,
+} from "./persistence";
 
 export class MemoryRelayPersistence implements RelayPersistence {
   private readonly queue: RelayEnvelope[] = [];
+  private readonly queuedIds = new Set<string>();
   private readonly messages = new Map<string, RelayEnvelope>();
+  private readonly admissions = new Map<string, RelayAdmissionRecord>();
   private retryCount = 0;
   private deadLetterCount = 0;
   private available = true;
@@ -31,18 +38,39 @@ export class MemoryRelayPersistence implements RelayPersistence {
     return this.deadLetterCount;
   }
 
+  async getAdmission(messageId: string): Promise<RelayAdmissionRecord | null> {
+    return this.admissions.get(messageId) ?? null;
+  }
+
+  async recordAdmission(record: RelayAdmissionRecord): Promise<RecordAdmissionResult> {
+    if (!this.available) {
+      throw new Error("Relay storage is unavailable");
+    }
+    const existing = this.admissions.get(record.messageId);
+    if (existing) {
+      return { record: existing, duplicate: true };
+    }
+    this.admissions.set(record.messageId, record);
+    return { record, duplicate: false };
+  }
+
   async enqueue(envelope: RelayEnvelope): Promise<{ messageId: string }> {
     if (!this.available) {
       throw new Error("Relay storage is unavailable");
     }
     this.messages.set(envelope.messageId, envelope);
-    this.queue.push(envelope);
+    if (!this.queuedIds.has(envelope.messageId)) {
+      this.queue.push(envelope);
+      this.queuedIds.add(envelope.messageId);
+    }
     return { messageId: envelope.messageId };
   }
 
   async dequeue(): Promise<RelayEnvelope | null> {
     if (this.queue.length === 0) return null;
-    return this.queue.shift()!;
+    const envelope = this.queue.shift()!;
+    this.queuedIds.delete(envelope.messageId);
+    return envelope;
   }
 
   async recordRetry(): Promise<void> {
@@ -61,5 +89,10 @@ export class MemoryRelayPersistence implements RelayPersistence {
   /** Test/ops hook: inspect an accepted message. */
   getMessage(messageId: string): RelayEnvelope | undefined {
     return this.messages.get(messageId);
+  }
+
+  /** Test/ops hook: count of stored payload envelopes (never includes blocked). */
+  storedPayloadCount(): number {
+    return this.messages.size;
   }
 }

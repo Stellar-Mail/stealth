@@ -15,6 +15,7 @@ import { stellarAddressSchema } from "@/server/api/domain";
 import { parseJsonBody } from "@/server/api/request";
 import { apiSuccess, handleApiRequest } from "@/server/api/response";
 
+import { publicAdmissionDecision } from "./admission";
 import { relaySubmissionSchema, RELAY_SERVICE_NAME, type RelayService } from "./relay-service";
 
 function requireRelayActor(request: Request, expectedAddress: string): string {
@@ -66,6 +67,20 @@ export function handleRelaySubmit(request: Request, service: RelayService) {
     }
 
     const result = await service.submit(input);
-    return apiSuccess(request, { ...result, service: RELAY_SERVICE_NAME }, { status: 202 });
+    return apiSuccess(
+      request,
+      {
+        accepted: result.accepted,
+        messageId: result.messageId,
+        queueDepth: result.queueDepth,
+        service: RELAY_SERVICE_NAME,
+        replayed: result.replayed,
+        admission: {
+          ...result.admission,
+          ...publicAdmissionDecision(result.admission),
+        },
+      },
+      { status: 202 },
+    );
   });
 }

@@ -46,6 +46,7 @@ describe("Managed Wallet Boundary", () => {
     contract: {
       registryContractId: knownContract3,
       postageContractId: knownContract2,
+      policiesContractId: knownContract1,
       domainTag: "test",
       protocolVersion: "1.0",
     },

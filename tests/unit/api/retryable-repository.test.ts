@@ -76,6 +76,36 @@ class FailingRepository implements ApiRepository {
     this.maybeFail("setSenderRule");
     return this.inner.setSenderRule(owner, sender, rule);
   }
+  async getSenderRuleRecord(owner: string, sender: string) {
+    this.maybeFail("getSenderRuleRecord");
+    return this.inner.getSenderRuleRecord(owner, sender);
+  }
+  async compareAndSetSenderRule(
+    owner: string,
+    sender: string,
+    rule: SenderRule,
+    expectedVersion?: number,
+    now?: Date,
+  ) {
+    this.maybeFail("compareAndSetSenderRule");
+    return this.inner.compareAndSetSenderRule(owner, sender, rule, expectedVersion, now);
+  }
+  async listSenderRuleRecords(owner: string) {
+    this.maybeFail("listSenderRuleRecords");
+    return this.inner.listSenderRuleRecords(owner);
+  }
+  async getSenderRuleWriteIntent(owner: string, sender: string) {
+    this.maybeFail("getSenderRuleWriteIntent");
+    return this.inner.getSenderRuleWriteIntent(owner, sender);
+  }
+  async setSenderRuleWriteIntent(intent: import("../../../src/server/api/domain").SenderRuleWriteIntent) {
+    this.maybeFail("setSenderRuleWriteIntent");
+    return this.inner.setSenderRuleWriteIntent(intent);
+  }
+  async listSenderRuleWriteIntents(owner: string) {
+    this.maybeFail("listSenderRuleWriteIntents");
+    return this.inner.listSenderRuleWriteIntents(owner);
+  }
   async getPostage(messageId: string): Promise<Postage | null> {
     this.maybeFail("getPostage");
     return this.inner.getPostage(messageId);
