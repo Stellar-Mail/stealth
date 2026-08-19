@@ -141,7 +141,13 @@ describe("postage_states", () => {
 
       // Apply preconditions (sender rules, mailbox policy)
       for (const pre of (
-        c as { preconditions?: Array<{ op: string; rule?: string; policy?: MailboxPolicy }> }
+        c as {
+          preconditions?: Array<{
+            op: string;
+            rule?: string;
+            policy?: MailboxPolicy;
+          }>;
+        }
       ).preconditions ?? []) {
         if (pre.op === "setSenderRule" && pre.rule) {
           await setSenderRule(repo, f.recipient, f.sender, pre.rule as SenderRule);

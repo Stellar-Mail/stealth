@@ -297,7 +297,8 @@ export function AuditLog() {
 
       {hasVisibleEvents ? (
         <p className="text-right text-[11px] text-muted-foreground/70">
-          Showing {events.length} of {totalCount} event{totalCount !== 1 ? "s" : ""}
+          Showing {events.length} of {totalCount} event
+          {totalCount !== 1 ? "s" : ""}
           {hasActiveFilter ? " for the current filters" : ""}
         </p>
       ) : null}

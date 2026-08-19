@@ -23,7 +23,9 @@ export type PolicyApi = {
  * Memory-backed policy API for demo/development.
  * Stores rules in a Map and simulates network latency.
  */
-export function createMemoryPolicyApi(): PolicyApi & { dump(): Record<string, "allow" | "block"> } {
+export function createMemoryPolicyApi(): PolicyApi & {
+  dump(): Record<string, "allow" | "block">;
+} {
   const rules = new Map<string, "allow" | "block">();
   return {
     async setSenderRule(owner: string, sender: string, rule: "allow" | "block") {
@@ -107,7 +109,11 @@ export async function runBatch(
 ): Promise<BulkWriteProgress> {
   const pending = progress.jobs.filter((j) => j.status === "pending");
   if (pending.length === 0) {
-    return { ...progress, status: "completed", completedAt: new Date().toISOString() };
+    return {
+      ...progress,
+      status: "completed",
+      completedAt: new Date().toISOString(),
+    };
   }
 
   const batch = pending.slice(0, BATCH_SIZE);

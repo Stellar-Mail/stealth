@@ -69,10 +69,18 @@ describe("Authenticated Recipient Mailbox Queue API (BETA-033)", () => {
   describe("Recipient Isolation & Authorization", () => {
     it("returns only envelopes matching the authenticated recipient actor", async () => {
       await repository.insertEnvelope(
-        makeEnvelope({ messageId: MSG1, recipientId: ALICE, createdAt: "2026-08-17T10:00:00Z" }),
+        makeEnvelope({
+          messageId: MSG1,
+          recipientId: ALICE,
+          createdAt: "2026-08-17T10:00:00Z",
+        }),
       );
       await repository.insertEnvelope(
-        makeEnvelope({ messageId: MSG2, recipientId: BOB, createdAt: "2026-08-17T10:05:00Z" }),
+        makeEnvelope({
+          messageId: MSG2,
+          recipientId: BOB,
+          createdAt: "2026-08-17T10:05:00Z",
+        }),
       );
 
       const request = new Request("http://localhost/api/v1/mailbox/queue", {
@@ -114,13 +122,25 @@ describe("Authenticated Recipient Mailbox Queue API (BETA-033)", () => {
   describe("Deterministic Cursor Pagination", () => {
     it("paginates envelopes deterministically in descending order of createdAt with messageId tiebreaker", async () => {
       await repository.insertEnvelope(
-        makeEnvelope({ messageId: MSG1, recipientId: ALICE, createdAt: "2026-08-17T10:00:00Z" }),
+        makeEnvelope({
+          messageId: MSG1,
+          recipientId: ALICE,
+          createdAt: "2026-08-17T10:00:00Z",
+        }),
       );
       await repository.insertEnvelope(
-        makeEnvelope({ messageId: MSG2, recipientId: ALICE, createdAt: "2026-08-17T10:10:00Z" }),
+        makeEnvelope({
+          messageId: MSG2,
+          recipientId: ALICE,
+          createdAt: "2026-08-17T10:10:00Z",
+        }),
       );
       await repository.insertEnvelope(
-        makeEnvelope({ messageId: MSG3, recipientId: ALICE, createdAt: "2026-08-17T10:05:00Z" }),
+        makeEnvelope({
+          messageId: MSG3,
+          recipientId: ALICE,
+          createdAt: "2026-08-17T10:05:00Z",
+        }),
       );
 
       // Page 1 with limit=2
@@ -140,7 +160,9 @@ describe("Authenticated Recipient Mailbox Queue API (BETA-033)", () => {
 
       // Page 2
       const req2 = new Request(
-        `http://localhost/api/v1/mailbox/queue?limit=2&cursor=${encodeURIComponent(json1.data.nextCursor)}`,
+        `http://localhost/api/v1/mailbox/queue?limit=2&cursor=${encodeURIComponent(
+          json1.data.nextCursor,
+        )}`,
         { headers: { "x-stealth-address": ALICE } },
       );
       const res2 = await queueHandlers.GET({
@@ -191,10 +213,18 @@ describe("Authenticated Recipient Mailbox Queue API (BETA-033)", () => {
   describe("Status Filtering", () => {
     it("filters queue by status pending, delivered, or all", async () => {
       await repository.insertEnvelope(
-        makeEnvelope({ messageId: MSG1, recipientId: ALICE, status: "pending" }),
+        makeEnvelope({
+          messageId: MSG1,
+          recipientId: ALICE,
+          status: "pending",
+        }),
       );
       await repository.insertEnvelope(
-        makeEnvelope({ messageId: MSG2, recipientId: ALICE, status: "delivered" }),
+        makeEnvelope({
+          messageId: MSG2,
+          recipientId: ALICE,
+          status: "delivered",
+        }),
       );
 
       // Pending only

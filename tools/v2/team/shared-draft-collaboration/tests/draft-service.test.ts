@@ -61,7 +61,11 @@ describe("SharedDraftService", () => {
   describe("addDraft", () => {
     it("creates a new draft with auto id", async () => {
       const svc = createService();
-      const added = await svc.addDraft({ title: "New Draft", subject: "Test", collaborators: 2 });
+      const added = await svc.addDraft({
+        title: "New Draft",
+        subject: "Test",
+        collaborators: 2,
+      });
 
       expect(added.id).toMatch(/^draft-/);
       expect(added.title).toBe("New Draft");
@@ -87,7 +91,10 @@ describe("SharedDraftService", () => {
   describe("updateDraft", () => {
     it("changes title and updates lastModified", async () => {
       const svc = createService();
-      const updated = await svc.updateDraft({ id: "draft-002", title: "Updated Title" });
+      const updated = await svc.updateDraft({
+        id: "draft-002",
+        title: "Updated Title",
+      });
       expect(updated.title).toBe("Updated Title");
     });
 

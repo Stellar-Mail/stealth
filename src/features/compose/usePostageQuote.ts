@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
+import { sharedTypedApi as api, errorLabel, normalizeApiClientError } from "@/lib/api";
+
 /**
  * The shape returned by the server's `quotePostage` function.
  * Mirrors `{ amount, eligible, reason, trusted, ... }` plus the authenticated
@@ -52,15 +54,12 @@ export type PostageQuoteState =
 const DEBOUNCE_MS = 400;
 
 /**
- * Fetches a postage quote from the policy API whenever `recipient` or `sender`
- * changes. Uses a 400 ms debounce and cancels stale requests via AbortController.
+ * Fetches a postage quote through the typed postage client whenever
+ * `recipient` or `sender` changes. Uses a 400 ms debounce and cancels stale
+ * requests via AbortController.
  *
  * On API failure the hook returns `{ status: "error" }` — callers should show a
  * non-blocking warning rather than preventing send entirely.
- *
- * @param recipient Recipient address (any format accepted by the compose form)
- * @param sender    Sender's Stellar G-address
- * @param messageId Message identity the quote must be bound to (BETA-039)
  */
 export function usePostageQuote(
   recipient: string,
@@ -92,33 +91,24 @@ export function usePostageQuote(
       setQuoteState({ status: "loading" });
 
       try {
-        const params = new URLSearchParams({
-          recipient: trimmedRecipient,
-          sender: trimmedSender,
-        });
-        if (trimmedMessageId) {
-          params.set("messageId", trimmedMessageId);
-        }
-        const response = await fetch(`/api/postage/quote?${params.toString()}`, {
-          signal: controller.signal,
-        });
+        const quote = await api.postage.quote(
+          {
+            recipient: trimmedRecipient,
+            sender: trimmedSender,
+            messageId: trimmedMessageId || undefined,
+          },
+          controller.signal,
+        );
 
         if (controller.signal.aborted) return;
 
-        if (!response.ok) {
-          const text = await response.text().catch(() => "Unknown error");
-          setQuoteState({ status: "error", message: text || `HTTP ${response.status}` });
-          return;
-        }
-
-        const quote = (await response.json()) as PostageQuote;
         setQuoteState({ status: "quoted", quote });
       } catch (err) {
         if (err instanceof DOMException && err.name === "AbortError") {
           // Request was intentionally aborted — don't update state
           return;
         }
-        const message = err instanceof Error ? err.message : "Failed to fetch postage quote";
+        const message = errorLabel(normalizeApiClientError(err));
         setQuoteState({ status: "error", message });
       }
     }, DEBOUNCE_MS);

@@ -26,7 +26,12 @@ const baseEmail: Email = {
 };
 
 function email(folder: MailFolder, overrides: Partial<Email> = {}): Email {
-  return { ...baseEmail, id: `bulk-${folder}`, folder: folder as any, ...overrides };
+  return {
+    ...baseEmail,
+    id: `bulk-${folder}`,
+    folder: folder as any,
+    ...overrides,
+  };
 }
 
 describe("bulk action availability", () => {
@@ -129,7 +134,11 @@ describe("bulk action patches and confirmations", () => {
 
   it("rejects invalid actions with reasons", () => {
     const archived: Email = { ...baseEmail, folder: "archive" };
-    const blocked: Email = { ...baseEmail, folder: "requests", senderPolicy: "block" };
+    const blocked: Email = {
+      ...baseEmail,
+      folder: "requests",
+      senderPolicy: "block",
+    };
     const requests: BulkActionRequest[] = [
       { action: "archive" },
       { action: "approve" },

@@ -663,13 +663,11 @@ describe("myFunction", () => {
 ### If You're Stuck
 
 1. **Read the documentation:**
-
    - [ARCHITECTURE.md](./ARCHITECTURE.md) - Full architecture
    - [MODULE_BOUNDARIES.md](./MODULE_BOUNDARIES.md) - Module contracts
    - [INTEGRATION_CONSTRAINTS.md](./INTEGRATION_CONSTRAINTS.md) - Constraints
 
 2. **Check existing patterns:**
-
    - Look at similar existing modules
    - Copy the pattern, adapt for your use case
 

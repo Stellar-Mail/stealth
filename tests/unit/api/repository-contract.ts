@@ -185,8 +185,13 @@ export function runRepositoryContractTests(
         });
 
         const result = await repo.transitionPostage(messageId, "pending", "settled");
-        expect(result).toMatchObject({ outcome: "applied", postage: { status: "settled" } });
-        await expect(repo.getPostage(messageId)).resolves.toMatchObject({ status: "settled" });
+        expect(result).toMatchObject({
+          outcome: "applied",
+          postage: { status: "settled" },
+        });
+        await expect(repo.getPostage(messageId)).resolves.toMatchObject({
+          status: "settled",
+        });
       });
 
       it("reports a conflict with the current status when already terminal", async () => {
@@ -202,7 +207,10 @@ export function runRepositoryContractTests(
 
         await expect(
           repo.transitionPostage(messageId, "pending", "settled"),
-        ).resolves.toMatchObject({ outcome: "conflict", postage: { status: "settled" } });
+        ).resolves.toMatchObject({
+          outcome: "conflict",
+          postage: { status: "settled" },
+        });
       });
 
       it("allows exactly one winner out of concurrent settlement attempts", async () => {
@@ -224,7 +232,9 @@ export function runRepositoryContractTests(
         const conflicts = results.filter((result) => result.outcome === "conflict");
         expect(applied).toHaveLength(1);
         expect(conflicts).toHaveLength(4);
-        await expect(repo.getPostage(messageId)).resolves.toMatchObject({ status: "settled" });
+        await expect(repo.getPostage(messageId)).resolves.toMatchObject({
+          status: "settled",
+        });
       });
     });
 
@@ -267,7 +277,10 @@ export function runRepositoryContractTests(
         });
 
         const completed = await repo.acquireIdempotencyRecord("key-2", "digest-a", 30_000);
-        expect(completed).toMatchObject({ status: "completed", record: { body: { ok: true } } });
+        expect(completed).toMatchObject({
+          status: "completed",
+          record: { body: { ok: true } },
+        });
       });
 
       it("returns conflict when the same key is reused with a different payload digest", async () => {
@@ -359,7 +372,10 @@ export function runRepositoryContractTests(
 
       it("creates a user and satisfies email, username, address lookups", async () => {
         const created = await repo.createUser(sampleUser, sampleCredential, sampleProfile);
-        expect(created).toMatchObject({ userId: "usr_test_1", email: "alice@stealth.mail" });
+        expect(created).toMatchObject({
+          userId: "usr_test_1",
+          email: "alice@stealth.mail",
+        });
 
         await expect(repo.getUserById("usr_test_1")).resolves.toMatchObject({
           username: "alice_stealth",

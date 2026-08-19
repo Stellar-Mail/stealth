@@ -8,7 +8,10 @@ const NUM_RUNS = 150;
 const TOKEN_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789._~-".split("");
 
 const validTokenArbitrary: fc.Arbitrary<string> = fc
-  .array(fc.constantFrom(...TOKEN_CHARS), { minLength: 1, maxLength: MAX_CORRELATION_ID_LENGTH })
+  .array(fc.constantFrom(...TOKEN_CHARS), {
+    minLength: 1,
+    maxLength: MAX_CORRELATION_ID_LENGTH,
+  })
   .map((chars) => chars.join(""));
 
 describe("validateCorrelationId (property)", () => {

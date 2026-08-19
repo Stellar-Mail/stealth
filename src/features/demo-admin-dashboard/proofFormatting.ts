@@ -89,25 +89,43 @@ export function validateProofRecord(
   const errors: Array<{ field: string; message: string }> = [];
 
   if (!draft.messageHash || !isValidMockHash(draft.messageHash)) {
-    errors.push({ field: "messageHash", message: "Must be a hex string starting with 0x." });
+    errors.push({
+      field: "messageHash",
+      message: "Must be a hex string starting with 0x.",
+    });
   }
   if (!draft.paymentHash || !isValidMockHash(draft.paymentHash)) {
-    errors.push({ field: "paymentHash", message: "Must be a hex string starting with 0x." });
+    errors.push({
+      field: "paymentHash",
+      message: "Must be a hex string starting with 0x.",
+    });
   }
   if (!draft.diagnosticId || !isValidDiagnosticId(draft.diagnosticId)) {
-    errors.push({ field: "diagnosticId", message: "Must be a valid UUID (8-4-4-4-12)." });
+    errors.push({
+      field: "diagnosticId",
+      message: "Must be a valid UUID (8-4-4-4-12).",
+    });
   }
   if (!draft.contractAddress || draft.contractAddress.trim().length < 8) {
-    errors.push({ field: "contractAddress", message: "Contract address is required." });
+    errors.push({
+      field: "contractAddress",
+      message: "Contract address is required.",
+    });
   }
   if (!draft.signature || draft.signature.trim().length === 0) {
     errors.push({ field: "signature", message: "Signature is required." });
   }
   if (!draft.latency || !/^\d+ms$/.test(draft.latency.trim().toLowerCase())) {
-    errors.push({ field: "latency", message: 'Latency must be in the format "42ms".' });
+    errors.push({
+      field: "latency",
+      message: 'Latency must be in the format "42ms".',
+    });
   }
   if (!draft.postageStatus || !["pending", "settled", "refunded"].includes(draft.postageStatus)) {
-    errors.push({ field: "postageStatus", message: "Must be pending, settled, or refunded." });
+    errors.push({
+      field: "postageStatus",
+      message: "Must be pending, settled, or refunded.",
+    });
   }
 
   return errors;

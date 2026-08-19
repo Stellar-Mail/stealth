@@ -90,6 +90,12 @@ export interface RelayServiceConfig {
   audience?: string;
   nonceService?: NonceService;
   nowSeconds?: () => number;
+  onIngestedReceipt?: (input: {
+    messageId: string;
+    sender: string;
+    recipient: string;
+    payload: string;
+  }) => Promise<unknown>;
 }
 
 export interface RelaySubmitResult {
@@ -230,6 +236,18 @@ export class RelayService {
     };
 
     await this.persistence.enqueue(envelope);
+    if (this.config.onIngestedReceipt) {
+      try {
+        await this.config.onIngestedReceipt({
+          messageId: envelope.messageId,
+          sender: envelope.sender,
+          recipient: envelope.recipient,
+          payload: envelope.payload,
+        });
+      } catch {
+        // Log / fail-soft: receipt publication error does not fail queue enqueue
+      }
+    }
     return {
       accepted: true,
       messageId: envelope.messageId,

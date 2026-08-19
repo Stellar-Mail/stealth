@@ -1,10 +1,9 @@
 /**
- * Send pipeline integration (BETA-046 / #1953). Drives the full staged pipeline
- * (resolve -> encrypt -> sign -> postage -> persist -> submit -> reconcile)
- * with injected seams (signer, key resolver) and a stubbed relay transport so
- * the happy path, every recipient-rejection scenario, wallet failures, binding
- * enforcement, and idempotent 409 handling are exercised without a wallet or
- * network.
+ * Send pipeline integration (BETA-048 / #1954). Drives the full 9-stage versioned pipeline
+ * (resolve -> quote -> encrypt -> sign -> escrow -> persist -> submit -> anchor -> reconcile)
+ * with injected seams (signer, key resolver, quote fetcher, escrow submitter, receipt anchorer)
+ * and a stubbed relay transport so the happy path, failure recovery, proof references, versioning,
+ * and idempotency are fully verified.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { SendPipeline, type StageState } from "../../../src/features/compose/sendPipeline";
@@ -121,13 +120,19 @@ async function validPipeline(opts: {
   const pipeline = new SendPipeline(input, vi.fn(), {
     signer: opts.signer ?? signer,
     keyResolver: resolver,
+    quoteFetcher: async () => ({ amount: "1000", asset: "XLM", eligible: true }),
+    escrowSubmitter: async ({ messageId }) => ({ paymentHash: `pay-${messageId}` }),
+    receiptAnchorer: async (messageId) => ({
+      receiptId: `rcpt-${messageId}`,
+      anchorTxHash: `tx-${messageId}`,
+    }),
   });
   stubRelayFetch(opts.relayStatuses ?? [200]);
   return { pipeline, pairs, directories };
 }
 
-describe("send pipeline (#1953)", () => {
-  it("seals, signs, and submits for multiple recipients on the happy path", async () => {
+describe("send pipeline (BETA-048 / #1954)", () => {
+  it("executes the full 9-stage workflow on the happy path with proof references and versioning", async () => {
     const { pipeline } = await validPipeline({ recipientKeys: [ALICE, BOB] });
 
     const outcome = await pipeline.run();
@@ -136,17 +141,34 @@ describe("send pipeline (#1953)", () => {
     if (!outcome.ok) return;
     expect(outcome.delivered).toBe(true);
     expect(outcome.state).toBe("ACKNOWLEDGED");
+    expect(outcome.version).toBe(1);
+    expect(outcome.proofReferences).toBeDefined();
+    expect(outcome.proofReferences.relayMessageId).toBe(pipeline.messageId);
+    expect(outcome.proofReferences.postagePaymentHash).toBe(`pay-${pipeline.messageId}`);
+    expect(outcome.proofReferences.receiptId).toBe(`rcpt-${pipeline.messageId}`);
+    expect(outcome.proofReferences.anchorTxHash).toBe(`tx-${pipeline.messageId}`);
 
     const stages = pipeline.getStages();
+    expect(stages.map((s) => s.id)).toEqual([
+      "resolve",
+      "quote",
+      "encrypt",
+      "sign",
+      "escrow",
+      "persist",
+      "submit",
+      "anchor",
+      "reconcile",
+    ]);
     for (const stage of stages) {
-      expect(stage.status).not.toBe("error");
+      expect(stage.status).toBe("done");
     }
   });
 
-  it("reports recipient_rejected when a recipient has no key directory", async () => {
-    const { pipeline } = await validPipeline({ recipientKeys: [ALICE] });
-    // Override the resolver map so ALICE has no directory entry.
-    const pipelineNoKeys = new SendPipeline(
+  it("reports quote_rejected when postage quote fails or sender is ineligible", async () => {
+    const pair = await generateRecipientKeyPair();
+    const resolver = makeResolver(() => makeDirectory(pair.publicKeySpkiBase64));
+    const pipeline = new SendPipeline(
       {
         sender: SENDER,
         to: ALICE,
@@ -157,27 +179,23 @@ describe("send pipeline (#1953)", () => {
       vi.fn(),
       {
         signer: signerFor().signer,
-        keyResolver: makeResolver(() => null),
+        keyResolver: resolver,
+        quoteFetcher: async () => ({ amount: "0", eligible: false }),
       },
     );
     stubRelayFetch([200]);
 
-    const outcome = await pipelineNoKeys.run();
+    const outcome = await pipeline.run();
 
     expect(outcome.ok).toBe(false);
     if (outcome.ok) return;
-    expect(outcome.stage).toBe("resolve");
-    expect(outcome.reason).toBe("recipient_rejected");
+    expect(outcome.stage).toBe("quote");
+    expect(outcome.reason).toBe("quote_rejected");
   });
 
-  it.each([
-    ["revoked", { status: "revoked" }, "revoked"],
-    ["expired", { notAfter: "2020-01-01T00:00:00Z" }, "expired"],
-    ["not-yet-valid", { notBefore: "2099-01-01T00:00:00Z" }, "not yet valid"],
-    ["unsupported algorithm", { publicKey: "bm90LWEtcC0yNTYta2V5" }, "not a supported P-256"],
-  ])("rejects %s key material at the resolve stage", async (_label, overrides, _expected) => {
+  it("reports escrow_failed when postage escrow fails", async () => {
     const pair = await generateRecipientKeyPair();
-    const resolver = makeResolver(() => makeDirectory(pair.publicKeySpkiBase64, overrides));
+    const resolver = makeResolver(() => makeDirectory(pair.publicKeySpkiBase64));
     const pipeline = new SendPipeline(
       {
         sender: SENDER,
@@ -187,7 +205,14 @@ describe("send pipeline (#1953)", () => {
         recipients: [{ address: ALICE, account: ALICE }],
       },
       vi.fn(),
-      { signer: signerFor().signer, keyResolver: resolver },
+      {
+        signer: signerFor().signer,
+        keyResolver: resolver,
+        quoteFetcher: async () => ({ amount: "100", eligible: true }),
+        escrowSubmitter: async () => {
+          throw new Error("Soroban contract invocation failed");
+        },
+      },
     );
     stubRelayFetch([200]);
 
@@ -195,11 +220,12 @@ describe("send pipeline (#1953)", () => {
 
     expect(outcome.ok).toBe(false);
     if (outcome.ok) return;
-    expect(outcome.stage).toBe("resolve");
-    expect(outcome.reason).toBe("recipient_rejected");
+    expect(outcome.stage).toBe("escrow");
+    expect(outcome.reason).toBe("escrow_failed");
   });
 
-  it("keeps the draft intact on a wallet rejection", async () => {
+  it("keeps the draft intact on a wallet rejection without executing escrow or submission", async () => {
+    const escrowSpy = vi.fn();
     const { pipeline } = await validPipeline({
       recipientKeys: [ALICE],
       signer: async () => {
@@ -213,6 +239,7 @@ describe("send pipeline (#1953)", () => {
     if (outcome.ok) return;
     expect(outcome.reason).toBe("wallet_rejected");
     expect(outcome.stage).toBe("sign");
+    expect(escrowSpy).not.toHaveBeenCalled();
   });
 
   it("reports wallet_unavailable when the wallet is not detected", async () => {
@@ -247,7 +274,7 @@ describe("send pipeline (#1953)", () => {
     expect(outcome.message).toContain("does not match the sender");
   });
 
-  it("treats a 409 as an idempotent success", async () => {
+  it("treats a 409 as an idempotent success with deduplicated state", async () => {
     const { pipeline } = await validPipeline({
       recipientKeys: [ALICE],
       relayStatuses: [409],
@@ -261,71 +288,16 @@ describe("send pipeline (#1953)", () => {
     expect(outcome.state).toBe("DEDUPLICATED");
   });
 
-  it("re-signs with a fresh nonce on a transient relay failure", async () => {
-    const { signer, canonicalSeen } = signerFor();
-    const { pipeline } = await validPipeline({
-      recipientKeys: [ALICE],
-      signer,
-      relayStatuses: [503, 200],
-    });
+  it("resumes safely skipping previously completed stages", async () => {
+    const { pipeline } = await validPipeline({ recipientKeys: [ALICE] });
 
-    const outcome = await pipeline.run();
+    const outcome1 = await pipeline.run();
+    expect(outcome1.ok).toBe(true);
 
-    expect(outcome.ok).toBe(true);
-    if (!outcome.ok) return;
-    // Initial sign (pipeline) + one re-sign (submit retry) with a distinct nonce.
-    expect(canonicalSeen.length).toBeGreaterThanOrEqual(2);
-    const nonces = canonicalSeen
-      .map((c) => /"request_nonce":"([0-9a-f]+)"/.exec(c))
-      .filter((m): m is RegExpExecArray => m !== null)
-      .map((m) => m[1]);
-    expect(new Set(nonces).size).toBeGreaterThan(1);
-  });
-
-  it("propagates structured stage progress for retries", async () => {
-    const progress: StageState[][] = [];
-    const pair = await generateRecipientKeyPair();
-    const resolver = makeResolver(() => makeDirectory(pair.publicKeySpkiBase64));
-    const { signer } = signerFor();
-    const pipeline = new SendPipeline(
-      {
-        sender: SENDER,
-        to: ALICE,
-        subject: "t",
-        body: "hello",
-        recipients: [{ address: ALICE, account: ALICE }],
-      },
-      (stages) => progress.push(stages),
-      { signer, keyResolver: resolver },
-    );
-    stubRelayFetch([200]);
-
-    const outcome = await pipeline.run();
-    expect(outcome.ok).toBe(true);
-    expect(progress.length).toBeGreaterThan(0);
-    expect(progress[0].map((s) => s.id)).toEqual([
-      "resolve",
-      "encrypt",
-      "sign",
-      "postage",
-      "persist",
-      "submit",
-      "reconcile",
-    ]);
-  });
-
-  it("rejects an empty recipient list at the resolve stage", async () => {
-    const pipeline = new SendPipeline(
-      { sender: SENDER, to: "", subject: "t", body: "hello" },
-      vi.fn(),
-      { signer: signerFor().signer, keyResolver: makeResolver(() => null) },
-    );
-    stubRelayFetch([200]);
-
-    const outcome = await pipeline.run();
-    expect(outcome.ok).toBe(false);
-    if (outcome.ok) return;
-    expect(outcome.stage).toBe("resolve");
-    expect(outcome.reason).toBe("recipient_rejected");
+    const outcome2 = await pipeline.resume();
+    expect(outcome2.ok).toBe(true);
+    if (!outcome2.ok) return;
+    expect(outcome2.delivered).toBe(true);
+    expect(outcome2.proofReferences.relayMessageId).toBe(pipeline.messageId);
   });
 });

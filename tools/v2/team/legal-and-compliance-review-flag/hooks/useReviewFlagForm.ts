@@ -82,7 +82,10 @@ export function useReviewFlagForm(): {
       .catch(() => {
         setState({
           status: "error",
-          error: { code: "policy_conflict", message: "Unexpected error while raising the flag." },
+          error: {
+            code: "policy_conflict",
+            message: "Unexpected error while raising the flag.",
+          },
         });
       });
   }, [values]);

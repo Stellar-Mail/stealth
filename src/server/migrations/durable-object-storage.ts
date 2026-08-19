@@ -25,7 +25,11 @@ export function createDurableObjectMigrationStorage(
           limit: 1000,
           ...(cursor ? { cursor } : {}),
         })) as
-          | { keys: Array<{ name: string }>; list_complete: boolean; cursor?: string }
+          | {
+              keys: Array<{ name: string }>;
+              list_complete: boolean;
+              cursor?: string;
+            }
           | Map<string, unknown>;
 
         if (typeof page.keys === "function") {

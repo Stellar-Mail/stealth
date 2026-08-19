@@ -1,16 +1,26 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 
-import type { ExternalWallet, WalletCapability } from "../../../src/server/api/domain";
+import type {
+  ExternalWallet,
+  WalletCapability,
+  ManagedWalletStatus,
+} from "../../../src/server/api/domain";
 import {
+  getManagedWalletStatus,
   requestChallenge,
   verifyAndLink,
   listLinkedWallets,
+  updateWalletCapabilities,
   unlinkWallet,
   WalletLinkError,
+  WrongNetworkError,
+  WalletNotInstalledError,
+  WalletRejectedError,
 } from "../../../src/services/stellar/wallet-link";
 
+const owner = `G${"A".repeat(55)}`;
 const externalAddress = `G${"B".repeat(55)}`;
-const network = "Public Global Stellar Network ; September 2015";
+const network = "Test SDF Network ; September 2015";
 
 function mockFetchOnce(status: number, body: unknown) {
   return vi.fn().mockResolvedValue({
@@ -20,7 +30,7 @@ function mockFetchOnce(status: number, body: unknown) {
   });
 }
 
-describe("wallet-link client service", () => {
+describe("wallet-link client service (Issue #1977 BETA-070)", () => {
   let originalFetch: typeof globalThis.fetch;
 
   beforeEach(() => {
@@ -31,10 +41,48 @@ describe("wallet-link client service", () => {
     globalThis.fetch = originalFetch;
   });
 
+  describe("getManagedWalletStatus", () => {
+    it("returns managed wallet status and balance on success", async () => {
+      const mockStatus: ManagedWalletStatus = {
+        address: owner,
+        status: "active",
+        network,
+        balance: { available: "10000000", balanceXlm: "1.00" },
+        capabilities: ["sign", "send", "read"],
+        isDefaultSigner: true,
+        activeSigner: {
+          signerType: "managed",
+          address: owner,
+          capabilities: ["sign", "send", "read"],
+          isFallback: true,
+        },
+      };
+
+      globalThis.fetch = mockFetchOnce(200, { data: mockStatus }) as typeof fetch;
+
+      const result = await getManagedWalletStatus();
+      expect(result.address).toBe(owner);
+      expect(result.balance.balanceXlm).toBe("1.00");
+      expect(result.isDefaultSigner).toBe(true);
+      expect(result.activeSigner.signerType).toBe("managed");
+    });
+
+    it("throws WalletLinkError on failure", async () => {
+      globalThis.fetch = mockFetchOnce(500, {
+        error: { message: "Internal server error" },
+      }) as typeof fetch;
+
+      await expect(getManagedWalletStatus()).rejects.toThrow(WalletLinkError);
+    });
+  });
+
   describe("requestChallenge", () => {
     it("returns challenge data on success", async () => {
       globalThis.fetch = mockFetchOnce(200, {
-        data: { challenge: "a".repeat(64), expiresAt: "2026-01-01T00:00:00.000Z" },
+        data: {
+          challenge: "a".repeat(64),
+          expiresAt: "2026-01-01T00:00:00.000Z",
+        },
       }) as typeof fetch;
 
       const result = await requestChallenge(externalAddress, network);
@@ -77,6 +125,41 @@ describe("wallet-link client service", () => {
     });
   });
 
+  describe("updateWalletCapabilities", () => {
+    it("updates capabilities for linked wallet", async () => {
+      const updated: ExternalWallet = {
+        address: externalAddress,
+        capabilities: ["sign", "send"],
+        linkedAt: "2026-01-01T00:00:00.000Z",
+        network,
+      };
+      const activeSigner = {
+        signerType: "external" as const,
+        address: externalAddress,
+        capabilities: ["sign", "send"] as WalletCapability[],
+        isFallback: false,
+      };
+
+      globalThis.fetch = mockFetchOnce(200, {
+        data: { wallet: updated, activeSigner },
+      }) as typeof fetch;
+
+      const res = await updateWalletCapabilities(externalAddress, ["sign", "send"]);
+      expect(res.wallet.capabilities).toEqual(["sign", "send"]);
+      expect(res.activeSigner.signerType).toBe("external");
+    });
+
+    it("throws WalletLinkError on update failure", async () => {
+      globalThis.fetch = mockFetchOnce(404, {
+        error: { message: "External wallet not found" },
+      }) as typeof fetch;
+
+      await expect(updateWalletCapabilities(externalAddress, ["sign"])).rejects.toThrow(
+        WalletLinkError,
+      );
+    });
+  });
+
   describe("listLinkedWallets", () => {
     it("returns wallets from envelope", async () => {
       const wallets: ExternalWallet[] = [
@@ -87,7 +170,9 @@ describe("wallet-link client service", () => {
           network,
         },
       ];
-      globalThis.fetch = mockFetchOnce(200, { data: { wallets } }) as typeof fetch;
+      globalThis.fetch = mockFetchOnce(200, {
+        data: { wallets },
+      }) as typeof fetch;
 
       const result = await listLinkedWallets();
       expect(result).toHaveLength(1);
@@ -105,13 +190,27 @@ describe("wallet-link client service", () => {
 
   describe("unlinkWallet", () => {
     it("succeeds on 2xx", async () => {
-      globalThis.fetch = mockFetchOnce(200, { data: { unlinked: true } }) as typeof fetch;
+      globalThis.fetch = mockFetchOnce(200, {
+        data: { unlinked: true },
+      }) as typeof fetch;
 
-      await expect(unlinkWallet(externalAddress)).resolves.toEqual({ unlinked: true });
+      await expect(unlinkWallet(externalAddress)).resolves.toEqual({
+        unlinked: true,
+      });
     });
 
     it("passes explicit confirmation parameter when provided", async () => {
-      const mockFetch = mockFetchOnce(200, { data: { unlinked: true } });
+      const mockFetch = mockFetchOnce(200, {
+        data: {
+          unlinked: true,
+          activeSigner: {
+            signerType: "managed",
+            address: owner,
+            capabilities: ["sign"],
+            isFallback: true,
+          },
+        },
+      });
       globalThis.fetch = mockFetch as typeof fetch;
 
       await unlinkWallet(externalAddress, { confirm: true });
@@ -131,26 +230,20 @@ describe("wallet-link client service", () => {
       await expect(unlinkWallet(externalAddress)).rejects.toThrow(WalletLinkError);
     });
   });
-});
 
-describe("external wallet linking pure logic", () => {
-  function toggleCapability(
-    current: WalletCapability[],
-    cap: WalletCapability,
-  ): WalletCapability[] {
-    return current.includes(cap) ? current.filter((c) => c !== cap) : [...current, cap];
-  }
+  describe("Error taxonomy", () => {
+    it("constructs error classes with proper names and status codes", () => {
+      const wrongNet = new WrongNetworkError();
+      expect(wrongNet.name).toBe("WrongNetworkError");
+      expect(wrongNet.code).toBe("wrong_network");
 
-  it("adds a capability when absent", () => {
-    expect(toggleCapability(["sign"], "send")).toEqual(["sign", "send"]);
-  });
+      const notInstalled = new WalletNotInstalledError();
+      expect(notInstalled.name).toBe("WalletNotInstalledError");
+      expect(notInstalled.code).toBe("wallet_not_installed");
 
-  it("removes a capability when present", () => {
-    expect(toggleCapability(["sign", "send"], "send")).toEqual(["sign"]);
-  });
-
-  it("does not duplicate capabilities", () => {
-    const result = toggleCapability(toggleCapability(["sign"], "send"), "send");
-    expect(result).toEqual(["sign"]);
+      const rejected = new WalletRejectedError();
+      expect(rejected.name).toBe("WalletRejectedError");
+      expect(rejected.code).toBe("wallet_rejected");
+    });
   });
 });

@@ -177,7 +177,11 @@ export function EmailView({
                     label: "Reply all",
                     onClick: () => actions.onReplyAll?.(email),
                   },
-                  { icon: Forward, label: "Forward", onClick: () => actions.onForward?.(email) },
+                  {
+                    icon: Forward,
+                    label: "Forward",
+                    onClick: () => actions.onForward?.(email),
+                  },
                 ].map(({ icon: Icon, label, onClick }) => (
                   <motion.button
                     key={label}
@@ -405,7 +409,12 @@ function InlineReplyComposer({
   const readiness = getRecipientReadiness(to, postage, blockedRecipients);
 
   const submit = (scheduled = false) => {
-    const validationError = validateComposeDraft({ to, body, postage, blockedRecipients });
+    const validationError = validateComposeDraft({
+      to,
+      body,
+      postage,
+      blockedRecipients,
+    });
     if (validationError) {
       onShowToast?.(validationError);
       return;
@@ -721,7 +730,10 @@ function AttachmentIcon({ type }: { type: string }) {
   );
 }
 
-function getAttachmentIcon(type: string): { icon: LucideIcon; className: string } {
+function getAttachmentIcon(type: string): {
+  icon: LucideIcon;
+  className: string;
+} {
   const normalized = type.toLowerCase();
 
   if (normalized === "pdf") return { icon: FileText, className: "text-red-300" };
@@ -747,7 +759,9 @@ function SenderIdentity({ email, compact = false }: { email: Email; compact?: bo
         className={`flex shrink-0 items-center justify-center rounded-md text-xs font-semibold text-white/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] ${
           compact ? "h-8 w-8" : "h-10 w-10"
         }`}
-        style={{ background: `linear-gradient(135deg, ${email.avatarColor}, #1a1a1d)` }}
+        style={{
+          background: `linear-gradient(135deg, ${email.avatarColor}, #1a1a1d)`,
+        }}
       >
         {email.from
           .split(" ")

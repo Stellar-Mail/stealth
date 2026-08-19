@@ -61,7 +61,12 @@ describe("mapImportedDataset", () => {
       version: DATASET_EXPORT_SCHEMA_VERSION,
       count: 1,
       drafts: [
-        { id: "draft-x", subject: "Bad", body: "Body", recipients: ["real.person@gmail.com"] },
+        {
+          id: "draft-x",
+          subject: "Bad",
+          body: "Body",
+          recipients: ["real.person@gmail.com"],
+        },
       ],
     });
     expect(result.ok).toBe(false);

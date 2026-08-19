@@ -316,7 +316,12 @@ export function CampaignTagManager() {
                     </p>
                     <select
                       value={mergeState.targetId}
-                      onChange={(e) => setMergeState({ ...mergeState, targetId: e.target.value })}
+                      onChange={(e) =>
+                        setMergeState({
+                          ...mergeState,
+                          targetId: e.target.value,
+                        })
+                      }
                       className="w-full rounded-lg border border-white/[0.08] bg-black/60 px-3 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-white/20"
                     >
                       {otherTags.map((t) => (

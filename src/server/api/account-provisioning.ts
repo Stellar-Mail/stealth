@@ -1,4 +1,30 @@
-import type { ChainMailboxPolicy } from "./domain";
+import { randomUUID } from "node:crypto";
+
+import type { BetaRuntimeConfig } from "../../config/schema";
+import { loadRuntimeConfig } from "../../config";
+import type { StellarFundingAdapter } from "@/services/stellar/funding-adapter";
+import { createFundingAdapter } from "@/services/stellar/funding-adapter";
+import { runFundingOperation } from "@/services/stellar/funding";
+import { consumeProvisioningQuota } from "./rate-limit";
+import {
+  assertTestnetManagedWalletNetwork,
+  prepareManagedWalletSecret,
+  type PreparedManagedWallet,
+} from "../../services/stellar/account-provision";
+import type {
+  AccountStatus,
+  ChainMailboxPolicy,
+  ManagedWalletRecord,
+  Profile,
+  ProvisioningFailure,
+  ProvisioningRecord,
+  ProvisioningStep,
+  ProvisioningStatus,
+  PublicManagedWallet,
+  User,
+  Wallet,
+} from "./domain";
+import { stellarAddressSchema, toPublicManagedWallet, usernameSchema } from "./domain";
 import {
   betaDefaultMailboxPolicy,
   getMailboxPolicy,
@@ -6,19 +32,187 @@ import {
   setMailboxPolicy,
   toChainMailboxPolicy,
 } from "./policy-service";
+import type { ApiRepository, UpdateProvisioningResult } from "./repository";
+import { ApiError } from "./errors";
+
+// ---------------------------------------------------------------------------
+// BETA-015 (Issue #1922) — system-managed Stellar testnet wallet provisioning
+// ---------------------------------------------------------------------------
+
+export interface ProvisionManagedStellarWalletResult {
+  wallet: PublicManagedWallet;
+}
+
+export interface ProvisionManagedStellarWalletOptions {
+  fundingAdapter: StellarFundingAdapter;
+  storageSecret: string;
+  now?: Date;
+  /** When supplied (e.g. during registration), skip fresh keypair generation. */
+  prepared?: PreparedManagedWallet;
+  /** Account subject for BETA-018 provisioning quotas. Defaults to `userId`. */
+  accountId?: string;
+  /** Request origin / IP for BETA-018 per-origin provisioning quotas. */
+  origin?: string;
+}
+
+function managedWalletKeyRef(userId: string): string {
+  return `wallet:managed:${userId}`;
+}
+
+/**
+ * Idempotently provisions a system-managed Stellar testnet wallet for `userId`.
+ */
+export async function provisionManagedStellarWallet(
+  repository: ApiRepository,
+  userId: string,
+  config: BetaRuntimeConfig,
+  options: ProvisionManagedStellarWalletOptions,
+): Promise<ProvisionManagedStellarWalletResult> {
+  try {
+    assertTestnetManagedWalletNetwork(config);
+  } catch {
+    throw new ApiError(
+      400,
+      "bad_request",
+      "Managed wallet provisioning is testnet-only during beta",
+    );
+  }
+
+  const storageSecret = options.storageSecret?.trim();
+  if (!storageSecret) {
+    throw new ApiError(500, "internal_error", "Managed wallet storage secret is not configured");
+  }
+
+  const now = options.now ?? new Date();
+  const nowIso = now.toISOString();
+  const existing = await repository.getManagedWallet(userId);
+
+  if (existing?.fundingStatus === "funded") {
+    return {
+      wallet: toPublicManagedWallet(existing, false),
+    };
+  }
+
+  const quota = await consumeProvisioningQuota(repository, {
+    accountId: options.accountId ?? userId,
+    origin: options.origin ?? "unknown",
+  });
+  if (!quota.allowed) {
+    throw new ApiError("too_many_requests", {
+      retryAfterSeconds: quota.retryAfterSeconds,
+      limitedBy: quota.limitedBy,
+    });
+  }
+
+  if (existing) {
+    const wallet = await ensureManagedWalletFunded(
+      existing,
+      options.fundingAdapter,
+      repository,
+      now,
+    );
+    return {
+      wallet: toPublicManagedWallet(wallet, false),
+    };
+  }
+
+  const prepared =
+    options.prepared ??
+    (await prepareManagedWalletSecret({
+      userId,
+      storageSecret,
+      now,
+    }));
+
+  const pendingRecord: ManagedWalletRecord = {
+    userId,
+    address: prepared.address,
+    network: "testnet",
+    fundingStatus: "pending",
+    encryptedSecret: prepared.encryptedSecret,
+    fundedAt: null,
+    createdAt: prepared.createdAt,
+    updatedAt: prepared.updatedAt,
+    lastError: null,
+  };
+
+  const created = await repository.createManagedWalletIfAbsent(pendingRecord);
+  const stored =
+    created.outcome === "existing"
+      ? created.wallet
+      : await bindManagedWalletCredential(repository, userId, created.wallet, nowIso);
+
+  const wallet = await ensureManagedWalletFunded(stored, options.fundingAdapter, repository, now);
+  return {
+    wallet: toPublicManagedWallet(wallet, created.outcome === "created"),
+  };
+}
+
+async function bindManagedWalletCredential(
+  repository: ApiRepository,
+  userId: string,
+  wallet: ManagedWalletRecord,
+  nowIso: string,
+): Promise<ManagedWalletRecord> {
+  const credential = await repository.getCredential(userId);
+  if (credential && credential.walletKeyRef.startsWith("pending_")) {
+    await repository.setCredential({
+      ...credential,
+      walletKeyRef: managedWalletKeyRef(userId),
+      updatedAt: nowIso,
+    });
+  }
+  return wallet;
+}
+
+async function ensureManagedWalletFunded(
+  wallet: ManagedWalletRecord,
+  fundingAdapter: StellarFundingAdapter,
+  repository: ApiRepository,
+  now: Date,
+): Promise<ManagedWalletRecord> {
+  if (wallet.fundingStatus === "funded") {
+    return wallet;
+  }
+
+  const operation = await runFundingOperation({
+    repository,
+    adapter: fundingAdapter,
+    userId: wallet.userId,
+    address: wallet.address,
+    now,
+  });
+
+  if (operation.status === "succeeded") {
+    return repository.setManagedWallet({
+      ...wallet,
+      fundingStatus: "funded",
+      fundedAt: wallet.fundedAt ?? now.toISOString(),
+      updatedAt: now.toISOString(),
+      lastError: null,
+    });
+  }
+
+  if (operation.status === "failed") {
+    return repository.setManagedWallet({
+      ...wallet,
+      fundingStatus: "failed",
+      updatedAt: now.toISOString(),
+      lastError: operation.lastError,
+    });
+  }
+
+  return repository.setManagedWallet({
+    ...wallet,
+    fundingStatus: "pending",
+    updatedAt: now.toISOString(),
+    lastError: operation.lastError,
+  });
+}
 
 // ---------------------------------------------------------------------------
 // BETA-023 (Issue #1930) — privacy-safe mailbox policy defaults during
 // provisioning.
-//
-// This module is the isolated policy-initialization slice of the transactional
-// account-provisioning orchestrator (BETA-014 / Issue #1921). It guarantees
-// that provisioning leaves every account with an evaluable, privacy-safe
-// default policy and a durable intent for the matching testnet contract write.
-//
-// The orchestrator (once BETA-014 merges) calls `initializeMailboxPolicyDefaults`
-// inside its transactional flow; the POST /policies/{owner}/provision route
-// exposes the same entrypoint for the beta walkthrough and retries.
 // ---------------------------------------------------------------------------
 
 export interface InitializePolicyDefaultsResult {
@@ -33,12 +227,6 @@ export interface InitializePolicyDefaultsResult {
 /**
  * Idempotently initializes the privacy-safe beta mailbox policy defaults for
  * `owner`.
- *
- * - No policy exists: persists the beta default off-chain and schedules the
- *   matching testnet contract write at off-chain version 1.
- * - A policy already exists (including a user-customized one): no write and no
- *   version bump. Provisioning retries therefore never re-submit an identical
- *   write and never inflate the on-chain policy version.
  */
 export async function initializeMailboxPolicyDefaults(
   repository: ApiRepository,
@@ -81,53 +269,6 @@ export async function initializeMailboxPolicyDefaults(
 
 // ---------------------------------------------------------------------------
 // BETA-014 (Issue #1921) - transactional account-provisioning orchestrator
-// ---------------------------------------------------------------------------
-
-import { randomUUID } from "node:crypto";
-
-import type { ApiRepository, UpdateProvisioningResult } from "./repository";
-import type {
-  AccountStatus,
-  Profile,
-  ProvisioningFailure,
-  ProvisioningRecord,
-  ProvisioningStep,
-  ProvisioningStatus,
-  User,
-  Wallet,
-} from "./domain";
-import { stellarAddressSchema, usernameSchema } from "./domain";
-import { ApiError } from "./errors";
-
-// ---------------------------------------------------------------------------
-// BETA-014 (Issue #1921): Transactional account-provisioning orchestrator
-//
-// Convergence contract
-// --------------------
-// Signup data (username reservation), profile defaults, wallet creation and
-// mailbox policy initialization must converge without leaving a partial
-// *active* account behind. The orchestrator owns a durable, idempotent
-// state machine per user:
-//
-//   pending   -> active            (all steps completed, account activated)
-//   pending   -> retryable/failed  (a step failed transiently / permanently)
-//   retryable -> pending           (owner/administrator retry restarts it)
-//   retryable -> active            (retry completed)
-//   retryable -> failed            (permanent failure or exhausted attempts)
-//   active / failed are terminal.
-//
-// Safety properties
-// -----------------
-// - Every step is individually idempotent (re-claimable reservation,
-//   profile upsert, insert-once wallet, initialize-if-absent policy), so a
-//   resumed or retried flow never double-creates wallets, addresses, or
-//   policies.
-// - The user record only flips pending_verification -> active after ALL
-//   steps persist; a mid-flow failure leaves the account pending (never a
-//   live half-account) and releases the username reservation as the sole
-//   compensation action.
-// - All state-machine writes are compare-and-swap (expectedVersion), so a
-//   stale writer can never clobber progress made by a concurrent retry.
 // ---------------------------------------------------------------------------
 
 export const PROVISIONING_STEPS = [
@@ -464,9 +605,9 @@ async function profileDefaultsStep(
 }
 
 /**
- * Insert-once wallet creation. The initial on-chain address is the account's
- * own Stellar address until an external wallet provider exists (dependency
- * BETA-013); "already-exists" is a successful, idempotent retry.
+ * BETA-015: generate and fund a system-managed testnet wallet (encrypted at
+ * rest). The public Wallet row stays bound to the account's existing address so
+ * identity lookups and BETA-014 tests remain stable.
  */
 async function walletCreationStep(
   repository: ApiRepository,
@@ -474,6 +615,16 @@ async function walletCreationStep(
   now: Date,
 ): Promise<void> {
   const user = await requireUser(repository, userId);
+  const config = loadRuntimeConfig();
+  const storageSecret = config.secrets?.storageSecret ?? "dev-storage-secret-change-me";
+  await provisionManagedStellarWallet(repository, userId, config, {
+    fundingAdapter: createFundingAdapter({
+      useFake: config.profile === "development" || config.profile === "test",
+    }),
+    storageSecret,
+    now,
+  });
+
   const wallet: Wallet = {
     walletId: `wallet_${user.userId}`,
     userId: user.userId,

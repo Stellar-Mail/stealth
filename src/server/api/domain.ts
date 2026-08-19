@@ -120,6 +120,12 @@ export function createReceiptSchema(options: ReceiptSchemaOptions = {}) {
       readAt: z.string().datetime({ offset: true }).nullable(),
       recipient: stellarAddressSchema,
       sender: stellarAddressSchema,
+      payloadHash: hash32Schema.optional(),
+      protocolVersion: z.number().int().positive().optional(),
+      txHash: z.string().nullable().optional(),
+      chainStatus: z.enum(["pending", "confirmed", "failed"]).nullable().optional(),
+      ledgerSeq: z.number().int().nonnegative().nullable().optional(),
+      confirmedAt: z.string().datetime({ offset: true }).nullable().optional(),
     })
     .superRefine((data, ctx) => {
       const deliveredMs = Date.parse(data.deliveredAt);
@@ -191,6 +197,83 @@ export const idempotencyRecordSchema = z.discriminatedUnion("state", [
 
 export type IdempotencyRecord = z.infer<typeof idempotencyRecordSchema>;
 
+export const messageDeliveryStateSchema = z.enum([
+  "queued",
+  "accepted",
+  "anchored",
+  "delivered",
+  "read",
+  "failed",
+  "expired",
+]);
+
+export type MessageDeliveryState = z.infer<typeof messageDeliveryStateSchema>;
+
+export const TERMINAL_DELIVERY_STATES: ReadonlySet<MessageDeliveryState> = new Set([
+  "read",
+  "failed",
+  "expired",
+]);
+
+export const RETRYABLE_DELIVERY_STATES: ReadonlySet<MessageDeliveryState> = new Set([
+  "queued",
+  "accepted",
+  "anchored",
+]);
+
+export const ALLOWED_DELIVERY_TRANSITIONS: Record<
+  MessageDeliveryState,
+  ReadonlySet<MessageDeliveryState>
+> = {
+  queued: new Set(["accepted", "failed", "expired"]),
+  accepted: new Set(["anchored", "delivered", "failed", "expired"]),
+  anchored: new Set(["delivered", "failed", "expired"]),
+  delivered: new Set(["read", "failed", "expired"]),
+  read: new Set([]),
+  failed: new Set([]),
+  expired: new Set([]),
+};
+
+export const messageDeliveryTransitionSchema = z.object({
+  fromState: messageDeliveryStateSchema.nullable(),
+  toState: messageDeliveryStateSchema,
+  timestamp: z.string().datetime(),
+  actor: z.string().min(1),
+  reason: z.string().min(1),
+  chainReference: z.string().nullable().optional(),
+});
+
+export type MessageDeliveryTransition = z.infer<typeof messageDeliveryTransitionSchema>;
+
+export const messageDeliveryStatusRecordSchema = z.object({
+  messageId: hash32Schema,
+  state: messageDeliveryStateSchema,
+  isTerminal: z.boolean(),
+  isRetryable: z.boolean(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+  actor: z.string(),
+  reason: z.string(),
+  chainReference: z.string().nullable().optional(),
+  history: z.array(messageDeliveryTransitionSchema),
+});
+
+export type MessageDeliveryStatusRecord = z.infer<typeof messageDeliveryStatusRecordSchema>;
+
+export const publicDeliveryStatusSchema = z.object({
+  messageId: hash32Schema,
+  state: messageDeliveryStateSchema,
+  isTerminal: z.boolean(),
+  isRetryable: z.boolean(),
+  observedAt: z.string().datetime(),
+  actor: z.string(),
+  reason: z.string(),
+  chainReference: z.string().nullable().optional(),
+  history: z.array(messageDeliveryTransitionSchema),
+});
+
+export type PublicDeliveryStatus = z.infer<typeof publicDeliveryStatusSchema>;
+
 // ---------------------------------------------------------------------------
 // BETA-002: Durable User Account, Profile, Credential & AccountStatus Domain
 // ---------------------------------------------------------------------------
@@ -244,6 +327,30 @@ export const externalWalletChallengeSchema = z.object({
 });
 
 export type ExternalWalletChallenge = z.infer<typeof externalWalletChallengeSchema>;
+
+export const activeSignerSchema = z.object({
+  signerType: z.enum(["external", "managed"]),
+  address: stellarAddressSchema,
+  capabilities: z.array(walletCapabilitySchema),
+  isFallback: z.boolean(),
+});
+
+export type ActiveSigner = z.infer<typeof activeSignerSchema>;
+
+export const managedWalletStatusSchema = z.object({
+  address: stellarAddressSchema,
+  status: z.enum(["active", "funded", "unfunded"]),
+  network: z.string().min(1),
+  balance: z.object({
+    available: z.string().nullable(),
+    balanceXlm: z.string().nullable(),
+  }),
+  capabilities: z.array(walletCapabilitySchema),
+  isDefaultSigner: z.boolean(),
+  activeSigner: activeSignerSchema,
+});
+
+export type ManagedWalletStatus = z.infer<typeof managedWalletStatusSchema>;
 
 export const networkPassphraseSchema = z.string().min(1);
 export const profileSchema = z.object({
@@ -334,6 +441,117 @@ export const verificationTokenSchema = z.object({
 });
 
 export type VerificationToken = z.infer<typeof verificationTokenSchema>;
+
+// ---------------------------------------------------------------------------
+// BETA-015 (Issue #1922) — system-managed Stellar testnet wallet provisioning
+//
+// Public metadata and encrypted secret material are stored together under a
+// user-scoped record. Plaintext seeds never reach durable storage, API
+// responses, or logs — only the public Stellar address and funding status are
+// exposed to clients.
+// ---------------------------------------------------------------------------
+
+export const managedWalletFundingStatusSchema = z.enum(["pending", "funded", "failed"]);
+export type ManagedWalletFundingStatus = z.infer<typeof managedWalletFundingStatusSchema>;
+
+export const encryptedWalletSecretSchema = z.object({
+  ciphertext: z.string().min(1, "Encrypted ciphertext cannot be empty"),
+  nonce: z.string().min(1, "Encrypted nonce cannot be empty"),
+  tag: z.string().min(1, "Encrypted tag cannot be empty"),
+  keyVersion: z.number().int().positive().default(1),
+});
+
+export type EncryptedWalletSecret = z.infer<typeof encryptedWalletSecretSchema>;
+
+export const managedWalletRecordSchema = z.object({
+  userId: z.string().min(1, "User ID cannot be empty"),
+  address: stellarAddressSchema,
+  /** Beta managed wallets are testnet-only. */
+  network: z.literal("testnet"),
+  fundingStatus: managedWalletFundingStatusSchema,
+  encryptedSecret: encryptedWalletSecretSchema,
+  fundedAt: z.string().datetime().nullable().default(null),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+  lastError: z.string().max(300).nullable().default(null),
+});
+
+export type ManagedWalletRecord = z.infer<typeof managedWalletRecordSchema>;
+
+/** Client-safe wallet metadata — never includes seed material. */
+export const publicManagedWalletSchema = z.object({
+  address: stellarAddressSchema,
+  network: z.literal("testnet"),
+  fundingStatus: managedWalletFundingStatusSchema,
+  provisioned: z.boolean(),
+  fundedAt: z.string().datetime().nullable().optional(),
+});
+
+export type PublicManagedWallet = z.infer<typeof publicManagedWalletSchema>;
+
+export function toPublicManagedWallet(
+  wallet: ManagedWalletRecord,
+  provisioned: boolean,
+): PublicManagedWallet {
+  return {
+    address: wallet.address,
+    network: wallet.network,
+    fundingStatus: wallet.fundingStatus,
+    provisioned,
+    fundedAt: wallet.fundedAt ?? null,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// BETA-018 (Issue #1925) — durable testnet funding operations
+//
+// One operation per account. Retries resume the same operationId so worker
+// restarts never double-fund. Queue projections never include seed material.
+// ---------------------------------------------------------------------------
+
+export const fundingErrorClassSchema = z.enum(["transient", "permanent"]);
+export type FundingErrorClass = z.infer<typeof fundingErrorClassSchema>;
+
+export const fundingOperationStatusSchema = z.enum(["pending", "retrying", "succeeded", "failed"]);
+export type FundingOperationStatus = z.infer<typeof fundingOperationStatusSchema>;
+
+export const fundingOperationSchema = z.object({
+  operationId: z.string().min(1, "Funding operation ID cannot be empty"),
+  userId: z.string().min(1, "User ID cannot be empty"),
+  address: stellarAddressSchema,
+  status: fundingOperationStatusSchema,
+  attempt: z.number().int().nonnegative(),
+  maxAttempts: z.number().int().positive(),
+  nextRetryAt: z.string().datetime().nullable().default(null),
+  lastErrorClass: fundingErrorClassSchema.nullable().default(null),
+  lastError: z.string().max(300).nullable().default(null),
+  transactionId: z.string().max(128).nullable().default(null),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+
+export type FundingOperation = z.infer<typeof fundingOperationSchema>;
+
+/** Administrator-visible queue item — never includes key material. */
+export const publicFundingOperationSchema = fundingOperationSchema.omit({});
+export type PublicFundingOperation = z.infer<typeof publicFundingOperationSchema>;
+
+export function toPublicFundingOperation(operation: FundingOperation): PublicFundingOperation {
+  return {
+    operationId: operation.operationId,
+    userId: operation.userId,
+    address: operation.address,
+    status: operation.status,
+    attempt: operation.attempt,
+    maxAttempts: operation.maxAttempts,
+    nextRetryAt: operation.nextRetryAt,
+    lastErrorClass: operation.lastErrorClass,
+    lastError: operation.lastError,
+    transactionId: operation.transactionId,
+    createdAt: operation.createdAt,
+    updatedAt: operation.updatedAt,
+  };
+}
 
 export type AccountStatus = z.infer<typeof accountStatusSchema>;
 export type User = z.infer<typeof userSchema>;
@@ -822,3 +1040,54 @@ export const receiptCheckpointSchema = z.object({
   gapCount: z.number().int().nonnegative().default(0),
 });
 export type ReceiptCheckpoint = z.infer<typeof receiptCheckpointSchema>;
+
+// ---------------------------------------------------------------------------
+// Issue #1954 (BETA-048) — Recoverable Send Operation State & Idempotency
+// ---------------------------------------------------------------------------
+
+export const sendOperationStatusSchema = z.enum([
+  "created",
+  "quoted",
+  "escrowed",
+  "submitted",
+  "anchored",
+  "delivered",
+  "failed",
+]);
+export type SendOperationStatus = z.infer<typeof sendOperationStatusSchema>;
+
+export const sendProofReferencesSchema = z.object({
+  receiptId: z.string().optional(),
+  anchorTxHash: z.string().optional(),
+  postagePaymentHash: z.string().optional(),
+  relayMessageId: z.string().optional(),
+});
+export type SendProofReferences = z.infer<typeof sendProofReferencesSchema>;
+
+export const sendOperationStateSchema = z.object({
+  version: z.number().int().positive().default(1),
+  messageId: hash32Schema,
+  sender: stellarAddressSchema,
+  recipient: stellarAddressSchema,
+  recipientDomain: z.string().default("stellar.network"),
+  status: sendOperationStatusSchema.default("created"),
+  quote: z.record(z.unknown()).optional(),
+  postage: postageSchema.optional(),
+  envelope: storedEnvelopeSchema.optional(),
+  relaySubmission: z
+    .object({
+      accepted: z.boolean(),
+      state: z.string(),
+      attempts: z.number(),
+    })
+    .optional(),
+  receipt: receiptSchema.optional(),
+  anchorTxHash: z.string().optional(),
+  proofReferences: sendProofReferencesSchema.optional(),
+  idempotencyKey: z.string().min(1),
+  failureReason: z.string().optional(),
+  errorCode: z.string().optional(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+export type SendOperationState = z.infer<typeof sendOperationStateSchema>;

@@ -165,7 +165,12 @@ export async function submit(
   recipient: string,
   amount: bigint,
 ): Promise<contract.Ok<Postage> | contract.Err<{ message: string }>> {
-  const tx = await (client as any).submit({ message_id, sender, recipient, amount });
+  const tx = await (client as any).submit({
+    message_id,
+    sender,
+    recipient,
+    amount,
+  });
   return tx.result;
 }
 

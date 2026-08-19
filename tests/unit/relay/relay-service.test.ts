@@ -31,7 +31,11 @@ function makeConfig(overrides: Partial<RelayServiceConfig> = {}): RelayServiceCo
 function makeService(config: RelayServiceConfig = makeConfig()) {
   const persistence = new MemoryRelayPersistence();
   const worker = new InProcessRelayWorker(persistence);
-  return { persistence, worker, service: new RelayService(persistence, worker, config) };
+  return {
+    persistence,
+    worker,
+    service: new RelayService(persistence, worker, config),
+  };
 }
 
 function validInput() {
@@ -136,7 +140,9 @@ describe("RelayService readiness", () => {
 
   it("honors an injected network check", async () => {
     const { service } = makeService();
-    const readiness = await service.checkReadiness({ checkNetwork: () => false });
+    const readiness = await service.checkReadiness({
+      checkNetwork: () => false,
+    });
     expect(readiness.ready).toBe(false);
     expect(readiness.dependencies.network).toBe("unavailable");
   });

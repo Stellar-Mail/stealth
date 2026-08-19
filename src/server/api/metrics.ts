@@ -42,7 +42,10 @@ function labelKey(name: string, labels: Record<string, string>): string {
   return parts.length ? `${name}{${parts.join(",")}}` : name;
 }
 
-function parseKey(key: string): { name: string; labels: Record<string, string> } {
+function parseKey(key: string): {
+  name: string;
+  labels: Record<string, string>;
+} {
   const braceIdx = key.indexOf("{");
   if (braceIdx === -1) return { name: key, labels: {} };
 

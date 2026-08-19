@@ -6,6 +6,8 @@ import type {
   DurableJobType,
   IdempotencyRecord,
   JobStatus,
+  ManagedWalletRecord,
+  FundingOperation,
   Postage,
   PostageStatus,
   Profile,
@@ -26,6 +28,7 @@ import type {
 import type {
   AcquireIdempotencyResult,
   ConsumeVerificationTokenResult,
+  CreateManagedWalletResult,
   InsertEnvelopeResult,
   IssueVerificationTokenResult,
   PostageTransitionResult,
@@ -797,6 +800,81 @@ export class StealthCoordinator extends DurableObjectBase {
     });
   }
 
+  // ---------------------------------------------------------------------------
+  // BETA-015 (Issue #1922) — Managed Stellar testnet wallet persistence
+  // ---------------------------------------------------------------------------
+
+  async getManagedWallet(userId: string): Promise<ManagedWalletRecord | null> {
+    const wallet = (await this.ctx.storage.get(`managed-wallet:${userId}`)) as
+      | ManagedWalletRecord
+      | undefined;
+    return wallet ?? null;
+  }
+
+  async setManagedWallet(wallet: ManagedWalletRecord): Promise<ManagedWalletRecord> {
+    await this.ctx.storage.put(`managed-wallet:${wallet.userId}`, wallet);
+    return wallet;
+  }
+
+  async createManagedWalletIfAbsent(
+    wallet: ManagedWalletRecord,
+  ): Promise<CreateManagedWalletResult> {
+    return this.runExclusive(`managed-wallet:${wallet.userId}`, async () => {
+      const existing = await this.getManagedWallet(wallet.userId);
+      if (existing) {
+        return { outcome: "existing", wallet: existing };
+      }
+      await this.ctx.storage.put(`managed-wallet:${wallet.userId}`, wallet);
+      return { outcome: "created", wallet };
+    });
+  }
+
+  async getFundingOperation(operationId: string): Promise<FundingOperation | null> {
+    const operation = (await this.ctx.storage.get(`funding-op:${operationId}`)) as
+      | FundingOperation
+      | undefined;
+    return operation ?? null;
+  }
+
+  async setFundingOperation(operation: FundingOperation): Promise<FundingOperation> {
+    return this.runExclusive(`funding-op:${operation.operationId}`, async () => {
+      await this.ctx.storage.put(`funding-op:${operation.operationId}`, operation);
+      return operation;
+    });
+  }
+
+  async createFundingOperationIfAbsent(
+    operation: FundingOperation,
+  ): Promise<{ created: boolean; operation: FundingOperation }> {
+    return this.runExclusive(`funding-op:${operation.operationId}`, async () => {
+      const existing = await this.getFundingOperation(operation.operationId);
+      if (existing) {
+        return { created: false, operation: existing };
+      }
+      await this.ctx.storage.put(`funding-op:${operation.operationId}`, operation);
+      return { created: true, operation };
+    });
+  }
+
+  async listFundingOperations(filter?: {
+    status?: FundingOperation["status"];
+    limit?: number;
+  }): Promise<FundingOperation[]> {
+    const stored = (await this.ctx.storage.list({ prefix: "funding-op:" })) as Map<
+      string,
+      FundingOperation
+    >;
+    const limit = filter?.limit ?? 50;
+    const matches: FundingOperation[] = [];
+    for (const operation of stored.values()) {
+      if (!operation?.operationId) continue;
+      if (filter?.status && operation.status !== filter.status) continue;
+      matches.push(operation);
+    }
+    matches.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+    return matches.slice(0, limit);
+  }
+
   async listRecipientEnvelopes(
     recipient: string,
     options: import("./repository").MailboxQueryOptions = {},
@@ -807,10 +885,9 @@ export class StealthCoordinator extends DurableObjectBase {
     const includeTombstones = options.includeTombstones ?? false;
     const limit = options.limit ?? 25;
 
-    const envelopesMap = (await this.ctx.storage.list({ prefix: "envelope:" })) as Map<
-      string,
-      StoredEnvelope
-    >;
+    const envelopesMap = (await this.ctx.storage.list({
+      prefix: "envelope:",
+    })) as Map<string, StoredEnvelope>;
 
     const filtered: StoredEnvelope[] = [];
     for (const env of envelopesMap.values()) {
@@ -1012,5 +1089,34 @@ export class StealthCoordinator extends DurableObjectBase {
   async setReceiptCheckpoint(checkpoint: ReceiptCheckpoint): Promise<ReceiptCheckpoint> {
     await this.ctx.storage.put(`receipt_cp:${checkpoint.streamId}`, checkpoint);
     return checkpoint;
+  }
+
+  async getSendOperation(messageId: string): Promise<import("./domain").SendOperationState | null> {
+    const state = (await this.ctx.storage.get(`send_op:${messageId}`)) as
+      | import("./domain").SendOperationState
+      | undefined;
+    return state ?? null;
+  }
+
+  async setSendOperation(
+    state: import("./domain").SendOperationState,
+  ): Promise<import("./domain").SendOperationState> {
+    await this.ctx.storage.put(`send_op:${state.messageId}`, state);
+    return state;
+  }
+
+  async createSendOperationIfAbsent(
+    state: import("./domain").SendOperationState,
+  ): Promise<{ created: boolean; state: import("./domain").SendOperationState }> {
+    return this.runExclusive(`send_op:${state.messageId}`, async () => {
+      const existing = (await this.ctx.storage.get(`send_op:${state.messageId}`)) as
+        | import("./domain").SendOperationState
+        | undefined;
+      if (existing) {
+        return { created: false, state: existing };
+      }
+      await this.ctx.storage.put(`send_op:${state.messageId}`, state);
+      return { created: true, state };
+    });
   }
 }

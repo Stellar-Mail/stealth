@@ -196,7 +196,9 @@ describe("checkOptionsLimits", () => {
   it("returns null for options within limits", () => {
     expect(checkOptionsLimits({})).toBeNull();
     expect(
-      checkOptionsLimits({ existingReminders: [{ sourceMessageId: "a", dueAt: "2026-01-01" }] }),
+      checkOptionsLimits({
+        existingReminders: [{ sourceMessageId: "a", dueAt: "2026-01-01" }],
+      }),
     ).toBeNull();
   });
 

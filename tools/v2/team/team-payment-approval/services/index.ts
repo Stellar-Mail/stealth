@@ -40,4 +40,6 @@ import { paymentService } from "./payment.service";
  * `paymentService` satisfies the minimal {@link PaymentApprovalStore} surface
  * because it exposes `getPayment`, `recordDecision`, and `getDecisions`.
  */
-export const paymentApprovalExecutor = createPaymentApprovalExecutor({ store: paymentService });
+export const paymentApprovalExecutor = createPaymentApprovalExecutor({
+  store: paymentService,
+});

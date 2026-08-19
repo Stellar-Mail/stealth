@@ -44,7 +44,9 @@ describe("draftDatasetSelectors", () => {
   });
 
   it("filters drafts by subject using DraftFilters", () => {
-    const filtered = selectFilteredDrafts(state, { subject: "Relay diagnostics" });
+    const filtered = selectFilteredDrafts(state, {
+      subject: "Relay diagnostics",
+    });
     expect(filtered).toHaveLength(1);
     expect(filtered[0]?.subject).toContain("Relay diagnostics");
   });

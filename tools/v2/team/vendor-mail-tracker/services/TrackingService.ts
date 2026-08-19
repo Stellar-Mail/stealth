@@ -41,7 +41,10 @@ export class TrackingService {
     subject?: string,
     preview?: string,
   ): Promise<CommunicationRecord> {
-    const safeVendorId = sanitizeText(vendorId, { maxLength: 64, fallback: "unknown-vendor" });
+    const safeVendorId = sanitizeText(vendorId, {
+      maxLength: 64,
+      fallback: "unknown-vendor",
+    });
     const safeType = Object.values(CommunicationType).includes(type)
       ? type
       : CommunicationType.OTHER;

@@ -30,12 +30,18 @@ describe("validateCampaignMetadata", () => {
   });
 
   it("flags an unrecognized status", () => {
-    const issues = validateCampaignMetadata({ ...validInput, status: "archived" });
+    const issues = validateCampaignMetadata({
+      ...validInput,
+      status: "archived",
+    });
     expect(issues.some((issue) => issue.id === "campaign-status-invalid")).toBe(true);
   });
 
   it("flags an unrecognized channel", () => {
-    const issues = validateCampaignMetadata({ ...validInput, channel: "carrier-pigeon" });
+    const issues = validateCampaignMetadata({
+      ...validInput,
+      channel: "carrier-pigeon",
+    });
     expect(issues.some((issue) => issue.id === "campaign-channel-invalid")).toBe(true);
   });
 
@@ -43,7 +49,10 @@ describe("validateCampaignMetadata", () => {
     const missing = validateCampaignMetadata({ ...validInput, owner: "" });
     expect(missing.some((issue) => issue.id === "campaign-owner-empty")).toBe(true);
 
-    const unsafe = validateCampaignMetadata({ ...validInput, owner: "owner@gmail.com" });
+    const unsafe = validateCampaignMetadata({
+      ...validInput,
+      owner: "owner@gmail.com",
+    });
     expect(unsafe.some((issue) => issue.id === "campaign-owner-unsafe-domain")).toBe(true);
   });
 

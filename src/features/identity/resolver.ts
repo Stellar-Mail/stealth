@@ -60,14 +60,23 @@ export type ParsedIdentifier =
   | { type: "stellar_address"; address: string }
   | { type: "stealth_address"; address: string }
   | { type: "local_handle"; username: string; domain: string }
-  | { type: "federation_address"; username: string; domain: string; raw: string }
+  | {
+      type: "federation_address";
+      username: string;
+      domain: string;
+      raw: string;
+    }
   | { type: "email_address"; username: string; domain: string; raw: string }
   | { type: "invalid"; raw: string; reason: string };
 
 export function parseIdentifier(rawInput: string): ParsedIdentifier {
   const normalized = normalizeIdentifier(rawInput);
   if (!normalized) {
-    return { type: "invalid", raw: rawInput, reason: "Identifier cannot be empty" };
+    return {
+      type: "invalid",
+      raw: rawInput,
+      reason: "Identifier cannot be empty",
+    };
   }
 
   // 1. Stellar Public G-address (56 chars starting with G)
@@ -91,7 +100,11 @@ export function parseIdentifier(rawInput: string): ParsedIdentifier {
       }
       return { type: "federation_address", username, domain, raw: normalized };
     }
-    return { type: "invalid", raw: normalized, reason: "Invalid federation address format" };
+    return {
+      type: "invalid",
+      raw: normalized,
+      reason: "Invalid federation address format",
+    };
   }
 
   // 4. Email address: user@domain.tld
@@ -113,7 +126,11 @@ export function parseIdentifier(rawInput: string): ParsedIdentifier {
     return { type: "local_handle", username: normalized, domain: "stealth.me" };
   }
 
-  return { type: "invalid", raw: normalized, reason: "Unrecognized identifier format" };
+  return {
+    type: "invalid",
+    raw: normalized,
+    reason: "Unrecognized identifier format",
+  };
 }
 
 /**

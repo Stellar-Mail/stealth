@@ -42,16 +42,52 @@ import type { Draft } from "./types/draft";
 // ─── Default Deterministic fake data ──────────────────────────────────────────
 
 const NAV_ITEMS: DashboardNavItem[] = [
-  { id: "overview", label: "Overview", description: "High-level demo system status" },
-  { id: "accounts", label: "Accounts", description: "Demo Stellar accounts and balances" },
-  { id: "mail", label: "Mail", description: "Demo mail fixtures and delivery states" },
-  { id: "attachments", label: "Attachments", description: "Demo mail attachment fixtures" },
-  { id: "events", label: "Events", description: "Demo calendar and protocol events" },
-  { id: "templates", label: "Templates", description: "Pick message templates to populate drafts" },
-  { id: "campaigns", label: "Campaigns", description: "Save and restore campaign draft snapshots" },
-  { id: "timeline", label: "Timeline", description: "Campaign phase timeline and milestones" },
+  {
+    id: "overview",
+    label: "Overview",
+    description: "High-level demo system status",
+  },
+  {
+    id: "accounts",
+    label: "Accounts",
+    description: "Demo Stellar accounts and balances",
+  },
+  {
+    id: "mail",
+    label: "Mail",
+    description: "Demo mail fixtures and delivery states",
+  },
+  {
+    id: "attachments",
+    label: "Attachments",
+    description: "Demo mail attachment fixtures",
+  },
+  {
+    id: "events",
+    label: "Events",
+    description: "Demo calendar and protocol events",
+  },
+  {
+    id: "templates",
+    label: "Templates",
+    description: "Pick message templates to populate drafts",
+  },
+  {
+    id: "campaigns",
+    label: "Campaigns",
+    description: "Save and restore campaign draft snapshots",
+  },
+  {
+    id: "timeline",
+    label: "Timeline",
+    description: "Campaign phase timeline and milestones",
+  },
   { id: "audit", label: "Audit", description: "Demo protocol event log" },
-  { id: "analytics", label: "Analytics", description: "Privacy-preserving product analytics" },
+  {
+    id: "analytics",
+    label: "Analytics",
+    description: "Privacy-preserving product analytics",
+  },
 ];
 
 const OVERVIEW_STATS: StatCard[] = [
@@ -62,10 +98,30 @@ const OVERVIEW_STATS: StatCard[] = [
 ];
 
 const ACCOUNTS_FAKE: PresetAccount[] = [
-  { name: "Alice Demo", address: "GABCD...1234", balance: "500.0 XLM", type: "User" },
-  { name: "Bob Demo", address: "GBCDE...2345", balance: "320.0 XLM", type: "User" },
-  { name: "Relay East", address: "GCDEF...3456", balance: "1,200.0 XLM", type: "Relay" },
-  { name: "Relay West", address: "GDEFG...4567", balance: "980.0 XLM", type: "Relay" },
+  {
+    name: "Alice Demo",
+    address: "GABCD...1234",
+    balance: "500.0 XLM",
+    type: "User",
+  },
+  {
+    name: "Bob Demo",
+    address: "GBCDE...2345",
+    balance: "320.0 XLM",
+    type: "User",
+  },
+  {
+    name: "Relay East",
+    address: "GCDEF...3456",
+    balance: "1,200.0 XLM",
+    type: "Relay",
+  },
+  {
+    name: "Relay West",
+    address: "GDEFG...4567",
+    balance: "980.0 XLM",
+    type: "Relay",
+  },
 ];
 
 const MAIL_FIXTURES: PresetMail[] = [
@@ -124,7 +180,11 @@ const MAIL_FIXTURES: PresetMail[] = [
 ];
 
 const AUDIT_EVENTS_FAKE: PresetAuditEvent[] = [
-  { action: "Session started", actor: "demo-user-1", timestamp: "2026-06-16T09:00:00Z" },
+  {
+    action: "Session started",
+    actor: "demo-user-1",
+    timestamp: "2026-06-16T09:00:00Z",
+  },
   {
     action: "Policy default changed to request",
     actor: "demo-user-1",
@@ -135,7 +195,11 @@ const AUDIT_EVENTS_FAKE: PresetAuditEvent[] = [
     actor: "demo-user-1",
     timestamp: "2026-06-16T09:10:00Z",
   },
-  { action: "Postage refunded for msg_abc123", actor: "system", timestamp: "2026-06-16T09:12:00Z" },
+  {
+    action: "Postage refunded for msg_abc123",
+    actor: "system",
+    timestamp: "2026-06-16T09:12:00Z",
+  },
 ];
 
 const ATTACHMENTS_FAKE: PresetAttachment[] = [

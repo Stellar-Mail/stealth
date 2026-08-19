@@ -44,11 +44,19 @@ import { createInvoiceApprovalContract } from ".";
 const contract = createInvoiceApprovalContract();
 const submitted = contract.execute({
   operation: "submit",
-  input: { vendor: "Acme Hosting LLC", amount: 1250, submittedBy: "finops@acme.example.com" },
+  input: {
+    vendor: "Acme Hosting LLC",
+    amount: 1250,
+    submittedBy: "finops@acme.example.com",
+  },
 });
 if (submitted.ok && submitted.value.operation === "submit") {
   const id = submitted.value.invoice.id;
-  const decided = contract.execute({ operation: "approve", id, approver: "lead@acme.example.com" });
+  const decided = contract.execute({
+    operation: "approve",
+    id,
+    approver: "lead@acme.example.com",
+  });
   // decided.ok === true, or decided.error is an InvoiceErrorCode
 }
 ```

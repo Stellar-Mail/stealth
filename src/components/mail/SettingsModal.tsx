@@ -22,6 +22,7 @@ import {
 import { useState, useEffect, useRef, useMemo, useCallback, type CSSProperties } from "react";
 import { Surface } from "@/features/design-system";
 import { cn } from "@/lib/utils";
+import { sharedTypedApi } from "@/lib/api";
 import { SHORTCUT_DEFINITIONS } from "@/features/command-palette";
 import type { ReceiptPreference, UiPreferences, LayoutPreferences } from "@/features/preferences";
 import {
@@ -38,6 +39,7 @@ import {
 import { AuditLog } from "@/features/audit-log";
 import { ChangelogPanel, useChangelog } from "@/features/changelog";
 import { ExternalWalletSettings } from "@/features/settings/external-wallet-linking";
+import { ManagedWalletStatus } from "@/features/settings/ManagedWalletStatus";
 
 const tabs = [
   { id: "account", label: "Account", icon: User },
@@ -316,6 +318,7 @@ function AccountSettings() {
           <SettingsField label="Stellar address" value="GDQ...X4KJ" />
         </div>
       </div>
+      <ManagedWalletStatus />
     </div>
   );
 }
@@ -1090,7 +1093,11 @@ function ReceiptSettings({
       label: "Automatic",
       description: "Send read receipt as soon as you open the message.",
     },
-    { value: "manual", label: "Manual", description: "Ask before sending a read receipt." },
+    {
+      value: "manual",
+      label: "Manual",
+      description: "Ask before sending a read receipt.",
+    },
     {
       value: "never",
       label: "Never",
@@ -1238,8 +1245,20 @@ function SecuritySettings() {
   ];
 
   const devices = [
-    { id: "1", name: "MacBook Air", type: "Desktop", lastActive: "Just now", trusted: true },
-    { id: "2", name: "iPhone 15 Pro", type: "Mobile", lastActive: "2 hours ago", trusted: true },
+    {
+      id: "1",
+      name: "MacBook Air",
+      type: "Desktop",
+      lastActive: "Just now",
+      trusted: true,
+    },
+    {
+      id: "2",
+      name: "iPhone 15 Pro",
+      type: "Mobile",
+      lastActive: "2 hours ago",
+      trusted: true,
+    },
   ];
 
   const handleCopyKey = () => {
@@ -1274,7 +1293,7 @@ function SecuritySettings() {
                 description: "This will revoke all active sessions across all devices.",
                 onConfirm: async () => {
                   try {
-                    await fetch("/api/v1/auth/logout-all", { method: "POST" });
+                    await sharedTypedApi.auth.logoutAll();
                   } catch {
                     // Fallthrough safely
                   }
@@ -1317,7 +1336,7 @@ function SecuritySettings() {
                       description: "This will sign out this device from your account.",
                       onConfirm: async () => {
                         try {
-                          await fetch("/api/v1/auth/logout", { method: "POST" });
+                          await sharedTypedApi.auth.logout();
                         } catch {
                           // Fallthrough safely
                         }

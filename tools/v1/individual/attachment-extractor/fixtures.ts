@@ -9,13 +9,21 @@ import type { Attachment, ExtractionError, ExtractionResult } from "./types";
  * Mock files for testing
  */
 export const MOCK_FILES = {
-  image_jpeg: new File(["fake image data"], "sample.jpg", { type: "image/jpeg" }),
-  image_png: new File(["fake png data"], "screenshot.png", { type: "image/png" }),
-  document_pdf: new File(["fake pdf data"], "report.pdf", { type: "application/pdf" }),
+  image_jpeg: new File(["fake image data"], "sample.jpg", {
+    type: "image/jpeg",
+  }),
+  image_png: new File(["fake png data"], "screenshot.png", {
+    type: "image/png",
+  }),
+  document_pdf: new File(["fake pdf data"], "report.pdf", {
+    type: "application/pdf",
+  }),
   document_word: new File(["fake word data"], "document.docx", {
     type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   }),
-  archive_zip: new File(["fake zip data"], "archive.zip", { type: "application/zip" }),
+  archive_zip: new File(["fake zip data"], "archive.zip", {
+    type: "application/zip",
+  }),
   audio_mp3: new File(["fake audio data"], "song.mp3", { type: "audio/mpeg" }),
   video_mp4: new File(["fake video data"], "video.mp4", { type: "video/mp4" }),
   oversized: new File(
@@ -23,7 +31,9 @@ export const MOCK_FILES = {
     "toolarge.bin",
     { type: "application/octet-stream" },
   ),
-  unsupported: new File(["fake data"], "unknown.xyz", { type: "application/x-unknown" }),
+  unsupported: new File(["fake data"], "unknown.xyz", {
+    type: "application/x-unknown",
+  }),
 };
 
 /**

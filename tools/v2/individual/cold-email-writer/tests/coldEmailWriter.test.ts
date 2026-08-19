@@ -58,7 +58,9 @@ describe("writeColdEmail", () => {
   });
 
   it("honors the body word cap", () => {
-    const result = writeColdEmail(successFixtures[0].input, { maxBodyWords: 12 });
+    const result = writeColdEmail(successFixtures[0].input, {
+      maxBodyWords: 12,
+    });
     expect(result.metadata.wordCount).toBeLessThanOrEqual(12);
   });
 });

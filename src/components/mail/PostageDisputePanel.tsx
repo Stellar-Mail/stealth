@@ -46,7 +46,11 @@ const ROADMAP_NOTICE =
 
 const RESOLUTION_HISTORY: { label: string; ts: string; note: string }[] = [
   { label: "Postage submitted", ts: "—", note: "Contract state recorded" },
-  { label: "Dispute window opens", ts: "—", note: "Pending contract activation" },
+  {
+    label: "Dispute window opens",
+    ts: "—",
+    note: "Pending contract activation",
+  },
   { label: "Appeal deadline", ts: "—", note: "Pending contract activation" },
   { label: "Final resolution", ts: "—", note: "Pending contract activation" },
 ];

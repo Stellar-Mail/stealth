@@ -16,7 +16,13 @@
  * response (replayed nonce or already-completed idempotency key) is treated as
  * an idempotent success. Plaintext and keys never leave this module.
  */
-import type { DeliveryState, ActionableErrorCode, RelayNode } from "@/services/relay/federation";
+import type { MessageDeliveryState } from "@/server/api/domain";
+import {
+  mapRelayStateToMessageDeliveryState,
+  type DeliveryState,
+  type ActionableErrorCode,
+  type RelayNode,
+} from "@/services/relay/federation";
 import { canonicalizePayload, type EnvelopePayload } from "@/services/crypto/envelope";
 import type { WalletSignature } from "@/services/stellar/wallet";
 
@@ -70,6 +76,7 @@ export interface RelayRequestSigner {
 
 export interface RelaySubmitResult {
   state: DeliveryState;
+  messageDeliveryState: MessageDeliveryState;
   attempts: number;
   errorCode?: ActionableErrorCode;
   delivered: boolean;
@@ -182,6 +189,21 @@ function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function relaySubmitResult(
+  state: DeliveryState,
+  attempts: number,
+  delivered: boolean,
+  errorCode?: ActionableErrorCode,
+): RelaySubmitResult {
+  return {
+    state,
+    messageDeliveryState: mapRelayStateToMessageDeliveryState(state, errorCode),
+    attempts,
+    ...(errorCode ? { errorCode } : {}),
+    delivered,
+  };
+}
+
 /**
  * Submit a canonical relay request to the relay with bounded retries.
  *
@@ -199,12 +221,7 @@ export async function submitToRelay(
 
   const node = await resolveRelay(input.recipientDomain);
   if (!node) {
-    return {
-      state: "DEAD_LETTER",
-      attempts: 0,
-      errorCode: "ERR_DOMAIN_NOT_FOUND",
-      delivered: false,
-    };
+    return relaySubmitResult("DEAD_LETTER", 0, false, "ERR_DOMAIN_NOT_FOUND");
   }
 
   let payload = input.payload;
@@ -220,17 +237,17 @@ export async function submitToRelay(
       });
 
       if (response.status >= 200 && response.status < 300) {
-        return { state: "ACKNOWLEDGED", attempts: attempt, delivered: true };
+        return relaySubmitResult("ACKNOWLEDGED", attempt, true);
       }
       if (response.status === 409) {
-        return { state: "DEDUPLICATED", attempts: attempt, delivered: true };
+        return relaySubmitResult("DEDUPLICATED", attempt, true);
       }
       if (response.status >= 400 && response.status < 500) {
         const code: ActionableErrorCode =
           response.status === 401 || response.status === 403
             ? "ERR_UNAUTHORIZED"
             : "ERR_PAYLOAD_REJECTED";
-        return { state: "DEAD_LETTER", attempts: attempt, errorCode: code, delivered: false };
+        return relaySubmitResult("DEAD_LETTER", attempt, false, code);
       }
       // Transient 5xx: fall through to re-sign + retry.
     } catch {
@@ -246,10 +263,5 @@ export async function submitToRelay(
     }
   }
 
-  return {
-    state: "DEAD_LETTER",
-    attempts: maxAttempts,
-    errorCode: "ERR_DELIVERY_EXPIRED",
-    delivered: false,
-  };
+  return relaySubmitResult("DEAD_LETTER", maxAttempts, false, "ERR_DELIVERY_EXPIRED");
 }

@@ -96,7 +96,10 @@ describe("EncryptedPayloadBanner — data model", () => {
   });
 
   it("carries failureReason when provided", () => {
-    const payload = makePayload({ status: "failed", failureReason: "integrity" });
+    const payload = makePayload({
+      status: "failed",
+      failureReason: "integrity",
+    });
     expect(payload.failureReason).toBe("integrity");
   });
 
@@ -140,7 +143,11 @@ describe("EncryptedPayloadBanner — encrypted fixture variants", () => {
     { status: "decrypted", diagnosticId: "dec-7a3f-c18e" },
     { status: "locked", diagnosticId: "lck-4b2a-9d01" },
     { status: "verifying", diagnosticId: "vfy-8c5d-2e47" },
-    { status: "failed", diagnosticId: "flt-1e9b-5f62", failureReason: "integrity" },
+    {
+      status: "failed",
+      diagnosticId: "flt-1e9b-5f62",
+      failureReason: "integrity",
+    },
   ];
 
   fixtures.forEach(({ status, diagnosticId, failureReason }) => {

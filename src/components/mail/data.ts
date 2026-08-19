@@ -71,6 +71,9 @@ export type SnoozeState = {
   createdAt: string;
 };
 
+import type { VerifiedEnvelopeProvenance } from "@/services/crypto/open-envelope";
+import type { QuarantinedMailRecord } from "@/features/mail/quarantine";
+
 export type Email = {
   id: string;
   from: string;
@@ -92,6 +95,8 @@ export type Email = {
   postageAmount?: string;
   verifiedSender?: boolean;
   encryptedPayload?: EncryptedPayload;
+  provenanceData?: VerifiedEnvelopeProvenance;
+  quarantineRecord?: QuarantinedMailRecord;
 };
 
 export type MailFilters = {

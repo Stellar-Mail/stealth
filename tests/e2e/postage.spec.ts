@@ -105,7 +105,10 @@ test.describe("postage API", () => {
     const { data: quoteData } = await quoteRes.json();
 
     const submitRes = await page.request.post("/api/v1/postage/", {
-      headers: { "Content-Type": "application/json", "x-stealth-address": sender },
+      headers: {
+        "Content-Type": "application/json",
+        "x-stealth-address": sender,
+      },
       data: {
         amount: "50",
         messageId: msgId,
@@ -123,7 +126,10 @@ test.describe("postage API", () => {
     expect(submitRes.status()).toBe(201);
 
     const refundRes = await page.request.post(`/api/v1/postage/${msgId}/refund`, {
-      headers: { "Content-Type": "application/json", "x-stealth-address": actor },
+      headers: {
+        "Content-Type": "application/json",
+        "x-stealth-address": actor,
+      },
     });
     expect(refundRes.status()).toBe(200);
     const { data } = await refundRes.json();
@@ -136,14 +142,21 @@ test.describe("postage API", () => {
     const msgId = "e".repeat(64);
     const payHash = "f".repeat(64);
 
-    await api.putPolicy(actor, { allowUnknown: true, minimumPostage: "0", requireVerified: false });
+    await api.putPolicy(actor, {
+      allowUnknown: true,
+      minimumPostage: "0",
+      requireVerified: false,
+    });
 
     const quoteRes = await api.quotePostage(actor, sender, msgId);
     const { data: quoteData } = await quoteRes.json();
 
     const submitFn = () =>
       page.request.post("/api/v1/postage/", {
-        headers: { "Content-Type": "application/json", "x-stealth-address": sender },
+        headers: {
+          "Content-Type": "application/json",
+          "x-stealth-address": sender,
+        },
         data: {
           amount: "0",
           messageId: msgId,
@@ -182,7 +195,10 @@ test.describe("postage API", () => {
     const { data: quoteData } = await quoteRes.json();
 
     const res = await page.request.post("/api/v1/postage/", {
-      headers: { "Content-Type": "application/json", "x-stealth-address": sender },
+      headers: {
+        "Content-Type": "application/json",
+        "x-stealth-address": sender,
+      },
       data: {
         amount: "1",
         messageId: msgId,

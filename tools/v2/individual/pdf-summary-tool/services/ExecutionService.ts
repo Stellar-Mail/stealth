@@ -189,7 +189,9 @@ export class ExecutionService {
         success: false,
         error: {
           code: ExecutionErrorCode.UNSUPPORTED_FILE_TYPE,
-          message: `MIME type "${payload.mimeType}" is not supported. Expected one of: ${SUPPORTED_MIME_TYPES.join(", ")}`,
+          message: `MIME type "${
+            payload.mimeType
+          }" is not supported. Expected one of: ${SUPPORTED_MIME_TYPES.join(", ")}`,
         },
       };
     }

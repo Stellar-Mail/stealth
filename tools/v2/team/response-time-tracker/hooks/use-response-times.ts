@@ -50,7 +50,10 @@ function reducer(state: ResponseTimesState, action: Action): ResponseTimesState 
     case "LOAD_ENTRIES_DONE":
       return { ...state, entries: entriesReducer(state.entries, action.data) };
     case "LOAD_ENTRIES_ERROR":
-      return { ...state, entries: { status: "error", message: action.message } };
+      return {
+        ...state,
+        entries: { status: "error", message: action.message },
+      };
     case "LOAD_METRICS_START":
       return { ...state, metrics: { status: "loading" } };
     case "LOAD_METRICS_DONE":
@@ -62,13 +65,22 @@ function reducer(state: ResponseTimesState, action: Action): ResponseTimesState 
             : { status: "success", data: action.data },
       };
     case "LOAD_METRICS_ERROR":
-      return { ...state, metrics: { status: "error", message: action.message } };
+      return {
+        ...state,
+        metrics: { status: "error", message: action.message },
+      };
     case "LOAD_MEMBERS_START":
       return { ...state, teamMembers: { status: "loading" } };
     case "LOAD_MEMBERS_DONE":
-      return { ...state, teamMembers: { status: "success", data: action.data } };
+      return {
+        ...state,
+        teamMembers: { status: "success", data: action.data },
+      };
     case "LOAD_MEMBERS_ERROR":
-      return { ...state, teamMembers: { status: "error", message: action.message } };
+      return {
+        ...state,
+        teamMembers: { status: "error", message: action.message },
+      };
     default:
       return state;
   }

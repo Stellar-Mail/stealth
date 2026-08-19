@@ -157,7 +157,10 @@ describe("getSendsInWindow", () => {
   });
 
   it("returns empty array when sendIds is empty", () => {
-    const emptyWindow = { ...activeCampaignTimeline.previewWindows[0], sendIds: [] };
+    const emptyWindow = {
+      ...activeCampaignTimeline.previewWindows[0],
+      sendIds: [],
+    };
     expect(getSendsInWindow(activeCampaignTimeline, emptyWindow)).toHaveLength(0);
   });
 });
@@ -276,7 +279,10 @@ describe("validateMilestones", () => {
   });
 
   it("emits an error for an invalid dueAt value", () => {
-    const bad = { ...activeCampaignTimeline.milestones[0], dueAt: "not-a-date" };
+    const bad = {
+      ...activeCampaignTimeline.milestones[0],
+      dueAt: "not-a-date",
+    };
     const issues = validateMilestones([bad]);
     expect(issues.some((i) => i.severity === "error" && i.fieldPath.includes("dueAt"))).toBe(true);
   });

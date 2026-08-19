@@ -68,7 +68,10 @@ describe("BETA-005: Verification token domain schemas", () => {
 
     it("rejects invalid dates", () => {
       expect(() =>
-        verificationTokenSchema.parse({ ...baseToken, expiresAt: "not-a-date" }),
+        verificationTokenSchema.parse({
+          ...baseToken,
+          expiresAt: "not-a-date",
+        }),
       ).toThrow();
     });
   });

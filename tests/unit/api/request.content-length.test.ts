@@ -12,7 +12,9 @@ describe("parseJsonBody Content-Length validation", () => {
       body: JSON.stringify({ amount: 1 }),
     });
 
-    await expect(parseJsonBody(request, schema, 1024)).resolves.toEqual({ amount: 1 });
+    await expect(parseJsonBody(request, schema, 1024)).resolves.toEqual({
+      amount: 1,
+    });
   });
 
   it("rejects negative Content-Length", async () => {

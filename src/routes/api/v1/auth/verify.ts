@@ -37,7 +37,10 @@ export const Route = createFileRoute("/api/v1/auth/verify")({
           if (outcome.outcome === "verified") {
             return apiSuccess(request, { verified: true });
           }
-          return apiSuccess(request, { verified: false, reason: outcome.reason });
+          return apiSuccess(request, {
+            verified: false,
+            reason: outcome.reason,
+          });
         }),
     },
   },

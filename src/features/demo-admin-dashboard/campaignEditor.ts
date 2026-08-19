@@ -96,7 +96,10 @@ export function campaignEditorStateToSnapshot(
     tags: normalizeCampaignEditorTags(state.tagsInput),
     timestamp: now,
     status: state.status,
-    drafts: state.drafts.map((draft) => ({ ...draft, recipients: [...draft.recipients] })),
+    drafts: state.drafts.map((draft) => ({
+      ...draft,
+      recipients: [...draft.recipients],
+    })),
   };
 }
 

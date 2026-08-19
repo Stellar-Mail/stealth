@@ -48,7 +48,10 @@ describe("ValidatedApiRepository - record integrity", () => {
 
   it("throws DataIntegrityError when stored policy record is corrupt", async () => {
     const innerMap = (inner as any)["policies"] as Map<string, unknown>;
-    innerMap.set(owner, { allowUnknown: "not-a-boolean", minimumPostage: "100" });
+    innerMap.set(owner, {
+      allowUnknown: "not-a-boolean",
+      minimumPostage: "100",
+    });
 
     let error: unknown;
     try {

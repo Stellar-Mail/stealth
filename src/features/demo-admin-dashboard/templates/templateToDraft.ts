@@ -35,7 +35,10 @@ export type InsertResult =
  */
 export function insertTemplate(dataset: Draft[], template: MessageTemplate): InsertResult {
   if (isTemplateInserted(dataset, template)) {
-    return { ok: false, reason: "This template is already in the draft dataset." };
+    return {
+      ok: false,
+      reason: "This template is already in the draft dataset.",
+    };
   }
   const draft = templateToDraft(template);
   return { ok: true, dataset: [...dataset, draft], draft };

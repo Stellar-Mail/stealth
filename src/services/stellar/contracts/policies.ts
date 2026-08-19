@@ -6,9 +6,9 @@ import { contract } from "@stellar/stellar-sdk";
 
 export interface MailboxPolicy {
   allow_unknown: boolean;
-  require_verified: boolean;
-  require_receipt: boolean;
   minimum_postage: bigint;
+  require_receipt: boolean;
+  require_verified: boolean;
 }
 
 export interface VersionedMailboxPolicy {
@@ -53,7 +53,7 @@ export enum PoliciesError {
 
 // Embedded XDR spec entries derived from spec.json
 const SPEC_ENTRIES: string[] = [
-  "AAAAAQAAAAAAAAAAAAAADU1haWxib3hQb2xpY3kAAAAAAAAEAAAAAAAAAA1hbGxvd191bmtub3duAAAAAAAAAQAAAAAAAAAQcmVxdWlyZV92ZXJpZmllZAAAAAEAAAAAAAAAD3JlcXVpcmVfcmVjZWlwdAAAAAABAAAAAAAAAA9taW5pbXVtX3Bvc3RhZ2UAAAAACw==",
+  "AAAAAQAAAAAAAAAAAAAADU1haWxib3hQb2xpY3kAAAAAAAAEAAAAAAAAAA1hbGxvd191bmtub3duAAAAAAAAAQAAAAAAAAAPbWluaW11bV9wb3N0YWdlAAAAAAsAAAAAAAAAD3JlcXVpcmVfcmVjZWlwdAAAAAABAAAAAAAAABByZXF1aXJlX3ZlcmlmaWVkAAAAAQ==",
   "AAAAAQAAAAAAAAAAAAAAFlZlcnNpb25lZE1haWxib3hQb2xpY3kAAAAAAAIAAAAAAAAABnBvbGljeQAAAAAH0AAAAA1NYWlsYm94UG9saWN5AAAAAAAAAAAAAAd2ZXJzaW9uAAAAAAQ=",
   "AAAAAQAAAAAAAAAAAAAADURlbGVnYXRlU2NvcGUAAAAAAAACAAAAAAAAAA5jYW5fc2V0X3BvbGljeQAAAAAAAQAAAAAAAAAPY2FuX3NldF9zZW5kZXJzAAAAAAE=",
   "AAAAAQAAAAAAAAAAAAAADlBvbGljeURlY2lzaW9uAAAAAAAFAAAAAAAAAAdhbGxvd2VkAAAAAAEAAAAAAAAABnJlYXNvbgAAAAAH0AAAAAxQb2xpY3lSZWFzb24AAAAAAAAAEHJlcXVpcmVkX3Bvc3RhZ2UAAAALAAAAAAAAAARydWxlAAAH0AAAAApTZW5kZXJSdWxlAAAAAAAAAAAAB3ZlcnNpb24AAAAABA==",
@@ -182,7 +182,12 @@ export async function setSenderRuleAs(
   sender: string,
   rule: SenderRule,
 ): Promise<contract.Ok<void> | contract.Err<{ message: string }>> {
-  const tx = await (client as any).set_sender_rule_as({ owner, actor, sender, rule });
+  const tx = await (client as any).set_sender_rule_as({
+    owner,
+    actor,
+    sender,
+    rule,
+  });
   return tx.result;
 }
 
@@ -192,7 +197,11 @@ export async function setSenderTier(
   sender: string,
   minimum_postage: bigint,
 ): Promise<contract.Ok<void> | contract.Err<{ message: string }>> {
-  const tx = await (client as any).set_sender_tier({ owner, sender, minimum_postage });
+  const tx = await (client as any).set_sender_tier({
+    owner,
+    sender,
+    minimum_postage,
+  });
   return tx.result;
 }
 
@@ -203,7 +212,12 @@ export async function setSenderTierAs(
   sender: string,
   minimum_postage: bigint,
 ): Promise<contract.Ok<void> | contract.Err<{ message: string }>> {
-  const tx = await (client as any).set_sender_tier_as({ owner, actor, sender, minimum_postage });
+  const tx = await (client as any).set_sender_tier_as({
+    owner,
+    actor,
+    sender,
+    minimum_postage,
+  });
   return tx.result;
 }
 
@@ -233,7 +247,13 @@ export async function canMail(
   postage: bigint,
   receipt: boolean,
 ): Promise<boolean> {
-  const tx = await (client as any).can_mail({ owner, sender, verified, postage, receipt });
+  const tx = await (client as any).can_mail({
+    owner,
+    sender,
+    verified,
+    postage,
+    receipt,
+  });
   return tx.result;
 }
 
@@ -245,6 +265,12 @@ export async function evaluate(
   postage: bigint,
   receipt: boolean,
 ): Promise<PolicyDecision> {
-  const tx = await (client as any).evaluate({ owner, sender, verified, postage, receipt });
+  const tx = await (client as any).evaluate({
+    owner,
+    sender,
+    verified,
+    postage,
+    receipt,
+  });
   return tx.result;
 }

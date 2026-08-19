@@ -139,7 +139,12 @@ function matchRules(input: AutoLabelEmail): RuleMatch[] {
     if (evidence.length === 0) return [];
 
     return [
-      { label: rule.label, score: evidence.length, reason: rule.reason, evidence: evidence[0] },
+      {
+        label: rule.label,
+        score: evidence.length,
+        reason: rule.reason,
+        evidence: evidence[0],
+      },
     ];
   });
 }

@@ -94,6 +94,40 @@ async function freighter(): Promise<FreighterApi> {
   };
 }
 
+export async function getFreighterApi(): Promise<FreighterApi> {
+  return freighter();
+}
+
+export async function isFreighterConnected(): Promise<boolean> {
+  try {
+    const wallet = await freighter();
+    const connection = (await wallet.isConnected()) as {
+      isConnected?: boolean;
+      error?: unknown;
+    };
+    return Boolean(connection?.isConnected);
+  } catch {
+    return false;
+  }
+}
+
+export async function getFreighterNetwork(): Promise<string | null> {
+  try {
+    const pkg = await loadFreighter();
+    if (typeof (pkg as any).getNetworkDetails === "function") {
+      const details = await (pkg as any).getNetworkDetails();
+      return details?.networkPassphrase ?? details?.network ?? null;
+    }
+    if (typeof (pkg as any).getNetwork === "function") {
+      const network = await (pkg as any).getNetwork();
+      return typeof network === "string" ? network : (network?.networkPassphrase ?? null);
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 function describe(error: unknown): string {
   if (!error) return "";
   if (typeof error === "string") return error;

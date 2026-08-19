@@ -56,7 +56,12 @@ export type VerifyOutcome =
   | { outcome: "failed"; reason: VerifyFailureReason; userId?: string };
 
 export type ResendOutcome =
-  | { outcome: "sent"; userId: string; retryAfterSeconds: number; expiresAt: Date }
+  | {
+      outcome: "sent";
+      userId: string;
+      retryAfterSeconds: number;
+      expiresAt: Date;
+    }
   /** Generic no-op: no pending account (or already verified) — nothing leaked. */
   | { outcome: "noop" }
   | { outcome: "cooldown"; userId: string; retryAfterSeconds: number }
@@ -189,7 +194,11 @@ export async function verifyEmailVerificationToken(
         result: "denied",
         requestId: requestIdOf(context),
       });
-      return { outcome: "failed", reason: "invalid_token", userId: tokenUserId };
+      return {
+        outcome: "failed",
+        reason: "invalid_token",
+        userId: tokenUserId,
+      };
     }
     const activated = await activateUserIfPending(repository, tokenUserId, now);
     if (!activated) {
@@ -201,7 +210,11 @@ export async function verifyEmailVerificationToken(
         result: "denied",
         requestId: requestIdOf(context),
       });
-      return { outcome: "failed", reason: "activation_failed", userId: tokenUserId };
+      return {
+        outcome: "failed",
+        reason: "activation_failed",
+        userId: tokenUserId,
+      };
     }
     recordAuditEvent({
       actor: tokenUserId,

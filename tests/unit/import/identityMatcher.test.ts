@@ -169,7 +169,13 @@ describe("classifyMatches", () => {
         id: "r4",
         name: "None",
         address: GA,
-        match: { type: "none", matchedAddress: null, matchedName: null, confidence: 0, reason: "" },
+        match: {
+          type: "none",
+          matchedAddress: null,
+          matchedName: null,
+          confidence: 0,
+          reason: "",
+        },
       }),
     ];
     const { exact, fuzzy, ambiguous, none } = classifyMatches(rows);

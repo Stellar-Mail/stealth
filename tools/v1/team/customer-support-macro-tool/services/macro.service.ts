@@ -241,13 +241,19 @@ export function validateMacroInput(input: Partial<MacroCreateInput>): MacroValid
   if (!input.title || input.title.trim().length === 0) {
     errors.push({ field: "title", message: "Title is required." });
   } else if (input.title.trim().length > 120) {
-    errors.push({ field: "title", message: "Title must be 120 characters or fewer." });
+    errors.push({
+      field: "title",
+      message: "Title must be 120 characters or fewer.",
+    });
   }
 
   if (!input.body || input.body.trim().length === 0) {
     errors.push({ field: "body", message: "Body is required." });
   } else if (input.body.length > 4000) {
-    errors.push({ field: "body", message: "Body must be 4,000 characters or fewer." });
+    errors.push({
+      field: "body",
+      message: "Body must be 4,000 characters or fewer.",
+    });
   }
 
   const validCategories: MacroCategory[] = [
@@ -259,7 +265,10 @@ export function validateMacroInput(input: Partial<MacroCreateInput>): MacroValid
     "general",
   ];
   if (input.category && !validCategories.includes(input.category)) {
-    errors.push({ field: "category", message: `Unknown category: ${input.category}.` });
+    errors.push({
+      field: "category",
+      message: `Unknown category: ${input.category}.`,
+    });
   }
 
   return errors;

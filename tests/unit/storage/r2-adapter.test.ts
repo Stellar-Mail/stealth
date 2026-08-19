@@ -232,7 +232,9 @@ describe("R2ObjectStoreAdapter", () => {
     const { bucket, adapter } = await buildAdapter(() => now);
 
     const bytes = new Uint8Array([1, 2, 3, 4]);
-    const { stagedKey, contentCommitment } = await stageBody(adapter, bytes, { ttlMs: 5_000 });
+    const { stagedKey, contentCommitment } = await stageBody(adapter, bytes, {
+      ttlMs: 5_000,
+    });
     const result = await adapter.finalize({
       stagedKey,
       ownerAddress: OWNER,

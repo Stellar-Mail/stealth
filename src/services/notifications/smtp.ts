@@ -266,7 +266,10 @@ export class SmtpNotificationAdapter implements NotificationAdapter {
     const expectReply = async (command: string, expected: number[]): Promise<SmtpReply> => {
       const reply = await withTimeout(replies.next(), command);
       if (!expected.includes(reply.code)) {
-        throw new SmtpError("SMTP delivery failed", { command, replyCode: reply.code });
+        throw new SmtpError("SMTP delivery failed", {
+          command,
+          replyCode: reply.code,
+        });
       }
       return reply;
     };

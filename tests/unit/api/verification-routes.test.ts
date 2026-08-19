@@ -35,7 +35,12 @@ function postRequest(url: string, body: unknown) {
 async function parseJson(response: Response) {
   return response.clone().json() as Promise<{
     data?: Record<string, unknown>;
-    error?: { code: string; message: string; retryable: boolean; details?: unknown };
+    error?: {
+      code: string;
+      message: string;
+      retryable: boolean;
+      details?: unknown;
+    };
   }>;
 }
 

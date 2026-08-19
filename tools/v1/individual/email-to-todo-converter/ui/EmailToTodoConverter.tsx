@@ -24,7 +24,11 @@ type ConverterAction =
 function converterReducer(state: ConverterState, action: ConverterAction): ConverterState {
   switch (action.type) {
     case "reset":
-      return { status: action.hasEmail ? "ready" : "empty", draft: null, errorMessage: "" };
+      return {
+        status: action.hasEmail ? "ready" : "empty",
+        draft: null,
+        errorMessage: "",
+      };
     case "convert-start":
       return { status: "loading", draft: null, errorMessage: "" };
     case "convert-success":
@@ -81,7 +85,10 @@ export function EmailToTodoConverter(props: EmailToTodoConverterProps) {
       return;
     }
     try {
-      dispatch({ type: "convert-success", draft: buildTaskDraft(validation.sanitizedEmail) });
+      dispatch({
+        type: "convert-success",
+        draft: buildTaskDraft(validation.sanitizedEmail),
+      });
     } catch {
       dispatch({
         type: "convert-error",

@@ -122,21 +122,57 @@ export async function evaluateMailboxPolicy(
   const rule = await repository.getSenderRule(input.owner, input.sender);
   const { policy, source } = await getMailboxPolicy(repository, input.owner);
   if (rule === "allow")
-    return { allowed: true, policy, source, reason: "sender_allowed" as const, rule };
+    return {
+      allowed: true,
+      policy,
+      source,
+      reason: "sender_allowed" as const,
+      rule,
+    };
   if (rule === "block")
-    return { allowed: false, policy, source, reason: "sender_blocked" as const, rule };
+    return {
+      allowed: false,
+      policy,
+      source,
+      reason: "sender_blocked" as const,
+      rule,
+    };
 
   if (!policy.allowUnknown) {
-    return { allowed: false, policy, source, reason: "unknown_senders_disabled" as const, rule };
+    return {
+      allowed: false,
+      policy,
+      source,
+      reason: "unknown_senders_disabled" as const,
+      rule,
+    };
   }
   if (policy.requireVerified && !input.verified) {
-    return { allowed: false, policy, source, reason: "verification_required" as const, rule };
+    return {
+      allowed: false,
+      policy,
+      source,
+      reason: "verification_required" as const,
+      rule,
+    };
   }
   if (BigInt(input.postage) < BigInt(policy.minimumPostage)) {
-    return { allowed: false, policy, source, reason: "insufficient_postage" as const, rule };
+    return {
+      allowed: false,
+      policy,
+      source,
+      reason: "insufficient_postage" as const,
+      rule,
+    };
   }
 
-  return { allowed: true, policy, source, reason: "policy_satisfied" as const, rule };
+  return {
+    allowed: true,
+    policy,
+    source,
+    reason: "policy_satisfied" as const,
+    rule,
+  };
 }
 
 // ---------------------------------------------------------------------------

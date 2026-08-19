@@ -10,7 +10,11 @@ export const MOCK_AUDIT_EVENTS: AuditEvent[] = [
     kind: "session.started",
     category: "security",
     ts: "2026-06-16T13:42:00.000Z",
-    actor: { type: "user", address: "GDQ4...X4KJ", displayName: "Demo Operator" },
+    actor: {
+      type: "user",
+      address: "GDQ4...X4KJ",
+      displayName: "Demo Operator",
+    },
     summary: "Session started",
   },
   {
@@ -20,14 +24,21 @@ export const MOCK_AUDIT_EVENTS: AuditEvent[] = [
     ts: "2026-06-16T13:42:05.000Z",
     actor: { type: "system" },
     summary: "Resolved identity for sender marcin@kaizen.io",
-    context: { senderAddress: "GBZY...1MNK", senderDisplayName: "Marcin Kowalski" },
+    context: {
+      senderAddress: "GBZY...1MNK",
+      senderDisplayName: "Marcin Kowalski",
+    },
   },
   {
     id: "evt_003",
     kind: "policy.default_changed",
     category: "policy",
     ts: "2026-06-16T13:45:18.000Z",
-    actor: { type: "user", address: "GDQ4...X4KJ", displayName: "Demo Operator" },
+    actor: {
+      type: "user",
+      address: "GDQ4...X4KJ",
+      displayName: "Demo Operator",
+    },
     summary: "Default policy changed to «request approval»",
     context: { policyValue: "request" },
   },
@@ -54,9 +65,16 @@ export const MOCK_AUDIT_EVENTS: AuditEvent[] = [
     kind: "policy.sender_allowed",
     category: "policy",
     ts: "2026-06-16T13:52:30.000Z",
-    actor: { type: "user", address: "GDQ4...X4KJ", displayName: "Demo Operator" },
+    actor: {
+      type: "user",
+      address: "GDQ4...X4KJ",
+      displayName: "Demo Operator",
+    },
     summary: "Sender allowed: Marcin Kowalski",
-    context: { senderAddress: "GBZY...1MNK", senderDisplayName: "Marcin Kowalski" },
+    context: {
+      senderAddress: "GBZY...1MNK",
+      senderDisplayName: "Marcin Kowalski",
+    },
   },
   {
     id: "evt_007",
@@ -72,9 +90,16 @@ export const MOCK_AUDIT_EVENTS: AuditEvent[] = [
     kind: "policy.sender_blocked",
     category: "policy",
     ts: "2026-06-16T14:01:00.000Z",
-    actor: { type: "user", address: "GDQ4...X4KJ", displayName: "Demo Operator" },
+    actor: {
+      type: "user",
+      address: "GDQ4...X4KJ",
+      displayName: "Demo Operator",
+    },
     summary: "Sender blocked: bulk-promo@offers.biz",
-    context: { senderAddress: "GCXX...9QRS", senderDisplayName: "bulk-promo@offers.biz" },
+    context: {
+      senderAddress: "GCXX...9QRS",
+      senderDisplayName: "bulk-promo@offers.biz",
+    },
   },
   {
     id: "evt_009",
@@ -117,7 +142,11 @@ export const MOCK_AUDIT_EVENTS: AuditEvent[] = [
     kind: "policy.sender_verified",
     category: "policy",
     ts: "2026-06-16T14:20:44.000Z",
-    actor: { type: "user", address: "GDQ4...X4KJ", displayName: "Demo Operator" },
+    actor: {
+      type: "user",
+      address: "GDQ4...X4KJ",
+      displayName: "Demo Operator",
+    },
     summary: "Sender set to «verified only»: Priya S.",
     context: { senderAddress: "GDMN...2PLQ", senderDisplayName: "Priya S." },
   },
@@ -126,7 +155,11 @@ export const MOCK_AUDIT_EVENTS: AuditEvent[] = [
     kind: "session.ended",
     category: "security",
     ts: "2026-06-16T14:48:00.000Z",
-    actor: { type: "user", address: "GDQ4...X4KJ", displayName: "Demo Operator" },
+    actor: {
+      type: "user",
+      address: "GDQ4...X4KJ",
+      displayName: "Demo Operator",
+    },
     summary: "Session ended",
   },
 ];

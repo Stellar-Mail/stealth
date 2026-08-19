@@ -85,6 +85,15 @@ export const envelopePayloadSchema = z
     }
   });
 
+// Envelope Signature Schema
+export const envelopeSignatureSchema = z
+  .object({
+    scheme: z.literal("Ed25519"),
+    signerAddress: stellarAddressSchema,
+    value: hexStringSchema(128), // 64 bytes = 128 hex characters
+  })
+  .strict();
+
 // Sealed Envelope Schema
 export const sealedEnvelopeSchema = z
   .object({
@@ -94,14 +103,6 @@ export const sealedEnvelopeSchema = z
       .min(1)
       .max(20 * 1024 * 1024) // max 20MB base64
       .regex(/^[A-Za-z0-9+/=]+$/, "Invalid base64 encoding"),
-  })
-  .strict();
-
-// Envelope Signature Schema
-export const envelopeSignatureSchema = z
-  .object({
-    scheme: z.literal("Ed25519"),
-    signerAddress: stellarAddressSchema,
-    value: hexStringSchema(128), // 64 bytes = 128 hex characters
+    signature: envelopeSignatureSchema.optional(),
   })
   .strict();

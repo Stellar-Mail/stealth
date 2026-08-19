@@ -42,15 +42,35 @@ export interface GenerateCampaignFixturesOptions {
 }
 
 export const DEFAULT_CAMPAIGN_SCENARIOS: CampaignScenario[] = [
-  { id: "onboarding", name: "Onboarding Welcome", tags: ["lifecycle", "welcome"] },
-  { id: "reengagement", name: "Re-engagement Nudge", tags: ["lifecycle", "winback"] },
-  { id: "newsletter", name: "Monthly Newsletter", tags: ["newsletter", "update"] },
-  { id: "product-launch", name: "Product Launch", tags: ["announcement", "launch"] },
+  {
+    id: "onboarding",
+    name: "Onboarding Welcome",
+    tags: ["lifecycle", "welcome"],
+  },
+  {
+    id: "reengagement",
+    name: "Re-engagement Nudge",
+    tags: ["lifecycle", "winback"],
+  },
+  {
+    id: "newsletter",
+    name: "Monthly Newsletter",
+    tags: ["newsletter", "update"],
+  },
+  {
+    id: "product-launch",
+    name: "Product Launch",
+    tags: ["announcement", "launch"],
+  },
 ];
 
 export const DEFAULT_CAMPAIGN_PERSONAS: CampaignPersona[] = [
   { id: "persona-founder", name: "Avery Founder", email: "avery@example.com" },
-  { id: "persona-marketer", name: "Morgan Marketer", email: "morgan@example.com" },
+  {
+    id: "persona-marketer",
+    name: "Morgan Marketer",
+    email: "morgan@example.com",
+  },
   { id: "persona-support", name: "Sasha Support", email: "sasha@example.com" },
 ];
 

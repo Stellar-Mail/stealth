@@ -65,7 +65,10 @@ export function sanitizeWorkloadItem(item: WorkloadItem): {
 } {
   const issues: SecurityIssue[] = [];
   if (!item || typeof item !== "object") {
-    return { value: item, issues: [{ field: "item", message: "item is required" }] };
+    return {
+      value: item,
+      issues: [{ field: "item", message: "item is required" }],
+    };
   }
 
   if (typeof item.id !== "string" || item.id.trim().length === 0) {
@@ -75,7 +78,10 @@ export function sanitizeWorkloadItem(item: WorkloadItem): {
   const description = clamp(stripControlChars(item.description ?? ""), MAX_DESC_CHARS);
 
   if (typeof item.priority !== "string" || !PRIORITIES.includes(item.priority)) {
-    issues.push({ field: "priority", message: "priority must be low|medium|high|urgent" });
+    issues.push({
+      field: "priority",
+      message: "priority must be low|medium|high|urgent",
+    });
   }
   if (
     typeof item.estimatedEffort !== "number" ||
@@ -83,13 +89,22 @@ export function sanitizeWorkloadItem(item: WorkloadItem): {
     item.estimatedEffort < 0 ||
     item.estimatedEffort > MAX_EFFORT
   ) {
-    issues.push({ field: "estimatedEffort", message: "estimatedEffort must be finite and >= 0" });
+    issues.push({
+      field: "estimatedEffort",
+      message: "estimatedEffort must be finite and >= 0",
+    });
   }
   if (!isValidISODate(item.dueAt)) {
-    issues.push({ field: "dueAt", message: "dueAt must be a valid date or null" });
+    issues.push({
+      field: "dueAt",
+      message: "dueAt must be a valid date or null",
+    });
   }
   if (!Array.isArray(item.tags) || item.tags.length > MAX_TAGS) {
-    issues.push({ field: "tags", message: `tags must be an array with <= ${MAX_TAGS} entries` });
+    issues.push({
+      field: "tags",
+      message: `tags must be an array with <= ${MAX_TAGS} entries`,
+    });
   }
 
   return {
@@ -111,7 +126,10 @@ export function sanitizeTeamMember(member: TeamMember): {
 } {
   const issues: SecurityIssue[] = [];
   if (!member || typeof member !== "object") {
-    return { value: member, issues: [{ field: "member", message: "member is required" }] };
+    return {
+      value: member,
+      issues: [{ field: "member", message: "member is required" }],
+    };
   }
 
   if (typeof member.id !== "string" || member.id.trim().length === 0) {
@@ -125,17 +143,26 @@ export function sanitizeTeamMember(member: TeamMember): {
     !Number.isFinite(member.capacity) ||
     member.capacity < 0
   ) {
-    issues.push({ field: "capacity", message: "capacity must be finite and >= 0" });
+    issues.push({
+      field: "capacity",
+      message: "capacity must be finite and >= 0",
+    });
   }
   if (
     typeof member.currentLoad !== "number" ||
     !Number.isFinite(member.currentLoad) ||
     member.currentLoad < 0
   ) {
-    issues.push({ field: "currentLoad", message: "currentLoad must be finite and >= 0" });
+    issues.push({
+      field: "currentLoad",
+      message: "currentLoad must be finite and >= 0",
+    });
   }
   if (!Array.isArray(member.roles) || member.roles.length > MAX_ROLES) {
-    issues.push({ field: "roles", message: `roles must be an array with <= ${MAX_ROLES} entries` });
+    issues.push({
+      field: "roles",
+      message: `roles must be an array with <= ${MAX_ROLES} entries`,
+    });
   }
   if (!Array.isArray(member.skills) || member.skills.length > MAX_SKILLS) {
     issues.push({
@@ -170,30 +197,48 @@ export function validateBalanceInput(
   if (!Array.isArray(unassignedItems))
     issues.push({ field: "items", message: "items must be an array" });
   if (!Array.isArray(members) || members.length === 0) {
-    issues.push({ field: "members", message: "members must be a non-empty array" });
+    issues.push({
+      field: "members",
+      message: "members must be a non-empty array",
+    });
   }
   if (!config || typeof config !== "object") {
     issues.push({ field: "config", message: "config is required" });
   } else if (!STRATEGIES.includes(config.strategy)) {
-    issues.push({ field: "strategy", message: "strategy must be a known balancing strategy" });
+    issues.push({
+      field: "strategy",
+      message: "strategy must be a known balancing strategy",
+    });
   }
 
   if (unassignedItems.length > MAX_ITEMS) {
-    issues.push({ field: "items", message: `too many items (max ${MAX_ITEMS})` });
+    issues.push({
+      field: "items",
+      message: `too many items (max ${MAX_ITEMS})`,
+    });
   }
   if (members.length > MAX_MEMBERS) {
-    issues.push({ field: "members", message: `too many members (max ${MAX_MEMBERS})` });
+    issues.push({
+      field: "members",
+      message: `too many members (max ${MAX_MEMBERS})`,
+    });
   }
 
   for (const item of unassignedItems) {
     const { issues: itemIssues } = sanitizeWorkloadItem(item);
     for (const i of itemIssues)
-      issues.push({ field: `items.${item?.id ?? "?"}:${i.field}`, message: i.message });
+      issues.push({
+        field: `items.${item?.id ?? "?"}:${i.field}`,
+        message: i.message,
+      });
   }
   for (const m of members) {
     const { issues: mIssues } = sanitizeTeamMember(m);
     for (const i of mIssues)
-      issues.push({ field: `members.${m?.id ?? "?"}:${i.field}`, message: i.message });
+      issues.push({
+        field: `members.${m?.id ?? "?"}:${i.field}`,
+        message: i.message,
+      });
   }
 
   return issues;

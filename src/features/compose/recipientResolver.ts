@@ -196,7 +196,10 @@ export async function resolveRecipients(
 /**
  * Validate recipient address format
  */
-export function validateRecipientFormat(address: string): { valid: boolean; error?: string } {
+export function validateRecipientFormat(address: string): {
+  valid: boolean;
+  error?: string;
+} {
   const trimmed = address.trim().toLowerCase();
 
   if (!trimmed) {

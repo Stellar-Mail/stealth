@@ -571,7 +571,10 @@ export const openApiDocument = {
               },
             },
           },
-          timeoutMs: { type: "integer", description: "Readiness probe timeout." },
+          timeoutMs: {
+            type: "integer",
+            description: "Readiness probe timeout.",
+          },
         },
       },
       RelayVersion: {
@@ -580,7 +583,10 @@ export const openApiDocument = {
         additionalProperties: false,
         properties: {
           app: { type: "string", enum: ["stealth-relay"] },
-          apiVersion: { type: "string", description: "Stealth Mail API version." },
+          apiVersion: {
+            type: "string",
+            description: "Stealth Mail API version.",
+          },
           protocolVersion: { type: "string", description: "Protocol version." },
           build: { type: "string", description: "Build version string." },
         },

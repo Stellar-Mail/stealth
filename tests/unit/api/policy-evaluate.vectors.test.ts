@@ -140,7 +140,12 @@ const routeVectors: RouteVectorFixture[] = [
   },
   {
     name: "insufficient postage when provided amount is lower than policy minimum",
-    policy: { ...basePolicy, allowUnknown: true, requireVerified: false, minimumPostage: "5000" },
+    policy: {
+      ...basePolicy,
+      allowUnknown: true,
+      requireVerified: false,
+      minimumPostage: "5000",
+    },
     senderRule: null,
     input: { owner, postage: "100", sender, verified: true },
     expectedStatus: 200,
@@ -154,7 +159,12 @@ const routeVectors: RouteVectorFixture[] = [
   },
   {
     name: "policy satisfied when all criteria (verification, postage) are met",
-    policy: { ...basePolicy, allowUnknown: true, requireVerified: true, minimumPostage: "500" },
+    policy: {
+      ...basePolicy,
+      allowUnknown: true,
+      requireVerified: true,
+      minimumPostage: "500",
+    },
     senderRule: null,
     input: { owner, postage: "1000", sender, verified: true },
     expectedStatus: 200,
@@ -196,7 +206,12 @@ const routeVectors: RouteVectorFixture[] = [
   },
   {
     name: "evaluates policy for delegated actor with valid delegation header",
-    policy: { ...basePolicy, allowUnknown: true, requireVerified: false, minimumPostage: "0" },
+    policy: {
+      ...basePolicy,
+      allowUnknown: true,
+      requireVerified: false,
+      minimumPostage: "0",
+    },
     senderRule: null,
     input: { owner, postage: "100", sender: delegate, verified: true },
     headers: {
@@ -222,7 +237,12 @@ const routeVectors: RouteVectorFixture[] = [
   },
   {
     name: "boundary test: zero postage meeting zero minimum postage policy",
-    policy: { ...basePolicy, allowUnknown: true, requireVerified: false, minimumPostage: "0" },
+    policy: {
+      ...basePolicy,
+      allowUnknown: true,
+      requireVerified: false,
+      minimumPostage: "0",
+    },
     senderRule: null,
     input: { owner, postage: "0", sender, verified: true },
     expectedStatus: 200,
@@ -236,9 +256,19 @@ const routeVectors: RouteVectorFixture[] = [
   },
   {
     name: "boundary test: max i128 postage string passes evaluation",
-    policy: { ...basePolicy, allowUnknown: true, requireVerified: false, minimumPostage: "1000" },
+    policy: {
+      ...basePolicy,
+      allowUnknown: true,
+      requireVerified: false,
+      minimumPostage: "1000",
+    },
     senderRule: null,
-    input: { owner, postage: "170141183460469231731687303715884105727", sender, verified: true },
+    input: {
+      owner,
+      postage: "170141183460469231731687303715884105727",
+      sender,
+      verified: true,
+    },
     expectedStatus: 200,
     expectedDecision: {
       allowed: true,

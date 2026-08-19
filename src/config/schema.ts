@@ -20,7 +20,9 @@ export const stellarContractIdSchema = z
   .min(1, "Contract ID cannot be empty")
   .refine(
     (val) => /^C[A-Z0-9]{55}$/.test(val) || val.startsWith("C_TEST_") || val.startsWith("C_DEV_"),
-    { message: "Must be a valid Stellar Soroban contract ID (C... 56 characters)" },
+    {
+      message: "Must be a valid Stellar Soroban contract ID (C... 56 characters)",
+    },
   );
 
 /**
@@ -75,6 +77,7 @@ export type RelayConfig = z.infer<typeof relayConfigSchema>;
 export const contractConfigSchema = z.object({
   registryContractId: z.string().min(1, "Registry contract ID cannot be empty"),
   postageContractId: z.string().min(1, "Postage contract ID cannot be empty"),
+  receiptsContractId: z.string().min(1, "Receipts contract ID cannot be empty"),
   domainTag: z.string().min(1, "Domain tag cannot be empty"),
   protocolVersion: z.string().min(1, "Protocol version cannot be empty"),
 });

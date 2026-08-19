@@ -176,6 +176,9 @@ export function loadRuntimeConfig(options: LoadConfigOptions = {}): BetaRuntimeC
   const postageContractId =
     (env.STEALTH_POSTAGE_CONTRACT_ID as string) ??
     "CBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB";
+  const receiptsContractId =
+    (env.STEALTH_RECEIPTS_CONTRACT_ID as string) ??
+    "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC";
   const domainTag = (env.STEALTH_DOMAIN_TAG as string) ?? "Stealth_Mail_Protocol";
   const protocolVersion = (env.STEALTH_PROTOCOL_VERSION as string) ?? "v1";
 
@@ -269,6 +272,11 @@ export function loadRuntimeConfig(options: LoadConfigOptions = {}): BetaRuntimeC
         "Configuration error: STEALTH_POSTAGE_CONTRACT_ID is required and cannot be a placeholder in production.",
       );
     }
+    if (isPlaceholderContractId(receiptsContractId) || !receiptsContractId) {
+      throw new Error(
+        "Configuration error: STEALTH_RECEIPTS_CONTRACT_ID is required and cannot be a placeholder in production.",
+      );
+    }
     if (!appUrl || appUrl.includes("localhost")) {
       throw new Error(
         "Configuration error: STEALTH_APP_URL must be a valid public origin in production.",
@@ -318,6 +326,7 @@ export function loadRuntimeConfig(options: LoadConfigOptions = {}): BetaRuntimeC
     contract: {
       registryContractId,
       postageContractId,
+      receiptsContractId,
       domainTag,
       protocolVersion,
     },
@@ -486,6 +495,7 @@ export function formatConfigMatrix(config: BetaRuntimeConfig): string {
     `[Contract]`,
     `  Registry Contract:     ${config.contract.registryContractId}`,
     `  Postage Contract:      ${config.contract.postageContractId}`,
+    `  Receipts Contract:     ${config.contract.receiptsContractId}`,
     `  Domain Tag:            ${config.contract.domainTag}`,
     `  Protocol Version:      ${config.contract.protocolVersion}`,
     `[Origin & CORS]`,

@@ -136,7 +136,10 @@ export function useCalendar() {
       id: `calendar-list-${Date.now()}`,
       visible: true,
     };
-    setSnapshot((current) => ({ ...current, calendars: [...current.calendars, next] }));
+    setSnapshot((current) => ({
+      ...current,
+      calendars: [...current.calendars, next],
+    }));
     return next;
   };
 

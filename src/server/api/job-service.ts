@@ -343,19 +343,31 @@ export async function abandonDeadLetter(
 // Receipt Event Indexing with Checkpoints & Gap Detection
 // ---------------------------------------------------------------------------
 
+export interface IndexReceiptOptions {
+  maxRewindLimit?: number;
+  allowRewind?: boolean;
+}
+
 export interface IndexReceiptResult {
   indexedCount: number;
   duplicateCount: number;
   gapsDetected: number;
+  rewindCount: number;
   checkpoint: ReceiptCheckpoint;
 }
+
+export const DEFAULT_MAX_REWIND_LIMIT = 100;
 
 export async function indexReceiptEvents(
   repository: ApiRepository,
   streamId: string,
   events: ReceiptEvent[],
   now = new Date(),
+  options: IndexReceiptOptions = {},
 ): Promise<IndexReceiptResult> {
+  const maxRewindLimit = options.maxRewindLimit ?? DEFAULT_MAX_REWIND_LIMIT;
+  const allowRewind = options.allowRewind ?? false;
+
   const existingCheckpoint = await repository.getReceiptCheckpoint(streamId);
   const checkpoint: ReceiptCheckpoint = existingCheckpoint ?? {
     streamId,
@@ -368,15 +380,27 @@ export async function indexReceiptEvents(
   let indexedCount = 0;
   let duplicateCount = 0;
   let gapsDetected = 0;
+  let rewindCount = 0;
 
   // Sort events strictly by sequence ascending
   const sortedEvents = [...events].sort((a, b) => a.sequence - b.sequence);
 
   for (const event of sortedEvents) {
-    // Duplicate suppression: sequence already <= lastSequence
+    // Check for sequence duplicate vs rewind
     if (event.sequence <= checkpoint.lastSequence) {
-      duplicateCount++;
-      continue;
+      if (allowRewind && event.sequence < checkpoint.lastSequence) {
+        const rewindDelta = checkpoint.lastSequence - event.sequence + 1;
+        if (rewindDelta <= maxRewindLimit) {
+          checkpoint.lastSequence = event.sequence - 1;
+          rewindCount += rewindDelta;
+        } else {
+          duplicateCount++;
+          continue;
+        }
+      } else {
+        duplicateCount++;
+        continue;
+      }
     }
 
     // Gap detection: sequence > lastSequence + 1
@@ -407,6 +431,7 @@ export async function indexReceiptEvents(
     indexedCount,
     duplicateCount,
     gapsDetected,
+    rewindCount,
     checkpoint: savedCheckpoint,
   };
 }

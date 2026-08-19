@@ -218,7 +218,9 @@ export class RewriteAnalytics {
     const hours: Record<string, number> = {};
     for (const event of this.events) {
       const date = new Date(event.timestamp);
-      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")} ${String(date.getHours()).padStart(2, "0")}:00`;
+      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(
+        date.getDate(),
+      ).padStart(2, "0")} ${String(date.getHours()).padStart(2, "0")}:00`;
       hours[key] = (hours[key] || 0) + 1;
     }
     return hours;

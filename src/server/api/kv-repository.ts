@@ -22,6 +22,7 @@ import type {
   JobStatus,
   KeyDirectoryRecord,
   MailboxPolicy,
+  MessageDeliveryStatusRecord,
   PolicyWriteIntent,
   Postage,
   PostageStatus,
@@ -38,6 +39,8 @@ import type {
   UsernameReservation,
   VerificationPurpose,
   VerificationToken,
+  ManagedWalletRecord,
+  FundingOperation,
   Wallet,
 } from "./domain";
 import { ApiError } from "./errors";
@@ -138,6 +141,18 @@ export class HybridApiRepository implements ApiRepository {
     await this.getStub().setReceipt(receipt);
     await this.kv.put(this.key("receipt", receipt.messageId), JSON.stringify(receipt));
     return receipt;
+  }
+
+  async getMessageDeliveryStatus(messageId: string): Promise<MessageDeliveryStatusRecord | null> {
+    const record = await this.kv.get(this.key("delivery-status", messageId), "json");
+    return (record as MessageDeliveryStatusRecord) ?? null;
+  }
+
+  async setMessageDeliveryStatus(
+    record: MessageDeliveryStatusRecord,
+  ): Promise<MessageDeliveryStatusRecord> {
+    await this.kv.put(this.key("delivery-status", record.messageId), JSON.stringify(record));
+    return record;
   }
 
   async createReceiptIfAbsent(receipt: Receipt): Promise<{ created: boolean; receipt: Receipt }> {
@@ -330,6 +345,7 @@ export class HybridApiRepository implements ApiRepository {
   }
 
   // Consistent layer delegated to Durable Object via RPC
+
   private getStub() {
     const id = this.coordinator.idFromName("global-stealth-coordinator");
     return this.coordinator.get(id);
@@ -543,6 +559,41 @@ export class HybridApiRepository implements ApiRepository {
     return record;
   }
 
+  async getManagedWallet(userId: string): Promise<ManagedWalletRecord | null> {
+    return this.getStub().getManagedWallet(userId);
+  }
+
+  async setManagedWallet(wallet: ManagedWalletRecord): Promise<ManagedWalletRecord> {
+    return this.getStub().setManagedWallet(wallet);
+  }
+
+  async createManagedWalletIfAbsent(
+    wallet: ManagedWalletRecord,
+  ): Promise<import("./repository").CreateManagedWalletResult> {
+    return this.getStub().createManagedWalletIfAbsent(wallet);
+  }
+
+  async getFundingOperation(operationId: string): Promise<FundingOperation | null> {
+    return this.getStub().getFundingOperation(operationId);
+  }
+
+  async setFundingOperation(operation: FundingOperation): Promise<FundingOperation> {
+    return this.getStub().setFundingOperation(operation);
+  }
+
+  async createFundingOperationIfAbsent(
+    operation: FundingOperation,
+  ): Promise<{ created: boolean; operation: FundingOperation }> {
+    return this.getStub().createFundingOperationIfAbsent(operation);
+  }
+
+  async listFundingOperations(filter?: {
+    status?: FundingOperation["status"];
+    limit?: number;
+  }): Promise<FundingOperation[]> {
+    return this.getStub().listFundingOperations(filter);
+  }
+
   // ---------------------------------------------------------------------------
   // Issue #1973 (BETA-066) — Live contacts CRUD
   //
@@ -691,5 +742,21 @@ export class HybridApiRepository implements ApiRepository {
 
   async setReceiptCheckpoint(checkpoint: ReceiptCheckpoint): Promise<ReceiptCheckpoint> {
     return this.getStub().setReceiptCheckpoint(checkpoint);
+  }
+
+  async getSendOperation(messageId: string): Promise<import("./domain").SendOperationState | null> {
+    return this.getStub().getSendOperation(messageId);
+  }
+
+  async setSendOperation(
+    state: import("./domain").SendOperationState,
+  ): Promise<import("./domain").SendOperationState> {
+    return this.getStub().setSendOperation(state);
+  }
+
+  async createSendOperationIfAbsent(
+    state: import("./domain").SendOperationState,
+  ): Promise<{ created: boolean; state: import("./domain").SendOperationState }> {
+    return this.getStub().createSendOperationIfAbsent(state);
   }
 }

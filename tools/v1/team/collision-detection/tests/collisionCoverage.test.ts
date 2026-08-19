@@ -41,7 +41,12 @@ describe("prepareCollisionInput — additional edge cases", () => {
 
   it("emits CANDIDATE_MISSING_ID for an object with no usable id and skips it", () => {
     const result = prepareCollisionInput([
-      { threadId: "t-1", recipient: "agent@team.test", subject: "Check-in", body: "On it." },
+      {
+        threadId: "t-1",
+        recipient: "agent@team.test",
+        subject: "Check-in",
+        body: "On it.",
+      },
     ]);
 
     expect(result.ok).toBe(true);
@@ -79,8 +84,18 @@ describe("prepareCollisionInput — additional edge cases", () => {
 describe("detectCollisions — additional scenarios", () => {
   it("falls back to 'Thread <threadId>' as the subject when no preview is provided", () => {
     const replies: ActiveReply[] = [
-      { userId: "u1", userName: "Alice", threadId: "thread-42", startedAt: "2026-07-01T09:00:00Z" },
-      { userId: "u2", userName: "Bob", threadId: "thread-42", startedAt: "2026-07-01T09:01:00Z" },
+      {
+        userId: "u1",
+        userName: "Alice",
+        threadId: "thread-42",
+        startedAt: "2026-07-01T09:00:00Z",
+      },
+      {
+        userId: "u2",
+        userName: "Bob",
+        threadId: "thread-42",
+        startedAt: "2026-07-01T09:01:00Z",
+      },
     ];
 
     const events = detectCollisions(replies);
@@ -115,10 +130,30 @@ describe("detectCollisions — additional scenarios", () => {
 
   it("produces a separate collision event for each independent thread group", () => {
     const replies: ActiveReply[] = [
-      { userId: "u1", userName: "Alice", threadId: "t-a", startedAt: "2026-07-01T09:00:00Z" },
-      { userId: "u2", userName: "Bob", threadId: "t-a", startedAt: "2026-07-01T09:01:00Z" },
-      { userId: "u3", userName: "Carol", threadId: "t-b", startedAt: "2026-07-01T09:00:00Z" },
-      { userId: "u4", userName: "Dave", threadId: "t-b", startedAt: "2026-07-01T09:01:00Z" },
+      {
+        userId: "u1",
+        userName: "Alice",
+        threadId: "t-a",
+        startedAt: "2026-07-01T09:00:00Z",
+      },
+      {
+        userId: "u2",
+        userName: "Bob",
+        threadId: "t-a",
+        startedAt: "2026-07-01T09:01:00Z",
+      },
+      {
+        userId: "u3",
+        userName: "Carol",
+        threadId: "t-b",
+        startedAt: "2026-07-01T09:00:00Z",
+      },
+      {
+        userId: "u4",
+        userName: "Dave",
+        threadId: "t-b",
+        startedAt: "2026-07-01T09:01:00Z",
+      },
     ];
 
     const events = detectCollisions(replies);

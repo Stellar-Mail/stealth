@@ -151,10 +151,16 @@ describe("metadata serialization", () => {
 
   it("fails closed on malformed numeric fields", () => {
     expect(() =>
-      deserializeMetadata({ ...serializeMetadata(validMetadata()), contentLength: "NaN" }),
+      deserializeMetadata({
+        ...serializeMetadata(validMetadata()),
+        contentLength: "NaN",
+      }),
     ).toThrow(ObjectStoreError);
     expect(() =>
-      deserializeMetadata({ ...serializeMetadata(validMetadata()), contentLength: "-5" }),
+      deserializeMetadata({
+        ...serializeMetadata(validMetadata()),
+        contentLength: "-5",
+      }),
     ).toThrow(ObjectStoreError);
   });
 
@@ -175,7 +181,11 @@ describe("integrity verification", () => {
     const bytes = new Uint8Array([1, 2, 3, 4]);
     const commitment = await createObjectCommitment(bytes);
     await expect(
-      verifyObjectIntegrity({ bytes, contentLength: bytes.length, contentCommitment: commitment }),
+      verifyObjectIntegrity({
+        bytes,
+        contentLength: bytes.length,
+        contentCommitment: commitment,
+      }),
     ).resolves.toBeUndefined();
   });
 

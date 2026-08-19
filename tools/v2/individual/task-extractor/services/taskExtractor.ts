@@ -89,7 +89,11 @@ const ISO_DATE_PATTERN = /\b(\d{4})-(\d{2})-(\d{2})\b/;
 const DUE_PHRASE_PATTERN =
   /\b(?:by|before|due(?:\s+on)?|until)\s+(end\s+of\s+(?:day|week)|eod|eow|today|tomorrow|monday|tuesday|wednesday|thursday|friday|saturday|sunday|next\s+week)\b/i;
 
-const CONFIDENCE_RANK: Record<TaskConfidence, number> = { low: 0, medium: 1, high: 2 };
+const CONFIDENCE_RANK: Record<TaskConfidence, number> = {
+  low: 0,
+  medium: 1,
+  high: 2,
+};
 
 const MILLISECONDS_PER_DAY = 86_400_000;
 
@@ -153,7 +157,9 @@ function detectDueHints(text: string, receivedAt: string | undefined): DueHints 
     return { dueAtHint: toIsoDate(new Date(receivedAt).getTime()) };
   }
   if (receivedAt !== undefined && phrase === "tomorrow") {
-    return { dueAtHint: toIsoDate(new Date(receivedAt).getTime() + MILLISECONDS_PER_DAY) };
+    return {
+      dueAtHint: toIsoDate(new Date(receivedAt).getTime() + MILLISECONDS_PER_DAY),
+    };
   }
   return { dueTextHint: phrase };
 }
@@ -218,7 +224,13 @@ function matchLine(line: string, source: TaskSource): Candidate | undefined {
     };
   }
   if (ACTION_VERBS.has(firstWord(line))) {
-    return { text: line, source, trigger: "imperative-line", confidence: "low", contextLine: line };
+    return {
+      text: line,
+      source,
+      trigger: "imperative-line",
+      confidence: "low",
+      contextLine: line,
+    };
   }
   return undefined;
 }

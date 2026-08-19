@@ -59,6 +59,7 @@ export const ROUTE_BODY_LIMITS = {
   "POST /contacts/import/commit": "bulk",
   "POST /requests": "standard",
   "POST /requests/{requestId}/decisions": "compact",
+  "POST /send/coordinate": "standard",
 } as const satisfies Record<string, BodyLimitCategory>;
 
 export type RouteBodyLimitKey = keyof typeof ROUTE_BODY_LIMITS;

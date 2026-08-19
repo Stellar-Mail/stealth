@@ -78,7 +78,11 @@ const service = new NoteService([], { delayMs: 0 });
 const contract = createNotesContract(service);
 const res = await contract.execute({
   operation: "create",
-  input: { contactId: "contact-acme", content: "Prefers async updates.", authorId: "user-ada" },
+  input: {
+    contactId: "contact-acme",
+    content: "Prefers async updates.",
+    authorId: "user-ada",
+  },
 });
 if (res.ok && res.value.operation === "create") {
   // res.value.note has the persisted note
