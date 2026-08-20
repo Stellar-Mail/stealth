@@ -1,9 +1,10 @@
 /**
- * Send pipeline integration (BETA-048 / #1954). Drives the full 9-stage versioned pipeline
- * (resolve -> quote -> encrypt -> sign -> escrow -> persist -> submit -> anchor -> reconcile)
- * with injected seams (signer, key resolver, quote fetcher, escrow submitter, receipt anchorer)
- * and a stubbed relay transport so the happy path, failure recovery, proof references, versioning,
- * and idempotency are fully verified.
+ * Send pipeline integration (BETA-046 / BETA-057 / #1958). Drives the full staged pipeline
+ * (resolve -> encrypt -> sign -> postage -> persist -> submit -> reconcile)
+ * with injected seams (signer, key resolver) and a stubbed relay transport so
+ * the happy path, every recipient-rejection scenario, wallet failures, binding
+ * enforcement, idempotency, cancellation, and resume are exercised without a wallet or
+ * network.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { SendPipeline, type StageState } from "../../../src/features/compose/sendPipeline";
@@ -131,8 +132,8 @@ async function validPipeline(opts: {
   return { pipeline, pairs, directories };
 }
 
-describe("send pipeline (BETA-048 / #1954)", () => {
-  it("executes the full 9-stage workflow on the happy path with proof references and versioning", async () => {
+describe("send pipeline (#1953 / #1958)", () => {
+  it("seals, signs, and submits for multiple recipients on the happy path", async () => {
     const { pipeline } = await validPipeline({ recipientKeys: [ALICE, BOB] });
 
     const outcome = await pipeline.run();
@@ -141,12 +142,7 @@ describe("send pipeline (BETA-048 / #1954)", () => {
     if (!outcome.ok) return;
     expect(outcome.delivered).toBe(true);
     expect(outcome.state).toBe("ACKNOWLEDGED");
-    expect(outcome.version).toBe(1);
-    expect(outcome.proofReferences).toBeDefined();
-    expect(outcome.proofReferences.relayMessageId).toBe(pipeline.messageId);
-    expect(outcome.proofReferences.postagePaymentHash).toBe(`pay-${pipeline.messageId}`);
-    expect(outcome.proofReferences.receiptId).toBe(`rcpt-${pipeline.messageId}`);
-    expect(outcome.proofReferences.anchorTxHash).toBe(`tx-${pipeline.messageId}`);
+    expect(outcome.supportId).toMatch(/^supp-/);
 
     const stages = pipeline.getStages();
     expect(stages.map((s) => s.id)).toEqual([
@@ -189,8 +185,10 @@ describe("send pipeline (BETA-048 / #1954)", () => {
 
     expect(outcome.ok).toBe(false);
     if (outcome.ok) return;
-    expect(outcome.stage).toBe("quote");
-    expect(outcome.reason).toBe("quote_rejected");
+    expect(outcome.stage).toBe("resolve");
+    expect(outcome.reason).toBe("recipient_rejected");
+    expect(outcome.canRetry).toBe(false);
+    expect(outcome.isCommitted).toBe(false);
   });
 
   it("reports escrow_failed when postage escrow fails", async () => {
@@ -239,7 +237,8 @@ describe("send pipeline (BETA-048 / #1954)", () => {
     if (outcome.ok) return;
     expect(outcome.reason).toBe("wallet_rejected");
     expect(outcome.stage).toBe("sign");
-    expect(escrowSpy).not.toHaveBeenCalled();
+    expect(outcome.canRetry).toBe(true);
+    expect(outcome.isCommitted).toBe(false);
   });
 
   it("reports wallet_unavailable when the wallet is not detected", async () => {
@@ -256,6 +255,7 @@ describe("send pipeline (BETA-048 / #1954)", () => {
     if (outcome.ok) return;
     expect(outcome.reason).toBe("wallet_unavailable");
     expect(outcome.stage).toBe("sign");
+    expect(outcome.canRetry).toBe(true);
   });
 
   it("fails the sign stage when the wallet signer does not match the sender", async () => {
@@ -299,5 +299,84 @@ describe("send pipeline (BETA-048 / #1954)", () => {
     if (!outcome2.ok) return;
     expect(outcome2.delivered).toBe(true);
     expect(outcome2.proofReferences.relayMessageId).toBe(pipeline.messageId);
+  });
+
+  it("concurrent invocations share the same execution promise without double-submitting", async () => {
+    const { pipeline } = await validPipeline({ recipientKeys: [ALICE] });
+
+    // Call run twice concurrently (simulating rapid double clicks)
+    const [outcome1, outcome2] = await Promise.all([pipeline.run(), pipeline.run()]);
+
+    expect(outcome1.ok).toBe(true);
+    expect(outcome2.ok).toBe(true);
+    expect(outcome1).toBe(outcome2);
+  });
+
+  it("allows cancelling the pipeline before irreversible submit commitment", async () => {
+    let resolveSignPromise: (sig: WalletSignature) => void;
+    const pendingSignPromise = new Promise<WalletSignature>((res) => {
+      resolveSignPromise = res;
+    });
+
+    const { pipeline } = await validPipeline({
+      recipientKeys: [ALICE],
+      signer: async () => pendingSignPromise,
+    });
+
+    // Start send in background
+    const sendPromise = pipeline.run();
+
+    // Cancel while waiting for wallet signature
+    const cancelResult = pipeline.cancel();
+    expect(cancelResult.success).toBe(true);
+    expect(pipeline.isCancelled()).toBe(true);
+
+    // Complete the pending signature
+    resolveSignPromise!({
+      scheme: "Ed25519",
+      signerAddress: SENDER,
+      value: "00".repeat(64),
+    });
+
+    const outcome = await sendPromise;
+    expect(outcome.ok).toBe(false);
+    if (outcome.ok) return;
+    expect(outcome.code).toBe("ERR_CANCELLED");
+  });
+
+  it("reconstitutes and resumes stages from an OutboxEntry", async () => {
+    const { pipeline } = await validPipeline({ recipientKeys: [ALICE] });
+    const stages = pipeline.getStages();
+    stages[0].status = "done";
+    stages[1].status = "done";
+    stages[2].status = "done";
+
+    const resumedPipeline = SendPipeline.fromPersisted(
+      {
+        id: "msg-persisted-12345",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        subject: "Resumed draft",
+        recipients: [ALICE],
+        sender: SENDER,
+        status: "queued",
+        attempts: 1,
+        stages: stages.map((s) => ({ ...s })),
+      },
+      {
+        sender: SENDER,
+        to: ALICE,
+        subject: "Resumed draft",
+        body: "Restored content",
+        recipients: [{ address: ALICE, account: ALICE }],
+      },
+      vi.fn(),
+      { signer: signerFor().signer },
+    );
+
+    expect(resumedPipeline.messageId).toBe("msg-persisted-12345");
+    expect(resumedPipeline.getStages()[0].status).toBe("done");
+    expect(resumedPipeline.getStages()[1].status).toBe("done");
+    expect(resumedPipeline.getStages()[2].status).toBe("done");
   });
 });

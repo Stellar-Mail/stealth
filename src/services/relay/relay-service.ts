@@ -265,11 +265,7 @@ export class RelayService {
     }
 
     if (!this.admission) {
-      throw new ApiError(
-        503,
-        "dependency_unavailable",
-        "Relay policy admission is not configured",
-      );
+      throw new ApiError(503, "dependency_unavailable", "Relay policy admission is not configured");
     }
 
     const evidence = await this.admission.evaluate({

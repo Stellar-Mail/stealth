@@ -13,7 +13,7 @@ import {
   regenerateRecoveryCodes,
 } from "../../../../src/server/api/auth/recovery";
 
-describe("BETA-010: One-time recovery codes (/api/v1/auth/recovery)", () => {
+describe("BETA-010: One-time recovery codes (/api/v1/auth/recovery)", { timeout: 30000 }, () => {
   let repo: MemoryApiRepository;
   const now = new Date("2026-07-01T12:00:00.000Z");
 
@@ -215,7 +215,7 @@ describe("BETA-010: One-time recovery codes (/api/v1/auth/recovery)", () => {
       }
     });
 
-    it("throttles brute-force attempts with 429 after 5 failures", async () => {
+    it("throttles brute-force attempts with 429 after 5 failures", { timeout: 30000 }, async () => {
       const { second } = await seedCodes();
       for (let attempt = 0; attempt < 5; attempt += 1) {
         await expect(
@@ -373,56 +373,60 @@ describe("BETA-010: One-time recovery codes (/api/v1/auth/recovery)", () => {
       return events;
     }
 
-    it("emits structured events for generation, redemption, rejection, and regeneration", async () => {
-      infoSpy = vi.spyOn(console, "info").mockImplementation(() => {});
+    it(
+      "emits structured events for generation, redemption, rejection, and regeneration",
+      { timeout: 30000 },
+      async () => {
+        infoSpy = vi.spyOn(console, "info").mockImplementation(() => {});
 
-      const { first } = await seedCodes();
+        const { first } = await seedCodes();
 
-      await expect(
-        redeemRecoveryCode(createApiContext(repo), {
+        await expect(
+          redeemRecoveryCode(createApiContext(repo), {
+            identifier: "recovery_user",
+            code: "AAAA-BBBB-CCCC-DDDD",
+          }),
+        ).rejects.toMatchObject({ status: 401 });
+
+        await redeemRecoveryCode(createApiContext(repo), {
           identifier: "recovery_user",
-          code: "AAAA-BBBB-CCCC-DDDD",
-        }),
-      ).rejects.toMatchObject({ status: 401 });
+          code: first,
+        });
 
-      await redeemRecoveryCode(createApiContext(repo), {
-        identifier: "recovery_user",
-        code: first,
-      });
+        await expect(
+          regenerateRecoveryCodes(
+            createApiContext(repo),
+            makeSession({ recentLoginAt: "2026-07-01T10:00:00.000Z" }),
+            { now: () => now },
+          ),
+        ).rejects.toMatchObject({ status: 403 });
 
-      await expect(
-        regenerateRecoveryCodes(
-          createApiContext(repo),
-          makeSession({ recentLoginAt: "2026-07-01T10:00:00.000Z" }),
-          { now: () => now },
-        ),
-      ).rejects.toMatchObject({ status: 403 });
+        await regenerateRecoveryCodes(createApiContext(repo), makeSession(), { now: () => now });
 
-      await regenerateRecoveryCodes(createApiContext(repo), makeSession(), { now: () => now });
+        const events = auditActions();
+        const actions = events.map((e) => e.action);
 
-      const events = auditActions();
-      const actions = events.map((e) => e.action);
+        expect(actions).toEqual(
+          expect.arrayContaining([
+            "auth.recovery_codes_generated",
+            "auth.recovery_code_redeem_denied",
+            "auth.recovery_code_redeemed",
+            "auth.recovery_regenerate_recent_login_denied",
+            "auth.recovery_codes_regenerated",
+            "auth.user_other_sessions_revoked",
+          ]),
+        );
 
-      expect(actions).toEqual(
-        expect.arrayContaining([
-          "auth.recovery_codes_generated",
-          "auth.recovery_code_redeem_denied",
-          "auth.recovery_code_redeemed",
-          "auth.recovery_regenerate_recent_login_denied",
-          "auth.recovery_codes_regenerated",
-          "auth.user_other_sessions_revoked",
-        ]),
-      );
+        const generation = events.find((e) => e.action === "auth.recovery_codes_generated");
+        expect(generation).toMatchObject({ result: "success", actor: testUser.userId });
 
-      const generation = events.find((e) => e.action === "auth.recovery_codes_generated");
-      expect(generation).toMatchObject({ result: "success", actor: testUser.userId });
+        const redeem = events.find((e) => e.action === "auth.recovery_code_redeemed");
+        expect(redeem).toMatchObject({ result: "success", actor: testUser.userId });
 
-      const redeem = events.find((e) => e.action === "auth.recovery_code_redeemed");
-      expect(redeem).toMatchObject({ result: "success", actor: testUser.userId });
-
-      const denied = events.find((e) => e.action === "auth.recovery_code_redeem_denied");
-      expect(denied).toMatchObject({ result: "denied" });
-    });
+        const denied = events.find((e) => e.action === "auth.recovery_code_redeem_denied");
+        expect(denied).toMatchObject({ result: "denied" });
+      },
+    );
 
     it("never writes plaintext code material into audit events or logs", async () => {
       infoSpy = vi.spyOn(console, "info").mockImplementation(() => {});

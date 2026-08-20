@@ -5,7 +5,7 @@
 // preferences) and the existing visual chrome. The root route only mounts this.
 // ---------------------------------------------------------------------------
 
-import { useCallback, useEffect } from "react";
+import { lazy, Suspense, useCallback, useEffect } from "react";
 import { MotionConfig } from "framer-motion";
 
 import { AmbientBackground } from "@/components/mail/AmbientBackground";
@@ -23,9 +23,8 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/componen
 import { useCalendar } from "@/features/calendar";
 import { FeedbackViewport } from "@/features/design-system/feedback/feedback-viewport";
 import { useFeedback } from "@/features/design-system/feedback/use-feedback";
+import { DegradedStateBanner } from "@/features/design-system/feedback/DegradedStateBanner";
 import { useLayoutPreferences, usePreferences } from "@/features/preferences";
-import { RequestsTriageBoard } from "@/features/requests";
-import { SenderJourney } from "@/features/sender-journey";
 import { useSenderConversion } from "@/features/sender-conversion";
 import { useSnooze } from "@/features/snooze";
 import { useNotificationCenter } from "@/features/notifications";
@@ -41,6 +40,17 @@ import { useRequests } from "../useRequests";
 import { useThreadRead } from "../useThreadRead";
 import { MailMailboxStatus } from "./MailMailboxStatus";
 import { MailOverlayStack } from "./MailOverlayStack";
+import { offlineAppFailure } from "@/lib/api";
+
+// BETA-074 (Issue #1981) — the requests triage board and the sender journey are
+// large feature surfaces only shown on demand. Loading them as async chunks
+// keeps them out of the initial mail shell bundle.
+const RequestsTriageBoard = lazy(() =>
+  import("@/features/requests").then((m) => ({ default: m.RequestsTriageBoard })),
+);
+const SenderJourney = lazy(() =>
+  import("@/features/sender-journey").then((m) => ({ default: m.SenderJourney })),
+);
 
 export interface MailAppProps {
   isDemoMode?: boolean;
@@ -163,7 +173,9 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
   if (overlays.showSenderJourney) {
     return (
       <div className="h-screen">
-        <SenderJourney />
+        <Suspense fallback={null}>
+          <SenderJourney />
+        </Suspense>
         <button
           onClick={() => overlays.setShowSenderJourney(false)}
           className="fixed top-4 left-4 rounded-lg border border-white/10 bg-black/50 px-4 py-2 text-xs text-white/80 hover:bg-black/70 z-50"
@@ -269,6 +281,15 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
                 onMarkNotificationRead={notificationCenter.markRead}
                 onMarkAllNotificationsRead={notificationCenter.markAllRead}
               />
+              {source.connectivity.paused &&
+              source.sourceView.kind !== "error" &&
+              !blockingSource ? (
+                <DegradedStateBanner
+                  failure={offlineAppFailure()}
+                  compact
+                  onRetry={() => void source.retry()}
+                />
+              ) : null}
               {source.sourceView.kind === "error" && source.sourceView.hasCachedData ? (
                 <MailMailboxStatus
                   view={source.sourceView}
@@ -285,11 +306,13 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
                     onSignIn={() => overlays.setAuthModalOpen(true)}
                   />
                 ) : navigation.folder === "requests" ? (
-                  <RequestsTriageBoard
-                    emails={source.emails}
-                    onUpdateEmail={source.updateEmail}
-                    onShowToast={showToast}
-                  />
+                  <Suspense fallback={null}>
+                    <RequestsTriageBoard
+                      emails={source.emails}
+                      onUpdateEmail={source.updateEmail}
+                      onShowToast={showToast}
+                    />
+                  </Suspense>
                 ) : (
                   <ResizablePanelGroup
                     direction="horizontal"

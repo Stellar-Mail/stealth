@@ -37,6 +37,7 @@ import type {
   ManagedWalletRecord,
   FundingOperation,
   Wallet,
+  OnboardingDraftRecord,
 } from "./domain";
 import type {
   ApiRepository,
@@ -106,6 +107,8 @@ export class MemoryApiRepository implements ApiRepository {
   private readonly provisioning = new Map<string, ProvisioningRecord>();
   private readonly usernameReservations = new Map<string, UsernameReservation>();
   private readonly wallets = new Map<string, Wallet>();
+  // BETA-013: Durable server-backed onboarding drafts (one record per user)
+  private readonly onboardingDrafts = new Map<string, OnboardingDraftRecord>();
   private readonly keyLocks = new Map<string, Promise<void>>();
 
   private async withKeyLock<T>(lockKey: string, action: () => Promise<T>): Promise<T> {
@@ -618,6 +621,20 @@ export class MemoryApiRepository implements ApiRepository {
       };
       this.provisioning.set(record.userId, structuredClone(next));
       return { updated: true, record: structuredClone(next) };
+    });
+  }
+
+  // BETA-013: Durable server-backed onboarding drafts.
+  // Keyed by userId so duplicate saves can never create duplicates and every
+  // device resumes from the same authoritative record.
+  async getOnboardingDraft(userId: string): Promise<OnboardingDraftRecord | null> {
+    return structuredClone(this.onboardingDrafts.get(userId) ?? null);
+  }
+
+  async saveOnboardingDraft(record: OnboardingDraftRecord): Promise<OnboardingDraftRecord> {
+    return this.withKeyLock(`onboarding:${record.userId}`, async () => {
+      this.onboardingDrafts.set(record.userId, structuredClone(record));
+      return structuredClone(record);
     });
   }
 
@@ -1518,6 +1535,7 @@ export class MemoryApiRepository implements ApiRepository {
     this.provisioning.clear();
     this.usernameReservations.clear();
     this.wallets.clear();
+    this.onboardingDrafts.clear();
     this.keyLocks.clear();
     this.sessions.clear();
     this.retiredSessions.clear();

@@ -53,7 +53,12 @@ describe("KvRelayPersistence admission", () => {
       ...first,
       payloadStored: true,
       payloadKey: "must-not-win",
-      admission: { ...first.admission, allowed: true, disposition: "trusted", reason: "sender_allowed" },
+      admission: {
+        ...first.admission,
+        allowed: true,
+        disposition: "trusted",
+        reason: "sender_allowed",
+      },
     });
     expect(retry.duplicate).toBe(true);
     expect(retry.record).toEqual(first);

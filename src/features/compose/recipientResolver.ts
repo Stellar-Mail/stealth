@@ -190,13 +190,16 @@ export async function resolveRecipient(
     };
   }
 
-  // If verified, validate the key status via key directory (best-effort).
-  // A network error or missing directory does NOT downgrade verified state —
-  // the send pipeline re-validates keys before sealing the envelope.
-  if (readiness.state === "verified" && readiness.resolvedAccount) {
+  // Validate the key status via key directory if we have a known account or Stellar address format
+  const targetAccount =
+    readiness.resolvedAccount ??
+    (isStellarFormat(normalized) ? normalized.toUpperCase() : undefined);
+
+  if (targetAccount && (readiness.state === "verified" || isStellarFormat(normalized))) {
     try {
-      const keyDir = await fetchKeyDirectory(readiness.resolvedAccount, signal);
+      const keyDir = await fetchKeyDirectory(targetAccount, signal);
       if (keyDir) {
+        readiness.resolvedAccount = targetAccount;
         const encKey = keyDir.currentKeys?.encryption;
         if (encKey) {
           if (encKey.status === "revoked") {
@@ -210,6 +213,9 @@ export async function resolveRecipient(
             readiness.message = "Recipient encryption key is retired";
             readiness.policyType = "block";
           } else if (encKey.status === "active") {
+            if (readiness.state === "unknown") {
+              readiness.state = "verified";
+            }
             readiness.keyStatus = "active";
             readiness.encryptionKey = encKey.publicKey;
           } else {
@@ -221,7 +227,7 @@ export async function resolveRecipient(
           readiness.keyStatus = "missing";
           readiness.message = "No active encryption key published for recipient";
         }
-      } else {
+      } else if (readiness.state === "verified") {
         // Directory unreachable — keep verified, flag key check as unavailable
         readiness.keyStatus = "unavailable";
       }
@@ -229,8 +235,10 @@ export async function resolveRecipient(
       if (err instanceof DOMException && err.name === "AbortError") {
         throw err;
       }
-      // Network/timeout error — keep verified, flag key check as unavailable
-      readiness.keyStatus = "unavailable";
+      // Network/timeout error — keep verified if already verified, flag key check as unavailable
+      if (readiness.state === "verified") {
+        readiness.keyStatus = "unavailable";
+      }
     }
   }
 

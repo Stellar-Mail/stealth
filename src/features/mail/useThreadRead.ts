@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import type { Email } from "@/components/mail/data";
 import { queryKeys, sharedTypedApi as api } from "@/lib/api";
+import { useConnectivity } from "./useConnectivity";
 import type { MailboxSealedMessage } from "@/lib/api";
 import { applyThreadMessageToEmail, buildMailThread, siblingMessageIds } from "./live-thread";
 import { getMailboxKeyProvider } from "./mailbox-keys";
@@ -41,12 +42,15 @@ export function useThreadRead({
     () => (selectedId ? siblingMessageIds(emails, selectedId) : []),
     [emails, selectedId],
   );
+  const connectivity = useConnectivity();
   const live = Boolean(enabled && actor && selectedId && !isDemoMode);
   const threadKey = queryKeys.mailbox.thread(actor ?? "anonymous");
 
   const query = useQuery({
     queryKey: [...threadKey, selectedId, messageIds],
     enabled: live,
+    retry: connectivity.online ? 2 : 0,
+    refetchOnWindowFocus: !connectivity.paused,
     queryFn: async ({ signal }) => {
       if (!selectedId || !actor) throw new Error("missing selection");
       const selected = await api.mailbox.getMessage(selectedId, signal);
@@ -85,10 +89,7 @@ export function useThreadRead({
     : threadError
       ? {
           kind: "error",
-          failure: classifyMailSourceError(
-            threadError,
-            typeof navigator === "undefined" ? true : navigator.onLine,
-          ),
+          failure: classifyMailSourceError(threadError, connectivity.online),
         }
       : threadPending || (!thread && threadFetching)
         ? { kind: "loading" }

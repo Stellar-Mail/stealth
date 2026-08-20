@@ -93,7 +93,14 @@ export function createPostageClient(opts: PostageClientOptions): contract.Client
     networkPassphrase: opts.networkPassphrase,
     rpcUrl: opts.rpcUrl,
     ...(opts.publicKey ? { publicKey: opts.publicKey } : {}),
-    ...(opts.signer ? { signTransaction: Keypair.fromSecret(opts.signer) } : {}),
+    ...(opts.signer
+      ? {
+          signTransaction: contract.basicNodeSigner(
+            Keypair.fromSecret(opts.signer),
+            opts.networkPassphrase,
+          ).signTransaction,
+        }
+      : {}),
   });
 }
 
@@ -168,12 +175,7 @@ export async function submit(
   recipient: string,
   amount: bigint,
 ): Promise<contract.Ok<Postage> | contract.Err<{ message: string }>> {
-  const tx = await (client as any).submit({
-    message_id,
-    sender,
-    recipient,
-    amount,
-  });
+  const tx = await (client as any).submit({ message_id, sender, recipient, amount });
   return tx.result;
 }
 

@@ -12,10 +12,17 @@ export default defineConfig({
   test: {
     environment: "node",
     globals: true,
+    // Primary CI target: unit tests.
+    // Integration, contract, and live-beta suites can be run with:
+    //   npx vitest run tests/integration
+    //   npx vitest run tests/contracts
+    //   npx vitest run tests/e2e/live-beta
     include: [
       "tests/unit/**/*.test.ts",
       "tests/unit/**/*.test.tsx",
-      "tests/integration/stellar/**/*.test.ts",
+      "tests/integration/**/*.test.ts",
+      "tests/contracts/**/*.test.ts",
+      "tests/e2e/live-beta/**/*.test.ts",
     ],
   },
 });

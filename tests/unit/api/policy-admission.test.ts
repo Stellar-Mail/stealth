@@ -32,9 +32,7 @@ const pricedPolicy: ChainMailboxPolicy = {
   minimumPostage: "500",
 };
 
-function snapshot(
-  overrides: Partial<AdmissionPolicySnapshot> = {},
-): AdmissionPolicySnapshot {
+function snapshot(overrides: Partial<AdmissionPolicySnapshot> = {}): AdmissionPolicySnapshot {
   return {
     policy: requestPolicy,
     version: 1,
@@ -46,11 +44,14 @@ function snapshot(
 
 describe("evaluateAdmissionDecision (contract-faithful)", () => {
   it("trusted: explicit allow bypasses verification and postage", () => {
-    const decision = evaluateAdmissionDecision(snapshot({ rule: "allow", policy: verifiedPolicy }), {
-      postage: "0",
-      verified: false,
-      receipt: false,
-    });
+    const decision = evaluateAdmissionDecision(
+      snapshot({ rule: "allow", policy: verifiedPolicy }),
+      {
+        postage: "0",
+        verified: false,
+        receipt: false,
+      },
+    );
     expect(decision).toMatchObject({
       allowed: true,
       reason: "sender_allowed",
@@ -219,7 +220,12 @@ describe("toAdmissionEvidence", () => {
       verified: false,
       receipt: false,
     });
-    const evidence = toAdmissionEvidence(decision, requestPolicy, "chain", "2026-08-19T21:00:00.000Z");
+    const evidence = toAdmissionEvidence(
+      decision,
+      requestPolicy,
+      "chain",
+      "2026-08-19T21:00:00.000Z",
+    );
     expect(evidence).toEqual({
       allowed: true,
       disposition: "trusted",
@@ -235,7 +241,9 @@ describe("toAdmissionEvidence", () => {
   });
 
   it("maps three-field API policy onto the on-chain shape", () => {
-    expect(toAdmissionPolicy({ allowUnknown: true, requireVerified: false, minimumPostage: "1" })).toEqual({
+    expect(
+      toAdmissionPolicy({ allowUnknown: true, requireVerified: false, minimumPostage: "1" }),
+    ).toEqual({
       allowUnknown: true,
       requireVerified: false,
       requireReceipt: false,

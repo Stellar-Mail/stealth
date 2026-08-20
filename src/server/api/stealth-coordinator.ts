@@ -25,6 +25,7 @@ import type {
   VerificationPurpose,
   VerificationToken,
   Wallet,
+  OnboardingDraftRecord,
 } from "./domain";
 import type {
   AcquireIdempotencyResult,
@@ -501,6 +502,22 @@ export class StealthCoordinator extends DurableObjectBase {
       }
       await this.ctx.storage.put(`policy-init:${normOwner}`, policy);
       return { created: true, policy };
+    });
+  }
+
+  // BETA-013: Durable server-backed onboarding drafts. Exactly one record per
+  // user; duplicate saves overwrite in place so no duplicates can accumulate.
+  async getOnboardingDraft(userId: string): Promise<OnboardingDraftRecord | null> {
+    const record = (await this.ctx.storage.get(`onboarding:${userId}`)) as
+      | OnboardingDraftRecord
+      | undefined;
+    return record ?? null;
+  }
+
+  async saveOnboardingDraft(record: OnboardingDraftRecord): Promise<OnboardingDraftRecord> {
+    return this.runExclusive(`onboarding:${record.userId}`, async () => {
+      await this.ctx.storage.put(`onboarding:${record.userId}`, record);
+      return record;
     });
   }
 

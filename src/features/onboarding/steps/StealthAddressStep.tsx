@@ -2,37 +2,38 @@ import { Check, Copy, Mail } from "lucide-react";
 import { useState } from "react";
 
 type Props = {
-  walletAddress: string;
+  mailboxAddress: string;
   onAdvance: () => void;
   onRetreat: () => void;
 };
 
 /**
- * Step 3: Mailbox Address
+ * Step 2: Stealth address (BETA-013)
  *
- * Displays the user's Stellar G-address as their Stealth mailbox identifier.
- * Provides a copy button so the address can be shared with contacts.
+ * The account's mailbox address is issued by the server — it is not a
+ * wallet extension address. Provides a copy button so the address can be
+ * shared with contacts.
  */
-export function AddressStep({ walletAddress, onAdvance, onRetreat }: Props) {
+export function StealthAddressStep({ mailboxAddress, onAdvance, onRetreat }: Props) {
   const [copied, setCopied] = useState(false);
 
   function handleCopy() {
-    navigator.clipboard.writeText(walletAddress).then(() => {
+    navigator.clipboard.writeText(mailboxAddress).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
   }
 
   // Show first 8 and last 6 characters with ellipsis for the label
-  const short = `${walletAddress.slice(0, 8)}…${walletAddress.slice(-6)}`;
+  const short = `${mailboxAddress.slice(0, 8)}…${mailboxAddress.slice(-6)}`;
 
   return (
     <div className="space-y-6">
       <div className="space-y-1">
         <h2 className="text-base font-semibold text-foreground">Your mailbox address</h2>
         <p className="text-sm text-muted-foreground">
-          Your Stealth address is your Stellar public key. Share it with senders so they can deliver
-          mail to you on-chain.
+          Your Stealth address is issued with your account. Share it with senders so they can
+          deliver mail to you on-chain.
         </p>
       </div>
 
@@ -42,7 +43,7 @@ export function AddressStep({ walletAddress, onAdvance, onRetreat }: Props) {
           <span className="text-xs uppercase tracking-wide">Stealth address</span>
         </div>
         <p className="font-mono text-sm text-foreground break-all leading-relaxed">
-          {walletAddress}
+          {mailboxAddress}
         </p>
         <button
           type="button"

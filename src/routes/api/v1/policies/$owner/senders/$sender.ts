@@ -68,12 +68,7 @@ export const Route = createFileRoute("/api/v1/policies/$owner/senders/$sender")(
           return apiSuccess(
             request,
             await (async () => {
-              const result = await setSenderRule(
-                context.repository,
-                owner,
-                sender,
-                "default",
-              );
+              const result = await setSenderRule(context.repository, owner, sender, "default");
               await syncSenderRuleWrite(
                 context.repository,
                 owner,

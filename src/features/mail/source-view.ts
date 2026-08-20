@@ -3,12 +3,7 @@
 // Pure so the shell can render truthful live state without fake delays.
 // ---------------------------------------------------------------------------
 
-import {
-  errorLabel,
-  isApiClientError,
-  normalizeApiClientError,
-  type ApiClientError,
-} from "@/lib/api";
+import { classifyAppFailure, type ApiClientError, type AppFailureAction } from "@/lib/api";
 
 export type MailSourceKind = "loading" | "ready" | "empty" | "error";
 
@@ -19,6 +14,8 @@ export type MailSourceFailureKind =
   | "timeout"
   | "rate_limited"
   | "dependency_failure"
+  | "dependency_down"
+  | "conflict"
   | "unknown";
 
 export interface ClassifiedMailSourceError {
@@ -26,6 +23,8 @@ export interface ClassifiedMailSourceError {
   message: string;
   retryable: boolean;
   error: ApiClientError;
+  supportId?: string;
+  actions?: AppFailureAction[];
 }
 
 export type MailSourceView =
@@ -53,73 +52,21 @@ export interface MailSourceSignals {
 }
 
 export function classifyMailSourceError(error: unknown, online = true): ClassifiedMailSourceError {
-  const normalized = normalizeApiClientError(error);
-  const message = errorLabel(normalized).toLowerCase();
-  const raw = `${normalized.code} ${normalized.message} ${message}`.toLowerCase();
-
-  if (!online || raw.includes("offline") || raw.includes("network")) {
-    return {
-      kind: "offline",
-      message: "You appear to be offline. Check your connection and retry.",
-      retryable: true,
-      error: normalized,
-    };
-  }
-
-  if (normalized.code === "unauthorized") {
-    return {
-      kind: "unauthorized",
-      message: errorLabel(normalized),
-      retryable: false,
-      error: normalized,
-    };
-  }
-
-  if (normalized.code === "session_expired") {
-    return {
-      kind: "session_expired",
-      message: errorLabel(normalized),
-      retryable: false,
-      error: normalized,
-    };
-  }
-
-  if (normalized.code === "rate_limited") {
-    return {
-      kind: "rate_limited",
-      message: errorLabel(normalized),
-      retryable: true,
-      error: normalized,
-    };
-  }
-
-  if (raw.includes("timeout") || raw.includes("timed out")) {
-    return {
-      kind: "timeout",
-      message: "The mailbox request timed out. Retry without sending the action again.",
-      retryable: true,
-      error: normalized,
-    };
-  }
-
-  if (
-    normalized.code === "dependency_failure" ||
-    normalized.retryClassification === "transient" ||
-    normalized.retryable
-  ) {
-    return {
-      kind: "dependency_failure",
-      message: errorLabel(normalized),
-      retryable: true,
-      error: normalized,
-    };
-  }
+  const classified = classifyAppFailure(error, { online });
+  const kind: MailSourceFailureKind =
+    classified.error.code === "session_expired"
+      ? "session_expired"
+      : classified.kind === "dependency_down"
+        ? "dependency_down"
+        : classified.kind;
 
   return {
-    kind: "unknown",
-    message: isApiClientError(error) ? errorLabel(error) : normalized.message,
-    retryable: false,
-    error: normalized,
+    kind,
+    message: classified.message,
+    retryable: classified.retryable,
+    error: classified.error,
+    supportId: classified.supportId,
+    actions: classified.actions,
   };
 }
 

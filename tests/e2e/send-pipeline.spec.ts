@@ -71,7 +71,7 @@ test.describe("send pipeline", () => {
       });
     }, DEMO_SIGNER);
 
-    await page.route("**/relays/*/diagnostics", (route) =>
+    await page.route("**/relays/**/diagnostics", (route) =>
       route.fulfill({
         status: 200,
         contentType: "application/json",
@@ -84,6 +84,10 @@ test.describe("send pipeline", () => {
     );
 
     await page.route("**/relays/mock/messages", (route) =>
+      route.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
+    );
+
+    await page.route("**/api/v1/relay/messages", (route) =>
       route.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
     );
 
@@ -115,15 +119,17 @@ test.describe("send pipeline", () => {
     await expect(page.getByText(ALICE)).toBeVisible();
     await expect(page.getByText(BOB)).toBeVisible();
 
-    const sendButton = page.getByRole("button", { name: SEND_BUTTON_NAME });
-    await expect(sendButton).toBeEnabled();
-    await sendButton.click();
+    const sendBtn = page.getByRole("button", { name: "Send", exact: true });
+    await expect(sendBtn).toBeEnabled();
+    await sendBtn.click();
 
     await expect(page.getByText("New message")).not.toBeVisible();
     await expect(page.getByText(/Encrypted message sent/i)).toBeVisible();
   });
 
-  test("shows a recoverable error when a recipient key is missing", async ({ page }) => {
+  test("shows a recoverable error when a recipient key is missing, allows inspecting failure details", async ({
+    page,
+  }) => {
     // Drop the key-directory stub for one recipient so its keys cannot resolve.
     await page.unroute("**/api/v1/identity/keys/**");
     await page.route("**/api/v1/identity/keys/**", (route) => {
@@ -146,12 +152,47 @@ test.describe("send pipeline", () => {
     await page
       .getByPlaceholder("Write your message", { exact: false })
       .fill("This should not send");
-
-    const sendButton = page.getByRole("button", { name: SEND_BUTTON_NAME });
-    await expect(sendButton).toBeEnabled();
-    await sendButton.click();
+    const sendBtn = page.getByRole("button", { name: "Send", exact: true });
+    await expect(sendBtn).toBeEnabled();
+    await sendBtn.click();
 
     await expect(page.getByText("New message")).toBeVisible();
     await expect(page.getByText(/Send failed/i)).toBeVisible();
+
+    // Inspect failure details
+    const inspectBtn = page.getByRole("button", { name: /inspect failure/i });
+    if (await inspectBtn.isVisible()) {
+      await inspectBtn.click();
+      await expect(page.getByText(/Failed Stage:/i)).toBeVisible();
+      await expect(page.getByText("resolve", { exact: true })).toBeVisible();
+    }
+  });
+
+  test("double clicking Send does not duplicate relay submissions", async ({ page }) => {
+    let submissionCount = 0;
+    const handleRelayRoute = async (route: import("@playwright/test").Route) => {
+      submissionCount += 1;
+      // Delay response slightly to simulate real network request
+      await new Promise((r) => setTimeout(r, 100));
+      await route.fulfill({ status: 200, contentType: "application/json", body: "{}" });
+    };
+    await page.unroute("**/relays/mock/messages");
+    await page.unroute("**/api/v1/relay/messages");
+    await page.route("**/relays/mock/messages", handleRelayRoute);
+    await page.route("**/api/v1/relay/messages", handleRelayRoute);
+
+    await page.getByRole("complementary").getByRole("button", { name: "Compose Ctrl+N" }).click();
+    await page.getByPlaceholder("recipients@", { exact: false }).fill(ALICE);
+    await page.getByPlaceholder("Subject").fill("Double click test");
+    await page.getByPlaceholder("Write your message", { exact: false }).fill("One submit only");
+
+    const sendBtn = page.getByRole("button", { name: "Send", exact: true });
+    await expect(sendBtn).toBeEnabled();
+    // Double click rapidly
+    await sendBtn.dblclick();
+
+    await expect(page.getByText("New message")).not.toBeVisible();
+    await expect(page.getByText(/Encrypted message sent/i)).toBeVisible();
+    expect(submissionCount).toBe(1);
   });
 });

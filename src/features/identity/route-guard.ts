@@ -51,7 +51,13 @@ export function deriveGateState(branch: BootstrapBranch, data: BootstrapData | n
       return "onboarding";
     case "active": {
       const provisioning = data?.provisioning;
-      if (provisioning && provisioning.status !== "active") return "verified";
+      // BETA-013: accounts that still need profile-first onboarding are
+      // funneled to /onboarding alongside pending-provisioning accounts.
+      const onboarding = data?.onboarding;
+      const onboardingPending = !!onboarding && onboarding.status !== "completed";
+      if ((provisioning && provisioning.status !== "active") || onboardingPending) {
+        return "verified";
+      }
       return "active";
     }
   }

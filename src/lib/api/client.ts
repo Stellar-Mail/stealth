@@ -38,6 +38,8 @@ export interface ApiClientOptions {
   correlationId?: string;
   /** Hook invoked when a response is 401/403 so callers can refresh a session. */
   onUnauthorized?: () => void;
+  /** Connectivity probe. Defaults to `navigator.onLine`. */
+  isOnline?: () => boolean;
 }
 
 const CLIENT_CORRELATION_HEADER = "x-request-id";
@@ -46,11 +48,15 @@ export class ApiClient {
   readonly basePath: string;
   private readonly correlationId?: string;
   private readonly onUnauthorized?: () => void;
+  private readonly isOnline: () => boolean;
 
   constructor(options: ApiClientOptions = {}) {
     this.basePath = options.basePath ?? "/api/v1";
     this.correlationId = options.correlationId;
     this.onUnauthorized = options.onUnauthorized;
+    this.isOnline =
+      options.isOnline ??
+      (() => (typeof navigator === "undefined" ? true : navigator.onLine !== false));
   }
 
   /** Build the request URL, appending a query string when provided. */
@@ -68,6 +74,16 @@ export class ApiClient {
   }
 
   async request<T>(path: string, init: ApiRequestInit = {}): Promise<T> {
+    if (!this.isOnline()) {
+      throw new ApiClientError({
+        code: "offline",
+        message: "You appear to be offline. Check your connection and retry.",
+        status: 0,
+        retryable: true,
+        retryClassification: "transient",
+      });
+    }
+
     const headers = new Headers(init.headers);
     if (init.body !== undefined) {
       headers.set("content-type", "application/json");

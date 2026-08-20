@@ -142,7 +142,14 @@ export function createLifecycleClient(opts: LifecycleClientOptions): contract.Cl
     networkPassphrase: opts.networkPassphrase,
     rpcUrl: opts.rpcUrl,
     ...(opts.publicKey ? { publicKey: opts.publicKey } : {}),
-    ...(opts.signer ? { signTransaction: Keypair.fromSecret(opts.signer) } : {}),
+    ...(opts.signer
+      ? {
+          signTransaction: contract.basicNodeSigner(
+            Keypair.fromSecret(opts.signer),
+            opts.networkPassphrase,
+          ).signTransaction,
+        }
+      : {}),
   });
 }
 

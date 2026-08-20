@@ -101,7 +101,14 @@ export function createPoliciesClient(opts: PoliciesClientOptions): contract.Clie
     networkPassphrase: opts.networkPassphrase,
     rpcUrl: opts.rpcUrl,
     ...(opts.publicKey ? { publicKey: opts.publicKey } : {}),
-    ...(opts.signer ? { signTransaction: Keypair.fromSecret(opts.signer) } : {}),
+    ...(opts.signer
+      ? {
+          signTransaction: contract.basicNodeSigner(
+            Keypair.fromSecret(opts.signer),
+            opts.networkPassphrase,
+          ).signTransaction,
+        }
+      : {}),
   });
 }
 
@@ -185,12 +192,7 @@ export async function setSenderRuleAs(
   sender: string,
   rule: SenderRule,
 ): Promise<contract.Ok<void> | contract.Err<{ message: string }>> {
-  const tx = await (client as any).set_sender_rule_as({
-    owner,
-    actor,
-    sender,
-    rule,
-  });
+  const tx = await (client as any).set_sender_rule_as({ owner, actor, sender, rule });
   return tx.result;
 }
 
@@ -200,11 +202,7 @@ export async function setSenderTier(
   sender: string,
   minimum_postage: bigint,
 ): Promise<contract.Ok<void> | contract.Err<{ message: string }>> {
-  const tx = await (client as any).set_sender_tier({
-    owner,
-    sender,
-    minimum_postage,
-  });
+  const tx = await (client as any).set_sender_tier({ owner, sender, minimum_postage });
   return tx.result;
 }
 
@@ -215,12 +213,7 @@ export async function setSenderTierAs(
   sender: string,
   minimum_postage: bigint,
 ): Promise<contract.Ok<void> | contract.Err<{ message: string }>> {
-  const tx = await (client as any).set_sender_tier_as({
-    owner,
-    actor,
-    sender,
-    minimum_postage,
-  });
+  const tx = await (client as any).set_sender_tier_as({ owner, actor, sender, minimum_postage });
   return tx.result;
 }
 
@@ -250,13 +243,7 @@ export async function canMail(
   postage: bigint,
   receipt: boolean,
 ): Promise<boolean> {
-  const tx = await (client as any).can_mail({
-    owner,
-    sender,
-    verified,
-    postage,
-    receipt,
-  });
+  const tx = await (client as any).can_mail({ owner, sender, verified, postage, receipt });
   return tx.result;
 }
 
@@ -268,12 +255,6 @@ export async function evaluate(
   postage: bigint,
   receipt: boolean,
 ): Promise<PolicyDecision> {
-  const tx = await (client as any).evaluate({
-    owner,
-    sender,
-    verified,
-    postage,
-    receipt,
-  });
+  const tx = await (client as any).evaluate({ owner, sender, verified, postage, receipt });
   return tx.result;
 }

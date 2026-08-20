@@ -549,11 +549,7 @@ export async function failSenderRuleWrite(
 // ---------------------------------------------------------------------------
 
 export type PolicyReconciliationState =
-  | "not_provisioned"
-  | "pending_write"
-  | "synced"
-  | "chain_ahead"
-  | "diverged";
+  "not_provisioned" | "pending_write" | "synced" | "chain_ahead" | "diverged";
 
 export interface PolicyReconciliationChainState {
   policy?: MailboxPolicy;
@@ -694,6 +690,7 @@ export async function getSenderRuleReconciliation(
       rule: chainRule,
     },
     writeIntent: summarizeSenderWriteIntent(writeIntent),
-    sync: state === "diverged" ? "drift" : deriveSenderSyncStatus(record, writeIntent, owner, sender),
+    sync:
+      state === "diverged" ? "drift" : deriveSenderSyncStatus(record, writeIntent, owner, sender),
   };
 }

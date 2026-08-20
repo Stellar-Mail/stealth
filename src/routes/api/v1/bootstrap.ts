@@ -5,6 +5,7 @@ import { getApiContext } from "@/server/api/context";
 import { toPublicSession, toPublicUser } from "@/server/api/domain";
 import { ApiError } from "@/server/api/errors";
 import { checkApiReadiness } from "@/server/api/health";
+import { getOnboardingDraft } from "@/server/api/onboarding-service";
 import { getMailboxPolicy } from "@/server/api/policy-service";
 import { apiSuccess, handleApiRequest } from "@/server/api/response";
 import { resolveActiveSigner } from "@/server/api/wallet-link-service";
@@ -33,20 +34,24 @@ export const Route = createFileRoute("/api/v1/bootstrap")({
 
           const owner = userRecord.userId;
 
-          const [policyResult, signerResult, provisioningRecord, readiness] = await Promise.all([
-            getMailboxPolicy(apiContext.repository, owner).catch(() => null),
-            resolveActiveSigner(apiContext.repository, owner).catch(() => null),
-            apiContext.repository.getProvisioningRecord?.(owner).catch(() => null),
-            checkApiReadiness({ getContext: async () => apiContext, timeoutMs: 50 }).catch(() => ({
-              ready: false,
-              dependencies: {
-                bindings: "unavailable",
-                storage: "unavailable",
-                coordinator: "unavailable",
-              },
-              timeoutMs: 50,
-            })),
-          ]);
+          const [policyResult, signerResult, provisioningRecord, onboardingDraft, readiness] =
+            await Promise.all([
+              getMailboxPolicy(apiContext.repository, owner).catch(() => null),
+              resolveActiveSigner(apiContext.repository, owner).catch(() => null),
+              apiContext.repository.getProvisioningRecord?.(owner).catch(() => null),
+              getOnboardingDraft(apiContext.repository, owner).catch(() => null),
+              checkApiReadiness({ getContext: async () => apiContext, timeoutMs: 50 }).catch(
+                () => ({
+                  ready: false,
+                  dependencies: {
+                    bindings: "unavailable",
+                    storage: "unavailable",
+                    coordinator: "unavailable",
+                  },
+                  timeoutMs: 50,
+                }),
+              ),
+            ]);
 
           const user = {
             ...toPublicUser(userRecord),
@@ -87,6 +92,29 @@ export const Route = createFileRoute("/api/v1/bootstrap")({
                   error: (provisioningRecord as any).failure?.message ?? undefined,
                 }
               : null,
+            onboarding: onboardingDraft
+              ? {
+                  status: onboardingDraft.status,
+                  step: onboardingDraft.step,
+                  displayName: onboardingDraft.displayName,
+                  recoveryAcknowledged: onboardingDraft.recoveryAcknowledged,
+                  unknownSenderRule: onboardingDraft.unknownSenderRule,
+                  minimumPostage: onboardingDraft.minimumPostage,
+                  receiptOnDelivery: onboardingDraft.receiptOnDelivery,
+                  updatedAt: onboardingDraft.updatedAt,
+                  completedAt: onboardingDraft.completedAt,
+                }
+              : {
+                  status: "not_started",
+                  step: null,
+                  displayName: "",
+                  recoveryAcknowledged: false,
+                  unknownSenderRule: "",
+                  minimumPostage: "",
+                  receiptOnDelivery: false,
+                  updatedAt: null,
+                  completedAt: null,
+                },
             policy: policyResult
               ? {
                   allowUnknown: policyResult.policy.allowUnknown,

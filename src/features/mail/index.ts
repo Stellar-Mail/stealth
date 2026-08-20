@@ -14,6 +14,8 @@ export * from "./useRequests";
 export * from "./useSettings";
 export * from "./workspace";
 export * from "./source-view";
+export * from "./useConnectivity";
+export * from "./unsent-work";
 export * from "./navigation";
 export { MailApp } from "./shell/MailApp";
 export type { MailAppProps } from "./shell/MailApp";

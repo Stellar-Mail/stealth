@@ -24,6 +24,26 @@ export {
   type ApiClientErrorCode,
   type ApiRetryClassification,
 } from "./errors";
+export {
+  APP_FAILURE_KINDS,
+  actionsForFailure,
+  claimOnce,
+  classifyAppFailure,
+  offlineAppFailure,
+  releaseOnce,
+  type AppFailureAction,
+  type AppFailureKind,
+  type ClassifiedAppFailure,
+  type ClassifyAppFailureOptions,
+} from "./failures";
+export {
+  connectivitySnapshot,
+  readDocumentVisible,
+  readNavigatorOnline,
+  shouldPauseSync,
+  shouldResumeSync,
+  type ConnectivitySnapshot,
+} from "./connectivity";
 export { cacheInvalidations, queryKeys } from "./query-keys";
 export {
   createTypedApi,

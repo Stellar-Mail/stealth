@@ -47,6 +47,7 @@ import type {
   ManagedWalletRecord,
   FundingOperation,
   Wallet,
+  OnboardingDraftRecord,
 } from "./domain";
 import { ApiError } from "./errors";
 
@@ -381,6 +382,16 @@ export class HybridApiRepository implements ApiRepository {
       await this.kv.put(this.key("policy", owner), JSON.stringify(result.policy));
     }
     return result;
+  }
+
+  async getOnboardingDraft(userId: string): Promise<OnboardingDraftRecord | null> {
+    return this.getStub().getOnboardingDraft(userId);
+  }
+
+  async saveOnboardingDraft(record: OnboardingDraftRecord): Promise<OnboardingDraftRecord> {
+    const saved = await this.getStub().saveOnboardingDraft(record);
+    await this.kv.put(this.key("onboarding", record.userId), JSON.stringify(saved));
+    return saved;
   }
 
   // BETA-005: Verification token lifecycle delegated to the Durable Object

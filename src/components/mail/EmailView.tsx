@@ -31,9 +31,12 @@ import { OTPCard, detectOtp } from "@/features/otp";
 import { ConvertSenderButton, SenderBadge } from "@/features/sender-conversion";
 import { SnoozeBanner } from "@/features/snooze";
 import { MailReaderSkeleton } from "@/features/design-system";
+import { DegradedStateBanner } from "@/features/design-system/feedback/DegradedStateBanner";
 import type { MailThread } from "@/features/mail/live-thread";
 import { canRenderBody, isTrustedContent } from "@/features/mail/live-thread";
 import type { ThreadReadView } from "@/features/mail/useThreadRead";
+import type { ClassifiedMailSourceError } from "@/features/mail/source-view";
+import { classifyAppFailure } from "@/lib/api";
 import { parseSafeContent, type BodyBlock as SafeBodyBlock } from "@/features/mail/safe-rendering";
 import { ProvenancePanel } from "./ProvenancePanel";
 import { EmailTrustBadges } from "./EmailTrustBadges";
@@ -897,25 +900,19 @@ function ThreadReadError({
   failure,
   onRetry,
 }: {
-  failure: { kind: string; message: string; retryable: boolean };
+  failure: ClassifiedMailSourceError;
   onRetry?: () => void;
 }) {
+  const classified = classifyAppFailure(failure.error, {
+    online: failure.kind !== "offline",
+  });
   return (
-    <div
-      role="alert"
-      className="mt-5 rounded-lg border border-red-300/20 bg-red-300/[0.04] px-3 py-3"
-    >
-      <p className="text-xs font-medium text-foreground">{failure.message}</p>
-      {failure.retryable && onRetry ? (
-        <button
-          type="button"
-          onClick={onRetry}
-          className="mt-2 rounded-md border border-red-300/15 bg-red-300/[0.06] px-2.5 py-1 text-[10px] font-medium text-red-200 transition hover:bg-red-300/[0.12]"
-        >
-          Retry
-        </button>
-      ) : null}
-    </div>
+    <DegradedStateBanner
+      failure={classified}
+      compact
+      className="mx-0 mb-0 mt-5"
+      onRetry={onRetry}
+    />
   );
 }
 

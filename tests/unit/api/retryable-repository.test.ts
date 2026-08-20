@@ -115,7 +115,9 @@ class FailingRepository implements ApiRepository {
     this.maybeFail("getSenderRuleWriteIntent");
     return this.inner.getSenderRuleWriteIntent(owner, sender);
   }
-  async setSenderRuleWriteIntent(intent: import("../../../src/server/api/domain").SenderRuleWriteIntent) {
+  async setSenderRuleWriteIntent(
+    intent: import("../../../src/server/api/domain").SenderRuleWriteIntent,
+  ) {
     this.maybeFail("setSenderRuleWriteIntent");
     return this.inner.setSenderRuleWriteIntent(intent);
   }
@@ -622,6 +624,16 @@ class FailingRepository implements ApiRepository {
   ) {
     this.maybeFail("createSendOperationIfAbsent");
     return this.inner.createSendOperationIfAbsent(state);
+  }
+  async getOnboardingDraft(userId: string) {
+    this.maybeFail("getOnboardingDraft");
+    return this.inner.getOnboardingDraft(userId);
+  }
+  async saveOnboardingDraft(
+    record: import("../../../src/server/api/domain").OnboardingDraftRecord,
+  ) {
+    this.maybeFail("saveOnboardingDraft");
+    return this.inner.saveOnboardingDraft(record);
   }
   reset(): void {
     this.inner.reset();

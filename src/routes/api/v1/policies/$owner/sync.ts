@@ -19,11 +19,7 @@ export const Route = createFileRoute("/api/v1/policies/$owner/sync")({
             parseDelegationHeader(request, "policy:update", `mailbox:${owner}:policy`),
           );
           const requestId = context.requestId ?? "policy-sync";
-          const results = await syncAllPendingPolicyWrites(
-            context.repository,
-            owner,
-            requestId,
-          );
+          const results = await syncAllPendingPolicyWrites(context.repository, owner, requestId);
           return apiSuccess(request, { owner, results });
         }),
     },

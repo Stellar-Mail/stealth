@@ -31,7 +31,11 @@ export interface PolicySyncDependencies {
 }
 
 function resolveChainClient(deps: PolicySyncDependencies = {}): PolicyChainClient {
-  return deps.chainClient ?? createPolicyChainClient(loadRuntimeConfig()) ?? new InMemoryPolicyChainClient();
+  return (
+    deps.chainClient ??
+    createPolicyChainClient(loadRuntimeConfig()) ??
+    new InMemoryPolicyChainClient()
+  );
 }
 
 export async function syncMailboxPolicyWrite(
@@ -140,9 +144,7 @@ export async function syncAllPendingPolicyWrites(
   const senderIntents = await repository.listSenderRuleWriteIntents(owner);
   for (const intent of senderIntents) {
     if (intent.status === "pending" || intent.status === "failed") {
-      results.push(
-        await syncSenderRuleWrite(repository, owner, intent.sender, requestId, deps),
-      );
+      results.push(await syncSenderRuleWrite(repository, owner, intent.sender, requestId, deps));
     }
   }
   return results;

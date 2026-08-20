@@ -24,7 +24,9 @@ export interface PolicyChainSubmitResult {
 
 export interface PolicyChainClient {
   readVersionedPolicy(owner: string): Promise<VersionedChainPolicy | null>;
-  readMailboxPolicy(owner: string): Promise<{ policy: MailboxPolicy | null; version: number | null }>;
+  readMailboxPolicy(
+    owner: string,
+  ): Promise<{ policy: MailboxPolicy | null; version: number | null }>;
   readSenderRule(owner: string, sender: string): Promise<SenderRule | null>;
   readSenderTier(owner: string, sender: string): Promise<string | null>;
   submitMailboxPolicyWrite(
@@ -160,12 +162,14 @@ export class SorobanPolicyChainClient implements PolicyChainClient {
     requestId?: string,
   ): Promise<PolicyChainSubmitResult> {
     const client = this.policiesClient(this.operatorKeypair.publicKey());
-    const assembled = await (client as contract.Client & {
-      set_policy: (args: {
-        owner: string;
-        policy: ContractMailboxPolicy;
-      }) => Promise<contract.AssembledTransaction<unknown>>;
-    }).set_policy({
+    const assembled = await (
+      client as contract.Client & {
+        set_policy: (args: {
+          owner: string;
+          policy: ContractMailboxPolicy;
+        }) => Promise<contract.AssembledTransaction<unknown>>;
+      }
+    ).set_policy({
       owner,
       policy: toContractPolicy(policy),
     });
@@ -189,13 +193,15 @@ export class SorobanPolicyChainClient implements PolicyChainClient {
     requestId?: string,
   ): Promise<PolicyChainSubmitResult> {
     const client = this.policiesClient(this.operatorKeypair.publicKey());
-    const assembled = await (client as contract.Client & {
-      set_sender_rule: (args: {
-        owner: string;
-        sender: string;
-        rule: ContractSenderRule;
-      }) => Promise<contract.AssembledTransaction<unknown>>;
-    }).set_sender_rule({
+    const assembled = await (
+      client as contract.Client & {
+        set_sender_rule: (args: {
+          owner: string;
+          sender: string;
+          rule: ContractSenderRule;
+        }) => Promise<contract.AssembledTransaction<unknown>>;
+      }
+    ).set_sender_rule({
       owner,
       sender,
       rule: toContractSenderRule(rule),

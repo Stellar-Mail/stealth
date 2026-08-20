@@ -302,7 +302,9 @@ describe("RelayService submit policy admission", () => {
 
   it("rejects malformed sender without evaluating policy", async () => {
     const { service } = await makeAdmittingService();
-    await expect(service.submit(validInput({ sender: "INVALID" }))).rejects.toBeInstanceOf(z.ZodError);
+    await expect(service.submit(validInput({ sender: "INVALID" }))).rejects.toBeInstanceOf(
+      z.ZodError,
+    );
   });
 
   it("readiness still works when queue persistence fails", async () => {

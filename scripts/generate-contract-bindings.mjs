@@ -309,7 +309,12 @@ function emitClient(spec, contractName, xdrBase64Entries) {
   lines.push(`      networkPassphrase: opts.networkPassphrase,`);
   lines.push(`      rpcUrl: opts.rpcUrl,`);
   lines.push(`      ...(opts.publicKey ? { publicKey: opts.publicKey } : {}),`);
-  lines.push(`      ...(opts.signer ? { signTransaction: Keypair.fromSecret(opts.signer) } : {}),`);
+  lines.push(`      ...(opts.signer
+        ? contract.basicNodeSigner(
+            Keypair.fromSecret(opts.signer),
+            opts.networkPassphrase
+          )
+        : {}),`);
   lines.push(`    }`);
   lines.push(`  );`);
   lines.push(`}`);

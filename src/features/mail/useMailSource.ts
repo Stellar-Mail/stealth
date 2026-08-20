@@ -9,6 +9,7 @@ import { errorLabel, normalizeApiClientError, type MailboxFlagsPatch } from "@/l
 import { sessionActor, useSession } from "./useSession";
 import { useTombstoneMessage } from "./useMailbox";
 import { useMailboxSync } from "./useMailboxSync";
+import { useConnectivity } from "./useConnectivity";
 import { resolveMailSourceView, type MailSourceView } from "./source-view";
 import {
   applyEmailPatch,
@@ -37,9 +38,12 @@ export type TrashResult = MailMutationResult;
 export function useMailSource({ isDemoMode }: UseMailSourceOptions) {
   const session = useSession({ enabled: !isDemoMode });
   const actor = sessionActor(session.data);
+  const connectivity = useConnectivity();
   const mailbox = useMailboxSync({
     actor: actor ?? "anonymous",
     enabled: Boolean(actor) && !isDemoMode,
+    online: connectivity.online,
+    visible: connectivity.visible,
   });
   const tombstone = useTombstoneMessage(actor ?? "anonymous");
 
@@ -84,7 +88,7 @@ export function useMailSource({ isDemoMode }: UseMailSourceOptions) {
     async (email: Email, patch: MailboxFlagsPatch): Promise<MailMutationResult> => {
       const key = mailboxMutationKey(email.id, patch);
       if (!claimMailboxMutation(pendingMutations.current, key)) {
-        return { ok: true };
+        return { ok: false, reason: "Action already in progress" };
       }
 
       const displayPatch = emailPatchFromFlags(patch);
@@ -127,7 +131,6 @@ export function useMailSource({ isDemoMode }: UseMailSourceOptions) {
     if (mailbox.isError) await mailbox.refetch();
   }, [mailbox, session]);
 
-  const online = typeof navigator === "undefined" ? true : navigator.onLine;
   const sourceView: MailSourceView = resolveMailSourceView({
     isDemoMode,
     demoReady,
@@ -138,7 +141,7 @@ export function useMailSource({ isDemoMode }: UseMailSourceOptions) {
     mailboxError: mailbox.error,
     mailboxFetched: mailbox.isFetched,
     emailCount: emails.length,
-    online,
+    online: connectivity.online,
   });
 
   return {
@@ -151,6 +154,7 @@ export function useMailSource({ isDemoMode }: UseMailSourceOptions) {
     mutateMailbox,
     retry,
     sourceView,
+    connectivity,
     isDemoMode,
     hasMore: isDemoMode ? false : mailbox.hasMore,
     isLoadingMore: isDemoMode ? false : mailbox.isFetchingNextPage,

@@ -30,6 +30,30 @@ export default defineConfig(({ command }) => ({
   optimizeDeps: {
     exclude: ["cloudflare:workers", "cloudflare:sockets"],
   },
+  // BETA-074 (Issue #1981) — measurable bundle budgets. The client entry chunk
+  // must stay under the warning limit (500 kB after minification) so regressions
+  // in the initial JS payload surface in CI. reportCompressedSize keeps gzip
+  // sizes visible in build output for the before/after performance evidence.
+  build: {
+    reportCompressedSize: true,
+    chunkSizeWarningLimit: 500,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes("node_modules")) return undefined;
+          if (id.includes("framer-motion") || id.includes("motion-dom")) return "vendor-motion";
+          if (id.includes("recharts") || id.includes("/d3-")) return "vendor-charts";
+          if (id.includes("@stellar/") || id.includes("stellar-sdk")) return "vendor-stellar";
+          if (id.includes("lucide-react")) return "vendor-icons";
+          if (id.includes("@tanstack/")) return "vendor-tanstack";
+          if (id.includes("react-dom") || id.includes("/react/") || id.includes("/scheduler/")) {
+            return "vendor-react";
+          }
+          return undefined;
+        },
+      },
+    },
+  },
   plugins: [
     tailwindcss(),
     tsConfigPaths({ projects: ["./tsconfig.json"] }),

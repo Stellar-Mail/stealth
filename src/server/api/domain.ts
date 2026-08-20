@@ -848,6 +848,75 @@ export type ProvisioningRecord = z.infer<typeof provisioningRecordSchema>;
 export type Wallet = z.infer<typeof walletSchema>;
 export type UsernameReservation = z.infer<typeof usernameReservationSchema>;
 
+// ---------------------------------------------------------------------------
+// BETA-013 (Issue #1920): Profile-first account onboarding
+//
+// Onboarding is account-based and wallet-free: the account is resolved from
+// the server session, and the durable draft is keyed by userId so the flow is
+// resumable across refreshes and devices. Completion writes the user-chosen
+// mailbox policy through the existing idempotent policy path — no wallet
+// extension (and no client-supplied wallet address) is ever involved.
+// ---------------------------------------------------------------------------
+
+/** Flow position of the account onboarding wizard. */
+export const onboardingStepSchema = z.enum([
+  "profile",
+  "stealth-address",
+  "recovery",
+  "sender-policy",
+  "postage",
+  "receipts",
+  "review",
+]);
+
+export type OnboardingStep = z.infer<typeof onboardingStepSchema>;
+
+export const onboardingStatusSchema = z.enum(["in_progress", "completed"]);
+
+export type OnboardingStatus = z.infer<typeof onboardingStatusSchema>;
+
+/** UI-level unknown-sender rule; converted to protocol policy booleans on completion. */
+export const onboardingSenderPolicySchema = z.enum(["request", "verified", "block"]);
+
+export type OnboardingSenderPolicy = z.infer<typeof onboardingSenderPolicySchema>;
+
+/**
+ * Durable server-backed onboarding draft. Exactly one record per user, so
+ * duplicate saves can never create duplicates and a refresh or a second
+ * device resumes from the same authoritative state. `completedAt` marks the
+ * terminal state; completed drafts are replayed, never re-written.
+ */
+export const onboardingDraftSchema = z.object({
+  userId: z.string().min(1, "User ID cannot be empty"),
+  status: onboardingStatusSchema,
+  step: onboardingStepSchema,
+  displayName: z
+    .string()
+    .trim()
+    .min(1, "Display name cannot be empty")
+    .max(80, "Display name cannot exceed 80 characters"),
+  recoveryAcknowledged: z.boolean(),
+  unknownSenderRule: onboardingSenderPolicySchema,
+  minimumPostage: z.string().regex(/^\d*\.?\d{0,7}$/, "Expected a non-negative XLM amount"),
+  receiptOnDelivery: z.boolean(),
+  updatedAt: z.string().datetime(),
+  completedAt: z.string().datetime().nullable(),
+  version: z.number().int().positive(),
+});
+
+export type OnboardingDraftRecord = z.infer<typeof onboardingDraftSchema>;
+
+/**
+ * Safe projection of an onboarding draft for API responses and the bootstrap
+ * snapshot. Never contains secrets, hashes, or wallet material.
+ */
+export const onboardingDraftProjectionSchema = onboardingDraftSchema.omit({
+  userId: true,
+  version: true,
+});
+
+export type OnboardingDraftProjection = z.infer<typeof onboardingDraftProjectionSchema>;
+
 export function toPublicUser(user: User): PublicUser {
   return {
     userId: user.userId,

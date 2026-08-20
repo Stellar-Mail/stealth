@@ -16,6 +16,13 @@ export type OutboxStatus =
   | "delivered"
   | "failed";
 
+export interface OutboxStageSnapshot {
+  id: string;
+  label: string;
+  status: "pending" | "active" | "done" | "error";
+  detail?: string;
+}
+
 export interface OutboxEntry {
   id: string;
   createdAt: string;
@@ -28,6 +35,13 @@ export interface OutboxEntry {
   errorMessage?: string;
   envelope?: EnvelopePayload;
   ciphertext?: string;
+  idempotencyKey?: string;
+  supportId?: string;
+  sender?: string;
+  stages?: OutboxStageSnapshot[];
+  canRetry?: boolean;
+  isCommitted?: boolean;
+  postageAmount?: string;
 }
 
 const STORAGE_KEY = "stealth.outbox.v1";
@@ -103,6 +117,10 @@ export function createEntry(input: {
   id: string;
   subject: string;
   recipients: string[];
+  sender?: string;
+  idempotencyKey?: string;
+  supportId?: string;
+  stages?: OutboxStageSnapshot[];
 }): OutboxEntry {
   const now = new Date().toISOString();
   return upsertEntry({
@@ -111,7 +129,15 @@ export function createEntry(input: {
     updatedAt: now,
     subject: input.subject,
     recipients: input.recipients,
+    sender: input.sender,
+    idempotencyKey: input.idempotencyKey,
+    supportId: input.supportId,
+    stages: input.stages,
     status: "queued",
     attempts: 0,
   });
+}
+
+export function getIncompleteEntries(): OutboxEntry[] {
+  return readAll().filter((entry) => entry.status !== "delivered");
 }
