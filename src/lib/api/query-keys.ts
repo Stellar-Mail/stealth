@@ -16,6 +16,7 @@ export const queryKeys = {
   auth: {
     all: ["auth"] as const,
     session: ["auth", "session"] as const,
+    sessions: ["auth", "sessions"] as const,
   },
   identity: {
     all: ["identity"] as const,
@@ -69,8 +70,9 @@ export const queryKeys = {
 
 /** Mutation → query invalidation map. Extend as new mutations are added. */
 export const cacheInvalidations = {
-  sessionLogout: () => [queryKeys.auth.session],
-  sessionRenew: () => [queryKeys.auth.session],
+  sessionLogout: () => [queryKeys.auth.session, queryKeys.auth.sessions],
+  sessionRenew: () => [queryKeys.auth.session, queryKeys.auth.sessions],
+  sessionsChange: () => [queryKeys.auth.session, queryKeys.auth.sessions],
   updateProfile: () => [queryKeys.account.profile, queryKeys.account.info],
   updateMailboxPolicy: (owner: string) => [
     queryKeys.policies.policy(owner),

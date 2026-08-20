@@ -341,6 +341,10 @@ export class HybridApiRepository implements ApiRepository {
     return this.getStub().getSession(sessionId);
   }
 
+  async getUserSessions(userId: string): Promise<Session[]> {
+    return this.getStub().getUserSessions(userId);
+  }
+
   async createSession(session: Session): Promise<Session> {
     return this.getStub().createSession(session);
   }
@@ -436,8 +440,7 @@ export class HybridApiRepository implements ApiRepository {
 
   async setExternalWallet(owner: string, wallet: ExternalWallet): Promise<ExternalWallet> {
     const wallets = (await this.kv.get(this.key("external-wallet", owner), "json")) as
-      | ExternalWallet[]
-      | null;
+      ExternalWallet[] | null;
     const existing = wallets ?? [];
     const idx = existing.findIndex((w) => w.address === wallet.address);
     if (idx >= 0) {
@@ -453,8 +456,7 @@ export class HybridApiRepository implements ApiRepository {
   async removeExternalWallet(owner: string, address: string): Promise<void> {
     const wallets =
       ((await this.kv.get(this.key("external-wallet", owner), "json")) as
-        | ExternalWallet[]
-        | null) ?? [];
+        ExternalWallet[] | null) ?? [];
     await this.kv.put(
       this.key("external-wallet", owner),
       JSON.stringify(wallets.filter((w) => w.address !== address)),

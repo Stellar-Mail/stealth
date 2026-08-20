@@ -410,3 +410,240 @@ export async function revokeAllSessions(
 
   return { cookieHeader, cookieHeaders };
 }
+
+// ---------------------------------------------------------------------------
+// BETA-022: Active Sessions Domain & Management Primitives
+// ---------------------------------------------------------------------------
+
+export interface PublicActiveSession {
+  sessionId: string;
+  createdAt: string;
+  lastActiveAt: string;
+  expiresAt: string;
+  isCurrent: boolean;
+  deviceSummary: string;
+  approximateRegion: string;
+}
+
+export function parseDeviceSummary(userAgent: string | null | undefined): string {
+  if (!userAgent || typeof userAgent !== "string") {
+    return "Unknown Device";
+  }
+
+  const ua = userAgent.toLowerCase();
+
+  // 1. Detect Operating System
+  let os = "Unknown OS";
+  if (ua.includes("iphone") || ua.includes("ipad") || ua.includes("ipod")) {
+    os = "iOS";
+  } else if (ua.includes("mac os") || ua.includes("macintosh") || ua.includes("darwin")) {
+    os = "macOS";
+  } else if (ua.includes("android")) {
+    os = "Android";
+  } else if (ua.includes("windows")) {
+    os = "Windows";
+  } else if (ua.includes("cros")) {
+    os = "ChromeOS";
+  } else if (ua.includes("linux")) {
+    os = "Linux";
+  }
+
+  // 2. Detect Browser / Client
+  let browser = "Web Client";
+  if (ua.includes("edg/") || ua.includes("edge/")) {
+    browser = "Edge";
+  } else if (ua.includes("brave")) {
+    browser = "Brave";
+  } else if (ua.includes("opr/") || ua.includes("opera")) {
+    browser = "Opera";
+  } else if (ua.includes("chrome/") || ua.includes("crios/")) {
+    browser = "Chrome";
+  } else if (ua.includes("firefox/") || ua.includes("fxios/")) {
+    browser = "Firefox";
+  } else if (ua.includes("safari/") && !ua.includes("chrome") && !ua.includes("android")) {
+    browser = "Safari";
+  } else if (ua.includes("curl/") || ua.includes("postman") || ua.includes("insomnia")) {
+    browser = "API Client";
+  }
+
+  if (os === "Unknown OS" && browser === "Web Client") {
+    return "Web Client";
+  }
+  if (os === "Unknown OS") {
+    return browser;
+  }
+  if (browser === "Web Client") {
+    return os;
+  }
+
+  return `${browser} on ${os}`;
+}
+
+export function parseApproximateRegion(input: {
+  country?: string | null;
+  region?: string | null;
+  ipAddress?: string | null;
+}): string {
+  // If region/country headers exist (e.g. CF-IPCountry, GeoIP headers)
+  if (input.country && typeof input.country === "string" && input.country.trim().length > 0) {
+    const code = input.country.trim().toUpperCase();
+    if (code !== "XX" && code !== "T1" && code !== "UNKNOWN") {
+      return code;
+    }
+  }
+
+  if (input.region && typeof input.region === "string" && input.region.trim().length > 0) {
+    return input.region.trim();
+  }
+
+  // Local IPs
+  if (input.ipAddress) {
+    const ip = input.ipAddress.trim();
+    if (
+      ip === "127.0.0.1" ||
+      ip === "::1" ||
+      ip === "localhost" ||
+      ip.startsWith("192.168.") ||
+      ip.startsWith("10.") ||
+      ip.startsWith("172.16.")
+    ) {
+      return "Local Network";
+    }
+  }
+
+  return "Unknown Region";
+}
+
+export async function listUserSessions(
+  apiContext: ApiContext,
+  userId: string,
+  currentSessionId: string | null,
+  options: { now?: () => Date; requestHeaders?: Headers | null } = {},
+): Promise<PublicActiveSession[]> {
+  const repo = apiContext.repository;
+  const now = options.now ? options.now() : new Date();
+  const nowMs = now.getTime();
+
+  const sessions = await repo.getUserSessions(userId);
+  const activeSessions: PublicActiveSession[] = [];
+
+  for (const s of sessions) {
+    const expiresAtMs = new Date(s.expiresAt).getTime();
+    const absoluteExpiresAtMs = s.absoluteExpiresAt
+      ? new Date(s.absoluteExpiresAt).getTime()
+      : Number.POSITIVE_INFINITY;
+
+    // Prune stale / expired sessions automatically
+    if (nowMs >= expiresAtMs || nowMs >= absoluteExpiresAtMs) {
+      await repo.deleteSession(s.sessionId);
+      continue;
+    }
+
+    const isCurrent = Boolean(currentSessionId && s.sessionId === currentSessionId);
+    const country =
+      options.requestHeaders?.get("cf-ipcountry") ||
+      options.requestHeaders?.get("x-geo-country") ||
+      options.requestHeaders?.get("x-country-code") ||
+      null;
+
+    activeSessions.push({
+      sessionId: s.sessionId,
+      createdAt: s.createdAt,
+      lastActiveAt: s.lastActiveAt,
+      expiresAt: s.expiresAt,
+      isCurrent,
+      deviceSummary: parseDeviceSummary(s.userAgent),
+      approximateRegion: parseApproximateRegion({ country, ipAddress: s.ipAddress }),
+    });
+  }
+
+  // Sort: current session first, then most recently active sessions
+  activeSessions.sort((a, b) => {
+    if (a.isCurrent && !b.isCurrent) return -1;
+    if (!a.isCurrent && b.isCurrent) return 1;
+    return new Date(b.lastActiveAt).getTime() - new Date(a.lastActiveAt).getTime();
+  });
+
+  return activeSessions;
+}
+
+export async function revokeUserSession(
+  apiContext: ApiContext,
+  userId: string,
+  targetSessionId: string,
+  currentSessionId: string | null,
+  options: LogoutOptions = {},
+): Promise<{
+  success: boolean;
+  revokedSessionId: string;
+  selfRevoked: boolean;
+  cookieHeader: string | null;
+  cookieHeaders: string[];
+}> {
+  const repo = apiContext.repository;
+  const session = await repo.getSession(targetSessionId);
+
+  if (!session || session.userId !== userId) {
+    throw new ApiError(404, "not_found", "Session not found or does not belong to user");
+  }
+
+  await repo.deleteSession(targetSessionId);
+
+  const isCurrent = Boolean(currentSessionId && targetSessionId === currentSessionId);
+
+  let cookieHeader: string | null = null;
+  let cookieHeaders: string[] = [];
+
+  if (isCurrent) {
+    const isProd = options.isProd ?? import.meta.env?.PROD ?? false;
+    const domain = options.domain ?? (options.host ? options.host.split(":")[0] : undefined);
+    cookieHeaders = buildClearSessionCookies(isProd, domain);
+    cookieHeader = cookieHeaders[0];
+  }
+
+  recordAuditEvent({
+    actor: userId,
+    action: "auth.revoke_session",
+    targetType: "session",
+    safeTargetReference: `${targetSessionId.substring(0, 12)}...`,
+    result: "success",
+    requestId: apiContext.requestId ?? "unknown",
+  });
+
+  return {
+    success: true,
+    revokedSessionId: targetSessionId,
+    selfRevoked: isCurrent,
+    cookieHeader,
+    cookieHeaders,
+  };
+}
+
+export async function revokeOtherUserSessions(
+  apiContext: ApiContext,
+  userId: string,
+  currentSessionId: string,
+): Promise<{ success: boolean; revokedCount: number }> {
+  const repo = apiContext.repository;
+  const sessions = await repo.getUserSessions(userId);
+
+  const otherSessions = sessions.filter((s) => s.sessionId !== currentSessionId);
+
+  for (const s of otherSessions) {
+    await repo.deleteSession(s.sessionId);
+  }
+
+  recordAuditEvent({
+    actor: userId,
+    action: "auth.revoke_other_sessions",
+    targetType: "account_sessions",
+    safeTargetReference: userId,
+    result: "success",
+    requestId: apiContext.requestId ?? "unknown",
+  });
+
+  return {
+    success: true,
+    revokedCount: otherSessions.length,
+  };
+}

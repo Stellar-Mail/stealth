@@ -96,8 +96,7 @@ export type AcquireIdempotencyResult =
  *   (or fail) deterministically; a match bumps the stored version by 1.
  */
 export type UpdateRecoveryCodeSetResult =
-  | { updated: true; set: RecoveryCodeSet }
-  | { updated: false; current: RecoveryCodeSet | null };
+  { updated: true; set: RecoveryCodeSet } | { updated: false; current: RecoveryCodeSet | null };
 
 /**
  * Outcome of an atomic read-receipt publication.
@@ -126,8 +125,7 @@ export type MarkReceiptReadResult =
   | { outcome: "marked"; receipt: Receipt };
 
 export type UpdateUserResult =
-  | { updated: true; user: User }
-  | { updated: false; current: User | null };
+  { updated: true; user: User } | { updated: false; current: User | null };
 export type CreateSenderRequestResult = { created: boolean; request: UnknownSenderRequest };
 export type SenderRequestTransitionResult =
   | { outcome: "not_found" }
@@ -143,8 +141,7 @@ export type SenderRequestTransitionResult =
  *   re-read and reconcile instead of blindly overwriting.
  */
 export type UpdateContactResult =
-  | { updated: true; contact: Contact }
-  | { updated: false; current: Contact | null };
+  { updated: true; contact: Contact } | { updated: false; current: Contact | null };
 
 // ---------------------------------------------------------------------------
 // BETA-014: Account-provisioning repository contracts
@@ -184,8 +181,7 @@ export type UsernameReservationResult =
  *   returned unchanged (idempotent retry).
  */
 export type WalletCreationResult =
-  | { outcome: "created"; wallet: Wallet }
-  | { outcome: "already-exists"; wallet: Wallet };
+  { outcome: "created"; wallet: Wallet } | { outcome: "already-exists"; wallet: Wallet };
 
 export type IssueVerificationTokenResult =
   | {
@@ -387,6 +383,7 @@ export interface ApiRepository {
   // BETA-006 & BETA-007: Server-Side Session Domain Methods
   // BETA-006: Server-side session lifecycle methods.
   getSession(sessionId: string): Promise<Session | null>;
+  getUserSessions(userId: string): Promise<Session[]>;
   createSession(session: Session): Promise<Session>;
   updateSession(session: Session): Promise<Session>;
   deleteSession(sessionId: string): Promise<void>;
@@ -954,6 +951,11 @@ export class ValidatedApiRepository implements ApiRepository {
     return raw ? validateRecord<Session>("session", raw) : null;
   }
 
+  async getUserSessions(userId: string): Promise<Session[]> {
+    const rawList = await this.inner.getUserSessions(userId);
+    return rawList.map((raw) => validateRecord<Session>("session", raw));
+  }
+
   async createSession(session: Session): Promise<Session> {
     const result = await this.inner.createSession(versionRecord("session", session));
     return validateRecord<Session>("session", result);
@@ -1410,6 +1412,7 @@ const RETRY_SAFE_OPERATIONS = new Set<string>([
   "getCredential",
   "setCredential",
   "getSession",
+  "getUserSessions",
   "updateSession",
   "getRetiredSession",
   "getEnvelope",
@@ -1705,6 +1708,10 @@ export class RetryableApiRepository implements ApiRepository {
 
   getSession(sessionId: string): Promise<Session | null> {
     return this.withRetry("getSession", () => this.inner.getSession(sessionId));
+  }
+
+  getUserSessions(userId: string): Promise<Session[]> {
+    return this.withRetry("getUserSessions", () => this.inner.getUserSessions(userId));
   }
 
   createSession(session: Session): Promise<Session> {

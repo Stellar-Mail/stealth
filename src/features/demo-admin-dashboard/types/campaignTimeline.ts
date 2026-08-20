@@ -1,10 +1,5 @@
 export type CampaignPhaseKind =
-  | "planning"
-  | "warmup"
-  | "active"
-  | "cooldown"
-  | "completed"
-  | "paused";
+  "planning" | "warmup" | "active" | "cooldown" | "completed" | "paused";
 
 export type CampaignPhaseStatus = "upcoming" | "active" | "completed" | "skipped";
 

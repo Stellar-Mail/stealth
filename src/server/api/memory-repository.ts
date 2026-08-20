@@ -624,6 +624,16 @@ export class MemoryApiRepository implements ApiRepository {
     return structuredClone(this.sessions.get(sessionId) ?? null);
   }
 
+  async getUserSessions(userId: string): Promise<Session[]> {
+    const result: Session[] = [];
+    for (const session of this.sessions.values()) {
+      if (session.userId === userId) {
+        result.push(structuredClone(session));
+      }
+    }
+    return result;
+  }
+
   async createSession(session: Session): Promise<Session> {
     this.sessions.set(session.sessionId, structuredClone(session));
     return structuredClone(session);

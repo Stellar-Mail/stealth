@@ -10,6 +10,7 @@
 import { ApiClient } from "./client";
 import type { ApiRequestInit } from "./client";
 import type {
+  ActiveSessionsResponse,
   Contact,
   ContactCreateInput,
   ContactListResponse,
@@ -32,6 +33,8 @@ import type {
   RegistrationResponse,
   ResolvedIdentity,
   SenderRule,
+  RevokeOthersResult,
+  RevokeSessionResult,
   SessionBundle,
   UnknownSenderDecision,
   UnknownSenderRequest,
@@ -104,6 +107,20 @@ export class AuthClient {
 
   logoutAll(): Promise<{ success: boolean }> {
     return this.client.post<{ success: boolean }>("/auth/logout-all");
+  }
+
+  listSessions(signal?: AbortSignal): Promise<ActiveSessionsResponse> {
+    return this.client.get<ActiveSessionsResponse>("/auth/sessions", { signal });
+  }
+
+  revokeSession(sessionId: string, signal?: AbortSignal): Promise<RevokeSessionResult> {
+    return this.client.delete<RevokeSessionResult>(`/auth/sessions/${sessionId}`, { signal });
+  }
+
+  revokeOtherSessions(signal?: AbortSignal): Promise<RevokeOthersResult> {
+    return this.client.post<RevokeOthersResult>("/auth/sessions/revoke-others", undefined, {
+      signal,
+    });
   }
 }
 

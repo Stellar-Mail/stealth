@@ -16,9 +16,7 @@
  */
 
 type MultiRecipientErrorCode =
-  | "crypto_validation_error"
-  | "crypto_key_error"
-  | "crypto_decrypt_error";
+  "crypto_validation_error" | "crypto_key_error" | "crypto_decrypt_error";
 
 /** Minimal non-secret error carrying a stable code (no key/plaintext leakage). */
 export class MultiRecipientError extends Error {

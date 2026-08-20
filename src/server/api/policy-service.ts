@@ -317,11 +317,7 @@ function sanitizeFailureReason(message: string): string {
 // ---------------------------------------------------------------------------
 
 export type PolicyReconciliationState =
-  | "not_provisioned"
-  | "pending_write"
-  | "synced"
-  | "chain_ahead"
-  | "diverged";
+  "not_provisioned" | "pending_write" | "synced" | "chain_ahead" | "diverged";
 
 export interface PolicyReconciliationChainState {
   policy?: MailboxPolicy;

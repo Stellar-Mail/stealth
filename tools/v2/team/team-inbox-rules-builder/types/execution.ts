@@ -12,10 +12,7 @@ export interface TeamInboxRulesExecutionInput {
 
 /** Stable error codes. Consumers should branch on these codes, not messages. */
 export type TeamInboxRulesExecutionErrorCode =
-  | "INVALID_INPUT"
-  | "INVALID_MAIL"
-  | "INVALID_RULE"
-  | "EXECUTION_FAILED";
+  "INVALID_INPUT" | "INVALID_MAIL" | "INVALID_RULE" | "EXECUTION_FAILED";
 
 export interface TeamInboxRulesTriggeredAction {
   ruleId: string;
