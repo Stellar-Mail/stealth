@@ -45,6 +45,62 @@ export interface RegistrationResponse {
   username: string;
 }
 
+export interface BootstrapUser {
+  userId: string;
+  username: string;
+  displayName: string;
+  email: string;
+  accountStatus: string;
+  createdAt: string;
+}
+
+export interface BootstrapSession {
+  sessionId: string;
+  expiresAt: string;
+}
+
+export interface BootstrapWallet {
+  connected: boolean;
+  address: string | null;
+  signerType: "external" | "managed";
+  capabilities: string[];
+  network: string;
+  balanceXlm: string;
+}
+
+export interface BootstrapPolicy {
+  allowUnknown: boolean;
+  requireVerified: boolean;
+  requireReceipt: boolean;
+  minimumPostage: string;
+}
+
+export interface BootstrapProvisioning {
+  status: string;
+  currentStep?: string;
+  error?: string;
+}
+
+export interface BootstrapHealth {
+  ready: boolean;
+  status: "ok" | "degraded" | "outage" | "maintenance";
+  dependencies: Record<string, string>;
+}
+
+export interface BootstrapData {
+  user: BootstrapUser;
+  session: BootstrapSession;
+  address: string | null;
+  provisioning: BootstrapProvisioning | null;
+  policy: BootstrapPolicy | null;
+  wallet: BootstrapWallet;
+  health: BootstrapHealth;
+  syncCursor: string;
+  featureFlags: Record<string, boolean>;
+  branch:
+    "loading" | "active" | "onboarding" | "suspended" | "unauthorized" | "outage" | "maintenance";
+}
+
 // ---------------------------------------------------------------------------
 // Identity & key directory
 // ---------------------------------------------------------------------------
@@ -166,15 +222,7 @@ export interface MailboxSealedMessage extends MailboxDescriptor {
 }
 
 export type MailboxLiveFolder =
-  | "inbox"
-  | "pending"
-  | "requests"
-  | "archive"
-  | "spam"
-  | "trash"
-  | "sent"
-  | "drafts"
-  | "outbox";
+  "inbox" | "pending" | "requests" | "archive" | "spam" | "trash" | "sent" | "drafts" | "outbox";
 
 export type MailboxCountKey =
   | "inbox"
@@ -220,11 +268,7 @@ export interface MailboxCountsResponse {
 // ---------------------------------------------------------------------------
 
 export type UnknownSenderRequestStatus =
-  | "pending"
-  | "approved"
-  | "rejected"
-  | "blocked"
-  | "expired";
+  "pending" | "approved" | "rejected" | "blocked" | "expired";
 
 export type UnknownSenderDecision = "approve_once" | "always_allow" | "reject" | "block" | "expire";
 
@@ -278,12 +322,7 @@ export type SenderRule = "default" | "allow" | "block";
 export type PolicyWriteStatus = "pending" | "submitted" | "confirmed" | "failed";
 
 export type PolicyReconciliationState =
-  | "synced"
-  | "pending_write"
-  | "failed"
-  | "diverged"
-  | "not_provisioned"
-  | "chain_ahead";
+  "synced" | "pending_write" | "failed" | "diverged" | "not_provisioned" | "chain_ahead";
 
 export interface PolicyWriteIntent {
   status: PolicyWriteStatus;
@@ -343,12 +382,7 @@ export interface PostageQuote {
 }
 
 export type PostageStatus =
-  | "pending"
-  | "expired"
-  | "disputed"
-  | "settled"
-  | "refunded"
-  | "reclaimed";
+  "pending" | "expired" | "disputed" | "settled" | "refunded" | "reclaimed";
 
 export interface PostageRecord {
   amount: string;

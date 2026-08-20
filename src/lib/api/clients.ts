@@ -40,6 +40,7 @@ import type {
   UnknownSenderRequestsResponse,
   AccountInfo,
   AccountProfileResponse,
+  BootstrapData,
   ProfileUpdateInput,
   ProfileUpdateResponse,
 } from "./types";
@@ -108,6 +109,10 @@ export class AuthClient {
 
   logoutAll(): Promise<{ success: boolean }> {
     return this.client.post<{ success: boolean }>("/auth/logout-all");
+  }
+
+  getBootstrap(signal?: AbortSignal): Promise<BootstrapData> {
+    return this.client.get<BootstrapData>("/bootstrap", { signal });
   }
 }
 

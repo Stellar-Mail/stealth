@@ -1,11 +1,7 @@
 import type { CampaignSnapshot } from "../types/campaignSnapshot";
 
 export type SenderRecoveryRequestStatus =
-  | "unknown"
-  | "paid-request"
-  | "approved"
-  | "blocked"
-  | "refund-queued";
+  "unknown" | "paid-request" | "approved" | "blocked" | "refund-queued";
 
 export interface SenderRecoveryRequestState {
   id: string;
