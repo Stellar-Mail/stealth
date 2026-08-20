@@ -1,12 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Surface, ActionButton, useFeedback } from "@/features/design-system";
 import { Check, X, Shield, ShieldAlert, Code, Loader2, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { simulateSenderAdmission } from "./-simulate-sender";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { sharedTypedApi, queryKeys } from "@/lib/api";
+import { isApiClientError } from "@/lib/api/errors";
+import { RefreshCw } from "lucide-react";
+import type { MailboxPolicyWrite, MailboxPolicy } from "@/lib/api/types";
 
 export const Route = createFileRoute("/policy-editor")({
-  component: PolicyEditorPage,
+  component: PolicyEditorPageWrapper,
 });
 
 const SENDER_LABELS: Record<"trusted" | "blocked" | "verified" | "unverified", string> = {
@@ -16,45 +21,108 @@ const SENDER_LABELS: Record<"trusted" | "blocked" | "verified" | "unverified", s
   unverified: "Unverified sender",
 };
 
-function PolicyEditorPage() {
-  const [allowUnknown, setAllowUnknown] = useState(true);
-  const [requireVerified, setRequireVerified] = useState(false);
-  const [minimumPostage, setMinimumPostage] = useState(0.01);
-  const [isSaving, setIsSaving] = useState(false);
-  const [apiError, setApiError] = useState<string | null>(null);
+function PolicyEditorPageWrapper() {
+  const { data: profileData } = useQuery({
+    queryKey: queryKeys.account.profile,
+    queryFn: ({ signal }) => sharedTypedApi.account.getProfile(signal),
+  });
 
+  if (!profileData) {
+    return (
+      <div className="min-h-screen bg-background p-6 md:p-12 text-foreground animate-pulse text-muted-foreground text-sm">
+        Loading profile...
+      </div>
+    );
+  }
+
+  return <PolicyEditorPage address={profileData.account.address} />;
+}
+
+function PolicyEditorPage({ address }: { address: string }) {
+  const queryClient = useQueryClient();
   const { notify } = useFeedback();
 
-  const payload = {
-    allowUnknown,
-    requireVerified,
-    minimumPostage: minimumPostage.toString(),
+  const {
+    data: reconciliation,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: queryKeys.policies.reconciliation(address),
+    queryFn: ({ signal }) => sharedTypedApi.policies.getReconciliation(address, undefined, signal),
+  });
+
+  const livePolicy = reconciliation?.offchain.policy ?? {
+    allowUnknown: true,
+    requireVerified: false,
+    minimumPostage: "0.01",
   };
+
+  const [draftPolicy, setDraftPolicy] = useState<MailboxPolicyWrite | null>(null);
+
+  // Sync draft to server state initially and when server state updates
+  // (unless user is currently editing and has diverged, though we're simplifying here)
+  useEffect(() => {
+    if (reconciliation?.offchain.policy) {
+      setDraftPolicy({
+        ...reconciliation.offchain.policy,
+        minimumPostage: reconciliation.offchain.policy.minimumPostage,
+      });
+    } else {
+      setDraftPolicy({ allowUnknown: true, requireVerified: false, minimumPostage: "0.01" });
+    }
+  }, [reconciliation?.offchain.policy]);
+
+  const currentForm = draftPolicy ?? livePolicy;
+
+  const mutation = useMutation({
+    mutationFn: (policy: MailboxPolicyWrite) => sharedTypedApi.policies.update(address, policy),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.policies.reconciliation(address) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.policies.policy(address) });
+      notify("Policy saved successfully!", { tone: "success" });
+    },
+    onError: (e: any) => {
+      notify("Failed to save policy", { tone: "danger" });
+    },
+  });
 
   const handleSave = async () => {
-    setIsSaving(true);
-    setApiError(null);
-    try {
-      const res = await fetch("/api/v1/policy", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || `Validation/Authorization failed with status ${res.status}`);
-      }
-      notify("Policy saved successfully!", { tone: "success" });
-    } catch (e: any) {
-      setApiError(e.message);
-      notify("Failed to save policy", { tone: "danger" });
-    } finally {
-      setIsSaving(false);
-    }
+    if (!draftPolicy) return;
+    mutation.mutate({
+      ...draftPolicy,
+      version: reconciliation?.offchain.version ?? undefined,
+    });
   };
 
-  const verificationDisabled = !allowUnknown;
-  const postageDisabled = !allowUnknown;
+  const updateDraft = (updates: Partial<MailboxPolicyWrite>) => {
+    setDraftPolicy((prev) => (prev ? { ...prev, ...updates } : { ...livePolicy, ...updates }));
+  };
+
+  const verificationDisabled = !currentForm.allowUnknown;
+  const postageDisabled = !currentForm.allowUnknown;
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background p-6 md:p-12 text-foreground animate-pulse text-muted-foreground text-sm">
+        Loading policy...
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="min-h-screen bg-background p-6 md:p-12 text-foreground">
+        <div className="rounded-lg border border-rose-500/20 bg-rose-500/10 p-4 text-sm text-rose-200">
+          Could not load policy.{" "}
+          <button onClick={() => refetch()} className="underline">
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background p-6 md:p-12 text-foreground">
@@ -65,6 +133,57 @@ function PolicyEditorPage() {
             Tune your inbox admission rules and preview the live impact before saving.
           </p>
         </div>
+
+        {mutation.isError && isApiClientError(mutation.error) && mutation.error.status === 409 && (
+          <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-sm flex items-start gap-3">
+            <ShieldAlert className="h-4 w-4 shrink-0 text-amber-400 mt-0.5" />
+            <div className="text-amber-200">
+              <p className="font-medium">Policy updated elsewhere</p>
+              <p className="mt-0.5 text-xs opacity-80">
+                These settings were modified from another session or tab.
+              </p>
+              <button
+                onClick={() => refetch()}
+                className="mt-2 text-xs font-medium text-amber-300 hover:text-amber-200 underline underline-offset-2"
+              >
+                Reload latest changes
+              </button>
+            </div>
+          </div>
+        )}
+
+        {reconciliation?.state === "pending_write" && (
+          <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-3 text-sm flex items-start gap-3">
+            <RefreshCw className="h-4 w-4 shrink-0 text-emerald-400 mt-0.5 animate-spin" />
+            <div className="text-emerald-200">
+              <p className="font-medium">Changes pending on chain</p>
+              <p className="mt-0.5 text-xs opacity-80">Your policy is confirming on the network.</p>
+            </div>
+          </div>
+        )}
+
+        {reconciliation?.state === "failed" && (
+          <div className="rounded-lg border border-rose-500/20 bg-rose-500/10 p-3 text-sm flex items-start gap-3">
+            <ShieldAlert className="h-4 w-4 shrink-0 text-rose-400 mt-0.5" />
+            <div className="text-rose-200">
+              <p className="font-medium">Policy write failed</p>
+              <p className="mt-0.5 text-xs opacity-80">
+                {reconciliation.offchain.intentError || "An error occurred writing to the network."}
+              </p>
+              <button
+                onClick={() =>
+                  mutation.mutate({
+                    ...livePolicy,
+                    version: reconciliation.offchain.version ?? undefined,
+                  })
+                }
+                className="mt-2 text-xs font-medium text-rose-300 hover:text-rose-200 underline"
+              >
+                Retry
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="grid md:grid-cols-2 gap-8">
           <Surface className="p-6 space-y-8 h-fit">
@@ -92,15 +211,15 @@ function PolicyEditorPage() {
                   <button
                     id="toggle-allow-unknown"
                     role="switch"
-                    aria-checked={allowUnknown}
+                    aria-checked={currentForm.allowUnknown}
                     aria-label="Allow unknown senders"
-                    onClick={() => setAllowUnknown(!allowUnknown)}
+                    onClick={() => updateDraft({ allowUnknown: !currentForm.allowUnknown })}
                     className={cn(
                       "glow-ring relative inline-flex h-6 w-11 shrink-0 items-center rounded-full",
                       "transition-colors duration-200",
                       "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                       "active:scale-95",
-                      allowUnknown
+                      currentForm.allowUnknown
                         ? "bg-emerald-500 hover:bg-emerald-400"
                         : "bg-white/20 hover:bg-white/30",
                     )}
@@ -108,7 +227,7 @@ function PolicyEditorPage() {
                     <span
                       className={cn(
                         "inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200",
-                        allowUnknown ? "translate-x-6" : "translate-x-1",
+                        currentForm.allowUnknown ? "translate-x-6" : "translate-x-1",
                       )}
                     />
                   </button>
@@ -140,16 +259,19 @@ function PolicyEditorPage() {
                   <button
                     id="toggle-require-verified"
                     role="switch"
-                    aria-checked={requireVerified}
+                    aria-checked={currentForm.requireVerified}
                     aria-label="Require verification"
                     aria-disabled={verificationDisabled}
-                    onClick={() => !verificationDisabled && setRequireVerified(!requireVerified)}
+                    onClick={() =>
+                      !verificationDisabled &&
+                      updateDraft({ requireVerified: !currentForm.requireVerified })
+                    }
                     className={cn(
                       "glow-ring relative inline-flex h-6 w-11 shrink-0 items-center rounded-full",
                       "transition-colors duration-200",
                       "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                       verificationDisabled ? "opacity-40 cursor-not-allowed" : "active:scale-95",
-                      requireVerified && !verificationDisabled
+                      currentForm.requireVerified && !verificationDisabled
                         ? "bg-emerald-500 hover:bg-emerald-400"
                         : verificationDisabled
                           ? "bg-white/20"
@@ -159,7 +281,7 @@ function PolicyEditorPage() {
                     <span
                       className={cn(
                         "inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200",
-                        requireVerified && !verificationDisabled
+                        currentForm.requireVerified && !verificationDisabled
                           ? "translate-x-6"
                           : "translate-x-1",
                       )}
@@ -182,7 +304,7 @@ function PolicyEditorPage() {
                         postageDisabled ? "text-muted-foreground opacity-40" : "text-emerald-400",
                       )}
                     >
-                      {minimumPostage.toFixed(3)} XLM
+                      {Number(currentForm.minimumPostage).toFixed(3)} XLM
                     </span>
                   </div>
                   <p
@@ -202,9 +324,9 @@ function PolicyEditorPage() {
                     max="1"
                     step="0.005"
                     disabled={postageDisabled}
-                    value={minimumPostage}
-                    onChange={(e) => setMinimumPostage(parseFloat(e.target.value))}
-                    aria-valuetext={`${minimumPostage.toFixed(3)} XLM`}
+                    value={Number(currentForm.minimumPostage)}
+                    onChange={(e) => updateDraft({ minimumPostage: e.target.value })}
+                    aria-valuetext={`${Number(currentForm.minimumPostage).toFixed(3)} XLM`}
                     className={cn(
                       "w-full accent-emerald-500 transition-opacity",
                       "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 rounded",
@@ -232,10 +354,10 @@ function PolicyEditorPage() {
               </p>
               <ActionButton
                 onClick={handleSave}
-                disabled={isSaving}
-                aria-label={isSaving ? "Saving policy…" : "Save policy"}
+                disabled={mutation.isPending}
+                aria-label={mutation.isPending ? "Saving policy…" : "Save policy"}
               >
-                {isSaving ? (
+                {mutation.isPending ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
                     <span>Saving…</span>
@@ -258,7 +380,11 @@ function PolicyEditorPage() {
               <div className="space-y-2" role="list" aria-label="Sender admission results">
                 {(["trusted", "blocked", "verified", "unverified"] as const).map((type) => {
                   const result = simulateSenderAdmission(
-                    { allowUnknown, requireVerified, minimumPostage },
+                    {
+                      allowUnknown: currentForm.allowUnknown,
+                      requireVerified: currentForm.requireVerified,
+                      minimumPostage: Number(currentForm.minimumPostage),
+                    },
                     type,
                   );
                   return (
@@ -299,23 +425,24 @@ function PolicyEditorPage() {
                 className="text-xs text-emerald-300 bg-black/60 p-4 rounded-lg overflow-x-auto border border-white/5 leading-relaxed"
                 aria-label="Current policy JSON payload"
               >
-                {JSON.stringify(payload, null, 2)}
+                {JSON.stringify(currentForm, null, 2)}
               </pre>
 
               {/* Error state */}
-              {apiError && (
-                <div
-                  role="alert"
-                  aria-live="polite"
-                  className="mt-4 flex items-start gap-3 text-rose-300 text-xs bg-rose-400/10 p-3.5 rounded-lg border border-rose-400/20"
-                >
-                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" aria-hidden="true" />
-                  <div className="min-w-0">
-                    <p className="font-medium text-rose-200 mb-0.5">Save failed</p>
-                    <p className="text-rose-300/80 break-words">{apiError}</p>
+              {mutation.isError &&
+                !(isApiClientError(mutation.error) && mutation.error.status === 409) && (
+                  <div
+                    role="alert"
+                    aria-live="polite"
+                    className="mt-4 flex items-start gap-3 text-rose-300 text-xs bg-rose-400/10 p-3.5 rounded-lg border border-rose-400/20"
+                  >
+                    <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" aria-hidden="true" />
+                    <div className="min-w-0">
+                      <p className="font-medium text-rose-200 mb-0.5">Save failed</p>
+                      <p className="text-rose-300/80 break-words">{mutation.error?.message}</p>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
             </Surface>
           </div>
         </div>

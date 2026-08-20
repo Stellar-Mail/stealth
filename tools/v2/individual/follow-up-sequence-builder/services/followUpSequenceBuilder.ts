@@ -103,13 +103,33 @@ export const DEFAULT_SEQUENCE_TEMPLATES: Record<
   { delayDays: number; template: string; condition: string }[]
 > = {
   critical: [
-    { delayDays: 1, template: "Follow up on urgent request", condition: "No response received" },
-    { delayDays: 3, template: "Escalate urgent request", condition: "Still no response" },
-    { delayDays: 7, template: "Final escalation", condition: "No response after two follow-ups" },
+    {
+      delayDays: 1,
+      template: "Follow up on urgent request",
+      condition: "No response received",
+    },
+    {
+      delayDays: 3,
+      template: "Escalate urgent request",
+      condition: "Still no response",
+    },
+    {
+      delayDays: 7,
+      template: "Final escalation",
+      condition: "No response after two follow-ups",
+    },
   ],
   high: [
-    { delayDays: 2, template: "Gentle reminder", condition: "No response received" },
-    { delayDays: 5, template: "Follow-up on pending item", condition: "Still no response" },
+    {
+      delayDays: 2,
+      template: "Gentle reminder",
+      condition: "No response received",
+    },
+    {
+      delayDays: 5,
+      template: "Follow-up on pending item",
+      condition: "Still no response",
+    },
     {
       delayDays: 10,
       template: "Escalate if unresolved",
@@ -117,14 +137,34 @@ export const DEFAULT_SEQUENCE_TEMPLATES: Record<
     },
   ],
   normal: [
-    { delayDays: 3, template: "Friendly check-in", condition: "No response received" },
-    { delayDays: 7, template: "Follow-up reminder", condition: "Still no response" },
-    { delayDays: 14, template: "Final check-in", condition: "No response after two follow-ups" },
+    {
+      delayDays: 3,
+      template: "Friendly check-in",
+      condition: "No response received",
+    },
+    {
+      delayDays: 7,
+      template: "Follow-up reminder",
+      condition: "Still no response",
+    },
+    {
+      delayDays: 14,
+      template: "Final check-in",
+      condition: "No response after two follow-ups",
+    },
   ],
   low: [
-    { delayDays: 7, template: "Casual check-in", condition: "No response received" },
+    {
+      delayDays: 7,
+      template: "Casual check-in",
+      condition: "No response received",
+    },
     { delayDays: 14, template: "Gentle nudge", condition: "Still no response" },
-    { delayDays: 30, template: "Final nudge", condition: "No response after two follow-ups" },
+    {
+      delayDays: 30,
+      template: "Final nudge",
+      condition: "No response after two follow-ups",
+    },
   ],
 };
 
@@ -151,7 +191,10 @@ function detectExplicitRequests(text: string): SequenceSignal[] {
   return found;
 }
 
-function detectUrgency(text: string): { signals: SequenceSignal[]; urgency: UrgencyLevel } {
+function detectUrgency(text: string): {
+  signals: SequenceSignal[];
+  urgency: UrgencyLevel;
+} {
   const signals: SequenceSignal[] = [];
   let urgency: UrgencyLevel = "normal";
 
@@ -266,7 +309,10 @@ export function buildSequence(
     ...lowPrioritySignals,
   ];
   if (hasThreadHint) {
-    signals.push({ type: "sender_hint", detail: normalizeWhitespace(input.threadHint as string) });
+    signals.push({
+      type: "sender_hint",
+      detail: normalizeWhitespace(input.threadHint as string),
+    });
   }
 
   const warnings: string[] = [];

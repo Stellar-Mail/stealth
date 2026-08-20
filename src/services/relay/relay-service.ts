@@ -80,6 +80,13 @@ export interface RelayNetworkConfig {
   networkPassphrase: string;
 }
 
+export interface RelayAcceptedEnvelope {
+  messageId: string;
+  sender: string;
+  recipient: string;
+  receivedAt: string;
+}
+
 export interface RelayServiceConfig {
   serviceName: string;
   version: string;
@@ -90,6 +97,18 @@ export interface RelayServiceConfig {
   audience?: string;
   nonceService?: NonceService;
   nowSeconds?: () => number;
+  /**
+   * Best-effort hook invoked after a message is enqueued (e.g. scheduling the
+   * lifecycle anchor for the commitment). Failures are swallowed: the durable
+   * anchor record owns retries and reconciliation.
+   */
+  onAccepted?: (envelope: RelayAcceptedEnvelope) => void | Promise<void>;
+  onIngestedReceipt?: (input: {
+    messageId: string;
+    sender: string;
+    recipient: string;
+    payload: string;
+  }) => Promise<unknown>;
 }
 
 export interface RelaySubmitResult {
@@ -230,6 +249,30 @@ export class RelayService {
     };
 
     await this.persistence.enqueue(envelope);
+    if (this.config.onAccepted) {
+      try {
+        await this.config.onAccepted({
+          messageId: envelope.messageId,
+          sender: envelope.sender,
+          recipient: envelope.recipient,
+          receivedAt: envelope.receivedAt,
+        });
+      } catch {
+        // Best-effort; the durable anchor record owns the outcome.
+      }
+    }
+    if (this.config.onIngestedReceipt) {
+      try {
+        await this.config.onIngestedReceipt({
+          messageId: envelope.messageId,
+          sender: envelope.sender,
+          recipient: envelope.recipient,
+          payload: envelope.payload,
+        });
+      } catch {
+        // Log / fail-soft: receipt publication error does not fail queue enqueue
+      }
+    }
     return {
       accepted: true,
       messageId: envelope.messageId,

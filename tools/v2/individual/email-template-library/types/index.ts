@@ -85,7 +85,11 @@ export interface EmailTemplateLibraryFailure {
   error: {
     code: EmailTemplateLibraryErrorCode;
     message: string;
-    details?: { templateId?: string; fields?: string[]; missingVariables?: string[] };
+    details?: {
+      templateId?: string;
+      fields?: string[];
+      missingVariables?: string[];
+    };
   };
 }
 

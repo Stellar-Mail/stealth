@@ -20,8 +20,8 @@ import type { NotificationTransport } from "@/config/schema";
 export interface VerificationEmailMessage {
   /** Recipient address (normalized account email). */
   to: string;
-  /** Verified account purpose — always "email_verification" in BETA-005. */
-  purpose: "email_verification";
+  /** Verified account purpose. */
+  purpose: "email_verification" | "password_reset";
   /** Absolute URL the recipient opens to complete verification. */
   verificationUrl: string;
   /** Expiry instant of the token carried by the verification URL. */

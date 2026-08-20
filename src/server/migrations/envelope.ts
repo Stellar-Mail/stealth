@@ -10,7 +10,10 @@ import type { IdentityRecordFamily } from "./types";
 // repository's "legacy records are implicitly version 1" rule.
 // ---------------------------------------------------------------------------
 
-export function readEnvelope(raw: unknown): { version: number; payload: Record<string, unknown> } {
+export function readEnvelope(raw: unknown): {
+  version: number;
+  payload: Record<string, unknown>;
+} {
   if (typeof raw === "object" && raw !== null) {
     const record = raw as Record<string, unknown>;
     if (typeof record.$v === "number" && Number.isInteger(record.$v) && record.$v >= 1) {

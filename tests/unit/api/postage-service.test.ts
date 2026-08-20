@@ -25,7 +25,11 @@ describe("postage service", () => {
     await repository.setSenderRule(recipient, sender, "allow");
 
     await expect(
-      quotePostage(createApiContext(repository), { recipient, sender }),
+      quotePostage(createApiContext(repository), {
+        recipient,
+        sender,
+        messageId: "a".repeat(64),
+      }),
     ).resolves.toMatchObject({
       amount: "0",
       eligible: true,
@@ -38,7 +42,11 @@ describe("postage service", () => {
     await repository.setSenderRule(recipient, sender, "block");
 
     await expect(
-      quotePostage(createApiContext(repository), { recipient, sender }),
+      quotePostage(createApiContext(repository), {
+        recipient,
+        sender,
+        messageId: "a".repeat(64),
+      }),
     ).resolves.toMatchObject({
       eligible: false,
       reason: "sender_blocked",

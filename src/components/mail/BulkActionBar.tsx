@@ -131,7 +131,10 @@ export function BulkActionBar({
               id: preset.id as BulkSnoozeChoice,
               label: preset.label,
               onClick: () =>
-                onAction({ action: "snooze", snoozeChoice: preset.id as BulkSnoozeChoice }),
+                onAction({
+                  action: "snooze",
+                  snoozeChoice: preset.id as BulkSnoozeChoice,
+                }),
             }))}
           />
         )}
@@ -253,7 +256,11 @@ function ActionDropdown({
   icon: LucideIcon;
   label: string;
   disabled?: boolean;
-  items: { id: BulkActionId | MailLocation | SnoozeChoice; label: string; onClick: () => void }[];
+  items: {
+    id: BulkActionId | MailLocation | SnoozeChoice;
+    label: string;
+    onClick: () => void;
+  }[];
 }) {
   return (
     <DropdownMenu>

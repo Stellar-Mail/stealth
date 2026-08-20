@@ -130,7 +130,9 @@ describe("identity migration runner", () => {
       const storage = new InMemoryMigrationStorage();
       storage.seed("user:id:u_1", wrapEnvelope({ ...validUser("u_1"), displayName: "Al" }, 2));
 
-      const first = await rollback(storage, [v2UserFamily()], { targetVersion: 1 });
+      const first = await rollback(storage, [v2UserFamily()], {
+        targetVersion: 1,
+      });
       const user = first.families.find((f) => f.family === "user")!;
       expect(user.changed).toBe(1);
       expect(first.ok).toBe(true);
@@ -139,7 +141,9 @@ describe("identity migration runner", () => {
       expect(stored).toMatchObject({ $v: 1 });
       expect(stored).not.toHaveProperty("displayName");
 
-      const second = await rollback(storage, [v2UserFamily()], { targetVersion: 1 });
+      const second = await rollback(storage, [v2UserFamily()], {
+        targetVersion: 1,
+      });
       const user2 = second.families.find((f) => f.family === "user")!;
       expect(user2.changed).toBe(0);
       expect(user2.skipped).toBe(1);
@@ -148,7 +152,10 @@ describe("identity migration runner", () => {
     it("reports failure without mutating when a backward step is missing", async () => {
       const family = v2UserFamily();
       family.currentVersion = 3;
-      family.forward = { 1: (d) => ({ ...d, a: 1 }), 2: (d) => ({ ...d, b: 2 }) };
+      family.forward = {
+        1: (d) => ({ ...d, a: 1 }),
+        2: (d) => ({ ...d, b: 2 }),
+      };
       family.backward = {
         2: (d) => {
           const { a, ...rest } = d;

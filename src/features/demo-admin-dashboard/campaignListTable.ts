@@ -90,7 +90,10 @@ export function nextCampaignListSort(
   key: CampaignListSortKey,
 ): CampaignListSort {
   if (current.key !== key) {
-    return { key, direction: key === "updated" || key === "drafts" ? "desc" : "asc" };
+    return {
+      key,
+      direction: key === "updated" || key === "drafts" ? "desc" : "asc",
+    };
   }
 
   return {

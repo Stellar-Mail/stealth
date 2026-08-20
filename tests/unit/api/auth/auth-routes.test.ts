@@ -208,7 +208,10 @@ describe("BETA-006: Auth API Routes (/api/v1/auth/*)", () => {
     const loginReqA = new Request("https://stealth.mail/api/v1/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ identifier: "route_user", password: testPassword }),
+      body: JSON.stringify({
+        identifier: "route_user",
+        password: testPassword,
+      }),
     });
     const loginResA = await loginHandler({ request: loginReqA });
     const cookieA = (loginResA.headers.get("Set-Cookie") ?? "").split(";")[0];
@@ -217,7 +220,10 @@ describe("BETA-006: Auth API Routes (/api/v1/auth/*)", () => {
     const loginReqB = new Request("https://stealth.mail/api/v1/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ identifier: "route_user", password: testPassword }),
+      body: JSON.stringify({
+        identifier: "route_user",
+        password: testPassword,
+      }),
     });
     const loginResB = await loginHandler({ request: loginReqB });
     const cookieB = (loginResB.headers.get("Set-Cookie") ?? "").split(";")[0];
@@ -276,7 +282,10 @@ describe("BETA-006: Auth API Routes (/api/v1/auth/*)", () => {
     const loginReq = new Request("https://stealth.mail/api/v1/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ identifier: "route_user", password: testPassword }),
+      body: JSON.stringify({
+        identifier: "route_user",
+        password: testPassword,
+      }),
     });
     const loginRes = await loginHandler({ request: loginReq });
     const cookie = (loginRes.headers.get("Set-Cookie") ?? "").split(";")[0];

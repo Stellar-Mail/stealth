@@ -427,7 +427,11 @@ function checkLength(parsed: ParsedDraft, sanitized: SanitizedDraft): DraftIssue
     issues.push({
       category: "length",
       severity: "warning",
-      message: `The draft was truncated from ${sanitized.originalSubjectLength + sanitized.originalBodyLength} characters to ${sanitized.subject.length + sanitized.body.length} characters to fit size limits.`,
+      message: `The draft was truncated from ${
+        sanitized.originalSubjectLength + sanitized.originalBodyLength
+      } characters to ${
+        sanitized.subject.length + sanitized.body.length
+      } characters to fit size limits.`,
       suggestions: [
         {
           type: "remove",

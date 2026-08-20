@@ -1,6 +1,6 @@
-import { beforeEach, describe, expect, it } from "vitest";
+﻿import { beforeEach, describe, expect, it } from "vitest";
 
-import type { StoredEnvelope } from "../../../src/server/api/domain";
+import type { Contact, StoredEnvelope } from "../../../src/server/api/domain";
 import type { ApiRepository } from "../../../src/server/api/repository";
 
 // Issue #1494: one reusable repository conformance suite that every adapter must
@@ -185,8 +185,13 @@ export function runRepositoryContractTests(
         });
 
         const result = await repo.transitionPostage(messageId, "pending", "settled");
-        expect(result).toMatchObject({ outcome: "applied", postage: { status: "settled" } });
-        await expect(repo.getPostage(messageId)).resolves.toMatchObject({ status: "settled" });
+        expect(result).toMatchObject({
+          outcome: "applied",
+          postage: { status: "settled" },
+        });
+        await expect(repo.getPostage(messageId)).resolves.toMatchObject({
+          status: "settled",
+        });
       });
 
       it("reports a conflict with the current status when already terminal", async () => {
@@ -202,7 +207,10 @@ export function runRepositoryContractTests(
 
         await expect(
           repo.transitionPostage(messageId, "pending", "settled"),
-        ).resolves.toMatchObject({ outcome: "conflict", postage: { status: "settled" } });
+        ).resolves.toMatchObject({
+          outcome: "conflict",
+          postage: { status: "settled" },
+        });
       });
 
       it("allows exactly one winner out of concurrent settlement attempts", async () => {
@@ -224,7 +232,9 @@ export function runRepositoryContractTests(
         const conflicts = results.filter((result) => result.outcome === "conflict");
         expect(applied).toHaveLength(1);
         expect(conflicts).toHaveLength(4);
-        await expect(repo.getPostage(messageId)).resolves.toMatchObject({ status: "settled" });
+        await expect(repo.getPostage(messageId)).resolves.toMatchObject({
+          status: "settled",
+        });
       });
     });
 
@@ -267,7 +277,10 @@ export function runRepositoryContractTests(
         });
 
         const completed = await repo.acquireIdempotencyRecord("key-2", "digest-a", 30_000);
-        expect(completed).toMatchObject({ status: "completed", record: { body: { ok: true } } });
+        expect(completed).toMatchObject({
+          status: "completed",
+          record: { body: { ok: true } },
+        });
       });
 
       it("returns conflict when the same key is reused with a different payload digest", async () => {
@@ -334,6 +347,9 @@ export function runRepositoryContractTests(
         displayName: "Alice Stealth",
         avatarUrl: "https://stealth.mail/avatars/alice.png",
         bio: "Crypto privacy enthusiast",
+        locale: "en-US",
+        timezone: "UTC",
+        addressDisplay: "full" as const,
         createdAt: "2026-01-01T00:00:00.000Z",
         updatedAt: "2026-01-01T00:00:00.000Z",
       };
@@ -359,7 +375,10 @@ export function runRepositoryContractTests(
 
       it("creates a user and satisfies email, username, address lookups", async () => {
         const created = await repo.createUser(sampleUser, sampleCredential, sampleProfile);
-        expect(created).toMatchObject({ userId: "usr_test_1", email: "alice@stealth.mail" });
+        expect(created).toMatchObject({
+          userId: "usr_test_1",
+          email: "alice@stealth.mail",
+        });
 
         await expect(repo.getUserById("usr_test_1")).resolves.toMatchObject({
           username: "alice_stealth",
@@ -520,6 +539,219 @@ export function runRepositoryContractTests(
           replacedBySessionId: "sess_new_2",
           userId: "usr_test_1",
         });
+      });
+    });
+
+    describe("contacts (BETA-066 / Issue #1973)", () => {
+      const otherOwner = `G${"C".repeat(55)}`;
+
+      function sampleContact(id: string, overrides: Partial<Contact> = {}): Contact {
+        return {
+          contactId: id,
+          owner,
+          name: `Contact ${id}`,
+          address: `g-address-${id}`,
+          canonicalAddress: null,
+          trust: "default",
+          source: "manual",
+          createdAt: "2026-01-01T00:00:00.000Z",
+          updatedAt: "2026-01-01T00:00:00.000Z",
+          version: 1,
+          ...overrides,
+        };
+      }
+
+      it("returns null for a missing contact", async () => {
+        await expect(repo.getContact(owner, "c_missing")).resolves.toBeNull();
+      });
+
+      it("round-trips a created contact and isolates it per owner", async () => {
+        const stored = await repo.createContact(sampleContact("c_1"));
+        expect(stored).toMatchObject({ contactId: "c_1", owner, name: "Contact c_1" });
+
+        const fetched = await repo.getContact(owner, "c_1");
+        expect(fetched).toMatchObject({ contactId: "c_1", owner, version: 1 });
+
+        await expect(repo.getContact(otherOwner, "c_1")).resolves.toBeNull();
+      });
+
+      it("rejects duplicate contactId creation for the same owner", async () => {
+        await repo.createContact(sampleContact("c_dup"));
+        await expect(repo.createContact(sampleContact("c_dup"))).rejects.toThrow();
+      });
+
+      it("allows the same contactId under a different owner", async () => {
+        await repo.createContact(sampleContact("c_shared"));
+        await expect(
+          repo.createContact(sampleContact("c_shared", { owner: otherOwner })),
+        ).resolves.toMatchObject({ owner: otherOwner });
+      });
+
+      it("applies compare-and-swap updates keyed by expectedVersion", async () => {
+        await repo.createContact(sampleContact("c_cas"));
+
+        const moved = await repo.updateContact(
+          sampleContact("c_cas", { version: 2, name: "Moved" }),
+          1,
+        );
+        expect(moved.updated).toBe(true);
+        if (moved.updated) {
+          expect(moved.contact).toMatchObject({ name: "Moved", version: 2 });
+        }
+
+        const stale = await repo.updateContact(sampleContact("c_cas"), 1);
+        expect(stale.updated).toBe(false);
+      });
+
+      it("reports not-found CAS when the contact never existed", async () => {
+        const result = await repo.updateContact(sampleContact("c_ghost"), 1);
+        expect(result).toEqual({ updated: false, current: null });
+      });
+
+      it("deletes a contact and leaves other owners untouched", async () => {
+        await repo.createContact(sampleContact("c_del", { owner: otherOwner }));
+        await repo.createContact(sampleContact("c_keep"));
+
+        await repo.deleteContact(owner, "c_keep");
+        await expect(repo.getContact(owner, "c_keep")).resolves.toBeNull();
+        await expect(repo.getContact(otherOwner, "c_del")).resolves.not.toBeNull();
+      });
+
+      it("lists contacts scoped to the owner with the declared ordering", async () => {
+        await repo.createContact(sampleContact("c_a", { name: "Alpha" }));
+        await repo.createContact(sampleContact("c_b", { name: "Beta" }));
+        await repo.createContact(sampleContact("c_z", { owner: otherOwner, name: "Zulu" }));
+
+        const page = await repo.listContacts(owner);
+        expect(page.items.map((c) => c.contactId).sort()).toEqual(["c_a", "c_b"]);
+        expect(page.items.every((c) => c.owner === owner)).toBe(true);
+      });
+
+      it("filters by query against name and raw address case-insensitively", async () => {
+        await repo.createContact(sampleContact("c_alpha", { name: "Alice" }));
+        await repo.createContact(sampleContact("c_bravo", { address: "GALICE-ADDRESS" }));
+
+        const byName = await repo.listContacts(owner, { query: "alice" });
+        expect(byName.items.map((c) => c.contactId).sort()).toEqual(["c_alpha", "c_bravo"]);
+
+        const onlyAddress = await repo.listContacts(owner, { query: "galice" });
+        expect(onlyAddress.items.map((c) => c.contactId)).toEqual(["c_bravo"]);
+      });
+
+      it("paginates contacts with limit and continuation key", async () => {
+        for (let i = 0; i < 5; i += 1) {
+          await repo.createContact(sampleContact(`c_page_${i}`));
+        }
+
+        const first = await repo.listContacts(owner, { limit: 2 });
+        expect(first.items).toHaveLength(2);
+        expect(first.nextContinuationKey).not.toBeNull();
+
+        const second = await repo.listContacts(owner, {
+          limit: 2,
+          after: first.nextContinuationKey ?? undefined,
+        });
+        expect(second.items).toHaveLength(2);
+        expect(second.items[0].contactId).not.toBe(first.items[0].contactId);
+
+        const last = await repo.listContacts(owner, {
+          limit: 5,
+          after: second.nextContinuationKey ?? undefined,
+        });
+        expect(last.items).toHaveLength(1);
+        expect(last.nextContinuationKey).toBeNull();
+      });
+    });
+
+    describe("recovery code sets (BETA-010 / Issue #1917)", () => {
+      const sampleSet = {
+        userId: "usr_test_1",
+        status: "active" as const,
+        codes: [
+          { hash: "hash_1", salt: "salt_1", usedAt: null },
+          { hash: "hash_2", salt: "salt_2", usedAt: null },
+        ],
+        generatedAt: "2026-01-01T00:00:00.000Z",
+        updatedAt: "2026-01-01T00:00:00.000Z",
+        version: 1,
+      };
+
+      it("returns null for a missing recovery code set", async () => {
+        await expect(repo.getRecoveryCodeSet("usr_missing")).resolves.toBeNull();
+      });
+
+      it("creates with expectedVersion 0 and refuses a second create", async () => {
+        const created = await repo.setRecoveryCodeSet(sampleSet, 0);
+        expect(created.updated).toBe(true);
+
+        const conflict = await repo.setRecoveryCodeSet({ ...sampleSet, version: 1 }, 0);
+        expect(conflict.updated).toBe(false);
+        if (!conflict.updated) {
+          expect(conflict.current).toMatchObject({ version: 1 });
+        }
+      });
+
+      it("round-trips a recovery code set keyed by userId", async () => {
+        await repo.setRecoveryCodeSet(sampleSet, 0);
+        const fetched = await repo.getRecoveryCodeSet("usr_test_1");
+        expect(fetched).toMatchObject({
+          userId: "usr_test_1",
+          status: "active",
+          version: 1,
+        });
+        expect(fetched?.codes).toHaveLength(2);
+      });
+
+      it("applies a CAS update against the expected version and bumps it", async () => {
+        await repo.setRecoveryCodeSet(sampleSet, 0);
+
+        const stale = await repo.setRecoveryCodeSet(
+          { ...sampleSet, updatedAt: "2026-01-02T00:00:00.000Z", version: 2 },
+          9,
+        );
+        expect(stale.updated).toBe(false);
+        if (!stale.updated) {
+          expect(stale.current).toMatchObject({ version: 1 });
+        }
+
+        const applied = await repo.setRecoveryCodeSet(
+          {
+            ...sampleSet,
+            status: "exhausted",
+            updatedAt: "2026-01-02T00:00:00.000Z",
+            version: 2,
+          },
+          1,
+        );
+        expect(applied.updated).toBe(true);
+        if (applied.updated) {
+          expect(applied.set.version).toBe(2);
+          expect(applied.set.status).toBe("exhausted");
+        }
+      });
+
+      it("allows exactly one writer to win a concurrent CAS", async () => {
+        await repo.setRecoveryCodeSet(sampleSet, 0);
+
+        const results = await Promise.all(
+          Array.from({ length: 5 }, (_, i) =>
+            repo.setRecoveryCodeSet(
+              {
+                ...sampleSet,
+                version: 2,
+                updatedAt: `2026-01-02T00:00:0${i}.000Z`,
+                codes: [{ hash: `hash_new_${i}`, salt: "salt_1", usedAt: null }],
+              },
+              1,
+            ),
+          ),
+        );
+
+        const winners = results.filter((result) => result.updated);
+        expect(winners).toHaveLength(1);
+        const persisted = await repo.getRecoveryCodeSet("usr_test_1");
+        expect(persisted?.version).toBe(2);
+        expect(persisted?.codes).toHaveLength(1);
       });
     });
   });

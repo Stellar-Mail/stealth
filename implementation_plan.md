@@ -261,7 +261,9 @@ export async function getApiContext(): Promise<ApiContext> {
   if (!env.STEALTH_KV || !env.STEALTH_COORDINATOR) {
     throw new Error("Missing required cloudflare bindings: STEALTH_KV or STEALTH_COORDINATOR");
   }
-  return { repository: new HybridApiRepository(env.STEALTH_KV, env.STEALTH_COORDINATOR) };
+  return {
+    repository: new HybridApiRepository(env.STEALTH_KV, env.STEALTH_COORDINATOR),
+  };
 }
 ```
 

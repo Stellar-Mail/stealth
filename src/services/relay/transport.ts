@@ -100,7 +100,9 @@ export function handleRelayHealth(request: Request, service: RelayService) {
 export function handleRelayReadiness(request: Request, service: RelayService) {
   return handleApiRequest(request, async () => {
     const readiness = await service.checkReadiness();
-    return apiSuccess(request, readiness, { status: readiness.ready ? 200 : 503 });
+    return apiSuccess(request, readiness, {
+      status: readiness.ready ? 200 : 503,
+    });
   });
 }
 

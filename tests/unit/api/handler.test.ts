@@ -46,7 +46,9 @@ describe("createRouteHandler", () => {
       },
     });
 
-    const request = new Request("http://localhost/api/test", { method: "POST" });
+    const request = new Request("http://localhost/api/test", {
+      method: "POST",
+    });
     const response = await handler(request);
 
     expect(response.status).toBe(400);
@@ -103,7 +105,9 @@ describe("createRouteHandler", () => {
 
     const request = new Request("http://localhost/api/test", {
       method: "GET",
-      headers: { [ACTOR_HEADER]: "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB" },
+      headers: {
+        [ACTOR_HEADER]: "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB",
+      },
     });
     const response = await handler(request);
     expect(response.status).toBe(200);
@@ -129,11 +133,15 @@ describe("createRouteHandler", () => {
     const makeRequest = () =>
       new Request("http://localhost/api/test", {
         method: "POST",
-        headers: { [ACTOR_HEADER]: "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB" },
+        headers: {
+          [ACTOR_HEADER]: "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB",
+        },
       });
 
     for (let requestNumber = 0; requestNumber < 5; requestNumber += 1) {
-      await expect(route(makeRequest())).resolves.toMatchObject({ status: 200 });
+      await expect(route(makeRequest())).resolves.toMatchObject({
+        status: 200,
+      });
     }
 
     await expect(route(makeRequest())).resolves.toMatchObject({ status: 429 });
@@ -175,7 +183,10 @@ describe("createRouteHandler", () => {
   } as const;
 
   it("grants CORS access to an allowed origin", async () => {
-    const handler = createRouteHandler({ cors, handler: () => new Response("OK") });
+    const handler = createRouteHandler({
+      cors,
+      handler: () => new Response("OK"),
+    });
     const response = await handler(
       new Request("http://localhost/api/test", {
         headers: { Origin: "https://mail.example.com" },
@@ -203,7 +214,10 @@ describe("createRouteHandler", () => {
   });
 
   it("does not allow the null origin unless it is explicitly configured", async () => {
-    const handler = createRouteHandler({ cors, handler: () => new Response("OK") });
+    const handler = createRouteHandler({
+      cors,
+      handler: () => new Response("OK"),
+    });
     const response = await handler(
       new Request("http://localhost/api/test", { headers: { Origin: "null" } }),
     );
@@ -214,7 +228,11 @@ describe("createRouteHandler", () => {
 
   it("answers an allowed preflight with the configured methods and headers", async () => {
     const routeHandler = vi.fn(() => new Response("should not run"));
-    const handler = createRouteHandler({ cors, requireAuth: true, handler: routeHandler });
+    const handler = createRouteHandler({
+      cors,
+      requireAuth: true,
+      handler: routeHandler,
+    });
     const response = await handler(
       new Request("http://localhost/api/test", {
         method: "OPTIONS",
@@ -236,7 +254,10 @@ describe("createRouteHandler", () => {
   });
 
   it("rejects a denied preflight without CORS headers", async () => {
-    const handler = createRouteHandler({ cors, handler: () => new Response("OK") });
+    const handler = createRouteHandler({
+      cors,
+      handler: () => new Response("OK"),
+    });
     const response = await handler(
       new Request("http://localhost/api/test", {
         method: "OPTIONS",

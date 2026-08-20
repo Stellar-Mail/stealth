@@ -69,7 +69,10 @@ describe("trackOwnership state transitions", () => {
 
   it("treats a claim on an unowned thread like an assignment", () => {
     const report = trackOwnership([
-      event("evt-1", "claimed", { owner: "carol@team.test", previousOwner: null }),
+      event("evt-1", "claimed", {
+        owner: "carol@team.test",
+        previousOwner: null,
+      }),
     ]);
     const record = report.records[0];
     expect(record.state).toBe("owned");
@@ -81,7 +84,10 @@ describe("trackOwnership state transitions", () => {
 
   it("counts a handoff when ownership moves to a different owner", () => {
     const report = trackOwnership([
-      event("evt-1", "assigned", { owner: "alice@team.test", previousOwner: null }),
+      event("evt-1", "assigned", {
+        owner: "alice@team.test",
+        previousOwner: null,
+      }),
       event("evt-2", "reassigned", {
         owner: "bob@team.test",
         previousOwner: "alice@team.test",
@@ -97,7 +103,10 @@ describe("trackOwnership state transitions", () => {
 
   it("does not count a handoff when reassigned to the same owner", () => {
     const report = trackOwnership([
-      event("evt-1", "assigned", { owner: "alice@team.test", previousOwner: null }),
+      event("evt-1", "assigned", {
+        owner: "alice@team.test",
+        previousOwner: null,
+      }),
       event("evt-2", "reassigned", {
         owner: "alice@team.test",
         previousOwner: "alice@team.test",
@@ -112,7 +121,10 @@ describe("trackOwnership state transitions", () => {
 
   it("marks a thread unassigned after a release", () => {
     const report = trackOwnership([
-      event("evt-1", "assigned", { owner: "alice@team.test", previousOwner: null }),
+      event("evt-1", "assigned", {
+        owner: "alice@team.test",
+        previousOwner: null,
+      }),
       event("evt-2", "released", {
         owner: null,
         previousOwner: "alice@team.test",
@@ -131,7 +143,10 @@ describe("trackOwnership state transitions", () => {
 describe("trackOwnership anomaly detection", () => {
   it("flags a duplicate assignment to the current owner", () => {
     const report = trackOwnership([
-      event("evt-1", "assigned", { owner: "alice@team.test", previousOwner: null }),
+      event("evt-1", "assigned", {
+        owner: "alice@team.test",
+        previousOwner: null,
+      }),
       event("evt-2", "assigned", {
         owner: "alice@team.test",
         previousOwner: "alice@team.test",
@@ -160,7 +175,10 @@ describe("trackOwnership anomaly detection", () => {
 
   it("flags an owner mismatch when previousOwner does not match", () => {
     const report = trackOwnership([
-      event("evt-1", "assigned", { owner: "alice@team.test", previousOwner: null }),
+      event("evt-1", "assigned", {
+        owner: "alice@team.test",
+        previousOwner: null,
+      }),
       event("evt-2", "reassigned", {
         owner: "bob@team.test",
         previousOwner: "wrong@team.test",

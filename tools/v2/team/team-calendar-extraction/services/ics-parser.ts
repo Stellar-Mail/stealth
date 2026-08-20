@@ -61,13 +61,21 @@ function extractEmailFromMailto(val: string): string {
 export function parseIcsContent(
   icsContent: string,
   customLimits: Partial<ParseLimits> = {},
-): { events: CalendarEvent[]; errors: string[]; stats: { linesProcessed: number } } {
+): {
+  events: CalendarEvent[];
+  errors: string[];
+  stats: { linesProcessed: number };
+} {
   const limits = { ...DEFAULT_LIMITS, ...customLimits };
   const errors: string[] = [];
   const events: CalendarEvent[] = [];
 
   if (!icsContent) {
-    return { events, errors: ["Empty ICS content provided"], stats: { linesProcessed: 0 } };
+    return {
+      events,
+      errors: ["Empty ICS content provided"],
+      stats: { linesProcessed: 0 },
+    };
   }
 
   // Guard file size

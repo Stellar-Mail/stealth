@@ -181,7 +181,9 @@ export function validReceiptArbitrary(nowMs: number, maxFutureSkewMs: number) {
       hash32Arbitrary,
       distinctAddressPairArbitrary,
       fc.integer({ min: -365 * 24 * 60 * 60 * 1000, max: maxFutureSkewMs }),
-      fc.option(fc.integer({ min: 0, max: 30 * 24 * 60 * 60 * 1000 }), { nil: null }),
+      fc.option(fc.integer({ min: 0, max: 30 * 24 * 60 * 60 * 1000 }), {
+        nil: null,
+      }),
     )
     .map(([messageId, [recipient, sender], deliveredOffsetMs, readExtraMs]) => {
       const deliveredAtMs = nowMs + deliveredOffsetMs;

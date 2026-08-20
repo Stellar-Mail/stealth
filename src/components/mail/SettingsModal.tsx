@@ -22,22 +22,28 @@ import {
 import { useState, useEffect, useRef, useMemo, useCallback, type CSSProperties } from "react";
 import { Surface } from "@/features/design-system";
 import { cn } from "@/lib/utils";
+import { sharedTypedApi, queryKeys } from "@/lib/api";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { isApiClientError } from "@/lib/api/errors";
 import { SHORTCUT_DEFINITIONS } from "@/features/command-palette";
 import type { ReceiptPreference, UiPreferences, LayoutPreferences } from "@/features/preferences";
 import {
   MAILBOX_POLICY_TEMPLATES,
   buildCustomMailboxPolicyTemplate,
   findMailboxPolicyTemplate,
-  mailboxPolicyTemplateMatchesPreferences,
-  savedCustomTemplateToPreferences,
-  templateToPreferences,
+  mailboxPolicyTemplateMatchesPolicy,
+  savedCustomTemplateToPolicy,
+  templateToPolicy,
   type MailboxPolicyTemplateId,
   type MailboxPolicyTemplate,
   type SavedMailboxPolicyTemplate,
 } from "@/features/settings/mailbox-policy-templates";
+import type { MailboxPolicy, MailboxPolicyWrite } from "@/lib/api/types";
 import { AuditLog } from "@/features/audit-log";
 import { ChangelogPanel, useChangelog } from "@/features/changelog";
 import { ExternalWalletSettings } from "@/features/settings/external-wallet-linking";
+import { ManagedWalletStatus } from "@/features/settings/ManagedWalletStatus";
+import { RecoveryCodesSection } from "@/features/settings/recovery-codes";
 
 const tabs = [
   { id: "account", label: "Account", icon: User },
@@ -251,9 +257,7 @@ export function SettingsModal({
                     onReset={onResetLayout}
                   />
                 )}
-                {activeTab === "inbox" && (
-                  <InboxSettings open={open} preferences={preferences} onChange={onChange} />
-                )}
+                {activeTab === "inbox" && <InboxSettings open={open} />}
                 {activeTab === "receipts" && (
                   <ReceiptSettings preferences={preferences} onChange={onChange} />
                 )}
@@ -294,27 +298,249 @@ export function SettingsModal({
 }
 
 function AccountSettings() {
+  const queryClient = useQueryClient();
+  const {
+    data: profileData,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: queryKeys.account.profile,
+    queryFn: ({ signal }) => sharedTypedApi.account.getProfile(signal),
+  });
+
+  const mutation = useMutation({
+    mutationFn: (updates: { [key: string]: any; version: number }) =>
+      sharedTypedApi.account.updateProfile(updates),
+    onSuccess: () => {
+      // Invalidate both profile and account info queries to refresh data
+      queryClient.invalidateQueries({ queryKey: queryKeys.account.profile });
+      queryClient.invalidateQueries({ queryKey: queryKeys.account.info });
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6 animate-pulse">
+        <div>
+          <div className="h-4 w-16 bg-white/10 rounded mb-2" />
+          <div className="h-3 w-40 bg-white/5 rounded" />
+        </div>
+        <div className="space-y-4">
+          <div className="flex items-center gap-4">
+            <div className="h-16 w-16 rounded-full bg-white/10" />
+            <div className="space-y-2">
+              <div className="h-4 w-24 bg-white/10 rounded" />
+              <div className="h-3 w-32 bg-white/5 rounded" />
+            </div>
+          </div>
+          <div className="space-y-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-14 bg-white/5 rounded-lg border border-white/5" />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isError || !profileData) {
+    const isAuthError = isApiClientError(error) && error.status === 401;
+    return (
+      <div className="rounded-lg border border-rose-500/20 bg-rose-500/10 p-4 text-sm text-rose-200">
+        <div className="flex items-start gap-3">
+          <AlertTriangle className="h-5 w-5 shrink-0 text-rose-400" />
+          <div>
+            <p className="font-medium text-rose-300">Could not load profile</p>
+            <p className="mt-1 opacity-80">
+              {isAuthError
+                ? "Your session has expired. Please sign in again."
+                : "There was a problem loading your account settings. Please try again later."}
+            </p>
+            {!isAuthError && (
+              <button
+                onClick={() => refetch()}
+                className="mt-3 rounded border border-rose-500/30 bg-rose-500/20 px-3 py-1.5 text-xs font-medium hover:bg-rose-500/30 transition"
+              >
+                Retry
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const { profile, account } = profileData;
+  const version = new Date(profile.updatedAt).getTime();
+
+  const handleSave = async (field: string, value: string) => {
+    try {
+      await mutation.mutateAsync({ [field]: value, version });
+    } catch (err) {
+      if (isApiClientError(err) && err.status === 409) {
+        // Optimistic concurrency conflict
+        throw new Error("Conflict");
+      }
+      if (isApiClientError(err) && err.status === 403) {
+        // Recent auth required
+        throw new Error("RecentAuth");
+      }
+      throw err; // Field-level error handled by SettingsField
+    }
+  };
+
   return (
     <div className="space-y-6">
+      {mutation.isError && isApiClientError(mutation.error) && mutation.error.status === 409 && (
+        <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-sm flex items-start gap-3">
+          <AlertTriangle className="h-4 w-4 shrink-0 text-amber-400 mt-0.5" />
+          <div className="text-amber-200">
+            <p className="font-medium">Profile updated elsewhere</p>
+            <p className="mt-0.5 text-xs opacity-80">
+              These settings were modified from another session or tab.
+            </p>
+            <button
+              onClick={() => refetch()}
+              className="mt-2 text-xs font-medium text-amber-300 hover:text-amber-200 underline underline-offset-2"
+            >
+              Reload latest changes
+            </button>
+          </div>
+        </div>
+      )}
+
+      {mutation.isError && isApiClientError(mutation.error) && mutation.error.status === 403 && (
+        <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-sm flex items-start gap-3">
+          <Lock className="h-4 w-4 shrink-0 text-amber-400 mt-0.5" />
+          <div className="text-amber-200">
+            <p className="font-medium">Authentication required</p>
+            <p className="mt-0.5 text-xs opacity-80">
+              For your security, please sign out and sign back in to make this change.
+            </p>
+          </div>
+        </div>
+      )}
+
       <div>
         <h3 className="text-sm font-medium text-foreground">Profile</h3>
         <p className="mt-1 text-xs text-muted-foreground">Manage your account details</p>
       </div>
+
       <div className="space-y-4">
-        <div className="flex items-center gap-4">
-          <div className="h-16 w-16 rounded-full bg-gradient-to-br from-[#4d5560] to-[#232326] flex items-center justify-center">
-            <span className="text-lg font-medium text-white/90">EN</span>
-          </div>
+        <div className="flex items-center gap-4 mb-2">
+          {profile.avatarUrl ? (
+            <img
+              src={profile.avatarUrl}
+              alt={profile.displayName}
+              className="h-16 w-16 rounded-full object-cover border border-white/10"
+            />
+          ) : (
+            <div className="h-16 w-16 rounded-full bg-gradient-to-br from-[#4d5560] to-[#232326] flex items-center justify-center border border-white/5">
+              <span className="text-lg font-medium text-white/90">
+                {profile.displayName.charAt(0).toUpperCase()}
+              </span>
+            </div>
+          )}
           <div>
-            <p className="text-sm font-medium text-foreground">Eve Navarro</p>
-            <p className="text-xs text-muted-foreground">eve@aether.app</p>
+            <p className="text-sm font-medium text-foreground">{profile.displayName}</p>
+            <p className="text-xs text-muted-foreground">{account.email}</p>
           </div>
         </div>
+
         <div className="space-y-3">
-          <SettingsField label="Display name" value="Eve Navarro" />
-          <SettingsField label="Email" value="eve@aether.app" />
-          <SettingsField label="Stellar address" value="GDQ...X4KJ" />
+          <SettingsField
+            label="Display name"
+            value={profile.displayName}
+            onSave={(val) => handleSave("displayName", val)}
+            editable
+          />
+          <SettingsField
+            label="Username"
+            value={`@${profile.username}`}
+            immutable
+            tooltip="Usernames cannot be changed"
+          />
+          <SettingsField
+            label="Bio"
+            value={profile.bio ?? ""}
+            onSave={(val) => handleSave("bio", val)}
+            editable
+            placeholder="Tell us a little about yourself"
+          />
+          <SettingsField
+            label="Locale"
+            value={profile.locale ?? "en"}
+            onSave={(val) => handleSave("locale", val)}
+            editable
+            placeholder="e.g. en-US"
+          />
+          <SettingsField
+            label="Timezone"
+            value={profile.timezone ?? "UTC"}
+            onSave={(val) => handleSave("timezone", val)}
+            editable
+            placeholder="e.g. America/Los_Angeles"
+          />
         </div>
+      </div>
+
+      <div className="pt-2">
+        <h3 className="text-sm font-medium text-foreground mb-3">Identifiers</h3>
+        <div className="space-y-3">
+          <SettingsField
+            label="Email address"
+            value={account.email}
+            immutable
+            tooltip="Email changes require identity verification (not yet available)"
+          />
+          <SettingsField label="Stellar address" value={account.address} immutable copyable />
+          <div className="pt-2">
+            <SegmentedSetting
+              label="Stellar address display"
+              value={profile.addressDisplay ?? "truncated"}
+              options={[
+                ["truncated", "Truncated (G...4A)"],
+                ["full", "Full address"],
+              ]}
+              onSelect={(val) => handleSave("addressDisplay", val)}
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="pt-4 border-t border-white/5 flex flex-wrap gap-2">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-400 border border-emerald-500/20">
+          <Check className="w-3 h-3" />
+          {account.status.charAt(0).toUpperCase() + account.status.slice(1)}
+        </span>
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-white/5 px-2.5 py-1 text-xs font-medium text-muted-foreground border border-white/5">
+          {account.network}
+        </span>
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-white/5 px-2.5 py-1 text-xs text-muted-foreground border border-white/5">
+          Member since {new Date(account.createdAt).toLocaleDateString()}
+        </span>
+      </div>
+
+      {account.betaLimitations.length > 0 && (
+        <div className="mt-6 rounded-lg border border-indigo-500/20 bg-indigo-500/10 p-4">
+          <h4 className="text-xs font-medium text-indigo-300 mb-2 flex items-center gap-2">
+            <AlertTriangle className="w-3.5 h-3.5" />
+            Beta Limitations
+          </h4>
+          <ul className="list-disc pl-4 space-y-1">
+            {account.betaLimitations.map((limitation, i) => (
+              <li key={i} className="text-[11px] text-indigo-200/80">
+                {limitation}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <div className="pt-4">
+        <ManagedWalletStatus />
       </div>
     </div>
   );
@@ -542,8 +768,113 @@ function NotificationSettings({
   preferences: UiPreferences;
   onChange: (preferences: UiPreferences) => void;
 }) {
+  const queryClient = useQueryClient();
+  const {
+    data: profileData,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: queryKeys.account.profile,
+    queryFn: ({ signal }) => sharedTypedApi.account.getProfile(signal),
+  });
+
+  const mutation = useMutation({
+    mutationFn: (updates: { [key: string]: any; version: number }) =>
+      sharedTypedApi.account.updateProfile(updates),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.account.profile });
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6 animate-pulse">
+        <div className="h-4 w-24 bg-white/10 rounded mb-2" />
+        <div className="space-y-4 mt-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-12 bg-white/5 rounded-lg" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (isError || !profileData) {
+    const isAuthError = isApiClientError(error) && error.status === 401;
+    return (
+      <div className="rounded-lg border border-rose-500/20 bg-rose-500/10 p-4 text-sm text-rose-200">
+        <div className="flex items-start gap-3">
+          <AlertTriangle className="h-5 w-5 shrink-0 text-rose-400" />
+          <div>
+            <p className="font-medium text-rose-300">Could not load notifications</p>
+            <p className="mt-1 opacity-80">
+              {isAuthError
+                ? "Your session has expired. Please sign in again."
+                : "There was a problem loading your settings. Please try again."}
+            </p>
+            {!isAuthError && (
+              <button
+                onClick={() => refetch()}
+                className="mt-3 rounded border border-rose-500/30 bg-rose-500/20 px-3 py-1.5 text-xs font-medium hover:bg-rose-500/30 transition"
+              >
+                Retry
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const { profile } = profileData;
+  const version = new Date(profile.updatedAt).getTime();
+  const notifications = profile.notifications ?? { email: true, desktop: true, sound: false };
+
+  const handleToggle = async (field: keyof typeof notifications, value: boolean) => {
+    try {
+      await mutation.mutateAsync({
+        notifications: { ...notifications, [field]: value },
+        version,
+      });
+    } catch (err) {
+      // Errors handled by UI components below
+    }
+  };
+
   return (
     <div className="space-y-6">
+      {mutation.isError && isApiClientError(mutation.error) && mutation.error.status === 409 && (
+        <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-sm flex items-start gap-3">
+          <AlertTriangle className="h-4 w-4 shrink-0 text-amber-400 mt-0.5" />
+          <div className="text-amber-200">
+            <p className="font-medium">Settings updated elsewhere</p>
+            <p className="mt-0.5 text-xs opacity-80">
+              These settings were modified from another session or tab.
+            </p>
+            <button
+              onClick={() => refetch()}
+              className="mt-2 text-xs font-medium text-amber-300 hover:text-amber-200 underline underline-offset-2"
+            >
+              Reload latest changes
+            </button>
+          </div>
+        </div>
+      )}
+
+      {mutation.isError && isApiClientError(mutation.error) && mutation.error.status === 403 && (
+        <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-sm flex items-start gap-3">
+          <Lock className="h-4 w-4 shrink-0 text-amber-400 mt-0.5" />
+          <div className="text-amber-200">
+            <p className="font-medium">Authentication required</p>
+            <p className="mt-0.5 text-xs opacity-80">
+              For your security, please sign out and sign back in to make this change.
+            </p>
+          </div>
+        </div>
+      )}
+
       <div>
         <h3 className="text-sm font-medium text-foreground">Notifications</h3>
         <p className="mt-1 text-xs text-muted-foreground">Configure how you receive alerts</p>
@@ -552,99 +883,121 @@ function NotificationSettings({
         <SettingsToggle
           label="Email notifications"
           description="Receive email for new messages"
-          checked={preferences.emailNotifications}
-          onChange={(checked) => onChange({ ...preferences, emailNotifications: checked })}
+          checked={notifications.email}
+          onChange={(checked) => handleToggle("email", checked)}
         />
         <SettingsToggle
           label="Desktop notifications"
           description="Show browser notifications"
-          checked={preferences.desktopNotifications}
-          onChange={(checked) => onChange({ ...preferences, desktopNotifications: checked })}
+          checked={notifications.desktop}
+          onChange={(checked) => handleToggle("desktop", checked)}
         />
         <SettingsToggle
           label="Sound"
           description="Play a sound for new messages"
-          checked={preferences.sound}
-          onChange={(checked) => onChange({ ...preferences, sound: checked })}
+          checked={notifications.sound}
+          onChange={(checked) => handleToggle("sound", checked)}
         />
       </div>
     </div>
   );
 }
 
-function InboxSettings({
-  open,
-  preferences,
-  onChange,
-}: {
-  open: boolean;
-  preferences: UiPreferences;
-  onChange: (preferences: UiPreferences) => void;
-}) {
+function InboxSettings({ open }: { open: boolean }) {
+  const queryClient = useQueryClient();
+
+  const { data: profileData } = useQuery({
+    queryKey: queryKeys.account.profile,
+    queryFn: ({ signal }) => sharedTypedApi.account.getProfile(signal),
+  });
+
+  const address = profileData?.account.address;
+
+  const {
+    data: reconciliation,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: address ? queryKeys.policies.reconciliation(address) : [],
+    queryFn: ({ signal }) => sharedTypedApi.policies.getReconciliation(address!, undefined, signal),
+    enabled: !!address && open,
+  });
+
+  const mutation = useMutation({
+    mutationFn: (updates: { policy: MailboxPolicyWrite }) =>
+      sharedTypedApi.policies.update(address!, updates.policy),
+    onSuccess: () => {
+      if (address) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.policies.reconciliation(address) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.policies.policy(address) });
+      }
+    },
+  });
+
+  // Default to a safe baseline if we can't load the policy yet
+  const livePolicy = reconciliation?.offchain.policy ?? {
+    allowUnknown: true,
+    requireVerified: false,
+    minimumPostage: "0.0001",
+  };
+
   const [previewTemplateId, setPreviewTemplateId] = useState<MailboxPolicyTemplateId | "custom">(
-    () => findMailboxPolicyTemplate(preferences)?.id ?? "custom",
+    () => findMailboxPolicyTemplate(livePolicy)?.id ?? "custom",
   );
   const [savedCustomTemplate, setSavedCustomTemplate] = useState<SavedMailboxPolicyTemplate | null>(
     null,
   );
+  const [draftPolicy, setDraftPolicy] = useState<MailboxPolicy>(livePolicy);
 
+  // Sync draft with remote when remote loads/changes
   useEffect(() => {
-    if (!open) return;
-    setPreviewTemplateId(findMailboxPolicyTemplate(preferences)?.id ?? "custom");
-  }, [open, preferences]);
+    if (reconciliation?.offchain.policy) {
+      setDraftPolicy(reconciliation.offchain.policy);
+      setPreviewTemplateId(
+        findMailboxPolicyTemplate(reconciliation.offchain.policy)?.id ?? "custom",
+      );
+    }
+  }, [reconciliation?.offchain.policy]);
 
-  const currentDraft = useMemo(
-    () => ({
-      unknownSenders: preferences.unknownSenders,
-      minimumPostage: preferences.minimumPostage,
-    }),
-    [preferences.unknownSenders, preferences.minimumPostage],
-  );
-
-  const liveTemplate = useMemo(() => findMailboxPolicyTemplate(currentDraft), [currentDraft]);
+  const liveTemplate = useMemo(() => findMailboxPolicyTemplate(draftPolicy), [draftPolicy]);
 
   const selectedPreview = useMemo(
     () =>
       previewTemplateId === "custom"
         ? (savedCustomTemplate ??
-          buildCustomMailboxPolicyTemplate(currentDraft, liveTemplate?.id ?? null))
+          buildCustomMailboxPolicyTemplate(draftPolicy, liveTemplate?.id ?? null))
         : (MAILBOX_POLICY_TEMPLATES.find((template) => template.id === previewTemplateId) ?? null),
-    [previewTemplateId, savedCustomTemplate, currentDraft, liveTemplate?.id],
+    [previewTemplateId, savedCustomTemplate, draftPolicy, liveTemplate?.id],
   );
 
-  const selectedPreferences = useMemo(
+  const selectedPolicy = useMemo(
     () =>
       previewTemplateId === "custom"
         ? savedCustomTemplate
-          ? savedCustomTemplateToPreferences(savedCustomTemplate)
-          : currentDraft
+          ? savedCustomTemplate.policy
+          : draftPolicy
         : selectedPreview
-          ? templateToPreferences(selectedPreview as MailboxPolicyTemplate)
-          : currentDraft,
-    [previewTemplateId, savedCustomTemplate, currentDraft, selectedPreview],
+          ? selectedPreview.policy
+          : draftPolicy,
+    [previewTemplateId, savedCustomTemplate, draftPolicy, selectedPreview],
   );
 
   const previewMatchesCurrent = useMemo(
     () =>
       previewTemplateId === "custom"
         ? savedCustomTemplate
-          ? savedCustomTemplate.policy.unknownSenders === preferences.unknownSenders &&
-            savedCustomTemplate.policy.minimumPostage === preferences.minimumPostage
-          : true
+          ? savedCustomTemplate.policy.allowUnknown === livePolicy.allowUnknown &&
+            savedCustomTemplate.policy.requireVerified === livePolicy.requireVerified &&
+            savedCustomTemplate.policy.minimumPostage === livePolicy.minimumPostage
+          : draftPolicy.allowUnknown === livePolicy.allowUnknown &&
+            draftPolicy.requireVerified === livePolicy.requireVerified &&
+            draftPolicy.minimumPostage === livePolicy.minimumPostage
         : selectedPreview
-          ? mailboxPolicyTemplateMatchesPreferences(
-              selectedPreview as MailboxPolicyTemplate,
-              currentDraft,
-            )
+          ? mailboxPolicyTemplateMatchesPolicy(selectedPreview as MailboxPolicyTemplate, livePolicy)
           : false,
-    [
-      previewTemplateId,
-      savedCustomTemplate,
-      preferences.unknownSenders,
-      preferences.minimumPostage,
-      selectedPreview,
-      currentDraft,
-    ],
+    [previewTemplateId, savedCustomTemplate, livePolicy, selectedPreview, draftPolicy],
   );
 
   const applyingWillReplaceCurrent = useMemo(
@@ -659,69 +1012,128 @@ function InboxSettings({
     setPreviewTemplateId(id);
   };
 
-  const handleApply = useCallback(() => {
-    if (!selectedPreview) return;
+  const handleApply = useCallback(async () => {
+    if (!selectedPreview || !address) return;
 
+    let policyToApply: MailboxPolicy;
     if (previewTemplateId === "custom") {
       if (!savedCustomTemplate) {
         setSavedCustomTemplate(
-          buildCustomMailboxPolicyTemplate(currentDraft, liveTemplate?.id ?? null),
+          buildCustomMailboxPolicyTemplate(draftPolicy, liveTemplate?.id ?? null),
         );
         return;
       }
-
-      onChange({
-        ...preferences,
-        ...savedCustomTemplateToPreferences(savedCustomTemplate),
-      });
-      return;
+      policyToApply = savedCustomTemplate.policy;
+    } else {
+      policyToApply = (selectedPreview as MailboxPolicyTemplate).policy;
     }
 
-    onChange({
-      ...preferences,
-      ...templateToPreferences(selectedPreview as MailboxPolicyTemplate),
-    });
+    try {
+      await mutation.mutateAsync({
+        policy: {
+          ...policyToApply,
+          version: reconciliation?.offchain.version ?? undefined,
+        },
+      });
+      setDraftPolicy(policyToApply);
+    } catch (err) {
+      // Errors handled by UI state
+    }
   }, [
     selectedPreview,
     previewTemplateId,
     savedCustomTemplate,
-    currentDraft,
+    draftPolicy,
     liveTemplate?.id,
-    onChange,
-    preferences,
+    address,
+    mutation,
+    reconciliation?.offchain.version,
   ]);
 
   const handleSaveCustom = useCallback(() => {
-    setSavedCustomTemplate(
-      buildCustomMailboxPolicyTemplate(currentDraft, liveTemplate?.id ?? null),
-    );
+    setSavedCustomTemplate(buildCustomMailboxPolicyTemplate(draftPolicy, liveTemplate?.id ?? null));
     setPreviewTemplateId("custom");
-  }, [currentDraft, liveTemplate?.id]);
+  }, [draftPolicy, liveTemplate?.id]);
 
-  const updateUnknownSenders = useCallback(
-    (unknownSenders: UiPreferences["unknownSenders"]) => {
+  const updateDraftPolicy = useCallback((updates: Partial<MailboxPolicy>) => {
+    setDraftPolicy((prev) => {
+      const next = { ...prev, ...updates };
       setPreviewTemplateId("custom");
-      onChange({
-        ...preferences,
-        unknownSenders,
-      });
-    },
-    [onChange, preferences],
-  );
+      return next;
+    });
+  }, []);
 
-  const updateMinimumPostage = useCallback(
-    (minimumPostage: string) => {
-      setPreviewTemplateId("custom");
-      onChange({
-        ...preferences,
-        minimumPostage,
-      });
-    },
-    [onChange, preferences],
-  );
+  if (isLoading) {
+    return (
+      <div className="p-4 text-sm text-muted-foreground animate-pulse">
+        Loading policy settings...
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="rounded-lg border border-rose-500/20 bg-rose-500/10 p-4 text-sm text-rose-200">
+        Could not load policy.{" "}
+        <button onClick={() => refetch()} className="underline">
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
+      {mutation.isError && isApiClientError(mutation.error) && mutation.error.status === 409 && (
+        <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-sm flex items-start gap-3">
+          <AlertTriangle className="h-4 w-4 shrink-0 text-amber-400 mt-0.5" />
+          <div className="text-amber-200">
+            <p className="font-medium">Policy updated elsewhere</p>
+            <p className="mt-0.5 text-xs opacity-80">
+              These settings were modified from another session or tab.
+            </p>
+            <button
+              onClick={() => refetch()}
+              className="mt-2 text-xs font-medium text-amber-300 hover:text-amber-200 underline underline-offset-2"
+            >
+              Reload latest changes
+            </button>
+          </div>
+        </div>
+      )}
+
+      {reconciliation?.state === "pending_write" && (
+        <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-3 text-sm flex items-start gap-3">
+          <RefreshCw className="h-4 w-4 shrink-0 text-emerald-400 mt-0.5 animate-spin" />
+          <div className="text-emerald-200">
+            <p className="font-medium">Changes pending on chain</p>
+            <p className="mt-0.5 text-xs opacity-80">Your policy is confirming on the network.</p>
+          </div>
+        </div>
+      )}
+
+      {reconciliation?.state === "failed" && (
+        <div className="rounded-lg border border-rose-500/20 bg-rose-500/10 p-3 text-sm flex items-start gap-3">
+          <AlertTriangle className="h-4 w-4 shrink-0 text-rose-400 mt-0.5" />
+          <div className="text-rose-200">
+            <p className="font-medium">Policy write failed</p>
+            <p className="mt-0.5 text-xs opacity-80">
+              {reconciliation.offchain.intentError || "An error occurred writing to the network."}
+            </p>
+            <button
+              onClick={() =>
+                mutation.mutate({
+                  policy: { ...livePolicy, version: reconciliation.offchain.version ?? undefined },
+                })
+              }
+              className="mt-2 text-xs font-medium text-rose-300 hover:text-rose-200 underline"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      )}
+
       <div>
         <h3 className="text-sm font-medium text-foreground">Inbox control</h3>
         <p className="mt-1 text-xs text-muted-foreground">
@@ -840,13 +1252,13 @@ function InboxSettings({
                       Exact values
                     </span>
                     <span className="mt-1 block text-foreground">
-                      {selectedPreferences.unknownSenders === "request"
-                        ? "Request approval"
-                        : selectedPreferences.unknownSenders === "verified"
+                      {selectedPolicy.allowUnknown === false
+                        ? "Allowlist only"
+                        : selectedPolicy.requireVerified
                           ? "Verified only"
-                          : "Allowlist only"}
+                          : "Request approval"}
                       {" | "}
-                      {selectedPreferences.minimumPostage} XLM
+                      {selectedPolicy.minimumPostage} XLM
                     </span>
                   </div>
                 </div>
@@ -890,11 +1302,11 @@ function InboxSettings({
             <PreviewStat
               label="Unknown sender handling"
               value={
-                selectedPreferences.unknownSenders === "request"
-                  ? "Request approval"
-                  : selectedPreferences.unknownSenders === "verified"
+                selectedPolicy.allowUnknown === false
+                  ? "Allowlist only"
+                  : selectedPolicy.requireVerified
                     ? "Verified only"
-                    : "Allowlist only"
+                    : "Request approval"
               }
               meta={
                 previewTemplateId === "custom"
@@ -904,7 +1316,7 @@ function InboxSettings({
             />
             <PreviewStat
               label="Minimum postage"
-              value={`${selectedPreferences.minimumPostage} XLM`}
+              value={`${selectedPolicy.minimumPostage} XLM`}
               meta={
                 previewTemplateId === "custom"
                   ? "Current draft postage value."
@@ -959,7 +1371,7 @@ function InboxSettings({
               <button
                 type="button"
                 onClick={handleApply}
-                disabled={previewMatchesCurrent}
+                disabled={previewMatchesCurrent || mutation.isPending}
                 aria-label={
                   previewMatchesCurrent
                     ? "Template already applied"
@@ -969,11 +1381,13 @@ function InboxSettings({
                 }
                 className="flex-1 rounded-xl bg-foreground px-4 py-2.5 text-sm font-semibold text-background transition hover:opacity-90 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-emerald-400 outline-none disabled:opacity-40 disabled:pointer-events-none"
               >
-                {previewMatchesCurrent
-                  ? "Already applied"
-                  : previewTemplateId === "custom"
-                    ? "Apply custom template"
-                    : "Apply template"}
+                {mutation.isPending
+                  ? "Applying..."
+                  : previewMatchesCurrent
+                    ? "Already applied"
+                    : previewTemplateId === "custom"
+                      ? "Apply custom template"
+                      : "Apply template"}
               </button>
             )}
           </div>
@@ -996,28 +1410,28 @@ function InboxSettings({
           <div className="grid gap-2">
             {[
               {
-                value: "request",
+                value: { allowUnknown: true, requireVerified: false },
                 label: "Request approval",
                 description: "Hold unknown senders in a review queue. You approve individually.",
               },
               {
-                value: "verified",
+                value: { allowUnknown: true, requireVerified: true },
                 label: "Verified only",
                 description: "Require cryptographic identity verification before admission.",
               },
               {
-                value: "block",
+                value: { allowUnknown: false, requireVerified: false },
                 label: "Trusted contacts only",
                 description: "Reject every unknown sender. Only your allowlist gets through.",
               },
             ].map((policy) => {
-              const isActive = preferences.unknownSenders === policy.value;
+              const isActive =
+                draftPolicy.allowUnknown === policy.value.allowUnknown &&
+                draftPolicy.requireVerified === policy.value.requireVerified;
               return (
                 <button
-                  key={policy.value}
-                  onClick={() =>
-                    updateUnknownSenders(policy.value as UiPreferences["unknownSenders"])
-                  }
+                  key={policy.label}
+                  onClick={() => updateDraftPolicy(policy.value)}
                   aria-pressed={isActive}
                   className={cn(
                     "rounded-xl border p-3 text-left transition focus-visible:ring-2 focus-visible:ring-emerald-400 outline-none active:scale-[0.99]",
@@ -1045,7 +1459,10 @@ function InboxSettings({
           </div>
         </div>
 
-        <PostageInput value={preferences.minimumPostage} onChange={updateMinimumPostage} />
+        <PostageInput
+          value={draftPolicy.minimumPostage}
+          onChange={(v) => updateDraftPolicy({ minimumPostage: v })}
+        />
       </div>
     </div>
   );
@@ -1090,7 +1507,11 @@ function ReceiptSettings({
       label: "Automatic",
       description: "Send read receipt as soon as you open the message.",
     },
-    { value: "manual", label: "Manual", description: "Ask before sending a read receipt." },
+    {
+      value: "manual",
+      label: "Manual",
+      description: "Ask before sending a read receipt.",
+    },
     {
       value: "never",
       label: "Never",
@@ -1198,14 +1619,181 @@ function ShortcutSettings() {
   );
 }
 
-function SettingsField({ label, value }: { label: string; value: string }) {
+function SettingsField({
+  label,
+  value,
+  editable,
+  immutable,
+  copyable,
+  tooltip,
+  placeholder,
+  onSave,
+}: {
+  label: string;
+  value: string;
+  editable?: boolean;
+  immutable?: boolean;
+  copyable?: boolean;
+  tooltip?: string;
+  placeholder?: string;
+  onSave?: (value: string) => Promise<void>;
+}) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValue, setEditValue] = useState(value);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Focus input when editing starts
+  useEffect(() => {
+    if (isEditing) {
+      inputRef.current?.focus();
+    }
+  }, [isEditing]);
+
+  const handleEdit = () => {
+    if (immutable) return;
+    setEditValue(value);
+    setIsEditing(true);
+    setError(null);
+  };
+
+  const handleCancel = () => {
+    setIsEditing(false);
+    setEditValue(value);
+    setError(null);
+  };
+
+  const handleSave = async () => {
+    if (editValue.trim() === value.trim()) {
+      setIsEditing(false);
+      return;
+    }
+
+    if (onSave) {
+      setIsSaving(true);
+      setError(null);
+      try {
+        await onSave(editValue);
+        setIsEditing(false);
+      } catch (err: unknown) {
+        if (err instanceof Error && (err.message === "Conflict" || err.message === "RecentAuth")) {
+          // Surfaced at the component level
+          setIsEditing(false);
+        } else if (isApiClientError(err) && err.details && typeof err.details === "object") {
+          // Extract field-level validation error
+          const fieldErrors = Object.values(err.details).flat();
+          if (fieldErrors.length > 0) {
+            setError(String(fieldErrors[0]));
+          } else {
+            setError(err.message);
+          }
+        } else {
+          setError("Failed to save changes. Please try again.");
+        }
+      } finally {
+        setIsSaving(false);
+      }
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") handleSave();
+    if (e.key === "Escape") handleCancel();
+  };
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(value);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   return (
-    <div>
-      <label className="text-xs text-muted-foreground">{label}</label>
-      <input
-        defaultValue={value}
-        className="mt-1 w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-foreground focus:border-white/20 focus:outline-none"
-      />
+    <div className="group relative rounded-lg border border-white/5 bg-white/[0.02] p-3 transition-colors hover:bg-white/[0.04]">
+      <div className="flex items-start justify-between">
+        <div className="flex-1 pr-4">
+          <div className="flex items-center gap-2">
+            <label className="text-xs font-medium text-muted-foreground">{label}</label>
+            {immutable && (
+              <Lock
+                className="w-3 h-3 text-muted-foreground/60"
+                aria-label={tooltip || "Immutable"}
+              />
+            )}
+          </div>
+
+          {isEditing ? (
+            <div className="mt-1.5 space-y-2">
+              <input
+                ref={inputRef}
+                value={editValue}
+                onChange={(e) => setEditValue(e.target.value)}
+                onKeyDown={handleKeyDown}
+                disabled={isSaving}
+                placeholder={placeholder}
+                className={cn(
+                  "w-full rounded-md border bg-black/20 px-3 py-1.5 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 transition-colors",
+                  error ? "border-rose-500/50" : "border-white/10",
+                )}
+              />
+              {error && <p className="text-[11px] text-rose-400">{error}</p>}
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  onClick={handleSave}
+                  disabled={isSaving}
+                  className="rounded bg-emerald-500/20 px-3 py-1 text-xs font-medium text-emerald-300 transition hover:bg-emerald-500/30 disabled:opacity-50"
+                >
+                  {isSaving ? "Saving..." : "Save"}
+                </button>
+                <button
+                  onClick={handleCancel}
+                  disabled={isSaving}
+                  className="rounded px-3 py-1 text-xs font-medium text-muted-foreground transition hover:text-foreground disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <p
+              className={cn(
+                "mt-1 text-sm text-foreground",
+                !value && placeholder && "text-muted-foreground/50 italic",
+              )}
+            >
+              {value || placeholder || "Not set"}
+            </p>
+          )}
+        </div>
+
+        {!isEditing && (
+          <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+            {copyable && (
+              <button
+                onClick={handleCopy}
+                aria-label={`Copy ${label}`}
+                className="rounded p-1.5 text-muted-foreground hover:bg-white/10 hover:text-foreground transition"
+              >
+                {copied ? (
+                  <Check className="w-4 h-4 text-emerald-400" />
+                ) : (
+                  <Copy className="w-4 h-4" />
+                )}
+              </button>
+            )}
+            {editable && (
+              <button
+                onClick={handleEdit}
+                aria-label={`Edit ${label}`}
+                className="rounded p-1.5 text-muted-foreground hover:bg-white/10 hover:text-foreground transition"
+              >
+                <Edit className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -1238,8 +1826,20 @@ function SecuritySettings() {
   ];
 
   const devices = [
-    { id: "1", name: "MacBook Air", type: "Desktop", lastActive: "Just now", trusted: true },
-    { id: "2", name: "iPhone 15 Pro", type: "Mobile", lastActive: "2 hours ago", trusted: true },
+    {
+      id: "1",
+      name: "MacBook Air",
+      type: "Desktop",
+      lastActive: "Just now",
+      trusted: true,
+    },
+    {
+      id: "2",
+      name: "iPhone 15 Pro",
+      type: "Mobile",
+      lastActive: "2 hours ago",
+      trusted: true,
+    },
   ];
 
   const handleCopyKey = () => {
@@ -1274,7 +1874,7 @@ function SecuritySettings() {
                 description: "This will revoke all active sessions across all devices.",
                 onConfirm: async () => {
                   try {
-                    await fetch("/api/v1/auth/logout-all", { method: "POST" });
+                    await sharedTypedApi.auth.logoutAll();
                   } catch {
                     // Fallthrough safely
                   }
@@ -1317,7 +1917,7 @@ function SecuritySettings() {
                       description: "This will sign out this device from your account.",
                       onConfirm: async () => {
                         try {
-                          await fetch("/api/v1/auth/logout", { method: "POST" });
+                          await sharedTypedApi.auth.logout();
                         } catch {
                           // Fallthrough safely
                         }
@@ -1394,28 +1994,7 @@ function SecuritySettings() {
       </div>
 
       {/* Recovery */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-foreground">Account recovery</p>
-            <p className="text-xs text-muted-foreground">
-              Backup access to your account if you lose your keys
-            </p>
-          </div>
-        </div>
-        <div className="rounded-lg border border-white/5 bg-white/[0.02] p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="h-2 w-2 rounded-full bg-emerald-400" />
-              <p className="text-xs font-medium text-foreground">Recovery enabled</p>
-            </div>
-            <span className="text-xs text-muted-foreground">Last updated 3 days ago</span>
-          </div>
-          <button className="w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-foreground hover:bg-white/[0.06] transition">
-            Export recovery checklist
-          </button>
-        </div>
-      </div>
+      <RecoveryCodesSection />
 
       {/* Keys */}
       <div className="space-y-3">

@@ -62,7 +62,11 @@ export function createEmailTranslationCore(
     options: EmailTranslateOptions,
   ): Promise<EmailTranslateResult> {
     if (!body || body.trim().length === 0) {
-      return { ok: false, code: "EMPTY_BODY", message: "Email body cannot be empty." };
+      return {
+        ok: false,
+        code: "EMPTY_BODY",
+        message: "Email body cannot be empty.",
+      };
     }
     if (!getLanguageByCode(options.targetLanguage)) {
       return {

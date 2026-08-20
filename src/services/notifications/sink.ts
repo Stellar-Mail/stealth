@@ -34,7 +34,10 @@ export class SinkNotificationAdapter implements NotificationAdapter {
 
   /** Messages captured so far, oldest first. Never persisted. */
   get capturedMessages(): readonly VerificationEmailMessage[] {
-    return this.messages.map((message) => ({ ...message, expiresAt: new Date(message.expiresAt) }));
+    return this.messages.map((message) => ({
+      ...message,
+      expiresAt: new Date(message.expiresAt),
+    }));
   }
 
   /** Most recently captured message, if any. */

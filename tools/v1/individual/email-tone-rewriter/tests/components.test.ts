@@ -10,7 +10,9 @@ import {
 import { FORMAL_FOLLOW_UP } from "../services/fixtures";
 import { rewriteEmailTone, toReadyState } from "../services/emailToneRewriter";
 
-type TypedElement = Omit<ReactElement, "props"> & { props: Record<string, unknown> };
+type TypedElement = Omit<ReactElement, "props"> & {
+  props: Record<string, unknown>;
+};
 
 function isElement(node: unknown): node is TypedElement {
   return typeof node === "object" && node !== null && "props" in node;

@@ -56,7 +56,9 @@ describe("summarizeEmail", () => {
   });
 
   it("returns an error for unsupported input", () => {
-    const result = summarizeEmail({ subject: "x" } as unknown as NormalizedEmail);
+    const result = summarizeEmail({
+      subject: "x",
+    } as unknown as NormalizedEmail);
 
     expect(result.status).toBe("error");
     if (result.status !== "error") return;

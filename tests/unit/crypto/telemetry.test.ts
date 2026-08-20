@@ -342,7 +342,11 @@ describe("crypto/telemetry", () => {
     it("operation names are from the fixed enum", () => {
       for (const op of VALID_OPERATIONS) {
         expect(() =>
-          recordCryptoTelemetry({ operation: op, result: "success", durationMs: 1 }),
+          recordCryptoTelemetry({
+            operation: op,
+            result: "success",
+            durationMs: 1,
+          }),
         ).not.toThrow();
       }
     });
@@ -350,7 +354,11 @@ describe("crypto/telemetry", () => {
     it("result codes are from the fixed enum", () => {
       for (const code of VALID_RESULT_CODES) {
         expect(() =>
-          recordCryptoTelemetry({ operation: "seal", result: code, durationMs: 1 }),
+          recordCryptoTelemetry({
+            operation: "seal",
+            result: code,
+            durationMs: 1,
+          }),
         ).not.toThrow();
       }
     });
@@ -366,7 +374,12 @@ describe("crypto/telemetry", () => {
 
       // Simulate events with various fields
       const sampleEvents: CryptoTelemetryEvent[] = [
-        { operation: "seal", result: "success", durationMs: 100, suite: "AES-256-GCM" },
+        {
+          operation: "seal",
+          result: "success",
+          durationMs: 100,
+          suite: "AES-256-GCM",
+        },
         {
           operation: "open",
           result: "error_decrypt",
@@ -375,7 +388,12 @@ describe("crypto/telemetry", () => {
         },
         { operation: "key_resolve", result: "error_key", durationMs: 200 },
         { operation: "kdf", result: "success", durationMs: 10 },
-        { operation: "nonce_generate", result: "success", durationMs: 5, suite: "AES-256-GCM" },
+        {
+          operation: "nonce_generate",
+          result: "success",
+          durationMs: 5,
+          suite: "AES-256-GCM",
+        },
         { operation: "identity_normalize", result: "success", durationMs: 2 },
       ];
 

@@ -93,8 +93,8 @@ describe("BETA-025 (Issue #1932): Two-User Identity Acceptance Suite", () => {
       expect(bobCred).not.toBeNull();
       expect(aliceCred?.credentialId).not.toBe(bobCred?.credentialId);
       expect(aliceCred?.secretHash).not.toBe(bobCred?.secretHash);
-      expect(aliceCred?.walletKeyRef).toBe(`pending_${aliceUser!.userId}`);
-      expect(bobCred?.walletKeyRef).toBe(`pending_${bobUser!.userId}`);
+      expect(aliceCred?.walletKeyRef).toBe(`wallet:managed:${aliceUser!.userId}`);
+      expect(bobCred?.walletKeyRef).toBe(`wallet:managed:${bobUser!.userId}`);
     });
 
     it("prevents duplicate registration with conflicting email or username", async () => {
@@ -355,7 +355,16 @@ describe("BETA-025 (Issue #1932): Two-User Identity Acceptance Suite", () => {
         username: "alice_smith",
         displayName: "Alice Smith",
         avatarUrl: null,
+        avatarMetadata: null,
         bio: null,
+        locale: "en-US",
+        timezone: "UTC",
+        addressDisplay: "full",
+        notifications: {
+          email: true,
+          desktop: true,
+          sound: false,
+        },
         createdAt: aliceProfile.createdAt,
         updatedAt: aliceProfile.updatedAt,
       });

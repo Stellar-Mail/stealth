@@ -19,7 +19,9 @@ export class MockTranslationProvider implements TranslationProvider {
     await new Promise((resolve) => setTimeout(resolve, 800));
 
     // Mock translation: reverse the text and add language indicators
-    const mockTranslation = `[${request.targetLanguage.toUpperCase()}] ${this.reverseWords(request.text)}`;
+    const mockTranslation = `[${request.targetLanguage.toUpperCase()}] ${this.reverseWords(
+      request.text,
+    )}`;
 
     return {
       translatedText: mockTranslation,

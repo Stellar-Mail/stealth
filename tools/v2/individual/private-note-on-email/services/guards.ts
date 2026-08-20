@@ -123,7 +123,12 @@ export function validatePrivateNoteOptions(options: unknown): {
   if (typeof options !== "object" || Array.isArray(options)) {
     return {
       valid: false,
-      issues: [{ field: "options", message: "Options must be a valid non-array object" }],
+      issues: [
+        {
+          field: "options",
+          message: "Options must be a valid non-array object",
+        },
+      ],
     };
   }
 
@@ -231,7 +236,12 @@ export function checkPrivateNoteInputLimits(
       ok: false,
       code: "note-too-long",
       message: `Note text length (${input.noteText.length}) exceeds maximum allowed limit (${maxLen})`,
-      issues: [{ field: "noteText", message: `noteText exceeds limit of ${maxLen} characters` }],
+      issues: [
+        {
+          field: "noteText",
+          message: `noteText exceeds limit of ${maxLen} characters`,
+        },
+      ],
     };
   }
 

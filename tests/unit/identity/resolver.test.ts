@@ -58,6 +58,9 @@ describe("BETA-026 (Issue #1933): Production Stealth-Address & Stellar-Federatio
       displayName: "Alice Smith",
       avatarUrl: "https://stealth.me/avatars/alice.png",
       bio: "Crypto & Privacy enthusiast",
+      locale: "en-US",
+      timezone: "UTC",
+      addressDisplay: "full" as const,
       createdAt: "2026-08-01T00:00:00.000Z",
       updatedAt: "2026-08-01T00:00:00.000Z",
     });
@@ -145,7 +148,10 @@ describe("BETA-026 (Issue #1933): Production Stealth-Address & Stellar-Federatio
       const formats = ["alice@stealth.me", "alice*stealth.me", "alice@stealth.xyz", "alice"];
 
       for (const format of formats) {
-        const result = await resolver.resolve(format, { repository, bypassCache: true });
+        const result = await resolver.resolve(format, {
+          repository,
+          bypassCache: true,
+        });
         expect(result.resolved).toBe(true);
         expect(result.status).toBe("active");
         expect(result.account).toBe(ALICE_USER.address);
@@ -160,7 +166,9 @@ describe("BETA-026 (Issue #1933): Production Stealth-Address & Stellar-Federatio
     });
 
     it("returns negative result for non-existent users without leaking database details", async () => {
-      const result = await resolver.resolve("nonexistent@stealth.me", { repository });
+      const result = await resolver.resolve("nonexistent@stealth.me", {
+        repository,
+      });
       expect(result.resolved).toBe(false);
       expect(result.status).toBe("unknown");
       expect(result.account).toBeNull();
@@ -179,7 +187,9 @@ describe("BETA-026 (Issue #1933): Production Stealth-Address & Stellar-Federatio
     });
 
     it("refuses to return pending_verification account as active", async () => {
-      const result = await resolver.resolve("charlie@stealth.me", { repository });
+      const result = await resolver.resolve("charlie@stealth.me", {
+        repository,
+      });
       expect(result.resolved).toBe(false);
       expect(result.status).toBe("pending_verification");
       expect(result.publicKey).toBeNull();
@@ -239,11 +249,15 @@ describe("BETA-026 (Issue #1933): Production Stealth-Address & Stellar-Federatio
     });
 
     it("caches negative results to mitigate lookup storms", async () => {
-      const first = await resolver.resolve("unknown@stealth.me", { repository });
+      const first = await resolver.resolve("unknown@stealth.me", {
+        repository,
+      });
       expect(first.resolved).toBe(false);
       expect(first.freshness.cached).toBe(false);
 
-      const second = await resolver.resolve("unknown@stealth.me", { repository });
+      const second = await resolver.resolve("unknown@stealth.me", {
+        repository,
+      });
       expect(second.resolved).toBe(false);
       expect(second.freshness.cached).toBe(true);
     });
@@ -273,8 +287,12 @@ describe("BETA-026 (Issue #1933): Production Stealth-Address & Stellar-Federatio
 
       resolver.invalidateAccount(ALICE_USER.address);
 
-      const nextEmail = await resolver.resolve("alice@stealth.me", { repository });
-      const nextFed = await resolver.resolve("alice*stealth.me", { repository });
+      const nextEmail = await resolver.resolve("alice@stealth.me", {
+        repository,
+      });
+      const nextFed = await resolver.resolve("alice*stealth.me", {
+        repository,
+      });
 
       expect(nextEmail.freshness.cached).toBe(false);
       expect(nextFed.freshness.cached).toBe(false);

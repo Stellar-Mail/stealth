@@ -8,7 +8,7 @@ export type {
   ReaderTypographyPreference,
   ThemePreference,
   UiPreferences,
-  UnknownSenderPolicy,
   ReceiptPreference,
+  UnknownSenderPolicy,
 } from "./types";
 export type { LayoutPreferences } from "./layout-types";

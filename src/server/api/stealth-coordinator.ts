@@ -1,25 +1,44 @@
 import type {
   Credential,
+  DeadLetter,
+  DeadLetterStatus,
+  DurableJob,
+  DurableJobType,
   IdempotencyRecord,
+  JobStatus,
+  ManagedWalletRecord,
+  FundingOperation,
   Postage,
   PostageStatus,
   Profile,
+  ProvisioningRecord,
   Receipt,
+  ReceiptCheckpoint,
+  RecoveryCodeSet,
   RetiredSession,
   Session,
   StoredEnvelope,
+  UnknownSenderDecision,
+  UnknownSenderRequest,
   User,
+  UsernameReservation,
   VerificationPurpose,
   VerificationToken,
+  Wallet,
 } from "./domain";
 import type {
   AcquireIdempotencyResult,
   ConsumeVerificationTokenResult,
+  CreateManagedWalletResult,
   InsertEnvelopeResult,
   IssueVerificationTokenResult,
   PostageTransitionResult,
   RecordVerificationAttemptResult,
+  UpdateProvisioningResult,
+  UpdateRecoveryCodeSetResult,
   UpdateUserResult,
+  UsernameReservationResult,
+  WalletCreationResult,
 } from "./repository";
 import { ApiError } from "./errors";
 import { identityRecordFamilies, selectFamilies } from "../migrations/adapters";
@@ -336,6 +355,156 @@ export class StealthCoordinator extends DurableObjectBase {
     return credential;
   }
 
+  // ---------------------------------------------------------------------------
+  // BETA-014: Transactional account-provisioning DO methods
+  //
+  // The coordinator is the single authority for provisioning state, username
+  // claims, wallet insert-once semantics, and policy initialization. Every
+  // mutation runs under a per-key lock so concurrent provisioners for the
+  // same account (or the same username) serialize instead of racing.
+  // ---------------------------------------------------------------------------
+
+  async getProvisioningRecord(userId: string): Promise<ProvisioningRecord | null> {
+    const record = (await this.ctx.storage.get(`provisioning:${userId}`)) as
+      | ProvisioningRecord
+      | undefined;
+    return record ?? null;
+  }
+
+  async createProvisioningRecord(
+    record: ProvisioningRecord,
+  ): Promise<{ created: boolean; record: ProvisioningRecord }> {
+    return this.runExclusive(`provisioning:${record.userId}`, async () => {
+      const existing = (await this.ctx.storage.get(`provisioning:${record.userId}`)) as
+        | ProvisioningRecord
+        | undefined;
+      if (existing) {
+        return { created: false, record: existing };
+      }
+      await this.ctx.storage.put(`provisioning:${record.userId}`, record);
+      return { created: true, record };
+    });
+  }
+
+  async setProvisioningRecord(
+    record: ProvisioningRecord,
+    expectedVersion: number,
+  ): Promise<UpdateProvisioningResult> {
+    return this.runExclusive(`provisioning:${record.userId}`, async () => {
+      const current = (await this.ctx.storage.get(`provisioning:${record.userId}`)) as
+        | ProvisioningRecord
+        | undefined;
+      if (!current) {
+        return { updated: false, current: null };
+      }
+      if (current.version !== expectedVersion) {
+        return { updated: false, current };
+      }
+      const next: ProvisioningRecord = {
+        ...record,
+        version: expectedVersion + 1,
+        updatedAt: new Date().toISOString(),
+      };
+      await this.ctx.storage.put(`provisioning:${record.userId}`, next);
+      return { updated: true, record: next };
+    });
+  }
+
+  async getUsernameReservation(username: string): Promise<UsernameReservation | null> {
+    const norm = username.toLowerCase().trim();
+    const reservation = (await this.ctx.storage.get(`username-reservation:${norm}`)) as
+      | UsernameReservation
+      | undefined;
+    return reservation ?? null;
+  }
+
+  async reserveUsername(
+    username: string,
+    userId: string,
+    leaseMs: number,
+  ): Promise<UsernameReservationResult> {
+    const norm = username.toLowerCase().trim();
+    return this.runExclusive(`username-reservation:${norm}`, async () => {
+      // A user record already bound to this username outranks any claim.
+      const boundUser = (await this.ctx.storage.get(`user:username:${norm}`)) as string | undefined;
+      if (boundUser && boundUser !== userId) {
+        return { outcome: "unavailable" as const };
+      }
+
+      const existing = (await this.ctx.storage.get(`username-reservation:${norm}`)) as
+        | UsernameReservation
+        | undefined;
+      const now = Date.now();
+
+      if (existing) {
+        if (existing.userId === userId && now < new Date(existing.expiresAt).getTime()) {
+          return { outcome: "already-reserved" as const, reservation: existing };
+        }
+        if (existing.userId !== userId && now < new Date(existing.expiresAt).getTime()) {
+          return { outcome: "unavailable" as const };
+        }
+      }
+
+      const reservation: UsernameReservation = {
+        username: norm,
+        userId,
+        reservedAt: new Date(now).toISOString(),
+        expiresAt: new Date(now + leaseMs).toISOString(),
+      };
+      await this.ctx.storage.put(`username-reservation:${norm}`, reservation);
+      return { outcome: "reserved" as const, reservation };
+    });
+  }
+
+  async releaseUsernameReservation(username: string, userId: string): Promise<boolean> {
+    const norm = username.toLowerCase().trim();
+    return this.runExclusive(`username-reservation:${norm}`, async () => {
+      const existing = (await this.ctx.storage.get(`username-reservation:${norm}`)) as
+        | UsernameReservation
+        | undefined;
+      if (!existing) return false;
+      if (existing.userId !== userId) return false;
+      await this.ctx.storage.delete(`username-reservation:${norm}`);
+      return true;
+    });
+  }
+
+  async getWallet(userId: string): Promise<Wallet | null> {
+    const wallet = (await this.ctx.storage.get(`wallet:${userId}`)) as Wallet | undefined;
+    return wallet ?? null;
+  }
+
+  async createWallet(wallet: Wallet): Promise<WalletCreationResult> {
+    return this.runExclusive(`wallet:${wallet.userId}`, async () => {
+      const existing = (await this.ctx.storage.get(`wallet:${wallet.userId}`)) as
+        | Wallet
+        | undefined;
+      if (existing) {
+        return { outcome: "already-exists" as const, wallet: existing };
+      }
+      await this.ctx.storage.put(`wallet:${wallet.userId}`, wallet);
+      return { outcome: "created" as const, wallet };
+    });
+  }
+
+  async initializePolicyIfAbsent(
+    owner: string,
+    policy: import("./domain").MailboxPolicy,
+  ): Promise<{ created: boolean; policy: import("./domain").MailboxPolicy }> {
+    const normOwner = owner.toUpperCase().trim();
+    return this.runExclusive(`policy-init:${normOwner}`, async () => {
+      const existing = (await this.ctx.storage.get(`policy-init:${normOwner}`)) as
+        | import("./domain").MailboxPolicy
+        | undefined;
+      if (existing) {
+        return { created: false, policy: existing };
+      }
+      await this.ctx.storage.put(`policy-init:${normOwner}`, policy);
+      return { created: true, policy };
+    });
+  }
+
+  // BETA-006: Durable Session Storage
   async getSession(sessionId: string): Promise<Session | null> {
     const session = (await this.ctx.storage.get(`session:${sessionId}`)) as Session | undefined;
     return session ?? null;
@@ -506,6 +675,77 @@ export class StealthCoordinator extends DurableObjectBase {
     });
   }
 
+  // Issue #1917 (BETA-010): Recovery code set CAS storage. The CAS body runs
+  // under runExclusive so concurrent writers for the same userId cannot
+  // interleave their read-check-write cycles (the exact double-consumption
+  // race this coordinates against).
+  // interleave their read-check-write cycles (the exact double-consumption
+  // race this coordinates against).
+  async getRecoveryCodeSet(userId: string): Promise<RecoveryCodeSet | null> {
+    const set = (await this.ctx.storage.get(`recovery-code-set:${userId}`)) as
+      | RecoveryCodeSet
+      | undefined;
+    return set ?? null;
+  }
+
+  async setRecoveryCodeSet(
+    set: RecoveryCodeSet,
+    expectedVersion: number,
+  ): Promise<UpdateRecoveryCodeSetResult> {
+    return this.runExclusive(`recovery-code-set:${set.userId}`, async () => {
+      const current = (await this.ctx.storage.get(`recovery-code-set:${set.userId}`)) as
+        | RecoveryCodeSet
+        | undefined;
+
+      if (expectedVersion === 0) {
+        // Create-only reservation. A concurrent first generation that won
+        // reports `current` so the caller can reconcile instead of
+        // double-inserting.
+        if (current) {
+          return { updated: false as const, current };
+        }
+        await this.ctx.storage.put(`recovery-code-set:${set.userId}`, set);
+        return { updated: true as const, set };
+      }
+
+      if (!current || current.version !== expectedVersion) {
+        return { updated: false as const, current: current ?? null };
+      }
+
+      const next: RecoveryCodeSet = {
+        ...set,
+        version: expectedVersion + 1,
+      };
+      await this.ctx.storage.put(`recovery-code-set:${set.userId}`, next);
+      return { updated: true as const, set: next };
+    });
+  }
+
+  async invalidateActiveVerificationToken(
+    userId: string,
+    purpose: VerificationPurpose,
+    now: Date,
+  ): Promise<void> {
+    return this.runExclusive(`verification-token:user:${userId}:${purpose}`, async () => {
+      const activeHash = (await this.ctx.storage.get(
+        `verification-token:active:${userId}:${purpose}`,
+      )) as string | undefined;
+      if (activeHash) {
+        const current = (await this.ctx.storage.get(`verification-token:hash:${activeHash}`)) as
+          | VerificationToken
+          | undefined;
+        if (current && current.consumedAt === null && current.replacedAt === null) {
+          const invalidated: VerificationToken = {
+            ...current,
+            replacedAt: now.toISOString(),
+          };
+          await this.ctx.storage.put(`verification-token:hash:${activeHash}`, invalidated);
+        }
+        await this.ctx.storage.delete(`verification-token:active:${userId}:${purpose}`);
+      }
+    });
+  }
+
   async getCounter(key: string): Promise<number> {
     const timestamps =
       ((await this.ctx.storage.get(`counter:${key}`)) as number[] | undefined) ?? [];
@@ -575,6 +815,138 @@ export class StealthCoordinator extends DurableObjectBase {
       return { outcome: "inserted" as const, envelope };
     });
   }
+  async getSenderRequest(requestId: string) {
+    return (
+      ((await this.ctx.storage.get(`sender-request:${requestId}`)) as
+        | import("./domain").UnknownSenderRequest
+        | undefined) ?? null
+    );
+  }
+  async listSenderRequests(recipient: string, status?: "pending") {
+    const all = (await this.ctx.storage.list({ prefix: "sender-request:" })) as Map<
+      string,
+      import("./domain").UnknownSenderRequest
+    >;
+    return [...all.values()].filter(
+      (r) => r.recipient === recipient && (!status || r.status === status),
+    );
+  }
+  async createSenderRequestIfAbsent(request: import("./domain").UnknownSenderRequest) {
+    return this.runExclusive(`sender-request:${request.requestId}`, async () => {
+      const key = `sender-request:${request.requestId}`;
+      const existing = await this.getSenderRequest(request.requestId);
+      if (existing) return { created: false, request: existing };
+      await this.ctx.storage.put(key, request);
+      return { created: true, request };
+    });
+  }
+  async transitionSenderRequest(
+    requestId: string,
+    recipient: string,
+    decision: import("./domain").UnknownSenderDecision,
+    now = new Date(),
+  ) {
+    return this.runExclusive(`sender-request:${requestId}`, async () => {
+      const current = await this.getSenderRequest(requestId);
+      if (!current || current.recipient !== recipient) return { outcome: "not_found" as const };
+      if (
+        current.status !== "pending" ||
+        (new Date(current.expiresAt) <= now && decision !== "expire")
+      )
+        return { outcome: "conflict" as const, request: current };
+      const status =
+        decision === "approve_once" || decision === "always_allow"
+          ? "approved"
+          : decision === "block"
+            ? "blocked"
+            : decision === "expire"
+              ? "expired"
+              : "rejected";
+      const request = {
+        ...current,
+        status,
+        decision,
+        decidedAt: now.toISOString(),
+      } as import("./domain").UnknownSenderRequest;
+      await this.ctx.storage.put(`sender-request:${requestId}`, request);
+      return { outcome: "applied" as const, request };
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // BETA-015 (Issue #1922) — Managed Stellar testnet wallet persistence
+  // ---------------------------------------------------------------------------
+
+  async getManagedWallet(userId: string): Promise<ManagedWalletRecord | null> {
+    const wallet = (await this.ctx.storage.get(`managed-wallet:${userId}`)) as
+      | ManagedWalletRecord
+      | undefined;
+    return wallet ?? null;
+  }
+
+  async setManagedWallet(wallet: ManagedWalletRecord): Promise<ManagedWalletRecord> {
+    await this.ctx.storage.put(`managed-wallet:${wallet.userId}`, wallet);
+    return wallet;
+  }
+
+  async createManagedWalletIfAbsent(
+    wallet: ManagedWalletRecord,
+  ): Promise<CreateManagedWalletResult> {
+    return this.runExclusive(`managed-wallet:${wallet.userId}`, async () => {
+      const existing = await this.getManagedWallet(wallet.userId);
+      if (existing) {
+        return { outcome: "existing", wallet: existing };
+      }
+      await this.ctx.storage.put(`managed-wallet:${wallet.userId}`, wallet);
+      return { outcome: "created", wallet };
+    });
+  }
+
+  async getFundingOperation(operationId: string): Promise<FundingOperation | null> {
+    const operation = (await this.ctx.storage.get(`funding-op:${operationId}`)) as
+      | FundingOperation
+      | undefined;
+    return operation ?? null;
+  }
+
+  async setFundingOperation(operation: FundingOperation): Promise<FundingOperation> {
+    return this.runExclusive(`funding-op:${operation.operationId}`, async () => {
+      await this.ctx.storage.put(`funding-op:${operation.operationId}`, operation);
+      return operation;
+    });
+  }
+
+  async createFundingOperationIfAbsent(
+    operation: FundingOperation,
+  ): Promise<{ created: boolean; operation: FundingOperation }> {
+    return this.runExclusive(`funding-op:${operation.operationId}`, async () => {
+      const existing = await this.getFundingOperation(operation.operationId);
+      if (existing) {
+        return { created: false, operation: existing };
+      }
+      await this.ctx.storage.put(`funding-op:${operation.operationId}`, operation);
+      return { created: true, operation };
+    });
+  }
+
+  async listFundingOperations(filter?: {
+    status?: FundingOperation["status"];
+    limit?: number;
+  }): Promise<FundingOperation[]> {
+    const stored = (await this.ctx.storage.list({ prefix: "funding-op:" })) as Map<
+      string,
+      FundingOperation
+    >;
+    const limit = filter?.limit ?? 50;
+    const matches: FundingOperation[] = [];
+    for (const operation of stored.values()) {
+      if (!operation?.operationId) continue;
+      if (filter?.status && operation.status !== filter.status) continue;
+      matches.push(operation);
+    }
+    matches.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+    return matches.slice(0, limit);
+  }
 
   async listRecipientEnvelopes(
     recipient: string,
@@ -586,10 +958,9 @@ export class StealthCoordinator extends DurableObjectBase {
     const includeTombstones = options.includeTombstones ?? false;
     const limit = options.limit ?? 25;
 
-    const envelopesMap = (await this.ctx.storage.list({ prefix: "envelope:" })) as Map<
-      string,
-      StoredEnvelope
-    >;
+    const envelopesMap = (await this.ctx.storage.list({
+      prefix: "envelope:",
+    })) as Map<string, StoredEnvelope>;
 
     const filtered: StoredEnvelope[] = [];
     for (const env of envelopesMap.values()) {
@@ -650,6 +1021,204 @@ export class StealthCoordinator extends DurableObjectBase {
       };
       await this.ctx.storage.put(`envelope:${messageId}`, updated);
       return updated;
+    });
+  }
+
+  async patchMailboxFlags(
+    messageId: string,
+    recipient: string,
+    patch: import("./domain").MailboxFlagsPatch,
+  ): Promise<StoredEnvelope> {
+    const { applyMailboxFlags } = await import("./mailbox-live");
+    return this.runExclusive(`envelope:${messageId}`, async () => {
+      const existing = (await this.ctx.storage.get(`envelope:${messageId}`)) as
+        | StoredEnvelope
+        | undefined;
+      if (!existing) {
+        throw new ApiError(404, "not_found", `No envelope found for message ${messageId}`);
+      }
+      if (existing.recipientId.toUpperCase().trim() !== recipient.toUpperCase().trim()) {
+        throw new ApiError(
+          403,
+          "forbidden",
+          "Cannot update an envelope belonging to another recipient",
+        );
+      }
+      if (existing.deletedAt && patch.folder && patch.folder !== "trash") {
+        throw new ApiError(409, "conflict", "Cannot move a deleted message");
+      }
+      const updated = applyMailboxFlags(existing, patch, new Date().toISOString());
+      await this.ctx.storage.put(`envelope:${messageId}`, updated);
+      return updated;
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Issue #1952 (BETA-045) — Durable jobs, retries, DLQ, and receipt indexing
+  // ---------------------------------------------------------------------------
+
+  async enqueueJob(job: DurableJob): Promise<{ enqueued: boolean; job: DurableJob }> {
+    return this.runExclusive(`job_idemp:${job.idempotencyKey}`, async () => {
+      const existingJobId = (await this.ctx.storage.get(`job_idemp:${job.idempotencyKey}`)) as
+        | string
+        | undefined;
+
+      if (existingJobId) {
+        const existing = (await this.ctx.storage.get(`job:${existingJobId}`)) as
+          | DurableJob
+          | undefined;
+        if (existing) {
+          return { enqueued: false, job: existing };
+        }
+      }
+
+      await this.ctx.storage.put(`job:${job.jobId}`, job);
+      await this.ctx.storage.put(`job_idemp:${job.idempotencyKey}`, job.jobId);
+      return { enqueued: true, job };
+    });
+  }
+
+  async getJob(jobId: string): Promise<DurableJob | null> {
+    const job = (await this.ctx.storage.get(`job:${jobId}`)) as DurableJob | undefined;
+    return job ?? null;
+  }
+
+  async getJobByIdempotencyKey(key: string): Promise<DurableJob | null> {
+    const jobId = (await this.ctx.storage.get(`job_idemp:${key}`)) as string | undefined;
+    if (!jobId) return null;
+    return this.getJob(jobId);
+  }
+
+  async updateJob(job: DurableJob): Promise<DurableJob> {
+    return this.runExclusive(`job:${job.jobId}`, async () => {
+      await this.ctx.storage.put(`job:${job.jobId}`, job);
+      await this.ctx.storage.put(`job_idemp:${job.idempotencyKey}`, job.jobId);
+      return job;
+    });
+  }
+
+  async claimNextPendingJob(
+    types?: DurableJobType[],
+    now = new Date(),
+  ): Promise<DurableJob | null> {
+    return this.runExclusive("claim_job", async () => {
+      const jobsMap = (await this.ctx.storage.list({ prefix: "job:" })) as Map<string, DurableJob>;
+      const nowTime = now.getTime();
+
+      for (const [k, job] of jobsMap.entries()) {
+        if (k.startsWith("job_idemp:")) continue;
+        if (!job || job.status !== "pending") continue;
+        if (new Date(job.nextRunAt).getTime() > nowTime) continue;
+        if (types && !types.includes(job.type)) continue;
+
+        const claimed: DurableJob = {
+          ...job,
+          status: "running",
+          updatedAt: now.toISOString(),
+        };
+        await this.ctx.storage.put(`job:${job.jobId}`, claimed);
+        return claimed;
+      }
+      return null;
+    });
+  }
+
+  async listJobs(filter?: {
+    type?: DurableJobType;
+    status?: JobStatus;
+    limit?: number;
+  }): Promise<DurableJob[]> {
+    const limit = filter?.limit ?? 50;
+    const jobsMap = (await this.ctx.storage.list({ prefix: "job:" })) as Map<string, DurableJob>;
+    const matches: DurableJob[] = [];
+
+    for (const [k, job] of jobsMap.entries()) {
+      if (k.startsWith("job_idemp:")) continue;
+      if (!job || typeof job !== "object" || !job.jobId) continue;
+      if (filter?.type && job.type !== filter.type) continue;
+      if (filter?.status && job.status !== filter.status) continue;
+      matches.push(job);
+    }
+
+    matches.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return matches.slice(0, limit);
+  }
+
+  async createDeadLetter(deadLetter: DeadLetter): Promise<DeadLetter> {
+    await this.ctx.storage.put(`dlq:${deadLetter.deadLetterId}`, deadLetter);
+    return deadLetter;
+  }
+
+  async getDeadLetter(deadLetterId: string): Promise<DeadLetter | null> {
+    const dl = (await this.ctx.storage.get(`dlq:${deadLetterId}`)) as DeadLetter | undefined;
+    return dl ?? null;
+  }
+
+  async listDeadLetters(filter?: {
+    jobType?: DurableJobType;
+    status?: DeadLetterStatus;
+    limit?: number;
+  }): Promise<DeadLetter[]> {
+    const limit = filter?.limit ?? 50;
+    const dlqMap = (await this.ctx.storage.list({ prefix: "dlq:" })) as Map<string, DeadLetter>;
+    const matches: DeadLetter[] = [];
+
+    for (const dl of dlqMap.values()) {
+      if (!dl || typeof dl !== "object" || !dl.deadLetterId) continue;
+      if (filter?.jobType && dl.jobType !== filter.jobType) continue;
+      if (filter?.status && dl.status !== filter.status) continue;
+      matches.push(dl);
+    }
+
+    matches.sort(
+      (a, b) => new Date(b.deadLetteredAt).getTime() - new Date(a.deadLetteredAt).getTime(),
+    );
+    return matches.slice(0, limit);
+  }
+
+  async updateDeadLetter(deadLetter: DeadLetter): Promise<DeadLetter> {
+    await this.ctx.storage.put(`dlq:${deadLetter.deadLetterId}`, deadLetter);
+    return deadLetter;
+  }
+
+  async getReceiptCheckpoint(streamId: string): Promise<ReceiptCheckpoint | null> {
+    const cp = (await this.ctx.storage.get(`receipt_cp:${streamId}`)) as
+      | ReceiptCheckpoint
+      | undefined;
+    return cp ?? null;
+  }
+
+  async setReceiptCheckpoint(checkpoint: ReceiptCheckpoint): Promise<ReceiptCheckpoint> {
+    await this.ctx.storage.put(`receipt_cp:${checkpoint.streamId}`, checkpoint);
+    return checkpoint;
+  }
+
+  async getSendOperation(messageId: string): Promise<import("./domain").SendOperationState | null> {
+    const state = (await this.ctx.storage.get(`send_op:${messageId}`)) as
+      | import("./domain").SendOperationState
+      | undefined;
+    return state ?? null;
+  }
+
+  async setSendOperation(
+    state: import("./domain").SendOperationState,
+  ): Promise<import("./domain").SendOperationState> {
+    await this.ctx.storage.put(`send_op:${state.messageId}`, state);
+    return state;
+  }
+
+  async createSendOperationIfAbsent(
+    state: import("./domain").SendOperationState,
+  ): Promise<{ created: boolean; state: import("./domain").SendOperationState }> {
+    return this.runExclusive(`send_op:${state.messageId}`, async () => {
+      const existing = (await this.ctx.storage.get(`send_op:${state.messageId}`)) as
+        | import("./domain").SendOperationState
+        | undefined;
+      if (existing) {
+        return { created: false, state: existing };
+      }
+      await this.ctx.storage.put(`send_op:${state.messageId}`, state);
+      return { created: true, state };
     });
   }
 }

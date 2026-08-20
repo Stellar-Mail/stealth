@@ -266,7 +266,10 @@ export class SmtpNotificationAdapter implements NotificationAdapter {
     const expectReply = async (command: string, expected: number[]): Promise<SmtpReply> => {
       const reply = await withTimeout(replies.next(), command);
       if (!expected.includes(reply.code)) {
-        throw new SmtpError("SMTP delivery failed", { command, replyCode: reply.code });
+        throw new SmtpError("SMTP delivery failed", {
+          command,
+          replyCode: reply.code,
+        });
       }
       return reply;
     };
@@ -302,12 +305,20 @@ export class SmtpNotificationAdapter implements NotificationAdapter {
       await this.writeLine(socket, `DATA${CRLF}`);
       await expectReply("DATA", [354]);
 
+      const isPasswordReset = message.purpose === "password_reset";
+      const subject = isPasswordReset
+        ? "Reset your Stealth Mail password"
+        : "Verify your Stealth Mail account";
+      const actionText = isPasswordReset
+        ? "Open the link below to reset your password. The link expires on"
+        : "Open the link below to verify your account. The link expires on";
+
       await this.writeLine(
         socket,
         [
           `From: ${this.config.fromAddress}`,
           `To: ${message.to}`,
-          `Subject: Verify your Stealth Mail account`,
+          `Subject: ${subject}`,
           `Date: ${new Date().toUTCString()}`,
           `Message-ID: ${messageId}`,
           `MIME-Version: 1.0`,
@@ -315,7 +326,7 @@ export class SmtpNotificationAdapter implements NotificationAdapter {
           ``,
           `Welcome to Stealth Mail.`,
           ``,
-          `Open the link below to verify your account. The link expires on`,
+          actionText,
           `${message.expiresAt.toUTCString()}.`,
           ``,
           `${message.verificationUrl}`,

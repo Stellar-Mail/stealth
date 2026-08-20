@@ -26,7 +26,9 @@ describe("RulesWorkspace (#691)", () => {
 
   it("moves focus with ArrowDown / ArrowUp in the rule list", () => {
     render(<RulesWorkspace initialRules={mockRules} />);
-    const buttons = screen.getAllByRole("button", { name: /, (Active|Inactive)/i });
+    const buttons = screen.getAllByRole("button", {
+      name: /, (Active|Inactive)/i,
+    });
     const first = buttons[0] as HTMLButtonElement;
     first.focus();
     expect(document.activeElement).toBe(first);
@@ -39,7 +41,9 @@ describe("RulesWorkspace (#691)", () => {
 
   it("opens the builder with labeled fields when a rule is selected", () => {
     render(<RulesWorkspace initialRules={mockRules} />);
-    const first = screen.getByRole("button", { name: /High priority from executives/i });
+    const first = screen.getByRole("button", {
+      name: /High priority from executives/i,
+    });
     fireEvent.click(first);
     expect(screen.getByLabelText("Name")).toBeDefined();
     expect(screen.getByLabelText("Rule enabled")).toBeDefined();
@@ -57,7 +61,9 @@ describe("RulesWorkspace (#691)", () => {
   it("announces success after creating a rule", async () => {
     render(<RulesWorkspace initialRules={mockRules} />);
     fireEvent.click(screen.getByRole("button", { name: "New rule" }));
-    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Triage newsletters" } });
+    fireEvent.change(screen.getByLabelText("Name"), {
+      target: { value: "Triage newsletters" },
+    });
     fireEvent.click(screen.getByRole("button", { name: "Save rule" }));
     expect(await screen.findByText("Rule created.")).toBeDefined();
   });

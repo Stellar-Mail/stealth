@@ -70,7 +70,10 @@ describe("BETA-001 :: Beta Runtime Configuration Contract", () => {
         STEALTH_OPERATOR_SECRET: "valid",
       };
 
-      const config = loadRuntimeConfig({ profile: "production", env: validProdEnv });
+      const config = loadRuntimeConfig({
+        profile: "production",
+        env: validProdEnv,
+      });
 
       expect(config.profile).toBe("production");
       expect(config.network.stellarNetwork).toBe("mainnet");

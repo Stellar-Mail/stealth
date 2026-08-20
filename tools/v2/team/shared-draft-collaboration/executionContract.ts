@@ -31,7 +31,10 @@ export enum DraftErrorCode {
 /** Discriminated outcome returned by every contract operation. */
 export type DraftResult<T> =
   | { ok: true; value: T }
-  | { ok: false; error: { code: DraftErrorCode; message: string; field?: string } };
+  | {
+      ok: false;
+      error: { code: DraftErrorCode; message: string; field?: string };
+    };
 
 /** Non-UI service entry point for the shared draft collaboration tool. */
 export interface DraftExecutionContract {
@@ -57,7 +60,10 @@ function toResult<T>(err: unknown): DraftResult<T> {
   const name = err instanceof Error ? err.name : "";
   const field = (err as { field?: string } | null)?.field;
   if (name === "DraftValidationError") {
-    return { ok: false, error: { code: DraftErrorCode.Validation, message, field } };
+    return {
+      ok: false,
+      error: { code: DraftErrorCode.Validation, message, field },
+    };
   }
   if (/not found/i.test(message)) {
     return { ok: false, error: { code: DraftErrorCode.NotFound, message } };

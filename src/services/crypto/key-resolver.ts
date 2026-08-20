@@ -13,6 +13,7 @@
 
 import { getCryptoTestVectors } from "./testing";
 import { recordCryptoTelemetry, type CryptoResultCode } from "./telemetry";
+import { fromBase64, fromHex } from "./codec";
 
 /** Minimal non-secret error carrying a stable code (no key/plaintext leakage). */
 export class ResolverError extends Error {
@@ -211,9 +212,9 @@ export class DirectoryRecipientKeyResolver implements RecipientKeyResolver, Hist
     if (typeof rawKey.publicKey === "string") {
       try {
         if (/^[0-9a-fA-F]+$/.test(rawKey.publicKey)) {
-          pubKeyBytes = Uint8Array.from(Buffer.from(rawKey.publicKey, "hex"));
+          pubKeyBytes = fromHex(rawKey.publicKey);
         } else {
-          pubKeyBytes = Uint8Array.from(Buffer.from(rawKey.publicKey, "base64"));
+          pubKeyBytes = fromBase64(rawKey.publicKey);
         }
       } catch {
         pubKeyBytes = new TextEncoder().encode(rawKey.publicKey);

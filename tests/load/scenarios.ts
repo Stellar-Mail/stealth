@@ -15,7 +15,10 @@ async function scenarioBurstReads() {
     () => ({
       url: `${API_URL}/api/v1/postage`,
       method: "POST",
-      headers: { "x-stealth-address": sender, "Content-Type": "application/json" },
+      headers: {
+        "x-stealth-address": sender,
+        "Content-Type": "application/json",
+      },
       body: {
         messageId: generateRandomHash(),
         paymentHash: generateRandomHash(),
@@ -65,7 +68,9 @@ async function scenarioConcurrentTransitions() {
       method: "POST",
       headers: {
         "x-stealth-address": sender,
-        "x-forwarded-for": `${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.0.1`,
+        "x-forwarded-for": `${Math.floor(Math.random() * 255)}.${Math.floor(
+          Math.random() * 255,
+        )}.0.1`,
         "user-agent": `LoadTester-${Math.random()}`,
         "Content-Type": "application/json",
       },
@@ -98,7 +103,9 @@ async function scenarioConcurrentTransitions() {
       method: "POST",
       headers: {
         "x-stealth-address": owner,
-        "x-forwarded-for": `${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.0.1`,
+        "x-forwarded-for": `${Math.floor(Math.random() * 255)}.${Math.floor(
+          Math.random() * 255,
+        )}.0.1`,
         "user-agent": `LoadTester-${Math.random()}`,
       },
     }),
@@ -125,7 +132,10 @@ async function scenarioAuth() {
     () => ({
       url: `${API_URL}/api/v1/policies/evaluate`,
       method: "POST",
-      headers: { "x-stealth-address": invalidAddress, "Content-Type": "application/json" },
+      headers: {
+        "x-stealth-address": invalidAddress,
+        "Content-Type": "application/json",
+      },
       body: { sender: invalidAddress, recipient: generateRandomAddress() },
     }),
     10,

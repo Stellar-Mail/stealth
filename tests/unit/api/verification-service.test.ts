@@ -130,7 +130,10 @@ describe("BETA-005: verification-token service lifecycle", () => {
         issued.plaintextToken,
       );
 
-      expect(outcome).toEqual({ outcome: "verified", userId: pendingUser.userId });
+      expect(outcome).toEqual({
+        outcome: "verified",
+        userId: pendingUser.userId,
+      });
       const user = await repo.getUserById(pendingUser.userId);
       expect(user!.status).toBe("active");
       const record = await repo.getVerificationToken(issued.tokenHash);
@@ -177,7 +180,10 @@ describe("BETA-005: verification-token service lifecycle", () => {
         issued.plaintextToken,
       );
 
-      expect(replay).toEqual({ outcome: "verified", userId: pendingUser.userId });
+      expect(replay).toEqual({
+        outcome: "verified",
+        userId: pendingUser.userId,
+      });
     });
 
     it("reports reused when an already-consumed token is presented by a non-active account", async () => {
@@ -269,7 +275,11 @@ describe("BETA-005: verification-token service lifecycle", () => {
     let delivered: VerificationEmailMessage[];
     const deliver = async (message: VerificationEmailMessage) => {
       delivered.push(message);
-      return { transport: "sink" as const, accepted: true, safeTargetReference: "ref" };
+      return {
+        transport: "sink" as const,
+        accepted: true,
+        safeTargetReference: "ref",
+      };
     };
     const appUrl = "https://stealth.mail";
 

@@ -1,29 +1,50 @@
 import type {
   ApiRepository,
+  ContactQueryOptions,
   InsertEnvelopeResult,
   PostageTransitionResult,
+  UpdateContactResult,
+  UpdateProvisioningResult,
+  UpdateRecoveryCodeSetResult,
   UpdateUserResult,
+  UsernameReservationResult,
+  WalletCreationResult,
 } from "./repository";
 import type {
+  Contact,
   Credential,
+  DeadLetter,
+  DeadLetterStatus,
+  DurableJob,
+  DurableJobType,
   ExternalWallet,
   ExternalWalletChallenge,
   IdempotencyRecord,
+  JobStatus,
   KeyDirectoryRecord,
+  LifecycleAnchor,
   MailboxPolicy,
+  MessageDeliveryStatusRecord,
   PolicyWriteIntent,
   Postage,
   PostageStatus,
   Profile,
+  ProvisioningRecord,
   PublishedKey,
   Receipt,
+  ReceiptCheckpoint,
+  RecoveryCodeSet,
   RetiredSession,
   SenderRule,
   Session,
   StoredEnvelope,
   User,
+  UsernameReservation,
   VerificationPurpose,
   VerificationToken,
+  ManagedWalletRecord,
+  FundingOperation,
+  Wallet,
 } from "./domain";
 import { ApiError } from "./errors";
 
@@ -55,6 +76,16 @@ export class HybridApiRepository implements ApiRepository {
   async setPolicyWriteIntent(intent: PolicyWriteIntent): Promise<PolicyWriteIntent> {
     await this.kv.put(this.key("policy-write", intent.owner), JSON.stringify(intent));
     return intent;
+  }
+
+  async getLifecycleAnchor(messageId: string): Promise<LifecycleAnchor | null> {
+    const anchor = await this.kv.get(this.key("lifecycle-anchor", messageId), "json");
+    return (anchor as LifecycleAnchor) ?? null;
+  }
+
+  async setLifecycleAnchor(anchor: LifecycleAnchor): Promise<LifecycleAnchor> {
+    await this.kv.put(this.key("lifecycle-anchor", anchor.messageId), JSON.stringify(anchor));
+    return anchor;
   }
 
   async getSenderRule(owner: string, sender: string): Promise<SenderRule> {
@@ -123,6 +154,18 @@ export class HybridApiRepository implements ApiRepository {
     await this.getStub().setReceipt(receipt);
     await this.kv.put(this.key("receipt", receipt.messageId), JSON.stringify(receipt));
     return receipt;
+  }
+
+  async getMessageDeliveryStatus(messageId: string): Promise<MessageDeliveryStatusRecord | null> {
+    const record = await this.kv.get(this.key("delivery-status", messageId), "json");
+    return (record as MessageDeliveryStatusRecord) ?? null;
+  }
+
+  async setMessageDeliveryStatus(
+    record: MessageDeliveryStatusRecord,
+  ): Promise<MessageDeliveryStatusRecord> {
+    await this.kv.put(this.key("delivery-status", record.messageId), JSON.stringify(record));
+    return record;
   }
 
   async createReceiptIfAbsent(receipt: Receipt): Promise<{ created: boolean; receipt: Receipt }> {
@@ -196,6 +239,60 @@ export class HybridApiRepository implements ApiRepository {
     return this.getStub().setCredential(credential);
   }
 
+  // BETA-014: Provisioning state is coordinated by the DO (single authority);
+  // KV holds no provisioning mirror because every write is a CAS transition.
+  async getProvisioningRecord(userId: string): Promise<ProvisioningRecord | null> {
+    return this.getStub().getProvisioningRecord(userId);
+  }
+
+  async createProvisioningRecord(
+    record: ProvisioningRecord,
+  ): Promise<{ created: boolean; record: ProvisioningRecord }> {
+    return this.getStub().createProvisioningRecord(record);
+  }
+
+  async setProvisioningRecord(
+    record: ProvisioningRecord,
+    expectedVersion: number,
+  ): Promise<UpdateProvisioningResult> {
+    return this.getStub().setProvisioningRecord(record, expectedVersion);
+  }
+
+  async reserveUsername(
+    username: string,
+    userId: string,
+    leaseMs: number,
+  ): Promise<UsernameReservationResult> {
+    return this.getStub().reserveUsername(username, userId, leaseMs);
+  }
+
+  async getUsernameReservation(username: string): Promise<UsernameReservation | null> {
+    return this.getStub().getUsernameReservation(username);
+  }
+
+  async releaseUsernameReservation(username: string, userId: string): Promise<boolean> {
+    return this.getStub().releaseUsernameReservation(username, userId);
+  }
+
+  async getWallet(userId: string): Promise<Wallet | null> {
+    return this.getStub().getWallet(userId);
+  }
+
+  async createWallet(wallet: Wallet): Promise<WalletCreationResult> {
+    return this.getStub().createWallet(wallet);
+  }
+
+  async initializePolicyIfAbsent(
+    owner: string,
+    policy: MailboxPolicy,
+  ): Promise<{ created: boolean; policy: MailboxPolicy }> {
+    const result = await this.getStub().initializePolicyIfAbsent(owner, policy);
+    if (result.created) {
+      await this.kv.put(this.key("policy", owner), JSON.stringify(result.policy));
+    }
+    return result;
+  }
+
   // BETA-005: Verification token lifecycle delegated to the Durable Object
   // so the single-winner transitions (issue/consume/attempt) execute under
   // the coordinator's per-key exclusive locks.
@@ -231,6 +328,14 @@ export class HybridApiRepository implements ApiRepository {
     return this.getStub().recordVerificationAttempt(tokenHash, now);
   }
 
+  async invalidateActiveVerificationToken(
+    userId: string,
+    purpose: VerificationPurpose,
+    now: Date,
+  ): Promise<void> {
+    return this.getStub().invalidateActiveVerificationToken(userId, purpose, now);
+  }
+
   // BETA-006: Session DO stubs
   async getSession(sessionId: string): Promise<Session | null> {
     return this.getStub().getSession(sessionId);
@@ -260,7 +365,21 @@ export class HybridApiRepository implements ApiRepository {
     return this.getStub().createRetiredSession(retiredSession);
   }
 
+  // Issue #1917 (BETA-010): CAS semantics live in the Durable Object (the
+  // runExclusive critical section), so KV delegation is a plain RPC passthrough.
+  async getRecoveryCodeSet(userId: string): Promise<RecoveryCodeSet | null> {
+    return this.getStub().getRecoveryCodeSet(userId);
+  }
+
+  async setRecoveryCodeSet(
+    set: RecoveryCodeSet,
+    expectedVersion: number,
+  ): Promise<UpdateRecoveryCodeSetResult> {
+    return this.getStub().setRecoveryCodeSet(set, expectedVersion);
+  }
+
   // Consistent layer delegated to Durable Object via RPC
+
   private getStub() {
     const id = this.coordinator.idFromName("global-stealth-coordinator");
     return this.coordinator.get(id);
@@ -404,6 +523,23 @@ export class HybridApiRepository implements ApiRepository {
     }
     return result;
   }
+  getSenderRequest(requestId: string) {
+    return this.getStub().getSenderRequest(requestId);
+  }
+  listSenderRequests(recipient: string, status?: "pending") {
+    return this.getStub().listSenderRequests(recipient, status);
+  }
+  createSenderRequestIfAbsent(request: import("./domain").UnknownSenderRequest) {
+    return this.getStub().createSenderRequestIfAbsent(request);
+  }
+  transitionSenderRequest(
+    requestId: string,
+    recipient: string,
+    decision: import("./domain").UnknownSenderDecision,
+    now?: Date,
+  ) {
+    return this.getStub().transitionSenderRequest(requestId, recipient, decision, now);
+  }
 
   async listRecipientEnvelopes(
     recipient: string,
@@ -423,6 +559,16 @@ export class HybridApiRepository implements ApiRepository {
     status: import("./domain").MailboxItemStatus,
   ): Promise<StoredEnvelope> {
     const result = await this.getStub().updateEnvelopeStatus(messageId, status);
+    await this.kv.put(this.key("envelope", messageId), JSON.stringify(result));
+    return result;
+  }
+
+  async patchMailboxFlags(
+    messageId: string,
+    recipient: string,
+    patch: import("./domain").MailboxFlagsPatch,
+  ): Promise<StoredEnvelope> {
+    const result = await this.getStub().patchMailboxFlags(messageId, recipient, patch);
     await this.kv.put(this.key("envelope", messageId), JSON.stringify(result));
     return result;
   }
@@ -455,5 +601,206 @@ export class HybridApiRepository implements ApiRepository {
       JSON.stringify(record),
     );
     return record;
+  }
+
+  async getManagedWallet(userId: string): Promise<ManagedWalletRecord | null> {
+    return this.getStub().getManagedWallet(userId);
+  }
+
+  async setManagedWallet(wallet: ManagedWalletRecord): Promise<ManagedWalletRecord> {
+    return this.getStub().setManagedWallet(wallet);
+  }
+
+  async createManagedWalletIfAbsent(
+    wallet: ManagedWalletRecord,
+  ): Promise<import("./repository").CreateManagedWalletResult> {
+    return this.getStub().createManagedWalletIfAbsent(wallet);
+  }
+
+  async getFundingOperation(operationId: string): Promise<FundingOperation | null> {
+    return this.getStub().getFundingOperation(operationId);
+  }
+
+  async setFundingOperation(operation: FundingOperation): Promise<FundingOperation> {
+    return this.getStub().setFundingOperation(operation);
+  }
+
+  async createFundingOperationIfAbsent(
+    operation: FundingOperation,
+  ): Promise<{ created: boolean; operation: FundingOperation }> {
+    return this.getStub().createFundingOperationIfAbsent(operation);
+  }
+
+  async listFundingOperations(filter?: {
+    status?: FundingOperation["status"];
+    limit?: number;
+  }): Promise<FundingOperation[]> {
+    return this.getStub().listFundingOperations(filter);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Issue #1973 (BETA-066) — Live contacts CRUD
+  //
+  // Each owner stores a JSON array of contacts under a single key (the same
+  // shape as the external-wallet collection) so list/get/update/delete and
+  // search all resolve in one KV read without coordinator round-trips.
+  // ---------------------------------------------------------------------------
+
+  private contactKey(owner: string): string {
+    return this.key("contacts", owner.toUpperCase().trim());
+  }
+
+  private async readContacts(owner: string): Promise<Contact[]> {
+    const stored = await this.kv.get(this.contactKey(owner), "json");
+    return (stored as Contact[]) ?? [];
+  }
+
+  async listContacts(
+    owner: string,
+    options: ContactQueryOptions = {},
+  ): Promise<import("./repository").Page<Contact>> {
+    const { paginate, PAGINATED_QUERY_ORDERINGS } = await import("./repository");
+    const normOwner = owner.toUpperCase().trim();
+    const limit = options.limit ?? 25;
+    const query = options.query?.trim().toLowerCase();
+
+    const stored = await this.readContacts(normOwner);
+    const filtered: Contact[] = [];
+    for (const contact of stored) {
+      if (contact.owner.toUpperCase().trim() !== normOwner) {
+        continue;
+      }
+      if (query) {
+        const haystack =
+          `${contact.name} ${contact.address} ${contact.canonicalAddress ?? ""}`.toLowerCase();
+        if (!haystack.includes(query)) {
+          continue;
+        }
+      }
+      filtered.push(contact);
+    }
+
+    const spec = PAGINATED_QUERY_ORDERINGS.listContacts;
+    return paginate(filtered, spec, { limit, after: options.after });
+  }
+
+  async getContact(owner: string, contactId: string): Promise<Contact | null> {
+    const contacts = await this.readContacts(owner);
+    return contacts.find((c) => c.contactId === contactId) ?? null;
+  }
+
+  async createContact(contact: Contact): Promise<Contact> {
+    const normOwner = contact.owner.toUpperCase().trim();
+    const contacts = await this.readContacts(normOwner);
+    if (contacts.some((c) => c.contactId === contact.contactId)) {
+      throw new ApiError(409, "conflict", `A contact already exists for ${contact.contactId}`);
+    }
+    contacts.push(contact);
+    await this.kv.put(this.contactKey(normOwner), JSON.stringify(contacts));
+    return contact;
+  }
+
+  async updateContact(contact: Contact, expectedVersion: number): Promise<UpdateContactResult> {
+    const normOwner = contact.owner.toUpperCase().trim();
+    const contacts = await this.readContacts(normOwner);
+    const index = contacts.findIndex((c) => c.contactId === contact.contactId);
+    if (index < 0) {
+      return { updated: false, current: null };
+    }
+    const existing = contacts[index];
+    if (existing.version !== expectedVersion) {
+      return { updated: false, current: existing };
+    }
+    const updated = { ...contact, version: expectedVersion + 1 };
+    contacts[index] = updated;
+    await this.kv.put(this.contactKey(normOwner), JSON.stringify(contacts));
+    return { updated: true, contact: updated };
+  }
+
+  async deleteContact(owner: string, contactId: string): Promise<void> {
+    const normOwner = owner.toUpperCase().trim();
+    const contacts = await this.readContacts(normOwner);
+    const index = contacts.findIndex((c) => c.contactId === contactId);
+    if (index < 0) {
+      throw new ApiError(404, "not_found", `No contact found for ${contactId}`);
+    }
+    contacts.splice(index, 1);
+    await this.kv.put(this.contactKey(normOwner), JSON.stringify(contacts));
+  }
+
+  // ---------------------------------------------------------------------------
+  // Issue #1952 (BETA-045) — Durable jobs, retries, DLQ, and receipt indexing
+  // ---------------------------------------------------------------------------
+
+  async enqueueJob(job: DurableJob): Promise<{ enqueued: boolean; job: DurableJob }> {
+    return this.getStub().enqueueJob(job);
+  }
+
+  async getJob(jobId: string): Promise<DurableJob | null> {
+    return this.getStub().getJob(jobId);
+  }
+
+  async getJobByIdempotencyKey(key: string): Promise<DurableJob | null> {
+    return this.getStub().getJobByIdempotencyKey(key);
+  }
+
+  async updateJob(job: DurableJob): Promise<DurableJob> {
+    return this.getStub().updateJob(job);
+  }
+
+  async claimNextPendingJob(types?: DurableJobType[], now?: Date): Promise<DurableJob | null> {
+    return this.getStub().claimNextPendingJob(types, now);
+  }
+
+  async listJobs(filter?: {
+    type?: DurableJobType;
+    status?: JobStatus;
+    limit?: number;
+  }): Promise<DurableJob[]> {
+    return this.getStub().listJobs(filter);
+  }
+
+  async createDeadLetter(deadLetter: DeadLetter): Promise<DeadLetter> {
+    return this.getStub().createDeadLetter(deadLetter);
+  }
+
+  async getDeadLetter(deadLetterId: string): Promise<DeadLetter | null> {
+    return this.getStub().getDeadLetter(deadLetterId);
+  }
+
+  async listDeadLetters(filter?: {
+    jobType?: DurableJobType;
+    status?: DeadLetterStatus;
+    limit?: number;
+  }): Promise<DeadLetter[]> {
+    return this.getStub().listDeadLetters(filter);
+  }
+
+  async updateDeadLetter(deadLetter: DeadLetter): Promise<DeadLetter> {
+    return this.getStub().updateDeadLetter(deadLetter);
+  }
+
+  async getReceiptCheckpoint(streamId: string): Promise<ReceiptCheckpoint | null> {
+    return this.getStub().getReceiptCheckpoint(streamId);
+  }
+
+  async setReceiptCheckpoint(checkpoint: ReceiptCheckpoint): Promise<ReceiptCheckpoint> {
+    return this.getStub().setReceiptCheckpoint(checkpoint);
+  }
+
+  async getSendOperation(messageId: string): Promise<import("./domain").SendOperationState | null> {
+    return this.getStub().getSendOperation(messageId);
+  }
+
+  async setSendOperation(
+    state: import("./domain").SendOperationState,
+  ): Promise<import("./domain").SendOperationState> {
+    return this.getStub().setSendOperation(state);
+  }
+
+  async createSendOperationIfAbsent(
+    state: import("./domain").SendOperationState,
+  ): Promise<{ created: boolean; state: import("./domain").SendOperationState }> {
+    return this.getStub().createSendOperationIfAbsent(state);
   }
 }

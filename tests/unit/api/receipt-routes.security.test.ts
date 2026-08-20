@@ -42,7 +42,9 @@ describe("receipt route publication roles", () => {
   });
 
   it("allows only the sender to publish a delivery receipt", async () => {
-    const response = await deliveryHandler({ request: deliveryRequest(sender) });
+    const response = await deliveryHandler({
+      request: deliveryRequest(sender),
+    });
 
     expect(response.status).toBe(201);
     await expect(repo.getReceipt(messageId)).resolves.toMatchObject({
@@ -57,10 +59,14 @@ describe("receipt route publication roles", () => {
     ["recipient", recipient],
     ["unrelated actor", unrelatedActor],
   ])("rejects the %s as a delivery publisher without mutating state", async (_role, actor) => {
-    const response = await deliveryHandler({ request: deliveryRequest(actor) });
+    const response = await deliveryHandler({
+      request: deliveryRequest(actor),
+    });
 
     expect(response.status).toBe(403);
-    await expect(response.json()).resolves.toMatchObject({ error: { code: "forbidden" } });
+    await expect(response.json()).resolves.toMatchObject({
+      error: { code: "forbidden" },
+    });
     await expect(repo.getReceipt(messageId)).resolves.toBeNull();
   });
 
@@ -90,7 +96,11 @@ describe("receipt route publication roles", () => {
     });
 
     expect(response.status).toBe(403);
-    await expect(response.json()).resolves.toMatchObject({ error: { code: "forbidden" } });
-    await expect(repo.getReceipt(messageId)).resolves.toMatchObject({ readAt: null });
+    await expect(response.json()).resolves.toMatchObject({
+      error: { code: "forbidden" },
+    });
+    await expect(repo.getReceipt(messageId)).resolves.toMatchObject({
+      readAt: null,
+    });
   });
 });

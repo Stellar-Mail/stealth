@@ -58,8 +58,10 @@ function getService(): RelayService {
       await submitToRelay(
         {
           messageId: envelope.messageId,
+          sender: envelope.sender,
+          recipient: envelope.recipient,
           recipientDomain: envelope.recipientDomain,
-          envelopePayload: envelope.payload,
+          payload: envelope.payload,
           ttlMs: envelope.ttlMs,
         },
         {

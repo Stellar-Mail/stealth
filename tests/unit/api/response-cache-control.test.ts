@@ -5,7 +5,9 @@ import { CACHE_POLICIES, apiFailure, apiSuccess } from "../../../src/server/api/
 
 describe("API response cache policies", () => {
   it("defaults to no-store when no cache policy is specified", () => {
-    const response = apiSuccess(new Request("https://stealth.test/api"), { ready: true });
+    const response = apiSuccess(new Request("https://stealth.test/api"), {
+      ready: true,
+    });
 
     expect(response.headers.get("cache-control")).toBe(CACHE_POLICIES.NO_STORE);
   });

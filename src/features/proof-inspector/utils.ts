@@ -92,7 +92,10 @@ export function validateProofQuery(query: string): {
       type: "error",
     };
   } else {
-    return { text: "ⓘ Searching by sender name / subject keywords", type: "warning" };
+    return {
+      text: "ⓘ Searching by sender name / subject keywords",
+      type: "warning",
+    };
   }
 }
 

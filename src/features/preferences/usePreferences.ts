@@ -35,14 +35,20 @@ export function resolveStoredPreferences(
 ): { preferences: UiPreferences; corrupt: boolean } {
   if (current) {
     try {
-      return { preferences: { ...defaultPreferences, ...JSON.parse(current) }, corrupt: false };
+      return {
+        preferences: { ...defaultPreferences, ...JSON.parse(current) },
+        corrupt: false,
+      };
     } catch {
       return { preferences: defaultPreferences, corrupt: true };
     }
   }
   if (legacy) {
     try {
-      return { preferences: { ...defaultPreferences, ...JSON.parse(legacy) }, corrupt: false };
+      return {
+        preferences: { ...defaultPreferences, ...JSON.parse(legacy) },
+        corrupt: false,
+      };
     } catch {
       return { preferences: defaultPreferences, corrupt: false };
     }

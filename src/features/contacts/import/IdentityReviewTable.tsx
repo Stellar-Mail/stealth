@@ -191,7 +191,9 @@ export function IdentityReviewTable({ rows, onChange }: Props) {
                 <select
                   value={row.trust}
                   onChange={(e) =>
-                    updateRow(row.id, { trust: e.target.value as ImportedContactRow["trust"] })
+                    updateRow(row.id, {
+                      trust: e.target.value as ImportedContactRow["trust"],
+                    })
                   }
                   className={cn(
                     "appearance-none rounded-md border px-2 py-0.5 pr-5 text-[11px] font-medium transition",

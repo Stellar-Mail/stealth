@@ -2,13 +2,14 @@ import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 
 import { getApiContext } from "@/server/api/context";
-import { stellarAddressSchema } from "@/server/api/domain";
+import { hash32Schema, stellarAddressSchema } from "@/server/api/domain";
 import { quotePostage } from "@/server/api/postage-service";
 import { parseJsonBody } from "@/server/api/request";
 import { apiSuccess, handleApiRequest } from "@/server/api/response";
 
 /**
- * Postage quote request schema with strict validation for Stellar addresses.
+ * Postage quote request schema with strict validation for Stellar addresses
+ * and the message identity the quote is bound to.
  *
  * ## Validation Rules
  *
@@ -18,6 +19,10 @@ import { apiSuccess, handleApiRequest } from "@/server/api/response";
  * - Must contain only valid base32 characters (A-Z, 2-7)
  * - Whitespace is trimmed automatically
  * - Lowercase letters are normalized to uppercase
+ *
+ * `messageId` must be a 32-byte lowercase hexadecimal hash. Binding the message
+ * identity at quote time (BETA-039 / Issue #1946) means a quote can never be
+ * reused for a different message or recipient.
  *
  * ## Error Responses
  *
@@ -46,18 +51,21 @@ import { apiSuccess, handleApiRequest } from "@/server/api/response";
  * - Null/undefined: rejected
  * - Non-string types: rejected
  * - Oversized strings (>> 56 chars): rejected
+ * - Invalid or missing messageId hash: rejected
  *
  * @example Valid request
  * ```json
  * {
  *   "recipient": "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
- *   "sender": "GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
+ *   "sender": "GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+ *   "messageId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
  * }
  * ```
  */
 const quoteSchema = z.object({
   recipient: stellarAddressSchema,
   sender: stellarAddressSchema,
+  messageId: hash32Schema,
 });
 
 export const Route = createFileRoute("/api/v1/postage/quote")({

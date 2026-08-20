@@ -216,10 +216,17 @@ export function safeBuildFollowUpReminder(input: unknown, options?: unknown): Sa
 
   const limitIssue = checkInputLimits(sanitized);
   if (limitIssue) {
-    return { status: "error", code: limitIssue.code, message: limitIssue.message };
+    return {
+      status: "error",
+      code: limitIssue.code,
+      message: limitIssue.message,
+    };
   }
 
   const parsedOptions = validateOptions(options);
 
-  return { status: "ok", model: buildFollowUpReminder(sanitized, parsedOptions) };
+  return {
+    status: "ok",
+    model: buildFollowUpReminder(sanitized, parsedOptions),
+  };
 }

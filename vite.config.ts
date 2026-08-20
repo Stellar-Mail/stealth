@@ -28,7 +28,7 @@ export default defineConfig(({ command }) => ({
   // Exclude it from Vite's dep pre-bundler (dev) and SSR bundler so it is never
   // resolved as a real package in either vite dev or e2e (playwright + vite dev).
   optimizeDeps: {
-    exclude: ["cloudflare:workers"],
+    exclude: ["cloudflare:workers", "cloudflare:sockets"],
   },
   plugins: [
     tailwindcss(),

@@ -7,6 +7,12 @@
  * `cloudflare:workers` binding), which constructs its own service directly.
  */
 import { loadRuntimeConfig } from "@/config";
+import {
+  scheduleLifecycleAnchor,
+  buildLifecycleChainAdapter,
+} from "@/server/api/lifecycle-service";
+import { MemoryApiRepository } from "@/server/api/memory-repository";
+import type { ApiRepository } from "@/server/api/repository";
 import { protocolManifest } from "@/server/api/protocol";
 import { getVersionInfo } from "@/server/api/version";
 
@@ -35,6 +41,42 @@ function buildConfig(): RelayServiceConfig {
   };
 }
 
+/**
+ * Best-effort lifecycle-anchor scheduling after relay acceptance. Amount is
+ * taken from the stored postage record for the commitment when present, else
+ * "0"; verified/receiptRequired default off (the anchor record can be refined
+ * by later reconciliation without touching the message commitment).
+ */
+function buildOnAcceptedHook(repo: ApiRepository): RelayServiceConfig["onAccepted"] {
+  const config = loadRuntimeConfig();
+  const adapter = buildLifecycleChainAdapter(config);
+  return async ({ messageId, sender, recipient }) => {
+    const postage = await repo.getPostage(messageId);
+    await scheduleLifecycleAnchor(repo, {
+      messageId,
+      sender,
+      recipient,
+      amount: postage?.amount ?? "0",
+      verified: false,
+      receiptRequired: false,
+    });
+  };
+}
+
+async function getLifecycleRepository(): Promise<ApiRepository> {
+  if (!import.meta.env.PROD) {
+    return new MemoryApiRepository();
+  }
+  const { env } = await import("cloudflare:workers");
+  if (!env.STEALTH_KV || !env.STEALTH_COORDINATOR) {
+    throw new Error(
+      "Configuration error: STEALTH_KV or STEALTH_COORDINATOR binding is required for lifecycle anchoring in production.",
+    );
+  }
+  const { HybridApiRepository } = await import("@/server/api/kv-repository");
+  return new HybridApiRepository(env.STEALTH_KV, env.STEALTH_COORDINATOR);
+}
+
 export async function getRelayService(): Promise<RelayService> {
   if (globalRelay.__stealthRelayService) {
     return globalRelay.__stealthRelayService;
@@ -43,7 +85,10 @@ export async function getRelayService(): Promise<RelayService> {
   if (!import.meta.env.PROD) {
     const persistence = new MemoryRelayPersistence();
     const worker = new InProcessRelayWorker(persistence);
-    globalRelay.__stealthRelayService = new RelayService(persistence, worker, buildConfig());
+    globalRelay.__stealthRelayService = new RelayService(persistence, worker, {
+      ...buildConfig(),
+      onAccepted: buildOnAcceptedHook(await getLifecycleRepository()),
+    });
     return globalRelay.__stealthRelayService;
   }
 
@@ -56,6 +101,9 @@ export async function getRelayService(): Promise<RelayService> {
 
   const persistence = new KvRelayPersistence(env.STEALTH_KV);
   const worker = new InProcessRelayWorker(persistence);
-  globalRelay.__stealthRelayService = new RelayService(persistence, worker, buildConfig());
+  globalRelay.__stealthRelayService = new RelayService(persistence, worker, {
+    ...buildConfig(),
+    onAccepted: buildOnAcceptedHook(await getLifecycleRepository()),
+  });
   return globalRelay.__stealthRelayService;
 }

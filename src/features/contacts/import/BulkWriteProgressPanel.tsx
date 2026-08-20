@@ -61,11 +61,15 @@ export function BulkWriteProgressPanel({ progress, onPause, onResume, onCancel }
         <div className="flex h-2 overflow-hidden rounded-full bg-white/[0.06]">
           <div
             className="h-full rounded-full bg-emerald-400 transition-all duration-500"
-            style={{ width: `${(progress.succeeded / Math.max(progress.total, 1)) * 100}%` }}
+            style={{
+              width: `${(progress.succeeded / Math.max(progress.total, 1)) * 100}%`,
+            }}
           />
           <div
             className="h-full rounded-full bg-red-400 transition-all duration-500"
-            style={{ width: `${(progress.failed / Math.max(progress.total, 1)) * 100}%` }}
+            style={{
+              width: `${(progress.failed / Math.max(progress.total, 1)) * 100}%`,
+            }}
           />
         </div>
         <div className="flex items-center justify-between text-[11px] text-muted-foreground tabular-nums">

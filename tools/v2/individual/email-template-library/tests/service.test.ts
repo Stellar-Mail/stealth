@@ -27,7 +27,11 @@ test("returns stable failure codes from failure fixtures", async () => {
   for (const name of ["failure-missing-variables.json", "failure-template-not-found.json"]) {
     const fixture = await load<{
       request: EmailTemplateLibraryRequest;
-      expectedError: { code: string; missingVariables?: string[]; templateId?: string };
+      expectedError: {
+        code: string;
+        missingVariables?: string[];
+        templateId?: string;
+      };
     }>(name);
     const response = executeEmailTemplateLibrary(fixture.request, success.templates);
     assert.equal(response.status, "error");
@@ -46,7 +50,11 @@ test("returns stable failure codes from failure fixtures", async () => {
 
 test("list results are cloned and cannot mutate service source data", async () => {
   const fixture = await load<{ templates: EmailTemplate[] }>("success.json");
-  const request = { tool: "email-template-library", version: 1, operation: "list" } as const;
+  const request = {
+    tool: "email-template-library",
+    version: 1,
+    operation: "list",
+  } as const;
   const first = executeEmailTemplateLibrary(request, fixture.templates);
   assert.equal(first.status, "ok");
   if (first.status !== "ok" || first.result.operation !== "list") return;

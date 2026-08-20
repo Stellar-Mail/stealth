@@ -2,6 +2,8 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { KeyRound, Lock, User, AlertCircle, CheckCircle2, X, Mail } from "lucide-react";
 
+import { sharedTypedApi as api, ApiClientError, errorLabel } from "@/lib/api";
+
 export interface AuthModalProps {
   open: boolean;
   onClose: () => void;
@@ -42,35 +44,24 @@ export function AuthModal({ open, onClose, onSuccess }: AuthModalProps) {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch("/api/v1/auth/register", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            displayName,
-            email,
-            username,
-            password,
-            passwordConfirmation,
-            termsVersion: "2026-01",
-            privacyPolicyVersion: "2026-01",
-          }),
+        const registration = await api.auth.register({
+          displayName,
+          email,
+          username,
+          password,
+          passwordConfirmation,
+          termsVersion: "2026-01",
+          privacyPolicyVersion: "2026-01",
         });
-        const data = await res.json();
-        if (!res.ok) {
-          const fieldError = data.error?.details?.validationErrors?.[0]?.message;
-          setError(
-            fieldError ||
-              data.error?.message ||
-              "We could not create your account. Please try again.",
-          );
-          setLoading(false);
-          return;
-        }
-        setRegisteredEmail(data.data.maskedEmail);
+        setRegisteredEmail(registration.maskedEmail);
         setSuccess(true);
         setLoading(false);
-      } catch {
-        setError("Unable to connect to the registration server. Please try again.");
+      } catch (caught) {
+        if (caught instanceof ApiClientError) {
+          setError(errorLabel(caught));
+        } else {
+          setError("Unable to connect to the registration server. Please try again.");
+        }
         setLoading(false);
       }
       return;
@@ -84,43 +75,35 @@ export function AuthModal({ open, onClose, onSuccess }: AuthModalProps) {
     setError(null);
 
     try {
-      const res = await fetch("/api/v1/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ identifier, password }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        if (res.status === 429) {
-          setError("Too many failed login attempts. Please try again later.");
-        } else if (res.status === 403) {
-          if (data.error?.code === "unverified_account") {
-            setError("Your account is pending verification. Please verify your email.");
-          } else if (data.error?.code === "account_suspended") {
-            setError("Your account has been suspended. Please contact support.");
-          } else if (data.error?.code === "account_deactivated") {
-            setError("Your account is deactivated.");
-          } else {
-            setError(data.error?.message || "Access forbidden.");
-          }
-        } else {
-          setError(data.error?.message || "Invalid email/username or password.");
-        }
-        setLoading(false);
-        return;
-      }
+      const bundle = await api.auth.login({ identifier, password });
 
       setSuccess(true);
       setTimeout(() => {
         setLoading(false);
         setSuccess(false);
-        onSuccess(data.data.user);
+        onSuccess(bundle.user);
         onClose();
       }, 600);
-    } catch (err: unknown) {
-      setError("Unable to connect to login server. Please try again.");
+    } catch (caught) {
+      if (caught instanceof ApiClientError) {
+        if (caught.status === 429) {
+          setError("Too many failed login attempts. Please try again later.");
+        } else if (caught.status === 403) {
+          if (caught.code === "unverified_account") {
+            setError("Your account is pending verification. Please verify your email.");
+          } else if (caught.code === "account_suspended") {
+            setError("Your account has been suspended. Please contact support.");
+          } else if (caught.code === "account_deactivated") {
+            setError("Your account is deactivated.");
+          } else {
+            setError(caught.message || "Access forbidden.");
+          }
+        } else {
+          setError(caught.message || "Invalid email/username or password.");
+        }
+      } else {
+        setError("Unable to connect to login server. Please try again.");
+      }
       setLoading(false);
     }
   };

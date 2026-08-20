@@ -250,8 +250,12 @@ describe("MemoryApiRepository — envelope insert semantics", () => {
     await repo.insertEnvelope(makeEnvelope({ messageId: MSG_ID_A }));
     await repo.insertEnvelope(makeEnvelope({ messageId: MSG_ID_B }));
 
-    await expect(repo.getEnvelope(MSG_ID_A)).resolves.toMatchObject({ messageId: MSG_ID_A });
-    await expect(repo.getEnvelope(MSG_ID_B)).resolves.toMatchObject({ messageId: MSG_ID_B });
+    await expect(repo.getEnvelope(MSG_ID_A)).resolves.toMatchObject({
+      messageId: MSG_ID_A,
+    });
+    await expect(repo.getEnvelope(MSG_ID_B)).resolves.toMatchObject({
+      messageId: MSG_ID_B,
+    });
   });
 
   it("does not reflect post-write mutation of the input object", async () => {
@@ -347,7 +351,10 @@ describe("ValidatedApiRepository — envelope tamper detection", () => {
     await inner.insertEnvelope(makeEnvelope());
     // Directly corrupt the in-memory store to simulate storage tampering.
     const envelopeMap = (inner as any)["envelopes"] as Map<string, StoredEnvelope>;
-    envelopeMap.set(MSG_ID_A, { ...makeEnvelope(), messageId: "corrupted" as any });
+    envelopeMap.set(MSG_ID_A, {
+      ...makeEnvelope(),
+      messageId: "corrupted" as any,
+    });
 
     await expect(repo.getEnvelope(MSG_ID_A)).rejects.toBeInstanceOf(DataIntegrityError);
   });
@@ -355,7 +362,10 @@ describe("ValidatedApiRepository — envelope tamper detection", () => {
   it("throws DataIntegrityError when ciphertext contains invalid characters", async () => {
     await inner.insertEnvelope(makeEnvelope());
     const envelopeMap = (inner as any)["envelopes"] as Map<string, StoredEnvelope>;
-    envelopeMap.set(MSG_ID_A, { ...makeEnvelope(), ciphertext: "<<<INVALID>>>" });
+    envelopeMap.set(MSG_ID_A, {
+      ...makeEnvelope(),
+      ciphertext: "<<<INVALID>>>",
+    });
 
     let error: unknown;
     try {
@@ -459,10 +469,22 @@ describe("listEnvelopes — recipient-indexed pagination ordering", () => {
 
   it("paginates envelopes correctly with continuation keys", async () => {
     const envelopesData: StoredEnvelope[] = [
-      makeEnvelope({ messageId: "1".repeat(64), createdAt: "2026-01-01T00:00:00.000Z" }),
-      makeEnvelope({ messageId: "2".repeat(64), createdAt: "2026-01-02T00:00:00.000Z" }),
-      makeEnvelope({ messageId: "3".repeat(64), createdAt: "2026-01-03T00:00:00.000Z" }),
-      makeEnvelope({ messageId: "4".repeat(64), createdAt: "2026-01-04T00:00:00.000Z" }),
+      makeEnvelope({
+        messageId: "1".repeat(64),
+        createdAt: "2026-01-01T00:00:00.000Z",
+      }),
+      makeEnvelope({
+        messageId: "2".repeat(64),
+        createdAt: "2026-01-02T00:00:00.000Z",
+      }),
+      makeEnvelope({
+        messageId: "3".repeat(64),
+        createdAt: "2026-01-03T00:00:00.000Z",
+      }),
+      makeEnvelope({
+        messageId: "4".repeat(64),
+        createdAt: "2026-01-04T00:00:00.000Z",
+      }),
     ];
 
     for (const env of envelopesData) {

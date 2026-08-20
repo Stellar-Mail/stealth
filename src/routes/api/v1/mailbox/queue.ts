@@ -2,7 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { requireActor, requireActorMatches } from "@/server/api/actor";
 import { getApiContext } from "@/server/api/context";
-import { mailboxQueueQuerySchema, type MailboxDescriptor } from "@/server/api/domain";
+import { mailboxQueueQuerySchema } from "@/server/api/domain";
+import { envelopeToMailboxDescriptor } from "@/server/api/mailbox-live";
 import { encodeCursor, decodeCursor } from "@/server/api/pagination";
 import { parseSearchParams } from "@/server/api/request";
 import { apiSuccess, handleApiRequest } from "@/server/api/response";
@@ -34,18 +35,7 @@ export const Route = createFileRoute("/api/v1/mailbox/queue")({
             after: afterKey,
           });
 
-          const items: MailboxDescriptor[] = page.items.map((item) => ({
-            messageId: item.messageId,
-            senderId: item.senderId,
-            recipientId: item.recipientId,
-            status: item.status ?? "pending",
-            createdAt: item.createdAt,
-            protectedHeaders: item.protectedHeaders,
-            contentCommitment: item.contentCommitment,
-            objectRef: item.objectRef,
-            isTombstone: Boolean(item.deletedAt),
-            deletedAt: item.deletedAt ?? null,
-          }));
+          const items = page.items.map(envelopeToMailboxDescriptor);
 
           const hasMore = Boolean(page.nextContinuationKey);
           const nextCursor = page.nextContinuationKey

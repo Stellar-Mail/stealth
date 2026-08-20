@@ -7,6 +7,7 @@ import type {
 } from "./domain";
 import type { ApiRepository } from "./repository";
 import { defaultMailboxPolicy } from "./repository";
+import { ApiError } from "./errors";
 
 // ---------------------------------------------------------------------------
 // BETA-023 (Issue #1930) — privacy-safe mailbox policy defaults
@@ -74,8 +75,18 @@ export async function setMailboxPolicy(
   repository: ApiRepository,
   owner: string,
   policy: MailboxPolicy,
-  options: { requireReceipt?: boolean } = {},
+  options: { requireReceipt?: boolean; version?: number } = {},
 ) {
+  if (options.version !== undefined) {
+    const intent = await repository.getPolicyWriteIntent(owner);
+    const currentVersion = intent?.offchainVersion ?? 0;
+    if (options.version !== currentVersion) {
+      throw new ApiError(409, "conflict", "Policy has been modified since you last loaded it", {
+        details: { currentVersion, suppliedVersion: options.version },
+      });
+    }
+  }
+
   const stored = await repository.setPolicy(owner, policy);
   await schedulePolicyWrite(
     repository,
@@ -122,21 +133,57 @@ export async function evaluateMailboxPolicy(
   const rule = await repository.getSenderRule(input.owner, input.sender);
   const { policy, source } = await getMailboxPolicy(repository, input.owner);
   if (rule === "allow")
-    return { allowed: true, policy, source, reason: "sender_allowed" as const, rule };
+    return {
+      allowed: true,
+      policy,
+      source,
+      reason: "sender_allowed" as const,
+      rule,
+    };
   if (rule === "block")
-    return { allowed: false, policy, source, reason: "sender_blocked" as const, rule };
+    return {
+      allowed: false,
+      policy,
+      source,
+      reason: "sender_blocked" as const,
+      rule,
+    };
 
   if (!policy.allowUnknown) {
-    return { allowed: false, policy, source, reason: "unknown_senders_disabled" as const, rule };
+    return {
+      allowed: false,
+      policy,
+      source,
+      reason: "unknown_senders_disabled" as const,
+      rule,
+    };
   }
   if (policy.requireVerified && !input.verified) {
-    return { allowed: false, policy, source, reason: "verification_required" as const, rule };
+    return {
+      allowed: false,
+      policy,
+      source,
+      reason: "verification_required" as const,
+      rule,
+    };
   }
   if (BigInt(input.postage) < BigInt(policy.minimumPostage)) {
-    return { allowed: false, policy, source, reason: "insufficient_postage" as const, rule };
+    return {
+      allowed: false,
+      policy,
+      source,
+      reason: "insufficient_postage" as const,
+      rule,
+    };
   }
 
-  return { allowed: true, policy, source, reason: "policy_satisfied" as const, rule };
+  return {
+    allowed: true,
+    policy,
+    source,
+    reason: "policy_satisfied" as const,
+    rule,
+  };
 }
 
 // ---------------------------------------------------------------------------

@@ -117,7 +117,9 @@ describe("assertDelegationCanBeIssued (property)", () => {
         instantMsArbitrary,
         instantMsArbitrary,
         fc.array(fc.constantFrom(...ACTIONS), { maxLength: ACTIONS.length }),
-        fc.array(fc.constantFrom(...RESOURCES), { maxLength: RESOURCES.length }),
+        fc.array(fc.constantFrom(...RESOURCES), {
+          maxLength: RESOURCES.length,
+        }),
         (
           [grantor, other],
           actorIsGrantor,

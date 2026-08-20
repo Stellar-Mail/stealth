@@ -1,6 +1,31 @@
 import type { MailboxPolicy, Postage, Receipt, SenderRule } from "./domain";
 import type { AttachmentStorageService } from "@/services/storage/attachment-storage";
 
+/**
+ * Outcome of an atomic managed-wallet create.
+ *
+ * - "created": a new managed wallet record was stored for the user.
+ * - "existing": a wallet already existed; the stored record is returned unchanged.
+ */
+export type CreateManagedWalletResult =
+  | { outcome: "created"; wallet: ManagedWalletRecord }
+  | { outcome: "existing"; wallet: ManagedWalletRecord };
+
+// ---------------------------------------------------------------------------
+// Issue #1973 (BETA-066) — Live contacts repository
+// ---------------------------------------------------------------------------
+
+/**
+ * Options for listing a user's contacts. `query` filters case-insensitively
+ * against the contact name and raw address; `limit`/`after` walk the declared
+ * total order ({@link PAGINATED_QUERY_ORDERINGS}.listContacts).
+ */
+export interface ContactQueryOptions {
+  query?: string;
+  limit?: number;
+  after?: string;
+}
+
 export interface ApiRepository {
   getPolicy(owner: string): Promise<MailboxPolicy | null>;
   setPolicy(owner: string, policy: MailboxPolicy): Promise<MailboxPolicy>;
@@ -10,6 +35,11 @@ export interface ApiRepository {
   // version) for an already-scheduled policy.
   getPolicyWriteIntent(owner: string): Promise<PolicyWriteIntent | null>;
   setPolicyWriteIntent(intent: PolicyWriteIntent): Promise<PolicyWriteIntent>;
+  // BETA-043 (Issue #1950): durable anchor record for the on-chain Lifecycle
+  // contract. Read back during sync/reconciliation so a retry never re-anchors
+  // an already-confirmed commitment; writes are idempotent per messageId.
+  getLifecycleAnchor(messageId: string): Promise<LifecycleAnchor | null>;
+  setLifecycleAnchor(anchor: LifecycleAnchor): Promise<LifecycleAnchor>;
   getSenderRule(owner: string, sender: string): Promise<SenderRule>;
   setSenderRule(owner: string, sender: string, rule: SenderRule): Promise<SenderRule>;
   getPostage(messageId: string): Promise<Postage | null>;
@@ -38,6 +68,10 @@ export interface ApiRepository {
   insertPostage(postage: Postage): Promise<Postage>;
   getReceipt(messageId: string): Promise<Receipt | null>;
   setReceipt(receipt: Receipt): Promise<Receipt>;
+  getMessageDeliveryStatus(messageId: string): Promise<MessageDeliveryStatusRecord | null>;
+  setMessageDeliveryStatus(
+    record: MessageDeliveryStatusRecord,
+  ): Promise<MessageDeliveryStatusRecord>;
   createReceiptIfAbsent(receipt: Receipt): Promise<{ created: boolean; receipt: Receipt }>;
   markReceiptRead(messageId: string, actor: string, now?: Date): Promise<MarkReceiptReadResult>;
   acquireIdempotencyRecord(
@@ -45,8 +79,18 @@ export interface ApiRepository {
     requestDigest: string,
     leaseMs: number,
   ): Promise<AcquireIdempotencyResult>;
+
   getIdempotencyRecord(key: string): Promise<IdempotencyRecord | null>;
   setIdempotencyRecord(key: string, record: IdempotencyRecord): Promise<void>;
+
+  // Issue #1954 (BETA-048): Send Operation State persistence
+  getSendOperation(messageId: string): Promise<import("./domain").SendOperationState | null>;
+  setSendOperation(
+    state: import("./domain").SendOperationState,
+  ): Promise<import("./domain").SendOperationState>;
+  createSendOperationIfAbsent(
+    state: import("./domain").SendOperationState,
+  ): Promise<{ created: boolean; state: import("./domain").SendOperationState }>;
 
   getExternalWallets(owner: string): Promise<ExternalWallet[]>;
   setExternalWallet(owner: string, wallet: ExternalWallet): Promise<ExternalWallet>;
@@ -71,6 +115,63 @@ export interface ApiRepository {
   getCredential(userId: string): Promise<Credential | null>;
   setCredential(credential: Credential): Promise<Credential>;
 
+  // BETA-014: Transactional account-provisioning methods
+  getProvisioningRecord(userId: string): Promise<ProvisioningRecord | null>;
+  /**
+   * Insert-once initialization of a provisioning record. Concurrent
+   * initializations must yield exactly one `created: true`; every other call
+   * receives the authoritative existing record so no account can ever have
+   * two competing provisioning ledgers.
+   */
+  createProvisioningRecord(
+    record: ProvisioningRecord,
+  ): Promise<{ created: boolean; record: ProvisioningRecord }>;
+  /**
+   * Compare-and-swap write of the provisioning state machine. `expectedVersion`
+   * must match the persisted record's version; a stale writer receives
+   * `{ updated: false, current }` instead of silently clobbering progress.
+   * Concurrent provisioners for the same account must serialize so exactly
+   * one writer advances the record per step.
+   */
+  setProvisioningRecord(
+    record: ProvisioningRecord,
+    expectedVersion: number,
+  ): Promise<UpdateProvisioningResult>;
+  /**
+   * Atomically claims a username for `leaseMs`. Single-winner: concurrent
+   * claims for the same username must never both succeed, and a claim held
+   * by another user must never be stolen or overwritten.
+   */
+  reserveUsername(
+    username: string,
+    userId: string,
+    leaseMs: number,
+  ): Promise<UsernameReservationResult>;
+  getUsernameReservation(username: string): Promise<UsernameReservation | null>;
+  /**
+   * Releases a reservation owned by `userId` (compensation path). Returns
+   * true when a live claim was released, false when nothing was owned or
+   * the claim already expired. Idempotent: releasing twice is safe.
+   */
+  releaseUsernameReservation(username: string, userId: string): Promise<boolean>;
+  getWallet(userId: string): Promise<Wallet | null>;
+  /**
+   * Insert-once wallet creation keyed by user. Concurrent creations must
+   * yield exactly one "created" outcome; every other call receives the
+   * authoritative existing record as "already-exists".
+   */
+  createWallet(wallet: Wallet): Promise<WalletCreationResult>;
+  /**
+   * Initializes a mailbox policy only when none is stored for the owner.
+   * `created: true` when the default was written, `created: false` when a
+   * policy already exists (the existing policy is returned and never
+   * overwritten — idempotent retry).
+   */
+  initializePolicyIfAbsent(
+    owner: string,
+    policy: MailboxPolicy,
+  ): Promise<{ created: boolean; policy: MailboxPolicy }>;
+  // BETA-006 & BETA-007: Server-Side Session Domain Methods
   // BETA-006: Server-side session lifecycle methods.
   getSession(sessionId: string): Promise<Session | null>;
   createSession(session: Session): Promise<Session>;
@@ -94,6 +195,17 @@ export interface ApiRepository {
   ): Promise<IssueVerificationTokenResult>;
   consumeVerificationToken(tokenHash: string, now: Date): Promise<ConsumeVerificationTokenResult>;
   recordVerificationAttempt(tokenHash: string, now: Date): Promise<RecordVerificationAttemptResult>;
+  invalidateActiveVerificationToken(
+    userId: string,
+    purpose: VerificationPurpose,
+    now: Date,
+  ): Promise<void>;
+  // Issue #1917 (BETA-010): Recovery code set CAS storage
+  getRecoveryCodeSet(userId: string): Promise<RecoveryCodeSet | null>;
+  setRecoveryCodeSet(
+    set: RecoveryCodeSet,
+    expectedVersion: number,
+  ): Promise<UpdateRecoveryCodeSetResult>;
 
   getAttachmentStorage(): AttachmentStorageService;
   getRelayQueueDepth(relayId: string): Promise<number>;
@@ -132,6 +244,15 @@ export interface ApiRepository {
    * Plaintext MUST NOT be passed to this method; ciphertext only.
    */
   insertEnvelope(envelope: StoredEnvelope): Promise<InsertEnvelopeResult>;
+  getSenderRequest(requestId: string): Promise<UnknownSenderRequest | null>;
+  listSenderRequests(recipient: string, status?: "pending"): Promise<UnknownSenderRequest[]>;
+  createSenderRequestIfAbsent(request: UnknownSenderRequest): Promise<CreateSenderRequestResult>;
+  transitionSenderRequest(
+    requestId: string,
+    recipient: string,
+    decision: UnknownSenderDecision,
+    now?: Date,
+  ): Promise<SenderRequestTransitionResult>;
 
   // ---------------------------------------------------------------------------
   // Issue #1940 (BETA-033) — Authenticated Recipient Mailbox Queue Repository
@@ -145,6 +266,11 @@ export interface ApiRepository {
     messageId: string,
     status: import("./domain").MailboxItemStatus,
   ): Promise<StoredEnvelope>;
+  patchMailboxFlags(
+    messageId: string,
+    recipient: string,
+    patch: MailboxFlagsPatch,
+  ): Promise<StoredEnvelope>;
 
   // ---------------------------------------------------------------------------
   // Issue #1934 (BETA-027) — Versioned Public Encryption-Key Directory & Rotation
@@ -153,6 +279,63 @@ export interface ApiRepository {
   getPublishedKey(owner: string, keyId: string): Promise<PublishedKey | null>;
   savePublishedKey(owner: string, key: PublishedKey): Promise<PublishedKey>;
   saveKeyDirectory(record: KeyDirectoryRecord): Promise<KeyDirectoryRecord>;
+
+  // BETA-015 (Issue #1922): managed Stellar testnet wallet persistence.
+  getManagedWallet(userId: string): Promise<ManagedWalletRecord | null>;
+  setManagedWallet(wallet: ManagedWalletRecord): Promise<ManagedWalletRecord>;
+  createManagedWalletIfAbsent(wallet: ManagedWalletRecord): Promise<CreateManagedWalletResult>;
+
+  // BETA-018 (Issue #1925): durable testnet funding operations.
+  getFundingOperation(operationId: string): Promise<FundingOperation | null>;
+  setFundingOperation(operation: FundingOperation): Promise<FundingOperation>;
+  createFundingOperationIfAbsent(
+    operation: FundingOperation,
+  ): Promise<{ created: boolean; operation: FundingOperation }>;
+  listFundingOperations(filter?: {
+    status?: FundingOperation["status"];
+    limit?: number;
+  }): Promise<FundingOperation[]>;
+
+  // ---------------------------------------------------------------------------
+  // Issue #1973 (BETA-066) — Live contacts CRUD
+  // ---------------------------------------------------------------------------
+  listContacts(owner: string, options?: ContactQueryOptions): Promise<Page<Contact>>;
+  getContact(owner: string, contactId: string): Promise<Contact | null>;
+  /**
+   * Insert-once contact creation keyed by contactId (scoped to `owner`).
+   * A duplicate contactId for the same owner must reject with a deterministic
+   * conflict (ApiError 409 "conflict") so imports can never create ambiguous
+   * address-book state.
+   */
+  createContact(contact: Contact): Promise<Contact>;
+  updateContact(contact: Contact, expectedVersion: number): Promise<UpdateContactResult>;
+  deleteContact(owner: string, contactId: string): Promise<void>;
+
+  // ---------------------------------------------------------------------------
+  // Issue #1952 (BETA-045) — Durable jobs, retries, DLQ, and receipt indexing
+  // ---------------------------------------------------------------------------
+  enqueueJob(job: DurableJob): Promise<{ enqueued: boolean; job: DurableJob }>;
+  getJob(jobId: string): Promise<DurableJob | null>;
+  getJobByIdempotencyKey(key: string): Promise<DurableJob | null>;
+  updateJob(job: DurableJob): Promise<DurableJob>;
+  claimNextPendingJob(types?: DurableJobType[], now?: Date): Promise<DurableJob | null>;
+  listJobs(filter?: {
+    type?: DurableJobType;
+    status?: JobStatus;
+    limit?: number;
+  }): Promise<DurableJob[]>;
+
+  createDeadLetter(deadLetter: DeadLetter): Promise<DeadLetter>;
+  getDeadLetter(deadLetterId: string): Promise<DeadLetter | null>;
+  listDeadLetters(filter?: {
+    jobType?: DurableJobType;
+    status?: DeadLetterStatus;
+    limit?: number;
+  }): Promise<DeadLetter[]>;
+  updateDeadLetter(deadLetter: DeadLetter): Promise<DeadLetter>;
+
+  getReceiptCheckpoint(streamId: string): Promise<ReceiptCheckpoint | null>;
+  setReceiptCheckpoint(checkpoint: ReceiptCheckpoint): Promise<ReceiptCheckpoint>;
 
   reset?(): void;
 }
@@ -269,6 +452,16 @@ export class ValidatedApiRepository implements ApiRepository {
     return this.inner.setPolicyWriteIntent(versionRecord("policyWriteIntent", intent));
   }
 
+  async getLifecycleAnchor(messageId: string): Promise<LifecycleAnchor | null> {
+    const raw = await this.inner.getLifecycleAnchor(messageId);
+    return raw ? validateRecord<LifecycleAnchor>("lifecycleAnchor", raw) : null;
+  }
+
+  async setLifecycleAnchor(anchor: LifecycleAnchor): Promise<LifecycleAnchor> {
+    const result = await this.inner.setLifecycleAnchor(versionRecord("lifecycleAnchor", anchor));
+    return validateRecord<LifecycleAnchor>("lifecycleAnchor", result);
+  }
+
   async getSenderRule(owner: string, sender: string): Promise<SenderRule> {
     const raw = await this.inner.getSenderRule(owner, sender);
     return validateRecord<SenderRule>("senderRule", raw);
@@ -313,6 +506,22 @@ export class ValidatedApiRepository implements ApiRepository {
   async setReceipt(receipt: Receipt): Promise<Receipt> {
     const result = await this.inner.setReceipt(versionRecord("receipt", receipt));
     return validateRecord<Receipt>("receipt", result);
+  }
+
+  async getMessageDeliveryStatus(messageId: string): Promise<MessageDeliveryStatusRecord | null> {
+    const raw = await this.inner.getMessageDeliveryStatus(messageId);
+    return raw
+      ? validateRecord<MessageDeliveryStatusRecord>("messageDeliveryStatusRecord", raw)
+      : null;
+  }
+
+  async setMessageDeliveryStatus(
+    record: MessageDeliveryStatusRecord,
+  ): Promise<MessageDeliveryStatusRecord> {
+    const result = await this.inner.setMessageDeliveryStatus(
+      versionRecord("messageDeliveryStatusRecord", record),
+    );
+    return validateRecord<MessageDeliveryStatusRecord>("messageDeliveryStatusRecord", result);
   }
 
   async createReceiptIfAbsent(receipt: Receipt): Promise<{ created: boolean; receipt: Receipt }> {
@@ -361,6 +570,35 @@ export class ValidatedApiRepository implements ApiRepository {
 
   setIdempotencyRecord(key: string, record: IdempotencyRecord): Promise<void> {
     return this.inner.setIdempotencyRecord(key, versionRecord("idempotencyRecord", record));
+  }
+
+  async getSendOperation(messageId: string): Promise<import("./domain").SendOperationState | null> {
+    const raw = await this.inner.getSendOperation(messageId);
+    return raw
+      ? validateRecord<import("./domain").SendOperationState>("sendOperationState", raw)
+      : null;
+  }
+
+  async setSendOperation(
+    state: import("./domain").SendOperationState,
+  ): Promise<import("./domain").SendOperationState> {
+    const result = await this.inner.setSendOperation(versionRecord("sendOperationState", state));
+    return validateRecord<import("./domain").SendOperationState>("sendOperationState", result);
+  }
+
+  async createSendOperationIfAbsent(
+    state: import("./domain").SendOperationState,
+  ): Promise<{ created: boolean; state: import("./domain").SendOperationState }> {
+    const result = await this.inner.createSendOperationIfAbsent(
+      versionRecord("sendOperationState", state),
+    );
+    if (result.created) {
+      result.state = validateRecord<import("./domain").SendOperationState>(
+        "sendOperationState",
+        result.state,
+      );
+    }
+    return result;
   }
 
   async getUserById(userId: string): Promise<User | null> {
@@ -420,6 +658,83 @@ export class ValidatedApiRepository implements ApiRepository {
   async setCredential(credential: Credential): Promise<Credential> {
     const result = await this.inner.setCredential(versionRecord("credential", credential));
     return validateRecord<Credential>("credential", result);
+  }
+
+  async getProvisioningRecord(userId: string): Promise<ProvisioningRecord | null> {
+    const raw = await this.inner.getProvisioningRecord(userId);
+    return raw ? validateRecord<ProvisioningRecord>("provisioning", raw) : null;
+  }
+
+  async createProvisioningRecord(
+    record: ProvisioningRecord,
+  ): Promise<{ created: boolean; record: ProvisioningRecord }> {
+    const result = await this.inner.createProvisioningRecord(versionRecord("provisioning", record));
+    result.record = validateRecord<ProvisioningRecord>("provisioning", result.record);
+    return result;
+  }
+
+  async setProvisioningRecord(
+    record: ProvisioningRecord,
+    expectedVersion: number,
+  ): Promise<UpdateProvisioningResult> {
+    const result = await this.inner.setProvisioningRecord(
+      versionRecord("provisioning", record),
+      expectedVersion,
+    );
+    if (result.updated) {
+      result.record = validateRecord<ProvisioningRecord>("provisioning", result.record);
+    } else if (result.current) {
+      result.current = validateRecord<ProvisioningRecord>("provisioning", result.current);
+    }
+    return result;
+  }
+
+  async reserveUsername(
+    username: string,
+    userId: string,
+    leaseMs: number,
+  ): Promise<UsernameReservationResult> {
+    const result = await this.inner.reserveUsername(username, userId, leaseMs);
+    if (result.outcome === "reserved" || result.outcome === "already-reserved") {
+      result.reservation = validateRecord<UsernameReservation>(
+        "usernameReservation",
+        result.reservation,
+      );
+    }
+    return result;
+  }
+
+  async getUsernameReservation(username: string): Promise<UsernameReservation | null> {
+    const raw = await this.inner.getUsernameReservation(username);
+    return raw ? validateRecord<UsernameReservation>("usernameReservation", raw) : null;
+  }
+
+  async releaseUsernameReservation(username: string, userId: string): Promise<boolean> {
+    return this.inner.releaseUsernameReservation(username, userId);
+  }
+
+  async getWallet(userId: string): Promise<Wallet | null> {
+    const raw = await this.inner.getWallet(userId);
+    return raw ? validateRecord<Wallet>("wallet", raw) : null;
+  }
+
+  async createWallet(wallet: Wallet): Promise<WalletCreationResult> {
+    const result = await this.inner.createWallet(versionRecord("wallet", wallet));
+    if (result.outcome === "created" || result.outcome === "already-exists") {
+      result.wallet = validateRecord<Wallet>("wallet", result.wallet);
+    }
+    return result;
+  }
+
+  async initializePolicyIfAbsent(
+    owner: string,
+    policy: MailboxPolicy,
+  ): Promise<{ created: boolean; policy: MailboxPolicy }> {
+    const result = await this.inner.initializePolicyIfAbsent(owner, policy);
+    if (result.created) {
+      result.policy = validateRecord<MailboxPolicy>("mailboxPolicy", result.policy);
+    }
+    return result;
   }
 
   async getSession(sessionId: string): Promise<Session | null> {
@@ -512,6 +827,35 @@ export class ValidatedApiRepository implements ApiRepository {
     return result;
   }
 
+  async getRecoveryCodeSet(userId: string): Promise<RecoveryCodeSet | null> {
+    const raw = await this.inner.getRecoveryCodeSet(userId);
+    return raw ? validateRecord<RecoveryCodeSet>("recoveryCodeSet", raw) : null;
+  }
+
+  async setRecoveryCodeSet(
+    set: RecoveryCodeSet,
+    expectedVersion: number,
+  ): Promise<UpdateRecoveryCodeSetResult> {
+    const result = await this.inner.setRecoveryCodeSet(
+      versionRecord("recoveryCodeSet", set),
+      expectedVersion,
+    );
+    if (result.updated) {
+      result.set = validateRecord<RecoveryCodeSet>("recoveryCodeSet", result.set);
+    } else if (result.current) {
+      result.current = validateRecord<RecoveryCodeSet>("recoveryCodeSet", result.current);
+    }
+    return result;
+  }
+
+  async invalidateActiveVerificationToken(
+    userId: string,
+    purpose: VerificationPurpose,
+    now: Date,
+  ): Promise<void> {
+    return this.inner.invalidateActiveVerificationToken(userId, purpose, now);
+  }
+
   getRelayQueueDepth(relayId: string): Promise<number> {
     return this.inner.getRelayQueueDepth(relayId);
   }
@@ -554,6 +898,23 @@ export class ValidatedApiRepository implements ApiRepository {
     }
     return result;
   }
+  getSenderRequest(requestId: string) {
+    return this.inner.getSenderRequest(requestId);
+  }
+  listSenderRequests(recipient: string, status?: "pending") {
+    return this.inner.listSenderRequests(recipient, status);
+  }
+  createSenderRequestIfAbsent(request: UnknownSenderRequest) {
+    return this.inner.createSenderRequestIfAbsent(request);
+  }
+  transitionSenderRequest(
+    requestId: string,
+    recipient: string,
+    decision: UnknownSenderDecision,
+    now?: Date,
+  ) {
+    return this.inner.transitionSenderRequest(requestId, recipient, decision, now);
+  }
 
   async listRecipientEnvelopes(
     recipient: string,
@@ -576,6 +937,15 @@ export class ValidatedApiRepository implements ApiRepository {
     status: import("./domain").MailboxItemStatus,
   ): Promise<StoredEnvelope> {
     const result = await this.inner.updateEnvelopeStatus(messageId, status);
+    return validateRecord<StoredEnvelope>("storedEnvelope", result);
+  }
+
+  async patchMailboxFlags(
+    messageId: string,
+    recipient: string,
+    patch: MailboxFlagsPatch,
+  ): Promise<StoredEnvelope> {
+    const result = await this.inner.patchMailboxFlags(messageId, recipient, patch);
     return validateRecord<StoredEnvelope>("storedEnvelope", result);
   }
 
@@ -631,6 +1001,151 @@ export class ValidatedApiRepository implements ApiRepository {
     return validateRecord<KeyDirectoryRecord>("keyDirectoryRecord", result);
   }
 
+  async getManagedWallet(userId: string): Promise<ManagedWalletRecord | null> {
+    const raw = await this.inner.getManagedWallet(userId);
+    return raw ? validateRecord<ManagedWalletRecord>("managedWalletRecord", raw) : null;
+  }
+
+  async setManagedWallet(wallet: ManagedWalletRecord): Promise<ManagedWalletRecord> {
+    const result = await this.inner.setManagedWallet(versionRecord("managedWalletRecord", wallet));
+    return validateRecord<ManagedWalletRecord>("managedWalletRecord", result);
+  }
+
+  async createManagedWalletIfAbsent(
+    wallet: ManagedWalletRecord,
+  ): Promise<CreateManagedWalletResult> {
+    const result = await this.inner.createManagedWalletIfAbsent(
+      versionRecord("managedWalletRecord", wallet),
+    );
+    result.wallet = validateRecord<ManagedWalletRecord>("managedWalletRecord", result.wallet);
+    return result;
+  }
+
+  async getFundingOperation(operationId: string): Promise<FundingOperation | null> {
+    const raw = await this.inner.getFundingOperation(operationId);
+    return raw ? validateRecord<FundingOperation>("fundingOperation", raw) : null;
+  }
+
+  async setFundingOperation(operation: FundingOperation): Promise<FundingOperation> {
+    const result = await this.inner.setFundingOperation(
+      versionRecord("fundingOperation", operation),
+    );
+    return validateRecord<FundingOperation>("fundingOperation", result);
+  }
+
+  async createFundingOperationIfAbsent(
+    operation: FundingOperation,
+  ): Promise<{ created: boolean; operation: FundingOperation }> {
+    const result = await this.inner.createFundingOperationIfAbsent(
+      versionRecord("fundingOperation", operation),
+    );
+    result.operation = validateRecord<FundingOperation>("fundingOperation", result.operation);
+    return result;
+  }
+
+  async listFundingOperations(filter?: {
+    status?: FundingOperation["status"];
+    limit?: number;
+  }): Promise<FundingOperation[]> {
+    const operations = await this.inner.listFundingOperations(filter);
+    return operations.map((item) => validateRecord<FundingOperation>("fundingOperation", item));
+  }
+
+  async listContacts(owner: string, options?: ContactQueryOptions): Promise<Page<Contact>> {
+    const page = await this.inner.listContacts(owner, options);
+    return {
+      ...page,
+      items: page.items.map((item) => validateRecord<Contact>("contact", item)),
+    };
+  }
+
+  async getContact(owner: string, contactId: string): Promise<Contact | null> {
+    const raw = await this.inner.getContact(owner, contactId);
+    return raw ? validateRecord<Contact>("contact", raw) : null;
+  }
+
+  async createContact(contact: Contact): Promise<Contact> {
+    const result = await this.inner.createContact(versionRecord("contact", contact));
+    return validateRecord<Contact>("contact", result);
+  }
+
+  async updateContact(contact: Contact, expectedVersion: number): Promise<UpdateContactResult> {
+    const result = await this.inner.updateContact(
+      versionRecord("contact", contact),
+      expectedVersion,
+    );
+    if (result.updated) {
+      return { updated: true, contact: validateRecord<Contact>("contact", result.contact) };
+    }
+    return {
+      updated: false,
+      current: result.current ? validateRecord<Contact>("contact", result.current) : null,
+    };
+  }
+
+  async deleteContact(owner: string, contactId: string): Promise<void> {
+    return this.inner.deleteContact(owner, contactId);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Issue #1952 (BETA-045) — Durable jobs, retries, DLQ, and receipt indexing
+  // ---------------------------------------------------------------------------
+  enqueueJob(job: DurableJob): Promise<{ enqueued: boolean; job: DurableJob }> {
+    return this.inner.enqueueJob(job);
+  }
+
+  getJob(jobId: string): Promise<DurableJob | null> {
+    return this.inner.getJob(jobId);
+  }
+
+  getJobByIdempotencyKey(key: string): Promise<DurableJob | null> {
+    return this.inner.getJobByIdempotencyKey(key);
+  }
+
+  updateJob(job: DurableJob): Promise<DurableJob> {
+    return this.inner.updateJob(job);
+  }
+
+  claimNextPendingJob(types?: DurableJobType[], now?: Date): Promise<DurableJob | null> {
+    return this.inner.claimNextPendingJob(types, now);
+  }
+
+  listJobs(filter?: {
+    type?: DurableJobType;
+    status?: JobStatus;
+    limit?: number;
+  }): Promise<DurableJob[]> {
+    return this.inner.listJobs(filter);
+  }
+
+  createDeadLetter(deadLetter: DeadLetter): Promise<DeadLetter> {
+    return this.inner.createDeadLetter(deadLetter);
+  }
+
+  getDeadLetter(deadLetterId: string): Promise<DeadLetter | null> {
+    return this.inner.getDeadLetter(deadLetterId);
+  }
+
+  listDeadLetters(filter?: {
+    jobType?: DurableJobType;
+    status?: DeadLetterStatus;
+    limit?: number;
+  }): Promise<DeadLetter[]> {
+    return this.inner.listDeadLetters(filter);
+  }
+
+  updateDeadLetter(deadLetter: DeadLetter): Promise<DeadLetter> {
+    return this.inner.updateDeadLetter(deadLetter);
+  }
+
+  getReceiptCheckpoint(streamId: string): Promise<ReceiptCheckpoint | null> {
+    return this.inner.getReceiptCheckpoint(streamId);
+  }
+
+  setReceiptCheckpoint(checkpoint: ReceiptCheckpoint): Promise<ReceiptCheckpoint> {
+    return this.inner.setReceiptCheckpoint(checkpoint);
+  }
+
   reset(): void {
     this.inner.reset?.();
   }
@@ -653,6 +1168,7 @@ export const DEFAULT_RETRY_POLICY: RetryPolicy = {
 const RETRY_SAFE_OPERATIONS = new Set<string>([
   "getPolicy",
   "getPolicyWriteIntent",
+  "getLifecycleAnchor",
   "getSenderRule",
   "getPostage",
   "getReceipt",
@@ -665,6 +1181,7 @@ const RETRY_SAFE_OPERATIONS = new Set<string>([
   "getCounter",
   "setPolicy",
   "setPolicyWriteIntent",
+  "setLifecycleAnchor",
   "setSenderRule",
   "setPostage",
   "setReceipt",
@@ -684,11 +1201,37 @@ const RETRY_SAFE_OPERATIONS = new Set<string>([
   "updateSession",
   "getRetiredSession",
   "getEnvelope",
+  "getProvisioningRecord",
+  "getUsernameReservation",
+  "getWallet",
+  "releaseUsernameReservation",
+  "initializePolicyIfAbsent",
+  "getActiveVerificationToken",
+  "invalidateActiveVerificationToken",
   "listRecipientEnvelopes",
   "getExternalWallets",
   "findExternalWalletOwner",
   "getVerificationToken",
   "getWalletChallenge",
+  "getManagedWallet",
+  "setManagedWallet",
+  "getFundingOperation",
+  "setFundingOperation",
+  "listFundingOperations",
+  "listContacts",
+  "getContact",
+  "getJob",
+  "getJobByIdempotencyKey",
+  "listJobs",
+  "getDeadLetter",
+  "listDeadLetters",
+  "updateDeadLetter",
+  "getReceiptCheckpoint",
+  "setReceiptCheckpoint",
+  "getSendOperation",
+  "setSendOperation",
+  "createSendOperationIfAbsent",
+  "getRecoveryCodeSet",
 ]);
 
 function isRetryableError(error: unknown): boolean {
@@ -761,6 +1304,14 @@ export class RetryableApiRepository implements ApiRepository {
     return this.withRetry("setPolicyWriteIntent", () => this.inner.setPolicyWriteIntent(intent));
   }
 
+  getLifecycleAnchor(messageId: string): Promise<LifecycleAnchor | null> {
+    return this.withRetry("getLifecycleAnchor", () => this.inner.getLifecycleAnchor(messageId));
+  }
+
+  setLifecycleAnchor(anchor: LifecycleAnchor): Promise<LifecycleAnchor> {
+    return this.withRetry("setLifecycleAnchor", () => this.inner.setLifecycleAnchor(anchor));
+  }
+
   getSenderRule(owner: string, sender: string): Promise<SenderRule> {
     return this.withRetry("getSenderRule", () => this.inner.getSenderRule(owner, sender));
   }
@@ -797,6 +1348,20 @@ export class RetryableApiRepository implements ApiRepository {
 
   setReceipt(receipt: Receipt): Promise<Receipt> {
     return this.withRetry("setReceipt", () => this.inner.setReceipt(receipt));
+  }
+
+  getMessageDeliveryStatus(messageId: string): Promise<MessageDeliveryStatusRecord | null> {
+    return this.withRetry("getMessageDeliveryStatus", () =>
+      this.inner.getMessageDeliveryStatus(messageId),
+    );
+  }
+
+  setMessageDeliveryStatus(
+    record: MessageDeliveryStatusRecord,
+  ): Promise<MessageDeliveryStatusRecord> {
+    return this.withRetry("setMessageDeliveryStatus", () =>
+      this.inner.setMessageDeliveryStatus(record),
+    );
   }
 
   createReceiptIfAbsent(receipt: Receipt): Promise<{ created: boolean; receipt: Receipt }> {
@@ -867,6 +1432,65 @@ export class RetryableApiRepository implements ApiRepository {
     return this.withRetry("setCredential", () => this.inner.setCredential(credential));
   }
 
+  // BETA-014: retry-safe reads + idempotent compensation are retried; the
+  // single-winner writes (reserve, createWallet, setProvisioningRecord) never
+  // are, so a half-applied claim can never be double-applied by this wrapper.
+  getProvisioningRecord(userId: string): Promise<ProvisioningRecord | null> {
+    return this.withRetry("getProvisioningRecord", () => this.inner.getProvisioningRecord(userId));
+  }
+
+  createProvisioningRecord(
+    record: ProvisioningRecord,
+  ): Promise<{ created: boolean; record: ProvisioningRecord }> {
+    // Never retry: an insert-once initialization must not be re-applied after
+    // a client-side timeout (the stored record would be authoritative).
+    return this.inner.createProvisioningRecord(record);
+  }
+
+  setProvisioningRecord(
+    record: ProvisioningRecord,
+    expectedVersion: number,
+  ): Promise<UpdateProvisioningResult> {
+    return this.inner.setProvisioningRecord(record, expectedVersion);
+  }
+
+  reserveUsername(
+    username: string,
+    userId: string,
+    leaseMs: number,
+  ): Promise<UsernameReservationResult> {
+    return this.inner.reserveUsername(username, userId, leaseMs);
+  }
+
+  getUsernameReservation(username: string): Promise<UsernameReservation | null> {
+    return this.withRetry("getUsernameReservation", () =>
+      this.inner.getUsernameReservation(username),
+    );
+  }
+
+  releaseUsernameReservation(username: string, userId: string): Promise<boolean> {
+    return this.withRetry("releaseUsernameReservation", () =>
+      this.inner.releaseUsernameReservation(username, userId),
+    );
+  }
+
+  getWallet(userId: string): Promise<Wallet | null> {
+    return this.withRetry("getWallet", () => this.inner.getWallet(userId));
+  }
+
+  createWallet(wallet: Wallet): Promise<WalletCreationResult> {
+    return this.inner.createWallet(wallet);
+  }
+
+  initializePolicyIfAbsent(
+    owner: string,
+    policy: MailboxPolicy,
+  ): Promise<{ created: boolean; policy: MailboxPolicy }> {
+    return this.withRetry("initializePolicyIfAbsent", () =>
+      this.inner.initializePolicyIfAbsent(owner, policy),
+    );
+  }
+
   getSession(sessionId: string): Promise<Session | null> {
     return this.withRetry("getSession", () => this.inner.getSession(sessionId));
   }
@@ -926,6 +1550,16 @@ export class RetryableApiRepository implements ApiRepository {
     return this.inner.recordVerificationAttempt(tokenHash, now);
   }
 
+  invalidateActiveVerificationToken(
+    userId: string,
+    purpose: VerificationPurpose,
+    now: Date,
+  ): Promise<void> {
+    return this.withRetry("invalidateActiveVerificationToken", () =>
+      this.inner.invalidateActiveVerificationToken(userId, purpose, now),
+    );
+  }
+
   getRelayQueueDepth(relayId: string): Promise<number> {
     return this.withRetry("getRelayQueueDepth", () => this.inner.getRelayQueueDepth(relayId));
   }
@@ -965,12 +1599,47 @@ export class RetryableApiRepository implements ApiRepository {
     return this.withRetry("getEnvelope", () => this.inner.getEnvelope(messageId));
   }
 
+  getRecoveryCodeSet(userId: string): Promise<RecoveryCodeSet | null> {
+    // Read-only: a stale read is harmless (and eventually consistent), so
+    // transient failures are retried.
+    return this.withRetry("getRecoveryCodeSet", () => this.inner.getRecoveryCodeSet(userId));
+  }
+
+  setRecoveryCodeSet(
+    set: RecoveryCodeSet,
+    expectedVersion: number,
+  ): Promise<UpdateRecoveryCodeSetResult> {
+    // Never retried automatically: the CAS version is authoritative, and a
+    // transparent retry could double-bump the version or mask a legitimate
+    // conflict. The caller owns the read-check-write cycle (issue #1917).
+    return this.inner.setRecoveryCodeSet(set, expectedVersion);
+  }
+
   insertEnvelope(envelope: StoredEnvelope): Promise<InsertEnvelopeResult> {
     // Never retry: a partial insert could succeed server-side but time out
     // client-side. On retry, the stored record would be the authoritative one
     // and the outcome would be "duplicate" (byte-equal) or "conflict" (different
     // bytes). Callers should handle those outcomes explicitly.
     return this.inner.insertEnvelope(envelope);
+  }
+  getSenderRequest(requestId: string) {
+    return this.withRetry("getSenderRequest", () => this.inner.getSenderRequest(requestId));
+  }
+  listSenderRequests(recipient: string, status?: "pending") {
+    return this.withRetry("listSenderRequests", () =>
+      this.inner.listSenderRequests(recipient, status),
+    );
+  }
+  createSenderRequestIfAbsent(request: UnknownSenderRequest) {
+    return this.inner.createSenderRequestIfAbsent(request);
+  }
+  transitionSenderRequest(
+    requestId: string,
+    recipient: string,
+    decision: UnknownSenderDecision,
+    now?: Date,
+  ) {
+    return this.inner.transitionSenderRequest(requestId, recipient, decision, now);
   }
 
   listRecipientEnvelopes(
@@ -991,6 +1660,14 @@ export class RetryableApiRepository implements ApiRepository {
     status: import("./domain").MailboxItemStatus,
   ): Promise<StoredEnvelope> {
     return this.inner.updateEnvelopeStatus(messageId, status);
+  }
+
+  patchMailboxFlags(
+    messageId: string,
+    recipient: string,
+    patch: MailboxFlagsPatch,
+  ): Promise<StoredEnvelope> {
+    return this.inner.patchMailboxFlags(messageId, recipient, patch);
   }
 
   getExternalWallets(owner: string): Promise<ExternalWallet[]> {
@@ -1043,6 +1720,140 @@ export class RetryableApiRepository implements ApiRepository {
 
   saveKeyDirectory(record: KeyDirectoryRecord): Promise<KeyDirectoryRecord> {
     return this.withRetry("saveKeyDirectory", () => this.inner.saveKeyDirectory(record));
+  }
+
+  getManagedWallet(userId: string): Promise<ManagedWalletRecord | null> {
+    return this.withRetry("getManagedWallet", () => this.inner.getManagedWallet(userId));
+  }
+
+  setManagedWallet(wallet: ManagedWalletRecord): Promise<ManagedWalletRecord> {
+    return this.withRetry("setManagedWallet", () => this.inner.setManagedWallet(wallet));
+  }
+
+  createManagedWalletIfAbsent(wallet: ManagedWalletRecord): Promise<CreateManagedWalletResult> {
+    return this.inner.createManagedWalletIfAbsent(wallet);
+  }
+
+  getFundingOperation(operationId: string): Promise<FundingOperation | null> {
+    return this.withRetry("getFundingOperation", () => this.inner.getFundingOperation(operationId));
+  }
+
+  setFundingOperation(operation: FundingOperation): Promise<FundingOperation> {
+    return this.withRetry("setFundingOperation", () => this.inner.setFundingOperation(operation));
+  }
+
+  createFundingOperationIfAbsent(
+    operation: FundingOperation,
+  ): Promise<{ created: boolean; operation: FundingOperation }> {
+    return this.inner.createFundingOperationIfAbsent(operation);
+  }
+
+  listFundingOperations(filter?: {
+    status?: FundingOperation["status"];
+    limit?: number;
+  }): Promise<FundingOperation[]> {
+    return this.withRetry("listFundingOperations", () => this.inner.listFundingOperations(filter));
+  }
+
+  listContacts(owner: string, options?: ContactQueryOptions): Promise<Page<Contact>> {
+    return this.withRetry("listContacts", () => this.inner.listContacts(owner, options));
+  }
+
+  getContact(owner: string, contactId: string): Promise<Contact | null> {
+    return this.withRetry("getContact", () => this.inner.getContact(owner, contactId));
+  }
+
+  createContact(contact: Contact): Promise<Contact> {
+    return this.inner.createContact(contact);
+  }
+
+  updateContact(contact: Contact, expectedVersion: number): Promise<UpdateContactResult> {
+    return this.withRetry("updateContact", () =>
+      this.inner.updateContact(contact, expectedVersion),
+    );
+  }
+
+  deleteContact(owner: string, contactId: string): Promise<void> {
+    return this.withRetry("deleteContact", () => this.inner.deleteContact(owner, contactId));
+  }
+
+  // ---------------------------------------------------------------------------
+  // Issue #1952 (BETA-045) — Durable jobs, retries, DLQ, and receipt indexing
+  // ---------------------------------------------------------------------------
+  enqueueJob(job: DurableJob): Promise<{ enqueued: boolean; job: DurableJob }> {
+    return this.inner.enqueueJob(job);
+  }
+
+  getJob(jobId: string): Promise<DurableJob | null> {
+    return this.withRetry("getJob", () => this.inner.getJob(jobId));
+  }
+
+  getJobByIdempotencyKey(key: string): Promise<DurableJob | null> {
+    return this.withRetry("getJobByIdempotencyKey", () => this.inner.getJobByIdempotencyKey(key));
+  }
+
+  updateJob(job: DurableJob): Promise<DurableJob> {
+    return this.inner.updateJob(job);
+  }
+
+  claimNextPendingJob(types?: DurableJobType[], now?: Date): Promise<DurableJob | null> {
+    return this.inner.claimNextPendingJob(types, now);
+  }
+
+  listJobs(filter?: {
+    type?: DurableJobType;
+    status?: JobStatus;
+    limit?: number;
+  }): Promise<DurableJob[]> {
+    return this.withRetry("listJobs", () => this.inner.listJobs(filter));
+  }
+
+  createDeadLetter(deadLetter: DeadLetter): Promise<DeadLetter> {
+    return this.inner.createDeadLetter(deadLetter);
+  }
+
+  getDeadLetter(deadLetterId: string): Promise<DeadLetter | null> {
+    return this.withRetry("getDeadLetter", () => this.inner.getDeadLetter(deadLetterId));
+  }
+
+  listDeadLetters(filter?: {
+    jobType?: DurableJobType;
+    status?: DeadLetterStatus;
+    limit?: number;
+  }): Promise<DeadLetter[]> {
+    return this.withRetry("listDeadLetters", () => this.inner.listDeadLetters(filter));
+  }
+
+  updateDeadLetter(deadLetter: DeadLetter): Promise<DeadLetter> {
+    return this.withRetry("updateDeadLetter", () => this.inner.updateDeadLetter(deadLetter));
+  }
+
+  getReceiptCheckpoint(streamId: string): Promise<ReceiptCheckpoint | null> {
+    return this.withRetry("getReceiptCheckpoint", () => this.inner.getReceiptCheckpoint(streamId));
+  }
+
+  setReceiptCheckpoint(checkpoint: ReceiptCheckpoint): Promise<ReceiptCheckpoint> {
+    return this.withRetry("setReceiptCheckpoint", () =>
+      this.inner.setReceiptCheckpoint(checkpoint),
+    );
+  }
+
+  getSendOperation(messageId: string): Promise<import("./domain").SendOperationState | null> {
+    return this.withRetry("getSendOperation", () => this.inner.getSendOperation(messageId));
+  }
+
+  setSendOperation(
+    state: import("./domain").SendOperationState,
+  ): Promise<import("./domain").SendOperationState> {
+    return this.withRetry("setSendOperation", () => this.inner.setSendOperation(state));
+  }
+
+  createSendOperationIfAbsent(
+    state: import("./domain").SendOperationState,
+  ): Promise<{ created: boolean; state: import("./domain").SendOperationState }> {
+    return this.withRetry("createSendOperationIfAbsent", () =>
+      this.inner.createSendOperationIfAbsent(state),
+    );
   }
 
   reset(): void {
@@ -1282,6 +2093,13 @@ export const PAGINATED_QUERY_ORDERINGS = {
     [{ field: "createdAt", direction: "desc" }],
     "messageId",
   ),
+  /**
+   * Issue #1973 (BETA-066): Owner-scoped contact listing.
+   * Ordered by creation time descending (newest first); contactId is the
+   * unique tie-breaker so the walk is stable. Callers filter by owner and the
+   * optional search query before passing the collection to `paginate`.
+   */
+  listContacts: declareOrdering<Contact>([{ field: "createdAt", direction: "desc" }], "contactId"),
 } as const;
 
 export type PaginatedQueryName = keyof typeof PAGINATED_QUERY_ORDERINGS;

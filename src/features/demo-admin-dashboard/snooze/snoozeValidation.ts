@@ -47,7 +47,11 @@ export function formatRemindAt(remindAt: Date, now: Date = getDemoNow()): string
 /** Build reminder metadata from a preset id. */
 export function metadataFromPreset(id: SnoozePresetId, now: Date = getDemoNow()): SnoozeMetadata {
   const remindAt = resolvePreset(id, now);
-  return { remindAt: toLocalStamp(remindAt), choice: id, label: getSnoozePreset(id).label };
+  return {
+    remindAt: toLocalStamp(remindAt),
+    choice: id,
+    label: getSnoozePreset(id).label,
+  };
 }
 
 /** Build reminder metadata from a validated custom date. */

@@ -4,6 +4,7 @@ import {
   IdentityResolverService,
   LOCAL_STEALTH_DOMAINS,
 } from "@/features/identity/resolver";
+import { fetchKeyDirectory } from "./recipientKeyResolution";
 
 export type RecipientResolutionContext = {
   /** Resolve a contact by name or address */
@@ -49,7 +50,15 @@ export async function resolveRecipient(
   address: string,
   blockedRecipients: Set<string>,
   context?: RecipientResolutionContext,
+  signal?: AbortSignal,
 ): Promise<RecipientReadiness> {
+  const checkAbort = () => {
+    if (signal?.aborted) {
+      throw new DOMException("The user aborted a request.", "AbortError");
+    }
+  };
+  checkAbort();
+
   const normalized = address.toLowerCase().trim();
 
   // Check if blocked locally first (fast path)
@@ -77,6 +86,7 @@ export async function resolveRecipient(
   // Check if blocked via context (async check)
   if (context?.isBlockedRecipient) {
     const isBlocked = await context.isBlockedRecipient(normalized);
+    checkAbort();
     if (isBlocked) {
       return {
         address,
@@ -88,12 +98,15 @@ export async function resolveRecipient(
     }
   }
 
+  let readiness: RecipientReadiness | null = null;
+
   // Try to resolve via contact database
   if (context?.resolveContact && !isStellarFormat(normalized)) {
     try {
       const contact = await context.resolveContact(normalized);
+      checkAbort();
       if (contact) {
-        return {
+        readiness = {
           address,
           state: "verified",
           postage: "required",
@@ -101,6 +114,8 @@ export async function resolveRecipient(
           resolvedAccount: contact.address,
           policyType: contact.trusted ? "allow" : "default",
           encryptionKey: contact.publicKey,
+          provenance: "contact",
+          cached: true,
         };
       }
     } catch (error) {
@@ -109,11 +124,12 @@ export async function resolveRecipient(
   }
 
   // Try to resolve via federation context if explicitly provided
-  if (isFederationFormat(normalized) && context?.resolveFederation) {
+  if (!readiness && isFederationFormat(normalized) && context?.resolveFederation) {
     try {
       const result = await context.resolveFederation(normalized);
+      checkAbort();
       if (result) {
-        return {
+        readiness = {
           address,
           state: "verified",
           postage: "required",
@@ -121,6 +137,8 @@ export async function resolveRecipient(
           resolvedAccount: result.publicKey,
           policyType: "default",
           encryptionKey: result.publicKey,
+          provenance: "stellar_federation",
+          cached: false,
         };
       }
     } catch (error) {
@@ -128,43 +146,95 @@ export async function resolveRecipient(
     }
   }
 
-  // Try resolving via unified IdentityResolverService
-  const resolver = context?.identityResolver ?? defaultIdentityResolver;
-  try {
-    const resolved = await resolver.resolve(normalized, { timeoutMs: 1500 });
-    if (resolved.resolved && resolved.status === "active") {
-      return {
-        address,
-        state: "verified",
-        postage: "required",
-        message: `Resolved identity: ${resolved.canonicalAddress}`,
-        resolvedAccount: resolved.account ?? undefined,
-        policyType: resolved.policy?.requireVerified ? "default" : "allow",
-        encryptionKey: resolved.publicKey ?? undefined,
-      };
+  if (!readiness) {
+    // Try resolving via unified IdentityResolverService
+    const resolver = context?.identityResolver ?? defaultIdentityResolver;
+    try {
+      const resolved = await resolver.resolve(normalized, { timeoutMs: 1500, signal });
+      checkAbort();
+      if (resolved.resolved && resolved.status === "active") {
+        readiness = {
+          address,
+          state: "verified",
+          postage: "required",
+          message: `Resolved identity: ${resolved.canonicalAddress}`,
+          resolvedAccount: resolved.account ?? undefined,
+          policyType: resolved.policy?.requireVerified ? "default" : "allow",
+          encryptionKey: resolved.publicKey ?? undefined,
+          provenance: resolved.freshness.source,
+          cached: resolved.freshness.cached,
+          expiresAt: resolved.freshness.expiresAt,
+        };
+      } else if (resolved.status === "suspended" || resolved.status === "deactivated") {
+        readiness = {
+          address,
+          state: "blocked",
+          postage: "required",
+          message: `Recipient account is ${resolved.status}`,
+          policyType: "block",
+        };
+      }
+    } catch (error) {
+      console.warn(`IdentityResolver resolution error for ${address}:`, error);
     }
-
-    if (resolved.status === "suspended" || resolved.status === "deactivated") {
-      return {
-        address,
-        state: "blocked",
-        postage: "required",
-        message: `Recipient account is ${resolved.status}`,
-        policyType: "block",
-      };
-    }
-  } catch (error) {
-    console.warn(`IdentityResolver resolution error for ${address}:`, error);
   }
 
   // Default: unknown but valid format
-  return {
-    address,
-    state: "unknown",
-    postage: "required",
-    message: "Recipient address unresolved — verification pending",
-    policyType: "default",
-  };
+  if (!readiness) {
+    readiness = {
+      address,
+      state: "unknown",
+      postage: "required",
+      message: "Recipient address unresolved — verification pending",
+      policyType: "default",
+    };
+  }
+
+  // If verified, validate the key status via key directory (best-effort).
+  // A network error or missing directory does NOT downgrade verified state —
+  // the send pipeline re-validates keys before sealing the envelope.
+  if (readiness.state === "verified" && readiness.resolvedAccount) {
+    try {
+      const keyDir = await fetchKeyDirectory(readiness.resolvedAccount, signal);
+      if (keyDir) {
+        const encKey = keyDir.currentKeys?.encryption;
+        if (encKey) {
+          if (encKey.status === "revoked") {
+            readiness.state = "blocked";
+            readiness.keyStatus = "revoked";
+            readiness.message = "Recipient encryption key has been revoked";
+            readiness.policyType = "block";
+          } else if (encKey.status === "retired") {
+            readiness.state = "blocked";
+            readiness.keyStatus = "retired";
+            readiness.message = "Recipient encryption key is retired";
+            readiness.policyType = "block";
+          } else if (encKey.status === "active") {
+            readiness.keyStatus = "active";
+            readiness.encryptionKey = encKey.publicKey;
+          } else {
+            readiness.keyStatus = encKey.status;
+          }
+        } else {
+          // Server responded but no encryption key is published
+          readiness.state = "invalid";
+          readiness.keyStatus = "missing";
+          readiness.message = "No active encryption key published for recipient";
+        }
+      } else {
+        // Directory unreachable — keep verified, flag key check as unavailable
+        readiness.keyStatus = "unavailable";
+      }
+    } catch (err: any) {
+      if (err instanceof DOMException && err.name === "AbortError") {
+        throw err;
+      }
+      // Network/timeout error — keep verified, flag key check as unavailable
+      readiness.keyStatus = "unavailable";
+    }
+  }
+
+  return readiness;
 }
 
 /**
@@ -188,15 +258,19 @@ export async function resolveRecipients(
   addresses: string[],
   blockedRecipients: string[] = [],
   context?: RecipientResolutionContext,
+  signal?: AbortSignal,
 ): Promise<RecipientReadiness[]> {
   const blockedSet = new Set(blockedRecipients.map((r) => r.toLowerCase().trim()));
-  return Promise.all(addresses.map((addr) => resolveRecipient(addr, blockedSet, context)));
+  return Promise.all(addresses.map((addr) => resolveRecipient(addr, blockedSet, context, signal)));
 }
 
 /**
  * Validate recipient address format
  */
-export function validateRecipientFormat(address: string): { valid: boolean; error?: string } {
+export function validateRecipientFormat(address: string): {
+  valid: boolean;
+  error?: string;
+} {
   const trimmed = address.trim().toLowerCase();
 
   if (!trimmed) {

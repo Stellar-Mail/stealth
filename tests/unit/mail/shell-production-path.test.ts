@@ -1,0 +1,52 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { describe, expect, it } from "vitest";
+
+import { MailApp } from "@/features/mail";
+
+const root = resolve(process.cwd());
+
+function read(relativePath: string) {
+  return readFileSync(resolve(root, relativePath), "utf8");
+}
+
+const mockCatalogImport = /\{[^}]*\bemails\b[^}]*\}\s*from\s*["']@\/components\/mail\/data["']/;
+
+describe("mail shell production path (BETA-053)", () => {
+  it("exports the composed MailApp from the mail feature", () => {
+    expect(typeof MailApp).toBe("function");
+  });
+  it("keeps the root route as a thin composition entrypoint", () => {
+    const route = read("src/routes/index.tsx");
+    expect(route).toContain('createFileRoute("/")');
+    expect(route).toContain("<MailApp isDemoMode={false} />");
+    expect(route).not.toContain("useState");
+    expect(route).not.toContain("useMailbox");
+    expect(route.split("\n").length).toBeLessThan(40);
+  });
+
+  it("does not statically import the mock email catalog into the production shell", () => {
+    const app = read("src/features/mail/shell/MailApp.tsx");
+    const source = read("src/features/mail/useMailSource.ts");
+    const overlays = read("src/features/mail/shell/MailOverlayStack.tsx");
+
+    for (const text of [app, source, overlays]) {
+      expect(text).not.toMatch(mockCatalogImport);
+    }
+
+    expect(app).not.toContain("getDemoEmails");
+    expect(overlays).not.toContain("getDemoEmails");
+    expect(source).toContain("useMailboxSync");
+    expect(source).toContain("useTombstoneMessage");
+    expect(app).toContain("useThreadRead");
+    expect(app).toContain("threadRead.thread");
+    expect(source).toContain("import.meta.env.DEV");
+    expect(source).toContain('import("@/features/mail/demo/demo-data")');
+  });
+
+  it("does not re-export demo fixtures from the mail feature barrel", () => {
+    const mailIndex = read("src/features/mail/index.ts");
+    expect(mailIndex).not.toContain("demo-data");
+    expect(read("src/features/mail/demo/demo-data.ts")).toContain("getDemoEmails");
+  });
+});

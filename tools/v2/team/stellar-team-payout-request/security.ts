@@ -66,15 +66,24 @@ export function hardenPayoutRequest(input: PayoutRequest): SanitizeResult {
   const issues: SecurityIssue[] = [];
 
   if (typeof input.source !== "string" || !STELLAR_ADDRESS_RE.test(input.source)) {
-    issues.push({ field: "source", message: "source is not a valid Stellar address" });
+    issues.push({
+      field: "source",
+      message: "source is not a valid Stellar address",
+    });
   }
 
   if (typeof input.idempotencyKey !== "string" || input.idempotencyKey.trim().length === 0) {
-    issues.push({ field: "idempotencyKey", message: "idempotencyKey is required" });
+    issues.push({
+      field: "idempotencyKey",
+      message: "idempotencyKey is required",
+    });
   }
 
   if (!Array.isArray(input.recipients) || input.recipients.length === 0) {
-    issues.push({ field: "recipients", message: "at least one recipient is required" });
+    issues.push({
+      field: "recipients",
+      message: "at least one recipient is required",
+    });
   }
   if (input.recipients && input.recipients.length > MAX_RECIPIENTS) {
     issues.push({
@@ -94,14 +103,20 @@ export function hardenPayoutRequest(input: PayoutRequest): SanitizeResult {
       r.amount <= MIN_PAYOUT_AMOUNT ||
       r.amount > MAX_PAYOUT_AMOUNT
     ) {
-      issues.push({ field, message: "amount must be a finite positive number within bounds" });
+      issues.push({
+        field,
+        message: "amount must be a finite positive number within bounds",
+      });
     }
     return { address: r.address, amount: r.amount };
   });
 
   const memo = input.memo === undefined ? undefined : stripControlChars(input.memo);
   if (memo !== undefined && memo.length > MAX_MEMO_CHARS) {
-    issues.push({ field: "memo", message: `memo exceeds ${MAX_MEMO_CHARS} chars` });
+    issues.push({
+      field: "memo",
+      message: `memo exceeds ${MAX_MEMO_CHARS} chars`,
+    });
   }
 
   return {

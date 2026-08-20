@@ -265,14 +265,20 @@ describe("deduplicateDrafts", () => {
 describe("sortByLength / sortByLengthDesc", () => {
   it("sorts by body length ascending", () => {
     const short: RewriteRequest = { ...VALID_DRAFT, bodyText: "Hi." };
-    const long: RewriteRequest = { ...VALID_DRAFT, bodyText: "Hello, this is a longer draft." };
+    const long: RewriteRequest = {
+      ...VALID_DRAFT,
+      bodyText: "Hello, this is a longer draft.",
+    };
     const sorted = sortByLength([long, short]);
     expect(sorted[0].bodyText.length).toBeLessThanOrEqual(sorted[1].bodyText.length);
   });
 
   it("sorts by body length descending", () => {
     const short: RewriteRequest = { ...VALID_DRAFT, bodyText: "Hi." };
-    const long: RewriteRequest = { ...VALID_DRAFT, bodyText: "Hello, this is a longer draft." };
+    const long: RewriteRequest = {
+      ...VALID_DRAFT,
+      bodyText: "Hello, this is a longer draft.",
+    };
     const sorted = sortByLengthDesc([short, long]);
     expect(sorted[0].bodyText.length).toBeGreaterThanOrEqual(sorted[1].bodyText.length);
   });

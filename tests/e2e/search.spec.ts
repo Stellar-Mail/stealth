@@ -49,10 +49,11 @@ test.describe("search and filter", () => {
     await expect(page.getByRole("button", { name: "This week" })).toBeVisible();
   });
 
-  test("navigating to Pending Proof folder via Quick action shows proof items", async ({
-    page,
-  }) => {
-    await page.getByRole("button", { name: "Proofs" }).click();
+  test("navigating to Pending Proof folder shows proof items", async ({ page }) => {
+    await page
+      .getByRole("complementary")
+      .getByRole("button", { name: /Pending Proof/ })
+      .click();
     await expect(page.getByRole("heading", { name: "Pending Proof" })).toBeVisible();
     await expect(page.getByRole("button", { name: /Your relay verification code/ })).toBeVisible();
   });

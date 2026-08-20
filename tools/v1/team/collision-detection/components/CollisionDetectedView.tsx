@@ -118,7 +118,12 @@ export function CollisionDetectedView({
                   </span>
                 </div>
                 <ul
-                  style={{ margin: 0, paddingLeft: "1.25rem", fontSize: "0.85rem", color: "#555" }}
+                  style={{
+                    margin: 0,
+                    paddingLeft: "1.25rem",
+                    fontSize: "0.85rem",
+                    color: "#555",
+                  }}
                 >
                   {event.replies.map((reply) => (
                     <li key={reply.userId} style={{ marginBottom: "0.25rem" }}>

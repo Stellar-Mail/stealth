@@ -130,7 +130,11 @@ describe("Postage Settlement Idempotency", () => {
           status: number;
           code: string;
           message: string;
-          details: { currentStatus: string; attemptedStatus: string; messageId: string };
+          details: {
+            currentStatus: string;
+            attemptedStatus: string;
+            messageId: string;
+          };
         };
 
         // Verify error provides actionable information

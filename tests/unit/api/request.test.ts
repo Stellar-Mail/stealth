@@ -76,7 +76,9 @@ describe("API request parsing", () => {
       body: "amount=125",
     });
 
-    await expect(parseJsonBody(request, z.object({}))).rejects.toMatchObject({ status: 415 });
+    await expect(parseJsonBody(request, z.object({}))).rejects.toMatchObject({
+      status: 415,
+    });
   });
 
   it("coerces and validates search parameters", () => {
@@ -169,7 +171,11 @@ describe("Query string normalization", () => {
   });
 });
 
-function captureError(fn: () => unknown): { status: number; code: string; message: string } {
+function captureError(fn: () => unknown): {
+  status: number;
+  code: string;
+  message: string;
+} {
   try {
     fn();
   } catch (error) {
@@ -245,8 +251,14 @@ describe("parseJsonBody — Content-Type fuzzing", () => {
     { contentType: "application/json;", desc: "trailing semicolon" },
     { contentType: "application/geo+json", desc: "subtype +json" },
     { contentType: "application/vnd.api+json", desc: "vendor subtype +json" },
-    { contentType: "application/json; charset=utf-8;", desc: "double trailing semicolon" },
-    { contentType: "application/json; boundary=----", desc: "with boundary parameter" },
+    {
+      contentType: "application/json; charset=utf-8;",
+      desc: "double trailing semicolon",
+    },
+    {
+      contentType: "application/json; boundary=----",
+      desc: "with boundary parameter",
+    },
   ])("accepts $desc content-type then rejects empty body", async ({ contentType }) => {
     const request = jsonRequest("", contentType);
     const error = await captureAsyncError(() => parseJsonBody(request, emptySchema));
@@ -303,7 +315,9 @@ describe("parseJsonBody — Content-Type fuzzing", () => {
 
 describe("parseJsonBody — Content-Length fuzzing", () => {
   it("rejects negative zero Content-Length with valid body", async () => {
-    const request = jsonRequest("{}", "application/json", { "content-length": "-0" });
+    const request = jsonRequest("{}", "application/json", {
+      "content-length": "-0",
+    });
     const result = await parseJsonBody(request, emptySchema);
     expect(result).toEqual({});
   });
@@ -312,16 +326,23 @@ describe("parseJsonBody — Content-Length fuzzing", () => {
     { length: "0", body: "{}", desc: "zero-length declared with actual body" },
     { length: "3", body: "{}", desc: "declared larger than actual" },
   ])("accepts $desc and parses body content", async ({ length, body }) => {
-    const request = jsonRequest(body, "application/json", { "content-length": length });
+    const request = jsonRequest(body, "application/json", {
+      "content-length": length,
+    });
     const result = await parseJsonBody(request, emptySchema);
     expect(result).toEqual({});
   });
 
   it.each([
-    { length: "99999999999999999999", desc: "value exceeding Number.MAX_SAFE_INTEGER" },
+    {
+      length: "99999999999999999999",
+      desc: "value exceeding Number.MAX_SAFE_INTEGER",
+    },
     { length: "18446744073709551616", desc: "value above 2^64" },
   ])("rejects oversized $desc with 413", async ({ length }) => {
-    const request = jsonRequest("{}", "application/json", { "content-length": length });
+    const request = jsonRequest("{}", "application/json", {
+      "content-length": length,
+    });
     const error = await captureAsyncError(() => parseJsonBody(request, emptySchema));
     expect(error.status).toBe(413);
     expect(error.code).toBe("bad_request");
@@ -333,7 +354,10 @@ describe("parseJsonBody — Content-Length fuzzing", () => {
     headers.append("content-length", "100");
     const request = new Request("https://stealth.test/api", {
       method: "POST",
-      headers: { "content-type": "application/json", ...Object.fromEntries(headers) },
+      headers: {
+        "content-type": "application/json",
+        ...Object.fromEntries(headers),
+      },
       body: "{}",
     });
     const error = await captureAsyncError(() => parseJsonBody(request, emptySchema));
@@ -342,7 +366,9 @@ describe("parseJsonBody — Content-Length fuzzing", () => {
   });
 
   it("rejects malformed body even when Content-Length matches", async () => {
-    const request = jsonRequest("{{", "application/json", { "content-length": "2" });
+    const request = jsonRequest("{{", "application/json", {
+      "content-length": "2",
+    });
     const error = await captureAsyncError(() => parseJsonBody(request, emptySchema));
     expect(error.status).toBe(400);
     expect(error.code).toBe("bad_request");
@@ -367,13 +393,17 @@ describe("parseJsonBody — Content-Length fuzzing", () => {
 
 describe("parseJsonBody — malformed headers", () => {
   it("rejects Content-Length with leading zeros", async () => {
-    const request = jsonRequest("{}", "application/json", { "content-length": "0010" });
+    const request = jsonRequest("{}", "application/json", {
+      "content-length": "0010",
+    });
     const result = await parseJsonBody(request, emptySchema);
     expect(result).toEqual({});
   });
 
   it("accepts Content-Length with whitespace", async () => {
-    const request = jsonRequest("{}", "application/json", { "content-length": " 2 " });
+    const request = jsonRequest("{}", "application/json", {
+      "content-length": " 2 ",
+    });
     const result = await parseJsonBody(request, emptySchema);
     expect(result).toEqual({});
   });
@@ -425,12 +455,32 @@ describe("parseSearchParams — query encoding fuzzing", () => {
   });
 
   it.each([
-    { query: "?a=1;b=2", params: { a: "1;b=2" }, desc: "semicolons as literal values" },
-    { query: "?cursor=abc#fragment", params: { cursor: "abc" }, desc: "hash fragment stripped" },
-    { query: "?a=1&&b=2", params: { a: "1", b: "2" }, desc: "empty segment between &&" },
+    {
+      query: "?a=1;b=2",
+      params: { a: "1;b=2" },
+      desc: "semicolons as literal values",
+    },
+    {
+      query: "?cursor=abc#fragment",
+      params: { cursor: "abc" },
+      desc: "hash fragment stripped",
+    },
+    {
+      query: "?a=1&&b=2",
+      params: { a: "1", b: "2" },
+      desc: "empty segment between &&",
+    },
     { query: "?q=%C3%A9", params: { q: "é" }, desc: "UTF-8 encoded é" },
-    { query: "?q=%EF%BB%BF", params: { q: "\uFEFF" }, desc: "BOM prefix in value" },
-    { query: "?q=%E2%80%8E", params: { q: "\u200E" }, desc: "right-to-left override in value" },
+    {
+      query: "?q=%EF%BB%BF",
+      params: { q: "\uFEFF" },
+      desc: "BOM prefix in value",
+    },
+    {
+      query: "?q=%E2%80%8E",
+      params: { q: "\u200E" },
+      desc: "right-to-left override in value",
+    },
     {
       query: "?q=%FF%FE",
       params: { q: "\uFFFD\uFFFD" },
@@ -477,7 +527,11 @@ describe("error envelope contract — all fuzz failures", () => {
   it.each([
     { body: "{", contentType: "application/json", desc: "truncated JSON" },
     { body: "{}", contentType: "text/plain", desc: "wrong content-type" },
-    { body: "x".repeat(70 * 1024), contentType: "application/json", desc: "oversized body" },
+    {
+      body: "x".repeat(70 * 1024),
+      contentType: "application/json",
+      desc: "oversized body",
+    },
   ])("returns full envelope for $desc", async ({ body, contentType }) => {
     const request = jsonRequest(body, contentType);
     const error = await captureAsyncError(() => parseJsonBody(request, emptySchema));

@@ -76,7 +76,10 @@ describe("ordering declarations", () => {
 
   it("declares an ordering for every registered paginated method", () => {
     for (const [method, spec] of Object.entries(PAGINATED_QUERY_ORDERINGS)) {
-      expect(spec.keys.at(-1)).toEqual({ field: spec.tieBreaker, direction: expect.any(String) });
+      expect(spec.keys.at(-1)).toEqual({
+        field: spec.tieBreaker,
+        direction: expect.any(String),
+      });
       expect(orderingForPaginatedMethod(method)).toBe(spec);
     }
   });
@@ -124,7 +127,10 @@ describe("continuation keys", () => {
     const previous = process.env.STEALTH_CURSOR_SECRET;
     process.env.STEALTH_CURSOR_SECRET = "test-secret";
     try {
-      const key = continuationKeyOf(ordering, { createdAt: TIED_AT, messageId: "c" });
+      const key = continuationKeyOf(ordering, {
+        createdAt: TIED_AT,
+        messageId: "c",
+      });
       const cursor = encodeCursor("GACTOR", key, "listReceipts");
       expect(decodeCursor(cursor, "GACTOR", "listReceipts").continuationKey).toBe(key);
       expect(parseContinuationKey(ordering, key)).toEqual([TIED_AT, "c"]);
