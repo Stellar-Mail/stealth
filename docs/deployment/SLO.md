@@ -159,3 +159,35 @@ if (!summary.availability.met) {
 - [Operational Alerts and Runbooks](ALERTS.md) - Diagnostic steps for auth spikes and throttling.
 - [Prometheus Alert Rules](alerts.yaml) - Alert rule configurations.
 - [Release Gates Checklist](RELEASE_GATES.md) - Pre-release validation rules.
+
+
+# Service Level Objectives (SLO) & Beta Capacity Limits
+
+## 1. Measured Beta Capacity Ceilings
+
+| Subsystem | Sustained Ceiling | Spike Ceiling (Burst 1m) | Measured Bottleneck |
+| :--- | :--- | :--- | :--- |
+| **Auth / Signup** | 120 req/sec | 350 req/sec | Database Connection Pool Contention |
+| **Encrypted Relay Mailbox** | 250 req/sec | 500 req/sec | Redis Sync Lock Latency |
+| **Object Storage (Attachments)**| 40 MB/sec | 85 MB/sec | S3 / MinIO IOPS saturation |
+| **Chain Write Queue** | 35 tx/sec | 80 tx/sec | L2 RPC Gas Price / Provider Rate Limits |
+
+---
+
+## 2. Enforced Target Metrics & Thresholds
+
+- **Availability:** 99.9% uptime across Relay & Sync services.
+- **Latency (p95):**
+  - Mailbox Poll: $< 150\text{ ms}$
+  - Encrypted Message Send: $< 300\text{ ms}$
+  - Attachment Upload (500KB): $< 600\text{ ms}$
+- **Chain Queue Processing Lag:** $p(95) < 3.0\text{ s}$
+- **Idempotency Guarantee:** Exactly $0$ duplicate money-moving or chain-submission executions under load.
+
+---
+
+## 3. Next Scaling Trigger Thresholds
+
+* **Trigger 1 (Scale API / Worker Nodes):** CPU utilization $> 70\%$ for $> 3\text{ min}$ or HTTP $p(95)$ latency $> 400\text{ ms}$.
+* **Trigger 2 (Scale Redis / Queue Workers):** Queue depth $> 1,000$ messages or queue age $> 2.5\text{ s}$.
+* **Trigger 3 (Storage Sharding):** Object storage write IOPS $> 80\%$ provider capacity.
