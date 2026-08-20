@@ -20,3 +20,5 @@ export {
 } from "./keys";
 export { maskEmail, registrationRequestSchema, registrationResponseSchema } from "./registration";
 export { IdentityResolverService, parseIdentifier, normalizeIdentifier } from "./resolver";
+export * from "./username";
+export * from "./UsernameCheckInput";

@@ -7,12 +7,7 @@
  */
 
 export type TemplateCategory =
-  | "welcome"
-  | "transactional"
-  | "security"
-  | "event"
-  | "newsletter"
-  | "internal";
+  "welcome" | "transactional" | "security" | "event" | "newsletter" | "internal";
 
 export interface MessageTemplate {
   /** Stable, unique identifier. */

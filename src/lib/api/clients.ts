@@ -39,6 +39,8 @@ import type {
   AccountProfileResponse,
   ProfileUpdateInput,
   ProfileUpdateResponse,
+  UsernameCheckResult,
+  UsernameReserveResult,
 } from "./types";
 
 export interface ApiContext {
@@ -104,6 +106,25 @@ export class AuthClient {
 
   logoutAll(): Promise<{ success: boolean }> {
     return this.client.post<{ success: boolean }>("/auth/logout-all");
+  }
+
+  checkUsername(username: string, signal?: AbortSignal): Promise<UsernameCheckResult> {
+    return this.client.get<UsernameCheckResult>("/auth/username/check", {
+      query: { username },
+      signal,
+    });
+  }
+
+  reserveUsername(
+    username: string,
+    options?: { userId?: string; leaseMs?: number },
+    signal?: AbortSignal,
+  ): Promise<UsernameReserveResult> {
+    return this.client.post<UsernameReserveResult>(
+      "/auth/username/reserve",
+      { username, ...options },
+      { signal },
+    );
   }
 }
 

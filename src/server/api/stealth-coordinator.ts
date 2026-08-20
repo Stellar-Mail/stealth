@@ -87,8 +87,7 @@ export class StealthCoordinator extends DurableObjectBase {
 
   async getIdempotencyRecord(key: string): Promise<IdempotencyRecord | null> {
     const record = (await this.ctx.storage.get(`idempotency:${key}`)) as
-      | IdempotencyRecord
-      | undefined;
+      IdempotencyRecord | undefined;
     return record ?? null;
   }
 
@@ -286,8 +285,7 @@ export class StealthCoordinator extends DurableObjectBase {
 
       const normEmail = user.email.toLowerCase().trim();
       const existingEmailOwner = (await this.ctx.storage.get(`user:email:${normEmail}`)) as
-        | string
-        | undefined;
+        string | undefined;
       if (existingEmailOwner && existingEmailOwner !== user.userId) {
         throw new ApiError(409, "conflict", `User with email ${user.email} already exists`);
       }
@@ -302,8 +300,7 @@ export class StealthCoordinator extends DurableObjectBase {
 
       const normAddress = user.address.toUpperCase().trim();
       const existingAddressOwner = (await this.ctx.storage.get(`user:address:${normAddress}`)) as
-        | string
-        | undefined;
+        string | undefined;
       if (existingAddressOwner && existingAddressOwner !== user.userId) {
         throw new ApiError(409, "conflict", `Stellar address ${user.address} is already bound`);
       }
@@ -345,8 +342,7 @@ export class StealthCoordinator extends DurableObjectBase {
 
   async getCredential(userId: string): Promise<Credential | null> {
     const credential = (await this.ctx.storage.get(`credential:${userId}`)) as
-      | Credential
-      | undefined;
+      Credential | undefined;
     return credential ?? null;
   }
 
@@ -366,8 +362,7 @@ export class StealthCoordinator extends DurableObjectBase {
 
   async getProvisioningRecord(userId: string): Promise<ProvisioningRecord | null> {
     const record = (await this.ctx.storage.get(`provisioning:${userId}`)) as
-      | ProvisioningRecord
-      | undefined;
+      ProvisioningRecord | undefined;
     return record ?? null;
   }
 
@@ -376,8 +371,7 @@ export class StealthCoordinator extends DurableObjectBase {
   ): Promise<{ created: boolean; record: ProvisioningRecord }> {
     return this.runExclusive(`provisioning:${record.userId}`, async () => {
       const existing = (await this.ctx.storage.get(`provisioning:${record.userId}`)) as
-        | ProvisioningRecord
-        | undefined;
+        ProvisioningRecord | undefined;
       if (existing) {
         return { created: false, record: existing };
       }
@@ -392,8 +386,7 @@ export class StealthCoordinator extends DurableObjectBase {
   ): Promise<UpdateProvisioningResult> {
     return this.runExclusive(`provisioning:${record.userId}`, async () => {
       const current = (await this.ctx.storage.get(`provisioning:${record.userId}`)) as
-        | ProvisioningRecord
-        | undefined;
+        ProvisioningRecord | undefined;
       if (!current) {
         return { updated: false, current: null };
       }
@@ -413,8 +406,7 @@ export class StealthCoordinator extends DurableObjectBase {
   async getUsernameReservation(username: string): Promise<UsernameReservation | null> {
     const norm = username.toLowerCase().trim();
     const reservation = (await this.ctx.storage.get(`username-reservation:${norm}`)) as
-      | UsernameReservation
-      | undefined;
+      UsernameReservation | undefined;
     return reservation ?? null;
   }
 
@@ -432,8 +424,7 @@ export class StealthCoordinator extends DurableObjectBase {
       }
 
       const existing = (await this.ctx.storage.get(`username-reservation:${norm}`)) as
-        | UsernameReservation
-        | undefined;
+        UsernameReservation | undefined;
       const now = Date.now();
 
       if (existing) {
@@ -460,8 +451,7 @@ export class StealthCoordinator extends DurableObjectBase {
     const norm = username.toLowerCase().trim();
     return this.runExclusive(`username-reservation:${norm}`, async () => {
       const existing = (await this.ctx.storage.get(`username-reservation:${norm}`)) as
-        | UsernameReservation
-        | undefined;
+        UsernameReservation | undefined;
       if (!existing) return false;
       if (existing.userId !== userId) return false;
       await this.ctx.storage.delete(`username-reservation:${norm}`);
@@ -477,8 +467,7 @@ export class StealthCoordinator extends DurableObjectBase {
   async createWallet(wallet: Wallet): Promise<WalletCreationResult> {
     return this.runExclusive(`wallet:${wallet.userId}`, async () => {
       const existing = (await this.ctx.storage.get(`wallet:${wallet.userId}`)) as
-        | Wallet
-        | undefined;
+        Wallet | undefined;
       if (existing) {
         return { outcome: "already-exists" as const, wallet: existing };
       }
@@ -494,8 +483,7 @@ export class StealthCoordinator extends DurableObjectBase {
     const normOwner = owner.toUpperCase().trim();
     return this.runExclusive(`policy-init:${normOwner}`, async () => {
       const existing = (await this.ctx.storage.get(`policy-init:${normOwner}`)) as
-        | import("./domain").MailboxPolicy
-        | undefined;
+        import("./domain").MailboxPolicy | undefined;
       if (existing) {
         return { created: false, policy: existing };
       }
@@ -548,8 +536,7 @@ export class StealthCoordinator extends DurableObjectBase {
 
   async getRetiredSession(sessionId: string): Promise<RetiredSession | null> {
     const retiredSession = (await this.ctx.storage.get(`retired-session:${sessionId}`)) as
-      | RetiredSession
-      | undefined;
+      RetiredSession | undefined;
     return retiredSession ?? null;
   }
 
@@ -561,8 +548,7 @@ export class StealthCoordinator extends DurableObjectBase {
   // BETA-005: Durable verification-token lifecycle methods
   async getVerificationToken(tokenHash: string): Promise<VerificationToken | null> {
     const token = (await this.ctx.storage.get(`verification-token:hash:${tokenHash}`)) as
-      | VerificationToken
-      | undefined;
+      VerificationToken | undefined;
     return token ?? null;
   }
 
@@ -597,8 +583,7 @@ export class StealthCoordinator extends DurableObjectBase {
         let replacedToken: VerificationToken | null = null;
         if (activeHash && activeHash !== token.tokenHash) {
           const current = (await this.ctx.storage.get(`verification-token:hash:${activeHash}`)) as
-            | VerificationToken
-            | undefined;
+            VerificationToken | undefined;
           if (current && current.consumedAt === null && current.replacedAt === null) {
             const invalidated: VerificationToken = {
               ...current,
@@ -626,8 +611,7 @@ export class StealthCoordinator extends DurableObjectBase {
   ): Promise<ConsumeVerificationTokenResult> {
     return this.runExclusive(`verification-token:consume:${tokenHash}`, async () => {
       const current = (await this.ctx.storage.get(`verification-token:hash:${tokenHash}`)) as
-        | VerificationToken
-        | undefined;
+        VerificationToken | undefined;
       if (!current) {
         return { outcome: "not-found" as const };
       }
@@ -658,8 +642,7 @@ export class StealthCoordinator extends DurableObjectBase {
   ): Promise<RecordVerificationAttemptResult> {
     return this.runExclusive(`verification-token:consume:${tokenHash}`, async () => {
       const current = (await this.ctx.storage.get(`verification-token:hash:${tokenHash}`)) as
-        | VerificationToken
-        | undefined;
+        VerificationToken | undefined;
       if (!current) {
         return { recorded: false, token: null };
       }
@@ -683,8 +666,7 @@ export class StealthCoordinator extends DurableObjectBase {
   // race this coordinates against).
   async getRecoveryCodeSet(userId: string): Promise<RecoveryCodeSet | null> {
     const set = (await this.ctx.storage.get(`recovery-code-set:${userId}`)) as
-      | RecoveryCodeSet
-      | undefined;
+      RecoveryCodeSet | undefined;
     return set ?? null;
   }
 
@@ -694,8 +676,7 @@ export class StealthCoordinator extends DurableObjectBase {
   ): Promise<UpdateRecoveryCodeSetResult> {
     return this.runExclusive(`recovery-code-set:${set.userId}`, async () => {
       const current = (await this.ctx.storage.get(`recovery-code-set:${set.userId}`)) as
-        | RecoveryCodeSet
-        | undefined;
+        RecoveryCodeSet | undefined;
 
       if (expectedVersion === 0) {
         // Create-only reservation. A concurrent first generation that won
@@ -732,8 +713,7 @@ export class StealthCoordinator extends DurableObjectBase {
       )) as string | undefined;
       if (activeHash) {
         const current = (await this.ctx.storage.get(`verification-token:hash:${activeHash}`)) as
-          | VerificationToken
-          | undefined;
+          VerificationToken | undefined;
         if (current && current.consumedAt === null && current.replacedAt === null) {
           const invalidated: VerificationToken = {
             ...current,
@@ -778,8 +758,7 @@ export class StealthCoordinator extends DurableObjectBase {
 
   async getEnvelope(messageId: string): Promise<StoredEnvelope | null> {
     const envelope = (await this.ctx.storage.get(`envelope:${messageId}`)) as
-      | StoredEnvelope
-      | undefined;
+      StoredEnvelope | undefined;
     return envelope ?? null;
   }
 
@@ -793,8 +772,7 @@ export class StealthCoordinator extends DurableObjectBase {
   async insertEnvelope(envelope: StoredEnvelope): Promise<InsertEnvelopeResult> {
     return this.runExclusive(`envelope:${envelope.messageId}`, async () => {
       const existing = (await this.ctx.storage.get(`envelope:${envelope.messageId}`)) as
-        | StoredEnvelope
-        | undefined;
+        StoredEnvelope | undefined;
 
       if (existing) {
         // Byte-equality check — serialize both deterministically for comparison.
@@ -818,8 +796,7 @@ export class StealthCoordinator extends DurableObjectBase {
   async getSenderRequest(requestId: string) {
     return (
       ((await this.ctx.storage.get(`sender-request:${requestId}`)) as
-        | import("./domain").UnknownSenderRequest
-        | undefined) ?? null
+        import("./domain").UnknownSenderRequest | undefined) ?? null
     );
   }
   async listSenderRequests(recipient: string, status?: "pending") {
@@ -879,8 +856,7 @@ export class StealthCoordinator extends DurableObjectBase {
 
   async getManagedWallet(userId: string): Promise<ManagedWalletRecord | null> {
     const wallet = (await this.ctx.storage.get(`managed-wallet:${userId}`)) as
-      | ManagedWalletRecord
-      | undefined;
+      ManagedWalletRecord | undefined;
     return wallet ?? null;
   }
 
@@ -904,8 +880,7 @@ export class StealthCoordinator extends DurableObjectBase {
 
   async getFundingOperation(operationId: string): Promise<FundingOperation | null> {
     const operation = (await this.ctx.storage.get(`funding-op:${operationId}`)) as
-      | FundingOperation
-      | undefined;
+      FundingOperation | undefined;
     return operation ?? null;
   }
 
@@ -983,8 +958,7 @@ export class StealthCoordinator extends DurableObjectBase {
   async tombstoneEnvelope(messageId: string, recipient: string): Promise<StoredEnvelope> {
     return this.runExclusive(`envelope:${messageId}`, async () => {
       const existing = (await this.ctx.storage.get(`envelope:${messageId}`)) as
-        | StoredEnvelope
-        | undefined;
+        StoredEnvelope | undefined;
       if (!existing) {
         throw new ApiError(404, "not_found", `No envelope found for message ${messageId}`);
       }
@@ -1010,8 +984,7 @@ export class StealthCoordinator extends DurableObjectBase {
   ): Promise<StoredEnvelope> {
     return this.runExclusive(`envelope:${messageId}`, async () => {
       const existing = (await this.ctx.storage.get(`envelope:${messageId}`)) as
-        | StoredEnvelope
-        | undefined;
+        StoredEnvelope | undefined;
       if (!existing) {
         throw new ApiError(404, "not_found", `No envelope found for message ${messageId}`);
       }
@@ -1032,8 +1005,7 @@ export class StealthCoordinator extends DurableObjectBase {
     const { applyMailboxFlags } = await import("./mailbox-live");
     return this.runExclusive(`envelope:${messageId}`, async () => {
       const existing = (await this.ctx.storage.get(`envelope:${messageId}`)) as
-        | StoredEnvelope
-        | undefined;
+        StoredEnvelope | undefined;
       if (!existing) {
         throw new ApiError(404, "not_found", `No envelope found for message ${messageId}`);
       }
@@ -1060,13 +1032,11 @@ export class StealthCoordinator extends DurableObjectBase {
   async enqueueJob(job: DurableJob): Promise<{ enqueued: boolean; job: DurableJob }> {
     return this.runExclusive(`job_idemp:${job.idempotencyKey}`, async () => {
       const existingJobId = (await this.ctx.storage.get(`job_idemp:${job.idempotencyKey}`)) as
-        | string
-        | undefined;
+        string | undefined;
 
       if (existingJobId) {
         const existing = (await this.ctx.storage.get(`job:${existingJobId}`)) as
-          | DurableJob
-          | undefined;
+          DurableJob | undefined;
         if (existing) {
           return { enqueued: false, job: existing };
         }
@@ -1183,8 +1153,7 @@ export class StealthCoordinator extends DurableObjectBase {
 
   async getReceiptCheckpoint(streamId: string): Promise<ReceiptCheckpoint | null> {
     const cp = (await this.ctx.storage.get(`receipt_cp:${streamId}`)) as
-      | ReceiptCheckpoint
-      | undefined;
+      ReceiptCheckpoint | undefined;
     return cp ?? null;
   }
 
@@ -1195,8 +1164,7 @@ export class StealthCoordinator extends DurableObjectBase {
 
   async getSendOperation(messageId: string): Promise<import("./domain").SendOperationState | null> {
     const state = (await this.ctx.storage.get(`send_op:${messageId}`)) as
-      | import("./domain").SendOperationState
-      | undefined;
+      import("./domain").SendOperationState | undefined;
     return state ?? null;
   }
 
@@ -1212,8 +1180,7 @@ export class StealthCoordinator extends DurableObjectBase {
   ): Promise<{ created: boolean; state: import("./domain").SendOperationState }> {
     return this.runExclusive(`send_op:${state.messageId}`, async () => {
       const existing = (await this.ctx.storage.get(`send_op:${state.messageId}`)) as
-        | import("./domain").SendOperationState
-        | undefined;
+        import("./domain").SendOperationState | undefined;
       if (existing) {
         return { created: false, state: existing };
       }

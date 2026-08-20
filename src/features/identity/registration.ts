@@ -1,15 +1,21 @@
 import { z } from "zod";
 
+import { validateUsername } from "./username";
+
 export const emailSchema = z.string().trim().toLowerCase().email("Expected a valid email address");
 
 export const usernameSchema = z
   .string()
   .trim()
-  .toLowerCase()
-  .regex(
-    /^[a-z0-9_-]{3,30}$/,
-    "Username must be 3-30 lowercase alphanumeric characters, underscores, or hyphens",
-  );
+  .superRefine((val, ctx) => {
+    const res = validateUsername(val);
+    if (!res.valid) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: res.message ?? "Invalid username",
+      });
+    }
+  });
 
 export const CURRENT_TERMS_VERSION = "2026-01";
 export const CURRENT_PRIVACY_POLICY_VERSION = "2026-01";

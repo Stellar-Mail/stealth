@@ -96,8 +96,7 @@ export type AcquireIdempotencyResult =
  *   (or fail) deterministically; a match bumps the stored version by 1.
  */
 export type UpdateRecoveryCodeSetResult =
-  | { updated: true; set: RecoveryCodeSet }
-  | { updated: false; current: RecoveryCodeSet | null };
+  { updated: true; set: RecoveryCodeSet } | { updated: false; current: RecoveryCodeSet | null };
 
 /**
  * Outcome of an atomic read-receipt publication.
@@ -126,8 +125,7 @@ export type MarkReceiptReadResult =
   | { outcome: "marked"; receipt: Receipt };
 
 export type UpdateUserResult =
-  | { updated: true; user: User }
-  | { updated: false; current: User | null };
+  { updated: true; user: User } | { updated: false; current: User | null };
 export type CreateSenderRequestResult = { created: boolean; request: UnknownSenderRequest };
 export type SenderRequestTransitionResult =
   | { outcome: "not_found" }
@@ -143,8 +141,7 @@ export type SenderRequestTransitionResult =
  *   re-read and reconcile instead of blindly overwriting.
  */
 export type UpdateContactResult =
-  | { updated: true; contact: Contact }
-  | { updated: false; current: Contact | null };
+  { updated: true; contact: Contact } | { updated: false; current: Contact | null };
 
 // ---------------------------------------------------------------------------
 // BETA-014: Account-provisioning repository contracts
@@ -184,8 +181,7 @@ export type UsernameReservationResult =
  *   returned unchanged (idempotent retry).
  */
 export type WalletCreationResult =
-  | { outcome: "created"; wallet: Wallet }
-  | { outcome: "already-exists"; wallet: Wallet };
+  { outcome: "created"; wallet: Wallet } | { outcome: "already-exists"; wallet: Wallet };
 
 export type IssueVerificationTokenResult =
   | {
