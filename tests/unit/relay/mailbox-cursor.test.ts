@@ -1,7 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { ApiError } from "../../../src/server/api/errors";
-import { decodeMailboxCursor, encodeMailboxCursor } from "../../../src/services/relay/mailbox-cursor";
+import {
+  decodeMailboxCursor,
+  encodeMailboxCursor,
+} from "../../../src/services/relay/mailbox-cursor";
 import { SYNC_CURSOR_TTL_MS } from "../../../src/services/relay/mailbox-sync-types";
 
 const SECRET = "test-mailbox-cursor-secret";
@@ -33,12 +36,16 @@ describe("durable mailbox sync cursor", () => {
 
   it("rejects cross-actor reuse", () => {
     const cursor = encodeMailboxCursor(actor, deviceId, 1, 1_000);
-    expect(() => decodeMailboxCursor(cursor, `G${"B".repeat(55)}`, deviceId, 1_001)).toThrow(ApiError);
+    expect(() => decodeMailboxCursor(cursor, `G${"B".repeat(55)}`, deviceId, 1_001)).toThrow(
+      ApiError,
+    );
   });
 
   it("rejects a cursor bound to a different device", () => {
     const cursor = encodeMailboxCursor(actor, deviceId, 1, 1_000);
-    expect(() => decodeMailboxCursor(cursor, actor, "device-two", 1_001)).toThrow(/different device/);
+    expect(() => decodeMailboxCursor(cursor, actor, "device-two", 1_001)).toThrow(
+      /different device/,
+    );
   });
 
   it("expires after the configured TTL", () => {

@@ -6,8 +6,16 @@ import {
   createMemoryCheckpointStore,
   loadCheckpoint,
 } from "../../../src/features/mail/sync-checkpoint";
-import { MailboxSyncEngine, alwaysVisible, MemoryTabLock } from "../../../src/features/mail/sync-engine";
-import { MailboxSyncError, type MailboxSyncEvent, type MailboxSyncResult } from "../../../src/features/mail/types";
+import {
+  MailboxSyncEngine,
+  alwaysVisible,
+  MemoryTabLock,
+} from "../../../src/features/mail/sync-engine";
+import {
+  MailboxSyncError,
+  type MailboxSyncEvent,
+  type MailboxSyncResult,
+} from "../../../src/features/mail/types";
 
 const actor = `G${"A".repeat(55)}`;
 const recipient = actor;
@@ -42,7 +50,11 @@ describe("applySyncEvents", () => {
 
   it("applies deletions via tombstones", () => {
     const upserted = applySyncEvents(new Map(), [event(1)], 0);
-    const deleted = applySyncEvents(upserted.messages, [{ ...event(2, "tombstone"), messageId: event(1).messageId }], 1);
+    const deleted = applySyncEvents(
+      upserted.messages,
+      [{ ...event(2, "tombstone"), messageId: event(1).messageId }],
+      1,
+    );
     expect(deleted.messages.size).toBe(0);
   });
 });

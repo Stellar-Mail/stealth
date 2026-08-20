@@ -57,10 +57,7 @@ function utf8(bytes: Uint8Array): string {
   return new TextDecoder("utf-8", { fatal: false }).decode(bytes);
 }
 
-function validateInnerEnvelope(
-  envelope: RelayEnvelope,
-  decoded: unknown,
-): QuarantineReason | null {
+function validateInnerEnvelope(envelope: RelayEnvelope, decoded: unknown): QuarantineReason | null {
   const parsed = sealedEnvelopeShapeSchema.safeParse(decoded);
   if (!parsed.success) {
     return "malformed_envelope";
@@ -97,9 +94,7 @@ export function classifyRelayEnvelope(
     try {
       const decoded = JSON.parse(asText) as unknown;
       const looksLikeEnvelope =
-        decoded &&
-        typeof decoded === "object" &&
-        ("payload" in decoded || "ciphertext" in decoded);
+        decoded && typeof decoded === "object" && ("payload" in decoded || "ciphertext" in decoded);
       if (looksLikeEnvelope) {
         const reason = validateInnerEnvelope(envelope, decoded);
         if (reason) return { ok: false, reason };

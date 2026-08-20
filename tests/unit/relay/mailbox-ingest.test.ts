@@ -99,9 +99,9 @@ describe("mailbox ingestion", () => {
       ingestMailboxEnvelope(persistence, bad),
       ingestMailboxEnvelope(persistence, bad),
     ]);
-    expect(results.every((result) => result.status === "quarantined" || result.status === "skipped")).toBe(
-      true,
-    );
+    expect(
+      results.every((result) => result.status === "quarantined" || result.status === "skipped"),
+    ).toBe(true);
     const page = await persistence.listEvents(recipient, 0, 10);
     expect(page.events).toEqual([]);
     expect(JSON.stringify(results)).not.toContain("%%%%");
