@@ -4,8 +4,8 @@ dist
 .vinxi
 pnpm-lock.yaml
 package-lock.json
-routeTree.gen.ts
+**/routeTree.gen.ts
 playwright-report
 test-results
 test-fixtures/commit-spread
-contracts/soroban/**/test_snapshots
+contracts/soroban/**/test_snapshots/**

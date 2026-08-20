@@ -94,13 +94,24 @@ export function GrammarCleanerView({ result, onReset }: GrammarCleanerViewProps)
                     {CATEGORY_LABELS[issue.type] || issue.type}
                   </span>
                   <div style={{ color: "#333", lineHeight: 1.5 }}>
-                    <span style={{ textDecoration: "line-through", color: "#c0392b" }}>
+                    <span
+                      style={{
+                        textDecoration: "line-through",
+                        color: "#c0392b",
+                      }}
+                    >
                       {issue.original}
                     </span>
                     {" → "}
                     <span style={{ color: "#27ae60", fontWeight: 500 }}>{issue.suggestion}</span>
                   </div>
-                  <div style={{ color: "#888", fontSize: "0.78rem", marginTop: "0.15rem" }}>
+                  <div
+                    style={{
+                      color: "#888",
+                      fontSize: "0.78rem",
+                      marginTop: "0.15rem",
+                    }}
+                  >
                     {issue.explanation}
                   </div>
                 </li>

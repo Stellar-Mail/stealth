@@ -52,7 +52,10 @@ export function removeLabel(
     labels: labels.filter((label) => label.id !== id),
     messages: messages.map((message) =>
       message.labelIds.includes(id)
-        ? { ...message, labelIds: message.labelIds.filter((labelId) => labelId !== id) }
+        ? {
+            ...message,
+            labelIds: message.labelIds.filter((labelId) => labelId !== id),
+          }
         : message,
     ),
   };

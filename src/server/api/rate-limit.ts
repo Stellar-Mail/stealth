@@ -44,6 +44,54 @@ export async function consumeRouteQuota(
   return { allowed: true };
 }
 
+export const PROVISIONING_LIMITS = {
+  account: { max: 3, windowSeconds: 3600 },
+  origin: { max: 10, windowSeconds: 3600 },
+} as const;
+
+export type ProvisioningQuotaResult =
+  | { allowed: true }
+  | { allowed: false; retryAfterSeconds: number; limitedBy: "account" | "origin" };
+
+/**
+ * BETA-018: per-account and per-origin caps on managed-wallet funding attempts.
+ * Unknown origins fail open (same as the IP limiter) so edge-less local runs
+ * still enforce the account quota.
+ */
+export async function consumeProvisioningQuota(
+  repository: ApiRepository,
+  subjects: { accountId: string; origin: string },
+): Promise<ProvisioningQuotaResult> {
+  const accountCount = await repository.incrementCounter(
+    `abuse:provisioning:account:${subjects.accountId}`,
+    PROVISIONING_LIMITS.account.windowSeconds,
+  );
+  if (accountCount > PROVISIONING_LIMITS.account.max) {
+    return {
+      allowed: false,
+      retryAfterSeconds: PROVISIONING_LIMITS.account.windowSeconds,
+      limitedBy: "account",
+    };
+  }
+
+  const origin = subjects.origin.trim();
+  if (origin !== "" && origin !== "unknown") {
+    const originCount = await repository.incrementCounter(
+      `abuse:provisioning:origin:${origin}`,
+      PROVISIONING_LIMITS.origin.windowSeconds,
+    );
+    if (originCount > PROVISIONING_LIMITS.origin.max) {
+      return {
+        allowed: false,
+        retryAfterSeconds: PROVISIONING_LIMITS.origin.windowSeconds,
+        limitedBy: "origin",
+      };
+    }
+  }
+
+  return { allowed: true };
+}
+
 export const AUTH_FAILURE_LIMITS = {
   ipAndAccount: { max: 5, windowSeconds: 900 },
   ipWide: { max: 20, windowSeconds: 900 },
@@ -67,13 +115,19 @@ export async function checkAuthFailureThrottle(
 
   const ipAcctCount = await repository.getCounter(ipAcctKey);
   if (ipAcctCount >= AUTH_FAILURE_LIMITS.ipAndAccount.max) {
-    return { allowed: false, retryAfterSeconds: AUTH_FAILURE_LIMITS.ipAndAccount.windowSeconds };
+    return {
+      allowed: false,
+      retryAfterSeconds: AUTH_FAILURE_LIMITS.ipAndAccount.windowSeconds,
+    };
   }
 
   if (ipVal !== "unknown") {
     const ipWideCount = await repository.getCounter(ipWideKey);
     if (ipWideCount >= AUTH_FAILURE_LIMITS.ipWide.max) {
-      return { allowed: false, retryAfterSeconds: AUTH_FAILURE_LIMITS.ipWide.windowSeconds };
+      return {
+        allowed: false,
+        retryAfterSeconds: AUTH_FAILURE_LIMITS.ipWide.windowSeconds,
+      };
     }
   }
 

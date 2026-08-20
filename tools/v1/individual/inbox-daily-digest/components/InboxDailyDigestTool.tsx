@@ -71,7 +71,13 @@ const SAMPLE_DIGEST: DailyDigest = {
 };
 
 function generateDigest(
-  emails: { id: string; sender: string; subject: string; receivedAt: string; body: string }[],
+  emails: {
+    id: string;
+    sender: string;
+    subject: string;
+    receivedAt: string;
+    body: string;
+  }[],
 ): DailyDigest {
   const topEmails: DigestEmailPreview[] = emails.map((email) => {
     let priority: "low" | "normal" | "high" = "normal";

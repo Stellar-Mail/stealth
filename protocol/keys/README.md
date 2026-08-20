@@ -77,17 +77,75 @@ Device keys are ephemeral encryption keys specific to a single user agent/device
 
 ## Key Publication
 
-### Discovery Mechanism
+### Discovery Mechanism & API Endpoints
 
-Keys are published through a **Key Catalog** associated with each Stealth account:
+Keys are published and discovered through the versioned public key directory API:
+
+- `GET /api/v1/identity/keys?owner={stellar_account}`: Retrieve active keys alongside permitted historical keys.
+- `POST /api/v1/identity/keys`: Publish a new signed public key.
+- `POST /api/v1/identity/keys/rotate`: Rotate an active key, creating a new key version and transitioning the prior key to `rotated` with an overlap window.
+- `POST /api/v1/identity/keys/retire`: Retire an active key from use.
+- `POST /api/v1/identity/keys/revoke`: Immediately revoke a compromised key, disabling new encryption while maintaining historical verification strictly before `revokedAt`.
+- `GET /api/v1/identity/keys/{keyId}?owner={stellar_account}`: Retrieve specific key record.
+
+### Key Directory Response Format
+
+```json
+{
+  "owner": "GA7QYNF7SOWQ3GLR2BGMZEHXAVIRZA4KVWLTJJFC7MGXUA74P7UJVSGZ",
+  "currentKeys": {
+    "encryption": {
+      "keyId": "k_1700000000_abc123",
+      "owner": "GA7QYNF7SOWQ3GLR2BGMZEHXAVIRZA4KVWLTJJFC7MGXUA74P7UJVSGZ",
+      "algorithm": "x25519",
+      "purpose": "encryption",
+      "publicKey": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "version": 2,
+      "notBefore": "2026-01-01T00:00:00Z",
+      "notAfter": "2027-01-01T00:00:00Z",
+      "status": "active",
+      "signature": "...",
+      "createdAt": "2026-01-01T00:00:00Z",
+      "updatedAt": "2026-01-01T00:00:00Z"
+    },
+    "signing": { ... }
+  },
+  "historicalKeys": [
+    {
+      "keyId": "k_1690000000_oldkey",
+      "version": 1,
+      "status": "rotated",
+      "notBefore": "2025-01-01T00:00:00Z",
+      "notAfter": "2026-01-08T00:00:00Z",
+      ...
+    }
+  ],
+  "version": 2,
+  "updatedAt": "2026-01-01T00:00:00Z",
+  "freshness": {
+    "resolvedAt": "2026-01-01T00:00:00Z",
+    "cached": false,
+    "ttlMs": 300000
+  }
+}
+```
+
+### Canonical Signing Payload
+
+To ensure managed-wallet and Stellar signature authenticity, the publication payload is canonicalized:
 
 ```
-https://stealth.xyz/.well-known/stealth-keys/{stellar_account}
+stealth:key-directory
+{operation}
+{owner}
+{keyId}
+{algorithm}
+{purpose}
+{publicKey}
+{version}
+{notBefore}
+{notAfter}
 ```
-
-Or via on-chain data if integration with Stellar smart contracts is preferred.
-
-### Key Catalog Structure
 
 ```json
 {

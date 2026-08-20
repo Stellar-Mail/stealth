@@ -41,6 +41,9 @@ export function EmailList({
   onStar,
   onSnooze,
   onMove,
+  hasMore = false,
+  onLoadMore,
+  isLoadingMore = false,
 }: {
   emails: Email[];
   selectedId: string | null;
@@ -61,6 +64,9 @@ export function EmailList({
   onStar?: (email: Email) => void;
   onSnooze?: (email: Email) => void;
   onMove?: (emailIds: string[], target: MailLocation) => void;
+  hasMore?: boolean;
+  onLoadMore?: () => void;
+  isLoadingMore?: boolean;
 }) {
   const [activeTab, setActiveTab] = useState<FilterTab>("all");
   const folderLabel = customFolder ?? getFolderLabel(folder);
@@ -77,7 +83,10 @@ export function EmailList({
     if (activeTab === "flagged") return e.starred;
     return true;
   });
-  const visibleIds = filtered.map((email) => email.id);
+  const RENDER_CAP = 200;
+  const rendered = filtered.slice(0, RENDER_CAP);
+  const loadMoreRef = useRef<HTMLLIElement>(null);
+  const visibleIds = rendered.map((email) => email.id);
   const selectedVisibleIds = visibleIds.filter((id) => selectedIds.includes(id));
   const selectedEmails = selectedIds
     .map((id) => emails.find((email) => email.id === id))
@@ -136,6 +145,22 @@ export function EmailList({
     node.addEventListener("keydown", onKeyDown);
     return () => node.removeEventListener("keydown", onKeyDown);
   });
+
+  useEffect(() => {
+    if (!hasMore || !onLoadMore || rendered.length === 0) return;
+    const node = loadMoreRef.current;
+    if (!node) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting) && !isLoadingMore) {
+          onLoadMore();
+        }
+      },
+      { root: listRef.current, rootMargin: "120px" },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [hasMore, isLoadingMore, onLoadMore, rendered.length]);
 
   useEffect(() => {
     const node = listRef.current;
@@ -280,7 +305,7 @@ export function EmailList({
             </div>
           </li>
         )}
-        {filtered.map((e, idx) => {
+        {rendered.map((e, idx) => {
           const active = selectedId === e.id || selectedIds.includes(e.id);
           const selected = selectedIds.includes(e.id);
           const selectMessage = (shiftKey = false) => {
@@ -297,7 +322,11 @@ export function EmailList({
                 key={e.id}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.03, duration: 0.25, ease: [0.2, 0.8, 0.2, 1] }}
+                transition={{
+                  delay: Math.min(idx, 8) * 0.02,
+                  duration: 0.25,
+                  ease: [0.2, 0.8, 0.2, 1],
+                }}
               >
                 <div className="flex items-start gap-2 px-1">
                   <Checkbox
@@ -338,7 +367,11 @@ export function EmailList({
               key={e.id}
               initial={false}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: idx * 0.02, duration: 0.25, ease: [0.2, 0.8, 0.2, 1] }}
+              transition={{
+                delay: idx * 0.02,
+                duration: 0.25,
+                ease: [0.2, 0.8, 0.2, 1],
+              }}
             >
               <div
                 className="flex items-start gap-2"
@@ -382,7 +415,11 @@ export function EmailList({
                         background:
                           "radial-gradient(circle at 18% 22%, oklch(1 0 0 / 0.12), transparent 36%), linear-gradient(135deg, oklch(1 0 0 / 0.08), oklch(1 0 0 / 0.025) 44%, oklch(1 0 0 / 0.01))",
                       }}
-                      transition={{ type: "spring", stiffness: 400, damping: 32 }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 400,
+                        damping: 32,
+                      }}
                     />
                   )}
                   {showAvatars && (
@@ -451,6 +488,19 @@ export function EmailList({
             </motion.li>
           );
         })}
+        {hasMore ? (
+          <li ref={loadMoreRef} className="px-3 py-3">
+            <button
+              type="button"
+              onClick={() => onLoadMore?.()}
+              disabled={isLoadingMore}
+              aria-busy={isLoadingMore}
+              className="w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-muted-foreground transition hover:bg-white/[0.07] hover:text-foreground disabled:opacity-60"
+            >
+              {isLoadingMore ? "Loading more conversations" : "Load more conversations"}
+            </button>
+          </li>
+        ) : null}
       </ul>
 
       {/* M-key folder picker overlay */}

@@ -199,7 +199,12 @@ describe("fuzzyScore", () => {
 // ---------------------------------------------------------------------------
 describe("buildPaletteModel", () => {
   const emails = [
-    email({ id: "1", from: "Lina Park", email: "lina*vantage.studio", subject: "Design Sync" }),
+    email({
+      id: "1",
+      from: "Lina Park",
+      email: "lina*vantage.studio",
+      subject: "Design Sync",
+    }),
     email({
       id: "5",
       from: "Unknown Sender",
@@ -207,7 +212,12 @@ describe("buildPaletteModel", () => {
       folder: "requests",
       subject: "Postage Due",
     }),
-    email({ id: "6", from: "Lina Park", email: "lina*vantage.studio", subject: "Re: Design Sync" }),
+    email({
+      id: "6",
+      from: "Lina Park",
+      email: "lina*vantage.studio",
+      subject: "Re: Design Sync",
+    }),
   ];
 
   it("shows contextual command groups for an empty query", () => {

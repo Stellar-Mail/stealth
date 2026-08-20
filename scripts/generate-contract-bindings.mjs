@@ -246,7 +246,7 @@ function emitClient(spec, contractName, xdrBase64Entries) {
     `// Source: contracts/soroban/${contractName}/spec.json`,
     `// Regenerate: npm run generate:bindings`,
     ``,
-    `import { contract } from "@stellar/stellar-sdk";`,
+    `import { contract, Keypair } from "@stellar/stellar-sdk";`,
     ``,
   ];
 
@@ -276,6 +276,8 @@ function emitClient(spec, contractName, xdrBase64Entries) {
   lines.push(`  rpcUrl: string;`);
   lines.push(`  /** Public key of the transaction source account. */`);
   lines.push(`  publicKey?: string;`);
+  lines.push(`  /** Secret seed of the signing keypair (e.g. the operator keypair). */`);
+  lines.push(`  signer?: string;`);
   lines.push(`}`);
   lines.push(``);
 
@@ -307,6 +309,7 @@ function emitClient(spec, contractName, xdrBase64Entries) {
   lines.push(`      networkPassphrase: opts.networkPassphrase,`);
   lines.push(`      rpcUrl: opts.rpcUrl,`);
   lines.push(`      ...(opts.publicKey ? { publicKey: opts.publicKey } : {}),`);
+  lines.push(`      ...(opts.signer ? { signTransaction: Keypair.fromSecret(opts.signer) } : {}),`);
   lines.push(`    }`);
   lines.push(`  );`);
   lines.push(`}`);
@@ -380,9 +383,19 @@ function camelCase(str) {
 // Main
 // ---------------------------------------------------------------------------
 
-const CONTRACTS = ["policies", "postage", "receipts"];
+const CONTRACTS = ["policies", "postage", "receipts", "lifecycle"];
 const OUT_DIR = join(ROOT, "src", "services", "stellar", "contracts");
 mkdirSync(OUT_DIR, { recursive: true });
+
+// Windows shells resolve `npx` through npx.cmd, which execFileSync cannot find
+// without shell spawning; run prettier through the local binary so generation
+// works on every platform.
+const PRETTIER = join(
+  ROOT,
+  "node_modules",
+  ".bin",
+  process.platform === "win32" ? "prettier.cmd" : "prettier",
+);
 
 for (const name of CONTRACTS) {
   const specPath = join(ROOT, "contracts", "soroban", name, "spec.json");
@@ -391,7 +404,10 @@ for (const name of CONTRACTS) {
   const code = emitClient(spec, name, xdrEntries);
   const outPath = join(OUT_DIR, `${name}.ts`);
   writeFileSync(outPath, code, "utf8");
-  execFileSync("npx", ["prettier", "--write", outPath], { stdio: "inherit" });
+  execFileSync(PRETTIER, ["--write", outPath], {
+    stdio: "inherit",
+    shell: process.platform === "win32",
+  });
   console.log(`Generated ${outPath}`);
 }
 
@@ -399,5 +415,8 @@ for (const name of CONTRACTS) {
 const index = CONTRACTS.map((c) => `export * as ${camelCase(c)} from "./${c}";`).join("\n") + "\n";
 const indexPath = join(OUT_DIR, "index.ts");
 writeFileSync(indexPath, index, "utf8");
-execFileSync("npx", ["prettier", "--write", indexPath], { stdio: "inherit" });
+execFileSync(PRETTIER, ["--write", indexPath], {
+  stdio: "inherit",
+  shell: process.platform === "win32",
+});
 console.log(`Generated ${indexPath}`);

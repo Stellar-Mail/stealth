@@ -51,7 +51,10 @@ describe("EmailSummaryLoading", () => {
 });
 
 describe("EmailSummaryError", () => {
-  const defaultProps = { code: "empty-body", message: "Cannot summarize an empty email." };
+  const defaultProps = {
+    code: "empty-body",
+    message: "Cannot summarize an empty email.",
+  };
 
   it("renders error heading and message", () => {
     const el = EmailSummaryError(defaultProps);

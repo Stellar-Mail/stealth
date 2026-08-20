@@ -1,6 +1,10 @@
 import { readFileSync, existsSync } from "node:fs";
 import { resolve, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { BetaRuntimeConfig } from "./schema";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = resolve(__filename, "..");
 
 export interface ContractManifest {
   network: string;
@@ -100,16 +104,17 @@ export function validateRegistryDrift(config: BetaRuntimeConfig) {
     }
   }
 
+  // 3. Lifecycle contract ID drift
   if (
-    config.contract.policiesContractId !== "placeholder" &&
-    config.contract.policiesContractId !== manifest.contracts.policies?.contractId
+    config.contract.lifecycleContractId !== "placeholder" &&
+    config.contract.lifecycleContractId !== manifest.contracts.lifecycle?.contractId
   ) {
     if (
       config.profile === "production" ||
-      !config.contract.policiesContractId.startsWith("CCCC")
+      !config.contract.lifecycleContractId.startsWith("C_DEV")
     ) {
       throw new Error(
-        `Drift Validation Error: STEALTH_POLICIES_CONTRACT_ID '${config.contract.policiesContractId}' does not match deployed policies manifest ID '${manifest.contracts.policies?.contractId}'`,
+        `Drift Validation Error: STEALTH_LIFECYCLE_CONTRACT_ID '${config.contract.lifecycleContractId}' does not match deployed manifest ID '${manifest.contracts.lifecycle?.contractId}'`,
       );
     }
   }

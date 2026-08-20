@@ -137,8 +137,15 @@ export function suggestKb(
   limit?: number,
   filters: KbCorpusFilter[] = [],
   config?: Partial<SuggestionConfig>,
-): { suggestions: KbSuggestion[]; warnings: string[]; reasons?: KbMatchReason[][] } {
-  const mergedConfig: SuggestionConfig = { ...DEFAULT_SUGGESTION_CONFIG, ...config };
+): {
+  suggestions: KbSuggestion[];
+  warnings: string[];
+  reasons?: KbMatchReason[][];
+} {
+  const mergedConfig: SuggestionConfig = {
+    ...DEFAULT_SUGGESTION_CONFIG,
+    ...config,
+  };
   const effectiveLimit = limit ?? mergedConfig.defaultLimit ?? 5;
   const clampedLimit = Math.min(effectiveLimit, mergedConfig.maxLimit ?? 50);
 

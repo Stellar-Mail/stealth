@@ -41,9 +41,17 @@ export function isImminent(send: ScheduledSend, now: Date, windowDays = 3): bool
 function formatLocalDate(iso: string): string {
   const d = new Date(iso);
   return (
-    d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) +
+    d.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    }) +
     " · " +
-    d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true })
+    d.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    })
   );
 }
 
@@ -340,7 +348,8 @@ export function CampaignTimelinePanel() {
             Campaign Phases
           </h4>
           <p className="mt-0.5 text-[11px] text-muted-foreground">
-            {timeline.phases.length} phase{timeline.phases.length !== 1 ? "s" : ""} ·{" "}
+            {timeline.phases.length} phase
+            {timeline.phases.length !== 1 ? "s" : ""} ·{" "}
             {(() => {
               const r = getTimelineDateRange(timeline);
               if (!r) return "—";

@@ -11,7 +11,6 @@ import { apiSuccess, handleApiRequest } from "@/server/api/response";
 
 const ruleBodySchema = z.object({
   rule: senderRuleSchema.exclude(["default"]),
-  expectedVersion: z.number().int().min(0).optional(),
 });
 
 export const Route = createFileRoute("/api/v1/policies/$owner/senders/$sender")({

@@ -7,6 +7,8 @@ import {
   checkAuthFailureThrottle,
   recordAuthFailure,
   AUTH_FAILURE_LIMITS,
+  consumeProvisioningQuota,
+  PROVISIONING_LIMITS,
 } from "../../../src/server/api/rate-limit";
 
 describe("weighted route rate limits", () => {
@@ -37,6 +39,45 @@ describe("weighted route rate limits", () => {
   it("keeps operation costs in immutable server configuration", () => {
     expect(Object.isFrozen(RATE_LIMIT_OPERATION_COSTS)).toBe(true);
     expect(Object.values(RATE_LIMIT_OPERATION_COSTS)).toEqual([1, 3, 5, 10]);
+  });
+
+  describe("provisioning quotas (BETA-018)", () => {
+    it("enforces a per-account provisioning cap", async () => {
+      const repository = new MemoryApiRepository();
+
+      for (let i = 0; i < PROVISIONING_LIMITS.account.max; i += 1) {
+        await expect(
+          consumeProvisioningQuota(repository, { accountId: "usr_a", origin: "unknown" }),
+        ).resolves.toEqual({ allowed: true });
+      }
+
+      await expect(
+        consumeProvisioningQuota(repository, { accountId: "usr_a", origin: "unknown" }),
+      ).resolves.toEqual({
+        allowed: false,
+        retryAfterSeconds: PROVISIONING_LIMITS.account.windowSeconds,
+        limitedBy: "account",
+      });
+    });
+
+    it("enforces a per-origin provisioning cap independently of account", async () => {
+      const repository = new MemoryApiRepository();
+      const origin = "192.0.2.44";
+
+      for (let i = 0; i < PROVISIONING_LIMITS.origin.max; i += 1) {
+        await expect(
+          consumeProvisioningQuota(repository, { accountId: `usr_${i}`, origin }),
+        ).resolves.toEqual({ allowed: true });
+      }
+
+      await expect(
+        consumeProvisioningQuota(repository, { accountId: "usr_other", origin }),
+      ).resolves.toEqual({
+        allowed: false,
+        retryAfterSeconds: PROVISIONING_LIMITS.origin.windowSeconds,
+        limitedBy: "origin",
+      });
+    });
   });
 
   describe("authentication failure throttling", () => {

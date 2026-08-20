@@ -23,7 +23,12 @@ function readRequest(actor: string, messageId: string = validMessageId) {
 
 function parseJsonResponse(response: Response) {
   return response.clone().json() as Promise<{
-    error?: { code: string; message: string; retryable: boolean; details?: unknown };
+    error?: {
+      code: string;
+      message: string;
+      retryable: boolean;
+      details?: unknown;
+    };
     data?: unknown;
   }>;
 }
@@ -169,7 +174,11 @@ describe("read receipt endpoint (route-level tests)", () => {
 
   describe("authorization — only recipient can publish read receipt", () => {
     beforeEach(async () => {
-      await createDeliveryReceipt(repo, { messageId: validMessageId, recipient, sender });
+      await createDeliveryReceipt(repo, {
+        messageId: validMessageId,
+        recipient,
+        sender,
+      });
     });
 
     it("rejects sender actor", async () => {
@@ -262,7 +271,11 @@ describe("read receipt endpoint (route-level tests)", () => {
 
   describe("duplicate read receipt behavior — deterministic first-write-wins", () => {
     beforeEach(async () => {
-      await createDeliveryReceipt(repo, { messageId: validMessageId, recipient, sender });
+      await createDeliveryReceipt(repo, {
+        messageId: validMessageId,
+        recipient,
+        sender,
+      });
     });
 
     it("returns 200 on successful first read from recipient", async () => {

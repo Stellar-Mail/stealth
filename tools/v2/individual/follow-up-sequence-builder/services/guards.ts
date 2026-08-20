@@ -167,7 +167,11 @@ export function safeBuildSequence(input: unknown, options?: unknown): SafeBuildR
 
   const limitIssue = checkInputLimits(sanitized);
   if (limitIssue) {
-    return { status: "error", code: limitIssue.code, message: limitIssue.message };
+    return {
+      status: "error",
+      code: limitIssue.code,
+      message: limitIssue.message,
+    };
   }
 
   const parsedOptions = validateOptions(options);

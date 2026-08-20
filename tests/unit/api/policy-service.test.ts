@@ -85,6 +85,9 @@ describe("mailbox policy service", () => {
         sender,
         verified: true,
       }),
-    ).resolves.toMatchObject({ allowed: false, reason: "insufficient_postage" });
+    ).resolves.toMatchObject({
+      allowed: false,
+      reason: "insufficient_postage",
+    });
   });
 });

@@ -54,7 +54,10 @@ export function validateBulkFolderMove(
   const knownIds = new Set(messages.map((message) => message.id));
   const missingIds = selectedIds.filter((id) => !knownIds.has(id));
   if (missingIds.length > 0) {
-    return { ok: false, error: `Unknown message id(s): ${missingIds.join(", ")}` };
+    return {
+      ok: false,
+      error: `Unknown message id(s): ${missingIds.join(", ")}`,
+    };
   }
 
   return { ok: true };

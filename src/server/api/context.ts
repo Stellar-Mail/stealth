@@ -17,7 +17,17 @@ import {
   sessionSchema,
   retiredSessionSchema,
   storedEnvelopeSchema,
+  provisioningRecordSchema,
+  usernameReservationSchema,
+  verificationTokenSchema,
+  walletSchema,
   policyWriteIntentSchema,
+  publishedKeySchema,
+  keyDirectoryRecordSchema,
+  contactSchema,
+  managedWalletRecordSchema,
+  fundingOperationSchema,
+  recoveryCodeSetSchema,
 } from "./domain";
 import { ApiError } from "./errors";
 
@@ -200,8 +210,13 @@ registerRecordSchema("senderRuleWriteIntent", 1, senderRuleWriteIntentSchema);
 registerRecordSchema("postage", 1, postageSchema);
 registerRecordSchema("receipt", 1, receiptSchema);
 registerRecordSchema("user", 1, userSchema);
-registerRecordSchema("profile", 1, profileSchema);
+// Issue #1976 (BETA-069): profile v2 adds locale, timezone, and addressDisplay.
+// Legacy v1 records are migrated by stamping defaults for the new fields.
+registerRecordSchema("profile", 2, profileSchema, {
+  1: (data: any) => ({ ...data, locale: "en", timezone: "UTC", addressDisplay: "truncated" }),
+});
 registerRecordSchema("credential", 1, credentialSchema);
+registerRecordSchema("verificationToken", 1, verificationTokenSchema);
 registerRecordSchema("session", 1, sessionSchema);
 registerRecordSchema("retiredSession", 1, retiredSessionSchema);
 // v1 -> v2 (Issue #1498): records now carry a requestDigest binding the
@@ -217,10 +232,28 @@ registerRecordSchema("idempotencyRecord", 2, idempotencyRecordSchema, {
 // ValidatedApiRepository can detect tampered or structurally invalid
 // envelope records at the adapter boundary before they reach any caller.
 registerRecordSchema("storedEnvelope", 1, storedEnvelopeSchema);
+// Issue #1921 (BETA-014): provisioning state machine, username claims and
+// wallet records are versioned and validated at the adapter boundary like
+// every other durable record.
+registerRecordSchema("provisioning", 1, provisioningRecordSchema);
+registerRecordSchema("usernameReservation", 1, usernameReservationSchema);
+registerRecordSchema("wallet", 1, walletSchema);
 // Issue #1930 (BETA-023): durable scheduled-write intent for the Policies
 // contract, so tampered or structurally invalid intents fail closed at the
 // adapter boundary instead of silently drifting the reconciliation state.
 registerRecordSchema("policyWriteIntent", 1, policyWriteIntentSchema);
+// Issue #1934 (BETA-027): Versioned Public Encryption-Key Directory & Rotation
+registerRecordSchema("publishedKey", 1, publishedKeySchema);
+registerRecordSchema("keyDirectoryRecord", 1, keyDirectoryRecordSchema);
+// Issue #1973 (BETA-066): durable user-owned contacts are versioned and
+// validated at the adapter boundary like every other durable record.
+registerRecordSchema("contact", 1, contactSchema);
+registerRecordSchema("managedWalletRecord", 1, managedWalletRecordSchema);
+registerRecordSchema("fundingOperation", 1, fundingOperationSchema);
+// Issue #1917 (BETA-010): register the recovery code set schema so that
+// ValidatedApiRepository can detect tampered or structurally invalid
+// recovery records at the adapter boundary.
+registerRecordSchema("recoveryCodeSet", 1, recoveryCodeSetSchema);
 
 /**
  * Issue #1461: Verified API Principal model representing authenticated request identity.

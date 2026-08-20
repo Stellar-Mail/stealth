@@ -140,7 +140,9 @@ import {
 // Calculate individual SLIs
 const availability = computeAvailabilitySLI();
 console.log(
-  `Availability: ${availability.ratio * 100}% (${availability.numerator}/${availability.denominator})`,
+  `Availability: ${availability.ratio * 100}% (${availability.numerator}/${
+    availability.denominator
+  })`,
 );
 
 // Calculate overall summary

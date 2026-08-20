@@ -71,7 +71,12 @@ export const policyServiceVectors: PolicyServiceVector[] = [
   },
   {
     name: "insufficient postage below minimum required postage",
-    policy: { ...basePolicy, allowUnknown: true, requireVerified: false, minimumPostage: "500" },
+    policy: {
+      ...basePolicy,
+      allowUnknown: true,
+      requireVerified: false,
+      minimumPostage: "500",
+    },
     senderRule: null,
     input: { postage: "100", sender, verified: true },
     expected: {
@@ -83,10 +88,20 @@ export const policyServiceVectors: PolicyServiceVector[] = [
   },
   {
     name: "policy satisfied (allow, verified, enough postage)",
-    policy: { ...basePolicy, allowUnknown: true, requireVerified: true, minimumPostage: "500" },
+    policy: {
+      ...basePolicy,
+      allowUnknown: true,
+      requireVerified: true,
+      minimumPostage: "500",
+    },
     senderRule: null,
     input: { postage: "1000", sender, verified: true },
-    expected: { allowed: true, reason: "policy_satisfied", source: "configured", rule: "default" },
+    expected: {
+      allowed: true,
+      reason: "policy_satisfied",
+      source: "configured",
+      rule: "default",
+    },
   },
   {
     name: "missing policy (no stored policy) falls back to default policy (blocks unknown unverified)",
@@ -109,7 +124,12 @@ export const policyServiceVectors: PolicyServiceVector[] = [
   },
   {
     name: "delegate sender evaluation with explicit allow rule",
-    policy: { ...basePolicy, allowUnknown: true, requireVerified: false, minimumPostage: "0" },
+    policy: {
+      ...basePolicy,
+      allowUnknown: true,
+      requireVerified: false,
+      minimumPostage: "0",
+    },
     senderRule: "allow",
     input: { postage: "0", sender: delegate, verified: true },
     expected: { allowed: true, reason: "sender_allowed", rule: "allow" },
@@ -123,8 +143,17 @@ export const policyServiceVectors: PolicyServiceVector[] = [
       minimumPostage: "1000000",
     },
     senderRule: null,
-    input: { postage: "170141183460469231731687303715884105727", sender, verified: true },
-    expected: { allowed: true, reason: "policy_satisfied", source: "configured", rule: "default" },
+    input: {
+      postage: "170141183460469231731687303715884105727",
+      sender,
+      verified: true,
+    },
+    expected: {
+      allowed: true,
+      reason: "policy_satisfied",
+      source: "configured",
+      rule: "default",
+    },
   },
 ];
 

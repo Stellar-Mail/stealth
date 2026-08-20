@@ -206,9 +206,21 @@ export function createRouteHandler<
       const apiErr = normalizeApiError(error);
       const status = apiErr.status;
 
-      metrics.recordHistogram("api_latency", latency, { method, path, status: String(status) });
-      metrics.incrementCounter("api_requests_total", { method, path, status: String(status) });
-      metrics.incrementCounter("api_errors_total", { method, path, status: String(status) });
+      metrics.recordHistogram("api_latency", latency, {
+        method,
+        path,
+        status: String(status),
+      });
+      metrics.incrementCounter("api_requests_total", {
+        method,
+        path,
+        status: String(status),
+      });
+      metrics.incrementCounter("api_errors_total", {
+        method,
+        path,
+        status: String(status),
+      });
 
       console.error(`[API ERROR] ${method} ${path} - ${status} (${latency.toFixed(2)}ms)`, apiErr);
 

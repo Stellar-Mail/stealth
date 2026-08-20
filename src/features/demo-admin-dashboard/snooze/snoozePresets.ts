@@ -34,9 +34,21 @@ export const SNOOZE_PRESETS: SnoozePreset[] = [
       return plusThree.getTime() > evening.getTime() ? evening : plusThree;
     },
   },
-  { id: "tomorrow", label: "Tomorrow", resolve: (now) => at(addDays(now, 1), 9) },
-  { id: "this-weekend", label: "This weekend", resolve: (now) => at(nextSaturday(now), 9) },
-  { id: "next-week", label: "Next week", resolve: (now) => at(nextMonday(now), 9) },
+  {
+    id: "tomorrow",
+    label: "Tomorrow",
+    resolve: (now) => at(addDays(now, 1), 9),
+  },
+  {
+    id: "this-weekend",
+    label: "This weekend",
+    resolve: (now) => at(nextSaturday(now), 9),
+  },
+  {
+    id: "next-week",
+    label: "Next week",
+    resolve: (now) => at(nextMonday(now), 9),
+  },
 ];
 
 export function getSnoozePreset(id: SnoozePresetId): SnoozePreset {

@@ -30,8 +30,14 @@ import { EventMailCard, type CalendarEvent, type CalendarResponse } from "@/feat
 import { OTPCard, detectOtp } from "@/features/otp";
 import { ConvertSenderButton, SenderBadge } from "@/features/sender-conversion";
 import { SnoozeBanner } from "@/features/snooze";
+import { MailReaderSkeleton } from "@/features/design-system";
+import type { MailThread } from "@/features/mail/live-thread";
+import { canRenderBody, isTrustedContent } from "@/features/mail/live-thread";
+import type { ThreadReadView } from "@/features/mail/useThreadRead";
+import { parseSafeContent, type BodyBlock as SafeBodyBlock } from "@/features/mail/safe-rendering";
 import { ProvenancePanel } from "./ProvenancePanel";
 import { EmailTrustBadges } from "./EmailTrustBadges";
+import { EncryptedPayloadBanner } from "./EncryptedPayloadBanner";
 import type { Email } from "./data";
 import {
   getRecipientReadiness,
@@ -66,9 +72,15 @@ export type EmailViewActions = {
 export function EmailView({
   email,
   actions = {},
+  thread = null,
+  threadView = { kind: "idle" },
+  onRetryThread,
 }: {
   email: Email | null;
   actions?: EmailViewActions;
+  thread?: MailThread | null;
+  threadView?: ThreadReadView;
+  onRetryThread?: () => void;
 }) {
   const [replyMenuOpen, setReplyMenuOpen] = useState(false);
   const [inlineMode, setInlineMode] = useState<ComposeMode | null>(null);
@@ -78,10 +90,20 @@ export function EmailView({
     setInlineMode(null);
   }, [email?.id]);
 
+  const selectedThreadMessage =
+    thread?.messages.find((message) => message.messageId === email?.id) ??
+    thread?.messages[0] ??
+    null;
+  const showTrustedBody = selectedThreadMessage
+    ? canRenderBody(selectedThreadMessage)
+    : threadView.kind === "idle";
+
   return (
     <section className="mail-reader-atmosphere relative m-3 ml-0 flex h-[calc(100vh-3.5rem-1.5rem)] flex-1 flex-col overflow-hidden rounded-[8px]">
       <AnimatePresence mode="wait">
-        {!email ? (
+        {threadView.kind === "loading" ? (
+          <MailReaderSkeleton key="thread-loading" className="h-full" />
+        ) : !email ? (
           <motion.div
             key="empty"
             initial={{ opacity: 0 }}
@@ -177,7 +199,11 @@ export function EmailView({
                     label: "Reply all",
                     onClick: () => actions.onReplyAll?.(email),
                   },
-                  { icon: Forward, label: "Forward", onClick: () => actions.onForward?.(email) },
+                  {
+                    icon: Forward,
+                    label: "Forward",
+                    onClick: () => actions.onForward?.(email),
+                  },
                 ].map(({ icon: Icon, label, onClick }) => (
                   <motion.button
                     key={label}
@@ -302,14 +328,89 @@ export function EmailView({
                   />
                 ) : null}
 
-                {(() => {
-                  const otp = detectOtp(email.body);
-                  return otp ? <OTPCard code={otp} /> : null;
-                })()}
+                {threadView.kind === "error" ? (
+                  <ThreadReadError failure={threadView.failure} onRetry={onRetryThread} />
+                ) : null}
 
-                <ReaderBody body={email.body} />
+                {thread?.mixedState ? (
+                  <p
+                    role="status"
+                    className="mt-5 rounded-lg border border-amber-200/20 bg-amber-200/[0.04] px-3 py-2 text-xs text-amber-100"
+                  >
+                    This conversation contains mixed verification states. Unverified or failed
+                    messages never render as trusted content.
+                  </p>
+                ) : null}
 
-                {email.attachments?.length ? (
+                {thread && thread.messages.length > 1 ? (
+                  <ol className="mt-5 space-y-3" aria-label="Conversation messages">
+                    {thread.messages.map((message) => (
+                      <li
+                        key={message.messageId}
+                        className="rounded-md border border-white/[0.08] bg-black/10 px-3 py-2"
+                      >
+                        <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+                          <span className="font-medium text-foreground/90">{message.sender}</span>
+                          <time dateTime={message.timestamp}>{message.timestamp}</time>
+                          <span className="uppercase tracking-[0.14em]">{message.trust}</span>
+                        </div>
+                        {message.authenticityWarning ? (
+                          <p className="mt-1 text-[11px] text-amber-100/90">
+                            {message.authenticityWarning}
+                          </p>
+                        ) : null}
+                      </li>
+                    ))}
+                  </ol>
+                ) : null}
+
+                {email.encryptedPayload ? (
+                  <EncryptedPayloadBanner
+                    payload={email.encryptedPayload}
+                    actions={{ onRetry: onRetryThread }}
+                  />
+                ) : null}
+
+                {selectedThreadMessage?.authenticityWarning &&
+                !isTrustedContent(selectedThreadMessage) ? (
+                  <p
+                    role="alert"
+                    className="mt-5 rounded-lg border border-amber-200/20 bg-amber-200/[0.04] px-3 py-2 text-xs text-amber-100"
+                  >
+                    {selectedThreadMessage.authenticityWarning}
+                  </p>
+                ) : null}
+
+                {selectedThreadMessage?.remoteResources.blockedCount ? (
+                  <p role="status" className="mt-3 text-[11px] text-muted-foreground">
+                    {selectedThreadMessage.remoteResources.blockedCount} remote resource
+                    {selectedThreadMessage.remoteResources.blockedCount === 1 ? "" : "s"} blocked.
+                    Opening this message does not load external content.
+                  </p>
+                ) : null}
+
+                {showTrustedBody
+                  ? (() => {
+                      const otp = detectOtp(email.body);
+                      return otp ? <OTPCard code={otp} /> : null;
+                    })()
+                  : null}
+
+                {showTrustedBody ? (
+                  <ReaderBody
+                    body={email.body}
+                    blocks={selectedThreadMessage?.safeContent?.blocks}
+                    trusted={selectedThreadMessage ? isTrustedContent(selectedThreadMessage) : true}
+                  />
+                ) : selectedThreadMessage ? (
+                  <p className="mt-7 text-sm text-muted-foreground">
+                    Message body is hidden until the envelope verifies and decrypts.
+                  </p>
+                ) : (
+                  <ReaderBody body={email.body} trusted />
+                )}
+
+                {showTrustedBody && email.attachments?.length ? (
                   <div className="mt-7 max-w-[500px]">
                     <div className="mail-reader-meta mb-2 flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
                       <Paperclip className="h-3 w-3" /> {email.attachments.length} attachment
@@ -405,7 +506,12 @@ function InlineReplyComposer({
   const readiness = getRecipientReadiness(to, postage, blockedRecipients);
 
   const submit = (scheduled = false) => {
-    const validationError = validateComposeDraft({ to, body, postage, blockedRecipients });
+    const validationError = validateComposeDraft({
+      to,
+      body,
+      postage,
+      blockedRecipients,
+    });
     if (validationError) {
       onShowToast?.(validationError);
       return;
@@ -560,15 +666,22 @@ function ProtocolStatus({
   onShowToast?: (message: string) => void;
 }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const verified = ["verified", "priority", "encrypted", "receipts"].includes(email.folder);
-  const proof = `${email.id.padStart(2, "0")}c7...${email.from.length.toString(16)}a9`;
+  const verified = Boolean(email.provenanceData?.senderVerified);
+  const digest = email.provenanceData?.digest;
+  const proof =
+    digest && digest.length >= 12
+      ? `${digest.slice(0, 8)}...${digest.slice(-4)}`
+      : "proof unavailable";
+  const label = email.quarantineRecord
+    ? email.quarantineRecord.userHeadline
+    : verified
+      ? "Stellar identity verified"
+      : "Authenticity not verified";
 
   return (
     <div className="mt-5 flex flex-wrap items-center gap-2 rounded-lg border border-white/[0.08] bg-black/15 px-3 py-2">
       <BadgeCheck className={cn("h-4 w-4", verified ? "text-emerald-300" : "text-amber-200")} />
-      <span className="text-xs font-medium text-foreground">
-        {verified ? "Stellar identity verified" : "Proof verification pending"}
-      </span>
+      <span className="text-xs font-medium text-foreground">{label}</span>
       <span className="font-mono text-[10px] text-muted-foreground">{proof}</span>
       <div className="ml-auto flex items-center gap-2">
         <button
@@ -579,6 +692,10 @@ function ProtocolStatus({
         </button>
         <button
           onClick={async () => {
+            if (proof === "proof unavailable") {
+              onShowToast?.("No verified proof is available for this message");
+              return;
+            }
             await navigator.clipboard?.writeText(proof);
             onShowToast?.(`Proof ${proof} copied`);
           }}
@@ -721,7 +838,10 @@ function AttachmentIcon({ type }: { type: string }) {
   );
 }
 
-function getAttachmentIcon(type: string): { icon: LucideIcon; className: string } {
+function getAttachmentIcon(type: string): {
+  icon: LucideIcon;
+  className: string;
+} {
   const normalized = type.toLowerCase();
 
   if (normalized === "pdf") return { icon: FileText, className: "text-red-300" };
@@ -747,7 +867,9 @@ function SenderIdentity({ email, compact = false }: { email: Email; compact?: bo
         className={`flex shrink-0 items-center justify-center rounded-md text-xs font-semibold text-white/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] ${
           compact ? "h-8 w-8" : "h-10 w-10"
         }`}
-        style={{ background: `linear-gradient(135deg, ${email.avatarColor}, #1a1a1d)` }}
+        style={{
+          background: `linear-gradient(135deg, ${email.avatarColor}, #1a1a1d)`,
+        }}
       >
         {email.from
           .split(" ")
@@ -771,17 +893,50 @@ function SenderIdentity({ email, compact = false }: { email: Email; compact?: bo
   );
 }
 
-type BodyBlock =
-  | { kind: "paragraph"; text: string }
-  | { kind: "fields"; fields: { label: string; value: string }[] }
-  | { kind: "list"; items: string[] };
+function ThreadReadError({
+  failure,
+  onRetry,
+}: {
+  failure: { kind: string; message: string; retryable: boolean };
+  onRetry?: () => void;
+}) {
+  return (
+    <div
+      role="alert"
+      className="mt-5 rounded-lg border border-red-300/20 bg-red-300/[0.04] px-3 py-3"
+    >
+      <p className="text-xs font-medium text-foreground">{failure.message}</p>
+      {failure.retryable && onRetry ? (
+        <button
+          type="button"
+          onClick={onRetry}
+          className="mt-2 rounded-md border border-red-300/15 bg-red-300/[0.06] px-2.5 py-1 text-[10px] font-medium text-red-200 transition hover:bg-red-300/[0.12]"
+        >
+          Retry
+        </button>
+      ) : null}
+    </div>
+  );
+}
 
-function ReaderBody({ body }: { body: string }) {
-  const blocks = getBodyBlocks(body);
+function ReaderBody({
+  body,
+  blocks,
+  trusted = true,
+}: {
+  body: string;
+  blocks?: SafeBodyBlock[];
+  trusted?: boolean;
+}) {
+  const resolved = blocks?.length ? blocks : parseSafeContent(body).blocks;
 
   return (
-    <div className="mail-reader-body reader-copy mt-7 max-w-[68ch] space-y-5 text-[16px] leading-7 text-foreground/88 sm:text-[17px] sm:leading-8">
-      {blocks.map((block, index) => {
+    <div
+      data-trusted={trusted ? "true" : "false"}
+      aria-label={trusted ? "Verified message body" : "Unverified sanitized message body"}
+      className="mail-reader-body reader-copy mt-7 max-w-[68ch] space-y-5 text-[16px] leading-7 text-foreground/88 sm:text-[17px] sm:leading-8"
+    >
+      {resolved.map((block, index) => {
         if (block.kind === "paragraph") {
           return (
             <p key={index} className="text-pretty">
@@ -823,63 +978,4 @@ function ReaderBody({ body }: { body: string }) {
       })}
     </div>
   );
-}
-
-function getBodyBlocks(body: string): BodyBlock[] {
-  const blocks: BodyBlock[] = [];
-  const lines = body.split(/\r?\n/);
-  let index = 0;
-
-  while (index < lines.length) {
-    const line = lines[index].trim();
-
-    if (!line) {
-      index += 1;
-      continue;
-    }
-
-    if (isBulletLine(line)) {
-      const items: string[] = [];
-      while (index < lines.length && isBulletLine(lines[index].trim())) {
-        items.push(lines[index].trim().replace(/^-\s+/, ""));
-        index += 1;
-      }
-      blocks.push({ kind: "list", items });
-      continue;
-    }
-
-    if (isFieldLine(line)) {
-      const fields: { label: string; value: string }[] = [];
-      while (index < lines.length && isFieldLine(lines[index].trim())) {
-        fields.push(splitFieldLine(lines[index].trim()));
-        index += 1;
-      }
-      blocks.push({ kind: "fields", fields });
-      continue;
-    }
-
-    const paragraph: string[] = [];
-    while (index < lines.length) {
-      const current = lines[index].trim();
-      if (!current || isBulletLine(current) || isFieldLine(current)) break;
-      paragraph.push(current);
-      index += 1;
-    }
-    blocks.push({ kind: "paragraph", text: paragraph.join(" ") });
-  }
-
-  return blocks;
-}
-
-function isBulletLine(line: string) {
-  return /^-\s+/.test(line);
-}
-
-function isFieldLine(line: string) {
-  return /^[A-Za-z][A-Za-z0-9 -]{1,32}:\s+\S/.test(line);
-}
-
-function splitFieldLine(line: string) {
-  const [label, ...value] = line.split(":");
-  return { label, value: value.join(":").trim() };
 }

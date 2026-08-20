@@ -14,7 +14,11 @@ const multiSchema = z.object({
   tag: z.array(z.string()).optional(),
 });
 
-function captureError(fn: () => unknown): { status: number; code: string; message: string } {
+function captureError(fn: () => unknown): {
+  status: number;
+  code: string;
+  message: string;
+} {
   try {
     fn();
   } catch (error) {

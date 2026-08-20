@@ -248,7 +248,11 @@ To add X25519-XSalsa20-Poly1305 as a v2 suite:
 export const SUITE_REGISTRY = {
   versions: [
     { version: "v1", suites: ["AES-256-GCM"], status: "supported" },
-    { version: "v2", suites: ["X25519-XSalsa20-Poly1305"], status: "supported" },
+    {
+      version: "v2",
+      suites: ["X25519-XSalsa20-Poly1305"],
+      status: "supported",
+    },
   ],
   suites: [
     {

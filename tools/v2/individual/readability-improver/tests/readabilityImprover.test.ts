@@ -69,8 +69,14 @@ describe("improveReadability", () => {
     const veryLong = improveReadability(
       makeInput({ body: sentenceOf(VERY_LONG_SENTENCE_WORDS + 1) }),
     );
-    expect(long.issues[0]).toMatchObject({ type: "long-sentence", severity: "info" });
-    expect(veryLong.issues[0]).toMatchObject({ type: "long-sentence", severity: "warn" });
+    expect(long.issues[0]).toMatchObject({
+      type: "long-sentence",
+      severity: "info",
+    });
+    expect(veryLong.issues[0]).toMatchObject({
+      type: "long-sentence",
+      severity: "warn",
+    });
     expect(veryLong.metrics.longSentenceCount).toBe(1);
   });
 
@@ -85,13 +91,19 @@ describe("improveReadability", () => {
 
   it("flags passive voice with an active-voice suggestion", () => {
     const result = improveReadability(makeInput({ body: "The budget was approved by the board." }));
-    expect(result.issues[0]).toMatchObject({ type: "passive-voice", severity: "info" });
+    expect(result.issues[0]).toMatchObject({
+      type: "passive-voice",
+      severity: "info",
+    });
   });
 
   it("flags repeated all-caps words as shouting", () => {
     const shouting = improveReadability(makeInput({ body: "SEND THIS NOW PLEASE." }));
     const calm = improveReadability(makeInput({ body: "Send the NASA report." }));
-    expect(shouting.issues[0]).toMatchObject({ type: "shouting", severity: "warn" });
+    expect(shouting.issues[0]).toMatchObject({
+      type: "shouting",
+      severity: "warn",
+    });
     expect(calm.issues).toEqual([]);
   });
 
@@ -134,7 +146,9 @@ describe("improveReadability", () => {
   it("omits issues when includeIssues is false without changing the score", () => {
     const body = "We will utilize the tool.";
     const withIssues = improveReadability(makeInput({ body }));
-    const withoutIssues = improveReadability(makeInput({ body }), { includeIssues: false });
+    const withoutIssues = improveReadability(makeInput({ body }), {
+      includeIssues: false,
+    });
     expect(withoutIssues.issues).toEqual([]);
     expect(withoutIssues.score).toBe(withIssues.score);
     expect(withoutIssues.stats.issueCandidates).toBe(withIssues.stats.issueCandidates);
@@ -149,7 +163,10 @@ describe("improveReadability", () => {
   });
 
   it("does not mutate the caller's input", () => {
-    const input = makeInput({ subject: "Note", body: "We will utilize the tool." });
+    const input = makeInput({
+      subject: "Note",
+      body: "We will utilize the tool.",
+    });
     const snapshot = JSON.parse(JSON.stringify(input));
     improveReadability(input);
     expect(input).toEqual(snapshot);

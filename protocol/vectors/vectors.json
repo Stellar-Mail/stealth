@@ -35,43 +35,64 @@
             "id": "primitives/address/invalid/too-short",
             "description": "55 characters total — one character short of the required 56.",
             "input": "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-            "expected": { "valid": false, "error": "Expected a Stellar G-address" }
+            "expected": {
+              "valid": false,
+              "error": "Expected a Stellar G-address"
+            }
           },
           {
             "id": "primitives/address/invalid/too-long",
             "description": "57 characters total — one character over the required 56.",
             "input": "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-            "expected": { "valid": false, "error": "Expected a Stellar G-address" }
+            "expected": {
+              "valid": false,
+              "error": "Expected a Stellar G-address"
+            }
           },
           {
             "id": "primitives/address/invalid/wrong-prefix",
             "description": "Starts with X instead of G.",
             "input": "XAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-            "expected": { "valid": false, "error": "Expected a Stellar G-address" }
+            "expected": {
+              "valid": false,
+              "error": "Expected a Stellar G-address"
+            }
           },
           {
             "id": "primitives/address/invalid/digit-zero",
             "description": "Contains digit 0, which is not in the base32 alphabet (valid digits are 2-7).",
             "input": "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA0",
-            "expected": { "valid": false, "error": "Expected a Stellar G-address" }
+            "expected": {
+              "valid": false,
+              "error": "Expected a Stellar G-address"
+            }
           },
           {
             "id": "primitives/address/invalid/digit-one",
             "description": "Contains digit 1, which is not in the base32 alphabet (valid digits are 2-7).",
             "input": "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA1",
-            "expected": { "valid": false, "error": "Expected a Stellar G-address" }
+            "expected": {
+              "valid": false,
+              "error": "Expected a Stellar G-address"
+            }
           },
           {
             "id": "primitives/address/invalid/lowercase",
             "description": "Lowercase g is not accepted — the prefix must be uppercase G.",
             "input": "gaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-            "expected": { "valid": false, "error": "Expected a Stellar G-address" }
+            "expected": {
+              "valid": false,
+              "error": "Expected a Stellar G-address"
+            }
           },
           {
             "id": "primitives/address/invalid/empty",
             "description": "Empty string.",
             "input": "",
-            "expected": { "valid": false, "error": "Expected a Stellar G-address" }
+            "expected": {
+              "valid": false,
+              "error": "Expected a Stellar G-address"
+            }
           }
         ]
       },
@@ -118,25 +139,37 @@
             "id": "primitives/hash/invalid/too-short",
             "description": "63 hex characters — one short of the required 64.",
             "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-            "expected": { "valid": false, "error": "Expected a 32-byte lowercase hexadecimal hash" }
+            "expected": {
+              "valid": false,
+              "error": "Expected a 32-byte lowercase hexadecimal hash"
+            }
           },
           {
             "id": "primitives/hash/invalid/too-long",
             "description": "65 hex characters — one over the required 64.",
             "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0",
-            "expected": { "valid": false, "error": "Expected a 32-byte lowercase hexadecimal hash" }
+            "expected": {
+              "valid": false,
+              "error": "Expected a 32-byte lowercase hexadecimal hash"
+            }
           },
           {
             "id": "primitives/hash/invalid/non-hex-char",
             "description": "64 characters but the last is 'g', which is outside the hex alphabet [a-f0-9].",
             "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaag",
-            "expected": { "valid": false, "error": "Expected a 32-byte lowercase hexadecimal hash" }
+            "expected": {
+              "valid": false,
+              "error": "Expected a 32-byte lowercase hexadecimal hash"
+            }
           },
           {
             "id": "primitives/hash/invalid/empty",
             "description": "Empty string.",
             "input": "",
-            "expected": { "valid": false, "error": "Expected a 32-byte lowercase hexadecimal hash" }
+            "expected": {
+              "valid": false,
+              "error": "Expected a 32-byte lowercase hexadecimal hash"
+            }
           }
         ]
       },
@@ -171,37 +204,55 @@
             "id": "primitives/amount/invalid/negative",
             "description": "Negative amount — stroops cannot be negative.",
             "input": "-1",
-            "expected": { "valid": false, "error": "Expected a non-negative integer string" }
+            "expected": {
+              "valid": false,
+              "error": "Expected a non-negative integer string"
+            }
           },
           {
             "id": "primitives/amount/invalid/decimal",
             "description": "Decimal value — amounts must be integers.",
             "input": "1.5",
-            "expected": { "valid": false, "error": "Expected a non-negative integer string" }
+            "expected": {
+              "valid": false,
+              "error": "Expected a non-negative integer string"
+            }
           },
           {
             "id": "primitives/amount/invalid/leading-zero",
             "description": "Leading zero — not a canonical integer representation.",
             "input": "01",
-            "expected": { "valid": false, "error": "Expected a non-negative integer string" }
+            "expected": {
+              "valid": false,
+              "error": "Expected a non-negative integer string"
+            }
           },
           {
             "id": "primitives/amount/invalid/non-numeric",
             "description": "Non-numeric string.",
             "input": "abc",
-            "expected": { "valid": false, "error": "Expected a non-negative integer string" }
+            "expected": {
+              "valid": false,
+              "error": "Expected a non-negative integer string"
+            }
           },
           {
             "id": "primitives/amount/invalid/empty",
             "description": "Empty string.",
             "input": "",
-            "expected": { "valid": false, "error": "Expected a non-negative integer string" }
+            "expected": {
+              "valid": false,
+              "error": "Expected a non-negative integer string"
+            }
           },
           {
             "id": "primitives/amount/invalid/overflow",
             "description": "2^127 — one over the maximum Soroban i128 value.",
             "input": "170141183460469231731687303715884105728",
-            "expected": { "valid": false, "error": "Amount exceeds Soroban i128" }
+            "expected": {
+              "valid": false,
+              "error": "Amount exceeds Soroban i128"
+            }
           }
         ]
       }
@@ -230,7 +281,11 @@
           "description": "No explicit rule; mailbox policy has allowUnknown=false — all unknown senders are rejected.",
           "setup": {
             "senderRule": "default",
-            "policy": { "allowUnknown": false, "requireVerified": false, "minimumPostage": "0" }
+            "policy": {
+              "allowUnknown": false,
+              "requireVerified": false,
+              "minimumPostage": "0"
+            }
           },
           "input": { "postage": "1000", "verified": true },
           "expected": { "allowed": false, "reason": "unknown_senders_disabled" }
@@ -240,7 +295,11 @@
           "description": "No explicit rule; mailbox requires verified senders; sender is unverified.",
           "setup": {
             "senderRule": "default",
-            "policy": { "allowUnknown": true, "requireVerified": true, "minimumPostage": "0" }
+            "policy": {
+              "allowUnknown": true,
+              "requireVerified": true,
+              "minimumPostage": "0"
+            }
           },
           "input": { "postage": "1000", "verified": false },
           "expected": { "allowed": false, "reason": "verification_required" }
@@ -250,7 +309,11 @@
           "description": "No explicit rule; mailbox minimum is 500 stroops; sender attaches only 499.",
           "setup": {
             "senderRule": "default",
-            "policy": { "allowUnknown": true, "requireVerified": false, "minimumPostage": "500" }
+            "policy": {
+              "allowUnknown": true,
+              "requireVerified": false,
+              "minimumPostage": "500"
+            }
           },
           "input": { "postage": "499", "verified": false },
           "expected": { "allowed": false, "reason": "insufficient_postage" }
@@ -260,7 +323,11 @@
           "description": "No explicit rule; all policy conditions are met — sender is allowed.",
           "setup": {
             "senderRule": "default",
-            "policy": { "allowUnknown": true, "requireVerified": false, "minimumPostage": "0" }
+            "policy": {
+              "allowUnknown": true,
+              "requireVerified": false,
+              "minimumPostage": "0"
+            }
           },
           "input": { "postage": "0", "verified": false },
           "expected": { "allowed": true, "reason": "policy_satisfied" }
@@ -397,7 +464,11 @@
           "preconditions": [
             {
               "op": "setPolicy",
-              "policy": { "allowUnknown": true, "requireVerified": false, "minimumPostage": "1000" }
+              "policy": {
+                "allowUnknown": true,
+                "requireVerified": false,
+                "minimumPostage": "1000"
+              }
             }
           ],
           "operations": ["submit"],
@@ -486,35 +557,50 @@
           "description": "Address starts with X instead of G.",
           "schema": "stellarAddress",
           "input": "XAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-          "expected": { "valid": false, "error": "Expected a Stellar G-address" }
+          "expected": {
+            "valid": false,
+            "error": "Expected a Stellar G-address"
+          }
         },
         {
           "id": "tampered/address/digit-eight",
           "description": "Address contains 8 which is outside the base32 alphabet (valid digits are 2-7).",
           "schema": "stellarAddress",
           "input": "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA8",
-          "expected": { "valid": false, "error": "Expected a Stellar G-address" }
+          "expected": {
+            "valid": false,
+            "error": "Expected a Stellar G-address"
+          }
         },
         {
           "id": "tampered/hash/truncated",
           "description": "Hash is only 32 hex characters — half the required 64.",
           "schema": "hash32",
           "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "expected": { "valid": false, "error": "Expected a 32-byte lowercase hexadecimal hash" }
+          "expected": {
+            "valid": false,
+            "error": "Expected a 32-byte lowercase hexadecimal hash"
+          }
         },
         {
           "id": "tampered/hash/non-hex",
           "description": "Hash contains 'z', which is outside the hex alphabet.",
           "schema": "hash32",
           "input": "zaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "expected": { "valid": false, "error": "Expected a 32-byte lowercase hexadecimal hash" }
+          "expected": {
+            "valid": false,
+            "error": "Expected a 32-byte lowercase hexadecimal hash"
+          }
         },
         {
           "id": "tampered/amount/negative",
           "description": "Negative stroop amount — rejected by pattern before i128 range check.",
           "schema": "stroopAmount",
           "input": "-1",
-          "expected": { "valid": false, "error": "Expected a non-negative integer string" }
+          "expected": {
+            "valid": false,
+            "error": "Expected a non-negative integer string"
+          }
         },
         {
           "id": "tampered/amount/overflow",
@@ -528,7 +614,10 @@
           "description": "Floating-point string is not a canonical integer — rejected even if representable.",
           "schema": "stroopAmount",
           "input": "100.0",
-          "expected": { "valid": false, "error": "Expected a non-negative integer string" }
+          "expected": {
+            "valid": false,
+            "error": "Expected a non-negative integer string"
+          }
         }
       ]
     },

@@ -332,7 +332,12 @@ export async function extractAttachments(
       reason: "too_many_files",
       message: `Batch contains ${files.length} files; maximum is ${maxFiles}`,
     });
-    return { success: false, attachments, errors, stats: calculateStats(attachments, errors) };
+    return {
+      success: false,
+      attachments,
+      errors,
+      stats: calculateStats(attachments, errors),
+    };
   }
 
   const totalInputSize = files.reduce(
@@ -347,7 +352,12 @@ export async function extractAttachments(
         maxTotalSize,
       )}`,
     });
-    return { success: false, attachments, errors, stats: calculateStats(attachments, errors) };
+    return {
+      success: false,
+      attachments,
+      errors,
+      stats: calculateStats(attachments, errors),
+    };
   }
 
   // Process each file

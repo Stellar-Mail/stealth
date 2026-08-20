@@ -101,7 +101,11 @@ export async function extractAttachments(
 
   try {
     if (typeof rawPayload !== "string") {
-      return { success: false, attachments: [], error: "Raw payload must be a string." };
+      return {
+        success: false,
+        attachments: [],
+        error: "Raw payload must be a string.",
+      };
     }
 
     if (byteLength(rawPayload) > maxPayloadBytes) {
@@ -114,7 +118,11 @@ export async function extractAttachments(
 
     const boundary = parseBoundary(rawPayload);
     if (!boundary) {
-      return { success: true, attachments: [], warnings: ["No safe multipart boundary found."] };
+      return {
+        success: true,
+        attachments: [],
+        warnings: ["No safe multipart boundary found."],
+      };
     }
 
     const delimiter = new RegExp(

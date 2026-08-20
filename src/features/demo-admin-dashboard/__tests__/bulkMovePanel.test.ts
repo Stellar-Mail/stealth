@@ -37,17 +37,26 @@ describe("isValidMessageFolder", () => {
 describe("validateBulkFolderMove", () => {
   it("rejects empty selection", () => {
     const result = validateBulkFolderMove(sampleMessages(), [], "drafts");
-    expect(result).toEqual({ ok: false, error: "Select at least one message to move." });
+    expect(result).toEqual({
+      ok: false,
+      error: "Select at least one message to move.",
+    });
   });
 
   it("rejects invalid target folders", () => {
     const result = validateBulkFolderMove(sampleMessages(), ["m1"], "snoozed");
-    expect(result).toEqual({ ok: false, error: "Choose a valid destination folder." });
+    expect(result).toEqual({
+      ok: false,
+      error: "Choose a valid destination folder.",
+    });
   });
 
   it("rejects unknown message ids", () => {
     const result = validateBulkFolderMove(sampleMessages(), ["m1", "missing"], "drafts");
-    expect(result).toEqual({ ok: false, error: "Unknown message id(s): missing" });
+    expect(result).toEqual({
+      ok: false,
+      error: "Unknown message id(s): missing",
+    });
   });
 
   it("accepts valid input", () => {

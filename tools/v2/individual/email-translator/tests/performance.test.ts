@@ -401,7 +401,9 @@ describe("measurePerformance", () => {
 
   it("should include metadata", async () => {
     const operation = async () => "result";
-    const { metrics } = await measurePerformance(operation, { provider: "test" });
+    const { metrics } = await measurePerformance(operation, {
+      provider: "test",
+    });
 
     expect(metrics.provider).toBe("test");
   });

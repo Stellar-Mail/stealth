@@ -3,7 +3,12 @@ import { AssignableMessage } from "../types/assignment";
 import { Draft } from "../types/draft";
 
 function messageToDraft(msg: AssignableMessage): Draft {
-  return { id: msg.id, subject: msg.subject, body: msg.body, recipients: msg.recipients };
+  return {
+    id: msg.id,
+    subject: msg.subject,
+    body: msg.body,
+    recipients: msg.recipients,
+  };
 }
 
 export function isMessageAssigned(campaign: CampaignSnapshot, messageId: string): boolean {
@@ -28,7 +33,10 @@ export function assignMessage(
 }
 
 export function unassignMessage(campaign: CampaignSnapshot, messageId: string): CampaignSnapshot {
-  return { ...campaign, drafts: campaign.drafts.filter((d) => d.id !== messageId) };
+  return {
+    ...campaign,
+    drafts: campaign.drafts.filter((d) => d.id !== messageId),
+  };
 }
 
 export function getCampaignsForMessage(

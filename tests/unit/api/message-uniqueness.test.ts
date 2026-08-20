@@ -32,7 +32,9 @@ describe("message identifier uniqueness", () => {
   });
 
   it("inserts a new postage record", async () => {
-    await expect(repo.insertPostage(postage())).resolves.toMatchObject({ messageId });
+    await expect(repo.insertPostage(postage())).resolves.toMatchObject({
+      messageId,
+    });
   });
 
   it("rejects a duplicate messageId with a deterministic conflict", async () => {
@@ -48,7 +50,9 @@ describe("message identifier uniqueness", () => {
     await repo.insertPostage(postage({ amount: "100" }));
     await expect(repo.insertPostage(postage({ amount: "999" }))).rejects.toBeInstanceOf(ApiError);
     // The original record is unchanged — no ambiguous state.
-    await expect(repo.getPostage(messageId)).resolves.toMatchObject({ amount: "100" });
+    await expect(repo.getPostage(messageId)).resolves.toMatchObject({
+      amount: "100",
+    });
   });
 
   it("yields exactly one winner under concurrent inserts", async () => {

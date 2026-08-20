@@ -296,7 +296,11 @@ export class SuggestionCache {
  * Create a simple cache with no dependencies.
  * Useful for one-off suggestions without persistent caching.
  */
-export function createNoOpCache(): { get: () => null; set: () => void; getStats: () => object } {
+export function createNoOpCache(): {
+  get: () => null;
+  set: () => void;
+  getStats: () => object;
+} {
   return {
     get: () => null,
     set: () => {},

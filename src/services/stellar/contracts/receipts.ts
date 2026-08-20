@@ -2,7 +2,7 @@
 // Source: contracts/soroban/receipts/spec.json
 // Regenerate: npm run generate:bindings
 
-import { contract } from "@stellar/stellar-sdk";
+import { contract, Keypair } from "@stellar/stellar-sdk";
 
 export interface Receipt {
   message_id: Buffer;
@@ -36,6 +36,8 @@ export interface ReceiptsClientOptions {
   rpcUrl: string;
   /** Public key of the transaction source account. */
   publicKey?: string;
+  /** Secret seed of the signing keypair (e.g. the operator keypair). */
+  signer?: string;
 }
 
 /** Map a contract error code to an actionable ReceiptsError variant. */
@@ -52,6 +54,7 @@ export function createReceiptsClient(opts: ReceiptsClientOptions): contract.Clie
     networkPassphrase: opts.networkPassphrase,
     rpcUrl: opts.rpcUrl,
     ...(opts.publicKey ? { publicKey: opts.publicKey } : {}),
+    ...(opts.signer ? { signTransaction: Keypair.fromSecret(opts.signer) } : {}),
   });
 }
 

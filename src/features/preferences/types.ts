@@ -2,9 +2,15 @@ export type ThemePreference = "dark" | "light" | "system";
 export type DensityPreference = "comfortable" | "compact";
 export type GlassIntensityPreference = "subtle" | "medium" | "strong";
 export type ReaderTypographyPreference = "sans" | "serif" | "large";
-export type UnknownSenderPolicy = "request" | "verified" | "block";
 
+export type UnknownSenderPolicy = "request" | "verified" | "block";
 export type ReceiptPreference = "auto" | "manual" | "never";
+export type NotificationCategory = "mail" | "requests" | "failures" | "receipts";
+
+export type NotificationPreferences = {
+  categories: Record<NotificationCategory, boolean>;
+  quietHours: { enabled: boolean; start: string; end: string };
+};
 
 export type UiPreferences = {
   theme: ThemePreference;
@@ -17,8 +23,7 @@ export type UiPreferences = {
   emailNotifications: boolean;
   desktopNotifications: boolean;
   sound: boolean;
-  unknownSenders: UnknownSenderPolicy;
-  minimumPostage: string;
+  notifications: NotificationPreferences;
   onboardingCompleted: boolean;
   receiptOnDelivery: boolean;
   receipts: {
@@ -27,6 +32,8 @@ export type UiPreferences = {
     paid: ReceiptPreference;
     organizations: ReceiptPreference;
   };
+  unknownSenders: UnknownSenderPolicy;
+  minimumPostage: string;
 };
 
 export const defaultPreferences: UiPreferences = {
@@ -41,8 +48,10 @@ export const defaultPreferences: UiPreferences = {
   emailNotifications: true,
   desktopNotifications: true,
   sound: false,
-  unknownSenders: "request",
-  minimumPostage: "0.0001",
+  notifications: {
+    categories: { mail: true, requests: true, failures: true, receipts: true },
+    quietHours: { enabled: false, start: "22:00", end: "07:00" },
+  },
   onboardingCompleted: false,
   receipts: {
     trusted: "auto",
@@ -50,4 +59,6 @@ export const defaultPreferences: UiPreferences = {
     paid: "manual",
     organizations: "auto",
   },
+  unknownSenders: "request",
+  minimumPostage: "0.01",
 };

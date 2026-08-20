@@ -41,28 +41,31 @@ All changes are **100% folder-local**, adhering strictly to the V2 contributor o
 ## Improvements Implemented
 
 ### ✅ Accessible UI Workflow & Keyboard Navigation
+
 - **View Mode Switching:** Supports tabbing and arrow-key navigation (`ArrowLeft` / `ArrowRight`, `Home`, `End`) across `Member Workload` and `Team Snapshots` tabs (`role="tablist"`).
 - **Sortable Column Headers:** Implements dynamic `aria-sort` attributes (`ascending`, `descending`, `none`) with keyboard activation (`Enter` / `Space`) to toggle column ordering.
 - **Interactive Rows & Cards:** All table rows and snapshot cards support keyboard selection and visible high-contrast focus rings (`focus-visible:ring-2 focus-visible:ring-primary`).
 
 ### ✅ Screen-Reader Support & Edge-Case Semantics
+
 - **ARIA Live Regions:** Explicitly announces async loading (`role="status"`, `aria-busy="true"`), network errors (`role="alert"`, `aria-live="assertive"`), and success confirmations without speech interruption.
 - **Null / Away Workload Handling:** Away members or blocked snapshots with null `avgResponseTimeHours` render `"N/A"` with explicit `aria-label="Not applicable"` so screen readers never read ambiguous zero values.
 - **Combined Icon + Text Status Badges:** All status indicators (`Active`, `Overloaded`, `Underutilized`, `Away`, `Healthy`, `Watch`, `Needs Attention`, `Blocked`) combine text and symbolic iconography (`✓`, `⚠️`, `ℹ️`, `⏸️`, `👀`, `🛑`) so status is never conveyed by color alone.
 
 ### ✅ Isolated Architecture & Reviewable Demo
+
 - **Zero Main-App Coupling:** All UI components, state management, and fixtures remain completely isolated inside `tools/v2/team/team-analytics-dashboard/`.
 - **Interactive Demo Controls:** `TeamAnalyticsDashboardDemo` in `demo.tsx` provides toggleable buttons (`Normal State`, `Simulate Loading`, `Simulate Error`, `Simulate Empty`) to allow reviewers to test all 4 UI states without needing a running backend.
 
 ## Acceptance Criteria Met
 
-| Criterion | Status | Evidence |
-| --- | --- | --- |
-| Create folder-local components for primary tool workflow | ✅ | Implemented `TeamAnalyticsDashboard`, `SummaryCards`, `MemberTable`, and `SnapshotList` |
-| Add empty, loading, error, and success states | ✅ | Implemented `EmptyState`, `LoadingState`, `ErrorState`, and `SuccessState` with ARIA live regions |
-| Include keyboard, focus, labeling, and screen-reader considerations | ✅ | Validated in `ACCESSIBILITY.md` and 20 Vitest component tests |
-| Visual style documented without changing shared design system | ✅ | Documented in `VISUAL_STYLE.md`; uses standard Tailwind semantic tokens |
-| Keep work small, reviewable, and limited to tool folder | ✅ | All changes limited to `tools/v2/team/team-analytics-dashboard/` |
+| Criterion                                                           | Status | Evidence                                                                                          |
+| ------------------------------------------------------------------- | ------ | ------------------------------------------------------------------------------------------------- |
+| Create folder-local components for primary tool workflow            | ✅     | Implemented `TeamAnalyticsDashboard`, `SummaryCards`, `MemberTable`, and `SnapshotList`           |
+| Add empty, loading, error, and success states                       | ✅     | Implemented `EmptyState`, `LoadingState`, `ErrorState`, and `SuccessState` with ARIA live regions |
+| Include keyboard, focus, labeling, and screen-reader considerations | ✅     | Validated in `ACCESSIBILITY.md` and 20 Vitest component tests                                     |
+| Visual style documented without changing shared design system       | ✅     | Documented in `VISUAL_STYLE.md`; uses standard Tailwind semantic tokens                           |
+| Keep work small, reviewable, and limited to tool folder             | ✅     | All changes limited to `tools/v2/team/team-analytics-dashboard/`                                  |
 
 ## Technical Details
 
@@ -79,6 +82,7 @@ tools/v2/team/team-analytics-dashboard/specs.md
 ### No Changes Needed
 
 These shared application areas remain untouched as required by the V2 ownership boundary:
+
 - Main application shell and dashboard layout ✓
 - Navigation system and routing ✓
 - Wallet core, Stellar core, and authentication ✓
@@ -88,10 +92,12 @@ These shared application areas remain untouched as required by the V2 ownership 
 ## Testing Coverage
 
 ### Component & Hook Testing (Vitest — 27 tests)
+
 - `tests/components.test.tsx` (20 tests): Verifies component rendering, ARIA live attributes, keyboard activations, column sorting, status badge rendering, and `"N/A"` edge-case rendering.
 - `tests/hooks.test.tsx` (7 tests): Verifies default fixture loading, member filtering by status/review flags, case-insensitive search, multi-column sorting, filter clearing, and custom retry handlers.
 
 ### Service & Fixture Contract Testing (Node --test — 27 tests)
+
 - Verifies local contract JSON schema, SLA breach classification, summary arithmetic consistency, and validation guard error codes.
 
 ## Deployment Checklist

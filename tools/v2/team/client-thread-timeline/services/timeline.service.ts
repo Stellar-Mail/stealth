@@ -30,7 +30,10 @@ export function createTimelineContract(): TimelineContract {
         switch (input.operation) {
           case "buildTimeline": {
             const timeline = buildClientTimeline(input.input, input.order ?? "asc");
-            return { ok: true, value: { operation: "buildTimeline", timeline } };
+            return {
+              ok: true,
+              value: { operation: "buildTimeline", timeline },
+            };
           }
           case "getThread": {
             const thread = getClientThread(input.input);

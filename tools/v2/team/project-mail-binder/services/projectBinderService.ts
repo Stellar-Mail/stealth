@@ -109,8 +109,11 @@ export class ProjectBinderService {
     // 1. Build indices for fast O(1) lookups
     const senderToProjectMap = new Map<string, Set<string>>(); // lowercase address -> Set of projectIds
     const stellarAddressToProjectMap = new Map<string, Set<string>>(); // G-address -> Set of projectIds
-    const activeRegexRules: Array<{ projectId: string; rule: AutoBindingRule; compiled: RegExp }> =
-      [];
+    const activeRegexRules: Array<{
+      projectId: string;
+      rule: AutoBindingRule;
+      compiled: RegExp;
+    }> = [];
 
     for (const project of this.projects.values()) {
       // Index stellarAddress associated with project

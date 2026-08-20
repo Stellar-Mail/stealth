@@ -44,7 +44,9 @@ export function RequestsTriageBoard({
     setTimeout(() => {
       if (simulateFailure) {
         setCardStatus(emailId, "failure");
-        onShowToast(`Stellar transaction failed for ${action}`, { tone: "danger" });
+        onShowToast(`Stellar transaction failed for ${action}`, {
+          tone: "danger",
+        });
       } else {
         const successStatus = `success-${action}` as CardStatus;
         setCardStatus(emailId, successStatus);
@@ -91,13 +93,17 @@ export function RequestsTriageBoard({
         senderPolicy: "block",
         labels: cleanLabels(email.labels, "Blocked"),
       });
-      onShowToast(`${email.from} blocked. Mail moved to Spam.`, { tone: "danger" });
+      onShowToast(`${email.from} blocked. Mail moved to Spam.`, {
+        tone: "danger",
+      });
     } else if (action === "refund") {
       onUpdateEmail(emailId, {
         folder: "spam",
         labels: cleanLabels(email.labels, "Refunded"),
       });
-      onShowToast(`Postage refunded for message from ${email.from}.`, { tone: "success" });
+      onShowToast(`Postage refunded for message from ${email.from}.`, {
+        tone: "success",
+      });
     }
 
     // Clean up local card state

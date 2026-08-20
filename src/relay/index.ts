@@ -49,6 +49,7 @@ function buildConfig(): RelayServiceConfig {
       sorobanRpcUrl: config.network.sorobanRpcUrl,
       networkPassphrase: config.network.networkPassphrase,
     },
+    audience: process.env.STEALTH_RELAY_AUDIENCE ?? "relay:test.stealth",
   };
 }
 
@@ -71,8 +72,10 @@ function getService(): RelayService {
       await submitToRelay(
         {
           messageId: envelope.messageId,
+          sender: envelope.sender,
+          recipient: envelope.recipient,
           recipientDomain: envelope.recipientDomain,
-          envelopePayload: envelope.payload,
+          payload: envelope.payload,
           ttlMs: envelope.ttlMs,
         },
         {

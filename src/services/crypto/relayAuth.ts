@@ -11,6 +11,7 @@
  */
 
 import { canonicalizePayload } from "./envelope";
+import { recordCryptoTelemetry, type CryptoResultCode } from "./telemetry";
 
 /** Server-side constants (see spec §6). */
 export const MAX_REPLAY_WINDOW_SECONDS = 300;
@@ -32,7 +33,14 @@ export class RelayAuthError extends Error {
     super(message);
     this.name = "RelayAuthError";
     this.code = code;
-    this.httpStatus = code === "INVALID_SIGNATURE" ? 401 : code === "AUDIENCE_MISMATCH" ? 403 : 409;
+    this.httpStatus =
+      code === "INVALID_SIGNATURE"
+        ? 401
+        : code === "AUDIENCE_MISMATCH"
+          ? 403
+          : code === "REPLAY_DETECTED"
+            ? 409
+            : 400;
   }
 }
 
@@ -103,70 +111,103 @@ export function verifyRelayRequest(
   request: RelayRequest,
   config: RelayAuthConfig,
 ): { ok: true; idempotencyReplayed: boolean; result?: unknown } {
-  const { payload, signature } = request;
+  const startTime = performance.now();
+  let resultCode: CryptoResultCode = "success";
 
-  // --- Mandatory fields (spec §3) ---
-  if (
-    typeof payload.request_nonce !== "string" ||
-    typeof payload.audience !== "string" ||
-    typeof payload.idempotency_key !== "string" ||
-    typeof payload.replay_window_seconds !== "number"
-  ) {
-    throw new RelayAuthError("INVALID_REQUEST", "Missing mandatory anti-replay field(s)");
-  }
-  if (payload.request_nonce.length < 16) {
-    throw new RelayAuthError("INVALID_REQUEST", "request_nonce too short");
-  }
+  try {
+    const { payload, signature } = request;
 
-  // --- 1. Signature (spec §5.1) ---
-  const publicKey = config.resolvePublicKey(payload.sender);
-  if (!publicKey) {
-    throw new RelayAuthError("INVALID_SIGNATURE", "Unknown sender public key");
-  }
-  const canonical = canonicalizePayload(payload);
-  const sigOk = config.verify({
-    publicKey,
-    message: canonical,
-    signature: signature.value,
-  });
-  if (!sigOk) {
-    throw new RelayAuthError("INVALID_SIGNATURE", "Signature verification failed");
-  }
+    // --- Mandatory fields (spec §3) ---
+    if (
+      !payload ||
+      typeof payload.request_nonce !== "string" ||
+      typeof payload.audience !== "string" ||
+      typeof payload.idempotency_key !== "string" ||
+      typeof payload.replay_window_seconds !== "number"
+    ) {
+      throw new RelayAuthError("INVALID_REQUEST", "Missing mandatory anti-replay field(s)");
+    }
+    if (payload.request_nonce.length < 16) {
+      throw new RelayAuthError("INVALID_REQUEST", "request_nonce too short");
+    }
 
-  // --- 2. Audience (spec §5.2) ---
-  if (payload.audience !== config.audience) {
-    throw new RelayAuthError(
-      "AUDIENCE_MISMATCH",
-      `audience ${payload.audience} != ${config.audience}`,
-    );
-  }
+    // --- 1. Signature (spec §5.1) ---
+    if (!signature || !signature.value) {
+      throw new RelayAuthError("INVALID_SIGNATURE", "Missing signature");
+    }
+    const publicKey = config.resolvePublicKey(payload.sender);
+    if (!publicKey) {
+      throw new RelayAuthError("INVALID_SIGNATURE", "Unknown sender public key");
+    }
+    const canonical = canonicalizePayload(payload);
+    const sigOk = config.verify({
+      publicKey,
+      message: canonical,
+      signature: signature.value,
+    });
+    if (!sigOk) {
+      throw new RelayAuthError("INVALID_SIGNATURE", "Signature verification failed");
+    }
 
-  // --- 3. Freshness (spec §5.3, §6) ---
-  const now = config.nowSeconds();
-  const ts = parseTimestampSeconds(payload.timestamp);
-  const delta = now - ts;
-  const window = Math.min(payload.replay_window_seconds, MAX_REPLAY_WINDOW_SECONDS);
-  if (delta > window) {
-    throw new RelayAuthError("STALE_REQUEST", "Request older than replay window");
-  }
-  if (delta < -CLOCK_SKEW_TOLERANCE_SECONDS) {
-    throw new RelayAuthError("FUTURE_REQUEST", "Timestamp too far in the future");
-  }
+    // --- 2. Audience (spec §5.2) ---
+    if (payload.audience !== config.audience) {
+      throw new RelayAuthError(
+        "AUDIENCE_MISMATCH",
+        `audience ${payload.audience} != ${config.audience}`,
+      );
+    }
 
-  // --- 4. Nonce uniqueness (spec §5.4) ---
-  if (config.isNonceSeen(payload.request_nonce)) {
-    throw new RelayAuthError("REPLAY_DETECTED", "request_nonce already seen");
-  }
+    // --- 3. Freshness (spec §5.3, §6) ---
+    const now = config.nowSeconds();
+    const ts = parseTimestampSeconds(payload.timestamp);
+    const delta = now - ts;
+    const window = Math.min(payload.replay_window_seconds, MAX_REPLAY_WINDOW_SECONDS);
+    if (delta > window) {
+      throw new RelayAuthError("STALE_REQUEST", "Request older than replay window");
+    }
+    if (delta < -CLOCK_SKEW_TOLERANCE_SECONDS) {
+      throw new RelayAuthError("FUTURE_REQUEST", "Timestamp too far in the future");
+    }
 
-  // --- 5. Idempotency (spec §5.5) ---
-  const prior = config.getIdempotencyResult(payload.idempotency_key);
-  if (prior !== null && prior !== undefined) {
-    return { ok: true, idempotencyReplayed: true, result: prior };
-  }
+    // --- 4. Nonce uniqueness (spec §5.4) ---
+    if (config.isNonceSeen(payload.request_nonce)) {
+      throw new RelayAuthError("REPLAY_DETECTED", "request_nonce already seen");
+    }
 
-  // Record presence so a subsequent identical request is idempotent.
-  config.markNonceSeen(payload.request_nonce);
-  const result = { accepted: true, messageId: payload.content_commitment };
-  config.storeIdempotencyResult(payload.idempotency_key, result);
-  return { ok: true, idempotencyReplayed: false, result };
+    // --- 5. Idempotency (spec §5.5) ---
+    const prior = config.getIdempotencyResult(payload.idempotency_key);
+    if (prior !== null && prior !== undefined) {
+      return { ok: true, idempotencyReplayed: true, result: prior };
+    }
+
+    // Record presence so a subsequent identical request is idempotent.
+    config.markNonceSeen(payload.request_nonce);
+    const result = { accepted: true, messageId: payload.content_commitment };
+    config.storeIdempotencyResult(payload.idempotency_key, result);
+    return { ok: true, idempotencyReplayed: false, result };
+  } catch (err) {
+    if (err instanceof RelayAuthError) {
+      switch (err.code) {
+        case "INVALID_SIGNATURE":
+          resultCode = "error_signature";
+          break;
+        case "INVALID_REQUEST":
+          resultCode = "error_parse";
+          break;
+        default:
+          resultCode = "error_validation";
+          break;
+      }
+    } else {
+      resultCode = "error_parse";
+    }
+    throw err;
+  } finally {
+    const durationMs = Math.max(1, Math.round(performance.now() - startTime));
+    recordCryptoTelemetry({
+      operation: "relay_auth_verify",
+      result: resultCode,
+      durationMs,
+    });
+  }
 }

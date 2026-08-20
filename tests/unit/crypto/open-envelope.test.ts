@@ -138,7 +138,10 @@ describe("openEnvelope decryption (#1685)", () => {
       ...env,
       payload: {
         ...env.payload,
-        encryption_metadata: { ...env.payload.encryption_metadata, algorithm: "AES-128-GCM" },
+        encryption_metadata: {
+          ...env.payload.encryption_metadata,
+          algorithm: "AES-128-GCM",
+        },
       },
     };
     const err = await openEnvelope(bad, keyProviderFor(key)).catch((e) => e);
@@ -156,7 +159,10 @@ describe("openEnvelope decryption (#1685)", () => {
       ...env,
       payload: {
         ...env.payload,
-        encryption_metadata: { ...env.payload.encryption_metadata, algorithm: "ROT13" },
+        encryption_metadata: {
+          ...env.payload.encryption_metadata,
+          algorithm: "ROT13",
+        },
       },
     };
     const err = await openEnvelope(bad, keyProviderFor(key)).catch((e) => e);
@@ -185,5 +191,59 @@ describe("openEnvelope decryption (#1685)", () => {
       payload: { ...env.payload, content_commitment: "0".repeat(64) },
     };
     await expect(openEnvelope(bad, keyProviderFor(key))).rejects.toBeInstanceOf(OpenEnvelopeError);
+  });
+
+  it("enforces recipient binding when expectedRecipient is specified", async () => {
+    const key = await crypto.subtle.generateKey({ name: "AES-GCM", length: 256 }, true, [
+      "encrypt",
+      "decrypt",
+    ]);
+    const env = await buildEnvelope("for Alice", key, "GBBOB");
+    await expect(
+      openEnvelope(env, keyProviderFor(key, "GBBOB"), { expectedRecipient: "GCHARLIE" }),
+    ).rejects.toThrowError(/recipient binding mismatch/);
+  });
+
+  it("rejects timestamps that are stale under custom timestamp policy", async () => {
+    const key = await crypto.subtle.generateKey({ name: "AES-GCM", length: 256 }, true, [
+      "encrypt",
+      "decrypt",
+    ]);
+    const env = await buildEnvelope("old message", key, "GABC");
+    const pastClock = { now: () => new Date("2026-07-25T12:00:00.000Z") }; // 2 days after env timestamp
+    await expect(
+      openEnvelope(env, keyProviderFor(key), {
+        timestampPolicy: { maxAgeMs: 3600_000, maxFutureSkewMs: 60_000, clock: pastClock },
+      }),
+    ).rejects.toThrowError(/timestamp is too old/);
+  });
+
+  it("rejects envelopes exceeding sender length bounds", async () => {
+    const key = await crypto.subtle.generateKey({ name: "AES-GCM", length: 256 }, true, [
+      "encrypt",
+      "decrypt",
+    ]);
+    const env = await buildEnvelope("bounds test", key, "GABC");
+    const oversizedSender = {
+      ...env,
+      payload: { ...env.payload, sender: "G" + "A".repeat(300) },
+    };
+    await expect(openEnvelope(oversizedSender, keyProviderFor(key))).rejects.toThrowError(
+      /at most 256 characters|sender identity exceeds/,
+    );
+  });
+
+  it("returns verified provenance metadata on successful decryption", async () => {
+    const key = await crypto.subtle.generateKey({ name: "AES-GCM", length: 256 }, true, [
+      "encrypt",
+      "decrypt",
+    ]);
+    const env = await buildEnvelope("provenance test", key, "GABC");
+    const opened = await openEnvelope(env, keyProviderFor(key));
+    expect(opened.provenance).toBeDefined();
+    expect(opened.provenance.sender).toBe("GABC");
+    expect(opened.provenance.recipient).toBe("GABC");
+    expect(opened.provenance.digest).toHaveLength(64);
+    expect(opened.provenance.contentCommitment).toBe(env.payload.content_commitment);
   });
 });

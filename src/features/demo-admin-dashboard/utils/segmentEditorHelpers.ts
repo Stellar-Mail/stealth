@@ -40,7 +40,11 @@ export function validateSegment(segment: EditableSegment): SegmentValidationResu
   const errors: SegmentFieldError[] = [];
 
   if (segment.label.trim() === "") {
-    errors.push({ field: "label", severity: "error", message: "Label is required" });
+    errors.push({
+      field: "label",
+      severity: "error",
+      message: "Label is required",
+    });
   } else if (segment.label.length > 50) {
     errors.push({
       field: "label",

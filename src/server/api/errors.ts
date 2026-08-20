@@ -122,7 +122,8 @@ export const API_ERROR_REGISTRY = {
     status: 422,
     message: "The postage quote is invalid",
     retryable: false,
-    description: "The supplied postage quote failed integrity validation.",
+    description:
+      "The supplied postage quote failed integrity validation: it is tampered, reused for another message or recipient, bound to a different asset or network, or stale because the recipient policy changed after the quote was issued.",
   },
   request_in_progress: {
     status: 409,
@@ -130,12 +131,12 @@ export const API_ERROR_REGISTRY = {
     retryable: true,
     description: "A matching operation currently holds the idempotency lease.",
   },
-  cursor_expired: {
-    status: 410,
-    message: "The mailbox sync cursor has expired",
+  recent_auth_required: {
+    status: 403,
+    message: "Recent authentication is required",
     retryable: false,
     description:
-      "The supplied mailbox sync cursor is past its lifetime or older than the retained event window. The client must start a bounded full resync without a cursor.",
+      "The requested operation requires the user to have authenticated recently. The current session has expired for sensitive operations.",
   },
 } as const satisfies Record<string, ApiErrorDefinition>;
 
@@ -204,6 +205,12 @@ export class ApiError extends Error {
       this.retryClassification = "conflict";
       this.retryable = true;
     } else if (code === "internal_error" || code === "data_integrity_error") {
+      this.retryClassification = "transient";
+      this.retryable = true;
+    } else if (code === "dependency_unavailable") {
+      // Registered as transient in the registry; align the constructed
+      // classification so callers (e.g. provisioning compensation policy)
+      // treat an unavailable dependency as recoverable.
       this.retryClassification = "transient";
       this.retryable = true;
     } else {

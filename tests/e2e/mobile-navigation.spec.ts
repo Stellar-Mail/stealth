@@ -11,7 +11,9 @@ test.describe("mobile navigation", () => {
   });
 
   test("shows the bottom bar and hides the desktop sidebar on small screens", async ({ page }) => {
-    const bottomNav = page.getByRole("navigation", { name: "Bottom navigation" });
+    const bottomNav = page.getByRole("navigation", {
+      name: "Bottom navigation",
+    });
     await expect(bottomNav).toBeVisible();
     await expect(bottomNav.getByRole("button", { name: "Inbox" })).toBeVisible();
 
@@ -21,7 +23,9 @@ test.describe("mobile navigation", () => {
   });
 
   test("tapping a folder tab switches the mailbox folder (success path)", async ({ page }) => {
-    const bottomNav = page.getByRole("navigation", { name: "Bottom navigation" });
+    const bottomNav = page.getByRole("navigation", {
+      name: "Bottom navigation",
+    });
 
     await bottomNav.getByRole("button", { name: "Proofs" }).click();
     await expect(page.getByRole("heading", { name: "Pending Proof" })).toBeVisible();
@@ -39,7 +43,9 @@ test.describe("mobile navigation", () => {
   });
 
   test("action-only tabs never mark themselves active (edge path)", async ({ page }) => {
-    const bottomNav = page.getByRole("navigation", { name: "Bottom navigation" });
+    const bottomNav = page.getByRole("navigation", {
+      name: "Bottom navigation",
+    });
 
     // Compose opens the composer but must not become an active folder tab.
     await bottomNav.getByRole("button", { name: "Compose" }).click();

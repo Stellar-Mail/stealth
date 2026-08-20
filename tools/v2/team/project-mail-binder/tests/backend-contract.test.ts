@@ -78,7 +78,9 @@ describe("ProjectMailBinderBackendService Execution Contract", () => {
   describe("deleteProject contract", () => {
     it("deletes project successfully", async () => {
       const service = createService();
-      const result = await service.deleteProject({ projectId: "proj-onboarding" });
+      const result = await service.deleteProject({
+        projectId: "proj-onboarding",
+      });
 
       expect(result.success).toBe(true);
       if (result.success) {

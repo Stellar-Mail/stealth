@@ -14,6 +14,7 @@ Secrets are scoped to specific runtime identities via the `STEALTH_ROLE` environ
 | `STEALTH_SMTP_PASSWORD`   | Credentials to authenticate the system against the outbound SMTP provider.           | `web`, `all`                 |
 | `STEALTH_RPC_API_KEY`     | Token for making authenticated calls against the Soroban RPC.                        | `operator`, `indexer`, `all` |
 | `STEALTH_OPERATOR_SECRET` | Custody secret key for the operator wallet to broadcast signed network transactions. | `operator`, `all`            |
+| `STEALTH_BACKUP_KEY`      | Base64-encoded 32-byte key sealing encrypted backups (AES-256-GCM, BETA-081).        | `operator`, `all`            |
 
 ## Environment Ownership
 
@@ -26,7 +27,7 @@ All production secrets must be provisioned and managed strictly through the desi
 
 ## Rotation Cadence
 
-1. **Standard Rotation**: Secrets (Cursor, Storage, Relay, RPC, and SMTP) must be rotated on a **90-day** cadence.
+1. **Standard Rotation**: Secrets (Cursor, Storage, Relay, RPC, and SMTP) must be rotated on a **90-day** cadence. `STEALTH_BACKUP_KEY` follows the same cadence; retain prior backup keys until every archive sealed under them passes retention.
 2. **Wallet/Operator Rotation**: Operator keys should follow the same 90-day cadence. The application supports updating credentials without breaking user wallet encryption.
 3. **Automated Audits**: Ensure a scheduled check verifies that secrets are up-to-date and have not leaked in scanning pipelines.
 

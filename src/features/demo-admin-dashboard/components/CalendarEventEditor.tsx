@@ -200,7 +200,10 @@ export function CalendarEventEditor({
           id="cal-response"
           value={state.responseState}
           onChange={(e) =>
-            onChange({ ...state, responseState: e.target.value as CalendarResponseState })
+            onChange({
+              ...state,
+              responseState: e.target.value as CalendarResponseState,
+            })
           }
           className="w-full rounded-lg border border-white/[0.08] px-3 py-2 text-xs text-foreground focus:outline-none bg-black/40 focus:border-white/20"
         >

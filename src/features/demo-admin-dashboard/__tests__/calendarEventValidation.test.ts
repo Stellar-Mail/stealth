@@ -33,7 +33,10 @@ describe("validateCalendarEventEditor", () => {
   });
 
   it("returns an error when startTime is empty", () => {
-    const issues = validateCalendarEventEditor({ ...validState, startTime: "" });
+    const issues = validateCalendarEventEditor({
+      ...validState,
+      startTime: "",
+    });
     const startIssues = issues.filter((i) => i.fieldPath === "startTime");
     expect(startIssues.length).toBeGreaterThan(0);
     expect(startIssues[0].severity).toBe("error");
@@ -47,14 +50,20 @@ describe("validateCalendarEventEditor", () => {
   });
 
   it("returns an error when startTime is invalid", () => {
-    const issues = validateCalendarEventEditor({ ...validState, startTime: "not-a-date" });
+    const issues = validateCalendarEventEditor({
+      ...validState,
+      startTime: "not-a-date",
+    });
     const startIssues = issues.filter((i) => i.fieldPath === "startTime");
     expect(startIssues.length).toBeGreaterThan(0);
     expect(startIssues[0].severity).toBe("error");
   });
 
   it("returns an error when endTime is invalid", () => {
-    const issues = validateCalendarEventEditor({ ...validState, endTime: "not-a-date" });
+    const issues = validateCalendarEventEditor({
+      ...validState,
+      endTime: "not-a-date",
+    });
     const endIssues = issues.filter((i) => i.fieldPath === "endTime");
     expect(endIssues.length).toBeGreaterThan(0);
   });

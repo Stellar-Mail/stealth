@@ -31,22 +31,10 @@ function makeConfig(overrides: Partial<RelayServiceConfig> = {}): RelayServiceCo
 function makeService(config: RelayServiceConfig = makeConfig()) {
   const persistence = new MemoryRelayPersistence();
   const worker = new InProcessRelayWorker(persistence);
-  const admission = {
-    evaluate: async () => ({
-      allowed: true as const,
-      disposition: "request" as const,
-      reason: "policy_satisfied" as const,
-      rule: "default" as const,
-      policyVersion: 1,
-      requiredPostage: "0",
-      source: "offchain" as const,
-      evaluatedAt: "2026-08-19T21:00:00.000Z",
-    }),
-  };
   return {
     persistence,
     worker,
-    service: new RelayService(persistence, worker, config, { admission }),
+    service: new RelayService(persistence, worker, config),
   };
 }
 
@@ -86,6 +74,9 @@ class FailingPersistence implements RelayPersistence {
   }
   async recordRetry(): Promise<void> {}
   async recordDeadLetter(): Promise<void> {}
+  async listRecipientQueue(_recipient: string): Promise<RelayEnvelope[]> {
+    return [];
+  }
 }
 
 describe("RelayService health", () => {
@@ -155,7 +146,9 @@ describe("RelayService readiness", () => {
 
   it("honors an injected network check", async () => {
     const { service } = makeService();
-    const readiness = await service.checkReadiness({ checkNetwork: () => false });
+    const readiness = await service.checkReadiness({
+      checkNetwork: () => false,
+    });
     expect(readiness.ready).toBe(false);
     expect(readiness.dependencies.network).toBe("unavailable");
   });

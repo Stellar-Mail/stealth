@@ -40,7 +40,10 @@ describe("components contract — result helpers", () => {
 describe("components contract — resolve", () => {
   it("resolves a known component into a descriptor", () => {
     const contract = makeContract();
-    const res = contract.execute({ operation: "resolve", input: { id: "button" } });
+    const res = contract.execute({
+      operation: "resolve",
+      input: { id: "button" },
+    });
     expect(res.ok).toBe(true);
     if (res.ok && res.value.operation === "resolve") {
       expect(res.value.descriptor.id).toBe("button");
@@ -51,7 +54,10 @@ describe("components contract — resolve", () => {
 
   it("reports disabled components (enabled:false)", () => {
     const contract = makeContract();
-    const res = contract.execute({ operation: "resolve", input: { id: "legacy-banner" } });
+    const res = contract.execute({
+      operation: "resolve",
+      input: { id: "legacy-banner" },
+    });
     if (res.ok && res.value.operation === "resolve") {
       expect(res.value.descriptor.enabled).toBe(false);
     }
