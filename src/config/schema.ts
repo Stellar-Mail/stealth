@@ -3,6 +3,9 @@ import { z } from "zod";
 export const configProfileSchema = z.enum(["development", "test", "preview", "production"]);
 export type ConfigProfile = z.infer<typeof configProfileSchema>;
 
+export const runtimeRoleSchema = z.enum(["all", "web", "relay", "indexer", "operator"]);
+export type RuntimeRole = z.infer<typeof runtimeRoleSchema>;
+
 export const stellarNetworkSchema = z.enum(["testnet", "mainnet", "futurenet", "local"]);
 export type StellarNetwork = z.infer<typeof stellarNetworkSchema>;
 
@@ -47,7 +50,6 @@ export type StorageConfig = z.infer<typeof storageConfigSchema>;
  * 3. Session & Security Domain Schema
  */
 export const sessionConfigSchema = z.object({
-  cursorSecret: z.string().min(1, "Cursor secret is required"),
   authChallengeLifetimeMs: z
     .number()
     .int()
@@ -63,7 +65,6 @@ export type SessionConfig = z.infer<typeof sessionConfigSchema>;
  */
 export const relayConfigSchema = z.object({
   relayUrl: z.string().url("Relay URL must be a valid HTTP(S) URL"),
-  relayApiKey: z.string().optional(),
   relayTimeoutMs: z.number().int().positive("Relay timeout must be a positive integer"),
 });
 export type RelayConfig = z.infer<typeof relayConfigSchema>;
@@ -92,10 +93,54 @@ export const originConfigSchema = z.object({
 export type OriginConfig = z.infer<typeof originConfigSchema>;
 
 /**
+ * 7. Notifications Domain Schema (BETA-005)
+ *
+ * Delivery of account verification messages. The transport is pluggable:
+ * - "sink" captures messages in memory for local development (never used in
+ *   the production path).
+ * - "smtp" delivers through a self-hosted SMTP server; no third-party mail
+ *   vendor is required.
+ */
+export const notificationTransportSchema = z.enum(["sink", "smtp"]);
+export type NotificationTransport = z.infer<typeof notificationTransportSchema>;
+
+export const smtpConfigSchema = z.object({
+  host: z.string().min(1, "SMTP host cannot be empty"),
+  port: z.number().int().positive("SMTP port must be a positive integer"),
+  secure: z.boolean(),
+  startTls: z.boolean(),
+  username: z.string().optional(),
+  password: z.string().optional(),
+});
+export type SmtpConfig = z.infer<typeof smtpConfigSchema>;
+
+export const verificationPolicySchema = z.object({
+  tokenLifetimeMs: z
+    .number()
+    .int()
+    .positive("Verification token lifetime must be a positive integer"),
+  resendCooldownMs: z
+    .number()
+    .int()
+    .positive("Verification resend cooldown must be a positive integer"),
+  maxAttempts: z.number().int().positive("Verification max attempts must be a positive integer"),
+});
+export type VerificationPolicy = z.infer<typeof verificationPolicySchema>;
+
+export const notificationsConfigSchema = z.object({
+  transport: notificationTransportSchema,
+  fromAddress: z.string().min(1, "Notification from-address cannot be empty"),
+  verification: verificationPolicySchema,
+  smtp: smtpConfigSchema,
+});
+export type NotificationsConfig = z.infer<typeof notificationsConfigSchema>;
+
+/**
  * Public Configuration (Client-safe subset with ZERO secrets)
  */
 export const publicConfigSchema = z.object({
   profile: configProfileSchema,
+  role: runtimeRoleSchema,
   network: networkConfigSchema,
   storage: z.object({
     storageDriver: storageDriverSchema,
@@ -113,6 +158,17 @@ export const publicConfigSchema = z.object({
   }),
   contract: contractConfigSchema,
   origin: originConfigSchema,
+  notifications: z.object({
+    transport: notificationTransportSchema,
+    fromAddress: z.string(),
+    verification: verificationPolicySchema,
+    smtp: z.object({
+      host: z.string(),
+      port: z.number(),
+      secure: z.boolean(),
+      startTls: z.boolean(),
+    }),
+  }),
 });
 export type PublicConfig = z.infer<typeof publicConfigSchema>;
 
@@ -120,8 +176,13 @@ export type PublicConfig = z.infer<typeof publicConfigSchema>;
  * Secret Configuration (Server-only secret parameters)
  */
 export const secretConfigSchema = z.object({
-  cursorSecret: z.string(),
+  cursorSecret: z.string().optional(),
+  operatorSecret: z.string().optional(),
   relayApiKey: z.string().optional(),
+  rpcApiKey: z.string().optional(),
+  smtpPassword: z.string().optional(),
+  smtpUsername: z.string().optional(),
+  storageSecret: z.string().optional(),
 });
 export type SecretConfig = z.infer<typeof secretConfigSchema>;
 
@@ -130,12 +191,15 @@ export type SecretConfig = z.infer<typeof secretConfigSchema>;
  */
 export const runtimeConfigSchema = z.object({
   profile: configProfileSchema,
+  role: runtimeRoleSchema,
   network: networkConfigSchema,
   storage: storageConfigSchema,
   session: sessionConfigSchema,
   relay: relayConfigSchema,
   contract: contractConfigSchema,
   origin: originConfigSchema,
+  notifications: notificationsConfigSchema,
+  secrets: secretConfigSchema,
 });
 export type BetaRuntimeConfig = z.infer<typeof runtimeConfigSchema>;
 export type RuntimeConfig = BetaRuntimeConfig;

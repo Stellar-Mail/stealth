@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   formatConfigMatrix,
   getPublicConfig,
@@ -6,7 +6,25 @@ import {
   loadRuntimeConfig,
 } from "../../../src/config";
 
+vi.mock("../../../src/config/registry", () => ({
+  validateRegistryDrift: vi.fn(),
+}));
+
 describe("BETA-001 :: Beta Runtime Configuration Contract", () => {
+  const baseProdEnv = {
+    STEALTH_CURSOR_SECRET: "prod-secret-key-32-chars-long-valid",
+    STEALTH_SMTP_PASSWORD: "valid",
+    STEALTH_RELAY_API_KEY: "valid",
+    STEALTH_STORAGE_SECRET: "valid",
+    STEALTH_RPC_API_KEY: "valid",
+    STEALTH_OPERATOR_SECRET: "valid",
+    STEALTH_KV_NAMESPACE_ID: "stealth-kv-beta-prod-id",
+    STEALTH_REGISTRY_CONTRACT_ID: "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+    STEALTH_POSTAGE_CONTRACT_ID: "CBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+    STEALTH_APP_URL: "https://app.stealth.mail",
+    STEALTH_CORS_ALLOWED_ORIGINS: "https://app.stealth.mail",
+  };
+
   describe("Profile Loading & Defaults", () => {
     it("loads development profile with sensible local defaults", () => {
       const config = loadRuntimeConfig({ profile: "development" });
@@ -17,7 +35,7 @@ describe("BETA-001 :: Beta Runtime Configuration Contract", () => {
       expect(config.network.sorobanRpcUrl).toBe("https://soroban-testnet.stellar.org");
       expect(config.storage.storageDriver).toBe("memory");
       expect(config.storage.kvNamespaceId).toBe("stealth-kv-dev");
-      expect(config.session.cursorSecret).toBe("dev-cursor-secret-change-me");
+      expect(config.secrets.cursorSecret).toBe("dev-cursor-secret-change-me");
       expect(config.relay.relayUrl).toBe("https://relay-testnet.stealth.mail");
       expect(config.contract.domainTag).toBe("Stealth_Mail_Protocol");
       expect(config.contract.protocolVersion).toBe("v1");
@@ -45,6 +63,11 @@ describe("BETA-001 :: Beta Runtime Configuration Contract", () => {
         STEALTH_POSTAGE_CONTRACT_ID: "CBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
         STEALTH_APP_URL: "https://app.stealth.mail",
         STEALTH_CORS_ALLOWED_ORIGINS: "https://app.stealth.mail",
+        STEALTH_SMTP_PASSWORD: "valid",
+        STEALTH_RELAY_API_KEY: "valid",
+        STEALTH_STORAGE_SECRET: "valid",
+        STEALTH_RPC_API_KEY: "valid",
+        STEALTH_OPERATOR_SECRET: "valid",
       };
 
       const config = loadRuntimeConfig({ profile: "production", env: validProdEnv });
@@ -53,7 +76,7 @@ describe("BETA-001 :: Beta Runtime Configuration Contract", () => {
       expect(config.network.stellarNetwork).toBe("mainnet");
       expect(config.network.horizonUrl).toBe("https://horizon.stellar.org");
       expect(config.storage.kvNamespaceId).toBe("stealth-kv-beta-prod-id");
-      expect(config.session.cursorSecret).toBe("prod-secret-key-32-chars-long-valid");
+      expect(config.secrets.cursorSecret).toBe("prod-secret-key-32-chars-long-valid");
       expect(config.origin.appUrl).toBe("https://app.stealth.mail");
     });
   });
@@ -64,9 +87,8 @@ describe("BETA-001 :: Beta Runtime Configuration Contract", () => {
         loadRuntimeConfig({
           profile: "production",
           env: {
+            ...baseProdEnv,
             STEALTH_CURSOR_SECRET: "",
-            STEALTH_KV_NAMESPACE_ID: "stealth-kv-beta-prod-id",
-            STEALTH_APP_URL: "https://app.stealth.mail",
           },
         }),
       ).toThrow(/STEALTH_CURSOR_SECRET is required/);
@@ -77,9 +99,8 @@ describe("BETA-001 :: Beta Runtime Configuration Contract", () => {
         loadRuntimeConfig({
           profile: "production",
           env: {
+            ...baseProdEnv,
             STEALTH_CURSOR_SECRET: "dev-cursor-secret-change-me",
-            STEALTH_KV_NAMESPACE_ID: "stealth-kv-beta-prod-id",
-            STEALTH_APP_URL: "https://app.stealth.mail",
           },
         }),
       ).toThrow(/STEALTH_CURSOR_SECRET is required and must not be a default\/placeholder/);
@@ -90,9 +111,8 @@ describe("BETA-001 :: Beta Runtime Configuration Contract", () => {
         loadRuntimeConfig({
           profile: "production",
           env: {
-            STEALTH_CURSOR_SECRET: "prod-secret-key-32-chars-long-valid",
+            ...baseProdEnv,
             STEALTH_KV_NAMESPACE_ID: "placeholder-prod-id",
-            STEALTH_APP_URL: "https://app.stealth.mail",
           },
         }),
       ).toThrow(/STEALTH_KV_NAMESPACE_ID must be configured and cannot be a placeholder/);
@@ -103,10 +123,8 @@ describe("BETA-001 :: Beta Runtime Configuration Contract", () => {
         loadRuntimeConfig({
           profile: "production",
           env: {
-            STEALTH_CURSOR_SECRET: "prod-secret-key-32-chars-long-valid",
-            STEALTH_KV_NAMESPACE_ID: "stealth-kv-beta-prod-id",
+            ...baseProdEnv,
             STEALTH_REGISTRY_CONTRACT_ID: "C_REGISTRY_PLACEHOLDER",
-            STEALTH_APP_URL: "https://app.stealth.mail",
           },
         }),
       ).toThrow(/STEALTH_REGISTRY_CONTRACT_ID is required and cannot be a placeholder/);
@@ -117,8 +135,7 @@ describe("BETA-001 :: Beta Runtime Configuration Contract", () => {
         loadRuntimeConfig({
           profile: "production",
           env: {
-            STEALTH_CURSOR_SECRET: "prod-secret-key-32-chars-long-valid",
-            STEALTH_KV_NAMESPACE_ID: "stealth-kv-beta-prod-id",
+            ...baseProdEnv,
             STEALTH_APP_URL: "http://localhost:3000",
           },
         }),
@@ -130,9 +147,7 @@ describe("BETA-001 :: Beta Runtime Configuration Contract", () => {
         loadRuntimeConfig({
           profile: "production",
           env: {
-            STEALTH_CURSOR_SECRET: "prod-secret-key-32-chars-long-valid",
-            STEALTH_KV_NAMESPACE_ID: "stealth-kv-beta-prod-id",
-            STEALTH_APP_URL: "https://app.stealth.mail",
+            ...baseProdEnv,
             STEALTH_CORS_ALLOWED_ORIGINS: "*",
           },
         }),
@@ -152,7 +167,7 @@ describe("BETA-001 :: Beta Runtime Configuration Contract", () => {
 
       const publicConfig = getPublicConfig(config);
 
-      expect((publicConfig as any).session.cursorSecret).toBeUndefined();
+      expect((publicConfig as any).secrets).toBeUndefined();
       expect((publicConfig as any).relay.relayApiKey).toBeUndefined();
       expect(publicConfig.network.horizonUrl).toBe("https://horizon-testnet.stellar.org");
     });
@@ -168,9 +183,9 @@ describe("BETA-001 :: Beta Runtime Configuration Contract", () => {
 
       const redacted = getRedactedConfig(config) as any;
 
-      expect(redacted.session.cursorSecret).toBe("[REDACTED]");
-      expect(redacted.relay.relayApiKey).toBe("[REDACTED]");
-      expect(redacted.relay.hasRelayApiKey).toBe(true);
+      expect(redacted.secrets.hasCursorSecret).toBe(true);
+      expect(redacted.secrets.hasRelayApiKey).toBe(true);
+      expect(redacted.secrets.hasStorageSecret).toBe(false);
     });
 
     it("never leaks actual secret values in error messages", () => {
@@ -181,9 +196,9 @@ describe("BETA-001 :: Beta Runtime Configuration Contract", () => {
         loadRuntimeConfig({
           profile: "production",
           env: {
+            ...baseProdEnv,
             STEALTH_CURSOR_SECRET: sensitiveSecret,
             STEALTH_KV_NAMESPACE_ID: "placeholder-prod-id", // triggers failure
-            STEALTH_APP_URL: "https://app.stealth.mail",
           },
         });
       } catch (err) {
@@ -213,8 +228,9 @@ describe("BETA-001 :: Beta Runtime Configuration Contract", () => {
       expect(matrix).toContain("[Relay]");
       expect(matrix).toContain("[Contract]");
       expect(matrix).toContain("[Origin & CORS]");
-      expect(matrix).toContain("Cursor Secret:         [REDACTED]");
-      expect(matrix).toContain("Relay API Key:         [REDACTED]");
+      expect(matrix).toContain("[Secrets (Redacted)]");
+      expect(matrix).toContain("Cursor Secret:         [CONFIGURED]");
+      expect(matrix).toContain("Relay API Key:         [CONFIGURED]");
       expect(matrix).not.toContain("secret-123");
       expect(matrix).not.toContain("api-key-456");
     });

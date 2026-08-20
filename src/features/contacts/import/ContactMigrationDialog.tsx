@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { AlertCircle, Users, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { isGAddress } from "../api";
 import { ImportSourcePicker } from "./ImportSourcePicker";
 import { IdentityReviewTable } from "./IdentityReviewTable";
 import { BulkWriteProgressPanel } from "./BulkWriteProgressPanel";
@@ -14,6 +15,7 @@ import {
   pauseWrite,
   resumeWrite,
   createMemoryPolicyApi,
+  createLivePolicyApi,
   type PolicyApi,
 } from "./bulkPolicyWriter";
 import { saveSession, defaultRetentionForSource, cleanExpiredSessions } from "./dataRetention";
@@ -73,7 +75,12 @@ export function ContactMigrationDialog({
   const [fallbackTrust, setFallbackTrust] = useState<"allow" | "block" | "default">("default");
   const [retention, setRetention] = useState<DataRetentionPolicy>("session");
   const [source, setSource] = useState<ImportSource>("csv");
-  const apiRef = useRef<PolicyApi>(externalApi ?? createMemoryPolicyApi());
+  // Default to the live contacts API when the owner is a valid Stellar
+  // G-address (BETA-066); otherwise fall back to the in-memory demo API so the
+  // wizard still works in preview environments.
+  const apiRef = useRef<PolicyApi>(
+    externalApi ?? (isGAddress(owner) ? createLivePolicyApi(owner) : createMemoryPolicyApi()),
+  );
   const runningRef = useRef(false);
 
   // Clean expired sessions on mount

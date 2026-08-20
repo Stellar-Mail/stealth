@@ -128,6 +128,7 @@ describe("Postage Quote Validation", () => {
       const quote = await quotePostage(createApiContext(repository), {
         recipient: validRecipient,
         sender: validSender,
+        messageId: "a".repeat(64),
       });
 
       expect(quote).toMatchObject({
@@ -154,6 +155,7 @@ describe("Postage Quote Validation", () => {
       const quote = await quotePostage(createApiContext(repository), {
         recipient: normalizedRecipient,
         sender: normalizedSender,
+        messageId: "a".repeat(64),
       });
 
       expect(quote).toMatchObject({

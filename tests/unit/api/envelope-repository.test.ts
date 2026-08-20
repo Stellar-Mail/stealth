@@ -81,6 +81,7 @@ function makeEnvelope(overrides: Partial<StoredEnvelope> = {}): StoredEnvelope {
     },
     contentCommitment: COMMITMENT,
     createdAt: "2026-01-01T00:00:00.000Z",
+    status: "pending",
     ...overrides,
   };
 }

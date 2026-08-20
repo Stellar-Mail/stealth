@@ -5,11 +5,14 @@ import { requireActorMatches } from "@/server/api/actor";
 import { getApiContext } from "@/server/api/context";
 import { hash32Schema, stellarAddressSchema, stroopAmountSchema } from "@/server/api/domain";
 import { buildDeviceFingerprint } from "@/server/api/abuse-service";
-import { submitPostage, signQuote, type SubmitPostageContext } from "@/server/api/postage-service";
+import {
+  submitPostage,
+  verifyQuoteSubmission,
+  type SubmitPostageContext,
+} from "@/server/api/postage-service";
 import { parseJsonBody } from "@/server/api/request";
 import { apiSuccess, handleApiRequest } from "@/server/api/response";
 import { withIdempotency } from "@/server/api/idempotency-service";
-import { ApiError } from "@/server/api/errors";
 
 const submissionSchema = z.object({
   amount: stroopAmountSchema,
@@ -17,6 +20,9 @@ const submissionSchema = z.object({
   paymentHash: hash32Schema,
   recipient: stellarAddressSchema,
   sender: stellarAddressSchema,
+  asset: z.string().min(1),
+  policyVersion: z.number().int().nonnegative(),
+  network: z.string().min(1),
   issuedAt: z.string().datetime(),
   expiresAt: z.string().datetime(),
   quoteDigest: z.string(),
@@ -33,20 +39,7 @@ export const Route = createFileRoute("/api/v1/postage/")({
           });
           requireActorMatches(apiContext, input.sender);
 
-          if (new Date(input.expiresAt) < new Date()) {
-            throw new ApiError(422, "validation_error", "Quote has expired");
-          }
-
-          const expectedDigest = signQuote(
-            input.recipient,
-            input.sender,
-            input.amount,
-            input.issuedAt,
-            input.expiresAt,
-          );
-          if (expectedDigest !== input.quoteDigest) {
-            throw new ApiError(422, "validation_error", "Quote digest is invalid or tampered");
-          }
+          await verifyQuoteSubmission(apiContext, input);
 
           const { issuedAt, expiresAt, quoteDigest, ...postageInput } = input;
 

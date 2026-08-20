@@ -11,19 +11,15 @@ export const Route = createFileRoute("/api/v1/auth/logout")({
         handleApiRequest(request, async () => {
           const apiContext = await getApiContext(request);
           const sessionId = parseSessionCookie(request.headers.get("cookie"));
+          const host = request.headers.get("host") ?? undefined;
 
-          const result = await logoutSession(apiContext, sessionId);
+          const result = await logoutSession(apiContext, sessionId, { host });
 
-          return apiSuccess(
-            request,
-            { success: true },
-            {
-              status: 200,
-              headers: {
-                "Set-Cookie": result.cookieHeader,
-              },
-            },
-          );
+          const response = apiSuccess(request, { success: true });
+          for (const header of result.cookieHeaders) {
+            response.headers.append("Set-Cookie", header);
+          }
+          return response;
         }),
     },
   },

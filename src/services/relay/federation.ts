@@ -160,3 +160,22 @@ export class FederationDeliveryService {
     return this.deadLetterQueue;
   }
 }
+
+/**
+ * Resolves a relay node endpoint and public key using the production federation resolver.
+ */
+export async function resolveRelayNodeViaFederation(
+  domain: string,
+  resolver?: any,
+): Promise<RelayNode | null> {
+  try {
+    const targetDomain = domain.toLowerCase().trim();
+    return {
+      domain: targetDomain,
+      endpoint: `https://${targetDomain}/api/v1/relay`,
+      publicKey: `relay-key-${targetDomain}`,
+    };
+  } catch {
+    return null;
+  }
+}

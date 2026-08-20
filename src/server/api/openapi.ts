@@ -115,6 +115,176 @@ export const openApiDocument = {
           },
         },
       },
+      ChainMailboxPolicy: {
+        type: "object",
+        required: ["allowUnknown", "minimumPostage", "requireReceipt", "requireVerified"],
+        properties: {
+          allowUnknown: {
+            type: "boolean",
+          },
+          minimumPostage: {
+            $ref: "#/components/schemas/StroopAmount",
+          },
+          requireReceipt: {
+            type: "boolean",
+            description: "Delivery-receipt preference, mapped to on-chain require_receipt.",
+          },
+          requireVerified: {
+            type: "boolean",
+          },
+        },
+      },
+      MailboxPolicyWriteRequest: {
+        type: "object",
+        required: ["allowUnknown", "minimumPostage", "requireVerified"],
+        properties: {
+          allowUnknown: {
+            type: "boolean",
+          },
+          minimumPostage: {
+            $ref: "#/components/schemas/StroopAmount",
+          },
+          requireReceipt: {
+            type: "boolean",
+            description:
+              "Optional delivery-receipt preference; defaults to false and is carried into the scheduled on-chain write.",
+          },
+          requireVerified: {
+            type: "boolean",
+          },
+        },
+      },
+      PolicyWriteIntent: {
+        type: "object",
+        required: ["owner", "policy", "offchainVersion", "status", "scheduledAt", "updatedAt"],
+        properties: {
+          owner: {
+            $ref: "#/components/schemas/StellarAddress",
+          },
+          policy: {
+            $ref: "#/components/schemas/ChainMailboxPolicy",
+          },
+          offchainVersion: {
+            type: "integer",
+            minimum: 0,
+            description:
+              "Off-chain policy version; bumped only on an effective policy change, never on retries.",
+          },
+          status: {
+            type: "string",
+            enum: ["pending", "submitted", "confirmed", "failed"],
+          },
+          scheduledAt: {
+            type: "string",
+            format: "date-time",
+          },
+          updatedAt: {
+            type: "string",
+            format: "date-time",
+          },
+          failureCount: {
+            type: "integer",
+            minimum: 0,
+          },
+          lastError: {
+            type: "string",
+            nullable: true,
+            description: "Redacted failure reason; never contains secrets.",
+          },
+        },
+      },
+      InitializePolicyDefaultsResult: {
+        type: "object",
+        required: ["provisioned", "policy", "source", "offchainVersion", "scheduled"],
+        properties: {
+          provisioned: {
+            type: "boolean",
+            description: "False when the owner already had a policy; no version bump occurs.",
+          },
+          policy: {
+            $ref: "#/components/schemas/ChainMailboxPolicy",
+          },
+          source: {
+            type: "string",
+            enum: ["default", "configured"],
+          },
+          offchainVersion: {
+            type: "integer",
+            minimum: 0,
+            nullable: true,
+          },
+          scheduled: {
+            type: "boolean",
+            description: "Whether a testnet contract write was scheduled.",
+          },
+        },
+      },
+      PolicyReconciliationState: {
+        type: "string",
+        enum: ["not_provisioned", "pending_write", "synced", "chain_ahead", "diverged"],
+      },
+      PolicyReconciliation: {
+        type: "object",
+        required: ["owner", "state", "offchain", "chain", "writeIntent"],
+        properties: {
+          owner: {
+            $ref: "#/components/schemas/StellarAddress",
+          },
+          state: {
+            $ref: "#/components/schemas/PolicyReconciliationState",
+          },
+          offchain: {
+            type: "object",
+            required: ["policy", "source", "version"],
+            properties: {
+              policy: {
+                $ref: "#/components/schemas/MailboxPolicy",
+              },
+              source: {
+                type: "string",
+                enum: ["default", "configured"],
+                nullable: true,
+              },
+              version: {
+                type: "integer",
+                minimum: 0,
+                nullable: true,
+              },
+            },
+          },
+          chain: {
+            type: "object",
+            required: ["policy", "version"],
+            properties: {
+              policy: {
+                $ref: "#/components/schemas/MailboxPolicy",
+              },
+              version: {
+                type: "integer",
+                minimum: 0,
+                nullable: true,
+              },
+            },
+          },
+          writeIntent: {
+            allOf: [
+              {
+                $ref: "#/components/schemas/PolicyWriteIntent",
+              },
+              {
+                type: "object",
+                properties: {
+                  version: {
+                    type: "integer",
+                    minimum: 0,
+                  },
+                },
+              },
+            ],
+            nullable: true,
+          },
+        },
+      },
       ValidationErrorItem: {
         type: "object",
         required: ["path", "rule", "message"],
@@ -231,6 +401,83 @@ export const openApiDocument = {
         type: "string",
         enum: ["permanent", "transient", "rate_limit", "conflict"],
         description: "Stable machine-readable classification of retry eligibility.",
+      },
+      ProvisioningStatus: {
+        type: "string",
+        enum: ["pending", "retryable", "active", "failed"],
+        description: "State of the transactional account-provisioning state machine.",
+      },
+      ProvisioningStep: {
+        type: "string",
+        enum: [
+          "username_reservation",
+          "profile_defaults",
+          "wallet_creation",
+          "mailbox_policy_init",
+        ],
+        description: "A single idempotent step of the provisioning flow.",
+      },
+      ProvisioningFailure: {
+        type: "object",
+        required: ["step", "code", "message", "failedAt"],
+        properties: {
+          step: {
+            $ref: "#/components/schemas/ProvisioningStep",
+          },
+          code: {
+            type: "string",
+            description: "Stable domain error code of the failing step.",
+          },
+          message: {
+            type: "string",
+            description: "Human-readable failure explanation.",
+          },
+          failedAt: {
+            type: "string",
+            format: "date-time",
+          },
+        },
+      },
+      ProvisioningProgress: {
+        type: "object",
+        required: ["status", "requestedUsername", "completedSteps", "currentStep", "attempts"],
+        properties: {
+          status: {
+            $ref: "#/components/schemas/ProvisioningStatus",
+          },
+          requestedUsername: {
+            type: "string",
+            pattern: "^[a-z0-9_-]{3,30}$",
+          },
+          completedSteps: {
+            type: "array",
+            items: {
+              $ref: "#/components/schemas/ProvisioningStep",
+            },
+          },
+          currentStep: {
+            $ref: "#/components/schemas/ProvisioningStep",
+          },
+          attempts: {
+            type: "integer",
+            minimum: 0,
+            description: "Number of flow runs attempted so far.",
+          },
+          failure: {
+            allOf: [
+              {
+                $ref: "#/components/schemas/ProvisioningFailure",
+              },
+              {
+                nullable: true,
+              },
+            ],
+          },
+          updatedAt: {
+            type: "string",
+            format: "date-time",
+          },
+        },
       },
       ErrorEnvelope: {
         type: "object",
@@ -369,6 +616,236 @@ export const openApiDocument = {
           messageId: { $ref: "#/components/schemas/Hash32" },
           queueDepth: { type: "integer" },
           service: { type: "string", description: "Service name." },
+        },
+      },
+      Contact: {
+        type: "object",
+        required: [
+          "contactId",
+          "owner",
+          "name",
+          "address",
+          "canonicalAddress",
+          "trust",
+          "source",
+          "createdAt",
+          "updatedAt",
+          "version",
+        ],
+        additionalProperties: false,
+        properties: {
+          contactId: { type: "string", description: "Unique contact identifier." },
+          owner: {
+            type: "string",
+            description: "Stellar account that owns this contact.",
+            pattern: "^G[A-Z2-7]{55}$",
+          },
+          name: { type: "string", maxLength: 200, description: "Display name." },
+          address: {
+            type: "string",
+            maxLength: 300,
+            description: "Raw address identifier (G-address, email, or handle).",
+          },
+          canonicalAddress: {
+            anyOf: [{ type: "string", pattern: "^G[A-Z2-7]{55}$" }, { type: "null" }],
+            description: "Resolved canonical G-address, or null until resolved.",
+          },
+          trust: {
+            type: "string",
+            enum: ["default", "allow", "block"],
+            description: "Sender rule. Never applied to policy unless the owner opts in.",
+          },
+          source: {
+            type: "string",
+            enum: ["manual", "csv", "vcard", "api"],
+            description: "Origin of this contact row.",
+          },
+          createdAt: { type: "string", format: "date-time" },
+          updatedAt: { type: "string", format: "date-time" },
+          version: {
+            type: "integer",
+            minimum: 1,
+            description: "Optimistic concurrency version.",
+          },
+        },
+      },
+      ContactResolution: {
+        type: "object",
+        required: ["senderRule", "senderRuleConfigured"],
+        additionalProperties: false,
+        properties: {
+          identity: {
+            anyOf: [
+              {
+                type: "object",
+                required: [
+                  "identifier",
+                  "canonicalAddress",
+                  "account",
+                  "resolved",
+                  "status",
+                  "publicKey",
+                  "encryptionKeyVersion",
+                  "policyEndpoint",
+                  "freshness",
+                ],
+                additionalProperties: true,
+                properties: {
+                  identifier: { type: "string" },
+                  canonicalAddress: { type: "string" },
+                  account: { anyOf: [{ type: "string" }, { type: "null" }] },
+                  resolved: { type: "boolean" },
+                  status: { type: "string" },
+                  publicKey: { anyOf: [{ type: "string" }, { type: "null" }] },
+                  encryptionKeyVersion: { anyOf: [{ type: "integer" }, { type: "null" }] },
+                  policyEndpoint: { anyOf: [{ type: "string" }, { type: "null" }] },
+                  freshness: { type: "string", enum: ["fresh", "stale", "unknown"] },
+                  memo: { type: "string" },
+                  memoType: { type: "string", enum: ["text", "id", "hash"] },
+                },
+              },
+              { type: "null" },
+            ],
+            description: "Resolved identity, or null when resolution failed or is pending.",
+          },
+          keyDirectory: {
+            anyOf: [
+              {
+                type: "object",
+                description: "Live key directory entry for the canonical address.",
+                additionalProperties: true,
+              },
+              { type: "null" },
+            ],
+          },
+          senderRule: { type: "string", enum: ["default", "allow", "block"] },
+          senderRuleConfigured: {
+            type: "boolean",
+            description: "True when the owner has an explicit policy rule for this address.",
+          },
+        },
+      },
+      ContactWithResolution: {
+        type: "object",
+        required: ["contact", "resolution"],
+        additionalProperties: false,
+        properties: {
+          contact: { $ref: "#/components/schemas/Contact" },
+          resolution: { $ref: "#/components/schemas/ContactResolution" },
+        },
+      },
+      ContactListResult: {
+        type: "object",
+        required: ["items", "nextContinuationKey"],
+        additionalProperties: false,
+        properties: {
+          items: {
+            type: "array",
+            items: { $ref: "#/components/schemas/ContactWithResolution" },
+          },
+          nextContinuationKey: {
+            anyOf: [{ type: "string" }, { type: "null" }],
+            description: "Cursor for the next page, or null at the end.",
+          },
+        },
+      },
+      ContactMergeResult: {
+        type: "object",
+        required: ["contact", "resolution"],
+        additionalProperties: false,
+        description: "The surviving contact after merging, re-resolved against live state.",
+        properties: {
+          contact: { $ref: "#/components/schemas/Contact" },
+          resolution: { $ref: "#/components/schemas/ContactResolution" },
+        },
+      },
+      ContactImportPreviewResult: {
+        type: "object",
+        required: [
+          "format",
+          "totalRows",
+          "validRows",
+          "duplicateRows",
+          "errorRows",
+          "truncated",
+          "limit",
+          "rows",
+        ],
+        additionalProperties: false,
+        properties: {
+          format: { type: "string", enum: ["csv", "vcard"] },
+          totalRows: { type: "integer", minimum: 0 },
+          validRows: { type: "integer", minimum: 0 },
+          duplicateRows: { type: "integer", minimum: 0 },
+          errorRows: { type: "integer", minimum: 0 },
+          truncated: {
+            type: "boolean",
+            description: "True when parsing stopped at the row limit.",
+          },
+          limit: {
+            type: "object",
+            required: ["maxRows"],
+            properties: { maxRows: { type: "integer", minimum: 1 } },
+          },
+          rows: {
+            type: "array",
+            items: {
+              type: "object",
+              required: ["rowNumber", "name", "address", "status"],
+              additionalProperties: false,
+              properties: {
+                rowNumber: { type: "integer", minimum: 1 },
+                name: { type: "string" },
+                address: { type: "string" },
+                status: { type: "string", enum: ["valid", "duplicate", "error"] },
+                error: { anyOf: [{ type: "string" }, { type: "null" }] },
+                canonicalAddress: {
+                  anyOf: [{ type: "string", pattern: "^G[A-Z2-7]{55}$" }, { type: "null" }],
+                },
+                identityStatus: { anyOf: [{ type: "string" }, { type: "null" }] },
+                keyFreshness: { anyOf: [{ type: "string" }, { type: "null" }] },
+                existing: {
+                  anyOf: [
+                    {
+                      type: "object",
+                      required: ["contactId", "trust"],
+                      properties: {
+                        contactId: { type: "string" },
+                        trust: { type: "string", enum: ["default", "allow", "block"] },
+                      },
+                    },
+                    { type: "null" },
+                  ],
+                },
+              },
+            },
+          },
+        },
+      },
+      ContactImportCommitResult: {
+        type: "object",
+        required: [
+          "created",
+          "updated",
+          "unchanged",
+          "rejected",
+          "total",
+          "appliedRules",
+          "contacts",
+        ],
+        additionalProperties: false,
+        properties: {
+          created: { type: "integer", minimum: 0 },
+          updated: { type: "integer", minimum: 0 },
+          unchanged: { type: "integer", minimum: 0 },
+          rejected: { type: "integer", minimum: 0 },
+          total: { type: "integer", minimum: 0 },
+          appliedRules: {
+            type: "integer",
+            minimum: 0,
+            description: "Sender rules applied to policy; only when applyTrust was requested.",
+          },
+          contacts: { type: "array", items: { $ref: "#/components/schemas/Contact" } },
         },
       },
     },
@@ -607,6 +1084,153 @@ export const openApiDocument = {
           },
           "401": {
             description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/policies/{owner}/provision": {
+      post: {
+        operationId: "initializeMailboxPolicyDefaults",
+        "x-max-body-bytes": 4 * 1024,
+        summary: "Initialize privacy-safe mailbox policy defaults (BETA-023)",
+        description:
+          "Idempotently initializes the beta mailbox policy defaults for the owner, persisting the off-chain policy and scheduling the matching testnet contract write. A retry never re-submits an identical write and never bumps the on-chain policy version.",
+        security: [
+          {
+            StellarSignedRequest: [],
+          },
+        ],
+        "x-stability": "beta",
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Provisioning result",
+            content: {
+              "application/json": {
+                schema: {
+                  allOf: [
+                    {
+                      $ref: "#/components/schemas/SuccessEnvelope",
+                    },
+                    {
+                      type: "object",
+                      properties: {
+                        data: {
+                          $ref: "#/components/schemas/InitializePolicyDefaultsResult",
+                        },
+                      },
+                    },
+                  ],
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Bad Request",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "409": {
+            description: "Conflict (idempotency)",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/policies/{owner}/reconciliation": {
+      get: {
+        operationId: "getPolicyReconciliation",
+        summary: "Read mailbox policy reconciliation state (BETA-023)",
+        description:
+          "Exposes the reconciliation state between the durable off-chain policy and the on-chain Policies contract. When the chain client is unavailable, reconciliation is derived from the durable write intent alone (pending write surfaced as testnet synchronization pending).",
+        "x-stability": "beta",
+        parameters: [
+          {
+            name: "chainVersion",
+            in: "query",
+            required: false,
+            schema: {
+              type: "integer",
+              minimum: 0,
+            },
+            description:
+              "On-chain policy version reported by the Policies contract; supplied by the chain client wired by BETA-017.",
+          },
+        ],
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Reconciliation state",
+            content: {
+              "application/json": {
+                schema: {
+                  allOf: [
+                    {
+                      $ref: "#/components/schemas/SuccessEnvelope",
+                    },
+                    {
+                      type: "object",
+                      properties: {
+                        data: {
+                          $ref: "#/components/schemas/PolicyReconciliation",
+                        },
+                      },
+                    },
+                  ],
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Bad Request",
             content: {
               "application/json": {
                 schema: {
@@ -1741,6 +2365,1144 @@ export const openApiDocument = {
           },
           "503": {
             description: "Not Ready — a required dependency is unavailable",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/accounts": {
+      post: {
+        operationId: "provisionAccount",
+        summary: "Provision an account (username, profile, wallet, policy)",
+        description:
+          "Idempotently runs the transactional account-provisioning state machine: username reservation, profile defaults, wallet creation and mailbox policy initialization converge without leaving a partial active account. Repeated calls are safe against duplicate requests; an optional x-idempotency-key enables strict replay semantics.",
+        security: [
+          {
+            ActorHeader: [],
+          },
+        ],
+        "x-stability": "beta",
+        requestBody: {
+          description:
+            "Provisioning intent. Email and username are required only when no account exists for the actor yet.",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  email: {
+                    type: "string",
+                    format: "email",
+                  },
+                  username: {
+                    type: "string",
+                    pattern: "^[a-z0-9_-]{3,30}$",
+                  },
+                  displayName: {
+                    type: "string",
+                    maxLength: 80,
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Provisioning progress after a completed or resumed run",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ProvisioningProgress",
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Bad Request",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "409": {
+            description: "Conflict ΓÇö username unavailable or provisioning previously failed",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "422": {
+            description: "Unprocessable Entity ΓÇö Request payload validation failure",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/accounts/provisioning": {
+      get: {
+        operationId: "getAccountProvisioningProgress",
+        summary: "Read provisioning progress for the authenticated account",
+        description:
+          "Safe progress projection: provisioning state, completed steps, attempts and the last failure. Never exposes credentials, wallet seeds, or hashes.",
+        security: [
+          {
+            ActorHeader: [],
+          },
+        ],
+        "x-stability": "beta",
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Provisioning progress and account status",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["provisioning", "accountStatus"],
+                  properties: {
+                    provisioning: {
+                      $ref: "#/components/schemas/ProvisioningProgress",
+                    },
+                    accountStatus: {
+                      type: "string",
+                      enum: ["active", "suspended", "pending_verification", "deactivated"],
+                    },
+                  },
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Bad Request",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "404": {
+            description: "Not Found ΓÇö no account or provisioning record",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/accounts/provisioning/retry": {
+      post: {
+        operationId: "retryAccountProvisioning",
+        summary: "Retry a failed provisioning run",
+        description:
+          "Restarts a retryable provisioning flow from its first incomplete step. Only retryable flows may be restarted; active and in-flight flows are rejected with a deterministic 409.",
+        security: [
+          {
+            ActorHeader: [],
+          },
+        ],
+        "x-stability": "beta",
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Provisioning progress after the retry run",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ProvisioningProgress",
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Bad Request",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "403": {
+            description: "Forbidden",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "404": {
+            description: "Not Found ΓÇö no account or provisioning record",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "409": {
+            description:
+              "Conflict ΓÇö provisioning in flight, already active, or attempts exhausted",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/auth/verify": {
+      post: {
+        operationId: "verifyAccount",
+        summary: "Verify an account with a delivered token",
+        description:
+          "Consumes a single-use verification token and activates the account. Responses are generic: failures are expressed as token state and never reveal whether an account exists; replaying an already-verified token reports success so retries are safe.",
+        security: [],
+        "x-stability": "beta",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["email", "token"],
+                properties: {
+                  email: { type: "string", format: "email" },
+                  token: { type: "string" },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Generic verification result; never reveals whether the account exists",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/SuccessEnvelope",
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Bad Request",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "422": {
+            description: "Request validation failed",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/auth/resend-verification": {
+      post: {
+        operationId: "resendVerificationMessage",
+        summary: "Resend the verification message for a pending account",
+        description:
+          "Re-issues a verification token (invalidating the previous one) and delivers a new message. Responds identically for unknown and non-pending accounts to prevent account probing; the resend cooldown is enforced with 429.",
+        security: [],
+        "x-stability": "beta",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["email"],
+                properties: {
+                  email: { type: "string", format: "email" },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Generic confirmation; the message was sent or intentionally not sent",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/SuccessEnvelope",
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Bad Request",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "422": {
+            description: "Request validation failed",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "429": {
+            description: "Resend cooldown is still active",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "503": {
+            description: "The verification message could not be delivered",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/contacts": {
+      get: {
+        operationId: "listContacts",
+        summary: "List contacts for the authenticated account",
+        description:
+          "Returns the owner's contacts with live identity, key-freshness, and trust state. Resolution failures degrade to null rather than failing the page.",
+        security: [
+          {
+            ActorHeader: [],
+          },
+        ],
+        "x-stability": "beta",
+        parameters: [
+          {
+            name: "query",
+            in: "query",
+            schema: { type: "string", maxLength: 200 },
+            description: "Optional substring filter on name or address.",
+          },
+          {
+            name: "cursor",
+            in: "query",
+            schema: { type: "string" },
+            description: "Pagination continuation key.",
+          },
+          {
+            name: "limit",
+            in: "query",
+            schema: { type: "integer", minimum: 1, maximum: 100, default: 25 },
+          },
+        ],
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Listed contacts",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ContactListResult",
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Bad Request",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+      post: {
+        operationId: "createContact",
+        summary: "Create a contact",
+        description:
+          "Stores a new owner-scoped contact. The trust field is advisory and never mutates mailbox policy.",
+        "x-max-body-bytes": 8 * 1024,
+        security: [
+          {
+            ActorHeader: [],
+          },
+        ],
+        "x-stability": "beta",
+        requestBody: {
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["name", "address"],
+                additionalProperties: false,
+                properties: {
+                  name: { type: "string", maxLength: 200 },
+                  address: { type: "string", maxLength: 300 },
+                  trust: { type: "string", enum: ["default", "allow", "block"] },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          default: { description: "" },
+          "201": {
+            description: "Created contact with live resolution",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ContactWithResolution",
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Bad Request",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "422": {
+            description: "Unprocessable Entity — Request payload validation failure",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/contacts/{contactId}": {
+      get: {
+        operationId: "getContact",
+        summary: "Read a single contact",
+        security: [
+          {
+            ActorHeader: [],
+          },
+        ],
+        "x-stability": "beta",
+        parameters: [
+          {
+            name: "contactId",
+            in: "path",
+            required: true,
+            schema: { type: "string" },
+          },
+        ],
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Contact with live resolution",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ContactWithResolution",
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Bad Request",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "404": {
+            description: "Not Found",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+      put: {
+        operationId: "updateContact",
+        summary: "Update a contact",
+        "x-max-body-bytes": 8 * 1024,
+        security: [
+          {
+            ActorHeader: [],
+          },
+        ],
+        "x-stability": "beta",
+        parameters: [
+          {
+            name: "contactId",
+            in: "path",
+            required: true,
+            schema: { type: "string" },
+          },
+        ],
+        requestBody: {
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                description: "At least one of name, address, or trust is required.",
+                additionalProperties: false,
+                properties: {
+                  name: { type: "string", maxLength: 200 },
+                  address: { type: "string", maxLength: 300 },
+                  trust: { type: "string", enum: ["default", "allow", "block"] },
+                  expectedVersion: { type: "integer", minimum: 1 },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Updated contact with live resolution",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ContactWithResolution",
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Bad Request",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "404": {
+            description: "Not Found",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "409": {
+            description: "Conflict — concurrent modification detected",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "422": {
+            description: "Unprocessable Entity — Request payload validation failure",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+      delete: {
+        operationId: "deleteContact",
+        summary: "Delete a contact",
+        security: [
+          {
+            ActorHeader: [],
+          },
+        ],
+        "x-stability": "beta",
+        parameters: [
+          {
+            name: "contactId",
+            in: "path",
+            required: true,
+            schema: { type: "string" },
+          },
+        ],
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Contact deleted",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/SuccessEnvelope",
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Bad Request",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "404": {
+            description: "Not Found",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/contacts/merge": {
+      post: {
+        operationId: "mergeContacts",
+        summary: "Merge duplicate contacts",
+        description:
+          "Deletes the merge targets and bumps the version of the kept contact so concurrent writers cannot resurrect merged-away rows. All IDs are scoped to the authenticated owner.",
+        "x-max-body-bytes": 8 * 1024,
+        security: [
+          {
+            ActorHeader: [],
+          },
+        ],
+        "x-stability": "beta",
+        requestBody: {
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["keepContactId", "mergeContactIds"],
+                additionalProperties: false,
+                properties: {
+                  keepContactId: { type: "string" },
+                  mergeContactIds: {
+                    type: "array",
+                    minItems: 1,
+                    items: { type: "string" },
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Surviving contact re-resolved after merge",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ContactMergeResult",
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Bad Request",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "403": {
+            description: "Forbidden — cannot merge a contact owned by another actor",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "404": {
+            description: "Not Found",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "409": {
+            description: "Conflict — kept contact modified concurrently",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "422": {
+            description: "Unprocessable Entity — Request payload validation failure",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/contacts/import/preview": {
+      post: {
+        operationId: "previewContactImport",
+        summary: "Parse and preview a CSV or vCard contact import",
+        description:
+          "Parses the uploaded content into rows with per-row validity, duplicate detection, and live identity resolution. Never writes contact rows.",
+        "x-max-body-bytes": 1024 * 1024,
+        security: [
+          {
+            ActorHeader: [],
+          },
+        ],
+        "x-stability": "beta",
+        requestBody: {
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["format", "content"],
+                additionalProperties: false,
+                properties: {
+                  format: { type: "string", enum: ["csv", "vcard"] },
+                  content: {
+                    type: "string",
+                    description: "Raw import file content, UTF-8.",
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Parsed import preview",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ContactImportPreviewResult",
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Bad Request",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "422": {
+            description: "Unprocessable Entity — Request payload validation failure",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/contacts/import/commit": {
+      post: {
+        operationId: "commitContactImport",
+        summary: "Commit a contact import",
+        description:
+          "Idempotently upserts the reviewed rows by address. Policy is never mutated unless applyTrust is explicitly true, and even then only allow/block rows touch sender rules.",
+        "x-max-body-bytes": 1024 * 1024,
+        security: [
+          {
+            ActorHeader: [],
+          },
+        ],
+        "x-stability": "beta",
+        requestBody: {
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["rows"],
+                additionalProperties: false,
+                properties: {
+                  rows: {
+                    type: "array",
+                    minItems: 1,
+                    maxItems: 1000,
+                    items: {
+                      type: "object",
+                      required: ["name", "address"],
+                      additionalProperties: false,
+                      properties: {
+                        name: { type: "string", maxLength: 200 },
+                        address: { type: "string", maxLength: 300 },
+                        trust: { type: "string", enum: ["default", "allow", "block"] },
+                        source: { type: "string", enum: ["csv", "vcard"] },
+                      },
+                    },
+                  },
+                  applyTrust: {
+                    type: "boolean",
+                    default: false,
+                    description: "Opt-in application of trust rows to mailbox policy.",
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          default: { description: "" },
+          "201": {
+            description: "Import committed",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ContactImportCommitResult",
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Bad Request",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "422": {
+            description: "Unprocessable Entity — Request payload validation failure",
             content: {
               "application/json": {
                 schema: {

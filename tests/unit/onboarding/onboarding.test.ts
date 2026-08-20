@@ -4,6 +4,7 @@ import {
   DEFAULT_DRAFT,
   ONBOARDING_STEPS,
   SENDER_RULE_TO_POLICY,
+  draftToBetaDefaults,
   draftToMailboxPolicy,
   xlmToStroops,
   type OnboardingDraft,
@@ -105,6 +106,41 @@ describe("draftToMailboxPolicy", () => {
       allowUnknown: false,
       requireVerified: false,
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// draftToBetaDefaults (BETA-023 / Issue #1930): full on-chain policy including
+// the delivery-receipt preference, used to schedule the testnet contract write.
+// ---------------------------------------------------------------------------
+describe("draftToBetaDefaults", () => {
+  const base: OnboardingDraft = {
+    ...DEFAULT_DRAFT,
+    walletAddress: `G${"A".repeat(55)}`,
+  };
+
+  it("matches the privacy-safe beta default when all onboarding defaults are accepted", () => {
+    expect(draftToBetaDefaults(base)).toEqual({
+      allowUnknown: true,
+      requireVerified: false,
+      requireReceipt: false,
+      minimumPostage: "0",
+    });
+  });
+
+  it("carries the delivery-receipt preference through", () => {
+    const draft: OnboardingDraft = { ...base, receiptOnDelivery: true };
+    expect(draftToBetaDefaults(draft).requireReceipt).toBe(true);
+  });
+
+  it("carries a configured minimum postage through as stroops", () => {
+    const draft: OnboardingDraft = { ...base, minimumPostage: "0.01" };
+    expect(draftToBetaDefaults(draft).minimumPostage).toBe("100000");
+  });
+
+  it("matches the beta default definition used by provisioning", async () => {
+    const { betaDefaultMailboxPolicy } = await import("../../../src/server/api/policy-service");
+    expect(draftToBetaDefaults(base)).toEqual(betaDefaultMailboxPolicy);
   });
 });
 

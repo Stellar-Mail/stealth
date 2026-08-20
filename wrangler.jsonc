@@ -4,11 +4,16 @@
   "compatibility_date": "2025-09-24",
   "compatibility_flags": ["nodejs_compat"],
   "main": "src/server.ts",
+  // BETA-024 (#1931): no real Cloudflare resource IDs are ever committed.
+  // The values below are {VAR_NAME} placeholder tokens that
+  // scripts/generate-wrangler-config.ts replaces from environment variables
+  // into .wrangler/generated/wrangler.jsonc at deploy time. The top-level
+  // section is the local `wrangler dev` default and stays emulated/local.
   "kv_namespaces": [
     {
       "binding": "STEALTH_KV",
-      "id": "stealth-kv-beta-prod-id",
-      "preview_id": "stealth-kv-beta-preview-id",
+      "id": "{STEALTH_KV_LOCAL_ID}",
+      "preview_id": "{STEALTH_KV_LOCAL_ID}",
     },
   ],
   "r2_buckets": [
@@ -33,12 +38,114 @@
     },
   ],
   "vars": {
-    "STEALTH_ENV": "production",
+    "STEALTH_ENV": "development",
     "STEALTH_STELLAR_NETWORK": "testnet",
     "STEALTH_HORIZON_URL": "https://horizon-testnet.stellar.org",
     "STEALTH_SOROBAN_RPC_URL": "https://soroban-testnet.stellar.org",
     "STEALTH_RELAY_URL": "https://relay-testnet.stealth.mail",
-    "STEALTH_APP_URL": "https://app.stealth.mail",
-    "STEALTH_CORS_ALLOWED_ORIGINS": "https://app.stealth.mail",
+    "STEALTH_APP_URL": "http://localhost:3000",
+    "STEALTH_CORS_ALLOWED_ORIGINS": "http://localhost:3000,http://localhost:5173",
+  },
+  "env": {
+    "preview": {
+      "name": "stealth-mail-preview",
+      "kv_namespaces": [
+        {
+          "binding": "STEALTH_KV",
+          "id": "{STEALTH_KV_PREVIEW_ID}",
+          "preview_id": "{STEALTH_KV_LOCAL_ID}",
+        },
+      ],
+      "r2_buckets": [
+        {
+          "binding": "STEALTH_OBJECT_STORE",
+          "bucket_name": "stealth-mail-object-store-preview",
+        },
+      ],
+      "durable_objects": {
+        "bindings": [
+          {
+            "name": "STEALTH_COORDINATOR",
+            "class_name": "StealthCoordinator",
+          },
+        ],
+      },
+      "migrations": [
+        {
+          "tag": "v1",
+          "new_sqlite_classes": ["StealthCoordinator"],
+        },
+      ],
+      "secrets": {
+        "required": [
+          "STEALTH_CURSOR_SECRET",
+          "STEALTH_RELAY_API_KEY",
+          "STEALTH_STORAGE_SECRET",
+          "STEALTH_SMTP_PASSWORD",
+          "STEALTH_RPC_API_KEY",
+          "STEALTH_OPERATOR_SECRET",
+        ],
+      },
+      "vars": {
+        "STEALTH_ENV": "preview",
+        "STEALTH_STELLAR_NETWORK": "testnet",
+        "STEALTH_HORIZON_URL": "https://horizon-testnet.stellar.org",
+        "STEALTH_SOROBAN_RPC_URL": "https://soroban-testnet.stellar.org",
+        "STEALTH_RELAY_URL": "https://relay-testnet.stealth.mail",
+        "STEALTH_APP_URL": "https://app-preview.stealth.mail",
+        "STEALTH_CORS_ALLOWED_ORIGINS": "https://app-preview.stealth.mail",
+      },
+    },
+    "production": {
+      "name": "stealth-mail",
+      "kv_namespaces": [
+        {
+          "binding": "STEALTH_KV",
+          "id": "{STEALTH_KV_PRODUCTION_ID}",
+          // `wrangler dev` for the production env should hit the preview
+          // namespace, never the production one.
+          "preview_id": "{STEALTH_KV_PREVIEW_ID}",
+        },
+      ],
+      "r2_buckets": [
+        {
+          "binding": "STEALTH_OBJECT_STORE",
+          "bucket_name": "stealth-mail-object-store",
+        },
+      ],
+      "durable_objects": {
+        "bindings": [
+          {
+            "name": "STEALTH_COORDINATOR",
+            "class_name": "StealthCoordinator",
+          },
+        ],
+      },
+      "migrations": [
+        {
+          "tag": "v1",
+          "new_sqlite_classes": ["StealthCoordinator"],
+        },
+      ],
+      "secrets": {
+        "required": [
+          "STEALTH_CURSOR_SECRET",
+          "STEALTH_RELAY_API_KEY",
+          "STEALTH_STORAGE_SECRET",
+          "STEALTH_SMTP_PASSWORD",
+          "STEALTH_RPC_API_KEY",
+          "STEALTH_OPERATOR_SECRET",
+        ],
+      },
+      "vars": {
+        "STEALTH_ENV": "production",
+        "STEALTH_STELLAR_NETWORK": "testnet",
+        "STEALTH_HORIZON_URL": "https://horizon-testnet.stellar.org",
+        "STEALTH_SOROBAN_RPC_URL": "https://soroban-testnet.stellar.org",
+        "STEALTH_RELAY_URL": "https://relay-testnet.stealth.mail",
+        "STEALTH_APP_URL": "https://app.stealth.mail",
+        "STEALTH_CORS_ALLOWED_ORIGINS": "https://app.stealth.mail",
+      },
+    },
   },
 }

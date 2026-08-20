@@ -130,6 +130,174 @@
           }
         }
       },
+      "ChainMailboxPolicy": {
+        "type": "object",
+        "required": ["allowUnknown", "minimumPostage", "requireReceipt", "requireVerified"],
+        "properties": {
+          "allowUnknown": {
+            "type": "boolean"
+          },
+          "minimumPostage": {
+            "$ref": "#/components/schemas/StroopAmount"
+          },
+          "requireReceipt": {
+            "type": "boolean",
+            "description": "Delivery-receipt preference, mapped to on-chain require_receipt."
+          },
+          "requireVerified": {
+            "type": "boolean"
+          }
+        }
+      },
+      "MailboxPolicyWriteRequest": {
+        "type": "object",
+        "required": ["allowUnknown", "minimumPostage", "requireVerified"],
+        "properties": {
+          "allowUnknown": {
+            "type": "boolean"
+          },
+          "minimumPostage": {
+            "$ref": "#/components/schemas/StroopAmount"
+          },
+          "requireReceipt": {
+            "type": "boolean",
+            "description": "Optional delivery-receipt preference; defaults to false and is carried into the scheduled on-chain write."
+          },
+          "requireVerified": {
+            "type": "boolean"
+          }
+        }
+      },
+      "PolicyWriteIntent": {
+        "type": "object",
+        "required": ["owner", "policy", "offchainVersion", "status", "scheduledAt", "updatedAt"],
+        "properties": {
+          "owner": {
+            "$ref": "#/components/schemas/StellarAddress"
+          },
+          "policy": {
+            "$ref": "#/components/schemas/ChainMailboxPolicy"
+          },
+          "offchainVersion": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Off-chain policy version; bumped only on an effective policy change, never on retries."
+          },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "submitted", "confirmed", "failed"]
+          },
+          "scheduledAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "failureCount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "lastError": {
+            "type": "string",
+            "nullable": true,
+            "description": "Redacted failure reason; never contains secrets."
+          }
+        }
+      },
+      "InitializePolicyDefaultsResult": {
+        "type": "object",
+        "required": ["provisioned", "policy", "source", "offchainVersion", "scheduled"],
+        "properties": {
+          "provisioned": {
+            "type": "boolean",
+            "description": "False when the owner already had a policy; no version bump occurs."
+          },
+          "policy": {
+            "$ref": "#/components/schemas/ChainMailboxPolicy"
+          },
+          "source": {
+            "type": "string",
+            "enum": ["default", "configured"]
+          },
+          "offchainVersion": {
+            "type": "integer",
+            "minimum": 0,
+            "nullable": true
+          },
+          "scheduled": {
+            "type": "boolean",
+            "description": "Whether a testnet contract write was scheduled."
+          }
+        }
+      },
+      "PolicyReconciliationState": {
+        "type": "string",
+        "enum": ["not_provisioned", "pending_write", "synced", "chain_ahead", "diverged"]
+      },
+      "PolicyReconciliation": {
+        "type": "object",
+        "required": ["owner", "state", "offchain", "chain", "writeIntent"],
+        "properties": {
+          "owner": {
+            "$ref": "#/components/schemas/StellarAddress"
+          },
+          "state": {
+            "$ref": "#/components/schemas/PolicyReconciliationState"
+          },
+          "offchain": {
+            "type": "object",
+            "required": ["policy", "source", "version"],
+            "properties": {
+              "policy": {
+                "$ref": "#/components/schemas/MailboxPolicy"
+              },
+              "source": {
+                "type": "string",
+                "enum": ["default", "configured"],
+                "nullable": true
+              },
+              "version": {
+                "type": "integer",
+                "minimum": 0,
+                "nullable": true
+              }
+            }
+          },
+          "chain": {
+            "type": "object",
+            "required": ["policy", "version"],
+            "properties": {
+              "policy": {
+                "$ref": "#/components/schemas/MailboxPolicy"
+              },
+              "version": {
+                "type": "integer",
+                "minimum": 0,
+                "nullable": true
+              }
+            }
+          },
+          "writeIntent": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PolicyWriteIntent"
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "version": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              }
+            ],
+            "nullable": true
+          }
+        }
+      },
       "ValidationErrorItem": {
         "type": "object",
         "required": ["path", "rule", "message"],
@@ -243,6 +411,83 @@
         "type": "string",
         "enum": ["permanent", "transient", "rate_limit", "conflict"],
         "description": "Stable machine-readable classification of retry eligibility."
+      },
+      "ProvisioningStatus": {
+        "type": "string",
+        "enum": ["pending", "retryable", "active", "failed"],
+        "description": "State of the transactional account-provisioning state machine."
+      },
+      "ProvisioningStep": {
+        "type": "string",
+        "enum": [
+          "username_reservation",
+          "profile_defaults",
+          "wallet_creation",
+          "mailbox_policy_init"
+        ],
+        "description": "A single idempotent step of the provisioning flow."
+      },
+      "ProvisioningFailure": {
+        "type": "object",
+        "required": ["step", "code", "message", "failedAt"],
+        "properties": {
+          "step": {
+            "$ref": "#/components/schemas/ProvisioningStep"
+          },
+          "code": {
+            "type": "string",
+            "description": "Stable domain error code of the failing step."
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable failure explanation."
+          },
+          "failedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ProvisioningProgress": {
+        "type": "object",
+        "required": ["status", "requestedUsername", "completedSteps", "currentStep", "attempts"],
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/ProvisioningStatus"
+          },
+          "requestedUsername": {
+            "type": "string",
+            "pattern": "^[a-z0-9_-]{3,30}$"
+          },
+          "completedSteps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProvisioningStep"
+            }
+          },
+          "currentStep": {
+            "$ref": "#/components/schemas/ProvisioningStep"
+          },
+          "attempts": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Number of flow runs attempted so far."
+          },
+          "failure": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ProvisioningFailure"
+              },
+              {
+                "nullable": true
+              }
+            ]
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
       },
       "ErrorEnvelope": {
         "type": "object",
@@ -816,6 +1061,154 @@
           },
           "401": {
             "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/policies/{owner}/provision": {
+      "post": {
+        "operationId": "initializeMailboxPolicyDefaults",
+        "x-max-body-bytes": 4096,
+        "summary": "Initialize privacy-safe mailbox policy defaults (BETA-023)",
+        "description": "Idempotently initializes the beta mailbox policy defaults for the owner, persisting the off-chain policy and scheduling the matching testnet contract write. A retry never re-submits an identical write and never bumps the on-chain policy version.",
+        "security": [
+          {
+            "StellarSignedRequest": []
+          }
+        ],
+        "x-stability": "beta",
+        "responses": {
+          "200": {
+            "description": "Provisioning result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/InitializePolicyDefaultsResult"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict (idempotency)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/policies/{owner}/reconciliation": {
+      "get": {
+        "operationId": "getPolicyReconciliation",
+        "summary": "Read mailbox policy reconciliation state (BETA-023)",
+        "description": "Exposes the reconciliation state between the durable off-chain policy and the on-chain Policies contract. When the chain client is unavailable, reconciliation is derived from the durable write intent alone (pending write surfaced as testnet synchronization pending).",
+        "x-stability": "beta",
+        "parameters": [
+          {
+            "name": "chainVersion",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "description": "On-chain policy version reported by the Policies contract; supplied by the chain client wired by BETA-017."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Reconciliation state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/PolicyReconciliation"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
             "content": {
               "application/json": {
                 "schema": {
@@ -1990,6 +2383,439 @@
           },
           "503": {
             "description": "Not Ready — a required dependency is unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/accounts": {
+      "post": {
+        "operationId": "provisionAccount",
+        "summary": "Provision an account (username, profile, wallet, policy)",
+        "description": "Idempotently runs the transactional account-provisioning state machine: username reservation, profile defaults, wallet creation and mailbox policy initialization converge without leaving a partial active account. Repeated calls are safe against duplicate requests; an optional x-idempotency-key enables strict replay semantics.",
+        "security": [
+          {
+            "ActorHeader": []
+          }
+        ],
+        "x-stability": "beta",
+        "requestBody": {
+          "description": "Provisioning intent. Email and username are required only when no account exists for the actor yet.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "username": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9_-]{3,30}$"
+                  },
+                  "displayName": {
+                    "type": "string",
+                    "maxLength": 80
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Provisioning progress after a completed or resumed run",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvisioningProgress"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict ΓÇö username unavailable or provisioning previously failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity ΓÇö Request payload validation failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/accounts/provisioning": {
+      "get": {
+        "operationId": "getAccountProvisioningProgress",
+        "summary": "Read provisioning progress for the authenticated account",
+        "description": "Safe progress projection: provisioning state, completed steps, attempts and the last failure. Never exposes credentials, wallet seeds, or hashes.",
+        "security": [
+          {
+            "ActorHeader": []
+          }
+        ],
+        "x-stability": "beta",
+        "responses": {
+          "200": {
+            "description": "Provisioning progress and account status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["provisioning", "accountStatus"],
+                  "properties": {
+                    "provisioning": {
+                      "$ref": "#/components/schemas/ProvisioningProgress"
+                    },
+                    "accountStatus": {
+                      "type": "string",
+                      "enum": ["active", "suspended", "pending_verification", "deactivated"]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found ΓÇö no account or provisioning record",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/accounts/provisioning/retry": {
+      "post": {
+        "operationId": "retryAccountProvisioning",
+        "summary": "Retry a failed provisioning run",
+        "description": "Restarts a retryable provisioning flow from its first incomplete step. Only retryable flows may be restarted; active and in-flight flows are rejected with a deterministic 409.",
+        "security": [
+          {
+            "ActorHeader": []
+          }
+        ],
+        "x-stability": "beta",
+        "responses": {
+          "200": {
+            "description": "Provisioning progress after the retry run",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvisioningProgress"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found ΓÇö no account or provisioning record",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict ΓÇö provisioning in flight, already active, or attempts exhausted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/auth/verify": {
+      "post": {
+        "operationId": "verifyAccount",
+        "summary": "Verify an account with a delivered token",
+        "description": "Consumes a single-use verification token and activates the account. Responses are generic: failures are expressed as token state and never reveal whether an account exists; replaying an already-verified token reports success so retries are safe.",
+        "security": [],
+        "x-stability": "beta",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "token"],
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "token": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Generic verification result; never reveals whether the account exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/auth/resend-verification": {
+      "post": {
+        "operationId": "resendVerificationMessage",
+        "summary": "Resend the verification message for a pending account",
+        "description": "Re-issues a verification token (invalidating the previous one) and delivers a new message. Responds identically for unknown and non-pending accounts to prevent account probing; the resend cooldown is enforced with 429.",
+        "security": [],
+        "x-stability": "beta",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email"],
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Generic confirmation; the message was sent or intentionally not sent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Resend cooldown is still active",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The verification message could not be delivered",
             "content": {
               "application/json": {
                 "schema": {

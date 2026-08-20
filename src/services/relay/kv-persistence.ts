@@ -62,6 +62,20 @@ export class KvRelayPersistence implements RelayPersistence {
     await this.incrementCounter(KvRelayPersistence.DEAD_LETTER_KEY);
   }
 
+  async listRecipientQueue(recipient: string): Promise<RelayEnvelope[]> {
+    const kv = this.kv as any;
+    const list = await kv.list({ prefix: KvRelayPersistence.MESSAGE_PREFIX });
+    const results: RelayEnvelope[] = [];
+    const norm = recipient.toUpperCase().trim();
+    for (const key of list.keys) {
+      const envelope = (await this.kv.get(key.name, "json")) as RelayEnvelope | null;
+      if (envelope && envelope.recipient?.toUpperCase().trim() === norm) {
+        results.push(envelope);
+      }
+    }
+    return results;
+  }
+
   private async readCounter(key: string): Promise<number> {
     const raw = await this.kv.get(key, "text");
     const value = raw === null ? 0 : Number(raw);

@@ -99,6 +99,11 @@ describe("body-limit registry (#1487)", () => {
       "quotePostage",
       "recordDelivery",
       "submitRelayMessage",
+      "createContact",
+      "updateContact",
+      "mergeContacts",
+      "previewContactImport",
+      "commitContactImport",
     ]) {
       expect(documented.get(opId), `${opId} documents x-max-body-bytes`).toBeGreaterThan(0);
     }

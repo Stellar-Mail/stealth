@@ -37,6 +37,7 @@ import {
 } from "@/features/settings/mailbox-policy-templates";
 import { AuditLog } from "@/features/audit-log";
 import { ChangelogPanel, useChangelog } from "@/features/changelog";
+import { ExternalWalletSettings } from "@/features/settings/external-wallet-linking";
 
 const tabs = [
   { id: "account", label: "Account", icon: User },
@@ -1254,6 +1255,9 @@ function SecuritySettings() {
         <p className="mt-1 text-xs text-muted-foreground">Manage sessions, devices, and recovery</p>
       </div>
 
+      {/* External Wallet Linking */}
+      <ExternalWalletSettings />
+
       {/* Active Sessions */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
@@ -1263,6 +1267,25 @@ function SecuritySettings() {
               Sessions currently signed in to your account
             </p>
           </div>
+          <button
+            onClick={() =>
+              setConfirmDialog({
+                title: "Revoke all sessions?",
+                description: "This will revoke all active sessions across all devices.",
+                onConfirm: async () => {
+                  try {
+                    await fetch("/api/v1/auth/logout-all", { method: "POST" });
+                  } catch {
+                    // Fallthrough safely
+                  }
+                  setConfirmDialog(null);
+                },
+              })
+            }
+            className="rounded-lg border border-red-500/20 bg-red-500/10 px-2.5 py-1 text-xs font-medium text-red-400 hover:bg-red-500/20 transition"
+          >
+            Revoke all sessions
+          </button>
         </div>
         <div className="space-y-2">
           {sessions.map((session) => (
@@ -1292,7 +1315,14 @@ function SecuritySettings() {
                     setConfirmDialog({
                       title: "Revoke session?",
                       description: "This will sign out this device from your account.",
-                      onConfirm: () => setConfirmDialog(null),
+                      onConfirm: async () => {
+                        try {
+                          await fetch("/api/v1/auth/logout", { method: "POST" });
+                        } catch {
+                          // Fallthrough safely
+                        }
+                        setConfirmDialog(null);
+                      },
                     })
                   }
                   className="rounded-lg px-3 py-1.5 text-xs text-red-400 hover:bg-red-500/10 transition"

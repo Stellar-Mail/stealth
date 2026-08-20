@@ -1,3 +1,4 @@
+import { commitContactImport } from "../api";
 import type {
   BulkWriteProgress,
   BulkWriteStatus,
@@ -35,6 +36,31 @@ export function createMemoryPolicyApi(): PolicyApi & { dump(): Record<string, "a
     },
     dump() {
       return Object.fromEntries(rules);
+    },
+  };
+}
+
+/**
+ * Live policy API backed by the BETA-066 contacts import/commit endpoint.
+ *
+ * Each rule write commits a single contact row through
+ * `POST /api/v1/contacts/import/commit` with `applyTrust: true`, so the
+ * resulting contact row is stored and the allow/block sender rule is applied
+ * atomically. Unlike the memory API this persists to the actor's mailbox.
+ */
+export function createLivePolicyApi(owner: string): PolicyApi {
+  return {
+    async setSenderRule(_owner: string, sender: string, rule: "allow" | "block") {
+      await commitContactImport(owner, {
+        rows: [{ name: sender, address: sender, trust: rule, source: "csv" }],
+        applyTrust: true,
+      });
+    },
+    async removeSenderRule(_owner: string, sender: string) {
+      await commitContactImport(owner, {
+        rows: [{ name: sender, address: sender, trust: "default", source: "csv" }],
+        applyTrust: false,
+      });
     },
   };
 }

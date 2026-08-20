@@ -20,6 +20,11 @@ interface DurableObjectState {
     get<T>(key: string): Promise<T | undefined>;
     put(key: string, value: any): Promise<void>;
     delete(key: string): Promise<boolean>;
+    list(options?: { prefix?: string; limit?: number; cursor?: string }): Promise<{
+      keys: Array<{ name: string }>;
+      list_complete: boolean;
+      cursor?: string;
+    }>;
   };
 }
 
@@ -100,4 +105,18 @@ declare module "cloudflare:workers" {
     env: any;
     constructor(ctx: DurableObjectState, env: any);
   }
+}
+
+declare module "cloudflare:sockets" {
+  export interface Socket {
+    write(data: string): void;
+    close(): void;
+    startTls(): Socket;
+    addEventListener(type: string, listener: (event: unknown) => void): void;
+  }
+  export function connect(options: {
+    hostname: string;
+    port: number;
+    secureTransport: "on" | "off" | "starttls";
+  }): Socket;
 }

@@ -83,3 +83,24 @@ STEALTH_APP_URL=http://localhost:3000
 STEALTH_CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
 STEALTH_CORS_ALLOW_CREDENTIALS=true
 ```
+
+---
+
+### Cloudflare Persistence Bindings (BETA-024 / Issue #1931)
+
+The committed `wrangler.jsonc` defines `preview` and `production` environments
+with distinct KV namespaces, Durable Object bindings, and `secrets.required`
+(`STEALTH_CURSOR_SECRET`). **No real resource IDs are committed** — KV ids are
+`{VAR_NAME}` placeholders injected at deploy time:
+
+```bash
+# Variables (see .env.example):
+#   STEALTH_KV_LOCAL_ID / STEALTH_KV_PREVIEW_ID / STEALTH_KV_PRODUCTION_ID
+bun run config:generate        # writes .wrangler/generated/wrangler.jsonc
+bun run config:check           # CI guard: no real IDs/secrets committed, envs isolated
+
+wrangler deploy --env production --config .wrangler/generated/wrangler.jsonc
+```
+
+Identity record migrations (dry-run / forward / rollback / integrity-check)
+are documented in [Schema Migrations](MIGRATIONS.md).

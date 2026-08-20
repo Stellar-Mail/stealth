@@ -13,7 +13,16 @@ import {
   profileSchema,
   credentialSchema,
   sessionSchema,
+  retiredSessionSchema,
   storedEnvelopeSchema,
+  provisioningRecordSchema,
+  usernameReservationSchema,
+  verificationTokenSchema,
+  walletSchema,
+  policyWriteIntentSchema,
+  publishedKeySchema,
+  keyDirectoryRecordSchema,
+  contactSchema,
 } from "./domain";
 import { ApiError } from "./errors";
 
@@ -196,7 +205,9 @@ registerRecordSchema("receipt", 1, receiptSchema);
 registerRecordSchema("user", 1, userSchema);
 registerRecordSchema("profile", 1, profileSchema);
 registerRecordSchema("credential", 1, credentialSchema);
+registerRecordSchema("verificationToken", 1, verificationTokenSchema);
 registerRecordSchema("session", 1, sessionSchema);
+registerRecordSchema("retiredSession", 1, retiredSessionSchema);
 // v1 -> v2 (Issue #1498): records now carry a requestDigest binding the
 // lease/response to the exact request payload that created it. Legacy
 // records predate this and never bore a client-supplied payload we can
@@ -210,6 +221,22 @@ registerRecordSchema("idempotencyRecord", 2, idempotencyRecordSchema, {
 // ValidatedApiRepository can detect tampered or structurally invalid
 // envelope records at the adapter boundary before they reach any caller.
 registerRecordSchema("storedEnvelope", 1, storedEnvelopeSchema);
+// Issue #1921 (BETA-014): provisioning state machine, username claims and
+// wallet records are versioned and validated at the adapter boundary like
+// every other durable record.
+registerRecordSchema("provisioning", 1, provisioningRecordSchema);
+registerRecordSchema("usernameReservation", 1, usernameReservationSchema);
+registerRecordSchema("wallet", 1, walletSchema);
+// Issue #1930 (BETA-023): durable scheduled-write intent for the Policies
+// contract, so tampered or structurally invalid intents fail closed at the
+// adapter boundary instead of silently drifting the reconciliation state.
+registerRecordSchema("policyWriteIntent", 1, policyWriteIntentSchema);
+// Issue #1934 (BETA-027): Versioned Public Encryption-Key Directory & Rotation
+registerRecordSchema("publishedKey", 1, publishedKeySchema);
+registerRecordSchema("keyDirectoryRecord", 1, keyDirectoryRecordSchema);
+// Issue #1973 (BETA-066): durable user-owned contacts are versioned and
+// validated at the adapter boundary like every other durable record.
+registerRecordSchema("contact", 1, contactSchema);
 
 /**
  * Issue #1461: Verified API Principal model representing authenticated request identity.
@@ -341,6 +368,11 @@ export interface ApiConfig {
   coordinatorBinding?: unknown;
   objectStoreBinding?: unknown;
   cursorSecret?: string;
+  smtpPassword?: string;
+  relayApiKey?: string;
+  storageSecret?: string;
+  rpcApiKey?: string;
+  operatorSecret?: string;
   supportedVersions: readonly string[];
 }
 
@@ -378,6 +410,11 @@ export function validateApiConfig(config: ApiConfig): void {
       STEALTH_KV: config.kvBinding,
       STEALTH_COORDINATOR: config.coordinatorBinding,
       STEALTH_CURSOR_SECRET: config.cursorSecret,
+      STEALTH_SMTP_PASSWORD: config.smtpPassword,
+      STEALTH_RELAY_API_KEY: config.relayApiKey,
+      STEALTH_STORAGE_SECRET: config.storageSecret,
+      STEALTH_RPC_API_KEY: config.rpcApiKey,
+      STEALTH_OPERATOR_SECRET: config.operatorSecret,
     },
   });
 }
@@ -397,6 +434,11 @@ export async function getApiContext(request?: Request): Promise<ApiContext> {
     // the cursor secret is read defensively so an undeclared secret fails the
     // validation gate rather than a type error.
     const cursorSecret = (env as Record<string, string | undefined>).STEALTH_CURSOR_SECRET;
+    const smtpPassword = (env as Record<string, string | undefined>).STEALTH_SMTP_PASSWORD;
+    const relayApiKey = (env as Record<string, string | undefined>).STEALTH_RELAY_API_KEY;
+    const storageSecret = (env as Record<string, string | undefined>).STEALTH_STORAGE_SECRET;
+    const rpcApiKey = (env as Record<string, string | undefined>).STEALTH_RPC_API_KEY;
+    const operatorSecret = (env as Record<string, string | undefined>).STEALTH_OPERATOR_SECRET;
 
     validateApiConfig({
       isProd: true,
@@ -404,6 +446,11 @@ export async function getApiContext(request?: Request): Promise<ApiContext> {
       coordinatorBinding: env.STEALTH_COORDINATOR,
       objectStoreBinding: env.STEALTH_OBJECT_STORE,
       cursorSecret,
+      smtpPassword,
+      relayApiKey,
+      storageSecret,
+      rpcApiKey,
+      operatorSecret,
       supportedVersions: ["v1"],
     });
 

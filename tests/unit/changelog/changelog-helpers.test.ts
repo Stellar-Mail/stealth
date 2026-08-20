@@ -240,39 +240,41 @@ describe("getCategoryLabel", () => {
 // ---------------------------------------------------------------------------
 
 describe("getSeenVersion / setSeenVersion", () => {
-  let originalLocalStorage: Storage | undefined;
+  let originalLocalStorage: any;
 
   beforeEach(() => {
-    if (typeof localStorage === "undefined") {
-      originalLocalStorage = globalThis.localStorage;
-      const store = new Map<string, string>();
-      const mockStorage: Storage = {
-        getItem: (key: string) => store.get(key) ?? null,
-        setItem: (key: string, value: string) => {
-          store.set(key, value);
-        },
-        removeItem: (key: string) => {
-          store.delete(key);
-        },
-        clear: () => store.clear(),
-        key: (index: number) => Array.from(store.keys())[index] ?? null,
-        get length() {
-          return store.size;
-        },
-      };
+    originalLocalStorage = (globalThis as any).localStorage;
+    const store = new Map<string, string>();
+    const mockStorage: any = {
+      getItem: (key: string) => store.get(key) ?? null,
+      setItem: (key: string, value: string) => {
+        store.set(key, value);
+      },
+      removeItem: (key: string) => {
+        store.delete(key);
+      },
+      clear: () => store.clear(),
+      key: (index: number) => Array.from(store.keys())[index] ?? null,
+      get length() {
+        return store.size;
+      },
+    };
+    Object.defineProperty(globalThis, "localStorage", {
+      value: mockStorage,
+      configurable: true,
+      writable: true,
+    });
+  });
+
+  afterEach(() => {
+    if (originalLocalStorage !== undefined) {
       Object.defineProperty(globalThis, "localStorage", {
-        value: mockStorage,
+        value: originalLocalStorage,
         configurable: true,
         writable: true,
       });
     } else {
-      localStorage.clear();
-    }
-  });
-
-  afterEach(() => {
-    if (localStorage) {
-      localStorage.clear();
+      delete (globalThis as any).localStorage;
     }
   });
 

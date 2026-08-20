@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
-import type { StoredEnvelope } from "../../../src/server/api/domain";
+import type { Contact, StoredEnvelope } from "../../../src/server/api/domain";
 import type { ApiRepository } from "../../../src/server/api/repository";
 
 // Issue #1494: one reusable repository conformance suite that every adapter must
@@ -57,6 +57,54 @@ export function runRepositoryContractTests(
         await expect(repo.getPolicy(owner)).resolves.toMatchObject({
           minimumPostage: "200",
           requireVerified: true,
+        });
+      });
+    });
+
+    describe("policy write intents (BETA-023 / Issue #1930)", () => {
+      const intent = {
+        owner,
+        policy: {
+          allowUnknown: true,
+          requireVerified: false,
+          requireReceipt: false,
+          minimumPostage: "0",
+        },
+        offchainVersion: 1,
+        status: "pending" as const,
+        scheduledAt: "2026-01-01T00:00:00.000Z",
+        updatedAt: "2026-01-01T00:00:00.000Z",
+        failureCount: 0,
+        lastError: null,
+        txHash: null,
+      };
+
+      it("returns null for a missing write intent", async () => {
+        await expect(repo.getPolicyWriteIntent(owner)).resolves.toBeNull();
+      });
+
+      it("round-trips a policy write intent keyed by owner", async () => {
+        await repo.setPolicyWriteIntent(intent);
+        await expect(repo.getPolicyWriteIntent(owner)).resolves.toMatchObject({
+          owner,
+          offchainVersion: 1,
+          status: "pending",
+        });
+      });
+
+      it("overwrites an existing write intent and isolates per owner", async () => {
+        const otherOwner = `G${"C".repeat(55)}`;
+        await repo.setPolicyWriteIntent(intent);
+        await repo.setPolicyWriteIntent({
+          ...intent,
+          owner: otherOwner,
+          offchainVersion: 2,
+        });
+        await expect(repo.getPolicyWriteIntent(owner)).resolves.toMatchObject({
+          offchainVersion: 1,
+        });
+        await expect(repo.getPolicyWriteIntent(otherOwner)).resolves.toMatchObject({
+          offchainVersion: 2,
         });
       });
     });
@@ -450,6 +498,149 @@ export function runRepositoryContractTests(
 
         await repo.deleteUserSessions("usr_test_1");
         expect(await repo.getSession("sess_contract_101")).toBeNull();
+      });
+
+      it("creates and retrieves a retired session record", async () => {
+        const retiredRecord = {
+          sessionId: "sess_old_1",
+          replacedBySessionId: "sess_new_2",
+          userId: "usr_test_1",
+          retiredAt: "2026-01-01T00:00:00.000Z",
+          expiresAt: "2026-01-08T00:00:00.000Z",
+        };
+
+        expect(await repo.getRetiredSession("sess_old_1")).toBeNull();
+
+        const created = await repo.createRetiredSession(retiredRecord);
+        expect(created.sessionId).toBe("sess_old_1");
+
+        const fetched = await repo.getRetiredSession("sess_old_1");
+        expect(fetched).toMatchObject({
+          sessionId: "sess_old_1",
+          replacedBySessionId: "sess_new_2",
+          userId: "usr_test_1",
+        });
+      });
+    });
+
+    describe("contacts (BETA-066 / Issue #1973)", () => {
+      const otherOwner = `G${"C".repeat(55)}`;
+
+      function sampleContact(id: string, overrides: Partial<Contact> = {}): Contact {
+        return {
+          contactId: id,
+          owner,
+          name: `Contact ${id}`,
+          address: `g-address-${id}`,
+          canonicalAddress: null,
+          trust: "default",
+          source: "manual",
+          createdAt: "2026-01-01T00:00:00.000Z",
+          updatedAt: "2026-01-01T00:00:00.000Z",
+          version: 1,
+          ...overrides,
+        };
+      }
+
+      it("returns null for a missing contact", async () => {
+        await expect(repo.getContact(owner, "c_missing")).resolves.toBeNull();
+      });
+
+      it("round-trips a created contact and isolates it per owner", async () => {
+        const stored = await repo.createContact(sampleContact("c_1"));
+        expect(stored).toMatchObject({ contactId: "c_1", owner, name: "Contact c_1" });
+
+        const fetched = await repo.getContact(owner, "c_1");
+        expect(fetched).toMatchObject({ contactId: "c_1", owner, version: 1 });
+
+        await expect(repo.getContact(otherOwner, "c_1")).resolves.toBeNull();
+      });
+
+      it("rejects duplicate contactId creation for the same owner", async () => {
+        await repo.createContact(sampleContact("c_dup"));
+        await expect(repo.createContact(sampleContact("c_dup"))).rejects.toThrow();
+      });
+
+      it("allows the same contactId under a different owner", async () => {
+        await repo.createContact(sampleContact("c_shared"));
+        await expect(
+          repo.createContact(sampleContact("c_shared", { owner: otherOwner })),
+        ).resolves.toMatchObject({ owner: otherOwner });
+      });
+
+      it("applies compare-and-swap updates keyed by expectedVersion", async () => {
+        await repo.createContact(sampleContact("c_cas"));
+
+        const moved = await repo.updateContact(
+          sampleContact("c_cas", { version: 2, name: "Moved" }),
+          1,
+        );
+        expect(moved.updated).toBe(true);
+        if (moved.updated) {
+          expect(moved.contact).toMatchObject({ name: "Moved", version: 2 });
+        }
+
+        const stale = await repo.updateContact(sampleContact("c_cas"), 1);
+        expect(stale.updated).toBe(false);
+      });
+
+      it("reports not-found CAS when the contact never existed", async () => {
+        const result = await repo.updateContact(sampleContact("c_ghost"), 1);
+        expect(result).toEqual({ updated: false, current: null });
+      });
+
+      it("deletes a contact and leaves other owners untouched", async () => {
+        await repo.createContact(sampleContact("c_del", { owner: otherOwner }));
+        await repo.createContact(sampleContact("c_keep"));
+
+        await repo.deleteContact(owner, "c_keep");
+        await expect(repo.getContact(owner, "c_keep")).resolves.toBeNull();
+        await expect(repo.getContact(otherOwner, "c_del")).resolves.not.toBeNull();
+      });
+
+      it("lists contacts scoped to the owner with the declared ordering", async () => {
+        await repo.createContact(sampleContact("c_a", { name: "Alpha" }));
+        await repo.createContact(sampleContact("c_b", { name: "Beta" }));
+        await repo.createContact(sampleContact("c_z", { owner: otherOwner, name: "Zulu" }));
+
+        const page = await repo.listContacts(owner);
+        expect(page.items.map((c) => c.contactId).sort()).toEqual(["c_a", "c_b"]);
+        expect(page.items.every((c) => c.owner === owner)).toBe(true);
+      });
+
+      it("filters by query against name and raw address case-insensitively", async () => {
+        await repo.createContact(sampleContact("c_alpha", { name: "Alice" }));
+        await repo.createContact(sampleContact("c_bravo", { address: "GALICE-ADDRESS" }));
+
+        const byName = await repo.listContacts(owner, { query: "alice" });
+        expect(byName.items.map((c) => c.contactId).sort()).toEqual(["c_alpha", "c_bravo"]);
+
+        const onlyAddress = await repo.listContacts(owner, { query: "galice" });
+        expect(onlyAddress.items.map((c) => c.contactId)).toEqual(["c_bravo"]);
+      });
+
+      it("paginates contacts with limit and continuation key", async () => {
+        for (let i = 0; i < 5; i += 1) {
+          await repo.createContact(sampleContact(`c_page_${i}`));
+        }
+
+        const first = await repo.listContacts(owner, { limit: 2 });
+        expect(first.items).toHaveLength(2);
+        expect(first.nextContinuationKey).not.toBeNull();
+
+        const second = await repo.listContacts(owner, {
+          limit: 2,
+          after: first.nextContinuationKey ?? undefined,
+        });
+        expect(second.items).toHaveLength(2);
+        expect(second.items[0].contactId).not.toBe(first.items[0].contactId);
+
+        const last = await repo.listContacts(owner, {
+          limit: 5,
+          after: second.nextContinuationKey ?? undefined,
+        });
+        expect(last.items).toHaveLength(1);
+        expect(last.nextContinuationKey).toBeNull();
       });
     });
   });

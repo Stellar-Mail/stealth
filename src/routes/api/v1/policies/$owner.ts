@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { parseDelegationHeader, requireActorMatches } from "@/server/api/actor";
-import { mailboxPolicySchema, stellarAddressSchema } from "@/server/api/domain";
+import { mailboxPolicyWriteSchema, stellarAddressSchema } from "@/server/api/domain";
 import { getApiContext } from "@/server/api/context";
 import { getMailboxPolicy, setMailboxPolicy } from "@/server/api/policy-service";
 import { parseJsonBody } from "@/server/api/request";
@@ -26,10 +26,13 @@ export const Route = createFileRoute("/api/v1/policies/$owner")({
             owner,
             parseDelegationHeader(request, "policy:update", `mailbox:${owner}:policy`),
           );
-          const policy = await parseJsonBody(request, mailboxPolicySchema, {
+          const body = await parseJsonBody(request, mailboxPolicyWriteSchema, {
             route: "PUT /policies/{owner}",
           });
-          const result = await setMailboxPolicy(context.repository, owner, policy);
+          const { requireReceipt, ...policy } = body;
+          const result = await setMailboxPolicy(context.repository, owner, policy, {
+            requireReceipt,
+          });
           return apiSuccess(request, result);
         }),
     },

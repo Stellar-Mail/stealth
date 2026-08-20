@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 
 import { buildDeviceFingerprint } from "@/server/api/abuse-service";
+import { enforceAuthLoginLimits, enforceDeviceLimit } from "@/server/api/abuse-controls";
 import { authenticateWithPassword, parseSessionCookie } from "@/server/api/auth/session-service";
 import { getApiContext } from "@/server/api/context";
 import { toPublicSession, toPublicUser } from "@/server/api/domain";
@@ -43,6 +44,15 @@ export const Route = createFileRoute("/api/v1/auth/login")({
             acceptEncoding,
             ipPrefix,
           });
+
+          // BETA-049: enforce IP and device limits before expensive password verification
+          await enforceAuthLoginLimits(apiContext.repository, ip, request);
+          await enforceDeviceLimit(
+            apiContext.repository,
+            fingerprint,
+            { route: "auth_login", windowMs: 60_000, max: 10 },
+            request,
+          );
 
           const currentSessionId = parseSessionCookie(request.headers.get("cookie")) ?? undefined;
 

@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { KeyRound, Lock, User, AlertCircle, CheckCircle2, X } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { KeyRound, Lock, User, AlertCircle, CheckCircle2, X, Mail } from "lucide-react";
 
 export interface AuthModalProps {
   open: boolean;
@@ -11,13 +10,71 @@ export interface AuthModalProps {
 
 export function AuthModal({ open, onClose, onSuccess }: AuthModalProps) {
   const [identifier, setIdentifier] = useState("");
+  const [registering, setRegistering] = useState(false);
+  const [displayName, setDisplayName] = useState("");
+  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [passwordConfirmation, setPasswordConfirmation] = useState("");
+  const [acceptedLegal, setAcceptedLegal] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (registering) {
+      if (
+        !displayName.trim() ||
+        !email.trim() ||
+        !username.trim() ||
+        !password ||
+        !passwordConfirmation
+      ) {
+        setError("Complete every required field.");
+        return;
+      }
+      if (!acceptedLegal) {
+        setError("Please accept the Terms and Privacy Policy.");
+        return;
+      }
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetch("/api/v1/auth/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            displayName,
+            email,
+            username,
+            password,
+            passwordConfirmation,
+            termsVersion: "2026-01",
+            privacyPolicyVersion: "2026-01",
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          const fieldError = data.error?.details?.validationErrors?.[0]?.message;
+          setError(
+            fieldError ||
+              data.error?.message ||
+              "We could not create your account. Please try again.",
+          );
+          setLoading(false);
+          return;
+        }
+        setRegisteredEmail(data.data.maskedEmail);
+        setSuccess(true);
+        setLoading(false);
+      } catch {
+        setError("Unable to connect to the registration server. Please try again.");
+        setLoading(false);
+      }
+      return;
+    }
     if (!identifier.trim() || !password) {
       setError("Please enter your email/username and password.");
       return;
@@ -98,87 +155,197 @@ export function AuthModal({ open, onClose, onSuccess }: AuthModalProps) {
               <KeyRound className="h-6 w-6" />
             </div>
             <div>
-              <h2 className="text-xl font-bold tracking-tight">Sign in to Stealth</h2>
+              <h2 className="text-xl font-bold tracking-tight">
+                {registering ? "Create your Stealth account" : "Sign in to Stealth"}
+              </h2>
               <p className="text-xs text-muted-foreground">
-                Enter your credentials to access your mailbox securely.
+                {registering
+                  ? "No wallet connection is required."
+                  : "Enter your credentials to access your mailbox securely."}
               </p>
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {error && (
-              <motion.div
-                initial={{ opacity: 0, y: -6 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex items-center gap-2.5 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive"
-              >
-                <AlertCircle className="h-4 w-4 shrink-0" />
-                <span>{error}</span>
-              </motion.div>
-            )}
-
-            {success && (
-              <motion.div
-                initial={{ opacity: 0, y: -6 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex items-center gap-2.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-400"
-              >
+          {registeredEmail ? (
+            <div className="space-y-4" role="status">
+              <div className="flex items-center gap-2.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-400">
                 <CheckCircle2 className="h-4 w-4 shrink-0" />
-                <span>Authentication successful! Accessing mailbox...</span>
-              </motion.div>
-            )}
-
-            <div>
-              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
-                Email or Username
-              </label>
-              <div className="relative flex items-center">
-                <User className="absolute left-3 h-4 w-4 text-muted-foreground" />
-                <input
-                  type="text"
-                  value={identifier}
-                  onChange={(e) => setIdentifier(e.target.value)}
-                  placeholder="alice@stealth.mail or alice_99"
-                  className="glow-ring w-full rounded-lg border border-white/10 bg-white/[0.04] py-2.5 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground/60 transition focus:bg-white/[0.08]"
-                  autoComplete="username"
-                  required
-                />
+                <span>Check your email</span>
               </div>
+              <p className="text-sm text-muted-foreground">
+                We sent verification instructions to {registeredEmail}. You can correct your email
+                by creating the account again with the right address.
+              </p>
             </div>
-
-            <div>
-              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
-                Password
-              </label>
-              <div className="relative flex items-center">
-                <Lock className="absolute left-3 h-4 w-4 text-muted-foreground" />
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••••••"
-                  className="glow-ring w-full rounded-lg border border-white/10 bg-white/[0.04] py-2.5 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground/60 transition focus:bg-white/[0.08]"
-                  autoComplete="current-password"
-                  required
-                />
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="glow-ring flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:opacity-50"
-            >
-              {loading ? (
-                <span className="inline-flex items-center gap-2">
-                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
-                  Authenticating...
-                </span>
-              ) : (
-                "Sign In"
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0, y: -6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex items-center gap-2.5 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive"
+                >
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  <span>{error}</span>
+                </motion.div>
               )}
-            </button>
-          </form>
+
+              {success && !registering && (
+                <motion.div
+                  initial={{ opacity: 0, y: -6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex items-center gap-2.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-400"
+                >
+                  <CheckCircle2 className="h-4 w-4 shrink-0" />
+                  <span>Authentication successful! Accessing mailbox...</span>
+                </motion.div>
+              )}
+
+              {registering && (
+                <>
+                  <div>
+                    <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                      Full name
+                    </label>
+                    <input
+                      value={displayName}
+                      onChange={(e) => setDisplayName(e.target.value)}
+                      autoComplete="name"
+                      required
+                      className="glow-ring w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2.5 text-sm text-foreground"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                      Email address
+                    </label>
+                    <div className="relative flex items-center">
+                      <Mail className="absolute left-3 h-4 w-4 text-muted-foreground" />
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        autoComplete="email"
+                        required
+                        className="glow-ring w-full rounded-lg border border-white/10 bg-white/[0.04] py-2.5 pl-9 pr-3 text-sm text-foreground"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                      Stealth username
+                    </label>
+                    <input
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value.toLowerCase())}
+                      autoComplete="username"
+                      required
+                      pattern="[a-z0-9_-]{3,30}"
+                      className="glow-ring w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2.5 text-sm text-foreground"
+                    />
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {username || "username"}@stealth.me
+                    </p>
+                  </div>
+                </>
+              )}
+              {!registering && (
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                    Email or Username
+                  </label>
+                  <div className="relative flex items-center">
+                    <User className="absolute left-3 h-4 w-4 text-muted-foreground" />
+                    <input
+                      type="text"
+                      value={identifier}
+                      onChange={(e) => setIdentifier(e.target.value)}
+                      placeholder="alice@stealth.mail or alice_99"
+                      className="glow-ring w-full rounded-lg border border-white/10 bg-white/[0.04] py-2.5 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground/60 transition focus:bg-white/[0.08]"
+                      autoComplete="username"
+                      required
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                  Password
+                </label>
+                <div className="relative flex items-center">
+                  <Lock className="absolute left-3 h-4 w-4 text-muted-foreground" />
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••••••"
+                    className="glow-ring w-full rounded-lg border border-white/10 bg-white/[0.04] py-2.5 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground/60 transition focus:bg-white/[0.08]"
+                    autoComplete="current-password"
+                    required
+                  />
+                </div>
+              </div>
+
+              {registering && (
+                <>
+                  <div>
+                    <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                      Confirm password
+                    </label>
+                    <input
+                      type="password"
+                      value={passwordConfirmation}
+                      onChange={(e) => setPasswordConfirmation(e.target.value)}
+                      autoComplete="new-password"
+                      required
+                      className="glow-ring w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2.5 text-sm text-foreground"
+                    />
+                  </div>
+                  <label className="flex items-start gap-2 text-xs text-muted-foreground">
+                    <input
+                      type="checkbox"
+                      checked={acceptedLegal}
+                      onChange={(e) => setAcceptedLegal(e.target.checked)}
+                      required
+                      className="mt-0.5"
+                    />
+                    I agree to the Terms and Privacy Policy.
+                  </label>
+                </>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="glow-ring flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:opacity-50"
+              >
+                {loading ? (
+                  <span className="inline-flex items-center gap-2">
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
+                    {registering ? "Creating account..." : "Authenticating..."}
+                  </span>
+                ) : registering ? (
+                  "Create account"
+                ) : (
+                  "Sign In"
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setRegistering(!registering);
+                  setError(null);
+                  setSuccess(false);
+                }}
+                className="w-full text-center text-xs text-primary hover:underline"
+              >
+                {registering
+                  ? "Already have an account? Sign in"
+                  : "New to Stealth? Create an account"}
+              </button>
+            </form>
+          )}
         </motion.div>
       </div>
     </AnimatePresence>

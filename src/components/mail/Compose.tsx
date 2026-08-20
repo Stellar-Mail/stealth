@@ -38,6 +38,7 @@ import { DeliveryEstimator, type RelayStatus } from "./DeliveryEstimator";
 import { SendPipeline, type StageState } from "@/features/compose/sendPipeline";
 import { SendProgress } from "@/features/compose/SendProgress";
 import { useFreighter } from "@/features/onboarding/useFreighter";
+import { resolveSenderAddress } from "@/services/stellar/wallet";
 const EMPTY_BLOCKED: string[] = [];
 const EMPTY_RESOLVED: RecipientReadiness[] = [];
 
@@ -256,10 +257,23 @@ export function Compose({
     setSendError(null);
 
     if (!scheduled) {
+      const resolvedAccounts = resolvedRecipients
+        .filter((recipient) => recipient.state === "verified" || recipient.state === "unknown")
+        .map((recipient) => ({
+          address: recipient.address,
+          account: recipient.resolvedAccount ?? recipient.address,
+        }));
+      const resolvedSender = (await resolveSenderAddress()) ?? senderAddress;
       const pipeline =
         pipelineRef.current ??
         new SendPipeline(
-          { sender: "me", to: to.trim(), subject: subject.trim(), body },
+          {
+            sender: resolvedSender,
+            to: to.trim(),
+            subject: subject.trim(),
+            body,
+            recipients: resolvedAccounts,
+          },
           setSendStages,
         );
       pipelineRef.current = pipeline;
@@ -519,8 +533,18 @@ export function Compose({
               <motion.button
                 whileTap={{ scale: 0.97 }}
                 onClick={() => handleSend(true)}
-                disabled={isSending}
-                className="ml-auto inline-flex items-center gap-2 rounded-lg border border-white/10 px-3 py-1.5 text-xs text-muted-foreground transition hover:bg-white/6 hover:text-foreground"
+                disabled={
+                  isSending ||
+                  isPolicyBlocking(quoteState) ||
+                  resolvedRecipients.length === 0 ||
+                  resolvedRecipients.some(
+                    (recipient) =>
+                      recipient.state === "blocked" ||
+                      recipient.state === "invalid" ||
+                      recipient.state === "resolving",
+                  )
+                }
+                className="ml-auto inline-flex items-center gap-2 rounded-lg border border-white/10 px-3 py-1.5 text-xs text-muted-foreground transition hover:bg-white/6 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <CalendarClock className="h-3.5 w-3.5" />
                 Schedule

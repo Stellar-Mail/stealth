@@ -275,7 +275,8 @@ export async function openEnvelope(
       await verifyCommitment(commitment, ciphertext);
     } catch (err) {
       if (err instanceof Error) {
-        if (err.message.includes("mismatch") || err.message.includes("crypto_commitment_error")) {
+        const code = (err as { code?: unknown }).code;
+        if (code === "crypto_commitment_error" || err.message.includes("mismatch")) {
           throw new OpenEnvelopeError("content commitment mismatch", "crypto_integrity_error");
         }
         throw new OpenEnvelopeError(err.message, "crypto_validation_error");

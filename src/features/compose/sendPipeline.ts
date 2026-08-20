@@ -1,11 +1,18 @@
 /**
  * Compose send pipeline.
  *
- * Orchestrates the staged send: encrypt -> sign -> postage -> persist ->
- * submit -> reconcile. Each stage reports progress and can be retried by
- * calling run() again (completed stages are skipped). A wallet rejection stops
- * before anything is persisted or sent, leaving the draft intact. Plaintext is
- * never logged here.
+ * Orchestrates the staged send: resolve -> encrypt -> sign -> postage ->
+ * persist -> submit -> reconcile. Each stage reports progress and can be
+ * retried by calling run() again (completed stages are skipped). A wallet
+ * rejection stops before anything is persisted or sent, leaving the draft
+ * intact. Plaintext is never logged here.
+ *
+ * The recipient keys are fetched from the versioned public key directory
+ * (BETA-027) and validated against the send-path domain rules before any
+ * encryption; revoked, expired, not-yet-valid, unsupported, or wrong-network
+ * material rejects the send with a structured, recoverable error stage. The
+ * signature covers the canonical relay request (envelope payload plus the
+ * anti-replay fields), so the relay accepts one canonical signed envelope.
  */
 import { canonicalizePayload, sealEnvelope, type SealedEnvelope } from "@/services/crypto/envelope";
 import {
@@ -15,11 +22,32 @@ import {
   type WalletSignature,
 } from "@/services/stellar/wallet";
 import { createEntry, patchEntry, type OutboxStatus } from "@/services/storage/outbox";
-import { submitToRelay } from "@/services/relay/submit";
+import {
+  submitToRelay,
+  buildSignedRelayRequest,
+  DEFAULT_RELAY_AUDIENCE,
+  DEFAULT_REPLAY_WINDOW_SECONDS,
+  type RelayRequestSigner,
+  type SignedRelayRequest,
+} from "@/services/relay/submit";
+import {
+  resolveRecipientKeysForSend,
+  RecipientKeyResolutionError,
+  type RecipientKeyMaterial,
+} from "@/features/compose/recipientKeyResolution";
+import { verifySenderBinding, SenderBindingError } from "@/services/crypto/sender-binding";
 import { parseRecipients } from "@/components/mail/composeValidation";
 import type { DeliveryState } from "@/services/relay/federation";
+import type { DirectoryRecipientKeyResolver } from "@/services/crypto/key-resolver";
 
-export type StageId = "encrypt" | "sign" | "postage" | "persist" | "submit" | "reconcile";
+export type StageId =
+  | "resolve"
+  | "encrypt"
+  | "sign"
+  | "postage"
+  | "persist"
+  | "submit"
+  | "reconcile";
 
 export type StageStatus = "pending" | "active" | "done" | "error";
 
@@ -30,7 +58,11 @@ export interface StageState {
   detail?: string;
 }
 
-export type SendFailureReason = "wallet_rejected" | "wallet_unavailable" | "failed";
+export type SendFailureReason =
+  | "recipient_rejected"
+  | "wallet_rejected"
+  | "wallet_unavailable"
+  | "failed";
 
 export type SendOutcome =
   | { ok: true; messageId: string; delivered: boolean; state: DeliveryState }
@@ -40,7 +72,16 @@ export type SendOutcome =
       stage: StageId;
       reason: SendFailureReason;
       message: string;
+      code?: string;
     };
+
+/** A recipient as resolved by the compose UI before submission. */
+export interface SendPipelineRecipient {
+  /** The address the user entered (e.g. `alice*stellar.org`). */
+  address: string;
+  /** The canonical Stellar G-address the address resolved to. */
+  account: string;
+}
 
 export interface SendPipelineInput {
   sender: string;
@@ -54,9 +95,14 @@ export interface SendPipelineInput {
     size_bytes: number;
     data?: ArrayBuffer;
   }>;
+  /** Pre-resolved recipient accounts from the compose UI. */
+  recipients?: SendPipelineRecipient[];
+  /** Relay authority id (defaults to the beta relay audience). */
+  audience?: string;
 }
 
 const STAGE_LABELS: Record<StageId, string> = {
+  resolve: "Resolving recipient keys",
   encrypt: "Encrypting message",
   sign: "Awaiting wallet signature",
   postage: "Reserving postage",
@@ -65,7 +111,15 @@ const STAGE_LABELS: Record<StageId, string> = {
   reconcile: "Confirming delivery",
 };
 
-const STAGE_ORDER: StageId[] = ["encrypt", "sign", "postage", "persist", "submit", "reconcile"];
+const STAGE_ORDER: StageId[] = [
+  "resolve",
+  "encrypt",
+  "sign",
+  "postage",
+  "persist",
+  "submit",
+  "reconcile",
+];
 
 function newMessageId(): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -91,6 +145,7 @@ export class SendPipeline {
   private readonly stages: StageState[];
   private readonly recipients: string[];
   private readonly domain: string;
+  private readonly audience: string;
 
   private sealed?: SealedEnvelope;
   private signature?: WalletSignature;
@@ -99,12 +154,30 @@ export class SendPipeline {
   private finalState: DeliveryState = "DEAD_LETTER";
   private lastErrorCode?: string;
 
-  constructor(input: SendPipelineInput, onProgress?: (stages: StageState[]) => void) {
+  private recipientKeys: RecipientKeyMaterial[] = [];
+  private signedRequest?: SignedRelayRequest;
+  private requestSigner?: RelayRequestSigner;
+
+  /** Injected seams for tests / alternate signers. */
+  private readonly signer: (canonical: string) => Promise<WalletSignature>;
+  private readonly keyResolver?: DirectoryRecipientKeyResolver;
+
+  constructor(
+    input: SendPipelineInput,
+    onProgress?: (stages: StageState[]) => void,
+    options: {
+      signer?: (canonical: string) => Promise<WalletSignature>;
+      keyResolver?: DirectoryRecipientKeyResolver;
+    } = {},
+  ) {
     this.input = input;
     this.onProgress = onProgress;
     this.messageId = input.messageId ?? newMessageId();
     this.recipients = parseRecipients(input.to);
     this.domain = deriveDomain(this.recipients[0] ?? "");
+    this.audience = input.audience ?? DEFAULT_RELAY_AUDIENCE;
+    this.signer = options.signer ?? authorizeSend;
+    this.keyResolver = options.keyResolver;
     this.stages = STAGE_ORDER.map((id) => ({
       id,
       label: STAGE_LABELS[id],
@@ -129,22 +202,67 @@ export class SendPipeline {
     patchEntry(this.messageId, { status, ...extra });
   }
 
-  private fail(stage: StageId, reason: SendFailureReason, message: string): SendOutcome {
-    return { ok: false, messageId: this.messageId, stage, reason, message };
+  private fail(
+    stage: StageId,
+    reason: SendFailureReason,
+    message: string,
+    code?: string,
+  ): SendOutcome {
+    return {
+      ok: false,
+      messageId: this.messageId,
+      stage,
+      reason,
+      message,
+      ...(code ? { code } : {}),
+    };
+  }
+
+  private recipientAccounts(): string[] {
+    if (this.input.recipients && this.input.recipients.length > 0) {
+      return this.input.recipients.map((recipient) => recipient.account);
+    }
+    return this.recipients;
   }
 
   private async runStage(id: StageId): Promise<SendOutcome | null> {
     switch (id) {
+      case "resolve": {
+        this.setStage("resolve", "active");
+        try {
+          const accounts = this.recipientAccounts();
+          if (accounts.length === 0) {
+            this.setStage("resolve", "error", "No recipients");
+            return this.fail("resolve", "recipient_rejected", "At least one recipient is required");
+          }
+          this.recipientKeys = await resolveRecipientKeysForSend(accounts, this.keyResolver);
+          this.setStage(
+            "resolve",
+            "done",
+            `${this.recipientKeys.length} recipient key(s) resolved`,
+          );
+          return null;
+        } catch (error) {
+          const code = error instanceof RecipientKeyResolutionError ? error.recipient : undefined;
+          const detail =
+            error instanceof RecipientKeyResolutionError
+              ? error.message
+              : "Could not resolve recipient keys";
+          this.setStage("resolve", "error", detail);
+          return this.fail("resolve", "recipient_rejected", detail, code);
+        }
+      }
       case "encrypt": {
         this.setStage("encrypt", "active");
         try {
           this.sealed = await sealEnvelope({
             sender: this.input.sender,
-            recipient: this.recipients[0] ?? "",
+            recipient: this.recipientKeys[0]?.account ?? "",
             body: this.input.body,
             attachments: this.input.attachments,
+            recipientPublicKeys: this.recipientKeys.map((key) => key.publicKeySpkiBase64),
+            recipientKeyId: this.recipientKeys[0]?.keyId,
           });
-          this.canonical = canonicalizePayload(this.sealed.payload);
           this.setStage("encrypt", "done");
           return null;
         } catch {
@@ -158,10 +276,39 @@ export class SendPipeline {
         }
         this.setStage("sign", "active");
         try {
-          this.signature = await authorizeSend(this.canonical);
+          let capturedSignature: WalletSignature | undefined;
+          const sign = async (canonical: string) => {
+            const signature = await this.signer(canonical);
+            capturedSignature = signature;
+            return signature;
+          };
+
+          const requestSigner: RelayRequestSigner = {
+            envelopePayload: this.sealed.payload,
+            audience: this.audience,
+            idempotencyKey: `idem-${this.messageId}`,
+            replayWindowSeconds: DEFAULT_REPLAY_WINDOW_SECONDS,
+            sign,
+          };
+          this.requestSigner = requestSigner;
+
+          const signed = await buildSignedRelayRequest(requestSigner);
+          this.signedRequest = signed;
+          this.signature = capturedSignature ?? {
+            scheme: "Ed25519",
+            signerAddress: "",
+            value: signed.signature.value,
+          };
+          this.canonical = canonicalizePayload(signed.payload);
+
+          verifySenderBinding(this.signature.signerAddress, this.input.sender);
           this.setStage("sign", "done");
           return null;
         } catch (error) {
+          if (error instanceof SenderBindingError) {
+            this.setStage("sign", "error", "Wallet signer does not match the sender");
+            return this.fail("sign", "failed", "Wallet signer does not match the sender");
+          }
           if (error instanceof WalletRejectedError) {
             this.setStage("sign", "error", "Wallet rejected — draft kept");
             return this.fail("sign", "wallet_rejected", error.message);
@@ -196,17 +343,18 @@ export class SendPipeline {
         return null;
       }
       case "submit": {
+        if (!this.signedRequest || !this.requestSigner) {
+          return this.fail("submit", "failed", "Missing signed relay request");
+        }
         this.setStage("submit", "active");
         try {
-          const envelopeJson = JSON.stringify({
-            payload: this.sealed?.payload,
-            signature: this.signature,
-            ciphertext: this.sealed?.ciphertext,
-          });
           const result = await submitToRelay({
             messageId: this.messageId,
+            sender: this.input.sender,
+            recipient: this.recipientKeys[0]?.account ?? "",
             recipientDomain: this.domain,
-            envelopePayload: envelopeJson,
+            payload: JSON.stringify(this.signedRequest),
+            resigner: this.requestSigner,
           });
           this.delivered = result.delivered;
           this.finalState = result.state;

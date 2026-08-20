@@ -1,4 +1,9 @@
 import type { RecipientReadiness } from "@/components/mail/composeValidation";
+import {
+  defaultIdentityResolver,
+  IdentityResolverService,
+  LOCAL_STEALTH_DOMAINS,
+} from "@/features/identity/resolver";
 
 export type RecipientResolutionContext = {
   /** Resolve a contact by name or address */
@@ -16,6 +21,9 @@ export type RecipientResolutionContext = {
     domain: string;
   } | null>;
 
+  /** Optional custom identity resolver */
+  identityResolver?: IdentityResolverService;
+
   /** Get user's policy for unverified recipients */
   getUnverifiedPolicy?: () => Promise<"allow" | "block" | "review">;
 
@@ -28,6 +36,7 @@ export type RecipientResolutionContext = {
  * Supports:
  * - Stealth addresses (S...)
  * - Stellar G-addresses (G...)
+ * - Stealth email handles (username@stealth.me, username@stealth.xyz)
  * - Federation addresses (name*domain)
  * - Aliases
  * - Contacts
@@ -99,7 +108,7 @@ export async function resolveRecipient(
     }
   }
 
-  // Try to resolve via federation if it's a federation address
+  // Try to resolve via federation context if explicitly provided
   if (isFederationFormat(normalized) && context?.resolveFederation) {
     try {
       const result = await context.resolveFederation(normalized);
@@ -119,6 +128,35 @@ export async function resolveRecipient(
     }
   }
 
+  // Try resolving via unified IdentityResolverService
+  const resolver = context?.identityResolver ?? defaultIdentityResolver;
+  try {
+    const resolved = await resolver.resolve(normalized, { timeoutMs: 1500 });
+    if (resolved.resolved && resolved.status === "active") {
+      return {
+        address,
+        state: "verified",
+        postage: "required",
+        message: `Resolved identity: ${resolved.canonicalAddress}`,
+        resolvedAccount: resolved.account ?? undefined,
+        policyType: resolved.policy?.requireVerified ? "default" : "allow",
+        encryptionKey: resolved.publicKey ?? undefined,
+      };
+    }
+
+    if (resolved.status === "suspended" || resolved.status === "deactivated") {
+      return {
+        address,
+        state: "blocked",
+        postage: "required",
+        message: `Recipient account is ${resolved.status}`,
+        policyType: "block",
+      };
+    }
+  } catch (error) {
+    console.warn(`IdentityResolver resolution error for ${address}:`, error);
+  }
+
   // Default: unknown but valid format
   return {
     address,
@@ -133,7 +171,7 @@ export async function resolveRecipient(
  * Helper to check if address is already in Stellar format (G or S prefix)
  */
 function isStellarFormat(address: string): boolean {
-  return /^[GS][A-Z0-9]{55}$/.test(address);
+  return /^[GS][A-Z0-9]{55}$/i.test(address);
 }
 
 /**
@@ -158,30 +196,39 @@ export async function resolveRecipients(
 /**
  * Validate recipient address format
  */
-function validateRecipientFormat(address: string): { valid: boolean; error?: string } {
-  const trimmed = address.trim();
+export function validateRecipientFormat(address: string): { valid: boolean; error?: string } {
+  const trimmed = address.trim().toLowerCase();
 
   if (!trimmed) {
     return { valid: false, error: "Address is required" };
   }
 
   // Stealth address (S...)
-  if (/^S[A-Z0-9]{55}$/.test(trimmed)) {
+  if (/^s[a-z0-9]{55}$/i.test(trimmed)) {
     return { valid: true };
   }
 
   // Stellar G-address (56 chars, starts with G)
-  if (/^G[A-Z2-7]{55}$/.test(trimmed)) {
+  if (/^g[a-z2-7]{55}$/i.test(trimmed)) {
     return { valid: true };
   }
 
   // Federation address (name*domain)
-  if (/^[a-zA-Z0-9._-]+\*[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(trimmed)) {
+  if (/^[a-z0-9._-]+\*[a-z0-9.-]+\.[a-z]{2,}$/i.test(trimmed)) {
+    return { valid: true };
+  }
+
+  // Stealth email format (name@stealth.me, name@stealth.xyz, etc.)
+  if (
+    /^[a-z0-9._%+-]+@(stealth\.me|stealth\.xyz|stealth\.mail|stealth\.local|localhost)$/i.test(
+      trimmed,
+    )
+  ) {
     return { valid: true };
   }
 
   // Alias (simple string, no spaces or special chars except hyphen/underscore)
-  if (/^[a-zA-Z0-9._-]{3,}$/.test(trimmed) && !trimmed.includes("@")) {
+  if (/^[a-z0-9._-]{3,}$/i.test(trimmed) && !trimmed.includes("@")) {
     return { valid: true };
   }
 

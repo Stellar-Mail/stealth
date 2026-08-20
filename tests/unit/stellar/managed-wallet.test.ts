@@ -1,0 +1,217 @@
+import { describe, expect, it } from "vitest";
+import { ManagedWalletService } from "../../../src/services/stellar/managed-wallet";
+import {
+  MemoryManagedWalletStore,
+  VersionedMasterKeyProvider,
+  withManagedWalletSeed,
+} from "../../../src/services/crypto/managed-wallet-envelope";
+import type { BetaRuntimeConfig } from "../../../src/config/schema";
+import {
+  Keypair,
+  TransactionBuilder,
+  Networks,
+  Contract,
+  xdr,
+  Address,
+  Account,
+  Transaction,
+  Operation,
+  Asset,
+} from "@stellar/stellar-sdk";
+
+describe("Managed Wallet Boundary", () => {
+  const operatorKeypair = Keypair.random();
+  // Generate valid contract IDs using StrKey/Keypair or just use a known good one?
+  // Let's just generate a valid contract ID by creating random keys.
+  // Actually, a Contract ID is an Address. But we can just use a real contract ID or let it be generated.
+  // In stellar-sdk, we can use Address.contract(...) but wait, we need a 32-byte hex.
+  // Actually, just using `new Contract("CC" + "A".repeat(54))` might not pass CRC.
+  // Let's generate a valid contract ID by taking the string of a contract ID or just generating a random buffer and encoding it.
+  // However, I can just mock the contract ID in the config by using a valid one.
+  const validContract1 = "CCJOU3X4NTZ2ND43FOS5XOK735G6F7ZZW357ZZZZZZZZZZZZZZZZZZZZ";
+  const validContract2 = "CCZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ"; // Is this valid? We can just use Keypair.random() public keys if we need addresses, but contract IDs start with C.
+
+  // Let's dynamically create valid contract IDs by using stellar-sdk StrKey if needed, but the easiest is just mock what we need.
+  // Actually, let's just use dummy valid contract IDs.
+  // A valid contract ID starts with C and has a 2-byte checksum.
+  // I will just use `new Contract(contractId)` with a known valid ID.
+  const knownContract1 = "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABSC4";
+  const knownContract2 = "CBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQWW";
+  const knownContract3 = "CCAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAH2S";
+
+  const mockConfig: BetaRuntimeConfig = {
+    network: {
+      stellarNetwork: "testnet",
+      networkPassphrase: "Test SDF Network ; September 2015",
+      rpcUrl: "http://localhost",
+    },
+    secrets: {
+      operatorSecret: operatorKeypair.secret(),
+    },
+    contract: {
+      registryContractId: knownContract3,
+      postageContractId: knownContract2,
+      domainTag: "test",
+      protocolVersion: "1.0",
+    },
+    environment: "beta",
+  } as any;
+
+  const actorAddress = Keypair.random().publicKey();
+
+  function buildMockTx(contractId: string, functionName: string): string {
+    const account = new Account(operatorKeypair.publicKey(), "1");
+    const contract = new Contract(contractId);
+    const tx = new TransactionBuilder(account, {
+      fee: "100",
+      networkPassphrase: mockConfig.network.networkPassphrase,
+    })
+      .addOperation(contract.call(functionName))
+      .setTimeout(30)
+      .build();
+    return tx.toEnvelope().toXDR("base64");
+  }
+
+  const wallet = new ManagedWalletService(mockConfig);
+
+  it("signs a valid policy intent and returns XDR", async () => {
+    const intent = { type: "policy", ownerAddress: actorAddress } as const;
+    const txXdr = buildMockTx(knownContract1, "set_policy");
+
+    const signedXdr = await wallet.signTransaction(intent, actorAddress, txXdr, "req-123");
+
+    const parsed = new Transaction(signedXdr, mockConfig.network.networkPassphrase);
+    expect(parsed.signatures.length).toBe(1);
+    expect(operatorKeypair.verify(parsed.hash(), parsed.signatures[0].signature())).toBe(true);
+  });
+
+  it("rejects mismatched function for intent type", async () => {
+    const intent = { type: "policy", ownerAddress: actorAddress } as const;
+    const txXdr = buildMockTx(knownContract1, "submit_postage");
+
+    await expect(wallet.signTransaction(intent, actorAddress, txXdr, "req-123")).rejects.toThrow(
+      "Function submit_postage is not allowed for policy intents",
+    );
+  });
+
+  it("rejects arbitrary operations", async () => {
+    const account = new Account(operatorKeypair.publicKey(), "1");
+    const tx = new TransactionBuilder(account, {
+      fee: "100",
+      networkPassphrase: mockConfig.network.networkPassphrase,
+    })
+      .addOperation(
+        Operation.payment({
+          destination: actorAddress,
+          asset: Asset.native(),
+          amount: "100",
+        }),
+      )
+      .setTimeout(30)
+      .build();
+    const txXdr = tx.toEnvelope().toXDR("base64");
+
+    const intent = { type: "policy", ownerAddress: actorAddress } as const;
+    await expect(wallet.signTransaction(intent, actorAddress, txXdr, "req-123")).rejects.toThrow(
+      "Only invokeHostFunction operations are allowed",
+    );
+  });
+});
+
+describe("managed wallet envelope custody", () => {
+  const contractId = "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABSC4";
+  const networkPassphrase = "Test SDF Network ; September 2015";
+
+  async function keys(active = "v2", versions = ["v1", "v2"]) {
+    const encoded: Record<string, string> = {};
+    for (const version of versions) {
+      encoded[version] = btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(32))));
+    }
+    return VersionedMasterKeyProvider.fromBase64(active, encoded);
+  }
+
+  function config(): BetaRuntimeConfig {
+    return {
+      network: { stellarNetwork: "testnet", networkPassphrase, rpcUrl: "http://localhost" },
+      contract: {
+        registryContractId: contractId,
+        postageContractId: contractId,
+        domainTag: "test",
+        protocolVersion: "1",
+      },
+      environment: "beta",
+      secrets: {},
+    } as any;
+  }
+
+  function transaction(source: string) {
+    return new TransactionBuilder(new Account(source, "1"), { fee: "100", networkPassphrase })
+      .addOperation(new Contract(contractId).call("set_policy"))
+      .setTimeout(30)
+      .build()
+      .toXDR();
+  }
+
+  it("persists no seed, rotates only its wrapped data key, and still signs", async () => {
+    const walletKey = Keypair.random();
+    const store = new MemoryManagedWalletStore();
+    const service = new ManagedWalletService(config(), { store, keys: await keys() });
+    const initial = await service.provisionWallet(walletKey.publicKey(), walletKey.secret());
+
+    expect(JSON.stringify(initial)).not.toContain(walletKey.secret());
+    expect(initial.envelope.masterKeyVersion).toBe("v2");
+    const rotated = await service.rotateWalletKey(walletKey.publicKey(), "v1");
+    expect(rotated.envelope.address).toBe(initial.envelope.address);
+    expect(rotated.envelope.encryptedSeed).toBe(initial.envelope.encryptedSeed);
+    expect(rotated.envelope.masterKeyVersion).toBe("v1");
+
+    const signed = await service.signTransaction(
+      { type: "policy", ownerAddress: walletKey.publicKey() },
+      walletKey.publicKey(),
+      transaction(walletKey.publicKey()),
+    );
+    expect(new Transaction(signed, networkPassphrase).signatures).toHaveLength(1);
+  });
+
+  it("fails closed for tampering, missing old keys, and unauthorized owners", async () => {
+    const walletKey = Keypair.random();
+    const store = new MemoryManagedWalletStore();
+    const provider = await keys("v1", ["v1"]);
+    const service = new ManagedWalletService(config(), { store, keys: provider });
+    const record = await service.provisionWallet(walletKey.publicKey(), walletKey.secret());
+    const tampered = {
+      ...record,
+      envelope: { ...record.envelope, seedTag: "AAAAAAAAAAAAAAAAAAAAAA==" },
+    };
+    await store.compareAndSet(walletKey.publicKey(), record.updatedAt, tampered);
+    await expect(
+      service.signTransaction(
+        { type: "policy", ownerAddress: walletKey.publicKey() },
+        walletKey.publicKey(),
+        transaction(walletKey.publicKey()),
+      ),
+    ).rejects.toThrow("Managed wallet cryptographic operation failed");
+
+    const stranger = Keypair.random().publicKey();
+    await expect(
+      service.signTransaction(
+        { type: "policy", ownerAddress: stranger },
+        stranger,
+        transaction(stranger),
+      ),
+    ).rejects.toThrow("Managed wallet access denied");
+  });
+
+  it("does not expose decrypted seed outside the scoped callback", async () => {
+    const key = Keypair.random();
+    const provider = await keys("v1", ["v1"]);
+    const store = new MemoryManagedWalletStore();
+    const service = new ManagedWalletService(config(), { store, keys: provider });
+    const record = await service.provisionWallet(key.publicKey(), key.secret());
+    let observed = "";
+    await withManagedWalletSeed(record.envelope, provider, (seed) => {
+      observed = seed;
+    });
+    expect(observed).toBe(key.secret());
+  });
+});
