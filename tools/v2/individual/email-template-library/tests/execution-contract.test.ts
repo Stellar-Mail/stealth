@@ -44,7 +44,12 @@ test("list returns every template by default", () => {
 });
 
 test("list filters by categoryId", () => {
-  const res = run({ tool: TOOL, version: VERSION, operation: "list", categoryId: "onboarding" });
+  const res = run({
+    tool: TOOL,
+    version: VERSION,
+    operation: "list",
+    categoryId: "onboarding",
+  });
   assert.equal(res.status, "ok");
   if (res.status === "ok" && res.result.operation === "list") {
     assert.equal(res.result.templates.length, 1);
@@ -53,7 +58,12 @@ test("list filters by categoryId", () => {
 });
 
 test("list with an unknown categoryId returns no templates", () => {
-  const res = run({ tool: TOOL, version: VERSION, operation: "list", categoryId: "missing" });
+  const res = run({
+    tool: TOOL,
+    version: VERSION,
+    operation: "list",
+    categoryId: "missing",
+  });
   assert.equal(res.status, "ok");
   if (res.status === "ok" && res.result.operation === "list") {
     assert.equal(res.result.templates.length, 0);
@@ -154,7 +164,12 @@ test("rejects render values that are not strings", () => {
 });
 
 test("reports an unknown template id", () => {
-  const res = run({ tool: TOOL, version: VERSION, operation: "get", templateId: "nope" });
+  const res = run({
+    tool: TOOL,
+    version: VERSION,
+    operation: "get",
+    templateId: "nope",
+  });
   assert.equal(res.status, "error");
   if (res.status === "error") {
     assert.equal(res.error.code, "TEMPLATE_NOT_FOUND");
@@ -179,7 +194,14 @@ test("reports missing render variables", () => {
 
 test("rejects a catalog that contains an invalid template", () => {
   const badCatalog: EmailTemplate[] = [
-    { id: "", name: "", categoryId: null, subject: "s", body: "b", variables: [] },
+    {
+      id: "",
+      name: "",
+      categoryId: null,
+      subject: "s",
+      body: "b",
+      variables: [],
+    },
   ];
   const res = run({ tool: TOOL, version: VERSION, operation: "list" }, badCatalog);
   assert.equal(res.status, "error");
@@ -204,7 +226,14 @@ test("createEmailTemplateLibraryService executes against a snapshot", () => {
 
 test("createEmailTemplateLibraryService throws on an invalid catalog", () => {
   const badCatalog: EmailTemplate[] = [
-    { id: "", name: "x", categoryId: null, subject: "s", body: "b", variables: [] },
+    {
+      id: "",
+      name: "x",
+      categoryId: null,
+      subject: "s",
+      body: "b",
+      variables: [],
+    },
   ];
   assert.throws(() => createEmailTemplateLibraryService(badCatalog));
 });
@@ -231,7 +260,10 @@ test("render escapes HTML characters in substituted variables", () => {
     version: VERSION,
     operation: "render",
     templateId: "template-follow-up",
-    values: { firstName: "<script>alert(1)</script>", topic: "a & b \"c\" 'd'" },
+    values: {
+      firstName: "<script>alert(1)</script>",
+      topic: "a & b \"c\" 'd'",
+    },
   });
   assert.equal(res.status, "ok");
   if (res.status === "ok" && res.result.operation === "render") {

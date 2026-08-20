@@ -11,7 +11,12 @@ const testProject: Project = {
   members: ["lina*vantage.studio"],
   rules: [
     { id: "r-1", type: "subject", pattern: "Soroban", isActive: true },
-    { id: "r-2", type: "sender", pattern: "receipts*stealth.network", isActive: true },
+    {
+      id: "r-2",
+      type: "sender",
+      pattern: "receipts*stealth.network",
+      isActive: true,
+    },
   ],
   createdAt: new Date().toISOString(),
 };

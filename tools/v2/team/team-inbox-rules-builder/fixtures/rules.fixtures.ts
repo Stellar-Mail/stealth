@@ -48,8 +48,18 @@ export const mockRules: InboxRule[] = [
         id: "cg-2",
         logic: "or",
         conditions: [
-          { id: "c-3", field: "subject", operator: "contains", value: "invoice" },
-          { id: "c-4", field: "subject", operator: "contains", value: "billing" },
+          {
+            id: "c-3",
+            field: "subject",
+            operator: "contains",
+            value: "invoice",
+          },
+          {
+            id: "c-4",
+            field: "subject",
+            operator: "contains",
+            value: "billing",
+          },
           { id: "c-5", field: "label", operator: "equals", value: "invoice" },
         ],
       },
@@ -75,8 +85,18 @@ export const mockRules: InboxRule[] = [
         id: "cg-3",
         logic: "or",
         conditions: [
-          { id: "c-6", field: "subject", operator: "contains", value: "buy now" },
-          { id: "c-7", field: "subject", operator: "contains", value: "free money" },
+          {
+            id: "c-6",
+            field: "subject",
+            operator: "contains",
+            value: "buy now",
+          },
+          {
+            id: "c-7",
+            field: "subject",
+            operator: "contains",
+            value: "free money",
+          },
           { id: "c-8", field: "from", operator: "contains", value: "spam" },
         ],
       },

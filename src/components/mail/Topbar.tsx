@@ -22,6 +22,7 @@ import {
 import { cn } from "@/lib/utils";
 import { NotificationsPanel } from "./NotificationsPanel";
 import type { MailFilters } from "./data";
+import type { InAppNotification } from "@/features/notifications";
 
 type TopbarProps = {
   onOpenPalette: () => void;
@@ -36,6 +37,9 @@ type TopbarProps = {
   onViewNotifications: () => void;
   onSignOut?: () => void;
   onOpenLogin?: () => void;
+  notifications: InAppNotification[];
+  onMarkNotificationRead: (id: string) => void;
+  onMarkAllNotificationsRead: () => void;
 };
 
 const quickActions: {
@@ -62,6 +66,9 @@ export function Topbar({
   onViewNotifications,
   onSignOut,
   onOpenLogin,
+  notifications,
+  onMarkNotificationRead,
+  onMarkAllNotificationsRead,
 }: TopbarProps) {
   const [focused, setFocused] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
@@ -282,6 +289,9 @@ export function Topbar({
           onClose={() => setNotificationsOpen(false)}
           anchorRect={notifRect}
           onViewAll={onViewNotifications}
+          notifications={notifications}
+          onMarkRead={onMarkNotificationRead}
+          onMarkAllRead={onMarkAllNotificationsRead}
         />
 
         {/* Import contacts */}

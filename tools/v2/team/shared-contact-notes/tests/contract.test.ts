@@ -41,7 +41,10 @@ describe("notes contract — lifecycle", () => {
   });
 
   it("create returns a new note with a generated id", async () => {
-    const res = await contract.execute({ operation: "create", input: VALID_CREATE_INPUT });
+    const res = await contract.execute({
+      operation: "create",
+      input: VALID_CREATE_INPUT,
+    });
     expect(res.ok).toBe(true);
     if (res.ok && res.value.operation === "create") {
       expect(res.value.note.id).toBeTruthy();
@@ -51,7 +54,10 @@ describe("notes contract — lifecycle", () => {
   });
 
   it("getByContact returns notes for a contact", async () => {
-    const created = await contract.execute({ operation: "create", input: VALID_CREATE_INPUT });
+    const created = await contract.execute({
+      operation: "create",
+      input: VALID_CREATE_INPUT,
+    });
     const id = created.ok && created.value.operation === "create" ? created.value.note.id : "";
     const res = await contract.execute({ operation: "getById", id });
     expect(res.ok).toBe(true);
@@ -68,7 +74,10 @@ describe("notes contract — lifecycle", () => {
   });
 
   it("update changes content and bumps updatedAt", async () => {
-    const created = await contract.execute({ operation: "create", input: VALID_CREATE_INPUT });
+    const created = await contract.execute({
+      operation: "create",
+      input: VALID_CREATE_INPUT,
+    });
     const id = created.ok && created.value.operation === "create" ? created.value.note.id : "";
     const res = await contract.execute({
       operation: "update",
@@ -82,7 +91,10 @@ describe("notes contract — lifecycle", () => {
   });
 
   it("archive sets archivedAt", async () => {
-    const created = await contract.execute({ operation: "create", input: VALID_CREATE_INPUT });
+    const created = await contract.execute({
+      operation: "create",
+      input: VALID_CREATE_INPUT,
+    });
     const id = created.ok && created.value.operation === "create" ? created.value.note.id : "";
     const res = await contract.execute({ operation: "archive", id });
     expect(res.ok).toBe(true);
@@ -92,7 +104,10 @@ describe("notes contract — lifecycle", () => {
   });
 
   it("delete removes a note (reports deletedId)", async () => {
-    const created = await contract.execute({ operation: "create", input: VALID_CREATE_INPUT });
+    const created = await contract.execute({
+      operation: "create",
+      input: VALID_CREATE_INPUT,
+    });
     const id = created.ok && created.value.operation === "create" ? created.value.note.id : "";
     const res = await contract.execute({ operation: "delete", id });
     expect(res.ok).toBe(true);

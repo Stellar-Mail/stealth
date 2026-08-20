@@ -294,7 +294,9 @@ export function CalendarWorkspace({
                             "grid h-4 w-4 place-items-center rounded-[5px] border",
                             calendar.visible ? "border-transparent" : "border-white/20",
                           )}
-                          style={{ background: calendar.visible ? calendar.color : "transparent" }}
+                          style={{
+                            background: calendar.visible ? calendar.color : "transparent",
+                          }}
                         >
                           {calendar.visible && <Check className="h-2.5 w-2.5 text-black" />}
                         </span>
@@ -312,7 +314,10 @@ export function CalendarWorkspace({
                   onSubmit={(event) => {
                     event.preventDefault();
                     if (!calendarName.trim()) return;
-                    onAddCalendar({ name: calendarName.trim(), color: calendarColor });
+                    onAddCalendar({
+                      name: calendarName.trim(),
+                      color: calendarColor,
+                    });
                     onShowToast(`${calendarName.trim()} calendar created`);
                     setCalendarName("");
                   }}
@@ -364,7 +369,8 @@ export function CalendarWorkspace({
                     </h3>
                   </div>
                   <span className="rounded-lg border border-white/8 bg-white/[0.03] px-2.5 py-1 text-[10px] text-muted-foreground">
-                    {displayedEvents.length} event{displayedEvents.length === 1 ? "" : "s"}
+                    {displayedEvents.length} event
+                    {displayedEvents.length === 1 ? "" : "s"}
                   </span>
                 </div>
 

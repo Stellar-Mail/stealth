@@ -51,7 +51,12 @@ The guarded entry point wraps this in a discriminated union:
 ```ts
 type SafeSentimentResult =
   | { status: "ok"; result: SentimentAnalysisResult }
-  | { status: "error"; code: SentimentErrorCode; message: string; issues: SentimentIssue[] };
+  | {
+      status: "error";
+      code: SentimentErrorCode;
+      message: string;
+      issues: SentimentIssue[];
+    };
 ```
 
 ## Error codes

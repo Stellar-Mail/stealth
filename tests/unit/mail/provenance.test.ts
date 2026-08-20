@@ -30,7 +30,11 @@ describe("mail/provenance timeline", () => {
   });
 
   it("marks bridged messages as skipped for postage and receipt", () => {
-    const bridgedEmail: Email = { ...baseEmail, folder: "spam", from: "Relay Bridge" };
+    const bridgedEmail: Email = {
+      ...baseEmail,
+      folder: "spam",
+      from: "Relay Bridge",
+    };
     const provenance = getEmailProvenance(bridgedEmail);
     expect(provenance.timeline).toHaveLength(5);
     expect(provenance.timeline[3]).toMatchObject({ status: "skipped" });
@@ -50,7 +54,11 @@ describe("mail/provenance timeline", () => {
   });
 
   it("assigns SMTP DNS Resolver for bridged messages", () => {
-    const email: Email = { ...baseEmail, folder: "spam", from: "Bridged Relay" };
+    const email: Email = {
+      ...baseEmail,
+      folder: "spam",
+      from: "Bridged Relay",
+    };
     const provenance = getEmailProvenance(email);
     expect(provenance.senderIdentity.provider).toBe("SMTP DNS Resolver");
   });
@@ -79,13 +87,21 @@ describe("mail/provenance timeline", () => {
   });
 
   it("marks sender as verified when senderPolicy is set", () => {
-    const email: Email = { ...baseEmail, folder: "inbox", senderPolicy: "allow" };
+    const email: Email = {
+      ...baseEmail,
+      folder: "inbox",
+      senderPolicy: "allow",
+    };
     const provenance = getEmailProvenance(email);
     expect(provenance.senderIdentity.isVerified).toBe(true);
   });
 
   it("does not verify sender when folder is spam even with senderPolicy", () => {
-    const email: Email = { ...baseEmail, folder: "spam", senderPolicy: "allow" };
+    const email: Email = {
+      ...baseEmail,
+      folder: "spam",
+      senderPolicy: "allow",
+    };
     const provenance = getEmailProvenance(email);
     expect(provenance.senderIdentity.isVerified).toBe(false);
   });

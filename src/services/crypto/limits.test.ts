@@ -111,7 +111,11 @@ describe("validateAttachment", () => {
 
   it("rejects content_type exceeding MAX_CONTENT_TYPE_BYTES", () => {
     expect(() =>
-      validateAttachment(makeAttachment({ content_type: "x".repeat(MAX_CONTENT_TYPE_BYTES + 1) })),
+      validateAttachment(
+        makeAttachment({
+          content_type: "x".repeat(MAX_CONTENT_TYPE_BYTES + 1),
+        }),
+      ),
     ).toThrow(CryptoError);
   });
 

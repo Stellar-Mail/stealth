@@ -80,6 +80,7 @@ export async function sealAead(
   key: CryptoKey,
   plaintext: Uint8Array,
   nonce?: Uint8Array,
+  additionalData?: Uint8Array,
 ): Promise<SealAeadResult> {
   const iv =
     nonce && nonce.length === GCM_NONCE_BYTES
@@ -87,7 +88,15 @@ export async function sealAead(
       : crypto.getRandomValues(new Uint8Array(GCM_NONCE_BYTES));
   const raw = toArrayBufferCopy(
     new Uint8Array(
-      await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, toArrayBufferCopy(plaintext)),
+      await crypto.subtle.encrypt(
+        {
+          name: "AES-GCM",
+          iv,
+          additionalData: additionalData && toArrayBufferCopy(additionalData),
+        },
+        key,
+        toArrayBufferCopy(plaintext),
+      ),
     ),
   );
   const { ciphertext, tag } = splitTag(raw);
@@ -100,14 +109,14 @@ export interface OpenAeadResult {
 
 /**
  * Open a canonical AEAD envelope part: decrypt `ciphertext` with `tag` and
- * `nonce` under `key`. Fails closed on any authentication failure. Uses the
- * single `joinTag` formatter so it matches `sealAead` exactly.
+ * `nonce` under `key`. Fails closed on any authentication failure. Uses the`r`n * single `joinTag` formatter so it matches `sealAead` exactly.
  */
 export async function openAead(
   key: CryptoKey,
   ciphertext: Uint8Array,
   tag: Uint8Array,
   nonce: Uint8Array,
+  additionalData?: Uint8Array,
 ): Promise<OpenAeadResult> {
   if (tag.length !== GCM_TAG_BYTES) {
     throw new AeadError("auth tag must be exactly 16 bytes");
@@ -116,7 +125,11 @@ export async function openAead(
   const iv = toArrayBufferCopy(nonce);
   let plain: ArrayBuffer;
   try {
-    plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, combined);
+    plain = await crypto.subtle.decrypt(
+      { name: "AES-GCM", iv, additionalData: additionalData && toArrayBufferCopy(additionalData) },
+      key,
+      combined,
+    );
   } catch {
     throw new AeadError("AEAD decryption failed (tampered or wrong key)");
   }

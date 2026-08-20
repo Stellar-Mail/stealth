@@ -41,7 +41,13 @@ export function DigestSuccessState({
             fontSize: "0.85rem",
           }}
         >
-          <span style={{ fontWeight: 700, display: "block", marginBottom: "0.25rem" }}>
+          <span
+            style={{
+              fontWeight: 700,
+              display: "block",
+              marginBottom: "0.25rem",
+            }}
+          >
             Processing Notes ({warnings.length})
           </span>
           <ul style={{ margin: 0, paddingLeft: "1.2rem" }}>

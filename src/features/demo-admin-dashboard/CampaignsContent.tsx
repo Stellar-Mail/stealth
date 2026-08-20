@@ -22,7 +22,11 @@ export function CampaignsContent() {
         {(
           [
             { key: "assignments" as const, label: "Assignments", icon: Target },
-            { key: "snapshots" as const, label: "Merge & Snapshots", icon: GitMerge },
+            {
+              key: "snapshots" as const,
+              label: "Merge & Snapshots",
+              icon: GitMerge,
+            },
             { key: "editor" as const, label: "Editor", icon: PenLine },
           ] as const
         ).map((tab) => {

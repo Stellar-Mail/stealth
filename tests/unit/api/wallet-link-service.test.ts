@@ -7,6 +7,8 @@ import {
   linkExternalWallet,
   unlinkExternalWallet,
   listExternalWallets,
+  resolveActiveSigner,
+  resolveTransactionSigner,
 } from "../../../src/server/api/wallet-link-service";
 import type { ExternalWallet } from "../../../src/server/api/domain";
 
@@ -203,7 +205,51 @@ describe("wallet link service", () => {
   });
 
   describe("unlinkExternalWallet", () => {
-    it("unlinks an existing wallet", async () => {
+    it("unlinks an existing wallet and revokes linkage challenges", async () => {
+      const wallet: ExternalWallet = {
+        address: externalAddress,
+        capabilities: ["sign"],
+        linkedAt: new Date().toISOString(),
+        network,
+      };
+      await linkExternalWallet(repository, owner, wallet);
+      await createChallenge(repository, owner, externalAddress, network);
+
+      const activeSigner = await unlinkExternalWallet(repository, owner, externalAddress);
+
+      const wallets = await listExternalWallets(repository, owner);
+      expect(wallets).toHaveLength(0);
+      expect(activeSigner.signerType).toBe("managed");
+      expect(activeSigner.address).toBe(owner);
+      expect(activeSigner.isFallback).toBe(true);
+
+      const challenge = await repository.getWalletChallenge(owner, externalAddress);
+      expect(challenge).toBeNull();
+    });
+
+    it("throws for non-existent wallet", async () => {
+      await expect(unlinkExternalWallet(repository, owner, externalAddress)).rejects.toThrow(
+        "not found",
+      );
+    });
+
+    it("prevents unlinking when it would remove the primary/only access method", async () => {
+      const wallet: ExternalWallet = {
+        address: owner,
+        capabilities: ["sign"],
+        linkedAt: new Date().toISOString(),
+        network,
+      };
+      await linkExternalWallet(repository, owner, wallet);
+
+      await expect(unlinkExternalWallet(repository, owner, owner)).rejects.toThrow(
+        "Cannot remove the primary or only account access method",
+      );
+    });
+  });
+
+  describe("signer selection & fallback", () => {
+    it("selects external wallet when available with sign capability", async () => {
       const wallet: ExternalWallet = {
         address: externalAddress,
         capabilities: ["sign"],
@@ -212,16 +258,40 @@ describe("wallet link service", () => {
       };
       await linkExternalWallet(repository, owner, wallet);
 
-      await unlinkExternalWallet(repository, owner, externalAddress);
-
-      const wallets = await listExternalWallets(repository, owner);
-      expect(wallets).toHaveLength(0);
+      const activeSigner = await resolveActiveSigner(repository, owner);
+      expect(activeSigner.signerType).toBe("external");
+      expect(activeSigner.address).toBe(externalAddress);
+      expect(activeSigner.isFallback).toBe(false);
     });
 
-    it("throws for non-existent wallet", async () => {
-      await expect(unlinkExternalWallet(repository, owner, externalAddress)).rejects.toThrow(
-        "not found",
-      );
+    it("falls back to managed wallet when no external wallet exists", async () => {
+      const activeSigner = await resolveActiveSigner(repository, owner);
+      expect(activeSigner.signerType).toBe("managed");
+      expect(activeSigner.address).toBe(owner);
+      expect(activeSigner.isFallback).toBe(true);
+    });
+
+    it("resolves in-flight transaction signer with fallback to managed wallet if unlinked", async () => {
+      const wallet: ExternalWallet = {
+        address: externalAddress,
+        capabilities: ["sign"],
+        linkedAt: new Date().toISOString(),
+        network,
+      };
+      await linkExternalWallet(repository, owner, wallet);
+
+      // In-flight transaction targeted externalAddress
+      const signerBefore = await resolveTransactionSigner(repository, owner, externalAddress);
+      expect(signerBefore.signerType).toBe("external");
+
+      // Unlink external wallet
+      await unlinkExternalWallet(repository, owner, externalAddress);
+
+      // In-flight transaction now resolves to managed wallet fallback
+      const signerAfter = await resolveTransactionSigner(repository, owner, externalAddress);
+      expect(signerAfter.signerType).toBe("managed");
+      expect(signerAfter.address).toBe(owner);
+      expect(signerAfter.isFallback).toBe(true);
     });
   });
 

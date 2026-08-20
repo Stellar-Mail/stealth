@@ -31,7 +31,10 @@ function parseHeader(rawEmail: string): {
   };
 }
 
-function splitBodyAndSignature(rawEmail: string): { body: string; signature: string } {
+function splitBodyAndSignature(rawEmail: string): {
+  body: string;
+  signature: string;
+} {
   const lines = rawEmail.split("\n");
   let signatureStart = -1;
 

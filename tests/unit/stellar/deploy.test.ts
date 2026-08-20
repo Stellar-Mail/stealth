@@ -11,21 +11,23 @@ describe("Deployment Script Constraints", () => {
   it("fails if mainnet is used without release-mode", { timeout: 60000 }, async () => {
     try {
       await execAsync(
-        `npx tsx ${scriptPath} --network mainnet --deployer SECRET --network-passphrase "Public Global Stellar Network ; September 2015"`,
+        `npx tsx "${scriptPath}" --network mainnet --deployer SECRET --network-passphrase "Public Global Stellar Network ; September 2015"`,
       );
       expect.fail("Should have failed on mainnet without --release-mode");
     } catch (err: any) {
-      expect(err.stderr).toContain("Refusing to deploy to mainnet without --release-mode flag");
+      expect(err.stderr || err.stdout).toContain(
+        "Refusing to deploy to mainnet without --release-mode flag",
+      );
       expect(err.code).toBe(1);
     }
   });
 
   it("fails if deployer is missing", { timeout: 60000 }, async () => {
     try {
-      await execAsync(`npx tsx ${scriptPath} --network testnet`);
+      await execAsync(`npx tsx "${scriptPath}" --network testnet`);
       expect.fail("Should have failed without deployer");
     } catch (err: any) {
-      expect(err.stderr).toContain("--deployer (secret key) is required");
+      expect(err.stderr || err.stdout).toContain("--deployer (secret key) is required");
       expect(err.code).toBe(1);
     }
   });

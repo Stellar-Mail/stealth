@@ -105,9 +105,17 @@ describe("checkInputLimits", () => {
 
 describe("sanitizeInput", () => {
   it("returns a cleaned copy without mutating the original", () => {
-    const input = makeInput({ messageId: "  msg-1  ", subject: "Hi\u200b", body: "ok" });
+    const input = makeInput({
+      messageId: "  msg-1  ",
+      subject: "Hi\u200b",
+      body: "ok",
+    });
     const cleaned = sanitizeInput(input);
-    expect(cleaned).toMatchObject({ messageId: "msg-1", subject: "Hi", body: "ok" });
+    expect(cleaned).toMatchObject({
+      messageId: "msg-1",
+      subject: "Hi",
+      body: "ok",
+    });
     expect(input.messageId).toBe("  msg-1  ");
   });
 });

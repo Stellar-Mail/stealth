@@ -1,3 +1,25 @@
+export * from "./safe-rendering";
+export * from "./quarantine";
+export * from "./recipient-pipeline";
+export * from "./useSession";
+export * from "./useMailbox";
+export * from "./useMailboxSync";
+export * from "./live-mailbox";
+export * from "./live-thread";
+export * from "./mailbox-keys";
+export * from "./useThreadRead";
+export * from "./useContacts";
+export * from "./usePolicy";
+export * from "./useRequests";
+export * from "./useSettings";
+export * from "./workspace";
+export * from "./source-view";
+export * from "./useConnectivity";
+export * from "./unsent-work";
+export * from "./navigation";
+export { MailApp } from "./shell/MailApp";
+export type { MailAppProps } from "./shell/MailApp";
+
 export type {
   MailboxMessageState,
   MailboxSyncCheckpoint,
@@ -27,5 +49,8 @@ export {
   alwaysVisible,
   createDocumentVisibility,
 } from "./sync-engine";
-export { useMailboxSync } from "./use-mailbox-sync";
+export {
+  useMailboxSync as useIncrementalMailboxSync,
+  type UseMailboxSyncOptions as UseIncrementalMailboxSyncOptions,
+} from "./use-mailbox-sync";
 export { mergeLiveMailboxMessages } from "./merge-live";

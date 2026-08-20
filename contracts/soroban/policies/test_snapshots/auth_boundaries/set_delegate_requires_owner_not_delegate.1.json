@@ -4,13 +4,7 @@
     "nonce": 1,
     "mux_id": 0
   },
-  "auth": [
-    [],
-    [],
-    [],
-    [],
-    []
-  ],
+  "auth": [[], [], [], [], []],
   "ledger": {
     "protocol_version": 26,
     "sequence_number": 0,

@@ -82,9 +82,9 @@ export function SnapshotList({
             ? "N/A"
             : `${snapshot.averageFirstResponseHours}h`;
 
-        const cardLabel = `Snapshot for team ${snapshot.team}, status ${
-          snapshot.status
-        }, period ${snapshot.period}${snapshot.reviewRequired ? ", review required" : ""}`;
+        const cardLabel = `Snapshot for team ${snapshot.team}, status ${snapshot.status}, period ${
+          snapshot.period
+        }${snapshot.reviewRequired ? ", review required" : ""}`;
 
         return (
           <li role="listitem" key={snapshot.id}>

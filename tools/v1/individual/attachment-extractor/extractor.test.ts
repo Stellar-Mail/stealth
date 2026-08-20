@@ -60,7 +60,9 @@ describe("Attachment Extractor (V1 Launch Tool)", () => {
 
 describe("Attachment Extractor - Safety guards", () => {
   it("should reject raw payloads above the configured parsing budget", async () => {
-    const result = await extractAttachments("x".repeat(128), { maxPayloadBytes: 16 });
+    const result = await extractAttachments("x".repeat(128), {
+      maxPayloadBytes: 16,
+    });
     expect(result.success).toBe(false);
     expect(result.error).toContain("safe parsing limit");
   });

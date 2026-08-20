@@ -57,7 +57,10 @@ describe("preferences/clampLayoutPreferences", () => {
   });
 
   it("does not mutate the input object (failure-safety)", () => {
-    const input: LayoutPreferences = { ...defaultLayoutPreferences, sidebarWidth: 100 };
+    const input: LayoutPreferences = {
+      ...defaultLayoutPreferences,
+      sidebarWidth: 100,
+    };
     const snapshot = { ...input };
     clampLayoutPreferences(input);
     expect(input).toEqual(snapshot);

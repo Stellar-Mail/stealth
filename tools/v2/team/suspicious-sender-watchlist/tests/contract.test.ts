@@ -51,7 +51,10 @@ describe("watchlist execution contract — operations", () => {
 
   it("list with riskLevel filter narrows to high-risk entries", async () => {
     const contract = makeContract();
-    const res = await contract.execute({ operation: "list", filter: { riskLevel: "high" } });
+    const res = await contract.execute({
+      operation: "list",
+      filter: { riskLevel: "high" },
+    });
     expect(res.ok).toBe(true);
     if (res.ok && res.value.operation === "list") {
       // Every returned entry must be high-risk (the filter is honored).
@@ -62,7 +65,10 @@ describe("watchlist execution contract — operations", () => {
 
   it("add returns a new entry with a generated id and active status", async () => {
     const contract = makeContract();
-    const res = await contract.execute({ operation: "add", input: VALID_ADD_INPUT });
+    const res = await contract.execute({
+      operation: "add",
+      input: VALID_ADD_INPUT,
+    });
     expect(res.ok).toBe(true);
     if (res.ok && res.value.operation === "add") {
       expect(res.value.entry.id).toMatch(/^watch-\d{3}$/);
@@ -86,7 +92,10 @@ describe("watchlist execution contract — operations", () => {
 
   it("dismiss marks an entry dismissed (ok=true)", async () => {
     const contract = makeContract();
-    const res = await contract.execute({ operation: "dismiss", id: "watch-002" });
+    const res = await contract.execute({
+      operation: "dismiss",
+      id: "watch-002",
+    });
     expect(res.ok).toBe(true);
     if (res.ok && res.value.operation === "dismiss") {
       expect(res.value.entry.status).toBe("dismissed");
@@ -95,7 +104,10 @@ describe("watchlist execution contract — operations", () => {
 
   it("remove deletes an entry and reports the removed id", async () => {
     const contract = makeContract();
-    const res = await contract.execute({ operation: "remove", id: "watch-003" });
+    const res = await contract.execute({
+      operation: "remove",
+      id: "watch-003",
+    });
     expect(res.ok).toBe(true);
     if (res.ok && res.value.operation === "remove") {
       expect(res.value.removedId).toBe("watch-003");

@@ -9,7 +9,11 @@
     "sender": "a01bcbe720d8344a40b29b5a447fd57d2dd2ce02209a0c581c7bcf9b9706bcf8",
     "recipient": "b01bcbe720d8344a40b29b5a447fd57d2dd2ce02209a0c581c7bcf9b9706bcf9",
     "timestamp": "NOW",
-    "encryption_metadata": { "algorithm": "AES-256-GCM", "nonce": "00", "mac": "00" },
+    "encryption_metadata": {
+      "algorithm": "AES-256-GCM",
+      "nonce": "00",
+      "mac": "00"
+    },
     "content_commitment": "5b40cf39e4a86e969d27038e8e78e86cf0f4e1f7a0756e0766a5cfbfcae29202",
     "attachments": [],
     "request_nonce": "nonce-base-0000000000000000",
@@ -98,7 +102,10 @@
     {
       "id": "relay/negative/missing-fields",
       "description": "Mandatory anti-replay field absent (INVALID_REQUEST).",
-      "overrides": { "request_nonce": null, "idempotency_key": "idem-miss-00000000000" },
+      "overrides": {
+        "request_nonce": null,
+        "idempotency_key": "idem-miss-00000000000"
+      },
       "tamper": null,
       "preseed": null,
       "expected": { "error": "INVALID_REQUEST" }

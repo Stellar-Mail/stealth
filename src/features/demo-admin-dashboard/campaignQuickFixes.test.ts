@@ -28,7 +28,12 @@ describe("Campaign Quick Fixes", () => {
 
   it("should fix invalid dates and logical date ranges", () => {
     const input: CampaignRecord[] = [
-      { id: "1", name: "Bad Dates", startDate: "not-a-date", endDate: "invalid" },
+      {
+        id: "1",
+        name: "Bad Dates",
+        startDate: "not-a-date",
+        endDate: "invalid",
+      },
       {
         id: "2",
         name: "Reversed Dates",
@@ -49,7 +54,12 @@ describe("Campaign Quick Fixes", () => {
 
   it("should return empty appliedFixes when no fixes are needed", () => {
     const input: CampaignRecord[] = [
-      { id: "1", name: "Perfect Campaign", tags: ["vip"], startDate: "2023-01-01T00:00:00.000Z" },
+      {
+        id: "1",
+        name: "Perfect Campaign",
+        tags: ["vip"],
+        startDate: "2023-01-01T00:00:00.000Z",
+      },
     ];
     const results = applyQuickFixes(input);
 

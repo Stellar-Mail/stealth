@@ -62,7 +62,9 @@ function parseDuration(
   const minimum = allowZero ? 0 : 1;
   if (!Number.isSafeInteger(duration) || duration < minimum) {
     throw new Error(
-      `Configuration error: ${name} must be ${allowZero ? "a non-negative" : "a positive"} integer number of milliseconds.`,
+      `Configuration error: ${name} must be ${
+        allowZero ? "a non-negative" : "a positive"
+      } integer number of milliseconds.`,
     );
   }
   return duration;
@@ -132,9 +134,13 @@ export function validateAuthChallengeTimestamp(
 
   const nowMs = (options.now ?? Date.now)();
   if (nowMs < issuedAtMs - clockSkewMs) {
-    throw new ApiError("challenge_not_yet_valid", { reason: AUTH_TIMING_REASONS.notYetValid });
+    throw new ApiError("challenge_not_yet_valid", {
+      reason: AUTH_TIMING_REASONS.notYetValid,
+    });
   }
   if (nowMs > expiresAtMs + clockSkewMs) {
-    throw new ApiError("expired_challenge", { reason: AUTH_TIMING_REASONS.expired });
+    throw new ApiError("expired_challenge", {
+      reason: AUTH_TIMING_REASONS.expired,
+    });
   }
 }

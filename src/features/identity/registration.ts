@@ -1,6 +1,15 @@
 import { z } from "zod";
 
-import { emailSchema, usernameSchema } from "@/server/api/domain";
+export const emailSchema = z.string().trim().toLowerCase().email("Expected a valid email address");
+
+export const usernameSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .regex(
+    /^[a-z0-9_-]{3,30}$/,
+    "Username must be 3-30 lowercase alphanumeric characters, underscores, or hyphens",
+  );
 
 export const CURRENT_TERMS_VERSION = "2026-01";
 export const CURRENT_PRIVACY_POLICY_VERSION = "2026-01";
@@ -20,6 +29,8 @@ export const registrationRequestSchema = z
     passwordConfirmation: z.string(),
     termsVersion: z.literal(CURRENT_TERMS_VERSION),
     privacyPolicyVersion: z.literal(CURRENT_PRIVACY_POLICY_VERSION),
+    inviteCode: z.string().trim().optional(),
+    challengeNonce: z.string().trim().optional(),
   })
   .strict()
   .superRefine((value, ctx) => {

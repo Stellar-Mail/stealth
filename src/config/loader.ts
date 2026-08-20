@@ -2,6 +2,7 @@ import {
   runtimeConfigSchema,
   type BetaRuntimeConfig,
   type ConfigProfile,
+  type NotificationTransport,
   type PublicConfig,
 } from "./schema";
 import { validateRegistryDrift } from "./registry";
@@ -47,6 +48,16 @@ function parseNumber(value: unknown, fallback: number): number {
   if (typeof value === "string") {
     const parsed = parseInt(value, 10);
     if (!isNaN(parsed)) return parsed;
+  }
+  return fallback;
+}
+
+function parseBool(value: unknown, fallback: boolean): boolean {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") {
+    const lower = value.trim().toLowerCase();
+    if (lower === "true" || lower === "1") return true;
+    if (lower === "false" || lower === "0") return false;
   }
   return fallback;
 }
@@ -165,6 +176,11 @@ export function loadRuntimeConfig(options: LoadConfigOptions = {}): BetaRuntimeC
   const postageContractId =
     (env.STEALTH_POSTAGE_CONTRACT_ID as string) ??
     "CBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB";
+  const lifecycleContractId =
+    (env.STEALTH_LIFECYCLE_CONTRACT_ID as string) ?? "C_DEV_LIFECYCLE_CONTRACT";
+  const receiptsContractId =
+    (env.STEALTH_RECEIPTS_CONTRACT_ID as string) ??
+    "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC";
   const domainTag = (env.STEALTH_DOMAIN_TAG as string) ?? "Stealth_Mail_Protocol";
   const protocolVersion = (env.STEALTH_PROTOCOL_VERSION as string) ?? "v1";
 
@@ -184,6 +200,29 @@ export function loadRuntimeConfig(options: LoadConfigOptions = {}): BetaRuntimeC
       : typeof env.STEALTH_CORS_ALLOW_CREDENTIALS === "string"
         ? env.STEALTH_CORS_ALLOW_CREDENTIALS.toLowerCase() === "true"
         : true;
+
+  // 7. Notifications (BETA-005). The production default is SMTP; deployments
+  // must point it at their own mail server (no third-party vendor). Non-prod
+  // profiles default to the local capture sink.
+  const notificationTransport: NotificationTransport =
+    (env.STEALTH_NOTIFICATION_TRANSPORT as NotificationTransport) ?? (isProd ? "smtp" : "sink");
+  const smtpHost = (env.STEALTH_SMTP_HOST as string) ?? (isProd ? "smtp.invalid" : "localhost");
+  const smtpPort = parseNumber(env.STEALTH_SMTP_PORT, 587);
+  const smtpSecure = parseBool(env.STEALTH_SMTP_SECURE, smtpPort === 465);
+  const smtpStartTls = parseBool(env.STEALTH_SMTP_STARTTLS, smtpPort !== 465);
+  const smtpUsername = (env.STEALTH_SMTP_USERNAME as string) || undefined;
+  const notificationFrom =
+    (env.STEALTH_NOTIFICATION_FROM as string) ??
+    (isProd ? "noreply@app.stealth.mail" : "stealth@localhost");
+  const verificationTokenLifetimeMs = parseNumber(
+    env.STEALTH_VERIFICATION_TOKEN_LIFETIME_MS,
+    24 * 60 * 60 * 1000,
+  );
+  const verificationResendCooldownMs = parseNumber(
+    env.STEALTH_VERIFICATION_RESEND_COOLDOWN_MS,
+    60 * 1000,
+  );
+  const verificationMaxAttempts = parseNumber(env.STEALTH_VERIFICATION_MAX_ATTEMPTS, 5);
 
   // Perform validation gates according to profile
   if (isProd) {
@@ -235,6 +274,16 @@ export function loadRuntimeConfig(options: LoadConfigOptions = {}): BetaRuntimeC
         "Configuration error: STEALTH_POSTAGE_CONTRACT_ID is required and cannot be a placeholder in production.",
       );
     }
+    if (isPlaceholderContractId(lifecycleContractId) || !lifecycleContractId) {
+      throw new Error(
+        "Configuration error: STEALTH_LIFECYCLE_CONTRACT_ID is required and cannot be a placeholder in production.",
+      );
+    }
+    if (isPlaceholderContractId(receiptsContractId) || !receiptsContractId) {
+      throw new Error(
+        "Configuration error: STEALTH_RECEIPTS_CONTRACT_ID is required and cannot be a placeholder in production.",
+      );
+    }
     if (!appUrl || appUrl.includes("localhost")) {
       throw new Error(
         "Configuration error: STEALTH_APP_URL must be a valid public origin in production.",
@@ -284,6 +333,8 @@ export function loadRuntimeConfig(options: LoadConfigOptions = {}): BetaRuntimeC
     contract: {
       registryContractId,
       postageContractId,
+      lifecycleContractId,
+      receiptsContractId,
       domainTag,
       protocolVersion,
     },
@@ -293,6 +344,23 @@ export function loadRuntimeConfig(options: LoadConfigOptions = {}): BetaRuntimeC
       allowedMethods,
       allowedHeaders,
       allowCredentials,
+    },
+    notifications: {
+      transport: notificationTransport,
+      fromAddress: notificationFrom,
+      verification: {
+        tokenLifetimeMs: verificationTokenLifetimeMs,
+        resendCooldownMs: verificationResendCooldownMs,
+        maxAttempts: verificationMaxAttempts,
+      },
+      smtp: {
+        host: smtpHost,
+        port: smtpPort,
+        secure: smtpSecure,
+        startTls: smtpStartTls,
+        username: smtpUsername,
+        password: smtpPassword,
+      },
     },
   };
 
@@ -333,6 +401,17 @@ export function getPublicConfig(config: BetaRuntimeConfig): PublicConfig {
     },
     contract: config.contract,
     origin: config.origin,
+    notifications: {
+      transport: config.notifications.transport,
+      fromAddress: config.notifications.fromAddress,
+      verification: config.notifications.verification,
+      smtp: {
+        host: config.notifications.smtp.host,
+        port: config.notifications.smtp.port,
+        secure: config.notifications.smtp.secure,
+        startTls: config.notifications.smtp.startTls,
+      },
+    },
   };
 }
 
@@ -362,6 +441,20 @@ export function getRedactedConfig(config: BetaRuntimeConfig): Record<string, unk
     },
     contract: config.contract,
     origin: config.origin,
+    notifications: {
+      transport: config.notifications.transport,
+      fromAddress: config.notifications.fromAddress,
+      verification: config.notifications.verification,
+      smtp: {
+        host: config.notifications.smtp.host,
+        port: config.notifications.smtp.port,
+        secure: config.notifications.smtp.secure,
+        startTls: config.notifications.smtp.startTls,
+        hasUsername: Boolean(config.notifications.smtp.username),
+        username: config.notifications.smtp.username ? "[REDACTED]" : undefined,
+        password: config.notifications.smtp.password ? "[REDACTED]" : undefined,
+      },
+    },
     secrets: {
       hasCursorSecret: Boolean(config.secrets.cursorSecret),
       hasRelayApiKey: Boolean(config.secrets.relayApiKey),
@@ -410,12 +503,23 @@ export function formatConfigMatrix(config: BetaRuntimeConfig): string {
     `[Contract]`,
     `  Registry Contract:     ${config.contract.registryContractId}`,
     `  Postage Contract:      ${config.contract.postageContractId}`,
+    `  Lifecycle Contract:    ${config.contract.lifecycleContractId}`,
+    `  Receipts Contract:     ${config.contract.receiptsContractId}`,
     `  Domain Tag:            ${config.contract.domainTag}`,
     `  Protocol Version:      ${config.contract.protocolVersion}`,
     `[Origin & CORS]`,
     `  App URL:               ${config.origin.appUrl}`,
     `  Allowed Origins:       ${config.origin.allowedOrigins.join(", ")}`,
     `  Allowed Methods:       ${config.origin.allowedMethods.join(", ")}`,
+    `[Notifications]`,
+    `  Transport:             ${config.notifications.transport}`,
+    `  From Address:          ${config.notifications.fromAddress}`,
+    `  Token Lifetime:        ${config.notifications.verification.tokenLifetimeMs} ms`,
+    `  Resend Cooldown:       ${config.notifications.verification.resendCooldownMs} ms`,
+    `  Max Attempts:          ${config.notifications.verification.maxAttempts}`,
+    `  SMTP Host:             ${config.notifications.smtp.host}:${config.notifications.smtp.port}`,
+    `  SMTP TLS:              secure=${config.notifications.smtp.secure} starttls=${config.notifications.smtp.startTls}`,
+    `  SMTP Credentials:      ${redacted.notifications.smtp.username ? "[REDACTED]" : "None"}`,
     `======================================================`,
   ];
   return lines.join("\n");

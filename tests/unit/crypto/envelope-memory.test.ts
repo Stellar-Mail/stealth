@@ -174,7 +174,10 @@ describe("crypto/envelope — cancellation (AbortSignal)", () => {
 
   it("seals successfully when signal is not aborted", async () => {
     const controller = new AbortController();
-    const result = await sealEnvelope({ ...defaultInput, signal: controller.signal });
+    const result = await sealEnvelope({
+      ...defaultInput,
+      signal: controller.signal,
+    });
     expect(result.ciphertext).toBeDefined();
   });
 });
@@ -230,7 +233,11 @@ describe("crypto/envelope — canonicalizePayload", () => {
   });
 
   it("produces deterministic output for same input", () => {
-    const input = { sender: "alice", recipient: "bob", timestamp: "2024-01-01" };
+    const input = {
+      sender: "alice",
+      recipient: "bob",
+      timestamp: "2024-01-01",
+    };
     const a = canonicalizePayload(input);
     const b = canonicalizePayload(input);
     expect(a).toBe(b);

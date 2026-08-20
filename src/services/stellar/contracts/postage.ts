@@ -2,7 +2,7 @@
 // Source: contracts/soroban/postage/spec.json
 // Regenerate: npm run generate:bindings
 
-import { contract } from "@stellar/stellar-sdk";
+import { contract, Keypair } from "@stellar/stellar-sdk";
 
 export interface Postage {
   amount: bigint;
@@ -75,6 +75,8 @@ export interface PostageClientOptions {
   rpcUrl: string;
   /** Public key of the transaction source account. */
   publicKey?: string;
+  /** Secret seed of the signing keypair (e.g. the operator keypair). */
+  signer?: string;
 }
 
 /** Map a contract error code to an actionable PostageError variant. */
@@ -91,6 +93,14 @@ export function createPostageClient(opts: PostageClientOptions): contract.Client
     networkPassphrase: opts.networkPassphrase,
     rpcUrl: opts.rpcUrl,
     ...(opts.publicKey ? { publicKey: opts.publicKey } : {}),
+    ...(opts.signer
+      ? {
+          signTransaction: contract.basicNodeSigner(
+            Keypair.fromSecret(opts.signer),
+            opts.networkPassphrase,
+          ).signTransaction,
+        }
+      : {}),
   });
 }
 

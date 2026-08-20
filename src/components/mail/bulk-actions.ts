@@ -184,7 +184,10 @@ export function buildBulkActionPatch(
     case "snooze": {
       const remindAt = resolveBulkSnoozePreset(request.snoozeChoice, now);
       const state = buildBulkSnoozeState(request.snoozeChoice, remindAt, now);
-      return { ok: true, patch: { folder: "snoozed", time: state.label, snooze: state } };
+      return {
+        ok: true,
+        patch: { folder: "snoozed", time: state.label, snooze: state },
+      };
     }
     case "mark-read":
       return { ok: true, patch: { unread: false } };

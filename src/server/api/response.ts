@@ -157,7 +157,10 @@ function enforceJsonSecurityHeaders(response: Response) {
 
 export function apiSuccess<T>(request: Request, data: T, options: ResponseOptions = {}) {
   const { requestId, correlationId } = resolveRequestIdentity(request);
-  const body: SuccessEnvelope<T> = { data, meta: meta(requestId, correlationId) };
+  const body: SuccessEnvelope<T> = {
+    data,
+    meta: meta(requestId, correlationId),
+  };
 
   return new Response(JSON.stringify(body), {
     status: options.status ?? 200,

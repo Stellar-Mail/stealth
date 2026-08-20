@@ -24,7 +24,12 @@ export class FakeR2Bucket {
   ): Promise<R2Object> {
     const bytes = await toBytes(value);
     const uploaded = new Date();
-    this.objects.set(key, { key, bytes, uploaded, customMetadata: options?.customMetadata ?? {} });
+    this.objects.set(key, {
+      key,
+      bytes,
+      uploaded,
+      customMetadata: options?.customMetadata ?? {},
+    });
     return {
       key,
       size: bytes.length,

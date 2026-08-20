@@ -48,7 +48,10 @@ describe("generateCampaignFixtures", () => {
   });
 
   it("renders template placeholders with persona and scenario names", () => {
-    const fixtures: CampaignFixture[] = generateCampaignFixtures({ seed: "render", count: 3 });
+    const fixtures: CampaignFixture[] = generateCampaignFixtures({
+      seed: "render",
+      count: 3,
+    });
     fixtures.forEach((fixture) => {
       expect(fixture.subject).not.toContain("{");
       expect(fixture.body).not.toContain("{");

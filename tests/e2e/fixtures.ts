@@ -31,7 +31,11 @@ export class ApiHelper {
 
   async putPolicy(
     actor = ACTOR,
-    policy = { allowUnknown: true, minimumPostage: "0", requireVerified: false },
+    policy = {
+      allowUnknown: true,
+      minimumPostage: "0",
+      requireVerified: false,
+    },
   ) {
     return this.page.request.put(`/api/v1/policies/${actor}`, {
       headers: this.headers(actor),
@@ -58,10 +62,10 @@ export class ApiHelper {
     });
   }
 
-  async quotePostage(recipient = ACTOR, sender = SENDER) {
+  async quotePostage(recipient = ACTOR, sender = SENDER, messageId = MSG_ID) {
     return this.page.request.post("/api/v1/postage/quote", {
       headers: this.headers(sender),
-      data: { recipient, sender },
+      data: { recipient, sender, messageId },
     });
   }
 
@@ -72,7 +76,7 @@ export class ApiHelper {
     recipient = ACTOR,
     sender = SENDER,
   ) {
-    const quoteRes = await this.quotePostage(recipient, sender);
+    const quoteRes = await this.quotePostage(recipient, sender, messageId);
     const { data: quoteData } = await quoteRes.json();
 
     return this.page.request.post("/api/v1/postage/", {
@@ -83,6 +87,9 @@ export class ApiHelper {
         paymentHash,
         recipient,
         sender,
+        asset: quoteData.asset,
+        policyVersion: quoteData.policyVersion,
+        network: quoteData.network,
         issuedAt: quoteData.issuedAt,
         expiresAt: quoteData.expiresAt,
         quoteDigest: quoteData.digest,
@@ -159,12 +166,63 @@ const demoLayoutPreferences = {
   rightPanelCollapsed: false,
 };
 
+const demoAddress = `G${"A".repeat(55)}`;
+
+function demoBootstrapBody() {
+  const now = new Date().toISOString();
+  return {
+    data: {
+      user: {
+        userId: demoAddress,
+        username: "demo_user",
+        displayName: "Demo User",
+        email: "demo@stealth.mail",
+        accountStatus: "active",
+        createdAt: now,
+      },
+      session: {
+        sessionId: "sess_e2e_default",
+        expiresAt: new Date(Date.now() + 86400000).toISOString(),
+      },
+      address: demoAddress,
+      provisioning: null,
+      policy: {
+        allowUnknown: true,
+        requireVerified: false,
+        requireReceipt: false,
+        minimumPostage: "0",
+      },
+      wallet: {
+        connected: true,
+        address: demoAddress,
+        signerType: "managed",
+        capabilities: ["sign", "send", "read"],
+        network: "testnet",
+        balanceXlm: "100.0000000",
+      },
+      health: {
+        ready: true,
+        status: "ok",
+        dependencies: { bindings: "ok", storage: "ok", coordinator: "ok" },
+      },
+      syncCursor: `sync_${Date.now()}`,
+      featureFlags: {
+        betaStateMachines: true,
+        sorobanPostage: true,
+        liveMailboxSync: true,
+      },
+      branch: "active",
+    },
+  };
+}
+
 export async function openDemoMailbox(page: Page) {
   await page.addInitScript(
     ({ layout, preferences }) => {
       localStorage.setItem("stealth-preferences", JSON.stringify({ onboardingCompleted: true }));
       localStorage.setItem("stealth-ui-preferences", JSON.stringify(preferences));
       localStorage.setItem("stealth-layout-preferences", JSON.stringify(layout));
+      localStorage.setItem("STEALTH_DEMO_BYPASS_FETCH", "true");
     },
     {
       layout: demoLayoutPreferences,
@@ -172,8 +230,11 @@ export async function openDemoMailbox(page: Page) {
     },
   );
 
-  await page.goto("/");
-  await expect(page.getByRole("heading", { name: /Inbox/i })).toBeVisible();
+  // Demo mode lives on the isolated `/demo` route behind the explicit
+  // development-only flag set above (BETA-012). The production root never
+  // serves demo or seeded mail data.
+  await page.goto("/demo");
+  await expect(page.getByRole("heading", { name: /Inbox/i })).toBeVisible({ timeout: 60000 });
   await page.waitForFunction(() => Boolean(document.documentElement.dataset.theme));
 }
 

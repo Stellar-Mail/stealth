@@ -55,7 +55,10 @@ function parseEmail(
     .filter(isActionable);
 
   if (lines.length === 0) {
-    return { tasks: [], error: { emailId: email.id, reason: "no actionable lines found" } };
+    return {
+      tasks: [],
+      error: { emailId: email.id, reason: "no actionable lines found" },
+    };
   }
 
   const tasks: Task[] = lines.map((line, i) => ({

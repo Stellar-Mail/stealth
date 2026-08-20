@@ -34,7 +34,12 @@ function computeMetrics(tickets: Ticket[]): TicketMetrics {
   const resolvedTickets = tickets.filter((t) => t.status === "resolved").length;
   const closedTickets = tickets.filter((t) => t.status === "closed").length;
 
-  const byPriority: Record<string, number> = { low: 0, medium: 0, high: 0, critical: 0 };
+  const byPriority: Record<string, number> = {
+    low: 0,
+    medium: 0,
+    high: 0,
+    critical: 0,
+  };
   const byCategory: Record<string, number> = {
     bug: 0,
     "feature-request": 0,

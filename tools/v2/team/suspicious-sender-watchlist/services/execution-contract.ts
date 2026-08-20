@@ -52,7 +52,10 @@ export function createWatchlistContract(service: WatchlistService): WatchlistCon
           }
           case "remove": {
             await service.removeEntry(input.id);
-            return { ok: true, value: { operation: "remove", removedId: input.id } };
+            return {
+              ok: true,
+              value: { operation: "remove", removedId: input.id },
+            };
           }
           case "metrics": {
             const metrics = await service.getMetrics();

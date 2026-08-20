@@ -18,6 +18,10 @@ export type RecipientReadiness = {
   resolvedAccount?: string; // Stealth address if resolved
   policyType?: "allow" | "block" | "default"; // Trust policy
   encryptionKey?: string; // Public key for encryption
+  provenance?: string; // cache source
+  cached?: boolean; // is cached
+  expiresAt?: string; // expiration ISO timestamp
+  keyStatus?: string; // key status from key directory
 };
 
 export type ComposeDraft = {
@@ -90,6 +94,28 @@ export function validateComposeDraft({
 
   if (!recipients.length) return "Please enter a recipient";
   if (!body.trim()) return "Please enter a message";
+
+  // Check for stale resolution
+  const now = new Date();
+  if (recipients.some((recipient) => recipient.expiresAt && now > new Date(recipient.expiresAt))) {
+    return "Recipient resolution is stale — re-resolving…";
+  }
+
+  // Check if policy quote is expired
+  if (policyQuote?.expiresAt && now > new Date(policyQuote.expiresAt)) {
+    return "Policy quote is expired — re-quoting…";
+  }
+
+  // Check for key status (revoked, retired, missing encryption key)
+  if (
+    recipients.some(
+      (recipient) =>
+        recipient.state === "verified" &&
+        (recipient.keyStatus === "revoked" || recipient.keyStatus === "retired"),
+    )
+  ) {
+    return "Recipient encryption key has been revoked";
+  }
 
   // Policy-level block check (sender explicitly blocked by recipient policy)
   if (policyQuote && !policyQuote.eligible) {

@@ -18,6 +18,7 @@
 import { z } from "zod";
 
 import { hash32Schema, stellarAddressSchema } from "@/server/api/domain";
+import { InMemoryNonceStore, NonceService } from "@/server/api/auth/nonce-service";
 import type { RelayPersistence } from "./persistence";
 import type { RelayWorker } from "./worker";
 
@@ -79,6 +80,13 @@ export interface RelayNetworkConfig {
   networkPassphrase: string;
 }
 
+export interface RelayAcceptedEnvelope {
+  messageId: string;
+  sender: string;
+  recipient: string;
+  receivedAt: string;
+}
+
 export interface RelayServiceConfig {
   serviceName: string;
   version: string;
@@ -86,6 +94,21 @@ export interface RelayServiceConfig {
   protocolVersion: string;
   timeoutMs: number;
   network: RelayNetworkConfig;
+  audience?: string;
+  nonceService?: NonceService;
+  nowSeconds?: () => number;
+  /**
+   * Best-effort hook invoked after a message is enqueued (e.g. scheduling the
+   * lifecycle anchor for the commitment). Failures are swallowed: the durable
+   * anchor record owns retries and reconciliation.
+   */
+  onAccepted?: (envelope: RelayAcceptedEnvelope) => void | Promise<void>;
+  onIngestedReceipt?: (input: {
+    messageId: string;
+    sender: string;
+    recipient: string;
+    payload: string;
+  }) => Promise<unknown>;
 }
 
 export interface RelaySubmitResult {
@@ -109,11 +132,47 @@ function isValidHttpUrl(value: string): boolean {
 }
 
 export class RelayService {
+  private readonly nonceService: NonceService;
+  private readonly audience: string;
+  private readonly idempotencyStore = new Map<string, unknown>();
+  private readonly seenNonces = new Set<string>();
+
   constructor(
     private readonly persistence: RelayPersistence,
     private readonly worker: RelayWorker,
     private readonly config: RelayServiceConfig,
-  ) {}
+  ) {
+    this.nonceService = config.nonceService ?? new NonceService(new InMemoryNonceStore());
+    this.audience = config.audience ?? "relay:stealth.test";
+  }
+
+  getNonceService(): NonceService {
+    return this.nonceService;
+  }
+
+  getAudience(): string {
+    return this.audience;
+  }
+
+  getConfig(): RelayServiceConfig {
+    return this.config;
+  }
+
+  isNonceSeen(nonce: string): boolean {
+    return this.seenNonces.has(nonce);
+  }
+
+  markNonceSeen(nonce: string): void {
+    this.seenNonces.add(nonce);
+  }
+
+  getIdempotencyResult(key: string): unknown | null {
+    return this.idempotencyStore.get(key) ?? null;
+  }
+
+  storeIdempotencyResult(key: string, result: unknown): void {
+    this.idempotencyStore.set(key, result);
+  }
 
   /**
    * Liveness probe. Always reports ok with no secrets so infrastructure can
@@ -190,11 +249,46 @@ export class RelayService {
     };
 
     await this.persistence.enqueue(envelope);
+    if (this.config.onAccepted) {
+      try {
+        await this.config.onAccepted({
+          messageId: envelope.messageId,
+          sender: envelope.sender,
+          recipient: envelope.recipient,
+          receivedAt: envelope.receivedAt,
+        });
+      } catch {
+        // Best-effort; the durable anchor record owns the outcome.
+      }
+    }
+    if (this.config.onIngestedReceipt) {
+      try {
+        await this.config.onIngestedReceipt({
+          messageId: envelope.messageId,
+          sender: envelope.sender,
+          recipient: envelope.recipient,
+          payload: envelope.payload,
+        });
+      } catch {
+        // Log / fail-soft: receipt publication error does not fail queue enqueue
+      }
+    }
     return {
       accepted: true,
       messageId: envelope.messageId,
       queueDepth: await this.persistence.getQueueDepth(),
     };
+  }
+
+  /**
+   * Retrieve queued messages for a specific recipient address.
+   */
+  async getRecipientQueue(recipient: string) {
+    const parsed = stellarAddressSchema.safeParse(recipient);
+    if (!parsed.success) {
+      throw new Error("Expected a valid Stellar G-address for recipient queue query");
+    }
+    return this.persistence.listRecipientQueue(parsed.data);
   }
 
   private defaultNetworkCheck(): boolean {

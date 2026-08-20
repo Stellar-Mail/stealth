@@ -51,9 +51,10 @@ export function assignMeetings({
   if (!Array.isArray(meetings)) throw new TypeError("meetings must be an array");
 
   // Working copy so we can mutate loads without touching the originals
-  const members = teamMembers.map((m) => ({ ...m, skills: new Set(m.skills) })) as Array<
-    TeamMember & { skills: Set<string> }
-  >;
+  const members = teamMembers.map((m) => ({
+    ...m,
+    skills: new Set(m.skills),
+  })) as Array<TeamMember & { skills: Set<string> }>;
 
   const sorted = [...meetings].sort((a, b) => {
     if (b.priority !== a.priority) return b.priority - a.priority;

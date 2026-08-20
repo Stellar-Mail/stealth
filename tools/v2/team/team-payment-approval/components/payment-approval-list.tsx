@@ -27,13 +27,19 @@ interface PaymentApprovalListProps {
 }
 
 const STATUS_BADGE_COLORS: Record<string, { bg: string; text: string }> = {
-  pending: { bg: "bg-yellow-100 dark:bg-yellow-900", text: "text-yellow-800 dark:text-yellow-100" },
+  pending: {
+    bg: "bg-yellow-100 dark:bg-yellow-900",
+    text: "text-yellow-800 dark:text-yellow-100",
+  },
   approved: {
     bg: "bg-emerald-100 dark:bg-emerald-900",
     text: "text-emerald-800 dark:text-emerald-100",
   },
   rejected: { bg: "bg-destructive/10", text: "text-destructive" },
-  expired: { bg: "bg-gray-100 dark:bg-gray-900", text: "text-gray-800 dark:text-gray-100" },
+  expired: {
+    bg: "bg-gray-100 dark:bg-gray-900",
+    text: "text-gray-800 dark:text-gray-100",
+  },
 };
 
 const PRIORITY_COLORS: Record<string, string> = {

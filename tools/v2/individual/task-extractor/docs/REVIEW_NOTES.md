@@ -338,7 +338,12 @@ safeExtractTasks({ messageId: "test", subject: "", body: "" }); // Should return
 safeExtractTasks({ messageId: "test", subject: "", body: "x".repeat(60000) }); // Should return input-too-large error
 
 // Test unsupported language
-safeExtractTasks({ messageId: "test", subject: "", body: "test", language: "fr" }); // Should return unsupported-language error
+safeExtractTasks({
+  messageId: "test",
+  subject: "",
+  body: "test",
+  language: "fr",
+}); // Should return unsupported-language error
 ```
 
 ### Integration Check

@@ -173,7 +173,9 @@ describe("RoleBasedMailAccessBackendService Non-UI Execution Contract", () => {
 
     it("returns INVALID_INPUT if requests is not an array", async () => {
       const service = createService();
-      const res = await service.batchVerifyAccess({ requests: "invalid" as any });
+      const res = await service.batchVerifyAccess({
+        requests: "invalid" as any,
+      });
 
       expect(res.success).toBe(false);
       if (!res.success) {
@@ -245,7 +247,10 @@ describe("RoleBasedMailAccessBackendService Non-UI Execution Contract", () => {
 
     it("returns INVALID_INPUT on negative numbers", async () => {
       const service = createService();
-      const res = await service.checkLimits({ teamSize: -1, attachmentCount: 10 });
+      const res = await service.checkLimits({
+        teamSize: -1,
+        attachmentCount: 10,
+      });
 
       expect(res.success).toBe(false);
       if (!res.success) {

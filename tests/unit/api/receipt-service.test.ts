@@ -48,7 +48,11 @@ describe("receipt service", () => {
 
   it("returns receipts only to message participants", async () => {
     const repository = new MemoryApiRepository();
-    const receipt = await createDeliveryReceipt(repository, { messageId, recipient, sender });
+    const receipt = await createDeliveryReceipt(repository, {
+      messageId,
+      recipient,
+      sender,
+    });
 
     await expect(getReceipt(repository, messageId)).resolves.toEqual(receipt);
     expect(() => assertReceiptParticipant(receipt, recipient)).not.toThrow();
@@ -108,7 +112,9 @@ describe("receipt service", () => {
 
   it("throws 404 when getting a non-existent receipt", async () => {
     const repository = new MemoryApiRepository();
-    await expect(getReceipt(repository, "nonexistent")).rejects.toMatchObject({ status: 404 });
+    await expect(getReceipt(repository, "nonexistent")).rejects.toMatchObject({
+      status: 404,
+    });
   });
 
   it("throws 404 when marking read on a non-existent receipt", async () => {

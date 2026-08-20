@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { GripVertical, FolderInput } from "lucide-react";
+import { FolderInput } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   applyMailFilters,
@@ -17,9 +17,18 @@ import { MobileMailCard } from "./MobileMailCard";
 import { EmailTrustBadges } from "./EmailTrustBadges";
 import { BulkActionBar } from "./BulkActionBar";
 import type { BulkActionRequest, BulkFailure, BulkProgressState } from "./bulk-actions";
-import { canDragEmail, DROP_TARGET_FOLDERS, getDropRejectionReason } from "./useDragDrop";
+import { DROP_TARGET_FOLDERS, getDropRejectionReason } from "./useDragDrop";
+import { computeVirtualWindow } from "./virtual-window";
 
 type FilterTab = "all" | "unread" | "flagged";
+
+// BETA-074 (Issue #1981) — virtualized list windowing. Rows are estimated at a
+// fixed height per breakpoint; only the visible window plus an overscan is
+// rendered, so a 10k-message mailbox never materializes thousands of rows in
+// the DOM. Estimates are conservative (taller than real rows) so content is
+// never clipped; overscan covers the gap.
+const DESKTOP_ROW_HEIGHT = 72;
+const MOBILE_ROW_HEIGHT = 104;
 
 export function EmailList({
   emails,
@@ -41,6 +50,9 @@ export function EmailList({
   onStar,
   onSnooze,
   onMove,
+  hasMore = false,
+  onLoadMore,
+  isLoadingMore = false,
 }: {
   emails: Email[];
   selectedId: string | null;
@@ -61,33 +73,88 @@ export function EmailList({
   onStar?: (email: Email) => void;
   onSnooze?: (email: Email) => void;
   onMove?: (emailIds: string[], target: MailLocation) => void;
+  hasMore?: boolean;
+  onLoadMore?: () => void;
+  isLoadingMore?: boolean;
 }) {
   const [activeTab, setActiveTab] = useState<FilterTab>("all");
   const folderLabel = customFolder ?? getFolderLabel(folder);
   const [movePicker, setMovePicker] = useState<{ emailIds: string[] } | null>(null);
 
-  const folderEmails = customFolder
-    ? emails.filter((email) =>
-        email.labels?.some((label) => label.toLowerCase() === customFolder.toLowerCase()),
-      )
-    : getEmailsForFolder(emails, folder);
+  const folderEmails = useMemo(
+    () =>
+      customFolder
+        ? emails.filter((email) =>
+            email.labels?.some((label) => label.toLowerCase() === customFolder.toLowerCase()),
+          )
+        : getEmailsForFolder(emails, folder),
+    [customFolder, emails, folder],
+  );
 
-  const filtered = applyMailFilters(folderEmails, filters).filter((e) => {
-    if (activeTab === "unread") return e.unread;
-    if (activeTab === "flagged") return e.starred;
-    return true;
-  });
-  const visibleIds = filtered.map((email) => email.id);
+  const filtered = useMemo(
+    () =>
+      applyMailFilters(folderEmails, filters).filter((e) => {
+        if (activeTab === "unread") return e.unread;
+        if (activeTab === "flagged") return e.starred;
+        return true;
+      }),
+    [activeTab, filters, folderEmails],
+  );
+
+  const loadMoreRef = useRef<HTMLLIElement>(null);
+  const visibleIds = useMemo(() => filtered.map((email) => email.id), [filtered]);
   const selectedVisibleIds = visibleIds.filter((id) => selectedIds.includes(id));
-  const selectedEmails = selectedIds
-    .map((id) => emails.find((email) => email.id === id))
-    .filter((email): email is Email => Boolean(email));
+  const selectedEmails = useMemo(
+    () =>
+      selectedIds
+        .map((id) => emails.find((email) => email.id === id))
+        .filter((email): email is Email => Boolean(email)),
+    [emails, selectedIds],
+  );
   const allSelected = visibleIds.length > 0 && selectedVisibleIds.length === visibleIds.length;
   const someSelected = selectedVisibleIds.length > 0;
   const listRef = useRef<HTMLUListElement>(null);
   const onSelectRef = useRef(onSelect);
   const onSelectionChangeRef = useRef(onSelectionChange);
   const [lastAnchorId, setLastAnchorId] = useState<string | null>(null);
+
+  // BETA-074 — scroll window tracking for virtualization.
+  const [scrollTop, setScrollTop] = useState(0);
+  const [viewportHeight, setViewportHeight] = useState(0);
+
+  useEffect(() => {
+    const node = listRef.current;
+    if (!node) return;
+    let raf = 0;
+    const measure = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        setScrollTop(node.scrollTop);
+        setViewportHeight(node.clientHeight);
+      });
+    };
+    measure();
+    node.addEventListener("scroll", measure, { passive: true });
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(measure) : null;
+    ro?.observe(node);
+    return () => {
+      node.removeEventListener("scroll", measure);
+      ro?.disconnect();
+      cancelAnimationFrame(raf);
+    };
+  }, []);
+
+  const rowHeight = useMobile ? MOBILE_ROW_HEIGHT : DESKTOP_ROW_HEIGHT;
+  const { start: virtualStart, end: virtualEnd } = computeVirtualWindow({
+    count: filtered.length,
+    scrollTop,
+    viewportHeight,
+    rowHeight,
+  });
+  const virtualItems = useMemo(
+    () => filtered.slice(virtualStart, virtualEnd),
+    [filtered, virtualEnd, virtualStart],
+  );
 
   useEffect(() => {
     onSelectRef.current = onSelect;
@@ -136,6 +203,22 @@ export function EmailList({
     node.addEventListener("keydown", onKeyDown);
     return () => node.removeEventListener("keydown", onKeyDown);
   });
+
+  useEffect(() => {
+    if (!hasMore || !onLoadMore || virtualItems.length === 0) return;
+    const node = loadMoreRef.current;
+    if (!node) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting) && !isLoadingMore) {
+          onLoadMore();
+        }
+      },
+      { root: listRef.current, rootMargin: "120px" },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [hasMore, isLoadingMore, onLoadMore, virtualItems.length]);
 
   useEffect(() => {
     const node = listRef.current;
@@ -280,7 +363,8 @@ export function EmailList({
             </div>
           </li>
         )}
-        {filtered.map((e, idx) => {
+        {virtualStart > 0 && <li aria-hidden="true" style={{ height: virtualStart * rowHeight }} />}
+        {virtualItems.map((e, idx) => {
           const active = selectedId === e.id || selectedIds.includes(e.id);
           const selected = selectedIds.includes(e.id);
           const selectMessage = (shiftKey = false) => {
@@ -293,12 +377,7 @@ export function EmailList({
 
           if (useMobile) {
             return (
-              <motion.li
-                key={e.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.03, duration: 0.25, ease: [0.2, 0.8, 0.2, 1] }}
-              >
+              <li key={e.id}>
                 <div className="flex items-start gap-2 px-1">
                   <Checkbox
                     checked={selected}
@@ -329,17 +408,12 @@ export function EmailList({
                     />
                   </div>
                 )}
-              </motion.li>
+              </li>
             );
           }
 
           return (
-            <motion.li
-              key={e.id}
-              initial={false}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: idx * 0.02, duration: 0.25, ease: [0.2, 0.8, 0.2, 1] }}
-            >
+            <li key={e.id}>
               <div
                 className="flex items-start gap-2"
                 onPointerDown={(event) => {
@@ -382,7 +456,11 @@ export function EmailList({
                         background:
                           "radial-gradient(circle at 18% 22%, oklch(1 0 0 / 0.12), transparent 36%), linear-gradient(135deg, oklch(1 0 0 / 0.08), oklch(1 0 0 / 0.025) 44%, oklch(1 0 0 / 0.01))",
                       }}
-                      transition={{ type: "spring", stiffness: 400, damping: 32 }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 400,
+                        damping: 32,
+                      }}
                     />
                   )}
                   {showAvatars && (
@@ -448,9 +526,25 @@ export function EmailList({
                   />
                 </div>
               )}
-            </motion.li>
+            </li>
           );
         })}
+        {virtualEnd < filtered.length && (
+          <li aria-hidden="true" style={{ height: (filtered.length - virtualEnd) * rowHeight }} />
+        )}
+        {hasMore ? (
+          <li ref={loadMoreRef} className="px-3 py-3">
+            <button
+              type="button"
+              onClick={() => onLoadMore?.()}
+              disabled={isLoadingMore}
+              aria-busy={isLoadingMore}
+              className="w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-muted-foreground transition hover:bg-white/[0.07] hover:text-foreground disabled:opacity-60"
+            >
+              {isLoadingMore ? "Loading more conversations" : "Load more conversations"}
+            </button>
+          </li>
+        ) : null}
       </ul>
 
       {/* M-key folder picker overlay */}

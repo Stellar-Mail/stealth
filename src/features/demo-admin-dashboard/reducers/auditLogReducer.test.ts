@@ -31,13 +31,19 @@ describe("auditLogReducer", () => {
 
   it("adds a prebuilt entry to the front (newest first)", () => {
     const existing: AuditLogEntry = { id: "audit-1", ...baseEntryInput };
-    const newer: AuditLogEntry = { id: "audit-2", ...baseEntryInput, action: "publish" };
+    const newer: AuditLogEntry = {
+      id: "audit-2",
+      ...baseEntryInput,
+      action: "publish",
+    };
     const state = auditLogReducer({ entries: [existing] }, { type: "add", payload: newer });
     expect(state.entries.map((entry) => entry.id)).toEqual(["audit-2", "audit-1"]);
   });
 
   it("clears all entries", () => {
-    const populated: AuditLogState = { entries: [{ id: "audit-1", ...baseEntryInput }] };
+    const populated: AuditLogState = {
+      entries: [{ id: "audit-1", ...baseEntryInput }],
+    };
     expect(auditLogReducer(populated, { type: "clear" }).entries).toEqual([]);
   });
 
@@ -46,7 +52,10 @@ describe("auditLogReducer", () => {
       { id: "audit-1", ...baseEntryInput },
       { id: "audit-2", ...baseEntryInput, action: "publish" },
     ];
-    const state = auditLogReducer(initialAuditLogState, { type: "reset", payload: entries });
+    const state = auditLogReducer(initialAuditLogState, {
+      type: "reset",
+      payload: entries,
+    });
     expect(state.entries).toHaveLength(2);
   });
 

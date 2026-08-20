@@ -3,6 +3,7 @@ import { Miniflare } from "miniflare";
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 const NULL_ADDRESS = "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF";
+const MINIFLARE_TEST_TIMEOUT_MS = 30_000;
 
 let code: string;
 let mf: Miniflare;
@@ -85,83 +86,109 @@ function seedIdentityRecords(extra: Array<{ key: string; value: unknown }> = [])
   ]);
 }
 
-describe("identity migration worker (local Cloudflare emulation)", { timeout: 30000 }, () => {
-  it("rejects non-migration routes and missing commands", async () => {
-    const missing = await mf.dispatchFetch("http://localhost/other");
-    expect(missing.status).toBe(404);
+describe("identity migration worker (local Cloudflare emulation)", () => {
+  it(
+    "rejects non-migration routes and missing commands",
+    async () => {
+      const missing = await mf.dispatchFetch("http://localhost/other");
+      expect(missing.status).toBe(404);
 
-    const bad = await mf.dispatchFetch("http://localhost/migrate", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: "{}",
-    });
-    expect(bad.status).toBe(400);
-  });
+      const bad = await mf.dispatchFetch("http://localhost/migrate", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: "{}",
+      });
+      expect(bad.status).toBe(400);
+    },
+    MINIFLARE_TEST_TIMEOUT_MS,
+  );
 
-  it("runs dry-run against the emulated Durable Object storage", async () => {
-    await seedIdentityRecords();
-    const { status, body } = await run("dry-run");
+  it(
+    "runs dry-run against the emulated Durable Object storage",
+    async () => {
+      await seedIdentityRecords();
+      const { status, body } = await run("dry-run");
 
-    expect(status).toBe(200);
-    expect(body.command).toBe("dry-run");
-    const user = body.families.find((f: any) => f.family === "user");
-    const session = body.families.find((f: any) => f.family === "session");
-    expect(user.totalKeys).toBe(1);
-    expect(user.forwardPending).toBe(0);
-    expect(session.totalKeys).toBe(1);
-    expect(body.ok).toBe(true);
-  });
+      expect(status).toBe(200);
+      expect(body.command).toBe("dry-run");
+      const user = body.families.find((f: any) => f.family === "user");
+      const session = body.families.find((f: any) => f.family === "session");
+      expect(user.totalKeys).toBe(1);
+      expect(user.forwardPending).toBe(0);
+      expect(session.totalKeys).toBe(1);
+      expect(body.ok).toBe(true);
+    },
+    MINIFLARE_TEST_TIMEOUT_MS,
+  );
 
-  it("detects dangling and mismatched indexes during integrity-check", async () => {
-    await seedIdentityRecords([
-      { key: "user:username:ghost", value: "u_missing" },
-      { key: "user:email:alice@example.com", value: "someone-else" },
-    ]);
-    const { status, body } = await run("integrity-check");
+  it(
+    "detects dangling and mismatched indexes during integrity-check",
+    async () => {
+      await seedIdentityRecords([
+        { key: "user:username:ghost", value: "u_missing" },
+        { key: "user:email:alice@example.com", value: "someone-else" },
+      ]);
+      const { status, body } = await run("integrity-check");
 
-    expect(status).toBe(200);
-    expect(body.ok).toBe(false);
+      expect(status).toBe(200);
+      expect(body.ok).toBe(false);
 
-    const user = body.families.find((f: any) => f.family === "user");
-    const username = body.families.find((f: any) => f.family === "username");
+      const user = body.families.find((f: any) => f.family === "user");
+      const username = body.families.find((f: any) => f.family === "username");
 
-    expect(user.issues.map((i: any) => i.kind)).toContain("index_mismatch");
-    expect(username.issues.map((i: any) => i.kind)).toContain("dangling_index");
+      expect(user.issues.map((i: any) => i.kind)).toContain("index_mismatch");
+      expect(username.issues.map((i: any) => i.kind)).toContain("dangling_index");
 
-    // Redaction: full index values never appear in the report.
-    const serialized = JSON.stringify(body);
-    expect(serialized).not.toContain("ghost");
-    expect(serialized).not.toContain("alice@example.com");
-  });
+      // Redaction: full index values never appear in the report.
+      const serialized = JSON.stringify(body);
+      expect(serialized).not.toContain("ghost");
+      expect(serialized).not.toContain("alice@example.com");
+    },
+    MINIFLARE_TEST_TIMEOUT_MS,
+  );
 
-  it("reports unsupported schema versions as failures without mutating data", async () => {
-    await seedIdentityRecords([{ key: "user:id:u_future", value: { $v: 99, userId: "u_future" } }]);
-    const { body } = await run("dry-run");
+  it(
+    "reports unsupported schema versions as failures without mutating data",
+    async () => {
+      await seedIdentityRecords([
+        { key: "user:id:u_future", value: { $v: 99, userId: "u_future" } },
+      ]);
+      const { body } = await run("dry-run");
 
-    const user = body.families.find((f: any) => f.family === "user");
-    expect(user.failed).toBe(1);
-    expect(user.errors[0]).toContain("unsupported schema version 99");
-    expect(body.ok).toBe(false);
-  });
+      const user = body.families.find((f: any) => f.family === "user");
+      expect(user.failed).toBe(1);
+      expect(user.errors[0]).toContain("unsupported schema version 99");
+      expect(body.ok).toBe(false);
+    },
+    MINIFLARE_TEST_TIMEOUT_MS,
+  );
 
-  it("forward is idempotent when every family is already current", async () => {
-    await seedIdentityRecords();
-    const { status, body } = await run("forward");
+  it(
+    "forward is idempotent when every family is already current",
+    async () => {
+      await seedIdentityRecords();
+      const { status, body } = await run("forward");
 
-    expect(status).toBe(200);
-    expect(body.ok).toBe(true);
-    const user = body.families.find((f: any) => f.family === "user");
-    const session = body.families.find((f: any) => f.family === "session");
-    expect(user.changed).toBe(0);
-    expect(session.changed).toBe(0);
-    expect(user.skipped).toBe(1);
-    expect(session.skipped).toBe(1);
-  });
+      expect(status).toBe(200);
+      expect(body.ok).toBe(true);
+      const user = body.families.find((f: any) => f.family === "user");
+      const session = body.families.find((f: any) => f.family === "session");
+      expect(user.changed).toBe(0);
+      expect(session.changed).toBe(0);
+      expect(user.skipped).toBe(1);
+      expect(session.skipped).toBe(1);
+    },
+    MINIFLARE_TEST_TIMEOUT_MS,
+  );
 
-  it("rollback without a target version is rejected by the runner", async () => {
-    await seedIdentityRecords();
-    const { body } = await run("rollback");
-    expect(body.ok).toBe(false);
-    expect(body.families[0].errors[0]).toContain("--target-version");
-  });
+  it(
+    "rollback without a target version is rejected by the runner",
+    async () => {
+      await seedIdentityRecords();
+      const { body } = await run("rollback");
+      expect(body.ok).toBe(false);
+      expect(body.families[0].errors[0]).toContain("--target-version");
+    },
+    MINIFLARE_TEST_TIMEOUT_MS,
+  );
 });

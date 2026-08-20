@@ -174,6 +174,9 @@ export async function authenticateWithPassword(
     ipAddress: input.ip ?? null,
     userAgent: input.userAgent ?? null,
     deviceFingerprint: input.deviceFingerprint ?? null,
+    // Issue #1917 (BETA-010): a password login is the freshest possible
+    // "recent login", satisfying recovery-code regeneration's window check.
+    recentLoginAt: now.toISOString(),
   };
 
   await repo.createSession(session);
@@ -310,6 +313,9 @@ export async function renewSession(
     ipAddress: currentSession.ipAddress,
     userAgent: currentSession.userAgent,
     deviceFingerprint: currentSession.deviceFingerprint,
+    // Issue #1917 (BETA-010): preserve the "recent login" marker across
+    // rotation — renewing a session must not downgrade recovery privileges.
+    recentLoginAt: currentSession.recentLoginAt,
   };
 
   // 1. Record retired session marker

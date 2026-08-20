@@ -369,7 +369,12 @@ describe("Core pure functions", () => {
       const result = bindMail(
         state,
         targetId,
-        { subject: "Subj", sender: "Sender", date: "2026-06-20T12:00:00.000Z", snippet: "Snippet" },
+        {
+          subject: "Subj",
+          sender: "Sender",
+          date: "2026-06-20T12:00:00.000Z",
+          snippet: "Snippet",
+        },
         deps,
       );
 

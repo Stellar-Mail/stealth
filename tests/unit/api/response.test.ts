@@ -47,14 +47,20 @@ describe("API response envelopes", () => {
   });
 
   it("generates a unique request ID per request", () => {
-    const first = apiSuccess(new Request("https://stealth.test/api"), { ok: true });
-    const second = apiSuccess(new Request("https://stealth.test/api"), { ok: true });
+    const first = apiSuccess(new Request("https://stealth.test/api"), {
+      ok: true,
+    });
+    const second = apiSuccess(new Request("https://stealth.test/api"), {
+      ok: true,
+    });
 
     expect(first.headers.get("x-request-id")).not.toBe(second.headers.get("x-request-id"));
   });
 
   it("omits correlation metadata when no valid client correlation ID is supplied", async () => {
-    const response = apiSuccess(new Request("https://stealth.test/api"), { ready: true });
+    const response = apiSuccess(new Request("https://stealth.test/api"), {
+      ready: true,
+    });
     const body = (await response.json()) as { meta: Record<string, unknown> };
 
     expect(body.meta.correlationId).toBeUndefined();
@@ -146,7 +152,13 @@ describe("API response envelopes", () => {
           new ApiError(400, "bad_request", "Invalid request"),
         ),
     ],
-    ["raw JSON", () => jsonResponse(new Request("https://stealth.test/api"), { openapi: "3.1.0" })],
+    [
+      "raw JSON",
+      () =>
+        jsonResponse(new Request("https://stealth.test/api"), {
+          openapi: "3.1.0",
+        }),
+    ],
   ])("adds mandatory security headers to every %s response", (_kind, createResponse) => {
     const response = createResponse();
 
@@ -203,7 +215,9 @@ describe("API response envelopes", () => {
     const request = new Request("https://stealth.test/api");
     const response = apiFailure(
       request,
-      new ApiError(429, "too_many_requests", "Rate limit exceeded", { retryAfterSeconds: 60 }),
+      new ApiError(429, "too_many_requests", "Rate limit exceeded", {
+        retryAfterSeconds: 60,
+      }),
     );
 
     expect(response.status).toBe(429);

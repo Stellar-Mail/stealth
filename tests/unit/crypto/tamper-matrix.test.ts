@@ -112,7 +112,11 @@ async function buildEnvelope(body: string, recipient: string) {
     sender: "GABC",
     recipient,
     timestamp: "2026-07-23T12:00:00.000Z",
-    encryption_metadata: { algorithm: "AES-256-GCM", nonce: toHex(iv), mac: "" },
+    encryption_metadata: {
+      algorithm: "AES-256-GCM",
+      nonce: toHex(iv),
+      mac: "",
+    },
     content_commitment: "",
     attachments: [],
   };

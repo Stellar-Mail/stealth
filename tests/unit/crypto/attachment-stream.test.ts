@@ -74,7 +74,10 @@ async function encryptAll(
   key: CryptoKey,
   plaintext: Uint8Array,
   chunkSizeBytes: number,
-): Promise<{ frames: EncryptedChunkFrame[]; manifest: AttachmentStreamManifest }> {
+): Promise<{
+  frames: EncryptedChunkFrame[];
+  manifest: AttachmentStreamManifest;
+}> {
   const { chunks, manifest } = encryptAttachmentStream(key, singleChunkSource(plaintext), {
     chunkSizeBytes,
   });

@@ -185,7 +185,6 @@ fee = baseFeeRate * N operations = 100 * N stroops
 ### PayoutForm
 
 - **Issue:** No debouncing on email validation
-
   - **Impact:** May trigger API call on every keystroke
   - **Workaround:** Add delay before validation
 

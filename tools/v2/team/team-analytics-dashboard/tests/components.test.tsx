@@ -59,7 +59,9 @@ describe("State components", () => {
     expect(screen.getByText("Network Error")).toBeDefined();
     expect(screen.getByText("Could not connect to analytics server.")).toBeDefined();
 
-    const btn = screen.getByRole("button", { name: "Retry loading analytics data" });
+    const btn = screen.getByRole("button", {
+      name: "Retry loading analytics data",
+    });
     fireEvent.click(btn);
     expect(retryMock).toHaveBeenCalledTimes(1);
   });

@@ -47,8 +47,17 @@ const fixture = JSON.parse(
 function signatureIsValid(vector: Vector): boolean {
   return verify(
     null,
-    Buffer.from(canonicalizeSignedRequest({ ...vector.request, version: fixture.version })),
-    { key: Buffer.from(fixture.publicKeySpkiDerBase64, "base64"), format: "der", type: "spki" },
+    Buffer.from(
+      canonicalizeSignedRequest({
+        ...vector.request,
+        version: fixture.version,
+      }),
+    ),
+    {
+      key: Buffer.from(fixture.publicKeySpkiDerBase64, "base64"),
+      format: "der",
+      type: "spki",
+    },
     Buffer.from(vector.request.signature, "base64"),
   );
 }

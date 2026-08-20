@@ -35,9 +35,12 @@ export class PostageTransitionError extends Error {
  * outgoing transitions are permitted.
  */
 export const ALLOWED_POSTAGE_TRANSITIONS: Record<PostageStatus, readonly PostageStatus[]> = {
-  pending: ["settled", "refunded"],
+  pending: ["settled", "refunded", "expired", "disputed"],
   settled: ["refunded"],
   refunded: [],
+  expired: ["reclaimed", "disputed"],
+  disputed: ["settled", "refunded"],
+  reclaimed: [],
 };
 
 /** True iff `from -> to` is a permitted transition (including the idempotent no-op `from -> from`). */

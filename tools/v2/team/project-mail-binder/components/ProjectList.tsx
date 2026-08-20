@@ -93,7 +93,8 @@ export const ProjectList: React.FC<ProjectListProps> = ({
                     <div className="flex items-center gap-1 font-mono text-[9px] text-indigo-400 bg-indigo-500/5 px-1.5 py-0.5 rounded border border-indigo-500/10">
                       <Coins className="w-2.5 h-2.5" />
                       <span>
-                        {project.stellarAddress.slice(0, 4)}...{project.stellarAddress.slice(-4)}
+                        {project.stellarAddress.slice(0, 4)}...
+                        {project.stellarAddress.slice(-4)}
                       </span>
                     </div>
                   )}
