@@ -21,6 +21,7 @@ import { Route as ApiV1RelayVersionRouteImport } from './routes/api/v1/relay/ver
 import { Route as ApiV1RelayReadinessRouteImport } from './routes/api/v1/relay/readiness'
 import { Route as ApiV1RelayMessagesRouteImport } from './routes/api/v1/relay/messages'
 import { Route as ApiV1RelayHealthRouteImport } from './routes/api/v1/relay/health'
+import { Route as ApiV1MailboxSyncRouteImport } from './routes/api/v1/mailbox/sync'
 import { Route as ApiV1ReceiptsMessageIdRouteImport } from './routes/api/v1/receipts/$messageId'
 import { Route as ApiV1PostageQuoteRouteImport } from './routes/api/v1/postage/quote'
 import { Route as ApiV1PostageMessageIdRouteImport } from './routes/api/v1/postage/$messageId'
@@ -100,6 +101,11 @@ const ApiV1RelayMessagesRoute = ApiV1RelayMessagesRouteImport.update({
 const ApiV1RelayHealthRoute = ApiV1RelayHealthRouteImport.update({
   id: '/api/v1/relay/health',
   path: '/api/v1/relay/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1MailboxSyncRoute = ApiV1MailboxSyncRouteImport.update({
+  id: '/api/v1/mailbox/sync',
+  path: '/api/v1/mailbox/sync',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiV1ReceiptsMessageIdRoute = ApiV1ReceiptsMessageIdRouteImport.update({
@@ -231,6 +237,7 @@ export interface FileRoutesByFullPath {
   '/api/v1/relay/messages': typeof ApiV1RelayMessagesRoute
   '/api/v1/relay/readiness': typeof ApiV1RelayReadinessRoute
   '/api/v1/relay/version': typeof ApiV1RelayVersionRoute
+  '/api/v1/mailbox/sync': typeof ApiV1MailboxSyncRoute
   '/api/v1/postage/': typeof ApiV1PostageIndexRoute
   '/api/v1/receipts/': typeof ApiV1ReceiptsIndexRoute
   '/api/v1/policies/$owner/provision': typeof ApiV1PoliciesOwnerProvisionRoute
@@ -265,6 +272,7 @@ export interface FileRoutesByTo {
   '/api/v1/relay/messages': typeof ApiV1RelayMessagesRoute
   '/api/v1/relay/readiness': typeof ApiV1RelayReadinessRoute
   '/api/v1/relay/version': typeof ApiV1RelayVersionRoute
+  '/api/v1/mailbox/sync': typeof ApiV1MailboxSyncRoute
   '/api/v1/postage': typeof ApiV1PostageIndexRoute
   '/api/v1/receipts': typeof ApiV1ReceiptsIndexRoute
   '/api/v1/policies/$owner/provision': typeof ApiV1PoliciesOwnerProvisionRoute
@@ -300,6 +308,7 @@ export interface FileRoutesById {
   '/api/v1/relay/messages': typeof ApiV1RelayMessagesRoute
   '/api/v1/relay/readiness': typeof ApiV1RelayReadinessRoute
   '/api/v1/relay/version': typeof ApiV1RelayVersionRoute
+  '/api/v1/mailbox/sync': typeof ApiV1MailboxSyncRoute
   '/api/v1/postage/': typeof ApiV1PostageIndexRoute
   '/api/v1/receipts/': typeof ApiV1ReceiptsIndexRoute
   '/api/v1/policies/$owner/provision': typeof ApiV1PoliciesOwnerProvisionRoute
@@ -336,6 +345,7 @@ export interface FileRouteTypes {
     | '/api/v1/relay/messages'
     | '/api/v1/relay/readiness'
     | '/api/v1/relay/version'
+    | '/api/v1/mailbox/sync'
     | '/api/v1/postage/'
     | '/api/v1/receipts/'
     | '/api/v1/policies/$owner/provision'
@@ -370,6 +380,7 @@ export interface FileRouteTypes {
     | '/api/v1/relay/messages'
     | '/api/v1/relay/readiness'
     | '/api/v1/relay/version'
+    | '/api/v1/mailbox/sync'
     | '/api/v1/postage'
     | '/api/v1/receipts'
     | '/api/v1/policies/$owner/provision'
@@ -404,6 +415,7 @@ export interface FileRouteTypes {
     | '/api/v1/relay/messages'
     | '/api/v1/relay/readiness'
     | '/api/v1/relay/version'
+    | '/api/v1/mailbox/sync'
     | '/api/v1/postage/'
     | '/api/v1/receipts/'
     | '/api/v1/policies/$owner/provision'
@@ -439,6 +451,7 @@ export interface RootRouteChildren {
   ApiV1RelayMessagesRoute: typeof ApiV1RelayMessagesRoute
   ApiV1RelayReadinessRoute: typeof ApiV1RelayReadinessRoute
   ApiV1RelayVersionRoute: typeof ApiV1RelayVersionRoute
+  ApiV1MailboxSyncRoute: typeof ApiV1MailboxSyncRoute
   ApiV1PostageIndexRoute: typeof ApiV1PostageIndexRoute
   ApiV1ReceiptsIndexRoute: typeof ApiV1ReceiptsIndexRoute
   ApiV1WalletLinkAddressRoute: typeof ApiV1WalletLinkAddressRoute
@@ -510,6 +523,13 @@ declare module '@tanstack/react-router' {
       path: '/api/v1/relay/version'
       fullPath: '/api/v1/relay/version'
       preLoaderRoute: typeof ApiV1RelayVersionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/mailbox/sync': {
+      id: '/api/v1/mailbox/sync'
+      path: '/api/v1/mailbox/sync'
+      fullPath: '/api/v1/mailbox/sync'
+      preLoaderRoute: typeof ApiV1MailboxSyncRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/relay/readiness': {
@@ -741,6 +761,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1RelayMessagesRoute: ApiV1RelayMessagesRoute,
   ApiV1RelayReadinessRoute: ApiV1RelayReadinessRoute,
   ApiV1RelayVersionRoute: ApiV1RelayVersionRoute,
+  ApiV1MailboxSyncRoute: ApiV1MailboxSyncRoute,
   ApiV1PostageIndexRoute: ApiV1PostageIndexRoute,
   ApiV1ReceiptsIndexRoute: ApiV1ReceiptsIndexRoute,
   ApiV1WalletLinkAddressRoute: ApiV1WalletLinkAddressRoute,

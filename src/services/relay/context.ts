@@ -10,13 +10,20 @@ import { loadRuntimeConfig } from "@/config";
 import { protocolManifest } from "@/server/api/protocol";
 import { getVersionInfo } from "@/server/api/version";
 
+import { ingestMailboxEnvelope } from "./ingest";
 import { InProcessRelayWorker } from "./in-process-worker";
+import { KvMailboxSyncPersistence } from "./kv-mailbox-sync";
 import { KvRelayPersistence } from "./kv-persistence";
+import { MemoryMailboxSyncPersistence } from "./memory-mailbox-sync";
 import { MemoryRelayPersistence } from "./memory-persistence";
+import { MailboxSyncService } from "./mailbox-sync-service";
+import type { MailboxSyncPersistence } from "./mailbox-sync-persistence";
 import { RELAY_SERVICE_NAME, RelayService, type RelayServiceConfig } from "./relay-service";
 
 const globalRelay = globalThis as typeof globalThis & {
   __stealthRelayService?: RelayService;
+  __stealthMailboxSync?: MailboxSyncService;
+  __stealthMailboxSyncPersistence?: MailboxSyncPersistence;
 };
 
 function buildConfig(): RelayServiceConfig {
@@ -35,16 +42,22 @@ function buildConfig(): RelayServiceConfig {
   };
 }
 
-export async function getRelayService(): Promise<RelayService> {
-  if (globalRelay.__stealthRelayService) {
-    return globalRelay.__stealthRelayService;
+async function ensureRelayRuntime(): Promise<void> {
+  if (globalRelay.__stealthRelayService && globalRelay.__stealthMailboxSync) {
+    return;
   }
 
   if (!import.meta.env.PROD) {
     const persistence = new MemoryRelayPersistence();
-    const worker = new InProcessRelayWorker(persistence);
+    const mailboxPersistence = new MemoryMailboxSyncPersistence();
+    const worker = new InProcessRelayWorker(persistence, {
+      onMessage: (envelope) => ingestMailboxEnvelope(mailboxPersistence, envelope),
+    });
+    globalRelay.__stealthMailboxSyncPersistence = mailboxPersistence;
+    globalRelay.__stealthMailboxSync = new MailboxSyncService(mailboxPersistence);
     globalRelay.__stealthRelayService = new RelayService(persistence, worker, buildConfig());
-    return globalRelay.__stealthRelayService;
+    void worker.start();
+    return;
   }
 
   const { env } = await import("cloudflare:workers");
@@ -55,7 +68,22 @@ export async function getRelayService(): Promise<RelayService> {
   }
 
   const persistence = new KvRelayPersistence(env.STEALTH_KV);
-  const worker = new InProcessRelayWorker(persistence);
+  const mailboxPersistence = new KvMailboxSyncPersistence(env.STEALTH_KV);
+  const worker = new InProcessRelayWorker(persistence, {
+    onMessage: (envelope) => ingestMailboxEnvelope(mailboxPersistence, envelope),
+  });
+  globalRelay.__stealthMailboxSyncPersistence = mailboxPersistence;
+  globalRelay.__stealthMailboxSync = new MailboxSyncService(mailboxPersistence);
   globalRelay.__stealthRelayService = new RelayService(persistence, worker, buildConfig());
-  return globalRelay.__stealthRelayService;
+  void worker.start();
+}
+
+export async function getRelayService(): Promise<RelayService> {
+  await ensureRelayRuntime();
+  return globalRelay.__stealthRelayService!;
+}
+
+export async function getMailboxSyncService(): Promise<MailboxSyncService> {
+  await ensureRelayRuntime();
+  return globalRelay.__stealthMailboxSync!;
 }

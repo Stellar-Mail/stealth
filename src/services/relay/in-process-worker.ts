@@ -59,6 +59,7 @@ export class InProcessRelayWorker implements RelayWorker {
       await this.onMessage(envelope);
     } catch {
       await this.persistence.recordRetry();
+      await this.persistence.enqueue(envelope);
     }
   }
 }

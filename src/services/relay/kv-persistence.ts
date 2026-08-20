@@ -14,6 +14,7 @@ export class KvRelayPersistence implements RelayPersistence {
   private static readonly RETRY_KEY = "relay:retry";
   private static readonly DEAD_LETTER_KEY = "relay:dead-letter";
   private static readonly MESSAGE_PREFIX = "relay:message:";
+  private static readonly QUEUE_IDS_KEY = "relay:queue:ids";
 
   constructor(private readonly kv: KVNamespace) {}
 
@@ -34,24 +35,36 @@ export class KvRelayPersistence implements RelayPersistence {
   }
 
   async enqueue(envelope: RelayEnvelope): Promise<{ messageId: string }> {
-    const existing = await this.kv.get(
-      `${KvRelayPersistence.MESSAGE_PREFIX}${envelope.messageId}`,
-      "json",
-    );
-    if (existing) {
-      return { messageId: envelope.messageId };
-    }
+    const ids = await this.readQueueIds();
+    const alreadyQueued = ids.includes(envelope.messageId);
     await this.kv.put(
       `${KvRelayPersistence.MESSAGE_PREFIX}${envelope.messageId}`,
       JSON.stringify(envelope),
     );
-    const depth = await this.getQueueDepth();
-    await this.kv.put(KvRelayPersistence.QUEUE_DEPTH_KEY, String(depth + 1));
+    if (!alreadyQueued) {
+      ids.push(envelope.messageId);
+      await this.kv.put(KvRelayPersistence.QUEUE_IDS_KEY, JSON.stringify(ids));
+      await this.kv.put(KvRelayPersistence.QUEUE_DEPTH_KEY, String(ids.length));
+    }
     return { messageId: envelope.messageId };
   }
 
   async dequeue(): Promise<RelayEnvelope | null> {
-    return null;
+    const ids = await this.readQueueIds();
+    const messageId = ids.shift();
+    if (!messageId) return null;
+    const envelope = (await this.kv.get(
+      `${KvRelayPersistence.MESSAGE_PREFIX}${messageId}`,
+      "json",
+    )) as RelayEnvelope | null;
+    await this.kv.put(KvRelayPersistence.QUEUE_IDS_KEY, JSON.stringify(ids));
+    await this.kv.put(KvRelayPersistence.QUEUE_DEPTH_KEY, String(ids.length));
+    return envelope;
+  }
+
+  private async readQueueIds(): Promise<string[]> {
+    const raw = (await this.kv.get(KvRelayPersistence.QUEUE_IDS_KEY, "json")) as string[] | null;
+    return Array.isArray(raw) ? raw.filter((id) => typeof id === "string") : [];
   }
 
   async recordRetry(): Promise<void> {

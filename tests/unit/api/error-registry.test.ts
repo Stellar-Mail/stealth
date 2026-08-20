@@ -21,6 +21,7 @@ describe("API error registry", () => {
     ["invalid_state_transition", 409],
     ["insufficient_postage", 422],
     ["duplicate_receipt", 409],
+    ["cursor_expired", 410],
   ] as const)("constructs %s from its registered defaults", (code, status) => {
     const error = new ApiError(code);
     expect(error).toMatchObject({ code, status, message: API_ERROR_REGISTRY[code].message });

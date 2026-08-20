@@ -71,6 +71,7 @@ import { RequestsTriageBoard } from "@/features/requests";
 import { ProofInspectorModal } from "@/features/proof-inspector";
 import { SenderJourney } from "@/features/sender-journey";
 import { AuthModal } from "@/components/mail/AuthModal";
+import { mergeLiveMailboxMessages, useMailboxSync } from "@/features/mail";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -136,6 +137,8 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
   const [proofInspectorOpen, setProofInspectorOpen] = useState(false);
   const [proofInspectorQuery, setProofInspectorQuery] = useState("");
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [mailboxActor, setMailboxActor] = useState<string | null>(null);
+  const liveSync = useMailboxSync({ actor: mailboxActor, enabled: Boolean(mailboxActor) });
 
   const handleOpenMessageFromInspector = useCallback((email: Email) => {
     setCustomFolder(null);
@@ -144,6 +147,26 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
     setSelectedId(email.id);
     setSelectedIds([]);
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetch("/api/v1/auth/session")
+      .then((response) => (response.ok ? response.json() : null))
+      .then((body: { data?: { user?: { address?: string } } } | null) => {
+        const address = body?.data?.user?.address;
+        if (!cancelled && typeof address === "string" && address.length > 0) {
+          setMailboxActor(address);
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    setEmails((previous) => mergeLiveMailboxMessages(previous, liveSync.messages));
+  }, [liveSync.messages]);
 
   const calendar = useCalendar();
   const { dismiss: dismissFeedback, items: feedbackItems, notify: showToast } = useFeedback();

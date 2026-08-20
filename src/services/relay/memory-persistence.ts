@@ -8,6 +8,7 @@ import type { RelayEnvelope, RelayPersistence } from "./persistence";
 
 export class MemoryRelayPersistence implements RelayPersistence {
   private readonly queue: RelayEnvelope[] = [];
+  private readonly queuedIds = new Set<string>();
   private readonly messages = new Map<string, RelayEnvelope>();
   private retryCount = 0;
   private deadLetterCount = 0;
@@ -36,13 +37,18 @@ export class MemoryRelayPersistence implements RelayPersistence {
       throw new Error("Relay storage is unavailable");
     }
     this.messages.set(envelope.messageId, envelope);
-    this.queue.push(envelope);
+    if (!this.queuedIds.has(envelope.messageId)) {
+      this.queue.push(envelope);
+      this.queuedIds.add(envelope.messageId);
+    }
     return { messageId: envelope.messageId };
   }
 
   async dequeue(): Promise<RelayEnvelope | null> {
     if (this.queue.length === 0) return null;
-    return this.queue.shift()!;
+    const envelope = this.queue.shift()!;
+    this.queuedIds.delete(envelope.messageId);
+    return envelope;
   }
 
   async recordRetry(): Promise<void> {

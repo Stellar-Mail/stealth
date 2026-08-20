@@ -20,6 +20,7 @@ export const protocolManifest = {
     "postage-lifecycle",
     "delivery-receipts",
     "read-receipts",
+    "mailbox-sync",
   ],
   contracts: {
     policies: ["set_policy", "get_policy", "set_sender_rule", "sender_rule", "can_mail"],
