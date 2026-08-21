@@ -158,6 +158,49 @@ app worker, so the engine also runs in-process on the real coordinator via
 (`src/server/api/stealth-coordinator.ts`). Operators invoke it on the
 production DO instance; wiring an authenticated admin route is a follow-up.
 
+## BETA-082 Operator Safety Runbook
+
+The migration manifest is the selected family registry and its redacted
+`registryChecksum` in the dry-run report. Record that checksum with the exact
+application version and deployment identifier before requesting approval.
+
+1. Run `bun run migrations:dry-run -- --family <family>` and capture only the
+   counts, registry checksum, and redacted fingerprints. Never capture record
+   values or full index keys.
+2. Confirm `integrity-check` is clean and review the dry-run preconditions.
+   The operator approval value is supplied out of band; it is never a secret or
+   credential and must be exactly `approved` for a mutating run.
+3. Run a bounded batch:
+   `node scripts/identity-migrate.mjs forward --family <family> --approval approved --batch-size 250 --registry-checksum <checksum>`.
+   If the report contains `nextCursor`, rerun with `--resume-after <cursor>`.
+   Repeated runs are safe: current records are skipped and checksums provide
+   evidence that the batch changed only the selected namespace.
+4. Run `bun run migrations:integrity-check` and retain the redacted report as
+   the post-migration integrity report.
+5. Roll back only when the family has a reviewed backward transform:
+   `node scripts/identity-migrate.mjs rollback --target-version <n> --approval approved`.
+   Missing transforms, newer records, registry drift, failed preconditions,
+   and incompatible schemas block before any write. A blocked report is an
+   owned release gate, not an instruction to edit storage manually.
+
+### Repeatable Evidence Checks
+
+The unit and Miniflare suites replay empty/current/previous snapshots and
+cover dry-run non-mutation, forward restartability, bounded resume, mixed
+version compatibility, rollback success, rollback denial, integrity failures,
+and redaction:
+
+```bash
+pnpm exec vitest run tests/unit/api/migrations.test.ts tests/unit/migrations/runner.test.ts tests/unit/migrations/miniflare.test.ts
+pnpm exec vitest run tests/unit/api/migrations.test.ts tests/unit/migrations/runner.test.ts --coverage=false
+```
+
+Before attaching evidence, search generated reports and artifacts for
+credentials and plaintext sensitive values. The migration runner emits only
+namespace prefixes, deterministic fingerprints, counts, checksums, and
+failure categories. Any provider-console action must be paired with these
+repository-side commands and the deployment identifier.
+
 ### Adding a New Record Version
 
 1. Bump `currentVersion` for the family in

@@ -9,6 +9,7 @@ import { errorLabel, normalizeApiClientError, type MailboxFlagsPatch } from "@/l
 import { sessionActor, useSession } from "./useSession";
 import { useTombstoneMessage } from "./useMailbox";
 import { useMailboxSync } from "./useMailboxSync";
+import { useConnectivity } from "./useConnectivity";
 import { resolveMailSourceView, type MailSourceView } from "./source-view";
 import {
   applyEmailPatch,
@@ -26,6 +27,7 @@ import {
   mergeLiveFolderCounts,
 } from "./live-mailbox";
 import { buildFolderCounts } from "./navigation";
+import { listOutbox, patchEntry, type OutboxEntry } from "@/services/storage/outbox";
 
 export interface UseMailSourceOptions {
   isDemoMode: boolean;
@@ -34,12 +36,76 @@ export interface UseMailSourceOptions {
 export type MailMutationResult = { ok: true } | { ok: false; reason: string };
 export type TrashResult = MailMutationResult;
 
+export function outboxEntryToEmail(entry: OutboxEntry): Email {
+  const folder = entry.status === "delivered" ? "sent" : "outbox";
+  const unread = false;
+
+  let preview = "Outbox: Message ready for delivery";
+  if (entry.status === "failed") {
+    preview = `Failed: ${entry.errorMessage ?? "Relay submission failed"}`;
+  } else if (entry.status === "queued") {
+    preview = "Outbox: Queued for delivery";
+  } else if (entry.status === "encrypting") {
+    preview = "Outbox: Encrypting message...";
+  } else if (entry.status === "awaiting_signature") {
+    preview = "Outbox: Awaiting wallet signature...";
+  } else if (entry.status === "reserving_postage") {
+    preview = "Outbox: Reserving postage...";
+  } else if (entry.status === "submitting") {
+    preview = "Outbox: Submitting to relay...";
+  }
+
+  const labels: string[] = [];
+  if (entry.status === "failed") {
+    labels.push(entry.canRetry !== false ? "Retryable Failure" : "Terminal Failure");
+  } else if (entry.status === "awaiting_signature") {
+    labels.push("Signature Required");
+  } else if (entry.status !== "delivered") {
+    labels.push("Pending Outbox");
+  }
+
+  const from = "Me";
+  const email = entry.sender ?? "me";
+
+  const created = new Date(entry.createdAt);
+  const time = Number.isNaN(created.getTime())
+    ? entry.createdAt
+    : created.toLocaleString(undefined, {
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      });
+
+  return {
+    id: entry.id,
+    from,
+    email,
+    subject: entry.subject || "(No Subject)",
+    preview,
+    body: "",
+    time,
+    unread,
+    starred: false,
+    folder,
+    labels,
+    attachments: [],
+    avatarColor: "#5b6470",
+    verifiedSender: false,
+    postageAmount: entry.postageAmount,
+    threadId: `thread-outbox-${entry.id}`,
+  };
+}
+
 export function useMailSource({ isDemoMode }: UseMailSourceOptions) {
   const session = useSession({ enabled: !isDemoMode });
   const actor = sessionActor(session.data);
+  const connectivity = useConnectivity();
   const mailbox = useMailboxSync({
     actor: actor ?? "anonymous",
     enabled: Boolean(actor) && !isDemoMode,
+    online: connectivity.online,
+    visible: connectivity.visible,
   });
   const tombstone = useTombstoneMessage(actor ?? "anonymous");
 
@@ -47,6 +113,11 @@ export function useMailSource({ isDemoMode }: UseMailSourceOptions) {
   const [demoReady, setDemoReady] = useState(!isDemoMode);
   const [overlay, setOverlay] = useState<MailWorkspaceOverlay>(EMPTY_MAIL_WORKSPACE);
   const pendingMutations = useRef(new Set<string>());
+  const [outboxRevision, setOutboxRevision] = useState(0);
+
+  const refreshOutbox = useCallback(() => {
+    setOutboxRevision((prev) => prev + 1);
+  }, []);
 
   useEffect(() => {
     if (!import.meta.env.DEV || !isDemoMode) return;
@@ -62,7 +133,41 @@ export function useMailSource({ isDemoMode }: UseMailSourceOptions) {
   }, [isDemoMode]);
 
   const serverEmails = isDemoMode ? demoEmails : mailbox.emails;
-  const emails = useMemo(() => mergeMailWorkspace(serverEmails, overlay), [overlay, serverEmails]);
+
+  useEffect(() => {
+    if (serverEmails.length > 0) {
+      const outbox = listOutbox();
+      const serverIds = new Set(serverEmails.map((email) => email.id));
+      let changed = false;
+      for (const entry of outbox) {
+        if (entry.status !== "delivered" && serverIds.has(entry.id)) {
+          patchEntry(entry.id, {
+            status: "delivered",
+            isCommitted: true,
+            canRetry: false,
+          });
+          changed = true;
+        }
+      }
+      if (changed) {
+        refreshOutbox();
+      }
+    }
+  }, [serverEmails, refreshOutbox]);
+
+  const emails = useMemo(() => {
+    const outboxEntries = listOutbox();
+    const outboxEmails = outboxEntries.map(outboxEntryToEmail);
+    const combined = [...serverEmails];
+    const serverIds = new Set(serverEmails.map((e) => e.id));
+    for (const oEmail of outboxEmails) {
+      if (!serverIds.has(oEmail.id)) {
+        combined.push(oEmail);
+      }
+    }
+    return mergeMailWorkspace(combined, overlay);
+  }, [overlay, serverEmails, outboxRevision]);
+
   const folderCounts = useMemo(() => {
     const local = buildFolderCounts(emails);
     if (isDemoMode) return local;
@@ -84,7 +189,7 @@ export function useMailSource({ isDemoMode }: UseMailSourceOptions) {
     async (email: Email, patch: MailboxFlagsPatch): Promise<MailMutationResult> => {
       const key = mailboxMutationKey(email.id, patch);
       if (!claimMailboxMutation(pendingMutations.current, key)) {
-        return { ok: true };
+        return { ok: false, reason: "Action already in progress" };
       }
 
       const displayPatch = emailPatchFromFlags(patch);
@@ -127,7 +232,6 @@ export function useMailSource({ isDemoMode }: UseMailSourceOptions) {
     if (mailbox.isError) await mailbox.refetch();
   }, [mailbox, session]);
 
-  const online = typeof navigator === "undefined" ? true : navigator.onLine;
   const sourceView: MailSourceView = resolveMailSourceView({
     isDemoMode,
     demoReady,
@@ -138,7 +242,7 @@ export function useMailSource({ isDemoMode }: UseMailSourceOptions) {
     mailboxError: mailbox.error,
     mailboxFetched: mailbox.isFetched,
     emailCount: emails.length,
-    online,
+    online: connectivity.online,
   });
 
   return {
@@ -151,10 +255,12 @@ export function useMailSource({ isDemoMode }: UseMailSourceOptions) {
     mutateMailbox,
     retry,
     sourceView,
+    connectivity,
     isDemoMode,
     hasMore: isDemoMode ? false : mailbox.hasMore,
     isLoadingMore: isDemoMode ? false : mailbox.isFetchingNextPage,
     loadMore: mailbox.fetchNextPage,
+    refreshOutbox,
   };
 }
 

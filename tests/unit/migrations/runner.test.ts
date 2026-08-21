@@ -86,7 +86,7 @@ describe("identity migration runner", () => {
       const storage = new InMemoryMigrationStorage();
       storage.seed("user:id:u_1", wrapEnvelope(validUser("u_1"), 1));
 
-      const first = await forward(storage, [v2UserFamily()]);
+      const first = await forward(storage, [v2UserFamily()], { approval: "approved" });
       const user = first.families.find((f) => f.family === "user")!;
       expect(user.changed).toBe(1);
       expect(user.skipped).toBe(0);
@@ -95,7 +95,7 @@ describe("identity migration runner", () => {
       const stored = await storage.get("user:id:u_1");
       expect(stored).toMatchObject({ $v: 2, displayName: "" });
 
-      const second = await forward(storage, [v2UserFamily()]);
+      const second = await forward(storage, [v2UserFamily()], { approval: "approved" });
       const user2 = second.families.find((f) => f.family === "user")!;
       expect(user2.changed).toBe(0);
       expect(user2.skipped).toBe(1);
@@ -110,7 +110,7 @@ describe("identity migration runner", () => {
       const seeded = wrapEnvelope(validUser("u_1"), 1);
       storage.seed("user:id:u_1", seeded);
 
-      const report = await forward(storage, [family]);
+      const report = await forward(storage, [family], { approval: "approved" });
       const user = report.families.find((f) => f.family === "user")!;
       expect(user.failed).toBe(1);
       expect(user.errors[0]).toContain("missing forward migration step");
@@ -132,6 +132,7 @@ describe("identity migration runner", () => {
 
       const first = await rollback(storage, [v2UserFamily()], {
         targetVersion: 1,
+        approval: "approved",
       });
       const user = first.families.find((f) => f.family === "user")!;
       expect(user.changed).toBe(1);
@@ -143,6 +144,7 @@ describe("identity migration runner", () => {
 
       const second = await rollback(storage, [v2UserFamily()], {
         targetVersion: 1,
+        approval: "approved",
       });
       const user2 = second.families.find((f) => f.family === "user")!;
       expect(user2.changed).toBe(0);
@@ -165,7 +167,7 @@ describe("identity migration runner", () => {
       const storage = new InMemoryMigrationStorage();
       storage.seed("user:id:u_1", wrapEnvelope(validUser("u_1"), 3));
 
-      const report = await rollback(storage, [family], { targetVersion: 1 });
+      const report = await rollback(storage, [family], { targetVersion: 1, approval: "approved" });
       const user = report.families.find((f) => f.family === "user")!;
       expect(user.failed).toBe(1);
       expect(user.errors[0]).toContain("missing backward migration step");

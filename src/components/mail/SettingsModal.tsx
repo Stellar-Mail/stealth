@@ -43,6 +43,8 @@ import { AuditLog } from "@/features/audit-log";
 import { ChangelogPanel, useChangelog } from "@/features/changelog";
 import { AccountSecuritySection } from "@/features/settings/account-security";
 import { ManagedWalletStatus } from "@/features/settings/ManagedWalletStatus";
+import { RecoveryCodesSection } from "@/features/settings/recovery-codes";
+import { requestBrowserPermission, safeBrowserCopy } from "@/features/notifications";
 
 const tabs = [
   { id: "account", label: "Account", icon: User },
@@ -767,6 +769,9 @@ function NotificationSettings({
   preferences: UiPreferences;
   onChange: (preferences: UiPreferences) => void;
 }) {
+  const [browserPermission, setBrowserPermission] = useState<
+    NotificationPermission | "unsupported"
+  >(() => (typeof Notification === "undefined" ? "unsupported" : Notification.permission));
   const queryClient = useQueryClient();
   const {
     data: profileData,
@@ -832,6 +837,9 @@ function NotificationSettings({
   const notifications = profile.notifications ?? { email: true, desktop: true, sound: false };
 
   const handleToggle = async (field: keyof typeof notifications, value: boolean) => {
+    if (field === "desktop") {
+      onChange({ ...preferences, desktopNotifications: value });
+    }
     try {
       await mutation.mutateAsync({
         notifications: { ...notifications, [field]: value },
@@ -841,6 +849,8 @@ function NotificationSettings({
       // Errors handled by UI components below
     }
   };
+  const updateLocalNotifications = (update: Partial<UiPreferences["notifications"]>) =>
+    onChange({ ...preferences, notifications: { ...preferences.notifications, ...update } });
 
   return (
     <div className="space-y-6">
@@ -887,10 +897,118 @@ function NotificationSettings({
         />
         <SettingsToggle
           label="Desktop notifications"
-          description="Show browser notifications"
+          description="Show generic browser alerts without message content."
           checked={notifications.desktop}
           onChange={(checked) => handleToggle("desktop", checked)}
         />
+        <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
+          <p className="text-xs font-medium text-foreground">Browser permission</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {browserPermission === "granted"
+              ? "Browser alerts are allowed on this device."
+              : browserPermission === "denied"
+                ? "Browser alerts are blocked. In-app alerts still work."
+                : browserPermission === "unsupported"
+                  ? "This browser does not support browser notifications."
+                  : "Allow generic alerts only on a device you trust."}
+          </p>
+          {browserPermission === "default" && (
+            <button
+              type="button"
+              onClick={() => void requestBrowserPermission().then(setBrowserPermission)}
+              className="mt-3 rounded-md bg-white/10 px-3 py-1.5 text-xs text-foreground transition hover:bg-white/15"
+            >
+              Allow browser alerts
+            </button>
+          )}
+          {browserPermission === "granted" && (
+            <button
+              type="button"
+              onClick={() =>
+                new Notification(safeBrowserCopy.mail.title, {
+                  body: safeBrowserCopy.mail.body,
+                  tag: "stealth-notification-test",
+                })
+              }
+              className="mt-3 rounded-md bg-white/10 px-3 py-1.5 text-xs text-foreground transition hover:bg-white/15"
+            >
+              Send test notification
+            </button>
+          )}
+        </div>
+        <div className="space-y-3 border-t border-white/10 pt-4">
+          <p className="text-xs font-medium text-foreground">In-app alert categories</p>
+          {(["mail", "requests", "failures", "receipts"] as const).map((category) => (
+            <SettingsToggle
+              key={category}
+              label={
+                {
+                  mail: "New mail",
+                  requests: "Sender requests",
+                  failures: "Send failures",
+                  receipts: "Receipt changes",
+                }[category]
+              }
+              description=""
+              checked={preferences.notifications.categories[category]}
+              onChange={(enabled) =>
+                updateLocalNotifications({
+                  categories: { ...preferences.notifications.categories, [category]: enabled },
+                })
+              }
+            />
+          ))}
+        </div>
+        <div className="space-y-3 border-t border-white/10 pt-4">
+          <SettingsToggle
+            label="Quiet hours"
+            description="Suppress browser alerts during these local times. In-app alerts remain available."
+            checked={preferences.notifications.quietHours.enabled}
+            onChange={(enabled) =>
+              updateLocalNotifications({
+                quietHours: { ...preferences.notifications.quietHours, enabled },
+              })
+            }
+          />
+          {preferences.notifications.quietHours.enabled && (
+            <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+              <label>
+                From{" "}
+                <input
+                  aria-label="Quiet hours start"
+                  type="time"
+                  value={preferences.notifications.quietHours.start}
+                  onChange={(event) =>
+                    updateLocalNotifications({
+                      quietHours: {
+                        ...preferences.notifications.quietHours,
+                        start: event.target.value,
+                      },
+                    })
+                  }
+                  className="ml-1 rounded border border-white/10 bg-black/20 p-1 text-foreground"
+                />
+              </label>
+              <label>
+                To{" "}
+                <input
+                  aria-label="Quiet hours end"
+                  type="time"
+                  value={preferences.notifications.quietHours.end}
+                  onChange={(event) =>
+                    updateLocalNotifications({
+                      quietHours: {
+                        ...preferences.notifications.quietHours,
+                        end: event.target.value,
+                      },
+                    })
+                  }
+                  className="ml-1 rounded border border-white/10 bg-black/20 p-1 text-foreground"
+                />
+              </label>
+            </div>
+          )}
+        </div>
         <SettingsToggle
           label="Sound"
           description="Play a sound for new messages"
@@ -1496,6 +1614,13 @@ function ReceiptSettings({
     });
   };
 
+  const setReceiptOnDelivery = (value: boolean) => {
+    onChange({
+      ...preferences,
+      receiptOnDelivery: value,
+    });
+  };
+
   const receiptOptions: {
     value: ReceiptPreference;
     label: string;
@@ -1541,6 +1666,8 @@ function ReceiptSettings({
     },
   ];
 
+  const hasAnyAuto = Object.values(preferences.receipts).some((v) => v === "auto");
+
   return (
     <div className="space-y-6">
       <div>
@@ -1549,33 +1676,109 @@ function ReceiptSettings({
           Control when read receipts are sent. You decide what senders see.
         </p>
       </div>
-      <div className="space-y-4">
-        {senderTypes.map((type) => (
-          <div key={type.key} className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-foreground">{type.label}</span>
-            </div>
-            <p className="text-[11px] text-muted-foreground">{type.help}</p>
-            <div className="mt-2 flex gap-2">
-              {receiptOptions.map((opt) => (
-                <button
-                  key={opt.value}
-                  onClick={() => setReceipt(type.key, opt.value)}
-                  aria-pressed={preferences.receipts[type.key] === opt.value}
-                  className={cn(
-                    "flex-1 rounded-lg border px-3 py-2 text-left transition focus-visible:ring-2 focus-visible:ring-emerald-400",
-                    preferences.receipts[type.key] === opt.value
-                      ? "border-emerald-200/20 bg-emerald-200/[0.06]"
-                      : "border-white/10 bg-white/[0.025] hover:bg-white/[0.05]",
-                  )}
-                >
-                  <div className="text-[11px] font-medium text-foreground">{opt.label}</div>
-                  <div className="text-[10px] text-muted-foreground mt-0.5">{opt.description}</div>
-                </button>
-              ))}
+
+      <div className="rounded-lg border border-white/10 bg-white/[0.025] p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-xs font-medium text-foreground">Enable read receipts</div>
+            <div className="text-[11px] text-muted-foreground mt-0.5">
+              When enabled, your configured receipt policy applies per sender type below.
             </div>
           </div>
-        ))}
+          <button
+            role="switch"
+            aria-checked={preferences.receiptOnDelivery}
+            onClick={() => setReceiptOnDelivery(!preferences.receiptOnDelivery)}
+            className={cn(
+              "relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors",
+              preferences.receiptOnDelivery ? "bg-emerald-500" : "bg-white/20",
+            )}
+          >
+            <span
+              className={cn(
+                "inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform",
+                preferences.receiptOnDelivery ? "translate-x-4" : "translate-x-0.5",
+              )}
+            />
+          </button>
+        </div>
+      </div>
+
+      {preferences.receiptOnDelivery && (
+        <div className="space-y-4">
+          {senderTypes.map((type) => (
+            <div key={type.key} className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-foreground">{type.label}</span>
+              </div>
+              <p className="text-[11px] text-muted-foreground">{type.help}</p>
+              <div className="mt-2 flex gap-2">
+                {receiptOptions.map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setReceipt(type.key, opt.value)}
+                    aria-pressed={preferences.receipts[type.key] === opt.value}
+                    className={cn(
+                      "flex-1 rounded-lg border px-3 py-2 text-left transition focus-visible:ring-2 focus-visible:ring-emerald-400",
+                      preferences.receipts[type.key] === opt.value
+                        ? "border-emerald-200/20 bg-emerald-200/[0.06]"
+                        : "border-white/10 bg-white/[0.025] hover:bg-white/[0.05]",
+                    )}
+                  >
+                    <div className="text-[11px] font-medium text-foreground">{opt.label}</div>
+                    <div className="text-[10px] text-muted-foreground mt-0.5">
+                      {opt.description}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {hasAnyAuto && preferences.receiptOnDelivery && (
+        <div className="rounded-lg border border-emerald-200/15 bg-emerald-200/[0.03] p-3">
+          <p className="text-[11px] text-emerald-200">
+            When &quot;Automatic&quot; is selected, the sender will be notified that you opened
+            their message. No additional content is shared beyond the read timestamp.
+          </p>
+        </div>
+      )}
+
+      <div className="space-y-3">
+        <h4 className="text-xs font-medium text-foreground">What recipients see</h4>
+        <ul className="space-y-1.5 text-[11px] text-muted-foreground">
+          <li className="flex items-start gap-2">
+            <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400" />
+            <span>
+              <strong className="text-foreground">Automatic:</strong> Sender sees a &quot;Read&quot;
+              timestamp immediately when you open the message.
+            </span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400" />
+            <span>
+              <strong className="text-foreground">Manual:</strong> You are prompted before any
+              receipt is sent. Sender sees nothing until you approve.
+            </span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-white/30" />
+            <span>
+              <strong className="text-foreground">Never:</strong> Sender has no read confirmation.
+              Your local read/unread state is unaffected.
+            </span>
+          </li>
+        </ul>
+      </div>
+
+      <div className="rounded-lg border border-white/5 bg-white/[0.02] p-3">
+        <p className="text-[11px] text-muted-foreground">
+          Disabling read receipts prevents the read event from being published to the sender, but
+          does not change how messages appear in your own inbox. Your local read/unread state is
+          always independent of receipt publication.
+        </p>
       </div>
     </div>
   );

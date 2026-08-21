@@ -77,6 +77,63 @@ describe("GET /api/v1/bootstrap", () => {
     expect(body.data.user.email).toBe("bootstrap@stealth.mail");
     expect(body.data.wallet.connected).toBe(true);
     expect(body.data.health.ready).toBe(true);
+    expect(body.data.onboarding.status).toBe("not_started");
+    expect(body.data.onboarding.step).toBeNull();
+  });
+
+  it("returns the saved onboarding draft snapshot when a draft exists", async () => {
+    const repository = new MemoryApiRepository();
+    (globalThis as any).__stealthApiRepository = repository;
+
+    const user = await repository.createUser({
+      userId: "user_drafted_123",
+      address: TEST_ADDRESS_2,
+      username: "drafteduser",
+      email: "drafted@stealth.mail",
+      status: "active",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      version: 1,
+    });
+
+    await repository.saveOnboardingDraft({
+      userId: user.userId,
+      status: "in_progress",
+      step: "postage",
+      displayName: "Ada",
+      recoveryAcknowledged: true,
+      unknownSenderRule: "request",
+      minimumPostage: "0.001",
+      receiptOnDelivery: false,
+      updatedAt: new Date().toISOString(),
+      completedAt: null,
+      version: 0,
+    });
+
+    const session = await repository.createSession({
+      sessionId: "sess_drafted_123",
+      userId: user.userId,
+      createdAt: new Date().toISOString(),
+      lastActiveAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + 86400000).toISOString(),
+    });
+
+    const request = new Request("http://localhost/api/v1/bootstrap", {
+      method: "GET",
+      headers: { Cookie: `stealth_session=${session.sessionId}` },
+    });
+
+    const handler = (Route.options.server as any).handlers.GET;
+    const response = await handler({ request });
+
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.data.branch).toBe("active");
+    expect(body.data.onboarding.status).toBe("in_progress");
+    expect(body.data.onboarding.step).toBe("postage");
+    expect(body.data.onboarding.displayName).toBe("Ada");
+    expect(body.data.onboarding.minimumPostage).toBe("0.001");
+    expect(body.data.onboarding.completedAt).toBeNull();
   });
 
   it("returns onboarding branch when account status is pending_verification", async () => {

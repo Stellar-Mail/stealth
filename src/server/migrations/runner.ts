@@ -1,4 +1,10 @@
-import { applyBackward, applyForward, fingerprintKey, readEnvelope } from "./envelope";
+import {
+  applyBackward,
+  applyForward,
+  checksumValue,
+  fingerprintKey,
+  readEnvelope,
+} from "./envelope";
 import type {
   FamilyReport,
   IdentityRecordFamily,
@@ -27,6 +33,12 @@ import type {
 //     failures reference the family and a redacted key fingerprint only.
 // ---------------------------------------------------------------------------
 
+function registryChecksum(families: readonly IdentityRecordFamily[]): string {
+  return checksumValue(
+    families.map(({ name, keyPrefix, currentVersion }) => ({ name, keyPrefix, currentVersion })),
+  );
+}
+
 function baseReport(command: MigrationCommand, families: readonly IdentityRecordFamily[]) {
   return {
     command,
@@ -43,7 +55,74 @@ function baseReport(command: MigrationCommand, families: readonly IdentityRecord
       issues: [],
     })),
     ok: true,
+    registryChecksum: registryChecksum(families),
   };
+}
+
+function failReport(
+  report: MigrationReport,
+  families: readonly IdentityRecordFamily[],
+  message: string,
+  failureKind: "precondition_failed" | "rollback_blocked" | "compatibility_failed",
+): MigrationReport {
+  report.ok = false;
+  report.failureKind = failureKind;
+  report.preconditions = [message];
+  for (const family of families) {
+    const familyReport = report.families.find((item) => item.family === family.name)!;
+    familyReport.failed += 1;
+    familyReport.errors.push(message);
+  }
+  return report;
+}
+
+async function checksumKeys(storage: MigrationStorage, keys: string[]): Promise<string> {
+  const values: Array<[string, unknown]> = [];
+  for (const key of [...keys].sort()) {
+    const value = await storage.get(key);
+    values.push([key, value] as [string, unknown]);
+  }
+  return checksumValue(values);
+}
+
+async function preflight(
+  storage: MigrationStorage,
+  families: readonly IdentityRecordFamily[],
+  options: MigrationRunOptions,
+  command: "forward" | "rollback",
+): Promise<string | null> {
+  const expected = options.expectedRegistryChecksum;
+  const actual = registryChecksum(families);
+  if (expected && expected !== actual)
+    return "migration registry checksum does not match reviewed manifest";
+  if (options.approval !== "approved")
+    return "operator approval is required for mutating migrations";
+
+  for (const family of families) {
+    const failures = (await family.preconditions?.(storage)) ?? [];
+    if (failures.length) return `${family.name}: ${failures.join(", ")}`;
+    const keys = await storage.listKeys(family.keyPrefix);
+    for (const key of keys) {
+      const raw = await storage.get(key);
+      if (raw === null || raw === undefined)
+        return `${family.name}: missing value for ${fingerprintKey(key)}`;
+      const { version } = readEnvelope(raw);
+      if (version > family.currentVersion) {
+        return `${family.name}: incompatible schema version ${version} for ${fingerprintKey(key)}`;
+      }
+      if (command === "forward" && version < family.currentVersion && !applyForward(family, raw)) {
+        return `${family.name}: missing forward migration step for ${fingerprintKey(key)}`;
+      }
+      if (
+        command === "rollback" &&
+        version > (options.targetVersion ?? 0) &&
+        !applyBackward(family, raw, options.targetVersion ?? 0)
+      ) {
+        return `${family.name}: rollback blocked: missing backward migration step for ${fingerprintKey(key)}`;
+      }
+    }
+  }
+  return null;
 }
 
 export async function dryRun(
@@ -85,11 +164,17 @@ export async function forward(
   options: MigrationRunOptions = {},
 ): Promise<MigrationReport> {
   const report = baseReport("forward", families);
+  const preflightError = await preflight(storage, families, options, "forward");
+  if (preflightError) return failReport(report, families, preflightError, "precondition_failed");
   for (const family of families) {
     const familyReport = report.families.find((f) => f.family === family.name)!;
     const keys = await storage.listKeys(family.keyPrefix);
     familyReport.totalKeys = keys.length;
-    for (const key of keys) {
+    familyReport.beforeChecksum = await checksumKeys(storage, keys);
+    const start = options.resumeAfter ? keys.indexOf(options.resumeAfter) + 1 : 0;
+    const batchKeys = keys.slice(start, options.batchSize ? start + options.batchSize : undefined);
+    familyReport.resumed = start > 0;
+    for (const key of batchKeys) {
       const raw = await storage.get(key);
       if (raw === null || raw === undefined) {
         familyReport.failed += 1;
@@ -120,6 +205,8 @@ export async function forward(
       await storage.put(key, migrated.record);
       familyReport.changed += 1;
     }
+    if (batchKeys.length < keys.length - start) familyReport.nextCursor = batchKeys.at(-1);
+    familyReport.afterChecksum = await checksumKeys(storage, keys);
   }
   return report;
 }
@@ -140,11 +227,17 @@ export async function rollback(
   }
 
   const report = baseReport("rollback", families);
+  const preflightError = await preflight(storage, families, options, "rollback");
+  if (preflightError) return failReport(report, families, preflightError, "rollback_blocked");
   for (const family of families) {
     const familyReport = report.families.find((f) => f.family === family.name)!;
     const keys = await storage.listKeys(family.keyPrefix);
     familyReport.totalKeys = keys.length;
-    for (const key of keys) {
+    familyReport.beforeChecksum = await checksumKeys(storage, keys);
+    const start = options.resumeAfter ? keys.indexOf(options.resumeAfter) + 1 : 0;
+    const batchKeys = keys.slice(start, options.batchSize ? start + options.batchSize : undefined);
+    familyReport.resumed = start > 0;
+    for (const key of batchKeys) {
       const raw = await storage.get(key);
       if (raw === null || raw === undefined) {
         familyReport.failed += 1;
@@ -169,6 +262,8 @@ export async function rollback(
       await storage.put(key, reverted.record);
       familyReport.changed += 1;
     }
+    if (batchKeys.length < keys.length - start) familyReport.nextCursor = batchKeys.at(-1);
+    familyReport.afterChecksum = await checksumKeys(storage, keys);
   }
   return report;
 }

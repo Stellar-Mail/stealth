@@ -14,6 +14,8 @@ interface RequestCardProps {
   onUndoAction: (emailId: string) => void;
   onFinalizeAction: (emailId: string, action: TriageAction) => void;
   onInspect: (email: Email) => void;
+  isSelected?: boolean;
+  onToggleSelect?: () => void;
 }
 
 export function RequestCard({
@@ -24,6 +26,8 @@ export function RequestCard({
   onUndoAction,
   onFinalizeAction,
   onInspect,
+  isSelected = false,
+  onToggleSelect,
 }: Readonly<RequestCardProps>) {
   const [timeLeft, setTimeLeft] = useState(100);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -31,9 +35,10 @@ export function RequestCard({
   const duration = 3000; // 3 seconds undo window
 
   const getActionFromStatus = (status: CardStatus): TriageAction | null => {
-    if (status.includes("approve")) return "approve";
+    if (status.includes("always_allow")) return "always_allow";
+    if (status.includes("approve_once")) return "approve_once";
     if (status.includes("block")) return "block";
-    if (status.includes("refund")) return "refund";
+    if (status.includes("reject")) return "reject";
     return null;
   };
 
@@ -96,6 +101,7 @@ export function RequestCard({
         status.startsWith("success-") && "border-emerald-500/20 bg-emerald-500/2",
         status === "failure" && "border-rose-500/20 bg-rose-500/2",
         status.startsWith("pending-") && "border-white/5 opacity-80",
+        isSelected && "border-emerald-500/35 bg-emerald-500/[0.02]",
       )}
     >
       <AnimatePresence mode="wait">
@@ -110,6 +116,15 @@ export function RequestCard({
             <div className="flex items-start justify-between gap-3">
               {/* Sender Metadata info */}
               <div className="flex items-start gap-3">
+                {onToggleSelect && (
+                  <input
+                    type="checkbox"
+                    checked={isSelected}
+                    onChange={onToggleSelect}
+                    aria-label={`Select request from ${email.from}`}
+                    className="mt-2.5 rounded border-white/20 bg-black/40 text-emerald-500 focus:ring-emerald-500/30 cursor-pointer"
+                  />
+                )}
                 <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full ring-1 ring-white/10">
                   <img
                     src={`https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(
@@ -183,13 +198,19 @@ export function RequestCard({
                   Block
                 </button>
                 <button
-                  onClick={() => onTriggerAction(email.id, "refund")}
+                  onClick={() => onTriggerAction(email.id, "reject")}
                   className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-2.5 py-1.5 text-xs font-medium text-amber-400 transition hover:bg-amber-500/10 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
                 >
                   Refund
                 </button>
                 <button
-                  onClick={() => onTriggerAction(email.id, "approve")}
+                  onClick={() => onTriggerAction(email.id, "approve_once")}
+                  className="rounded-lg border border-white/10 px-2.5 py-1.5 text-xs font-medium text-foreground transition hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-white/10"
+                >
+                  Allow Once
+                </button>
+                <button
+                  onClick={() => onTriggerAction(email.id, "always_allow")}
                   className="rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-black transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
                 >
                   Approve
@@ -210,9 +231,10 @@ export function RequestCard({
           >
             <RefreshCw className="h-5 w-5 motion-safe:animate-spin text-muted-foreground" />
             <p className="text-xs font-medium text-muted-foreground">
-              {status === "pending-approve" && "Approving sender and settling postage..."}
+              {status === "pending-always_allow" && "Allowing sender and delivering mail..."}
+              {status === "pending-approve_once" && "Approving sender once..."}
               {status === "pending-block" && "Blocking sender and registering rule..."}
-              {status === "pending-refund" && "Refunding postage amount..."}
+              {status === "pending-reject" && "Rejecting sender and refunding postage..."}
             </p>
           </motion.div>
         )}
@@ -232,14 +254,18 @@ export function RequestCard({
               </span>
               <div className="min-w-0">
                 <h4 className="text-xs font-semibold text-foreground/90">
-                  {status === "success-approve" && "Sender Approved"}
+                  {status === "success-always_allow" && "Always Allowed"}
+                  {status === "success-approve_once" && "Approved Once"}
                   {status === "success-block" && "Sender Blocked"}
-                  {status === "success-refund" && "Postage Refunded"}
+                  {status === "success-reject" && "Postage Refunded"}
                 </h4>
                 <p className="text-[11px] text-muted-foreground mt-0.5">
-                  {status === "success-approve" && `Messages from ${email.from} will go to Inbox.`}
+                  {status === "success-always_allow" &&
+                    `All future messages from ${email.from} will bypass review.`}
+                  {status === "success-approve_once" &&
+                    `This message from ${email.from} is approved.`}
                   {status === "success-block" && `${email.from} blocked. Mail moved to Spam.`}
-                  {status === "success-refund" && `Postage returned to ${email.from}.`}
+                  {status === "success-reject" && `Postage returned to ${email.from}.`}
                 </p>
               </div>
             </div>

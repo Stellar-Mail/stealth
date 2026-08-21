@@ -34,6 +34,18 @@ export const bootstrapProvisioningSchema = z.object({
   error: z.string().optional(),
 });
 
+export const bootstrapOnboardingSchema = z.object({
+  status: z.enum(["not_started", "in_progress", "completed"]),
+  step: z.string().nullable(),
+  displayName: z.string(),
+  recoveryAcknowledged: z.boolean(),
+  unknownSenderRule: z.string(),
+  minimumPostage: z.string(),
+  receiptOnDelivery: z.boolean(),
+  updatedAt: z.string().nullable(),
+  completedAt: z.string().nullable(),
+});
+
 export const bootstrapUserSchema = z.object({
   userId: z.string(),
   username: z.string(),
@@ -59,6 +71,7 @@ export const bootstrapDataSchema = z.object({
   session: bootstrapSessionSchema,
   address: z.string().nullable(),
   provisioning: bootstrapProvisioningSchema.nullable(),
+  onboarding: bootstrapOnboardingSchema.nullable().optional(),
   policy: bootstrapPolicySchema.nullable(),
   wallet: bootstrapWalletSchema,
   health: bootstrapHealthSchema,

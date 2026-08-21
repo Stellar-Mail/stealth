@@ -245,6 +245,7 @@
               "duplicate_postage",
               "invalid_quote",
               "request_in_progress",
+              "chain_error",
               "recent_auth_required"
             ],
             "example": "invalid_state_transition"
@@ -644,6 +645,145 @@
           }
         }
       },
+      "OnboardingStep": {
+        "type": "string",
+        "enum": [
+          "profile",
+          "stealth-address",
+          "recovery",
+          "sender-policy",
+          "postage",
+          "receipts",
+          "review"
+        ]
+      },
+      "OnboardingSenderPolicy": {
+        "type": "string",
+        "enum": ["request", "verified", "block"]
+      },
+      "OnboardingDraftFields": {
+        "type": "object",
+        "required": [
+          "displayName",
+          "recoveryAcknowledged",
+          "unknownSenderRule",
+          "minimumPostage",
+          "receiptOnDelivery"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "description": "Display name shown to senders and contacts."
+          },
+          "recoveryAcknowledged": {
+            "type": "boolean",
+            "description": "Confirms the user secured account recovery. Required to complete."
+          },
+          "unknownSenderRule": {
+            "$ref": "#/components/schemas/OnboardingSenderPolicy"
+          },
+          "minimumPostage": {
+            "type": "string",
+            "pattern": "^\\d*\\.?\\d{0,7}$",
+            "description": "Minimum postage as an XLM decimal string."
+          },
+          "receiptOnDelivery": {
+            "type": "boolean",
+            "description": "Emits cryptographically verifiable read receipts on delivery."
+          }
+        }
+      },
+      "OnboardingDraft": {
+        "type": "object",
+        "required": [
+          "status",
+          "step",
+          "displayName",
+          "recoveryAcknowledged",
+          "unknownSenderRule",
+          "minimumPostage",
+          "receiptOnDelivery",
+          "updatedAt",
+          "completedAt"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["in_progress", "completed"]
+          },
+          "step": {
+            "$ref": "#/components/schemas/OnboardingStep"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "recoveryAcknowledged": {
+            "type": "boolean"
+          },
+          "unknownSenderRule": {
+            "$ref": "#/components/schemas/OnboardingSenderPolicy"
+          },
+          "minimumPostage": {
+            "type": "string"
+          },
+          "receiptOnDelivery": {
+            "type": "boolean"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "OnboardingDraftSaveRequest": {
+        "type": "object",
+        "required": ["step", "draft"],
+        "additionalProperties": false,
+        "properties": {
+          "step": {
+            "$ref": "#/components/schemas/OnboardingStep"
+          },
+          "draft": {
+            "$ref": "#/components/schemas/OnboardingDraftFields"
+          }
+        }
+      },
+      "OnboardingCompleteRequest": {
+        "type": "object",
+        "required": ["draft"],
+        "additionalProperties": false,
+        "properties": {
+          "draft": {
+            "$ref": "#/components/schemas/OnboardingDraftFields"
+          }
+        }
+      },
+      "OnboardingCompleteResponse": {
+        "type": "object",
+        "required": ["alreadyCompleted", "draft", "policy"],
+        "additionalProperties": false,
+        "properties": {
+          "alreadyCompleted": {
+            "type": "boolean",
+            "description": "True when this response replayed an already-completed onboarding."
+          },
+          "draft": {
+            "$ref": "#/components/schemas/OnboardingDraft"
+          },
+          "policy": {
+            "$ref": "#/components/schemas/ChainMailboxPolicy"
+          }
+        }
+      },
       "ErrorEnvelope": {
         "type": "object",
         "required": ["error", "meta"],
@@ -841,6 +981,12 @@
             "message": "An equivalent request is already in progress",
             "retryable": true,
             "description": "A matching operation currently holds the idempotency lease."
+          },
+          "chain_error": {
+            "status": 502,
+            "message": "The on-chain operation could not be confirmed",
+            "retryable": true,
+            "description": "The postage escrow operation failed to reach on-chain confirmation; the caller may retry with the same idempotency key."
           },
           "recent_auth_required": {
             "status": 403,
@@ -2716,6 +2862,162 @@
             "description": ""
           }
         }
+      },
+      "patch": {
+        "operationId": "transitionPostage",
+        "summary": "Transition postage lifecycle state (settle, refund, dispute, expire, reclaim)",
+        "x-max-body-bytes": 8192,
+        "x-stability": "beta",
+        "security": [
+          {
+            "StellarSignedRequest": []
+          }
+        ],
+        "requestBody": {
+          "description": "The postage lifecycle operation to perform.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["operation"],
+                "additionalProperties": false,
+                "properties": {
+                  "operation": {
+                    "type": "string",
+                    "enum": ["settle", "refund", "dispute", "expire", "reclaim"]
+                  }
+                }
+              },
+              "examples": {
+                "settle": {
+                  "summary": "Settle the escrow to the recipient",
+                  "value": {
+                    "operation": "settle"
+                  }
+                },
+                "refund": {
+                  "summary": "Refund the escrow to the sender",
+                  "value": {
+                    "operation": "refund"
+                  }
+                },
+                "dispute": {
+                  "summary": "Dispute a pending escrow within the dispute window",
+                  "value": {
+                    "operation": "dispute"
+                  }
+                },
+                "expire": {
+                  "summary": "Expire a pending escrow",
+                  "value": {
+                    "operation": "expire"
+                  }
+                },
+                "reclaim": {
+                  "summary": "Reclaim an escrow after expiry",
+                  "value": {
+                    "operation": "reclaim"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway — on-chain escrow operation could not be confirmed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": ""
+          }
+        }
       }
     },
     "/postage/{messageId}/settle": {
@@ -3374,6 +3676,263 @@
         }
       }
     },
+    "/onboarding/draft": {
+      "get": {
+        "operationId": "getOnboardingDraft",
+        "summary": "Read the authenticated account's onboarding draft",
+        "description": "Safe projection of the durable server-backed onboarding draft. Returns null when onboarding has not started. The account identity is resolved from the session cookie; no wallet address is ever accepted or returned.",
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ],
+        "x-stability": "beta",
+        "responses": {
+          "200": {
+            "description": "Onboarding draft (or null when not started)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["draft"],
+                  "properties": {
+                    "draft": {
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/OnboardingDraft"
+                        },
+                        {
+                          "nullable": true
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": ""
+          }
+        }
+      },
+      "put": {
+        "operationId": "saveOnboardingDraft",
+        "summary": "Persist the onboarding draft for the authenticated account",
+        "description": "Upserts the durable draft keyed by the session account. Duplicate saves can never create duplicates, and a refresh or a second device resumes from this authoritative state. Unknown fields (e.g. a wallet address) are rejected with 422.",
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ],
+        "x-stability": "beta",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OnboardingDraftSaveRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Saved draft projection",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["draft"],
+                  "properties": {
+                    "draft": {
+                      "$ref": "#/components/schemas/OnboardingDraft"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict - onboarding already completed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/onboarding/complete": {
+      "post": {
+        "operationId": "completeOnboarding",
+        "summary": "Complete onboarding for the authenticated account",
+        "description": "Terminal, idempotent completion: converts the draft through the preserved policy-conversion rules, writes the chosen mailbox policy (only when the account still holds the provisioning default), and marks the onboarding completed. Replays of an already-completed onboarding return the stored result without re-writing anything. Supply an x-idempotency-key header to make network retries fully idempotent.",
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ],
+        "x-stability": "beta",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OnboardingCompleteRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Completed onboarding result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data"],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/OnboardingCompleteResponse"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict - invalid state transition",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/accounts/provisioning": {
       "get": {
         "operationId": "getAccountProvisioningProgress",
@@ -3705,6 +4264,199 @@
         }
       }
     },
+    "/auth/password-reset/request": {
+      "post": {
+        "operationId": "requestPasswordReset",
+        "summary": "Request a password reset email for an account",
+        "description": "Issues a hashed, single-use password reset token delivered to the account email. Responds identically for existing and non-existing accounts to prevent enumeration; rate limits and cooldowns are enforced.",
+        "security": [],
+        "x-stability": "beta",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email"],
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Generic confirmation; the message was sent or intentionally not sent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Password reset request is on cooldown or rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The password reset message could not be delivered",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/auth/password-reset/complete": {
+      "post": {
+        "operationId": "completePasswordReset",
+        "summary": "Complete password reset using a single-use token",
+        "description": "Consumes a single-use password reset token, validates password policy, sets the new password, invalidates all other outstanding reset tokens, and revokes all active sessions for the user.",
+        "security": [],
+        "x-stability": "beta",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["token", "password"],
+                "properties": {
+                  "token": {
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 12,
+                    "maxLength": 256
+                  },
+                  "passwordConfirmation": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password reset completed successfully and all active sessions revoked",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or expired password reset token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Password reset token has already been used or superseded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Password does not meet policy requirements or validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many failed attempts. Token is locked",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/contacts": {
       "get": {
         "operationId": "listContacts",
@@ -3859,7 +4611,7 @@
             }
           },
           "422": {
-            "description": "Unprocessable Entity — Request payload validation failure",
+            "description": "Unprocessable Entity ΓÇö Request payload validation failure",
             "content": {
               "application/json": {
                 "schema": {
@@ -4051,7 +4803,7 @@
             }
           },
           "409": {
-            "description": "Conflict — concurrent modification detected",
+            "description": "Conflict ΓÇö concurrent modification detected",
             "content": {
               "application/json": {
                 "schema": {
@@ -4061,7 +4813,7 @@
             }
           },
           "422": {
-            "description": "Unprocessable Entity — Request payload validation failure",
+            "description": "Unprocessable Entity ΓÇö Request payload validation failure",
             "content": {
               "application/json": {
                 "schema": {
@@ -4228,7 +4980,7 @@
             }
           },
           "403": {
-            "description": "Forbidden — cannot merge a contact owned by another actor",
+            "description": "Forbidden ΓÇö cannot merge a contact owned by another actor",
             "content": {
               "application/json": {
                 "schema": {
@@ -4248,7 +5000,7 @@
             }
           },
           "409": {
-            "description": "Conflict — kept contact modified concurrently",
+            "description": "Conflict ΓÇö kept contact modified concurrently",
             "content": {
               "application/json": {
                 "schema": {
@@ -4258,7 +5010,7 @@
             }
           },
           "422": {
-            "description": "Unprocessable Entity — Request payload validation failure",
+            "description": "Unprocessable Entity ΓÇö Request payload validation failure",
             "content": {
               "application/json": {
                 "schema": {
@@ -4348,7 +5100,7 @@
             }
           },
           "422": {
-            "description": "Unprocessable Entity — Request payload validation failure",
+            "description": "Unprocessable Entity ΓÇö Request payload validation failure",
             "content": {
               "application/json": {
                 "schema": {
@@ -4463,7 +5215,7 @@
             }
           },
           "422": {
-            "description": "Unprocessable Entity — Request payload validation failure",
+            "description": "Unprocessable Entity ΓÇö Request payload validation failure",
             "content": {
               "application/json": {
                 "schema": {
@@ -4803,199 +5555,6 @@
           },
           "503": {
             "description": "Dependency unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "default": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/auth/password-reset/request": {
-      "post": {
-        "operationId": "requestPasswordReset",
-        "summary": "Request a password reset email for an account",
-        "description": "Issues a hashed, single-use password reset token delivered to the account email. Responds identically for existing and non-existing accounts to prevent enumeration; rate limits and cooldowns are enforced.",
-        "security": [],
-        "x-stability": "beta",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["email"],
-                "properties": {
-                  "email": {
-                    "type": "string",
-                    "format": "email"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Generic confirmation; the message was sent or intentionally not sent",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SuccessEnvelope"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Request validation failed",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Password reset request is on cooldown or rate limited",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "The password reset message could not be delivered",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "default": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/auth/password-reset/complete": {
-      "post": {
-        "operationId": "completePasswordReset",
-        "summary": "Complete password reset using a single-use token",
-        "description": "Consumes a single-use password reset token, validates password policy, sets the new password, invalidates all other outstanding reset tokens, and revokes all active sessions for the user.",
-        "security": [],
-        "x-stability": "beta",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["token", "password"],
-                "properties": {
-                  "token": {
-                    "type": "string"
-                  },
-                  "password": {
-                    "type": "string",
-                    "minLength": 12,
-                    "maxLength": 256
-                  },
-                  "passwordConfirmation": {
-                    "type": "string"
-                  },
-                  "email": {
-                    "type": "string",
-                    "format": "email"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Password reset completed successfully and all active sessions revoked",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SuccessEnvelope"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid or expired password reset token",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Password reset token has already been used or superseded",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Password does not meet policy requirements or validation failed",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too many failed attempts. Token is locked",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
             "content": {
               "application/json": {
                 "schema": {

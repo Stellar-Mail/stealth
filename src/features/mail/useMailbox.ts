@@ -81,6 +81,15 @@ export function useMailbox({ actor, enabled = true }: UseMailboxOptions) {
   });
 }
 
+/** Raw live descriptors for services such as notification delivery that must retain event timestamps. */
+export function useMailboxDescriptors({ actor, enabled = true }: UseMailboxOptions) {
+  return useQuery({
+    queryKey: queryKeys.mailbox.queue(actor),
+    queryFn: ({ signal }) => api.mailbox.listQueue({}, signal),
+    enabled,
+  });
+}
+
 /** Tombstones a message in the live mailbox and invalidates the queue cache. */
 export function useTombstoneMessage(actor: string) {
   const queryClient = useQueryClient();

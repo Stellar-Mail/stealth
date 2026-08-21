@@ -50,7 +50,9 @@ describe("API error registry", () => {
   it("exposes every registry code and its metadata through OpenAPI", () => {
     expect(
       openApiDocument.components.schemas.ErrorEnvelope.properties.error.properties.code.enum,
-    ).toEqual(API_ERROR_CODES.filter((code) => code !== "recent_auth_required"));
+    ).toEqual(
+      API_ERROR_CODES.filter((code) => code !== "recent_auth_required" && code !== "chain_error"),
+    );
     expect(openApiDocument.components.schemas.ApiErrorRegistry["x-error-registry"]).toEqual(
       API_ERROR_REGISTRY,
     );

@@ -38,6 +38,12 @@ export const postageStatusSchema = z.enum([
   "refunded",
   "reclaimed",
 ]);
+export const postageChainStatusSchema = z.enum([
+  "not_submitted",
+  "submitted",
+  "confirmed",
+  "failed",
+]);
 
 export const mailboxPolicySchema = z.object({
   allowUnknown: z.boolean(),
@@ -141,6 +147,16 @@ export const postageSchema = z.object({
   recipient: stellarAddressSchema,
   sender: stellarAddressSchema,
   status: postageStatusSchema,
+  // BETA-042: chain-sync bookkeeping fields. Kept optional so pre-existing
+  // records and test fixtures remain assignable; the service writes all of
+  // them explicitly when it touches the chain.
+  chainStatus: postageChainStatusSchema.optional(),
+  txHash: z.string().nullable().optional(),
+  ledger: z.number().int().nonnegative().nullable().optional(),
+  retryCount: z.number().int().nonnegative().optional(),
+  lastError: z.string().max(500).nullable().optional(),
+  submittedAt: z.string().datetime().nullable().optional(),
+  confirmedAt: z.string().datetime().nullable().optional(),
 });
 
 export const DEFAULT_RECEIPT_FUTURE_TOLERANCE_MS = 5 * 60 * 1000;
@@ -212,6 +228,7 @@ export type PolicyWriteIntent = z.infer<typeof policyWriteIntentSchema>;
 export type PolicyWriteStatus = z.infer<typeof policyWriteStatusSchema>;
 export type Postage = z.infer<typeof postageSchema>;
 export type PostageStatus = z.infer<typeof postageStatusSchema>;
+export type PostageChainStatus = z.infer<typeof postageChainStatusSchema>;
 export type Receipt = z.infer<typeof receiptSchema>;
 export type SenderRule = z.infer<typeof senderRuleSchema>;
 export type LifecycleAnchor = z.infer<typeof lifecycleAnchorSchema>;
@@ -768,6 +785,115 @@ export type ProvisioningFailure = z.infer<typeof provisioningFailureSchema>;
 export type ProvisioningRecord = z.infer<typeof provisioningRecordSchema>;
 export type Wallet = z.infer<typeof walletSchema>;
 export type UsernameReservation = z.infer<typeof usernameReservationSchema>;
+
+// BETA-080 (Issue #1987): account deletion is a durable, cancellable workflow.
+export const accountDeletionStatusSchema = z.enum([
+  "cooling_off",
+  "processing",
+  "partial_failure",
+  "completed",
+  "cancelled",
+]);
+
+export const accountDeletionRequestSchema = z.object({
+  userId: z.string().min(1),
+  requestedAt: z.string().datetime(),
+  coolingOffEndsAt: z.string().datetime(),
+  status: accountDeletionStatusSchema,
+  attempt: z.number().int().nonnegative(),
+  lastError: z.string().max(500).nullable(),
+  updatedAt: z.string().datetime(),
+});
+
+export type AccountDeletionStatus = z.infer<typeof accountDeletionStatusSchema>;
+export type AccountDeletionRequest = z.infer<typeof accountDeletionRequestSchema>;
+
+export interface AccountExport {
+  format: "stealth-account-export-v1";
+  generatedAt: string;
+  account: PublicUser;
+  profile: PublicProfile | null;
+  contacts: Contact[];
+  mailbox: StoredEnvelope[];
+  senderRequests: UnknownSenderRequest[];
+  publicKeys: PublishedKey[];
+  ciphertextReferences: Array<{
+    messageId: string;
+    objectKey: string | null;
+    contentCommitment: string | null;
+    deletedAt: string | null;
+  }>;
+  onChainLimitations: string[];
+}
+
+// ---------------------------------------------------------------------------
+// BETA-013 (Issue #1920): Profile-first account onboarding
+//
+// Onboarding is account-based and wallet-free: the account is resolved from
+// the server session, and the durable draft is keyed by userId so the flow is
+// resumable across refreshes and devices. Completion writes the user-chosen
+// mailbox policy through the existing idempotent policy path — no wallet
+// extension (and no client-supplied wallet address) is ever involved.
+// ---------------------------------------------------------------------------
+
+/** Flow position of the account onboarding wizard. */
+export const onboardingStepSchema = z.enum([
+  "profile",
+  "stealth-address",
+  "recovery",
+  "sender-policy",
+  "postage",
+  "receipts",
+  "review",
+]);
+
+export type OnboardingStep = z.infer<typeof onboardingStepSchema>;
+
+export const onboardingStatusSchema = z.enum(["in_progress", "completed"]);
+
+export type OnboardingStatus = z.infer<typeof onboardingStatusSchema>;
+
+/** UI-level unknown-sender rule; converted to protocol policy booleans on completion. */
+export const onboardingSenderPolicySchema = z.enum(["request", "verified", "block"]);
+
+export type OnboardingSenderPolicy = z.infer<typeof onboardingSenderPolicySchema>;
+
+/**
+ * Durable server-backed onboarding draft. Exactly one record per user, so
+ * duplicate saves can never create duplicates and a refresh or a second
+ * device resumes from the same authoritative state. `completedAt` marks the
+ * terminal state; completed drafts are replayed, never re-written.
+ */
+export const onboardingDraftSchema = z.object({
+  userId: z.string().min(1, "User ID cannot be empty"),
+  status: onboardingStatusSchema,
+  step: onboardingStepSchema,
+  displayName: z
+    .string()
+    .trim()
+    .min(1, "Display name cannot be empty")
+    .max(80, "Display name cannot exceed 80 characters"),
+  recoveryAcknowledged: z.boolean(),
+  unknownSenderRule: onboardingSenderPolicySchema,
+  minimumPostage: z.string().regex(/^\d*\.?\d{0,7}$/, "Expected a non-negative XLM amount"),
+  receiptOnDelivery: z.boolean(),
+  updatedAt: z.string().datetime(),
+  completedAt: z.string().datetime().nullable(),
+  version: z.number().int().positive(),
+});
+
+export type OnboardingDraftRecord = z.infer<typeof onboardingDraftSchema>;
+
+/**
+ * Safe projection of an onboarding draft for API responses and the bootstrap
+ * snapshot. Never contains secrets, hashes, or wallet material.
+ */
+export const onboardingDraftProjectionSchema = onboardingDraftSchema.omit({
+  userId: true,
+  version: true,
+});
+
+export type OnboardingDraftProjection = z.infer<typeof onboardingDraftProjectionSchema>;
 
 export function toPublicUser(user: User): PublicUser {
   return {
@@ -1339,3 +1465,146 @@ export const sendOperationStateSchema = z.object({
   updatedAt: z.string().datetime(),
 });
 export type SendOperationState = z.infer<typeof sendOperationStateSchema>;
+
+// ---------------------------------------------------------------------------
+// Issue #1965 (BETA-058) — Durable Drafts, Scheduled Autosave & Conflict Handling
+// ---------------------------------------------------------------------------
+
+export const draftAttachmentDescriptorSchema = z.object({
+  filename: z.string().trim().min(1).max(255),
+  contentType: z.string().trim().default("application/octet-stream"),
+  sizeBytes: z.number().int().nonnegative(),
+  contentHash: z.string().trim().optional(),
+});
+export type DraftAttachmentDescriptor = z.infer<typeof draftAttachmentDescriptorSchema>;
+
+export const draftContentSchema = z.object({
+  to: z.array(z.string().trim()).default([]),
+  cc: z.array(z.string().trim()).default([]),
+  bcc: z.array(z.string().trim()).default([]),
+  subject: z.string().default(""),
+  body: z.string().default(""),
+  attachments: z.array(draftAttachmentDescriptorSchema).default([]),
+});
+export type DraftContent = z.infer<typeof draftContentSchema>;
+
+/**
+ * Encrypted-at-rest persistence record for drafts.
+ * Plaintext draft content (subject, body, recipients, attachments) is
+ * sealed using AES-256-GCM with AAD bound to the owner and draftId.
+ */
+export const draftRecordSchema = z.object({
+  draftId: z.string().trim().min(1),
+  owner: stellarAddressSchema,
+  encryptedPayload: z.string().min(1),
+  nonce: z.string().min(1),
+  tag: z.string().min(1),
+  algorithm: z.literal("AES-256-GCM").default("AES-256-GCM"),
+  version: z.number().int().positive(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+export type DraftRecord = z.infer<typeof draftRecordSchema>;
+
+/**
+ * Decrypted draft representation exposed to authenticated callers.
+ */
+export const draftSchema = z.object({
+  draftId: z.string().trim().min(1),
+  owner: stellarAddressSchema,
+  to: z.array(z.string().trim()).default([]),
+  cc: z.array(z.string().trim()).default([]),
+  bcc: z.array(z.string().trim()).default([]),
+  subject: z.string().default(""),
+  body: z.string().default(""),
+  attachments: z.array(draftAttachmentDescriptorSchema).default([]),
+  version: z.number().int().positive(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+export type Draft = z.infer<typeof draftSchema>;
+
+export const draftCreateSchema = z.object({
+  draftId: z.string().trim().min(1).optional(),
+  to: z
+    .union([z.string(), z.array(z.string())])
+    .transform((val) =>
+      Array.isArray(val)
+        ? val.map((s) => s.trim()).filter(Boolean)
+        : val
+            .split(/[;,]/)
+            .map((s) => s.trim())
+            .filter(Boolean),
+    )
+    .optional()
+    .default([]),
+  cc: z
+    .union([z.string(), z.array(z.string())])
+    .transform((val) =>
+      Array.isArray(val)
+        ? val.map((s) => s.trim()).filter(Boolean)
+        : val
+            .split(/[;,]/)
+            .map((s) => s.trim())
+            .filter(Boolean),
+    )
+    .optional()
+    .default([]),
+  bcc: z
+    .union([z.string(), z.array(z.string())])
+    .transform((val) =>
+      Array.isArray(val)
+        ? val.map((s) => s.trim()).filter(Boolean)
+        : val
+            .split(/[;,]/)
+            .map((s) => s.trim())
+            .filter(Boolean),
+    )
+    .optional()
+    .default([]),
+  subject: z.string().optional().default(""),
+  body: z.string().optional().default(""),
+  attachments: z.array(draftAttachmentDescriptorSchema).optional().default([]),
+});
+export type DraftCreateInput = z.input<typeof draftCreateSchema>;
+
+export const draftUpdateSchema = z.object({
+  to: z
+    .union([z.string(), z.array(z.string())])
+    .transform((val) =>
+      Array.isArray(val)
+        ? val.map((s) => s.trim()).filter(Boolean)
+        : val
+            .split(/[;,]/)
+            .map((s) => s.trim())
+            .filter(Boolean),
+    )
+    .optional(),
+  cc: z
+    .union([z.string(), z.array(z.string())])
+    .transform((val) =>
+      Array.isArray(val)
+        ? val.map((s) => s.trim()).filter(Boolean)
+        : val
+            .split(/[;,]/)
+            .map((s) => s.trim())
+            .filter(Boolean),
+    )
+    .optional(),
+  bcc: z
+    .union([z.string(), z.array(z.string())])
+    .transform((val) =>
+      Array.isArray(val)
+        ? val.map((s) => s.trim()).filter(Boolean)
+        : val
+            .split(/[;,]/)
+            .map((s) => s.trim())
+            .filter(Boolean),
+    )
+    .optional(),
+  subject: z.string().optional(),
+  body: z.string().optional(),
+  attachments: z.array(draftAttachmentDescriptorSchema).optional(),
+  expectedVersion: z.number().int().positive(),
+});
+export type DraftUpdateInput = z.input<typeof draftUpdateSchema>;

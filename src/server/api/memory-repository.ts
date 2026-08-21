@@ -35,10 +35,16 @@ import type {
   ManagedWalletRecord,
   FundingOperation,
   Wallet,
+  DraftRecord,
+  OnboardingDraftRecord,
+  AccountDeletionRequest,
+  AccountExport,
 } from "./domain";
+import { toPublicProfile, toPublicUser } from "./domain";
 import type {
   ApiRepository,
   ContactQueryOptions,
+  DraftQueryOptions,
   ConsumeVerificationTokenResult,
   CreateManagedWalletResult,
   InsertEnvelopeResult,
@@ -46,6 +52,7 @@ import type {
   PostageTransitionResult,
   RecordVerificationAttemptResult,
   UpdateContactResult,
+  UpdateDraftResult,
   UpdateProvisioningResult,
   UpdateRecoveryCodeSetResult,
   UpdateUserResult,
@@ -83,6 +90,8 @@ export class MemoryApiRepository implements ApiRepository {
   private readonly senderRequestLocks = new Map<string, Promise<void>>();
   // Issue #1973: owner-scoped contact store keyed by `${owner}:${contactId}`.
   private readonly contacts = new Map<string, Contact>();
+  // Issue #1965: owner-scoped draft store keyed by `${owner}:${draftId}`.
+  private readonly drafts = new Map<string, DraftRecord>();
   // Issue #1952: durable jobs, DLQ, and receipt checkpoints
   private readonly jobs = new Map<string, DurableJob>();
   private readonly jobsByIdempotencyKey = new Map<string, string>();
@@ -104,6 +113,9 @@ export class MemoryApiRepository implements ApiRepository {
   private readonly provisioning = new Map<string, ProvisioningRecord>();
   private readonly usernameReservations = new Map<string, UsernameReservation>();
   private readonly wallets = new Map<string, Wallet>();
+  // BETA-013: Durable server-backed onboarding drafts (one record per user)
+  private readonly onboardingDrafts = new Map<string, OnboardingDraftRecord>();
+  private readonly accountDeletionRequests = new Map<string, AccountDeletionRequest>();
   private readonly keyLocks = new Map<string, Promise<void>>();
 
   private async withKeyLock<T>(lockKey: string, action: () => Promise<T>): Promise<T> {
@@ -493,6 +505,116 @@ export class MemoryApiRepository implements ApiRepository {
     return structuredClone(this.credentials.get(userId) ?? null);
   }
 
+  async getAccountDeletionRequest(userId: string): Promise<AccountDeletionRequest | null> {
+    return structuredClone(this.accountDeletionRequests.get(userId) ?? null);
+  }
+
+  async setAccountDeletionRequest(
+    request: AccountDeletionRequest,
+  ): Promise<AccountDeletionRequest> {
+    this.accountDeletionRequests.set(request.userId, structuredClone(request));
+    return structuredClone(request);
+  }
+
+  async exportAccount(userId: string, address: string, now = new Date()): Promise<AccountExport> {
+    const user = this.usersById.get(userId);
+    if (!user || user.address.toUpperCase() !== address.toUpperCase()) {
+      throw new ApiError(404, "not_found", "Account data not found");
+    }
+    const mailbox = [...this.envelopes.values()]
+      .filter((envelope) => envelope.recipientId.toUpperCase() === address.toUpperCase())
+      .map((envelope) => structuredClone(envelope));
+    const contacts = [...this.contacts.values()]
+      .filter((contact) => contact.owner.toUpperCase() === address.toUpperCase())
+      .map((contact) => structuredClone(contact));
+    const senderRequests = [...this.senderRequests.values()]
+      .filter((request) => request.recipient.toUpperCase() === address.toUpperCase())
+      .map((request) => structuredClone(request));
+    const publicKeys = [...this.publishedKeys.values()]
+      .filter((key) => key.owner.toUpperCase() === address.toUpperCase())
+      .map((key) => structuredClone(key));
+
+    return {
+      format: "stealth-account-export-v1",
+      generatedAt: now.toISOString(),
+      account: toPublicUser(user),
+      profile: this.profiles.has(userId) ? toPublicProfile(this.profiles.get(userId)!) : null,
+      contacts,
+      mailbox,
+      senderRequests,
+      publicKeys,
+      ciphertextReferences: mailbox.map((envelope) => ({
+        messageId: envelope.messageId,
+        objectKey: envelope.objectRef ?? null,
+        contentCommitment: envelope.contentCommitment ?? null,
+        deletedAt: envelope.deletedAt ?? null,
+      })),
+      onChainLimitations: [
+        "Stellar testnet transactions, account history, contract events, and published lifecycle commitments are immutable and are not erased.",
+        "This export contains ciphertext and references only; Stealth never exports plaintext message content or credentials.",
+      ],
+    };
+  }
+
+  async deleteAccountData(userId: string, address: string, now = new Date()) {
+    const user = this.usersById.get(userId);
+    if (!user || user.address.toUpperCase() !== address.toUpperCase()) {
+      throw new ApiError(404, "not_found", "Account data not found");
+    }
+    const normalizedAddress = address.toUpperCase();
+    await this.deleteUserSessions(userId);
+    this.profiles.delete(userId);
+    this.credentials.delete(userId);
+    this.onboardingDrafts.delete(userId);
+    this.provisioning.delete(userId);
+    this.wallets.delete(userId);
+    this.managedWallets.delete(userId);
+    this.externalWallets.delete(normalizedAddress);
+    this.keyDirectories.delete(normalizedAddress);
+    for (const key of [...this.publishedKeys.keys()]) {
+      if (key.startsWith(`${normalizedAddress}:`)) this.publishedKeys.delete(key);
+    }
+    for (const [contactKey, contact] of this.contacts.entries()) {
+      if (contact.owner.toUpperCase() === normalizedAddress) this.contacts.delete(contactKey);
+    }
+    for (const envelope of this.envelopes.values()) {
+      if (envelope.recipientId.toUpperCase() === normalizedAddress) {
+        envelope.deletedAt = now.toISOString();
+        this.envelopes.set(envelope.messageId, envelope);
+      }
+    }
+
+    this.usersByEmail.delete(user.email.toLowerCase());
+    this.usersByUsername.delete(user.username.toLowerCase());
+    const tombstoneUser = {
+      ...user,
+      email: `deleted-${userId}@invalid.example`,
+      username: `deleted-${userId}`.slice(0, 30),
+      status: "deactivated" as const,
+      updatedAt: now.toISOString(),
+      version: user.version + 1,
+    };
+    this.usersById.set(userId, tombstoneUser);
+    this.usersByEmail.set(tombstoneUser.email, userId);
+    this.usersByAddress.set(normalizedAddress, userId);
+
+    return {
+      deleted: [
+        "profile",
+        "credential",
+        "sessions",
+        "contacts",
+        "mailbox ciphertext access",
+        "published keys",
+      ],
+      retained: [
+        "testnet account and transaction history",
+        "on-chain contract events and lifecycle commitments",
+        "postage and receipt references required for chain reconciliation",
+      ],
+    };
+  }
+
   async setCredential(credential: Credential): Promise<Credential> {
     this.credentials.set(credential.userId, structuredClone(credential));
     return structuredClone(credential);
@@ -535,6 +657,20 @@ export class MemoryApiRepository implements ApiRepository {
       };
       this.provisioning.set(record.userId, structuredClone(next));
       return { updated: true, record: structuredClone(next) };
+    });
+  }
+
+  // BETA-013: Durable server-backed onboarding drafts.
+  // Keyed by userId so duplicate saves can never create duplicates and every
+  // device resumes from the same authoritative record.
+  async getOnboardingDraft(userId: string): Promise<OnboardingDraftRecord | null> {
+    return structuredClone(this.onboardingDrafts.get(userId) ?? null);
+  }
+
+  async saveOnboardingDraft(record: OnboardingDraftRecord): Promise<OnboardingDraftRecord> {
+    return this.withKeyLock(`onboarding:${record.userId}`, async () => {
+      this.onboardingDrafts.set(record.userId, structuredClone(record));
+      return structuredClone(record);
     });
   }
 
@@ -1301,6 +1437,70 @@ export class MemoryApiRepository implements ApiRepository {
   }
 
   // ---------------------------------------------------------------------------
+  // Issue #1965 (BETA-058) — Live drafts CRUD
+  // ---------------------------------------------------------------------------
+
+  async listDrafts(
+    owner: string,
+    options: DraftQueryOptions = {},
+  ): Promise<import("./repository").Page<DraftRecord>> {
+    const normOwner = owner.toUpperCase().trim();
+    const limit = options.limit ?? 25;
+    const { paginate, PAGINATED_QUERY_ORDERINGS } = await import("./repository");
+
+    const matched: DraftRecord[] = [];
+    for (const draft of this.drafts.values()) {
+      if (draft.owner.toUpperCase().trim() === normOwner) {
+        matched.push(structuredClone(draft));
+      }
+    }
+
+    const spec = PAGINATED_QUERY_ORDERINGS.listDrafts;
+    return paginate(matched, spec, { limit, after: options.after });
+  }
+
+  async getDraft(owner: string, draftId: string): Promise<DraftRecord | null> {
+    const draft = this.drafts.get(this.draftKey(owner, draftId));
+    return draft ? structuredClone(draft) : null;
+  }
+
+  async createDraft(draft: DraftRecord): Promise<DraftRecord> {
+    const key = this.draftKey(draft.owner, draft.draftId);
+    if (this.drafts.has(key)) {
+      throw new ApiError(409, "conflict", `A draft already exists for ${draft.draftId}`);
+    }
+    const stored = structuredClone(draft);
+    this.drafts.set(key, stored);
+    return structuredClone(stored);
+  }
+
+  async updateDraft(draft: DraftRecord, expectedVersion: number): Promise<UpdateDraftResult> {
+    const key = this.draftKey(draft.owner, draft.draftId);
+    const existing = this.drafts.get(key);
+    if (!existing) {
+      return { updated: false, current: null };
+    }
+    if (existing.version !== expectedVersion) {
+      return { updated: false, current: structuredClone(existing) };
+    }
+    const updated = { ...draft, version: expectedVersion + 1 };
+    this.drafts.set(key, updated);
+    return { updated: true, draft: structuredClone(updated) };
+  }
+
+  async deleteDraft(owner: string, draftId: string): Promise<void> {
+    const key = this.draftKey(owner, draftId);
+    if (!this.drafts.has(key)) {
+      throw new ApiError(404, "not_found", `No draft found for ${draftId}`);
+    }
+    this.drafts.delete(key);
+  }
+
+  private draftKey(owner: string, draftId: string): string {
+    return `${owner.toUpperCase().trim()}:${draftId}`;
+  }
+
+  // ---------------------------------------------------------------------------
   // Issue #1952 (BETA-045) — Durable jobs, retries, DLQ, and receipt indexing
   // ---------------------------------------------------------------------------
 
@@ -1445,6 +1645,7 @@ export class MemoryApiRepository implements ApiRepository {
     this.provisioning.clear();
     this.usernameReservations.clear();
     this.wallets.clear();
+    this.onboardingDrafts.clear();
     this.keyLocks.clear();
     this.sessions.clear();
     this.retiredSessions.clear();
@@ -1457,6 +1658,7 @@ export class MemoryApiRepository implements ApiRepository {
     this.managedWallets.clear();
     this.fundingOperations.clear();
     this.contacts.clear();
+    this.drafts.clear();
     this.jobs.clear();
     this.jobsByIdempotencyKey.clear();
     this.deadLetters.clear();

@@ -11,8 +11,19 @@ import {
   type InfiniteData,
 } from "@tanstack/react-query";
 
-import { cacheInvalidations, queryKeys, sharedTypedApi as api } from "@/lib/api";
-import type { MailboxDescriptor, MailboxFlagsPatch, MailboxSyncResponse } from "@/lib/api";
+import {
+  cacheInvalidations,
+  queryKeys,
+  sharedTypedApi as api,
+  shouldPauseSync,
+  shouldResumeSync,
+} from "@/lib/api";
+import type {
+  MailboxCounts,
+  MailboxDescriptor,
+  MailboxFlagsPatch,
+  MailboxSyncResponse,
+} from "@/lib/api";
 import { mailboxDescriptorToEmail } from "./useMailbox";
 import {
   MAILBOX_DELTA_INTERVAL_MS,
@@ -29,6 +40,8 @@ import {
 export interface UseMailboxSyncOptions {
   actor: string;
   enabled?: boolean;
+  online?: boolean;
+  visible?: boolean;
 }
 
 function mergeSyncPages(
@@ -59,11 +72,19 @@ function mergeSyncPages(
   };
 }
 
-export function useMailboxSync({ actor, enabled = true }: UseMailboxSyncOptions) {
+export function useMailboxSync({
+  actor,
+  enabled = true,
+  online = true,
+  visible = true,
+}: UseMailboxSyncOptions) {
   const queryClient = useQueryClient();
   const tabIdRef = useRef(`tab_${Math.random().toString(36).slice(2, 10)}`);
+  const pausedRef = useRef(false);
   const syncKey = queryKeys.mailbox.sync(actor);
   const countsKey = queryKeys.mailbox.counts(actor);
+  const paused = shouldPauseSync(online, visible);
+  const liveEnabled = enabled && online;
 
   const listQuery = useInfiniteQuery({
     queryKey: syncKey,
@@ -73,6 +94,9 @@ export function useMailboxSync({ actor, enabled = true }: UseMailboxSyncOptions)
     getNextPageParam: (lastPage) =>
       lastPage.hasMore ? (lastPage.nextCursor ?? undefined) : undefined,
     enabled,
+    refetchOnWindowFocus: !paused,
+    refetchOnReconnect: false,
+    retry: online ? 2 : 0,
   });
 
   const latestPage = listQuery.data?.pages.at(-1);
@@ -93,27 +117,55 @@ export function useMailboxSync({ actor, enabled = true }: UseMailboxSyncOptions)
       if (!since) return null;
       return api.mailbox.sync({ sinceCursor: since, limit: 100 }, signal);
     },
-    enabled: enabled && Boolean(sinceCursor),
-    refetchInterval: MAILBOX_DELTA_INTERVAL_MS,
-    refetchOnWindowFocus: true,
+    enabled: liveEnabled && Boolean(sinceCursor),
+    refetchInterval: paused ? false : MAILBOX_DELTA_INTERVAL_MS,
+    refetchOnWindowFocus: !paused,
+    refetchOnReconnect: false,
   });
-
-  useEffect(() => {
-    const delta = deltaQuery.data;
-    if (!delta) return;
-    writeSyncCursor(actor, delta.syncCursor);
-    queryClient.setQueryData(syncKey, (current: InfiniteData<MailboxSyncResponse> | undefined) =>
-      mergeSyncPages(current, delta.items, delta.deletedIds, delta.counts, delta.syncCursor),
-    );
-    queryClient.setQueryData(countsKey, { counts: delta.counts });
-  }, [actor, countsKey, deltaQuery.dataUpdatedAt, deltaQuery.data, queryClient, syncKey]);
 
   const countsQuery = useQuery({
     queryKey: countsKey,
     queryFn: ({ signal }) => api.mailbox.getCounts(signal),
     enabled,
     staleTime: 10_000,
+    refetchOnWindowFocus: !paused,
+    refetchOnReconnect: false,
+    retry: online ? 2 : 0,
   });
+
+  // BETA-074 — a stable latest-page snapshot held in a ref so the broadcast
+  // channel and mutation handlers do not need to be torn down/recreated on
+  // every sync page change (avoids repeated BroadcastChannel churn).
+  const latestRef = useRef<{
+    counts: MailboxCounts | null;
+    syncCursor: string;
+  }>({ counts: null, syncCursor: "" });
+  const resolvedCounts =
+    latestPage?.counts ?? firstPage?.counts ?? countsQuery.data?.counts ?? null;
+  const resolvedCursor =
+    latestPage?.syncCursor ?? firstPage?.syncCursor ?? readSyncCursor(actor) ?? "";
+  useEffect(() => {
+    latestRef.current = { counts: resolvedCounts, syncCursor: resolvedCursor };
+  }, [resolvedCounts, resolvedCursor]);
+
+  useEffect(() => {
+    const delta = deltaQuery.data;
+    if (!delta) return;
+    writeSyncCursor(actor, delta.syncCursor);
+    // BETA-074 — batch the cache updates: advance counts unconditionally but
+    // only rewrite the (larger) mailbox list when the delta actually changed
+    // rows, and only notify count subscribers when the numbers differ. This
+    // keeps the every-15s poll from re-rendering the whole mailbox when
+    // nothing changed.
+    const existingCounts = queryClient.getQueryData<{ counts: MailboxCounts }>(countsKey);
+    if (!existingCounts || !countsEqual(existingCounts.counts, delta.counts)) {
+      queryClient.setQueryData(countsKey, { counts: delta.counts });
+    }
+    if (delta.items.length === 0 && delta.deletedIds.length === 0) return;
+    queryClient.setQueryData(syncKey, (current: InfiniteData<MailboxSyncResponse> | undefined) =>
+      mergeSyncPages(current, delta.items, delta.deletedIds, delta.counts, delta.syncCursor),
+    );
+  }, [actor, countsKey, deltaQuery.dataUpdatedAt, deltaQuery.data, queryClient, syncKey]);
 
   useEffect(() => {
     if (typeof window === "undefined" || typeof BroadcastChannel === "undefined") return;
@@ -128,6 +180,7 @@ export function useMailboxSync({ actor, enabled = true }: UseMailboxSyncOptions)
       const message = event.data;
       if (!message || message.actor !== actor || message.tabId === tabIdRef.current) return;
       if (message.type === "MAILBOX_MUTATION") {
+        const { counts, syncCursor } = latestRef.current;
         queryClient.setQueryData(
           syncKey,
           (current: InfiniteData<MailboxSyncResponse> | undefined) =>
@@ -135,11 +188,8 @@ export function useMailboxSync({ actor, enabled = true }: UseMailboxSyncOptions)
               current,
               [message.descriptor],
               message.descriptor.isTombstone ? [message.descriptor.messageId] : [],
-              latestPage?.counts ??
-                firstPage?.counts ??
-                countsQuery.data?.counts ??
-                emptyCountsFallback(),
-              latestPage?.syncCursor ?? firstPage?.syncCursor ?? readSyncCursor(actor) ?? "",
+              counts ?? emptyCountsFallback(),
+              syncCursor,
             ),
         );
         void queryClient.invalidateQueries({ queryKey: countsKey });
@@ -152,31 +202,20 @@ export function useMailboxSync({ actor, enabled = true }: UseMailboxSyncOptions)
     return () => {
       channel.close();
     };
-  }, [
-    actor,
-    countsKey,
-    countsQuery.data,
-    firstPage?.counts,
-    firstPage?.syncCursor,
-    latestPage,
-    queryClient,
-    syncKey,
-  ]);
+  }, [actor, countsKey, queryClient, syncKey]);
 
   const patchMutation = useMutation({
     mutationFn: ({ messageId, patch }: { messageId: string; patch: MailboxFlagsPatch }) =>
       api.mailbox.patchFlags(messageId, patch),
     onSuccess: async (descriptor) => {
+      const { counts, syncCursor } = latestRef.current;
       queryClient.setQueryData(syncKey, (current: InfiniteData<MailboxSyncResponse> | undefined) =>
         mergeSyncPages(
           current,
           [descriptor],
           descriptor.isTombstone ? [descriptor.messageId] : [],
-          latestPage?.counts ??
-            firstPage?.counts ??
-            countsQuery.data?.counts ??
-            emptyCountsFallback(),
-          latestPage?.syncCursor ?? firstPage?.syncCursor ?? readSyncCursor(actor) ?? "",
+          counts ?? emptyCountsFallback(),
+          syncCursor,
         ),
       );
       for (const key of cacheInvalidations.patchMailboxFlags(actor)) {
@@ -205,6 +244,13 @@ export function useMailboxSync({ actor, enabled = true }: UseMailboxSyncOptions)
   const refetch = useCallback(async () => {
     await Promise.all([listQuery.refetch(), countsQuery.refetch(), deltaQuery.refetch()]);
   }, [countsQuery, deltaQuery, listQuery]);
+
+  useEffect(() => {
+    const resume = shouldResumeSync(pausedRef.current, paused);
+    pausedRef.current = paused;
+    if (!resume || !enabled) return;
+    void refetch();
+  }, [enabled, paused, refetch]);
 
   return {
     emails,
@@ -235,6 +281,22 @@ function emptyCountsFallback() {
     unread: 0,
     starred: 0,
   };
+}
+
+function countsEqual(a: MailboxCounts | null | undefined, b: MailboxCounts): boolean {
+  if (!a) return false;
+  return (
+    a.inbox === b.inbox &&
+    a.requests === b.requests &&
+    a.sent === b.sent &&
+    a.drafts === b.drafts &&
+    a.outbox === b.outbox &&
+    a.archive === b.archive &&
+    a.spam === b.spam &&
+    a.trash === b.trash &&
+    a.unread === b.unread &&
+    a.starred === b.starred
+  );
 }
 
 function broadcast(message: MailboxBroadcast) {

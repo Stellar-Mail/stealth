@@ -4,6 +4,9 @@
   "compatibility_date": "2025-09-24",
   "compatibility_flags": ["nodejs_compat"],
   "main": "src/server.ts",
+  "triggers": {
+    "crons": ["0 * * * *"],
+  },
   // BETA-024 (#1931): no real Cloudflare resource IDs are ever committed.
   // The values below are {VAR_NAME} placeholder tokens that
   // scripts/generate-wrangler-config.ts replaces from environment variables

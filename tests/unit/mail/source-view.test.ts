@@ -49,7 +49,12 @@ describe("classifyMailSourceError (BETA-053)", () => {
       classifyMailSourceError(
         apiError("dependency_failure", { retryable: true, retryClassification: "transient" }),
       ).kind,
-    ).toBe("dependency_failure");
+    ).toBe("dependency_down");
+    expect(
+      classifyMailSourceError(
+        apiError("conflict", { status: 409, retryable: true, retryClassification: "transient" }),
+      ).kind,
+    ).toBe("conflict");
   });
 });
 
@@ -108,6 +113,23 @@ describe("resolveMailSourceView (BETA-053)", () => {
     });
     expect(view.kind).toBe("error");
     if (view.kind !== "error") throw new Error("expected error view");
+    expect(view.hasCachedData).toBe(true);
+    expect(view.failure.retryable).toBe(true);
+    expect(view.failure.kind).toBe("dependency_down");
+    expect(view.failure.actions).toContain("preserve_unsent_work");
+    expect(view.failure.actions).toContain("retry");
+  });
+
+  it("classifies a live read failure as offline when the connection drops", () => {
+    const view = resolveMailSourceView({
+      ...base,
+      online: false,
+      mailboxError: apiError("internal_error", { message: "Failed to fetch" }),
+      emailCount: 2,
+    });
+    expect(view.kind).toBe("error");
+    if (view.kind !== "error") throw new Error("expected error view");
+    expect(view.failure.kind).toBe("offline");
     expect(view.hasCachedData).toBe(true);
     expect(view.failure.retryable).toBe(true);
   });

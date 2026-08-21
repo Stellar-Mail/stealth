@@ -22,6 +22,11 @@ import type { TrashResult } from "./useMailSource";
 import type { FeedbackTone } from "@/features/design-system/feedback/use-feedback";
 import type { MailboxFlagsPatch } from "@/lib/api";
 import { flagsPatchFromEmail } from "./live-mailbox";
+import { getEntry, removeEntry, patchEntry } from "@/services/storage/outbox";
+import { SendPipeline } from "@/features/compose/sendPipeline";
+import { authorizeSend } from "@/services/stellar/wallet";
+
+import { sharedTypedApi as api } from "@/lib/api";
 
 export function quoteBody(email: Email): string {
   return `\n\n---\nOn ${email.time}, ${email.from} <${email.email}> wrote:\n${email.body
@@ -43,10 +48,24 @@ export function useMailActions(input: {
   calendarEvents: CalendarEvent[];
   updateCalendarResponse: (eventId: string, response: CalendarResponse) => void;
   updateCalendarReminder: (eventId: string, reminder: string) => void;
-  previewAttachment: (attachment: { name: string; size: string; type: string }) => void;
+  previewAttachment: (attachment: {
+    name: string;
+    size: string;
+    type: string;
+    senderAddress?: string;
+    encryptedCiphertext?: string;
+    encryptedNonce?: string;
+    encryptedMac?: string;
+    expectedContentHash?: string;
+    contentKey?: CryptoKey;
+  }) => void;
   openSenderConversion: (email: Email) => void;
   openSnoozeDialog: (email: Email) => void;
   closeSnooze: () => void;
+  isDemoMode?: boolean;
+  actor?: string | null;
+  refreshOutbox?: () => void;
+  markReadReceipt?: (messageId: string) => Promise<unknown>;
 }) {
   const {
     emails,
@@ -63,7 +82,65 @@ export function useMailActions(input: {
     openSenderConversion,
     openSnoozeDialog,
     closeSnooze,
+    isDemoMode = false,
+    actor = null,
+    refreshOutbox,
+    markReadReceipt,
   } = input;
+
+  const handleRetrySend = useCallback(
+    async (email: Email) => {
+      const entry = getEntry(email.id);
+      if (!entry) return;
+
+      patchEntry(email.id, {
+        status: "queued",
+        errorCode: undefined,
+        errorMessage: undefined,
+      });
+      refreshOutbox?.();
+
+      const pipeline = SendPipeline.fromPersisted(
+        entry,
+        {},
+        () => {
+          refreshOutbox?.();
+        },
+        { signer: authorizeSend },
+      );
+
+      try {
+        const outcome = await pipeline.run();
+        if (outcome.ok) {
+          showToast("Message sent successfully");
+        } else {
+          showToast(`Send failed: ${outcome.message}`);
+        }
+        refreshOutbox?.();
+      } catch (error) {
+        showToast("Send failed due to an unexpected error");
+        refreshOutbox?.();
+      }
+    },
+    [refreshOutbox, showToast],
+  );
+
+  const handleCancelSend = useCallback(
+    (email: Email) => {
+      const entry = getEntry(email.id);
+      if (!entry) return;
+
+      if (entry.isCommitted) {
+        showToast("Cannot cancel: message is already committed to the relay");
+        return;
+      }
+
+      removeEntry(email.id);
+      refreshOutbox?.();
+      showToast("Send operation cancelled");
+    },
+    [refreshOutbox, showToast],
+  );
 
   const handleConvertSender = useCallback(
     (target: SenderConversionTarget, choice: SenderPolicyChoice) => {
@@ -72,8 +149,16 @@ export function useMailActions(input: {
       const result = resolveSenderConversion(email, choice);
       updateEmail(email.id, result.patch);
       showToast(result.toast.message, { tone: result.toast.tone });
+
+      if (!isDemoMode && actor) {
+        const rule = choice === "verify" ? "default" : choice;
+        api.policies.setRule(actor, email.email, rule).catch((err) => {
+          console.error("Failed to update sender policy on server", err);
+          showToast("Failed to sync policy change to server", { tone: "danger" });
+        });
+      }
     },
-    [emails, showToast, updateEmail],
+    [emails, showToast, updateEmail, isDemoMode, actor],
   );
 
   const applySenderCommand = useCallback(
@@ -81,8 +166,16 @@ export function useMailActions(input: {
       const result = resolveSenderConversion(email, choice);
       updateEmail(email.id, result.patch);
       showToast(result.toast.message, { tone: result.toast.tone });
+
+      if (!isDemoMode && actor) {
+        const rule = choice === "verify" ? "default" : choice;
+        api.policies.setRule(actor, email.email, rule).catch((err) => {
+          console.error("Failed to update sender policy on server", err);
+          showToast("Failed to sync policy change to server", { tone: "danger" });
+        });
+      }
     },
-    [showToast, updateEmail],
+    [showToast, updateEmail, isDemoMode, actor],
   );
 
   const handleSnooze = useCallback(
@@ -299,6 +392,15 @@ export function useMailActions(input: {
       onCalendarResponseChange: input.updateCalendarResponse,
       onCalendarReminderChange: input.updateCalendarReminder,
       onPreviewAttachment: previewAttachment,
+      onRetrySend: handleRetrySend,
+      onCancelSend: handleCancelSend,
+      onSendReadReceipt: markReadReceipt
+        ? (email: Email) => {
+            void markReadReceipt(email.id).then(() => {
+              showToast(`Read receipt sent for "${email.subject}"`);
+            });
+          }
+        : undefined,
     }),
     [
       addMailEvent,
@@ -309,6 +411,7 @@ export function useMailActions(input: {
       handleUnsnooze,
       input.updateCalendarReminder,
       input.updateCalendarResponse,
+      markReadReceipt,
       openCalendar,
       openCompose,
       openSenderConversion,
@@ -316,6 +419,8 @@ export function useMailActions(input: {
       previewAttachment,
       showToast,
       updateEmail,
+      handleRetrySend,
+      handleCancelSend,
     ],
   );
 

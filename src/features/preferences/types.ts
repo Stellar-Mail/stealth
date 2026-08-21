@@ -5,6 +5,12 @@ export type ReaderTypographyPreference = "sans" | "serif" | "large";
 
 export type UnknownSenderPolicy = "request" | "verified" | "block";
 export type ReceiptPreference = "auto" | "manual" | "never";
+export type NotificationCategory = "mail" | "requests" | "failures" | "receipts";
+
+export type NotificationPreferences = {
+  categories: Record<NotificationCategory, boolean>;
+  quietHours: { enabled: boolean; start: string; end: string };
+};
 
 export type UiPreferences = {
   theme: ThemePreference;
@@ -17,6 +23,7 @@ export type UiPreferences = {
   emailNotifications: boolean;
   desktopNotifications: boolean;
   sound: boolean;
+  notifications: NotificationPreferences;
   onboardingCompleted: boolean;
   receiptOnDelivery: boolean;
   receipts: {
@@ -41,6 +48,10 @@ export const defaultPreferences: UiPreferences = {
   emailNotifications: true,
   desktopNotifications: true,
   sound: false,
+  notifications: {
+    categories: { mail: true, requests: true, failures: true, receipts: true },
+    quietHours: { enabled: false, start: "22:00", end: "07:00" },
+  },
   onboardingCompleted: false,
   receipts: {
     trusted: "auto",

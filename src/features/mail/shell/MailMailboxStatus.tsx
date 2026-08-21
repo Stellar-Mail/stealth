@@ -1,9 +1,6 @@
-import {
-  ActionButton,
-  EmptyState,
-  MailListSkeleton,
-  MailReaderSkeleton,
-} from "@/features/design-system";
+import { EmptyState, MailListSkeleton, MailReaderSkeleton } from "@/features/design-system";
+import { DegradedStateBanner } from "@/features/design-system/feedback/DegradedStateBanner";
+import { classifyAppFailure } from "@/lib/api";
 import type { MailSourceView } from "../source-view";
 
 export function MailMailboxStatus({
@@ -22,6 +19,7 @@ export function MailMailboxStatus({
       <div
         className="flex min-h-0 min-w-0 flex-1"
         role="status"
+        aria-label="Loading mailbox"
         aria-live="polite"
         aria-busy="true"
       >
@@ -32,43 +30,37 @@ export function MailMailboxStatus({
   }
 
   if (view.kind === "error") {
-    const signIn = view.failure.kind === "unauthorized" || view.failure.kind === "session_expired";
-    return (
-      <div
-        role="alert"
-        className={
+    const failure = classifyAppFailure(view.failure.error, {
+      online: view.failure.kind !== "offline",
+    });
+    const signIn = failure.kind === "unauthorized";
+
+    if (compact) {
+      return (
+        <DegradedStateBanner
+          failure={failure}
           compact
-            ? "mx-3 mb-2 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs text-red-100"
-            : "flex flex-1 items-center justify-center p-6"
-        }
-      >
-        {compact ? (
-          <div className="flex items-center justify-between gap-3">
-            <p>{view.failure.message}</p>
-            {view.failure.retryable ? (
-              <ActionButton size="sm" onClick={onRetry}>
-                Retry
-              </ActionButton>
-            ) : signIn ? (
-              <ActionButton size="sm" onClick={onSignIn}>
-                Sign in
-              </ActionButton>
-            ) : null}
-          </div>
-        ) : (
-          <EmptyState
-            eyebrow="Mailbox"
-            title={signIn ? "Session expired" : "Mailbox unavailable"}
-            description={view.failure.message}
-            action={
-              view.failure.retryable ? (
-                <ActionButton onClick={onRetry}>Retry</ActionButton>
-              ) : signIn ? (
-                <ActionButton onClick={onSignIn}>Sign in</ActionButton>
-              ) : null
-            }
-          />
-        )}
+          onRetry={onRetry}
+          onReauthenticate={onSignIn}
+        />
+      );
+    }
+
+    return (
+      <div className="flex flex-1 items-center justify-center p-6">
+        <EmptyState
+          eyebrow="Mailbox"
+          title={signIn ? "Session expired" : "Mailbox unavailable"}
+          description={view.failure.message}
+          action={
+            <DegradedStateBanner
+              failure={failure}
+              className="mx-0 mt-0"
+              onRetry={onRetry}
+              onReauthenticate={onSignIn}
+            />
+          }
+        />
       </div>
     );
   }

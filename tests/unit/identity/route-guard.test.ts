@@ -77,6 +77,76 @@ describe("deriveGateState (server bootstrap -> definite gate state)", () => {
       data: makeBootstrapData({ provisioning: { status: "retryable", currentStep: "funding" } }),
       expected: "verified",
     },
+    {
+      branch: "active",
+      data: makeBootstrapData({
+        provisioning: { status: "active", currentStep: "done" },
+        onboarding: {
+          status: "in_progress",
+          step: "postage",
+          displayName: "Ada",
+          recoveryAcknowledged: true,
+          unknownSenderRule: "request",
+          minimumPostage: "0",
+          receiptOnDelivery: false,
+          updatedAt: new Date().toISOString(),
+          completedAt: null,
+        },
+      }),
+      expected: "verified",
+    },
+    {
+      branch: "active",
+      data: makeBootstrapData({
+        onboarding: {
+          status: "not_started",
+          step: null,
+          displayName: "",
+          recoveryAcknowledged: false,
+          unknownSenderRule: "",
+          minimumPostage: "",
+          receiptOnDelivery: false,
+          updatedAt: null,
+          completedAt: null,
+        },
+      }),
+      expected: "verified",
+    },
+    {
+      branch: "active",
+      data: makeBootstrapData({
+        onboarding: {
+          status: "completed",
+          step: "review",
+          displayName: "Ada",
+          recoveryAcknowledged: true,
+          unknownSenderRule: "request",
+          minimumPostage: "0",
+          receiptOnDelivery: false,
+          updatedAt: new Date().toISOString(),
+          completedAt: new Date().toISOString(),
+        },
+      }),
+      expected: "active",
+    },
+    {
+      branch: "active",
+      data: makeBootstrapData({
+        provisioning: { status: "pending", currentStep: "wallet" },
+        onboarding: {
+          status: "completed",
+          step: "review",
+          displayName: "Ada",
+          recoveryAcknowledged: true,
+          unknownSenderRule: "request",
+          minimumPostage: "0",
+          receiptOnDelivery: false,
+          updatedAt: new Date().toISOString(),
+          completedAt: new Date().toISOString(),
+        },
+      }),
+      expected: "verified",
+    },
   ];
 
   it.each(cases)(

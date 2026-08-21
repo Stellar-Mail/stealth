@@ -24,13 +24,17 @@ export interface ContractManifest {
 
 export function loadManifest(): ContractManifest | null {
   try {
-    // Attempt to load from the src/config directory where the deploy script places it
-    const manifestPath = resolve(__dirname, "contract-manifest.json");
-    if (!existsSync(manifestPath)) {
-      return null;
+    const candidates = [
+      resolve(process.cwd(), "src/config/contract-manifest.json"),
+      resolve(process.cwd(), "contract-manifest.json"),
+    ];
+    for (const manifestPath of candidates) {
+      if (existsSync(manifestPath)) {
+        const data = readFileSync(manifestPath, "utf-8");
+        return JSON.parse(data) as ContractManifest;
+      }
     }
-    const data = readFileSync(manifestPath, "utf-8");
-    return JSON.parse(data) as ContractManifest;
+    return null;
   } catch (error) {
     console.warn("Failed to load contract-manifest.json", error);
     return null;

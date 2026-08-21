@@ -4,6 +4,7 @@ import type { OnboardingDraft } from "../types";
 
 type Props = {
   draft: OnboardingDraft;
+  mailboxAddress: string;
   isSubmitting: boolean;
   submitError: string | null;
   onSubmit: () => void;
@@ -26,15 +27,21 @@ function ReviewRow({ label, value }: { label: string; value: string }) {
 }
 
 /**
- * Step 7: Policy review and activation
+ * Step 7: Policy review and activation (BETA-013)
  *
  * Summarizes every choice made during the flow and submits a single
- * PUT /api/v1/policies/$owner transaction to activate the mailbox.
+ * POST /api/v1/onboarding/complete transaction to activate the mailbox.
  * Errors are surfaced inline so the user can retry without losing context.
  */
-export function PolicyReviewStep({ draft, isSubmitting, submitError, onSubmit, onRetreat }: Props) {
-  const address = draft.walletAddress ?? "";
-  const short = address ? `${address.slice(0, 8)}…${address.slice(-6)}` : "—";
+export function PolicyReviewStep({
+  draft,
+  mailboxAddress,
+  isSubmitting,
+  submitError,
+  onSubmit,
+  onRetreat,
+}: Props) {
+  const short = mailboxAddress ? `${mailboxAddress.slice(0, 8)}…${mailboxAddress.slice(-6)}` : "—";
   const postageDisplay = draft.minimumPostage === "0" ? "None" : `${draft.minimumPostage} XLM`;
 
   return (
@@ -48,7 +55,8 @@ export function PolicyReviewStep({ draft, isSubmitting, submitError, onSubmit, o
       </div>
 
       <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 divide-y divide-white/5">
-        <ReviewRow label="Wallet address" value={short} />
+        <ReviewRow label="Display name" value={draft.displayName || "—"} />
+        <ReviewRow label="Mailbox address" value={short} />
         <ReviewRow label="Unknown senders" value={RULE_LABELS[draft.unknownSenderRule] ?? "—"} />
         <ReviewRow label="Minimum postage" value={postageDisplay} />
         <ReviewRow label="Read receipts" value={draft.receiptOnDelivery ? "Enabled" : "Disabled"} />

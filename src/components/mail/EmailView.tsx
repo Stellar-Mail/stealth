@@ -31,9 +31,12 @@ import { OTPCard, detectOtp } from "@/features/otp";
 import { ConvertSenderButton, SenderBadge } from "@/features/sender-conversion";
 import { SnoozeBanner } from "@/features/snooze";
 import { MailReaderSkeleton } from "@/features/design-system";
+import { DegradedStateBanner } from "@/features/design-system/feedback/DegradedStateBanner";
 import type { MailThread } from "@/features/mail/live-thread";
 import { canRenderBody, isTrustedContent } from "@/features/mail/live-thread";
 import type { ThreadReadView } from "@/features/mail/useThreadRead";
+import type { ClassifiedMailSourceError } from "@/features/mail/source-view";
+import { classifyAppFailure } from "@/lib/api";
 import { parseSafeContent, type BodyBlock as SafeBodyBlock } from "@/features/mail/safe-rendering";
 import { ProvenancePanel } from "./ProvenancePanel";
 import { EmailTrustBadges } from "./EmailTrustBadges";
@@ -46,6 +49,8 @@ import {
   type ComposeMode,
   type ComposeSubmission,
 } from "./composeValidation";
+import { getEntry } from "@/services/storage/outbox";
+import { SendProgress } from "@/features/compose/SendProgress";
 
 export type EmailViewActions = {
   onReply?: (email: Email, body?: string) => void;
@@ -66,7 +71,19 @@ export type EmailViewActions = {
   onOpenCalendar?: (eventId?: string) => void;
   onCalendarResponseChange?: (eventId: string, response: CalendarResponse) => void;
   onCalendarReminderChange?: (eventId: string, reminder: string) => void;
-  onPreviewAttachment?: (attachment: { name: string; size: string; type: string }) => void;
+  onPreviewAttachment?: (attachment: {
+    name: string;
+    size: string;
+    type: string;
+    senderAddress?: string;
+    encryptedCiphertext?: string;
+    encryptedNonce?: string;
+    encryptedMac?: string;
+    expectedContentHash?: string;
+    contentKey?: CryptoKey;
+  }) => void;
+  onRetrySend?: (email: Email) => void;
+  onCancelSend?: (email: Email) => void;
 };
 
 export function EmailView({
@@ -98,6 +115,8 @@ export function EmailView({
     ? canRenderBody(selectedThreadMessage)
     : threadView.kind === "idle";
 
+  const outboxEntry = email ? getEntry(email.id) : null;
+
   return (
     <section className="mail-reader-atmosphere relative m-3 ml-0 flex h-[calc(100vh-3.5rem-1.5rem)] flex-1 flex-col overflow-hidden rounded-[8px]">
       <AnimatePresence mode="wait">
@@ -119,6 +138,116 @@ export function EmailView({
               <p className="mt-1 text-xs text-muted-foreground">
                 Pick a thread from the list to read it here.
               </p>
+            </div>
+          </motion.div>
+        ) : outboxEntry ? (
+          <motion.div
+            key={email.id}
+            initial={false}
+            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+            exit={{ opacity: 0, y: -8, filter: "blur(8px)" }}
+            transition={{ duration: 0.35, ease: [0.2, 0.8, 0.2, 1] }}
+            className="flex h-full flex-col"
+          >
+            <div className="flex flex-wrap items-center gap-2 border-b border-white/5 px-4 py-2.5">
+              <div className="flex-1">
+                <span className="rounded-full bg-white/5 border border-white/10 px-2.5 py-0.5 text-[10px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
+                  {outboxEntry.status === "failed" ? "Failed Delivery" : "Pending Outbox"}
+                </span>
+              </div>
+
+              <div className="ml-auto flex flex-none items-center justify-end gap-2">
+                {!outboxEntry.isCommitted && (
+                  <motion.button
+                    whileTap={{ scale: 0.96 }}
+                    whileHover={{ y: -1 }}
+                    onClick={() => actions.onCancelSend?.(email)}
+                    className="flex items-center gap-1.5 rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-muted-foreground transition hover:bg-white/10 hover:text-foreground"
+                  >
+                    Cancel Send
+                  </motion.button>
+                )}
+                {outboxEntry.status === "failed" && outboxEntry.canRetry !== false && (
+                  <motion.button
+                    whileTap={{ scale: 0.96 }}
+                    whileHover={{ y: -1 }}
+                    onClick={() => actions.onRetrySend?.(email)}
+                    className="flex items-center gap-1.5 rounded-md border border-blue-400/30 bg-blue-500/20 px-3.5 py-1.5 text-xs font-semibold text-blue-100 transition hover:bg-blue-500/30"
+                  >
+                    Retry Send
+                  </motion.button>
+                )}
+              </div>
+            </div>
+
+            <div className="scrollbar-thin flex-1 overflow-y-auto px-5 py-5 sm:px-7">
+              <article className="mx-auto w-full max-w-[920px]">
+                <div className="border-b border-white/[0.07] pb-5">
+                  <p className="mail-reader-meta mb-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                    Outbound Message
+                  </p>
+                  <h1 className="mail-reader-title max-w-[720px] text-[26px] font-semibold leading-[1.12] text-foreground sm:text-[30px]">
+                    {email.subject}
+                  </h1>
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <span className="mail-reader-meta rounded-md border border-white/[0.1] bg-white/[0.045] px-2 py-1 text-[10px] uppercase text-muted-foreground">
+                      Recipients: {outboxEntry.recipients.join(", ")}
+                    </span>
+                    {outboxEntry.postageAmount && (
+                      <span className="mail-reader-meta rounded-md border border-white/[0.1] bg-white/[0.045] px-2 py-1 text-[10px] uppercase text-muted-foreground">
+                        Postage: {outboxEntry.postageAmount} XLM
+                      </span>
+                    )}
+                    <span className="mail-reader-meta rounded-md border border-white/[0.1] bg-white/[0.045] px-2 py-1 text-[10px] uppercase text-muted-foreground">
+                      Started: {email.time}
+                    </span>
+                  </div>
+                </div>
+
+                {outboxEntry.stages && outboxEntry.stages.length > 0 && (
+                  <div className="mt-6">
+                    <SendProgress
+                      stages={outboxEntry.stages.map((s) => ({
+                        id: s.id as any,
+                        label: s.label,
+                        status: s.status as any,
+                        detail: s.detail,
+                      }))}
+                      error={
+                        outboxEntry.errorMessage ||
+                        (outboxEntry.status === "failed" ? "Relay submission failed" : null)
+                      }
+                      failureDetails={{
+                        stage: outboxEntry.stages.find((s) => s.status === "error")?.id,
+                        code: outboxEntry.errorCode,
+                        message: outboxEntry.errorMessage,
+                        supportId: outboxEntry.supportId,
+                        timestamp: outboxEntry.updatedAt,
+                        isCommitted: outboxEntry.isCommitted,
+                        canRetry: outboxEntry.canRetry,
+                      }}
+                      supportId={outboxEntry.supportId}
+                      canRetry={outboxEntry.canRetry}
+                      isCommitted={outboxEntry.isCommitted}
+                      onRetry={() => actions.onRetrySend?.(email)}
+                      onSaveDraft={() => {
+                        actions.onShowToast?.("Draft already saved.");
+                      }}
+                    />
+                  </div>
+                )}
+
+                <div className="mt-7 max-w-[68ch] space-y-4 text-sm text-muted-foreground">
+                  <p>Plaintext body is not persisted locally for security and privacy reasons.</p>
+                  {outboxEntry.status === "failed" && (
+                    <p className="text-xs text-red-300">
+                      Error Details:{" "}
+                      {outboxEntry.errorMessage ??
+                        "No detailed error message was returned from the relay."}
+                    </p>
+                  )}
+                </div>
+              </article>
             </div>
           </motion.div>
         ) : (
@@ -209,6 +338,7 @@ export function EmailView({
                     key={label}
                     whileTap={{ scale: 0.96 }}
                     whileHover={{ y: -1 }}
+                    aria-label={label}
                     onClick={() => {
                       if (label === "Reply all") setInlineMode("reply-all");
                       else if (label === "Forward") setInlineMode("forward");
@@ -420,7 +550,31 @@ export function EmailView({
                       {email.attachments.map((attachment) => (
                         <motion.div
                           key={attachment.name}
-                          onClick={() => actions.onPreviewAttachment?.(attachment)}
+                          onClick={() =>
+                            actions.onPreviewAttachment?.({
+                              ...attachment,
+                              senderAddress: email.email,
+                              ...(email.attachmentCrypto?.attachments.find(
+                                (a) => a.filename === attachment.name,
+                              )
+                                ? {
+                                    encryptedCiphertext: email.attachmentCrypto!.attachments.find(
+                                      (a) => a.filename === attachment.name,
+                                    )!.ciphertext,
+                                    encryptedNonce: email.attachmentCrypto!.attachments.find(
+                                      (a) => a.filename === attachment.name,
+                                    )!.nonce,
+                                    encryptedMac: email.attachmentCrypto!.attachments.find(
+                                      (a) => a.filename === attachment.name,
+                                    )!.mac,
+                                    expectedContentHash: email.attachmentCrypto!.attachments.find(
+                                      (a) => a.filename === attachment.name,
+                                    )!.contentHash,
+                                    contentKey: email.attachmentCrypto!.contentKey,
+                                  }
+                                : {}),
+                            })
+                          }
                           whileHover={{ scale: 1.02 }}
                           whileTap={{ scale: 0.98 }}
                           className={cn(
@@ -762,11 +916,11 @@ function ReceiptStatus({
   email: Email;
   onSendReadReceipt?: (email: Email) => void;
 }) {
-  if (!email.receiptState || email.receiptState === "none") {
-    return null;
-  }
+  const receiptState = email.receiptState ?? "none";
 
-  if (email.receiptState === "sent") {
+  if (receiptState === "none") return null;
+
+  if (receiptState === "sent") {
     return (
       <div className="mt-3 flex items-center gap-2 rounded-lg border border-emerald-200/15 bg-emerald-200/[0.03] px-3 py-2">
         <CheckCheck className="h-4 w-4 text-emerald-300" />
@@ -775,14 +929,14 @@ function ReceiptStatus({
     );
   }
 
-  if (email.receiptState === "pending") {
+  if (receiptState === "pending") {
     return (
       <div className="mt-3 flex items-center gap-3 rounded-lg border border-amber-200/15 bg-amber-200/[0.03] px-3 py-2">
         <CheckCheck className="h-4 w-4 text-amber-200" />
         <div className="flex-1">
           <div className="text-xs font-medium text-foreground">Read receipt pending</div>
           <div className="text-[11px] text-muted-foreground">
-            Send a read receipt to let them know you've seen this
+            Send a read receipt to let them know you&apos;ve seen this
           </div>
         </div>
         {onSendReadReceipt && (
@@ -897,25 +1051,19 @@ function ThreadReadError({
   failure,
   onRetry,
 }: {
-  failure: { kind: string; message: string; retryable: boolean };
+  failure: ClassifiedMailSourceError;
   onRetry?: () => void;
 }) {
+  const classified = classifyAppFailure(failure.error, {
+    online: failure.kind !== "offline",
+  });
   return (
-    <div
-      role="alert"
-      className="mt-5 rounded-lg border border-red-300/20 bg-red-300/[0.04] px-3 py-3"
-    >
-      <p className="text-xs font-medium text-foreground">{failure.message}</p>
-      {failure.retryable && onRetry ? (
-        <button
-          type="button"
-          onClick={onRetry}
-          className="mt-2 rounded-md border border-red-300/15 bg-red-300/[0.06] px-2.5 py-1 text-[10px] font-medium text-red-200 transition hover:bg-red-300/[0.12]"
-        >
-          Retry
-        </button>
-      ) : null}
-    </div>
+    <DegradedStateBanner
+      failure={classified}
+      compact
+      className="mx-0 mb-0 mt-5"
+      onRetry={onRetry}
+    />
   );
 }
 

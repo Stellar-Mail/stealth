@@ -257,6 +257,15 @@ export interface UnknownSenderRequest {
   status: UnknownSenderRequestStatus;
   decidedAt?: string;
   decision?: UnknownSenderDecision;
+  postageAmount?: string;
+  verifiedSender?: boolean;
+  proofSummary?: string;
+}
+
+export interface UnknownSenderRequestsResponse {
+  items: UnknownSenderRequest[];
+  nextCursor: string | null;
+  hasMore: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -362,6 +371,39 @@ export interface DeliveryReceipt {
   messageId: string;
   recipient: string;
   sender: string;
+}
+
+/** Delivery/read receipt persisted by the receipts service (BETA-044). */
+export interface ReceiptRecord {
+  deliveredAt: string;
+  messageId: string;
+  readAt: string | null;
+  recipient: string;
+  sender: string;
+  payloadHash?: string;
+  protocolVersion?: number;
+  txHash?: string | null;
+  chainStatus?: "pending" | "confirmed" | "failed" | null;
+  ledgerSeq?: number | null;
+  confirmedAt?: string | null;
+}
+
+export type LifecycleAnchorStatus = "pending" | "submitted" | "confirmed" | "failed";
+
+/** On-chain lifecycle anchor for a message (BETA-043). */
+export interface LifecycleAnchorRecord {
+  messageId: string;
+  sender: string;
+  recipient: string;
+  amount: string;
+  verified: boolean;
+  receiptRequired: boolean;
+  status: LifecycleAnchorStatus;
+  scheduledAt: string;
+  updatedAt: string;
+  failureCount: number;
+  lastError: string | null;
+  txHash: string | null;
 }
 
 // ---------------------------------------------------------------------------

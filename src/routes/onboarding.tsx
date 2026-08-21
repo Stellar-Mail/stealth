@@ -3,7 +3,9 @@ import { ArrowRight, CheckCircle2, RefreshCw } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { clearBootstrapCache } from "@/features/identity/bootstrap";
 import { useBootstrap } from "@/features/identity/useBootstrap";
+import { OnboardingFlow } from "@/features/onboarding/OnboardingFlow";
 
 export const Route = createFileRoute("/onboarding")({
   component: OnboardingPage,
@@ -13,6 +15,29 @@ function OnboardingPage() {
   const { data, retry, isRetrying } = useBootstrap();
 
   const pendingVerification = data?.user.accountStatus === "pending_verification";
+  const onboarding = data?.onboarding;
+  const completed = onboarding?.status === "completed";
+
+  const handleComplete = async () => {
+    // Invalidate the cached bootstrap so the route gate re-resolves the
+    // account to "active" and routes the user home on the next pass.
+    clearBootstrapCache();
+    await retry();
+  };
+
+  if (data && !pendingVerification && !completed) {
+    return (
+      <OnboardingFlow
+        account={{
+          displayName: data.user.displayName,
+          email: data.user.email,
+          username: data.user.username,
+        }}
+        mailboxAddress={data.address ?? data.user.userId ?? ""}
+        onComplete={handleComplete}
+      />
+    );
+  }
 
   return (
     <main className="ambient-bg flex min-h-screen items-center justify-center p-4 sm:p-6">

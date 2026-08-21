@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { KeyRound, Lock, User, AlertCircle, CheckCircle2, X, Mail } from "lucide-react";
 
 import { sharedTypedApi as api, ApiClientError, errorLabel } from "@/lib/api";
+import { useFocusTrap } from "@/lib/useFocusTrap";
 
 export interface AuthModalProps {
   open: boolean;
@@ -23,6 +24,22 @@ export function AuthModal({ open, onClose, onSuccess }: AuthModalProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+
+  // Stable close handler so the focus trap does not re-arm on every render.
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+  const close = useCallback(() => closeRef.current(), []);
+  const modalRef = useFocusTrap(open, close);
+
+  // Move focus to the first form field on open, after the trap has mounted.
+  useEffect(() => {
+    if (!open) return;
+    const t = globalThis.setTimeout(() => {
+      const first = modalRef.current?.querySelector<HTMLElement>("input, textarea, button");
+      first?.focus();
+    }, 0);
+    return () => globalThis.clearTimeout(t);
+  }, [open]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -117,17 +134,23 @@ export function AuthModal({ open, onClose, onSuccess }: AuthModalProps) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          onClick={onClose}
+          onClick={close}
+          aria-hidden="true"
           className="fixed inset-0 bg-black/60 backdrop-blur-md"
         />
         <motion.div
+          ref={modalRef}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="auth-modal-title"
           initial={{ opacity: 0, scale: 0.95, y: 10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 10 }}
-          className="relative z-[130] w-full max-w-md overflow-hidden rounded-2xl border border-white/10 bg-[#121316] p-6 text-foreground shadow-2xl"
+          className="relative z-[130] w-full max-w-md overflow-hidden rounded-2xl border border-white/10 bg-[#121316] p-6 text-foreground shadow-2xl outline-none"
         >
           <button
-            onClick={onClose}
+            onClick={close}
+            aria-label={registering ? "Close create account" : "Close sign in"}
             className="absolute right-4 top-4 rounded-lg p-1 text-muted-foreground transition hover:bg-white/10 hover:text-foreground"
           >
             <X className="h-5 w-5" />
@@ -138,7 +161,7 @@ export function AuthModal({ open, onClose, onSuccess }: AuthModalProps) {
               <KeyRound className="h-6 w-6" />
             </div>
             <div>
-              <h2 className="text-xl font-bold tracking-tight">
+              <h2 id="auth-modal-title" className="text-xl font-bold tracking-tight">
                 {registering ? "Create your Stealth account" : "Sign in to Stealth"}
               </h2>
               <p className="text-xs text-muted-foreground">
@@ -166,6 +189,7 @@ export function AuthModal({ open, onClose, onSuccess }: AuthModalProps) {
                 <motion.div
                   initial={{ opacity: 0, y: -6 }}
                   animate={{ opacity: 1, y: 0 }}
+                  role="alert"
                   className="flex items-center gap-2.5 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive"
                 >
                   <AlertCircle className="h-4 w-4 shrink-0" />
@@ -177,6 +201,7 @@ export function AuthModal({ open, onClose, onSuccess }: AuthModalProps) {
                 <motion.div
                   initial={{ opacity: 0, y: -6 }}
                   animate={{ opacity: 1, y: 0 }}
+                  role="status"
                   className="flex items-center gap-2.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-400"
                 >
                   <CheckCircle2 className="h-4 w-4 shrink-0" />

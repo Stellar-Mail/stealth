@@ -547,3 +547,110 @@ function constantTimeEqual(a: Uint8Array, b: Uint8Array): boolean {
   }
   return diff === 0;
 }
+
+// ---------------------------------------------------------------------------
+// BETA-067: Per-attachment decryption
+// ---------------------------------------------------------------------------
+
+export interface DecryptAttachmentInput {
+  /** Base64-encoded ciphertext (includes trailing 16-byte GCM auth tag). */
+  ciphertext: string;
+  /** Hex-encoded 12-byte nonce used during encryption. */
+  nonce: string;
+  /** Hex-encoded 16-byte GCM auth tag (must match the tag appended to ciphertext). */
+  mac: string;
+  /** Expected SHA-256 hex digest of the plaintext bytes. */
+  expectedContentHash?: string;
+}
+
+export interface DecryptAttachmentResult {
+  /** Decrypted plaintext bytes. */
+  bytes: Uint8Array;
+  /** SHA-256 hex digest of the decrypted bytes. */
+  contentHash: string;
+}
+
+/**
+ * Decrypt a single attachment that was encrypted inline within a sealed
+ * envelope. Each attachment is AES-256-GCM encrypted with the same content
+ * key used for the envelope body, but with its own random nonce.
+ *
+ * This function verifies the GCM auth tag (via Web Crypto) and optionally
+ * checks the content hash commitment. Tampered ciphertext, wrong keys, or
+ * hash mismatches all fail closed with an {@link OpenEnvelopeError}.
+ *
+ * BETA-067 — built against BETA-047's open-envelope primitives. The actual
+ * download route (BETA-031) is not yet merged; this function decrypts
+ * attachment bytes that were sealed inline by `sealEnvelope()`.
+ */
+export async function decryptAttachment(
+  key: CryptoKey,
+  input: DecryptAttachmentInput,
+): Promise<DecryptAttachmentResult> {
+  if (!input.ciphertext || typeof input.ciphertext !== "string") {
+    throw new OpenEnvelopeError(
+      "attachment ciphertext is missing or invalid",
+      "crypto_validation_error",
+    );
+  }
+  if (!input.nonce || !/^[0-9a-f]{24}$/.test(input.nonce)) {
+    throw new OpenEnvelopeError(
+      "attachment nonce is missing or malformed (expected 12-byte hex)",
+      "crypto_validation_error",
+    );
+  }
+  if (!input.mac || !/^[0-9a-f]{32}$/.test(input.mac)) {
+    throw new OpenEnvelopeError(
+      "attachment mac is missing or malformed (expected 16-byte hex)",
+      "crypto_validation_error",
+    );
+  }
+
+  let ciphertext: Uint8Array<ArrayBuffer>;
+  try {
+    ciphertext = fromBase64(input.ciphertext);
+  } catch {
+    throw new OpenEnvelopeError(
+      "attachment ciphertext is not valid base64",
+      "crypto_validation_error",
+    );
+  }
+
+  if (ciphertext.length < GCM_TAG_BYTES) {
+    throw new OpenEnvelopeError(
+      "attachment ciphertext shorter than auth tag",
+      "crypto_integrity_error",
+    );
+  }
+
+  // Verify the declared MAC matches the tag appended to the ciphertext.
+  const declaredTag = fromHex(input.mac);
+  const actualTag = ciphertext.slice(ciphertext.length - GCM_TAG_BYTES);
+  if (!constantTimeEqual(declaredTag, actualTag)) {
+    throw new OpenEnvelopeError("attachment auth tag mismatch", "crypto_integrity_error");
+  }
+
+  const nonce = fromHex(input.nonce);
+
+  let decrypted: ArrayBuffer;
+  try {
+    decrypted = await crypto.subtle.decrypt({ name: "AES-GCM", iv: nonce }, key, ciphertext);
+  } catch {
+    throw new OpenEnvelopeError(
+      "attachment decryption failed (wrong key or tampered)",
+      "crypto_decryption_error",
+    );
+  }
+
+  const bytes = new Uint8Array(decrypted);
+  const contentHash = await sha256Hex(bytes);
+
+  if (input.expectedContentHash && contentHash !== input.expectedContentHash) {
+    throw new OpenEnvelopeError(
+      "attachment content hash mismatch after decryption",
+      "crypto_integrity_error",
+    );
+  }
+
+  return { bytes, contentHash };
+}

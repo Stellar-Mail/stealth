@@ -44,6 +44,21 @@ function sampleRecoveryCodeSet(
 }
 
 class FailingRepository implements ApiRepository {
+  async getAccountDeletionRequest() {
+    return null;
+  }
+
+  async setAccountDeletionRequest(request: any) {
+    return request;
+  }
+
+  async exportAccount(): Promise<any> {
+    throw new Error("not implemented in retry test double");
+  }
+
+  async deleteAccountData() {
+    return { deleted: [], retained: [] };
+  }
   public readonly inner = new MemoryApiRepository();
   private readonly failCounts = new Map<string, number>();
   private readonly callCounts = new Map<string, number>();
@@ -518,6 +533,32 @@ class FailingRepository implements ApiRepository {
     this.maybeFail("deleteContact");
     return this.inner.deleteContact(owner, contactId);
   }
+  async listDrafts(
+    owner: string,
+    options?: import("../../../src/server/api/repository").DraftQueryOptions,
+  ) {
+    this.maybeFail("listDrafts");
+    return this.inner.listDrafts(owner, options);
+  }
+  async getDraft(owner: string, draftId: string) {
+    this.maybeFail("getDraft");
+    return this.inner.getDraft(owner, draftId);
+  }
+  async createDraft(draft: import("../../../src/server/api/domain").DraftRecord) {
+    this.maybeFail("createDraft");
+    return this.inner.createDraft(draft);
+  }
+  async updateDraft(
+    draft: import("../../../src/server/api/domain").DraftRecord,
+    expectedVersion: number,
+  ) {
+    this.maybeFail("updateDraft");
+    return this.inner.updateDraft(draft, expectedVersion);
+  }
+  async deleteDraft(owner: string, draftId: string) {
+    this.maybeFail("deleteDraft");
+    return this.inner.deleteDraft(owner, draftId);
+  }
   async enqueueJob(job: import("../../../src/server/api/domain").DurableJob) {
     this.maybeFail("enqueueJob");
     return this.inner.enqueueJob(job);
@@ -592,6 +633,16 @@ class FailingRepository implements ApiRepository {
   ) {
     this.maybeFail("createSendOperationIfAbsent");
     return this.inner.createSendOperationIfAbsent(state);
+  }
+  async getOnboardingDraft(userId: string) {
+    this.maybeFail("getOnboardingDraft");
+    return this.inner.getOnboardingDraft(userId);
+  }
+  async saveOnboardingDraft(
+    record: import("../../../src/server/api/domain").OnboardingDraftRecord,
+  ) {
+    this.maybeFail("saveOnboardingDraft");
+    return this.inner.saveOnboardingDraft(record);
   }
   reset(): void {
     this.inner.reset();

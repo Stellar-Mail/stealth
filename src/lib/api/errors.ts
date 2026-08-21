@@ -21,6 +21,8 @@ export const API_CLIENT_ERROR_CODES = [
   "invalid_state_transition",
   "bad_request",
   "internal_error",
+  "offline",
+  "timeout",
 ] as const;
 
 export type ApiClientErrorCode = (typeof API_CLIENT_ERROR_CODES)[number];
@@ -109,18 +111,19 @@ export function normalizeApiClientError(caught: unknown): ApiClientError {
   if (isApiClientError(caught)) return caught;
 
   if (caught instanceof DOMException && caught.name === "AbortError") {
+    const timedOut = caught.message.toLowerCase().includes("timeout");
     return new ApiClientError({
-      code: "internal_error",
-      message: "Request was cancelled",
+      code: timedOut ? "timeout" : "internal_error",
+      message: timedOut ? "Request timed out" : "Request was cancelled",
       status: 0,
-      retryable: false,
-      retryClassification: "none",
+      retryable: timedOut,
+      retryClassification: timedOut ? "transient" : "none",
     });
   }
 
-  if (caught instanceof TypeError && caught.message.includes("fetch")) {
+  if (caught instanceof TypeError && /fetch|network/i.test(caught.message)) {
     return new ApiClientError({
-      code: "dependency_failure",
+      code: "offline",
       message: "You appear to be offline. Check your connection and retry.",
       status: 0,
       retryable: true,
@@ -187,6 +190,12 @@ export function errorLabel(error: ApiClientError): string {
       return error.retryAfterSeconds
         ? `Rate limit reached. Try again in ${error.retryAfterSeconds}s.`
         : "Rate limit reached. Try again shortly.";
+    case "offline":
+      return "You appear to be offline. Check your connection and retry.";
+    case "timeout":
+      return "The request timed out. Retry without sending the action again.";
+    case "conflict":
+      return "This change conflicted with a newer server state. Retry to reconcile.";
     case "dependency_failure":
       return "A required service is unavailable. Please retry.";
     case "validation_error":

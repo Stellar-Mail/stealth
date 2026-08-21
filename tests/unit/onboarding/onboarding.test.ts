@@ -76,7 +76,7 @@ describe("SENDER_RULE_TO_POLICY", () => {
 describe("draftToMailboxPolicy", () => {
   const base: OnboardingDraft = {
     ...DEFAULT_DRAFT,
-    walletAddress: `G${"A".repeat(55)}`,
+    displayName: "Ada",
   };
 
   it("produces a valid policy from the default draft", () => {
@@ -116,7 +116,7 @@ describe("draftToMailboxPolicy", () => {
 describe("draftToBetaDefaults", () => {
   const base: OnboardingDraft = {
     ...DEFAULT_DRAFT,
-    walletAddress: `G${"A".repeat(55)}`,
+    displayName: "Ada",
   };
 
   it("matches the privacy-safe beta default when all onboarding defaults are accepted", () => {
@@ -148,9 +148,9 @@ describe("draftToBetaDefaults", () => {
 // ONBOARDING_STEPS ordering
 // ---------------------------------------------------------------------------
 describe("ONBOARDING_STEPS", () => {
-  it("starts with identity and ends with policy-review", () => {
-    expect(ONBOARDING_STEPS[0]).toBe("identity");
-    expect(ONBOARDING_STEPS[ONBOARDING_STEPS.length - 1]).toBe("policy-review");
+  it("starts with profile and ends with review", () => {
+    expect(ONBOARDING_STEPS[0]).toBe("profile");
+    expect(ONBOARDING_STEPS[ONBOARDING_STEPS.length - 1]).toBe("review");
   });
 
   it("contains exactly 7 steps", () => {
@@ -159,13 +159,13 @@ describe("ONBOARDING_STEPS", () => {
 
   it("contains all expected steps in order", () => {
     expect(ONBOARDING_STEPS).toEqual([
-      "identity",
+      "profile",
+      "stealth-address",
       "recovery",
-      "address",
-      "unknown-sender-rules",
-      "minimum-postage",
-      "receipt-preference",
-      "policy-review",
+      "sender-policy",
+      "postage",
+      "receipts",
+      "review",
     ]);
   });
 });
@@ -178,8 +178,8 @@ describe("DEFAULT_DRAFT", () => {
     expect(DEFAULT_DRAFT.unknownSenderRule).toBe("request");
   });
 
-  it("starts with no wallet address", () => {
-    expect(DEFAULT_DRAFT.walletAddress).toBeNull();
+  it("starts with an empty display name", () => {
+    expect(DEFAULT_DRAFT.displayName).toBe("");
   });
 
   it("has receipts off by default", () => {

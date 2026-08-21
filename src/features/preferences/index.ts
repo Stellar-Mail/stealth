@@ -10,5 +10,7 @@ export type {
   UiPreferences,
   ReceiptPreference,
   UnknownSenderPolicy,
+  NotificationCategory,
+  NotificationPreferences,
 } from "./types";
 export type { LayoutPreferences } from "./layout-types";

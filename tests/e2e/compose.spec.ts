@@ -72,7 +72,7 @@ test.describe("compose flow", () => {
       });
     }, DEMO_SIGNER);
 
-    await page.route("**/relays/*/diagnostics", (route) =>
+    await page.route("**/relays/**/diagnostics", (route) =>
       route.fulfill({
         status: 200,
         contentType: "application/json",
@@ -88,28 +88,9 @@ test.describe("compose flow", () => {
       route.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
     );
 
-    await page.route("**/api/v1/identity/resolve*", (route) => {
-      const url = new URL(route.request().url());
-      const identifier = (url.searchParams.get("identifier") ?? "").toUpperCase();
-      route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          data: {
-            resolved: true,
-            status: "active",
-            canonicalAddress: identifier,
-            account: identifier,
-            publicKey: identifier,
-            freshness: {
-              source: "live",
-              cached: false,
-              expiresAt: new Date(Date.now() + 60000).toISOString(),
-            },
-          },
-        }),
-      });
-    });
+    await page.route("**/api/v1/relay/messages", (route) =>
+      route.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
+    );
 
     await page.route("**/api/v1/identity/keys/**", (route) => {
       const url = new URL(route.request().url());
@@ -133,7 +114,9 @@ test.describe("compose flow", () => {
     await page.getByPlaceholder("Write your message", { exact: false }).fill("Hello from E2E test");
     await expect(page.getByText(RECIPIENT)).toBeVisible();
 
-    await page.getByRole("button", { name: "Send", exact: true }).click();
+    const sendBtn = page.getByRole("button", { name: "Send", exact: true });
+    await expect(sendBtn).toBeEnabled();
+    await sendBtn.click();
 
     await expect(page.getByText("New message")).not.toBeVisible();
     await expect(page.getByText(/Encrypted message sent/i)).toBeVisible();

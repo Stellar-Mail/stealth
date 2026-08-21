@@ -38,8 +38,11 @@ describe("mail shell production path (BETA-053)", () => {
     expect(overlays).not.toContain("getDemoEmails");
     expect(source).toContain("useMailboxSync");
     expect(source).toContain("useTombstoneMessage");
+    expect(source).toContain("useConnectivity");
     expect(app).toContain("useThreadRead");
     expect(app).toContain("threadRead.thread");
+    expect(app).toContain("DegradedStateBanner");
+    expect(app).toContain("offlineAppFailure");
     expect(source).toContain("import.meta.env.DEV");
     expect(source).toContain('import("@/features/mail/demo/demo-data")');
   });
@@ -48,5 +51,12 @@ describe("mail shell production path (BETA-053)", () => {
     const mailIndex = read("src/features/mail/index.ts");
     expect(mailIndex).not.toContain("demo-data");
     expect(read("src/features/mail/demo/demo-data.ts")).toContain("getDemoEmails");
+  });
+
+  it("gates the triage QA failure toggle behind the DEV build (BETA-073)", () => {
+    const board = read("src/features/requests/RequestsTriageBoard.tsx");
+    expect(board).toContain("import.meta.env?.DEV === true");
+    expect(board).not.toMatch(/import\s+.*SimulateNetworkFailure/);
+    expect(board).toContain("simulateFailure");
   });
 });

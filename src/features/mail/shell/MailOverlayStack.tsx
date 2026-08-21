@@ -1,25 +1,63 @@
+// ---------------------------------------------------------------------------
+// BETA-074 (Issue #1981) — code-split non-critical overlay panels.
+//
+// Compose, calendar, settings, command palette, proof inspector, sender
+// conversion, snooze, contact import, attachment preview, and auth are
+// loaded as separate async chunks (React.lazy) so they never bloat the
+// core mail shell bundle. They stay mounted so their enter/exit animations
+// and focus behavior are unchanged.
+// ---------------------------------------------------------------------------
+
+import { lazy, Suspense } from "react";
+
 import { BulkConfirmDialog } from "@/components/mail/BulkConfirmDialog";
-import { Compose } from "@/components/mail/Compose";
-import { SettingsModal } from "@/components/mail/SettingsModal";
-import { AttachmentPreviewDrawer } from "@/components/mail/AttachmentPreviewDrawer";
-import { AuthModal } from "@/components/mail/AuthModal";
 import type { ComposeSubmission } from "@/components/mail/composeValidation";
 import type { BulkActionConfirmation, BulkActionRequest } from "@/components/mail/bulk-actions";
 import type { Email, SnoozeState } from "@/components/mail/data";
-import { CalendarWorkspace, useCalendar } from "@/features/calendar";
-import { CommandPalette, ShortcutOverlay, type CommandId } from "@/features/command-palette";
-import { ContactMigrationDialog } from "@/features/contacts";
-import {
-  SenderConversionDialog,
-  type SenderConversionTarget,
-  type SenderPolicyChoice,
-} from "@/features/sender-conversion";
-import { SnoozeDialog, type SnoozeTarget } from "@/features/snooze";
-import { ProofInspectorModal } from "@/features/proof-inspector";
+import type { useCalendar } from "@/features/calendar";
+import type { CommandId } from "@/features/command-palette";
+import type { SenderConversionTarget, SenderPolicyChoice } from "@/features/sender-conversion";
+import type { SnoozeTarget } from "@/features/snooze";
 import type { LayoutPreferences, UiPreferences } from "@/features/preferences";
 import type { MailFolder } from "@/components/mail/data";
 import type { MailOverlays } from "../useMailOverlays";
 import type { FeedbackTone } from "@/features/design-system/feedback/use-feedback";
+
+const Compose = lazy(() =>
+  import("@/components/mail/Compose").then((m) => ({ default: m.Compose })),
+);
+const SettingsModal = lazy(() =>
+  import("@/components/mail/SettingsModal").then((m) => ({ default: m.SettingsModal })),
+);
+const CommandPalette = lazy(() =>
+  import("@/features/command-palette").then((m) => ({ default: m.CommandPalette })),
+);
+const ShortcutOverlay = lazy(() =>
+  import("@/features/command-palette").then((m) => ({ default: m.ShortcutOverlay })),
+);
+const ProofInspectorModal = lazy(() =>
+  import("@/features/proof-inspector").then((m) => ({ default: m.ProofInspectorModal })),
+);
+const CalendarWorkspace = lazy(() =>
+  import("@/features/calendar").then((m) => ({ default: m.CalendarWorkspace })),
+);
+const ContactMigrationDialog = lazy(() =>
+  import("@/features/contacts").then((m) => ({ default: m.ContactMigrationDialog })),
+);
+const SenderConversionDialog = lazy(() =>
+  import("@/features/sender-conversion").then((m) => ({ default: m.SenderConversionDialog })),
+);
+const SnoozeDialog = lazy(() =>
+  import("@/features/snooze").then((m) => ({ default: m.SnoozeDialog })),
+);
+const AttachmentPreviewDrawer = lazy(() =>
+  import("@/components/mail/AttachmentPreviewDrawer").then((m) => ({
+    default: m.AttachmentPreviewDrawer,
+  })),
+);
+const AuthModal = lazy(() =>
+  import("@/components/mail/AuthModal").then((m) => ({ default: m.AuthModal })),
+);
 
 type CalendarApi = ReturnType<typeof useCalendar>;
 
@@ -53,6 +91,8 @@ export function MailOverlayStack({
   onCloseSnooze,
   onImportComplete,
   composeOwner,
+  actor,
+  offline,
 }: {
   overlays: MailOverlays;
   emails: Email[];
@@ -89,6 +129,8 @@ export function MailOverlayStack({
     rows: Array<{ name: string; address: string }>;
   }) => void;
   composeOwner: string;
+  actor: string | null;
+  offline: boolean;
 }) {
   return (
     <>
@@ -109,6 +151,8 @@ export function MailOverlayStack({
         initialTo={overlays.composeInitial.to}
         initialSubject={overlays.composeInitial.subject}
         initialBody={overlays.composeInitial.body}
+        initialDraftId={overlays.composeInitial.draftId}
+        initialVersion={overlays.composeInitial.version}
         initialPostage={preferences.minimumPostage}
         onSubmit={onComposeSubmit}
       />
@@ -190,7 +234,12 @@ export function MailOverlayStack({
         isOpen={!!overlays.previewAttachment}
         onClose={() => overlays.setPreviewAttachment(null)}
         attachment={overlays.previewAttachment}
-        senderAddress={selected?.email}
+        senderAddress={overlays.previewAttachment?.senderAddress ?? selected?.email}
+        encryptedCiphertext={overlays.previewAttachment?.encryptedCiphertext}
+        encryptedNonce={overlays.previewAttachment?.encryptedNonce}
+        encryptedMac={overlays.previewAttachment?.encryptedMac}
+        expectedContentHash={overlays.previewAttachment?.expectedContentHash}
+        contentKey={overlays.previewAttachment?.contentKey}
       />
       <AuthModal
         open={overlays.authModalOpen}

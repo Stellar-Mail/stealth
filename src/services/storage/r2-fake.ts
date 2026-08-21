@@ -70,6 +70,20 @@ export class FakeR2Bucket {
     };
   }
 
+  async head(key: string): Promise<R2Object | null> {
+    const stored = this.objects.get(key);
+    if (!stored) return null;
+    return {
+      key: stored.key,
+      size: stored.bytes.length,
+      uploaded: stored.uploaded,
+      etag: `${stored.key}-${stored.bytes.length}`,
+      httpMetadata: {},
+      customMetadata: stored.customMetadata,
+      checksums: {},
+    };
+  }
+
   async delete(key: string): Promise<void> {
     this.objects.delete(key);
   }

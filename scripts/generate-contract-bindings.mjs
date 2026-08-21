@@ -245,8 +245,7 @@ function emitClient(spec, contractName, xdrBase64Entries) {
     `// AUTO-GENERATED — do not edit by hand.`,
     `// Source: contracts/soroban/${contractName}/spec.json`,
     `// Regenerate: npm run generate:bindings`,
-    ``,
-    `import { contract, Keypair } from "@stellar/stellar-sdk";`,
+    `import { contract, Keypair, Transaction } from "@stellar/stellar-sdk";`,
     ``,
   ];
 
@@ -264,9 +263,15 @@ function emitClient(spec, contractName, xdrBase64Entries) {
     lines.push("");
   }
 
-  // XDR spec entries (embedded)
-  lines.push(`// Embedded XDR spec entries derived from spec.json`);
-  lines.push(`const SPEC_ENTRIES: string[] = ${JSON.stringify(xdrBase64Entries, null, 2)};`);
+  // Spec XDR base64 array constant
+  lines.push(
+    `/** Base64-encoded XDR contract spec entries used to initialize the contract Spec. */`,
+  );
+  lines.push(`export const SPEC_ENTRIES: string[] = [`);
+  for (const entry of xdrBase64Entries) {
+    lines.push(`  "${entry}",`);
+  }
+  lines.push(`];`);
   lines.push(``);
 
   // Client options interface
@@ -309,7 +314,22 @@ function emitClient(spec, contractName, xdrBase64Entries) {
   lines.push(`      networkPassphrase: opts.networkPassphrase,`);
   lines.push(`      rpcUrl: opts.rpcUrl,`);
   lines.push(`      ...(opts.publicKey ? { publicKey: opts.publicKey } : {}),`);
-  lines.push(`      ...(opts.signer ? { signTransaction: Keypair.fromSecret(opts.signer) } : {}),`);
+  lines.push(`      ...(opts.signer ? {`);
+  lines.push(
+    `        signTransaction: async (xdrString: string, signOpts?: { networkPassphrase?: string }) => {`,
+  );
+  lines.push(`          const kp = Keypair.fromSecret(opts.signer!);`);
+  lines.push(
+    `          const networkPassphrase = signOpts?.networkPassphrase ?? opts.networkPassphrase;`,
+  );
+  lines.push(`          const tx = new Transaction(xdrString, networkPassphrase);`);
+  lines.push(`          tx.sign(kp);`);
+  lines.push(`          return {`);
+  lines.push(`            signedTxXdr: tx.toXDR(),`);
+  lines.push(`            signerAddress: kp.publicKey(),`);
+  lines.push(`          };`);
+  lines.push(`        },`);
+  lines.push(`      } : {}),`);
   lines.push(`    }`);
   lines.push(`  );`);
   lines.push(`}`);

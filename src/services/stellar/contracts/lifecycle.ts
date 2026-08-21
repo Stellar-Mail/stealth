@@ -1,8 +1,7 @@
 // AUTO-GENERATED — do not edit by hand.
 // Source: contracts/soroban/lifecycle/spec.json
 // Regenerate: npm run generate:bindings
-
-import { contract, Keypair } from "@stellar/stellar-sdk";
+import { contract, Keypair, Transaction } from "@stellar/stellar-sdk";
 
 export interface LifecycleConfig {
   policies: string;
@@ -95,8 +94,8 @@ export enum LifecycleError {
   AlreadyRead = 12,
 }
 
-// Embedded XDR spec entries derived from spec.json
-const SPEC_ENTRIES: string[] = [
+/** Base64-encoded XDR contract spec entries used to initialize the contract Spec. */
+export const SPEC_ENTRIES: string[] = [
   "AAAAAQAAAAAAAAAAAAAAD0xpZmVjeWNsZUNvbmZpZwAAAAADAAAAAAAAAAhwb2xpY2llcwAAABMAAAAAAAAAB3Bvc3RhZ2UAAAAAEwAAAAAAAAAIcmVjZWlwdHMAAAAT",
   "AAAAAQAAAAAAAAAAAAAAB1Bvc3RhZ2UAAAAACAAAAAAAAAAGYW1vdW50AAAAAAALAAAAAAAAAApjcmVhdGVkX2F0AAAAAAAGAAAAAAAAAA1kaXNwdXRlX3VudGlsAAAAAAAABgAAAAAAAAAKZXhwaXJlc19hdAAAAAAABgAAAAAAAAADZmVlAAAAAAsAAAAAAAAACXJlY2lwaWVudAAAAAAAABMAAAAAAAAABnNlbmRlcgAAAAAAEwAAAAAAAAAGc3RhdHVzAAAAAAfQAAAADVBvc3RhZ2VTdGF0dXMAAAA=",
   "AAAAAQAAAAAAAAAAAAAADFJlY2VpcHRTdGF0ZQAAAAcAAAAAAAAADGRlbGl2ZXJlZF9hdAAAAAYAAAAAAAAACm1lc3NhZ2VfaWQAAAAAA+4AAAAgAAAAAAAAAAxwYXlsb2FkX2hhc2gAAAPuAAAAIAAAAAAAAAAQcHJvdG9jb2xfdmVyc2lvbgAAAAQAAAAAAAAAB3JlYWRfYXQAAAAD6AAAAAYAAAAAAAAACXJlY2lwaWVudAAAAAAAABMAAAAAAAAABnNlbmRlcgAAAAAAEw==",
@@ -142,7 +141,20 @@ export function createLifecycleClient(opts: LifecycleClientOptions): contract.Cl
     networkPassphrase: opts.networkPassphrase,
     rpcUrl: opts.rpcUrl,
     ...(opts.publicKey ? { publicKey: opts.publicKey } : {}),
-    ...(opts.signer ? { signTransaction: Keypair.fromSecret(opts.signer) } : {}),
+    ...(opts.signer
+      ? {
+          signTransaction: async (xdrString: string, signOpts?: { networkPassphrase?: string }) => {
+            const kp = Keypair.fromSecret(opts.signer!);
+            const networkPassphrase = signOpts?.networkPassphrase ?? opts.networkPassphrase;
+            const tx = new Transaction(xdrString, networkPassphrase);
+            tx.sign(kp);
+            return {
+              signedTxXdr: tx.toXDR(),
+              signerAddress: kp.publicKey(),
+            };
+          },
+        }
+      : {}),
   });
 }
 

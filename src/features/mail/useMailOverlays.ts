@@ -9,6 +9,8 @@ export function useMailOverlays() {
     to?: string;
     subject?: string;
     body?: string;
+    draftId?: string | null;
+    version?: number;
   }>({});
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -21,6 +23,18 @@ export function useMailOverlays() {
     name: string;
     size: string;
     type: string;
+    /** The email this attachment belongs to (for provenance display). */
+    senderAddress?: string;
+    /** Encrypted ciphertext (base64) from the sealed envelope. */
+    encryptedCiphertext?: string;
+    /** Hex-encoded 12-byte nonce from the attachment's encryption_metadata. */
+    encryptedNonce?: string;
+    /** Hex-encoded 16-byte GCM tag from the attachment's encryption_metadata. */
+    encryptedMac?: string;
+    /** Expected SHA-256 hex content hash for integrity verification. */
+    expectedContentHash?: string;
+    /** The AES-GCM content key for decryption (CryptoKey object). */
+    contentKey?: CryptoKey;
   } | null>(null);
   const [shortcutOverlayOpen, setShortcutOverlayOpen] = useState(false);
   const [proofInspectorOpen, setProofInspectorOpen] = useState(false);
@@ -28,7 +42,15 @@ export function useMailOverlays() {
   const [authModalOpen, setAuthModalOpen] = useState(false);
 
   const openCompose = useCallback(
-    (initial: { to?: string; subject?: string; body?: string } = {}) => {
+    (
+      initial: {
+        to?: string;
+        subject?: string;
+        body?: string;
+        draftId?: string | null;
+        version?: number;
+      } = {},
+    ) => {
       setComposeInitial(initial);
       setComposeOpen(true);
     },
