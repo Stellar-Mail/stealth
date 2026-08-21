@@ -1,4 +1,5 @@
 import type { Email } from "./data";
+import type { ProofEvidence } from "@/features/proof-inspector/evidence";
 
 export interface ProvenanceItemDetails {
   title: string;
@@ -107,7 +108,10 @@ function formatIdentifier(id: string, start: number = 6, end: number = 6): strin
   return `${id.slice(0, start)}...${id.slice(-end)}`;
 }
 
-export function getEmailProvenance(email: Email): ProvenanceDetails {
+export function getEmailProvenance(
+  email: Email,
+  evidence?: ProofEvidence | null,
+): ProvenanceDetails {
   const seed = email.id;
   const isSmtpBridge = email.folder === "spam" || email.from.toLowerCase().includes("bridge");
   const isRequest = email.folder === "requests" || email.from.toLowerCase().includes("unknown");
@@ -313,18 +317,31 @@ export function getEmailProvenance(email: Email): ProvenanceDetails {
   };
 
   // 5. Postage Record
-  const postageTxHash = getDeterministicHash(seed, "postage_tx", 64);
+  const postageTxHash =
+    evidence?.postage?.paymentHash ?? getDeterministicHash(seed, "postage_tx", 64);
   const postageEscrow = getDeterministicStellarAddress(seed + "escrow", "C");
-  const postageAmount = isSmtpBridge
-    ? "0.00000 XLM (No postage)"
-    : isRequest
-      ? "0.00500 XLM"
-      : "0.00001 XLM";
-  const postageStatus = isSmtpBridge
-    ? "Bypassed (Bridge Route)"
-    : isRequest
-      ? "Held in Escrow"
-      : "Settled / Fees Burned";
+  const postageAmount = evidence?.postage
+    ? `${(Number(evidence.postage.amount) / 10_000_000).toFixed(5)} XLM`
+    : isSmtpBridge
+      ? "0.00000 XLM (No postage)"
+      : isRequest
+        ? "0.00500 XLM"
+        : "0.00001 XLM";
+  const postageStatus = evidence?.postage
+    ? evidence.postage.status === "settled"
+      ? "Settled / Fees Burned"
+      : evidence.postage.status === "refunded"
+        ? "Refunded to Sender"
+        : evidence.postage.status === "reclaimed"
+          ? "Reclaimed"
+          : evidence.postage.status === "disputed"
+            ? "Under Dispute"
+            : "Held in Escrow"
+    : isSmtpBridge
+      ? "Bypassed (Bridge Route)"
+      : isRequest
+        ? "Held in Escrow"
+        : "Settled / Fees Burned";
 
   const postageRecordInspector: ProvenanceItemDetails = {
     title: "On-chain Postage Ledger Entry",
@@ -358,8 +375,16 @@ export function getEmailProvenance(email: Email): ProvenanceDetails {
 
   // 6. Receipt Record
   const receiptContract = getDeterministicStellarAddress(seed + "receipt_contract", "C");
-  const receiptTxHash = getDeterministicHash(seed, "receipt_tx", 64);
-  const receiptStatus = isSmtpBridge ? "Not Requested" : "Confirmed / Proof Written";
+  const receiptTxHash = evidence?.receipt?.txHash ?? getDeterministicHash(seed, "receipt_tx", 64);
+  const receiptStatus = evidence?.receipt
+    ? evidence.receipt.chainStatus === "failed"
+      ? "Failed / Mismatch Detected"
+      : evidence.receipt.readAt
+        ? "Confirmed / Proof Written"
+        : "Pending Confirmation"
+    : isSmtpBridge
+      ? "Not Requested"
+      : "Confirmed / Proof Written";
 
   const receiptRecordInspector: ProvenanceItemDetails = {
     title: "Soroban Delivery Receipt Proof",
@@ -398,8 +423,18 @@ export function getEmailProvenance(email: Email): ProvenanceDetails {
     },
   };
 
-  const receiptTimestamp = isSmtpBridge ? "Not requested" : "2026-06-16 14:58:22 UTC";
-  const postageTimestamp = isSmtpBridge ? "Not requested" : "2026-06-16 14:34:18 UTC";
+  const receiptTimestamp = evidence?.receipt
+    ? evidence.receipt.readAt
+      ? new Date(evidence.receipt.readAt).toLocaleString()
+      : new Date(evidence.receipt.deliveredAt).toLocaleString()
+    : isSmtpBridge
+      ? "Not requested"
+      : "2026-06-16 14:58:22 UTC";
+  const postageTimestamp = evidence?.postage
+    ? new Date(evidence.postage.createdAt).toLocaleString()
+    : isSmtpBridge
+      ? "Not requested"
+      : "2026-06-16 14:34:18 UTC";
 
   const timelineItems: ProvenanceTimelineItem[] = [
     {
@@ -432,8 +467,20 @@ export function getEmailProvenance(email: Email): ProvenanceDetails {
       title: "Postage payment recorded",
       description: isSmtpBridge
         ? "Bridged messages skip on-chain postage settlement."
-        : "Postage was settled on the Stellar ledger to secure delivery priority.",
-      status: isSmtpBridge ? "skipped" : "complete",
+        : evidence?.postage
+          ? evidence.postage.status === "settled"
+            ? "Postage was settled on the Stellar ledger to secure delivery priority."
+            : evidence.postage.status === "pending"
+              ? "Postage escrow is pending settlement on the Stellar ledger."
+              : "Postage escrow is recorded on the Stellar ledger."
+          : "Postage was settled on the Stellar ledger to secure delivery priority.",
+      status: isSmtpBridge
+        ? "skipped"
+        : evidence?.postage
+          ? evidence.postage.status === "pending" || evidence.postage.status === "expired"
+            ? "pending"
+            : "complete"
+          : "complete",
       timestamp: postageTimestamp,
     },
     {
@@ -441,14 +488,26 @@ export function getEmailProvenance(email: Email): ProvenanceDetails {
       title: "Delivery proof recorded",
       description: isSmtpBridge
         ? "No receipt proof is available for bridged delivery."
-        : receiptStatus === "Confirmed / Proof Written"
-          ? "A Soroban delivery receipt was written when the recipient read the message."
-          : "Receipt proof is pending until delivery is confirmed.",
+        : evidence?.receipt
+          ? evidence.receipt.chainStatus === "failed"
+            ? "The receipt contract reported a failed confirmation."
+            : evidence.receipt.readAt
+              ? "A Soroban delivery receipt was written when the recipient read the message."
+              : "Receipt proof is pending until delivery is confirmed."
+          : receiptStatus === "Confirmed / Proof Written"
+            ? "A Soroban delivery receipt was written when the recipient read the message."
+            : "Receipt proof is pending until delivery is confirmed.",
       status: isSmtpBridge
         ? "skipped"
-        : receiptStatus === "Confirmed / Proof Written"
-          ? "complete"
-          : "pending",
+        : evidence?.receipt
+          ? evidence.receipt.chainStatus === "failed"
+            ? "complete"
+            : evidence.receipt.readAt
+              ? "complete"
+              : "pending"
+          : receiptStatus === "Confirmed / Proof Written"
+            ? "complete"
+            : "pending",
       timestamp: receiptTimestamp,
     },
   ];

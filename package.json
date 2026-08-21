@@ -13,6 +13,8 @@
     "test:watch": "vitest tests/unit",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
+    "test:visual": "playwright test --config playwright.visual.config.ts",
+    "test:visual:update": "playwright test --config playwright.visual.config.ts --update-snapshots",
     "test:load": "bun run tests/load/scenarios.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -105,6 +107,7 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@eslint/js": "^9.32.0",
     "@playwright/test": "^1.49.1",
     "@testing-library/jest-dom": "^6.9.1",

@@ -1,8 +1,7 @@
 // AUTO-GENERATED — do not edit by hand.
 // Source: contracts/soroban/postage/spec.json
 // Regenerate: npm run generate:bindings
-
-import { contract, Keypair } from "@stellar/stellar-sdk";
+import { contract, Keypair, Transaction } from "@stellar/stellar-sdk";
 
 export interface Postage {
   amount: bigint;
@@ -48,8 +47,8 @@ export enum PostageError {
   LifecycleRejected = 12,
 }
 
-// Embedded XDR spec entries derived from spec.json
-const SPEC_ENTRIES: string[] = [
+/** Base64-encoded XDR contract spec entries used to initialize the contract Spec. */
+export const SPEC_ENTRIES: string[] = [
   "AAAAAQAAAAAAAAAAAAAAB1Bvc3RhZ2UAAAAACAAAAAAAAAAGYW1vdW50AAAAAAALAAAAAAAAAApjcmVhdGVkX2F0AAAAAAAGAAAAAAAAAA1kaXNwdXRlX3VudGlsAAAAAAAABgAAAAAAAAAKZXhwaXJlc19hdAAAAAAABgAAAAAAAAADZmVlAAAAAAsAAAAAAAAACXJlY2lwaWVudAAAAAAAABMAAAAAAAAABnNlbmRlcgAAAAAAEwAAAAAAAAAGc3RhdHVzAAAAAAfQAAAADVBvc3RhZ2VTdGF0dXMAAAA=",
   "AAAAAQAAAAAAAAAAAAAADEVzY3Jvd0NvbmZpZwAAAAYAAAAAAAAABWFzc2V0AAAAAAAAEwAAAAAAAAAPZGlzcHV0ZV9zZWNvbmRzAAAAAAYAAAAAAAAADmV4cGlyeV9zZWNvbmRzAAAAAAAGAAAAAAAAAAdmZWVfYnBzAAAAAAQAAAAAAAAAB21pbmltdW0AAAAACwAAAAAAAAAIdHJlYXN1cnkAAAAT",
   "AAAAAwAAAAAAAAAAAAAADVBvc3RhZ2VTdGF0dXMAAAAAAAAGAAAAAAAAAAdQZW5kaW5nAAAAAAAAAAAAAAAAB0V4cGlyZWQAAAAAAQAAAAAAAAAIRGlzcHV0ZWQAAAACAAAAAAAAAAdTZXR0bGVkAAAAAAMAAAAAAAAACFJlZnVuZGVkAAAABAAAAAAAAAAJUmVjbGFpbWVkAAAAAAAABQ==",
@@ -95,10 +94,16 @@ export function createPostageClient(opts: PostageClientOptions): contract.Client
     ...(opts.publicKey ? { publicKey: opts.publicKey } : {}),
     ...(opts.signer
       ? {
-          signTransaction: contract.basicNodeSigner(
-            Keypair.fromSecret(opts.signer),
-            opts.networkPassphrase,
-          ).signTransaction,
+          signTransaction: async (xdrString: string, signOpts?: { networkPassphrase?: string }) => {
+            const kp = Keypair.fromSecret(opts.signer!);
+            const networkPassphrase = signOpts?.networkPassphrase ?? opts.networkPassphrase;
+            const tx = new Transaction(xdrString, networkPassphrase);
+            tx.sign(kp);
+            return {
+              signedTxXdr: tx.toXDR(),
+              signerAddress: kp.publicKey(),
+            };
+          },
         }
       : {}),
   });

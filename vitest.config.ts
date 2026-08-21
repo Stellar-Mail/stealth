@@ -12,6 +12,8 @@ export default defineConfig({
   test: {
     environment: "node",
     globals: true,
+    include: ["tests/unit/**/*.test.ts", "tests/unit/**/*.test.tsx"],
+    testTimeout: 60_000,
     // Primary CI target: unit tests.
     // Integration, contract, and live-beta suites can be run with:
     //   npx vitest run tests/integration

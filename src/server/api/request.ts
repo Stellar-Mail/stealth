@@ -39,6 +39,7 @@ const DEFAULT_MAX_BODY_BYTES = BODY_LIMIT_CATEGORIES[DEFAULT_BODY_LIMIT_CATEGORY
 export const ROUTE_BODY_LIMITS = {
   "POST /postage": "compact",
   "POST /postage/quote": "compact",
+  "PATCH /postage/:messageId": "minimal",
   "POST /lifecycle/{messageId}/anchor": "compact",
   "POST /receipts": "compact",
   "PUT /policies/{owner}": "standard",
@@ -55,16 +56,25 @@ export const ROUTE_BODY_LIMITS = {
   "POST /identity/keys/rotate": "compact",
   "POST /identity/keys/retire": "compact",
   "POST /identity/keys/revoke": "compact",
+  "POST /attachments/initiate": "compact",
+  "POST /attachments/chunk": "relay",
+  "POST /attachments/finalize": "compact",
+  "POST /attachments/abort": "minimal",
   "POST /contacts": "compact",
   "PUT /contacts/{contactId}": "compact",
   "POST /contacts/merge": "compact",
   "POST /contacts/import/preview": "bulk",
   "POST /contacts/import/commit": "bulk",
+  "POST /drafts": "standard",
+  "PUT /drafts/{draftId}": "standard",
   "POST /requests": "standard",
   "POST /requests/{requestId}/decisions": "compact",
   "POST /send/coordinate": "standard",
   "PUT /api/v1/onboarding/draft": "standard",
   "POST /api/v1/onboarding/complete": "standard",
+  // BETA-037: sender rule chain status and retry
+  "POST /policies/{owner}/senders/{sender}/chain-status": "minimal",
+  "POST /policies/{owner}/senders/{sender}/retry": "minimal",
 } as const satisfies Record<string, BodyLimitCategory>;
 
 export type RouteBodyLimitKey = keyof typeof ROUTE_BODY_LIMITS;

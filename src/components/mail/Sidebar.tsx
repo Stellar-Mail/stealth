@@ -182,7 +182,7 @@ export function Sidebar({
         </motion.button>
       )}
 
-      <nav className="scrollbar-thin mt-4 flex-1 overflow-y-auto pr-1">
+      <nav aria-label="Mail folders" className="scrollbar-thin mt-4 flex-1 overflow-y-auto pr-1">
         {sections.map((section, sectionIndex) => (
           <div key={section.title ?? "mail"} className={sectionIndex === 0 ? "" : "mt-5"}>
             {section.title && !collapsed && (
@@ -240,6 +240,8 @@ export function Sidebar({
                   <li key={f.name}>
                     <button
                       onClick={() => onSelectCustomFolder?.(isCustomActive ? null : f.name)}
+                      aria-current={isCustomActive ? "page" : undefined}
+                      aria-pressed={isCustomActive ? true : undefined}
                       className={cn(
                         "group glow-ring flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition hover:bg-white/[0.04] hover:text-foreground",
                         isCustomActive
@@ -325,6 +327,7 @@ function AddFolderInput({
             if (e.key === "Escape") onCancel();
           }}
           placeholder="Folder name"
+          aria-label="Folder name"
           className="w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none"
         />
         <button
@@ -360,6 +363,8 @@ function FolderButton({
     <motion.button
       whileTap={{ scale: 0.98 }}
       onClick={onSelect}
+      aria-current={active ? "page" : undefined}
+      aria-pressed={active ? true : undefined}
       onDragOver={
         onDrop
           ? (e) => {

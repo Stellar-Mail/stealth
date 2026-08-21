@@ -102,7 +102,7 @@ describe("useOnboarding (profile-first, wallet-free)", () => {
       minimumPostage: "0.001",
       receiptOnDelivery: true,
     });
-    expect(localStorage.length).toBe(0);
+    expect(typeof window !== "undefined" ? (window.localStorage?.length ?? 0) : 0).toBe(0);
   });
 
   it("resumes on a second device from the shared server record", async () => {

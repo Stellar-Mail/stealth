@@ -189,9 +189,9 @@ export function mergeLiveFolderCounts(
     ...local,
     inbox: live.inbox,
     requests: live.requests,
-    sent: live.sent,
+    sent: local.sent, // Use local count since it includes optimistic/outbox entries
     drafts: live.drafts,
-    outbox: live.outbox,
+    outbox: local.outbox, // Use local count since it includes local pending/failed entries
     archive: live.archive,
     spam: live.spam,
     trash: live.trash,

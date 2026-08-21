@@ -130,6 +130,97 @@ export async function evaluateMailboxPolicy(
     verified: boolean;
   },
 ) {
+  // BETA-037: Check versioned sender rule first; fall back to legacy rule
+  const record = await repository.getSenderRuleRecord(input.owner, input.sender);
+  if (record) {
+    switch (record.rule) {
+      case "allow":
+        return {
+          allowed: true,
+          policy: (await getMailboxPolicy(repository, input.owner)).policy,
+          source: (await getMailboxPolicy(repository, input.owner)).source,
+          reason: "sender_allowed" as const,
+          rule: record.rule as SenderRule,
+          versionedRule: record,
+        };
+      case "block":
+        return {
+          allowed: false,
+          policy: (await getMailboxPolicy(repository, input.owner)).policy,
+          source: (await getMailboxPolicy(repository, input.owner)).source,
+          reason: "sender_blocked" as const,
+          rule: record.rule as SenderRule,
+          versionedRule: record,
+        };
+      case "verify": {
+        const { policy, source } = await getMailboxPolicy(repository, input.owner);
+        if (!input.verified) {
+          return {
+            allowed: false,
+            policy,
+            source,
+            reason: "verification_required" as const,
+            rule: record.rule as SenderRule,
+            versionedRule: record,
+          };
+        }
+        // Fall through to check other policy constraints (e.g. postage)
+        if (BigInt(input.postage) < BigInt(policy.minimumPostage)) {
+          return {
+            allowed: false,
+            policy,
+            source,
+            reason: "insufficient_postage" as const,
+            rule: record.rule as SenderRule,
+            versionedRule: record,
+          };
+        }
+        return {
+          allowed: true,
+          policy,
+          source,
+          reason: "policy_satisfied" as const,
+          rule: record.rule as SenderRule,
+          versionedRule: record,
+        };
+      }
+      case "price": {
+        const { policy, source } = await getMailboxPolicy(repository, input.owner);
+        const minPostage = record.pricePayload?.minimumPostage ?? "0";
+        if (BigInt(input.postage) < BigInt(minPostage)) {
+          return {
+            allowed: false,
+            policy,
+            source,
+            reason: "insufficient_postage" as const,
+            rule: record.rule as SenderRule,
+            versionedRule: record,
+          };
+        }
+        // Also check verification if the global policy requires it
+        if (policy.requireVerified && !input.verified) {
+          return {
+            allowed: false,
+            policy,
+            source,
+            reason: "verification_required" as const,
+            rule: record.rule as SenderRule,
+            versionedRule: record,
+          };
+        }
+        return {
+          allowed: true,
+          policy,
+          source,
+          reason: "policy_satisfied" as const,
+          rule: record.rule as SenderRule,
+          versionedRule: record,
+        };
+      }
+    }
+  }
+
+  // Legacy fallback
   const rule = await repository.getSenderRule(input.owner, input.sender);
   const { policy, source } = await getMailboxPolicy(repository, input.owner);
   if (rule === "allow")

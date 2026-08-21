@@ -24,6 +24,7 @@ import type {
   RecoveryCodeSet,
   RetiredSession,
   SenderRule,
+  SenderRuleRecord,
   Session,
   StoredEnvelope,
   MailboxFlagsPatch,
@@ -36,10 +37,29 @@ import type {
   ManagedWalletRecord,
   FundingOperation,
   Wallet,
+  DraftRecord,
   OnboardingDraftRecord,
+  AccountDeletionRequest,
+  AccountExport,
 } from "./domain";
 import type { ZodSchema } from "zod";
 import { ApiError, DataIntegrityError, RetryExhaustedError } from "./errors";
+
+/**
+ * Outcome of a compare-and-swap draft write (Issue #1965 BETA-058).
+ *
+ * - `updated: true`  : the draft was persisted at `expectedVersion + 1`.
+ * - `updated: false` : the draft was updated concurrently (or not found);
+ *   `current` reflects the authoritative state for reconciliation.
+ */
+export type UpdateDraftResult =
+  | { updated: true; draft: DraftRecord }
+  | { updated: false; current: DraftRecord | null };
+
+export interface DraftQueryOptions {
+  limit?: number;
+  after?: string;
+}
 
 /**
  * Outcome of an insert-only encrypted envelope persistence operation.
@@ -256,6 +276,14 @@ export interface ApiRepository {
   setLifecycleAnchor(anchor: LifecycleAnchor): Promise<LifecycleAnchor>;
   getSenderRule(owner: string, sender: string): Promise<SenderRule>;
   setSenderRule(owner: string, sender: string, rule: SenderRule): Promise<SenderRule>;
+  // BETA-037 (Issue #1944): versioned sender rule records with chain reconciliation
+  getSenderRuleRecord(owner: string, sender: string): Promise<SenderRuleRecord | null>;
+  setSenderRuleRecord(record: SenderRuleRecord): Promise<SenderRuleRecord>;
+  deleteSenderRuleRecord(owner: string, sender: string): Promise<boolean>;
+  listSenderRuleRecords(
+    owner: string,
+    options?: { limit?: number; after?: string },
+  ): Promise<{ records: SenderRuleRecord[]; nextCursor?: string }>;
   getPostage(messageId: string): Promise<Postage | null>;
   setPostage(postage: Postage): Promise<Postage>;
   /**
@@ -327,6 +355,17 @@ export interface ApiRepository {
   getProfile(userId: string): Promise<Profile | null>;
   setProfile(profile: Profile): Promise<Profile>;
   getCredential(userId: string): Promise<Credential | null>;
+  getAccountDeletionRequest(userId: string): Promise<AccountDeletionRequest | null>;
+  setAccountDeletionRequest(request: AccountDeletionRequest): Promise<AccountDeletionRequest>;
+  exportAccount(userId: string, address: string, now?: Date): Promise<AccountExport>;
+  deleteAccountData(
+    userId: string,
+    address: string,
+    now?: Date,
+  ): Promise<{
+    deleted: string[];
+    retained: string[];
+  }>;
   setCredential(credential: Credential): Promise<Credential>;
 
   // BETA-014: Transactional account-provisioning methods
@@ -533,6 +572,15 @@ export interface ApiRepository {
   deleteContact(owner: string, contactId: string): Promise<void>;
 
   // ---------------------------------------------------------------------------
+  // Issue #1965 (BETA-058) — Live drafts CRUD
+  // ---------------------------------------------------------------------------
+  listDrafts(owner: string, options?: DraftQueryOptions): Promise<Page<DraftRecord>>;
+  getDraft(owner: string, draftId: string): Promise<DraftRecord | null>;
+  createDraft(draft: DraftRecord): Promise<DraftRecord>;
+  updateDraft(draft: DraftRecord, expectedVersion: number): Promise<UpdateDraftResult>;
+  deleteDraft(owner: string, draftId: string): Promise<void>;
+
+  // ---------------------------------------------------------------------------
   // Issue #1952 (BETA-045) — Durable jobs, retries, DLQ, and receipt indexing
   // ---------------------------------------------------------------------------
   enqueueJob(job: DurableJob): Promise<{ enqueued: boolean; job: DurableJob }>;
@@ -690,6 +738,32 @@ export class ValidatedApiRepository implements ApiRepository {
 
   setSenderRule(owner: string, sender: string, rule: SenderRule): Promise<SenderRule> {
     return this.inner.setSenderRule(owner, sender, versionRecord("senderRule", rule));
+  }
+
+  // BETA-037 (Issue #1944): versioned sender rule records with chain reconciliation
+  async getSenderRuleRecord(owner: string, sender: string): Promise<SenderRuleRecord | null> {
+    const raw = await this.inner.getSenderRuleRecord(owner, sender);
+    return raw ? validateRecord<SenderRuleRecord>("senderRuleRecord", raw) : null;
+  }
+
+  async setSenderRuleRecord(record: SenderRuleRecord): Promise<SenderRuleRecord> {
+    const result = await this.inner.setSenderRuleRecord(versionRecord("senderRuleRecord", record));
+    return validateRecord<SenderRuleRecord>("senderRuleRecord", result);
+  }
+
+  async deleteSenderRuleRecord(owner: string, sender: string): Promise<boolean> {
+    return this.inner.deleteSenderRuleRecord(owner, sender);
+  }
+
+  async listSenderRuleRecords(
+    owner: string,
+    options?: { limit?: number; after?: string },
+  ): Promise<{ records: SenderRuleRecord[]; nextCursor?: string }> {
+    const result = await this.inner.listSenderRuleRecords(owner, options);
+    return {
+      ...result,
+      records: result.records.map((r) => validateRecord<SenderRuleRecord>("senderRuleRecord", r)),
+    };
   }
 
   async getPostage(messageId: string): Promise<Postage | null> {
@@ -879,6 +953,28 @@ export class ValidatedApiRepository implements ApiRepository {
   async setCredential(credential: Credential): Promise<Credential> {
     const result = await this.inner.setCredential(versionRecord("credential", credential));
     return validateRecord<Credential>("credential", result);
+  }
+
+  async getAccountDeletionRequest(userId: string): Promise<AccountDeletionRequest | null> {
+    const raw = await this.inner.getAccountDeletionRequest(userId);
+    return raw ? validateRecord<AccountDeletionRequest>("accountDeletionRequest", raw) : null;
+  }
+
+  async setAccountDeletionRequest(
+    request: AccountDeletionRequest,
+  ): Promise<AccountDeletionRequest> {
+    return validateRecord<AccountDeletionRequest>(
+      "accountDeletionRequest",
+      await this.inner.setAccountDeletionRequest(request),
+    );
+  }
+
+  exportAccount(userId: string, address: string, now?: Date): Promise<AccountExport> {
+    return this.inner.exportAccount(userId, address, now);
+  }
+
+  deleteAccountData(userId: string, address: string, now?: Date) {
+    return this.inner.deleteAccountData(userId, address, now);
   }
 
   async getProvisioningRecord(userId: string): Promise<ProvisioningRecord | null> {
@@ -1319,6 +1415,45 @@ export class ValidatedApiRepository implements ApiRepository {
   }
 
   // ---------------------------------------------------------------------------
+  // Issue #1965 (BETA-058) — Live drafts CRUD
+  // ---------------------------------------------------------------------------
+  async listDrafts(owner: string, options?: DraftQueryOptions): Promise<Page<DraftRecord>> {
+    const page = await this.inner.listDrafts(owner, options);
+    return {
+      ...page,
+      items: page.items.map((item) => validateRecord<DraftRecord>("draftRecord", item)),
+    };
+  }
+
+  async getDraft(owner: string, draftId: string): Promise<DraftRecord | null> {
+    const raw = await this.inner.getDraft(owner, draftId);
+    return raw ? validateRecord<DraftRecord>("draftRecord", raw) : null;
+  }
+
+  async createDraft(draft: DraftRecord): Promise<DraftRecord> {
+    const result = await this.inner.createDraft(versionRecord("draftRecord", draft));
+    return validateRecord<DraftRecord>("draftRecord", result);
+  }
+
+  async updateDraft(draft: DraftRecord, expectedVersion: number): Promise<UpdateDraftResult> {
+    const result = await this.inner.updateDraft(
+      versionRecord("draftRecord", draft),
+      expectedVersion,
+    );
+    if (result.updated) {
+      return { updated: true, draft: validateRecord<DraftRecord>("draftRecord", result.draft) };
+    }
+    return {
+      updated: false,
+      current: result.current ? validateRecord<DraftRecord>("draftRecord", result.current) : null,
+    };
+  }
+
+  async deleteDraft(owner: string, draftId: string): Promise<void> {
+    return this.inner.deleteDraft(owner, draftId);
+  }
+
+  // ---------------------------------------------------------------------------
   // Issue #1952 (BETA-045) — Durable jobs, retries, DLQ, and receipt indexing
   // ---------------------------------------------------------------------------
   enqueueJob(job: DurableJob): Promise<{ enqueued: boolean; job: DurableJob }> {
@@ -1401,6 +1536,8 @@ const RETRY_SAFE_OPERATIONS = new Set<string>([
   "getPolicyWriteIntent",
   "getLifecycleAnchor",
   "getSenderRule",
+  "getSenderRuleRecord",
+  "listSenderRuleRecords",
   "getPostage",
   "getReceipt",
   "getIdempotencyRecord",
@@ -1414,6 +1551,8 @@ const RETRY_SAFE_OPERATIONS = new Set<string>([
   "setPolicyWriteIntent",
   "setLifecycleAnchor",
   "setSenderRule",
+  "setSenderRuleRecord",
+  "deleteSenderRuleRecord",
   "setPostage",
   "setReceipt",
   "createReceiptIfAbsent",
@@ -1452,6 +1591,10 @@ const RETRY_SAFE_OPERATIONS = new Set<string>([
   "listFundingOperations",
   "listContacts",
   "getContact",
+  "listDrafts",
+  "getDraft",
+  "updateDraft",
+  "deleteDraft",
   "getJob",
   "getJobByIdempotencyKey",
   "listJobs",
@@ -1550,6 +1693,32 @@ export class RetryableApiRepository implements ApiRepository {
 
   setSenderRule(owner: string, sender: string, rule: SenderRule): Promise<SenderRule> {
     return this.withRetry("setSenderRule", () => this.inner.setSenderRule(owner, sender, rule));
+  }
+
+  // BETA-037 (Issue #1944): versioned sender rule records
+  getSenderRuleRecord(owner: string, sender: string): Promise<SenderRuleRecord | null> {
+    return this.withRetry("getSenderRuleRecord", () =>
+      this.inner.getSenderRuleRecord(owner, sender),
+    );
+  }
+
+  setSenderRuleRecord(record: SenderRuleRecord): Promise<SenderRuleRecord> {
+    return this.withRetry("setSenderRuleRecord", () => this.inner.setSenderRuleRecord(record));
+  }
+
+  deleteSenderRuleRecord(owner: string, sender: string): Promise<boolean> {
+    return this.withRetry("deleteSenderRuleRecord", () =>
+      this.inner.deleteSenderRuleRecord(owner, sender),
+    );
+  }
+
+  listSenderRuleRecords(
+    owner: string,
+    options?: { limit?: number; after?: string },
+  ): Promise<{ records: SenderRuleRecord[]; nextCursor?: string }> {
+    return this.withRetry("listSenderRuleRecords", () =>
+      this.inner.listSenderRuleRecords(owner, options),
+    );
   }
 
   getPostage(messageId: string): Promise<Postage | null> {
@@ -1662,6 +1831,24 @@ export class RetryableApiRepository implements ApiRepository {
 
   setCredential(credential: Credential): Promise<Credential> {
     return this.withRetry("setCredential", () => this.inner.setCredential(credential));
+  }
+
+  getAccountDeletionRequest(userId: string): Promise<AccountDeletionRequest | null> {
+    return this.withRetry("getAccountDeletionRequest", () =>
+      this.inner.getAccountDeletionRequest(userId),
+    );
+  }
+
+  setAccountDeletionRequest(request: AccountDeletionRequest): Promise<AccountDeletionRequest> {
+    return this.inner.setAccountDeletionRequest(request);
+  }
+
+  exportAccount(userId: string, address: string, now?: Date): Promise<AccountExport> {
+    return this.withRetry("exportAccount", () => this.inner.exportAccount(userId, address, now));
+  }
+
+  deleteAccountData(userId: string, address: string, now?: Date) {
+    return this.inner.deleteAccountData(userId, address, now);
   }
 
   // BETA-014: retry-safe reads + idempotent compensation are retried; the
@@ -2020,6 +2207,29 @@ export class RetryableApiRepository implements ApiRepository {
   }
 
   // ---------------------------------------------------------------------------
+  // Issue #1965 (BETA-058) — Live drafts CRUD
+  // ---------------------------------------------------------------------------
+  listDrafts(owner: string, options?: DraftQueryOptions): Promise<Page<DraftRecord>> {
+    return this.withRetry("listDrafts", () => this.inner.listDrafts(owner, options));
+  }
+
+  getDraft(owner: string, draftId: string): Promise<DraftRecord | null> {
+    return this.withRetry("getDraft", () => this.inner.getDraft(owner, draftId));
+  }
+
+  createDraft(draft: DraftRecord): Promise<DraftRecord> {
+    return this.inner.createDraft(draft);
+  }
+
+  updateDraft(draft: DraftRecord, expectedVersion: number): Promise<UpdateDraftResult> {
+    return this.withRetry("updateDraft", () => this.inner.updateDraft(draft, expectedVersion));
+  }
+
+  deleteDraft(owner: string, draftId: string): Promise<void> {
+    return this.withRetry("deleteDraft", () => this.inner.deleteDraft(owner, draftId));
+  }
+
+  // ---------------------------------------------------------------------------
   // Issue #1952 (BETA-045) — Durable jobs, retries, DLQ, and receipt indexing
   // ---------------------------------------------------------------------------
   enqueueJob(job: DurableJob): Promise<{ enqueued: boolean; job: DurableJob }> {
@@ -2342,6 +2552,12 @@ export const PAGINATED_QUERY_ORDERINGS = {
    * optional search query before passing the collection to `paginate`.
    */
   listContacts: declareOrdering<Contact>([{ field: "createdAt", direction: "desc" }], "contactId"),
+  /**
+   * Issue #1965 (BETA-058): Owner-scoped draft listing.
+   * Ordered by updated time descending (most recently edited first); draftId is the
+   * unique tie-breaker so the walk is stable.
+   */
+  listDrafts: declareOrdering<DraftRecord>([{ field: "updatedAt", direction: "desc" }], "draftId"),
 } as const;
 
 export type PaginatedQueryName = keyof typeof PAGINATED_QUERY_ORDERINGS;

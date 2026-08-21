@@ -1,4 +1,4 @@
-﻿import { API_ERROR_CODES, API_ERROR_REGISTRY } from "./errors";
+import { API_ERROR_CODES, API_ERROR_REGISTRY } from "./errors";
 
 export const openApiDocument = {
   openapi: "3.1.0",
@@ -509,7 +509,7 @@ export const openApiDocument = {
           rule: {
             type: "string",
             description: "Applied sender override rule.",
-            enum: ["allow", "block", "default"],
+            enum: ["allow", "block", "default", "verify", "price"],
           },
         },
       },
@@ -748,7 +748,9 @@ export const openApiDocument = {
                 type: "string",
                 description: "Stable domain-specific error code.",
                 "x-optic-ignore": true,
-                enum: API_ERROR_CODES.filter((c) => c !== "recent_auth_required"),
+                enum: API_ERROR_CODES.filter(
+                  (c) => c !== "recent_auth_required" && c !== "chain_error",
+                ),
               },
               message: {
                 type: "string",
@@ -1097,7 +1099,10 @@ export const openApiDocument = {
               { type: "null" },
             ],
           },
-          senderRule: { type: "string", enum: ["default", "allow", "block"] },
+          senderRule: {
+            type: "string",
+            enum: ["default", "allow", "block"],
+          },
           senderRuleConfigured: {
             type: "boolean",
             description: "True when the owner has an explicit policy rule for this address.",
@@ -1225,6 +1230,114 @@ export const openApiDocument = {
             description: "Sender rules applied to policy; only when applyTrust was requested.",
           },
           contacts: { type: "array", items: { $ref: "#/components/schemas/Contact" } },
+        },
+      },
+      DraftAttachmentDescriptor: {
+        type: "object",
+        required: ["filename", "contentType", "sizeBytes"],
+        additionalProperties: false,
+        properties: {
+          filename: { type: "string", maxLength: 255 },
+          contentType: { type: "string" },
+          sizeBytes: { type: "integer", minimum: 0 },
+          contentHash: { type: "string", description: "Optional SHA-256 hash." },
+        },
+      },
+      Draft: {
+        type: "object",
+        required: [
+          "draftId",
+          "owner",
+          "to",
+          "cc",
+          "bcc",
+          "subject",
+          "body",
+          "attachments",
+          "version",
+          "createdAt",
+          "updatedAt",
+        ],
+        additionalProperties: false,
+        properties: {
+          draftId: { type: "string", description: "Unique draft identifier." },
+          owner: { $ref: "#/components/schemas/StellarAddress" },
+          to: { type: "array", items: { type: "string" } },
+          cc: { type: "array", items: { type: "string" } },
+          bcc: { type: "array", items: { type: "string" } },
+          subject: { type: "string" },
+          body: { type: "string" },
+          attachments: {
+            type: "array",
+            items: { $ref: "#/components/schemas/DraftAttachmentDescriptor" },
+          },
+          version: { type: "integer", minimum: 1, description: "Monotonic revision version." },
+          createdAt: { type: "string", format: "date-time" },
+          updatedAt: { type: "string", format: "date-time" },
+        },
+      },
+      DraftListResult: {
+        type: "object",
+        required: ["items", "nextContinuationKey"],
+        additionalProperties: false,
+        properties: {
+          items: {
+            type: "array",
+            items: { $ref: "#/components/schemas/Draft" },
+          },
+          nextContinuationKey: {
+            anyOf: [{ type: "string" }, { type: "null" }],
+            description: "Cursor for the next page, or null at the end.",
+          },
+        },
+      },
+      DraftCreateInput: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          draftId: { type: "string" },
+          to: {
+            oneOf: [{ type: "string" }, { type: "array", items: { type: "string" } }],
+          },
+          cc: {
+            oneOf: [{ type: "string" }, { type: "array", items: { type: "string" } }],
+          },
+          bcc: {
+            oneOf: [{ type: "string" }, { type: "array", items: { type: "string" } }],
+          },
+          subject: { type: "string" },
+          body: { type: "string" },
+          attachments: {
+            type: "array",
+            items: { $ref: "#/components/schemas/DraftAttachmentDescriptor" },
+          },
+        },
+      },
+      DraftUpdateInput: {
+        type: "object",
+        required: ["expectedVersion"],
+        additionalProperties: false,
+        properties: {
+          to: {
+            oneOf: [{ type: "string" }, { type: "array", items: { type: "string" } }],
+          },
+          cc: {
+            oneOf: [{ type: "string" }, { type: "array", items: { type: "string" } }],
+          },
+          bcc: {
+            oneOf: [{ type: "string" }, { type: "array", items: { type: "string" } }],
+          },
+          subject: { type: "string" },
+          body: { type: "string" },
+          attachments: {
+            type: "array",
+            items: { $ref: "#/components/schemas/DraftAttachmentDescriptor" },
+          },
+          expectedVersion: {
+            type: "integer",
+            minimum: 1,
+            description: "Expected current revision for optimistic concurrency control.",
+          },
         },
       },
     },
@@ -2445,6 +2558,150 @@ export const openApiDocument = {
           },
           "500": {
             description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+      patch: {
+        operationId: "transitionPostage",
+        summary: "Transition postage lifecycle state (settle, refund, dispute, expire, reclaim)",
+        "x-max-body-bytes": 8 * 1024,
+        "x-stability": "beta",
+        security: [
+          {
+            StellarSignedRequest: [],
+          },
+        ],
+        requestBody: {
+          description: "The postage lifecycle operation to perform.",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["operation"],
+                additionalProperties: false,
+                properties: {
+                  operation: {
+                    type: "string",
+                    enum: ["settle", "refund", "dispute", "expire", "reclaim"],
+                  },
+                },
+              },
+              examples: {
+                settle: {
+                  summary: "Settle the escrow to the recipient",
+                  value: { operation: "settle" },
+                },
+                refund: {
+                  summary: "Refund the escrow to the sender",
+                  value: { operation: "refund" },
+                },
+                dispute: {
+                  summary: "Dispute a pending escrow within the dispute window",
+                  value: { operation: "dispute" },
+                },
+                expire: {
+                  summary: "Expire a pending escrow",
+                  value: { operation: "expire" },
+                },
+                reclaim: {
+                  summary: "Reclaim an escrow after expiry",
+                  value: { operation: "reclaim" },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Success",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/SuccessEnvelope",
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Bad Request",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "403": {
+            description: "Forbidden",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "404": {
+            description: "Not Found",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "409": {
+            description: "Conflict",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "422": {
+            description: "Unprocessable Entity",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "502": {
+            description: "Bad Gateway — on-chain escrow operation could not be confirmed",
             content: {
               "application/json": {
                 schema: {
@@ -4628,6 +4885,382 @@ export const openApiDocument = {
           },
           "422": {
             description: "Unprocessable Entity ΓÇö Request payload validation failure",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/drafts": {
+      get: {
+        operationId: "listDrafts",
+        summary: "List encrypted drafts for the authenticated account",
+        description: "Returns the authenticated actor's drafts ordered by last update time.",
+        security: [
+          {
+            ActorHeader: [],
+          },
+        ],
+        "x-stability": "beta",
+        parameters: [
+          {
+            name: "cursor",
+            in: "query",
+            schema: { type: "string" },
+            description: "Pagination continuation key.",
+          },
+          {
+            name: "limit",
+            in: "query",
+            schema: { type: "integer", minimum: 1, maximum: 100, default: 25 },
+          },
+        ],
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Listed drafts",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/DraftListResult",
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+      post: {
+        operationId: "createDraft",
+        summary: "Create a new encrypted draft",
+        description: "Stores a new draft sealed at rest with AES-256-GCM authenticated with AAD.",
+        security: [
+          {
+            ActorHeader: [],
+          },
+        ],
+        "x-stability": "beta",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                $ref: "#/components/schemas/DraftCreateInput",
+              },
+            },
+          },
+        },
+        responses: {
+          default: { description: "" },
+          "201": {
+            description: "Created draft",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/Draft",
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Bad Request",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "409": {
+            description: "Conflict — Draft already exists",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "422": {
+            description: "Unprocessable Entity",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/drafts/{draftId}": {
+      get: {
+        operationId: "getDraft",
+        summary: "Get an encrypted draft by identifier",
+        description: "Fetches and decrypts an existing draft for the authenticated actor.",
+        security: [
+          {
+            ActorHeader: [],
+          },
+        ],
+        "x-stability": "beta",
+        parameters: [
+          {
+            name: "draftId",
+            in: "path",
+            required: true,
+            schema: { type: "string" },
+            description: "Draft identifier.",
+          },
+        ],
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Draft retrieved",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/Draft",
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "404": {
+            description: "Not Found",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+      put: {
+        operationId: "updateDraft",
+        summary: "Update an encrypted draft with optimistic concurrency control",
+        description:
+          "Updates draft fields when expectedVersion matches the server revision, bumping the monotonic version.",
+        security: [
+          {
+            ActorHeader: [],
+          },
+        ],
+        "x-stability": "beta",
+        parameters: [
+          {
+            name: "draftId",
+            in: "path",
+            required: true,
+            schema: { type: "string" },
+            description: "Draft identifier.",
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                $ref: "#/components/schemas/DraftUpdateInput",
+              },
+            },
+          },
+        },
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Draft updated",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/Draft",
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Bad Request",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "404": {
+            description: "Not Found",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "409": {
+            description: "Revision Conflict — Stale draft version",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "422": {
+            description: "Unprocessable Entity",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+      delete: {
+        operationId: "deleteDraft",
+        summary: "Delete an encrypted draft",
+        description: "Removes an existing draft for the authenticated actor.",
+        security: [
+          {
+            ActorHeader: [],
+          },
+        ],
+        "x-stability": "beta",
+        parameters: [
+          {
+            name: "draftId",
+            in: "path",
+            required: true,
+            schema: { type: "string" },
+            description: "Draft identifier.",
+          },
+        ],
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Draft deleted",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: { deleted: { type: "boolean" } },
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "404": {
+            description: "Not Found",
             content: {
               "application/json": {
                 schema: {

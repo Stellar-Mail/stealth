@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useLayoutEffect } from "react";
+import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -23,6 +23,49 @@ import { cn } from "@/lib/utils";
 import { NotificationsPanel } from "./NotificationsPanel";
 import type { MailFilters } from "./data";
 import type { InAppNotification } from "@/features/notifications";
+
+/**
+ * Shared keyboard + focus behavior for the topbar popovers.
+ *
+ * - Announces the expanded state on the trigger (`aria-expanded`).
+ * - Moves focus into the popover panel on open.
+ * - Closes on Escape and returns focus to the trigger.
+ * - Restores focus to the trigger when the popover closes while focus is
+ *   still inside it (Escape / click-outside), but never steals focus from an
+ *   action the user already activated (e.g. a menu item that opened a dialog).
+ */
+function usePopoverFocus(open: boolean, onClose: () => void) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const panel = panelRef.current;
+    const focusables = panel?.querySelectorAll<HTMLElement>(
+      'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    );
+    if (focusables && focusables.length > 0) focusables[0]?.focus();
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        onClose();
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      const active = document.activeElement;
+      const panel = panelRef.current;
+      if (panel && active && panel.contains(active)) {
+        triggerRef.current?.focus();
+      }
+    };
+  }, [open, onClose]);
+
+  return { panelRef, triggerRef };
+}
 
 type TopbarProps = {
   onOpenPalette: () => void;
@@ -86,6 +129,13 @@ export function Topbar({
   const [accountRect, setAccountRect] = useState<DOMRect | null>(null);
   const [helpRect, setHelpRect] = useState<DOMRect | null>(null);
   const [notifRect, setNotifRect] = useState<DOMRect | null>(null);
+
+  const filterPopover = usePopoverFocus(filterOpen, () => setFilterOpen(false));
+  const accountPopover = usePopoverFocus(accountOpen, () => setAccountOpen(false));
+  const helpPopover = usePopoverFocus(helpOpen, () => setHelpOpen(false));
+  const notificationsPopover = usePopoverFocus(notificationsOpen, () =>
+    setNotificationsOpen(false),
+  );
 
   useLayoutEffect(() => {
     if (filterOpen && filterRef.current) setFilterRect(filterRef.current.getBoundingClientRect());
@@ -160,6 +210,7 @@ export function Topbar({
         <div ref={filterRef} className="relative">
           <IconBtn
             label="Filter"
+            buttonRef={filterPopover.triggerRef}
             onClick={() => setFilterOpen(!filterOpen)}
             active={
               filterOpen ||
@@ -167,6 +218,8 @@ export function Topbar({
               filters.hasAttachments ||
               filters.dateRange !== "all"
             }
+            aria-expanded={filterOpen}
+            aria-haspopup="dialog"
           >
             <Filter className="h-4 w-4" />
           </IconBtn>
@@ -184,6 +237,9 @@ export function Topbar({
                     className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-xl"
                   />
                   <motion.div
+                    ref={filterPopover.panelRef}
+                    role="dialog"
+                    aria-label="Filters"
                     initial={{ opacity: 0, y: -8, scale: 0.96 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: -8, scale: 0.96 }}
@@ -275,8 +331,11 @@ export function Topbar({
         <div ref={notificationsRef} className="relative">
           <IconBtn
             label="Notifications"
+            buttonRef={notificationsPopover.triggerRef}
             onClick={() => setNotificationsOpen(!notificationsOpen)}
             active={notificationsOpen}
+            aria-expanded={notificationsOpen}
+            aria-haspopup="dialog"
           >
             <span className="relative">
               <Bell className="h-4 w-4" />
@@ -288,6 +347,7 @@ export function Topbar({
           open={notificationsOpen}
           onClose={() => setNotificationsOpen(false)}
           anchorRect={notifRect}
+          panelRef={notificationsPopover.panelRef}
           onViewAll={onViewNotifications}
           notifications={notifications}
           onMarkRead={onMarkNotificationRead}
@@ -302,9 +362,12 @@ export function Topbar({
         <div ref={helpRef} className="relative">
           <IconBtn
             label="Help"
+            buttonRef={helpPopover.triggerRef}
             onClick={() => setHelpOpen((open) => !open)}
             active={helpOpen}
             hint="?"
+            aria-expanded={helpOpen}
+            aria-haspopup="menu"
           >
             <CircleHelp className="h-4 w-4" />
           </IconBtn>
@@ -319,9 +382,13 @@ export function Topbar({
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     onClick={() => setHelpOpen(false)}
+                    aria-hidden="true"
                     className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-xl"
                   />
                   <motion.div
+                    ref={helpPopover.panelRef}
+                    role="menu"
+                    aria-label="Help"
                     initial={{ opacity: 0, y: -8, scale: 0.96 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: -8, scale: 0.96 }}
@@ -336,6 +403,7 @@ export function Topbar({
                     className="glass-modal overflow-hidden rounded-xl p-1.5"
                   >
                     <button
+                      role="menuitem"
                       onClick={() => {
                         setHelpOpen(false);
                         onOpenShortcuts();
@@ -370,7 +438,11 @@ export function Topbar({
         {/* Account menu */}
         <div ref={accountRef} className="relative">
           <button
+            ref={accountPopover.triggerRef}
             onClick={() => setAccountOpen(!accountOpen)}
+            aria-haspopup="menu"
+            aria-expanded={accountOpen}
+            aria-label="Account menu"
             className={cn(
               "glow-ring flex items-center gap-2 rounded-[6px] border border-white/5 bg-white/[0.04] px-2 py-1.5 text-xs text-foreground transition hover:bg-white/[0.08]",
               accountOpen && "bg-white/[0.08]",
@@ -395,9 +467,13 @@ export function Topbar({
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     onClick={() => setAccountOpen(false)}
+                    aria-hidden="true"
                     className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-xl"
                   />
                   <motion.div
+                    ref={accountPopover.panelRef}
+                    role="menu"
+                    aria-label="Account"
                     initial={{ opacity: 0, y: -8, scale: 0.96 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: -8, scale: 0.96 }}
@@ -503,18 +579,25 @@ function IconBtn({
   onClick,
   active,
   hint,
+  buttonRef,
+  ...rest
 }: {
   children: React.ReactNode;
   label: string;
   onClick?: () => void;
   active?: boolean;
   hint?: string;
+  buttonRef?: React.Ref<HTMLButtonElement>;
+  "aria-expanded"?: boolean;
+  "aria-haspopup"?: "dialog" | "menu" | undefined;
 }) {
   return (
     <motion.button
       whileTap={{ scale: 0.92 }}
+      ref={buttonRef}
       aria-label={label}
       onClick={onClick}
+      {...rest}
       className={cn(
         "glow-ring rounded-[6px] p-2 text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground",
         "inline-flex items-center gap-1.5",
@@ -597,6 +680,7 @@ function AccountMenuItem({
 }) {
   return (
     <button
+      role="menuitem"
       onClick={onClick}
       className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground"
     >

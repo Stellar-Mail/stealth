@@ -37,10 +37,20 @@ import { useMailOverlays } from "../useMailOverlays";
 import { useMailSource } from "../useMailSource";
 import { useMailboxDescriptors } from "../useMailbox";
 import { useRequests } from "../useRequests";
+import { useSession, sessionActor } from "../useSession";
 import { useThreadRead } from "../useThreadRead";
 import { MailMailboxStatus } from "./MailMailboxStatus";
 import { MailOverlayStack } from "./MailOverlayStack";
 import { offlineAppFailure } from "@/lib/api";
+import {
+  useMarkReadReceipt,
+  useReceiptQueueReplay,
+  useReceiptBroadcastListener,
+  resolveReceiptPreference,
+  resolveSenderType,
+  getReceiptOverride,
+  type ReceiptSenderType,
+} from "../useReceipts";
 
 // BETA-074 (Issue #1981) — the requests triage board and the sender journey are
 // large feature surfaces only shown on demand. Loading them as async chunks
@@ -57,12 +67,15 @@ export interface MailAppProps {
 }
 
 export function MailApp({ isDemoMode = false }: MailAppProps) {
+  const session = useSession({ enabled: !isDemoMode });
+  const actor = sessionActor(session.data);
+
   const source = useMailSource({ isDemoMode });
   const mailboxDescriptors = useMailboxDescriptors({
     actor: source.actor ?? "anonymous",
     enabled: Boolean(source.actor) && !isDemoMode,
   });
-  const requests = useRequests(source.actor, !isDemoMode);
+  const requests = useRequests(source.actor, undefined, !isDemoMode);
   const navigation = useMailNavigation(source.emails, source.folderCounts);
   const threadRead = useThreadRead({
     actor: source.actor,
@@ -78,7 +91,7 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
   const notificationCenter = useNotificationCenter({
     actor: source.actor,
     mail: mailboxDescriptors.data?.items ?? [],
-    requests: requests.data ?? [],
+    requests: requests.data?.items ?? [],
     preferences: preferences.notifications,
     browserEnabled: preferences.desktopNotifications,
   });
@@ -87,6 +100,10 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
   const isMobile = useIsMobile();
   const calendar = useCalendar();
   const { dismiss: dismissFeedback, items: feedbackItems, notify: showToast } = useFeedback();
+
+  const { mutateAsync: markReadReceipt } = useMarkReadReceipt(source.actor);
+  useReceiptQueueReplay(source.actor, source.connectivity.online);
+  useReceiptBroadcastListener(source.actor);
 
   const openSenderConversion = useCallback(
     (email: Email) =>
@@ -116,6 +133,10 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
     openSenderConversion,
     openSnoozeDialog: (email) => snooze.open({ emailId: email.id, subject: email.subject }),
     closeSnooze: snooze.close,
+    isDemoMode,
+    actor,
+    refreshOutbox: source.refreshOutbox,
+    markReadReceipt,
   });
 
   const bulk = useMailBulkActions({
@@ -148,8 +169,33 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
   useEffect(() => {
     if (!navigation.selectedId) return;
     const current = source.emails.find((email) => email.id === navigation.selectedId);
-    if (current?.unread) void source.mutateMailbox(current, { unread: false });
-  }, [navigation.selectedId, source.emails, source.mutateMailbox]);
+    if (!current?.unread) return;
+
+    source.mutateMailbox(current, { unread: false });
+
+    if (isDemoMode) return;
+
+    const senderType = resolveSenderType(current);
+    const override = getReceiptOverride(current.id);
+    const pref =
+      override ??
+      resolveReceiptPreference(senderType, {
+        receiptOnDelivery: preferences.receiptOnDelivery,
+        receipts: preferences.receipts,
+      });
+
+    if (pref === "auto") {
+      void markReadReceipt(current.id);
+    }
+  }, [
+    navigation.selectedId,
+    source.emails,
+    source.mutateMailbox,
+    preferences.receiptOnDelivery,
+    preferences.receipts,
+    isDemoMode,
+    markReadReceipt,
+  ]);
 
   const handleImportSave = useCallback(
     (result: { writes: number; rows: Array<{ name: string; address: string }> }) => {
@@ -187,11 +233,17 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
   }
 
   return (
-    <MotionConfig transition={isTest ? { duration: 0 } : undefined}>
+    <MotionConfig transition={isTest ? { duration: 0 } : undefined} reducedMotion="user">
       <div
         data-hydrated={layoutHydrated && prefHydrated}
         className="relative h-screen overflow-hidden text-foreground"
       >
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[300] focus:rounded-lg focus:border focus:border-white/10 focus:bg-black/90 focus:px-4 focus:py-2 focus:text-sm focus:text-foreground"
+        >
+          Skip to mailbox
+        </a>
         <AmbientBackground />
         {isDemoMode && (
           <div className="absolute top-0 inset-x-0 z-50 bg-primary/20 backdrop-blur-md border-b border-primary/30 py-1 text-center text-xs font-medium text-primary shadow-sm pointer-events-none">
@@ -252,7 +304,11 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
           )}
 
           <ResizablePanel defaultSize={isMobile ? 100 : 100 - layout.sidebarWidth}>
-            <div className="flex h-full flex-col min-w-0 pb-[72px] md:pb-0">
+            <main
+              id="main-content"
+              tabIndex={-1}
+              className="flex h-full flex-col min-w-0 pb-[72px] focus:outline-none md:pb-0"
+            >
               <Topbar
                 onOpenPalette={() => overlays.setPaletteOpen(true)}
                 onOpenSettings={() => overlays.openSettings(preferences)}
@@ -311,6 +367,7 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
                       emails={source.emails}
                       onUpdateEmail={source.updateEmail}
                       onShowToast={showToast}
+                      isDemoMode={isDemoMode}
                     />
                   </Suspense>
                 ) : (
@@ -415,7 +472,7 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
                   </ResizablePanelGroup>
                 )}
               </div>
-            </div>
+            </main>
           </ResizablePanel>
         </ResizablePanelGroup>
 
@@ -453,6 +510,8 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
               (email) => email.email?.startsWith("G") || email.email?.includes("*"),
             )?.email ?? ""
           }
+          actor={source.actor}
+          offline={isDemoMode || !source.actor}
         />
 
         <BottomNavigation

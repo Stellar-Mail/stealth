@@ -52,4 +52,11 @@ describe("mail shell production path (BETA-053)", () => {
     expect(mailIndex).not.toContain("demo-data");
     expect(read("src/features/mail/demo/demo-data.ts")).toContain("getDemoEmails");
   });
+
+  it("gates the triage QA failure toggle behind the DEV build (BETA-073)", () => {
+    const board = read("src/features/requests/RequestsTriageBoard.tsx");
+    expect(board).toContain("import.meta.env?.DEV === true");
+    expect(board).not.toMatch(/import\s+.*SimulateNetworkFailure/);
+    expect(board).toContain("simulateFailure");
+  });
 });

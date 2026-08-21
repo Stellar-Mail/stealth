@@ -16,6 +16,10 @@ const FOCUSABLE_SELECTOR = [
  * - Wraps Tab / Shift+Tab within the container.
  * - Calls `onClose` when Escape is pressed.
  * - Restores focus to the previously-focused element on unmount.
+ *
+ * The effect is idempotent: if focus is already inside the container when the
+ * effect re-runs (e.g. the `onClose` identity changed), it does not steal
+ * focus or re-capture the previously focused element.
  */
 export function useFocusTrap(active: boolean, onClose: () => void) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -27,15 +31,20 @@ export function useFocusTrap(active: boolean, onClose: () => void) {
     const container = containerRef.current;
     if (!container) return;
 
-    // Save the element that was focused before the trap activated
-    previousFocusRef.current = globalThis.document.activeElement as HTMLElement | null;
+    if (globalThis.document.activeElement !== container) {
+      const alreadyInside = container.contains(globalThis.document.activeElement);
+      if (!alreadyInside) {
+        // Save the element that was focused before the trap activated
+        previousFocusRef.current = globalThis.document.activeElement as HTMLElement | null;
 
-    // Focus the first focusable element inside the container
-    const focusables = container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
-    if (focusables.length > 0) {
-      focusables[0].focus();
-    } else {
-      container.focus();
+        // Focus the first focusable element inside the container
+        const focusables = container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
+        if (focusables.length > 0) {
+          focusables[0].focus();
+        } else {
+          container.focus();
+        }
+      }
     }
 
     function handleKeyDown(event: KeyboardEvent) {

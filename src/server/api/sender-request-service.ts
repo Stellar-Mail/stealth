@@ -30,5 +30,25 @@ export async function decideSenderRequest(
       decision: result.request.decision,
     });
   }
-  return result.request;
+
+  const request = result.request;
+  // Apply policy mutations if always_allow or block
+  if (decision === "always_allow") {
+    await repository.setSenderRule(recipient, request.sender, "allow");
+  } else if (decision === "block") {
+    await repository.setSenderRule(recipient, request.sender, "block");
+  }
+
+  // Reflect resulting mailbox/envelope delivery or deletion
+  const messageId = request.message.messageId;
+  const envelope = await repository.getEnvelope(messageId);
+  if (envelope) {
+    if (decision === "approve_once" || decision === "always_allow") {
+      await repository.updateEnvelopeStatus(messageId, "delivered");
+    } else if (decision === "block" || decision === "reject") {
+      await repository.tombstoneEnvelope(messageId, recipient);
+    }
+  }
+
+  return request;
 }

@@ -167,7 +167,7 @@ describe("identity migration worker (local Cloudflare emulation)", () => {
     "forward is idempotent when every family is already current",
     async () => {
       await seedIdentityRecords();
-      const { status, body } = await run("forward");
+      const { status, body } = await run("forward", { approval: "approved" });
 
       expect(status).toBe(200);
       expect(body.ok).toBe(true);
@@ -185,7 +185,7 @@ describe("identity migration worker (local Cloudflare emulation)", () => {
     "rollback without a target version is rejected by the runner",
     async () => {
       await seedIdentityRecords();
-      const { body } = await run("rollback");
+      const { body } = await run("rollback", { approval: "approved" });
       expect(body.ok).toBe(false);
       expect(body.families[0].errors[0]).toContain("--target-version");
     },

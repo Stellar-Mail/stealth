@@ -26,7 +26,10 @@ import type {
   VerificationToken,
   Wallet,
   OnboardingDraftRecord,
+  AccountDeletionRequest,
+  AccountExport,
 } from "./domain";
+import { toPublicProfile, toPublicUser } from "./domain";
 import type {
   AcquireIdempotencyResult,
   ConsumeVerificationTokenResult,
@@ -72,6 +75,25 @@ export class StealthCoordinator extends DurableObjectBase {
 
   constructor(ctx: DurableObjectState, env: any) {
     super(ctx, env);
+  }
+
+  /** Run the reviewed identity migration plan against this DO's own storage. */
+  async runIdentityMigrations(
+    command: MigrationCommand,
+    options: MigrationRunOptions = {},
+  ): Promise<MigrationReport> {
+    const storage = createDurableObjectMigrationStorage(this.ctx);
+    const families = selectFamilies(identityRecordFamilies, options);
+    switch (command) {
+      case "dry-run":
+        return dryRun(storage, families, options);
+      case "forward":
+        return forward(storage, families, options);
+      case "rollback":
+        return rollback(storage, families, options);
+      case "integrity-check":
+        return integrityCheck(storage, families, options);
+    }
   }
 
   private runExclusive<T>(lockKey: string, fn: () => Promise<T>): Promise<T> {
@@ -354,6 +376,99 @@ export class StealthCoordinator extends DurableObjectBase {
   async setCredential(credential: Credential): Promise<Credential> {
     await this.ctx.storage.put(`credential:${credential.userId}`, credential);
     return credential;
+  }
+
+  async getAccountDeletionRequest(userId: string): Promise<AccountDeletionRequest | null> {
+    return (
+      ((await this.ctx.storage.get(`account-deletion:${userId}`)) as AccountDeletionRequest) ?? null
+    );
+  }
+
+  async setAccountDeletionRequest(
+    request: AccountDeletionRequest,
+  ): Promise<AccountDeletionRequest> {
+    await this.ctx.storage.put(`account-deletion:${request.userId}`, request);
+    return request;
+  }
+
+  async exportAccount(userId: string, address: string, now = new Date()): Promise<AccountExport> {
+    const user = await this.getUserById(userId);
+    if (!user || user.address.toUpperCase() !== address.toUpperCase()) {
+      throw new ApiError(404, "not_found", "Account data not found");
+    }
+    const envelopeRecords = await this.ctx.storage.list({ prefix: "envelope:" });
+    const mailbox = [...envelopeRecords.values()].filter(
+      (value) => (value as StoredEnvelope).recipientId.toUpperCase() === address.toUpperCase(),
+    ) as StoredEnvelope[];
+    const requestRecords = await this.ctx.storage.list({ prefix: "sender-request:" });
+    const senderRequests = [...requestRecords.values()].filter(
+      (value) => (value as UnknownSenderRequest).recipient.toUpperCase() === address.toUpperCase(),
+    ) as UnknownSenderRequest[];
+    const profile = await this.getProfile(userId);
+    return {
+      format: "stealth-account-export-v1",
+      generatedAt: now.toISOString(),
+      account: toPublicUser(user),
+      profile: profile ? toPublicProfile(profile) : null,
+      contacts: [],
+      mailbox,
+      senderRequests,
+      publicKeys: [],
+      ciphertextReferences: mailbox.map((envelope) => ({
+        messageId: envelope.messageId,
+        objectKey: envelope.objectRef ?? null,
+        contentCommitment: envelope.contentCommitment ?? null,
+        deletedAt: envelope.deletedAt ?? null,
+      })),
+      onChainLimitations: [
+        "Stellar testnet transactions, account history, contract events, and published lifecycle commitments are immutable and are not erased.",
+        "This export contains ciphertext and references only; Stealth never exports plaintext message content or credentials.",
+      ],
+    };
+  }
+
+  async deleteAccountData(userId: string, address: string, now = new Date()) {
+    return this.runExclusive(`account-deletion:${userId}`, async () => {
+      const user = await this.getUserById(userId);
+      if (!user || user.address.toUpperCase() !== address.toUpperCase()) {
+        throw new ApiError(404, "not_found", "Account data not found");
+      }
+      await this.deleteUserSessions(userId);
+      for (const prefix of [
+        "profile:",
+        "credential:",
+        "onboarding:",
+        "provisioning:",
+        "wallet:",
+        "managed-wallet:",
+      ]) {
+        await this.ctx.storage.delete(`${prefix}${userId}`);
+      }
+      const envelopes = await this.ctx.storage.list({ prefix: "envelope:" });
+      for (const [key, value] of envelopes) {
+        const envelope = value as StoredEnvelope;
+        if (envelope.recipientId.toUpperCase() === address.toUpperCase()) {
+          await this.ctx.storage.put(key, { ...envelope, deletedAt: now.toISOString() });
+        }
+      }
+      await this.ctx.storage.delete(`user:email:${user.email.toLowerCase()}`);
+      await this.ctx.storage.delete(`user:username:${user.username.toLowerCase()}`);
+      await this.ctx.storage.put(`user:id:${userId}`, {
+        ...user,
+        email: `deleted-${userId}@invalid.example`,
+        username: `deleted-${userId}`.slice(0, 30),
+        status: "deactivated",
+        updatedAt: now.toISOString(),
+        version: user.version + 1,
+      });
+      return {
+        deleted: ["profile", "credential", "sessions", "mailbox ciphertext access"],
+        retained: [
+          "testnet account and transaction history",
+          "on-chain contract events and lifecycle commitments",
+        ],
+      };
+    });
   }
 
   // ---------------------------------------------------------------------------
@@ -963,6 +1078,35 @@ export class StealthCoordinator extends DurableObjectBase {
     }
     matches.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
     return matches.slice(0, limit);
+  }
+
+  // ---------------------------------------------------------------------------
+  // BETA-037 (Issue #1944): versioned sender rule records
+  // ---------------------------------------------------------------------------
+
+  async listSenderRuleRecords(
+    owner: string,
+    options?: { limit?: number; after?: string },
+  ): Promise<{ records: import("./domain").SenderRuleRecord[]; nextCursor?: string }> {
+    const limit = options?.limit ?? 50;
+    const records: import("./domain").SenderRuleRecord[] = [];
+    const all = (await this.ctx.storage.list({
+      prefix: `sender-rule-record:${owner}:`,
+    })) as Map<string, import("./domain").SenderRuleRecord>;
+    for (const record of all.values()) {
+      if (record && record.owner === owner) {
+        records.push(record);
+      }
+    }
+    records.sort((a, b) => a.sender.localeCompare(b.sender));
+    let startIndex = 0;
+    if (options?.after) {
+      startIndex = records.findIndex((r) => r.sender === options.after) + 1;
+    }
+    const page = records.slice(startIndex, startIndex + limit);
+    const nextCursor =
+      startIndex + limit < records.length ? page[page.length - 1]?.sender : undefined;
+    return { records: page, nextCursor };
   }
 
   async listRecipientEnvelopes(

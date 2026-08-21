@@ -11,6 +11,7 @@ import { useConnectivity } from "./useConnectivity";
 import type { MailboxSealedMessage } from "@/lib/api";
 import { applyThreadMessageToEmail, buildMailThread, siblingMessageIds } from "./live-thread";
 import { getMailboxKeyProvider } from "./mailbox-keys";
+import { getEntry } from "@/services/storage/outbox";
 import {
   classifyMailSourceError,
   type ClassifiedMailSourceError,
@@ -43,7 +44,8 @@ export function useThreadRead({
     [emails, selectedId],
   );
   const connectivity = useConnectivity();
-  const live = Boolean(enabled && actor && selectedId && !isDemoMode);
+  const isOutbox = Boolean(selectedId && getEntry(selectedId));
+  const live = Boolean(enabled && actor && selectedId && !isDemoMode && !isOutbox);
   const threadKey = queryKeys.mailbox.thread(actor ?? "anonymous");
 
   const query = useQuery({

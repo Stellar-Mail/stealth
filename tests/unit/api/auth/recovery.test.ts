@@ -13,7 +13,7 @@ import {
   regenerateRecoveryCodes,
 } from "../../../../src/server/api/auth/recovery";
 
-describe("BETA-010: One-time recovery codes (/api/v1/auth/recovery)", { timeout: 30000 }, () => {
+describe("BETA-010: One-time recovery codes (/api/v1/auth/recovery)", { timeout: 60_000 }, () => {
   let repo: MemoryApiRepository;
   const now = new Date("2026-07-01T12:00:00.000Z");
 

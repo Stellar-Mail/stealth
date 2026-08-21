@@ -153,7 +153,7 @@ export function SendProgress({
       </ul>
 
       {error && (
-        <div className="mt-3 space-y-2.5 border-t border-red-500/20 pt-2.5">
+        <div role="alert" className="mt-3 space-y-2.5 border-t border-red-500/20 pt-2.5">
           <div className="flex items-start gap-2">
             <AlertCircle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
             <div className="min-w-0 flex-1">
