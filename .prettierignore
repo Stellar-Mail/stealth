@@ -10,3 +10,5 @@ test-results
 test-fixtures/commit-spread
 **/test_snapshots/**
 StellarStream
+**/test_snapshots/**
+StellarStream
