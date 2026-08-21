@@ -51,5 +51,38 @@
   body {
     background: var(--background);
     color: var(--foreground);
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+}
+
+@layer utilities {
+  .safe-area-inset-top {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  .safe-area-inset-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .safe-area-inset-left {
+    padding-left: env(safe-area-inset-left, 0px);
+  }
+  .safe-area-inset-right {
+    padding-right: env(safe-area-inset-right, 0px);
+  }
+  .touch-target-min {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  .overflow-x-hidden {
+    overflow-x: hidden;
+  }
+}
+
+@supports (padding: env(safe-area-inset-top)) {
+  .safe-area-inset-top {
+    padding-top: env(safe-area-inset-top);
+  }
+  .safe-area-inset-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
   }
 }

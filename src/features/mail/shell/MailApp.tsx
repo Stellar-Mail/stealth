@@ -5,8 +5,8 @@
 // preferences) and the existing visual chrome. The root route only mounts this.
 // ---------------------------------------------------------------------------
 
-import { lazy, Suspense, useCallback, useEffect } from "react";
-import { MotionConfig } from "framer-motion";
+import { lazy, Suspense, useCallback, useEffect, useState } from "react";
+import { motion, MotionConfig, AnimatePresence } from "framer-motion";
 
 import { AmbientBackground } from "@/components/mail/AmbientBackground";
 import { Sidebar } from "@/components/mail/Sidebar";
@@ -18,7 +18,7 @@ import { RightPanel } from "@/components/mail/RightPanel";
 import type { Email } from "@/components/mail/data";
 import { defaultMailFilters } from "@/components/mail/data";
 import { cn } from "@/lib/utils";
-import { useIsMobile } from "@/lib/use-media-query";
+import { useIsMobile, useIsTablet } from "@/lib/use-media-query";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { useCalendar } from "@/features/calendar";
 import { FeedbackViewport } from "@/features/design-system/feedback/feedback-viewport";
@@ -98,8 +98,28 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
   const senderConversion = useSenderConversion();
   const snooze = useSnooze();
   const isMobile = useIsMobile();
+  const isTablet = useIsTablet();
   const calendar = useCalendar();
   const { dismiss: dismissFeedback, items: feedbackItems, notify: showToast } = useFeedback();
+
+  // Mobile view state: "list" or "detail" — tracks which panel is visible
+  const [mobileView, setMobileView] = useState<"list" | "detail">("list");
+  const [sidebarDrawerOpen, setSidebarDrawerOpen] = useState(false);
+
+  // When a message is selected on mobile, switch to detail view
+  useEffect(() => {
+    if (isMobile && navigation.selectedId) {
+      setMobileView("detail");
+    }
+  }, [isMobile, navigation.selectedId]);
+
+  // When switching from mobile to desktop, reset mobile view state
+  useEffect(() => {
+    if (!isMobile) {
+      setMobileView("list");
+      setSidebarDrawerOpen(false);
+    }
+  }, [isMobile]);
 
   const { mutateAsync: markReadReceipt } = useMarkReadReceipt(source.actor);
   useReceiptQueueReplay(source.actor, source.connectivity.online);
@@ -246,235 +266,373 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
         </a>
         <AmbientBackground />
         {isDemoMode && (
-          <div className="absolute top-0 inset-x-0 z-50 bg-primary/20 backdrop-blur-md border-b border-primary/30 py-1 text-center text-xs font-medium text-primary shadow-sm pointer-events-none">
+          <div className="absolute top-0 inset-x-0 z-50 bg-primary/20 backdrop-blur-md border-b border-primary/30 py-1 text-center text-xs font-medium text-primary shadow-sm pointer-events-none safe-area-inset-top">
             Demo Mode: Showing placeholder data.
           </div>
         )}
 
-        <ResizablePanelGroup
-          direction="horizontal"
-          className="flex h-full w-full"
-          onLayoutChanged={(sizes) => {
-            if (isMobile || !sizes.length) return;
-            const sidebarWidth = sizes[0];
-            if (sidebarWidth > 4) {
-              setLayout({ sidebarWidth });
-            }
-          }}
-        >
-          {!isMobile && (
+        {/* Desktop / Tablet: Resizable panel layout */}
+        {!isMobile && (
+          <ResizablePanelGroup
+            direction="horizontal"
+            className="flex h-full w-full"
+            onLayoutChanged={(sizes) => {
+              if (!sizes.length) return;
+              const sidebarWidth = sizes[0];
+              if (sidebarWidth > 4) {
+                setLayout({ sidebarWidth });
+              }
+            }}
+          >
+            {!isTablet && (
+              <>
+                <ResizablePanel
+                  defaultSize={layout.sidebarWidth}
+                  minSize={4}
+                  maxSize={20}
+                  collapsible
+                  onCollapse={() => setLayout({ sidebarCollapsed: true })}
+                  onExpand={() => setLayout({ sidebarCollapsed: false })}
+                  className={cn(
+                    layout.sidebarCollapsed &&
+                      "min-w-[50px] transition-all duration-300 ease-in-out",
+                  )}
+                >
+                  <Sidebar
+                    active={navigation.folder}
+                    counts={navigation.folderCounts}
+                    onSelect={navigation.selectFolder}
+                    collapsed={layout.sidebarCollapsed}
+                    onToggle={() => setLayout({ sidebarCollapsed: !layout.sidebarCollapsed })}
+                    onCompose={() => overlays.openCompose()}
+                    customFolder={navigation.customFolder}
+                    onSelectCustomFolder={navigation.setCustomFolder}
+                    onOpenSenderJourney={() => overlays.setShowSenderJourney(true)}
+                  />
+                </ResizablePanel>
+                <ResizableHandle withHandle />
+              </>
+            )}
+            {isTablet && (
+              <Sidebar
+                active={navigation.folder}
+                counts={navigation.folderCounts}
+                onSelect={navigation.selectFolder}
+                collapsed={layout.sidebarCollapsed}
+                onToggle={() => setLayout({ sidebarCollapsed: !layout.sidebarCollapsed })}
+                onCompose={() => overlays.openCompose()}
+                customFolder={navigation.customFolder}
+                onSelectCustomFolder={navigation.setCustomFolder}
+              />
+            )}
+
+            <ResizablePanel defaultSize={isTablet ? 100 : 100 - layout.sidebarWidth}>
+              <main
+                id="main-content"
+                tabIndex={-1}
+                className="flex h-full flex-col min-w-0 focus:outline-none"
+              >
+                <Topbar
+                  onOpenPalette={() => overlays.setPaletteOpen(true)}
+                  onOpenSettings={() => overlays.openSettings(preferences)}
+                  onOpenProofInspector={() => runCommand("open-proof-inspector")}
+                  onOpenShortcuts={() => overlays.setShortcutOverlayOpen(true)}
+                  onImportContacts={() => overlays.setImportOpen(true)}
+                  onShowToast={showToast}
+                  filters={navigation.filters}
+                  onFiltersChange={navigation.setFilters}
+                  onQuickAction={(action) => {
+                    navigation.setCustomFolder(null);
+                    if (action === "proofs") navigation.setFolder("pending");
+                    if (action === "later") navigation.setFolder("snoozed");
+                    if (action === "files") {
+                      navigation.setFolder("all");
+                      navigation.setFilters({ ...defaultMailFilters, hasAttachments: true });
+                    }
+                  }}
+                  onViewNotifications={() => {
+                    navigation.setCustomFolder(null);
+                    navigation.setFolder("inbox");
+                    navigation.setFilters({ ...defaultMailFilters, unreadOnly: true });
+                  }}
+                  onOpenLogin={() => overlays.setAuthModalOpen(true)}
+                  notifications={notificationCenter.notifications}
+                  onMarkNotificationRead={notificationCenter.markRead}
+                  onMarkAllNotificationsRead={notificationCenter.markAllRead}
+                />
+                {source.connectivity.paused &&
+                source.sourceView.kind !== "error" &&
+                !blockingSource ? (
+                  <DegradedStateBanner
+                    failure={offlineAppFailure()}
+                    compact
+                    onRetry={() => void source.retry()}
+                  />
+                ) : null}
+                {source.sourceView.kind === "error" && source.sourceView.hasCachedData ? (
+                  <MailMailboxStatus
+                    view={source.sourceView}
+                    compact
+                    onRetry={() => void source.retry()}
+                    onSignIn={() => overlays.setAuthModalOpen(true)}
+                  />
+                ) : null}
+                <div className="flex min-h-0 min-w-0 flex-1">
+                  {blockingSource ? (
+                    <MailMailboxStatus
+                      view={source.sourceView}
+                      onRetry={() => void source.retry()}
+                      onSignIn={() => overlays.setAuthModalOpen(true)}
+                    />
+                  ) : navigation.folder === "requests" ? (
+                    <Suspense fallback={null}>
+                      <RequestsTriageBoard
+                        emails={source.emails}
+                        onUpdateEmail={source.updateEmail}
+                        onShowToast={showToast}
+                        isDemoMode={isDemoMode}
+                      />
+                    </Suspense>
+                  ) : (
+                    <ResizablePanelGroup
+                      direction="horizontal"
+                      className="h-full w-full"
+                      onLayoutChanged={(sizes) => {
+                        if (sizes.length < 2) return;
+                        const listWidth = sizes[0];
+                        const readerWidth = sizes[1];
+                        if (listWidth >= 20 && readerWidth >= 30) {
+                          setLayout({
+                            listWidth,
+                            readerWidth,
+                          });
+                        }
+                      }}
+                    >
+                      <ResizablePanel defaultSize={layout.listWidth} minSize={20}>
+                        <EmailList
+                          emails={source.emails}
+                          selectedId={navigation.selectedId}
+                          selectedIds={navigation.selectedIds}
+                          onSelect={navigation.setSelectedId}
+                          onSelectionChange={navigation.setSelectedIds}
+                          onBulkAction={bulk.handleBulkActionRequest}
+                          bulkProgress={bulk.bulkProgress}
+                          bulkFailures={bulk.bulkFailures}
+                          onConvertSender={openSenderConversion}
+                          folder={navigation.folder}
+                          filters={navigation.filters}
+                          customFolder={navigation.customFolder}
+                          compact={layout.compactMode || preferences.compactMode}
+                          showAvatars={preferences.showAvatars}
+                          onArchive={actions.handleArchive}
+                          onStar={actions.handleStar}
+                          onSnooze={(email) =>
+                            snooze.open({ emailId: email.id, subject: email.subject })
+                          }
+                          onMove={actions.handleMove}
+                          hasMore={source.hasMore}
+                          onLoadMore={() => {
+                            void source.loadMore();
+                          }}
+                          isLoadingMore={source.isLoadingMore}
+                        />
+                      </ResizablePanel>
+                      <ResizableHandle withHandle />
+                      <ResizablePanel defaultSize={layout.readerWidth} minSize={30}>
+                        <EmailView
+                          email={readerEmail}
+                          thread={threadRead.thread}
+                          threadView={threadRead.view}
+                          onRetryThread={() => {
+                            void threadRead.retry();
+                          }}
+                          actions={actions.emailActions}
+                        />
+                      </ResizablePanel>
+                      <ResizableHandle withHandle />
+                      <ResizablePanel
+                        defaultSize={100 - layout.listWidth - layout.readerWidth}
+                        minSize={15}
+                        collapsible
+                        collapsedSize={0}
+                        onCollapse={() => setLayout({ rightPanelCollapsed: true })}
+                        onExpand={() => setLayout({ rightPanelCollapsed: false })}
+                      >
+                        <RightPanel
+                          email={readerEmail}
+                          onAction={actions.handleContextAction}
+                          onConvertSender={openSenderConversion}
+                          onSnooze={(email) =>
+                            snooze.open({ emailId: email.id, subject: email.subject })
+                          }
+                          calendarEvents={calendar.visibleEvents}
+                          calendars={calendar.calendars}
+                          onShowToast={showToast}
+                          onOpenCalendar={overlays.openCalendar}
+                          onCreateEvent={overlays.requestCalendarCreate}
+                          onDraftReply={(email, prompt) =>
+                            overlays.openCompose({
+                              to: email.email,
+                              subject: email.subject.startsWith("Re: ")
+                                ? email.subject
+                                : `Re: ${email.subject}`,
+                              body: `${prompt}\n\nDrafted response:\nThanks for the note. I reviewed the context and will follow up with the next step shortly.${quoteBody(
+                                email,
+                              )}`,
+                            })
+                          }
+                          onPreviewAttachment={(attachment) =>
+                            overlays.setPreviewAttachment(attachment)
+                          }
+                        />
+                      </ResizablePanel>
+                    </ResizablePanelGroup>
+                  )}
+                </div>
+              </main>
+            </ResizablePanel>
+          </ResizablePanelGroup>
+        )}
+
+        {/* Mobile: single-panel view with list/detail switching */}
+        {isMobile && (
+          <div className="flex h-full flex-col">
+            <Topbar
+              onOpenPalette={() => overlays.setPaletteOpen(true)}
+              onOpenSettings={() => overlays.openSettings(preferences)}
+              onOpenProofInspector={() => runCommand("open-proof-inspector")}
+              onOpenShortcuts={() => overlays.setShortcutOverlayOpen(true)}
+              onImportContacts={() => overlays.setImportOpen(true)}
+              onShowToast={showToast}
+              filters={navigation.filters}
+              onFiltersChange={navigation.setFilters}
+              onQuickAction={(action) => {
+                navigation.setCustomFolder(null);
+                if (action === "proofs") navigation.setFolder("pending");
+                if (action === "later") navigation.setFolder("snoozed");
+                if (action === "files") {
+                  navigation.setFolder("all");
+                  navigation.setFilters({ ...defaultMailFilters, hasAttachments: true });
+                }
+              }}
+              onViewNotifications={() => {
+                navigation.setCustomFolder(null);
+                navigation.setFolder("inbox");
+                navigation.setFilters({ ...defaultMailFilters, unreadOnly: true });
+              }}
+              onOpenLogin={() => overlays.setAuthModalOpen(true)}
+              notifications={notificationCenter.notifications}
+              onMarkNotificationRead={notificationCenter.markRead}
+              onMarkAllNotificationsRead={notificationCenter.markAllRead}
+              onBack={mobileView === "detail" ? () => setMobileView("list") : undefined}
+            />
+            {source.connectivity.paused && source.sourceView.kind !== "error" && !blockingSource ? (
+              <DegradedStateBanner
+                failure={offlineAppFailure()}
+                compact
+                onRetry={() => void source.retry()}
+              />
+            ) : null}
+            <div className="flex min-h-0 min-w-0 flex-1 pb-[68px]">
+              {blockingSource ? (
+                <MailMailboxStatus
+                  view={source.sourceView}
+                  onRetry={() => void source.retry()}
+                  onSignIn={() => overlays.setAuthModalOpen(true)}
+                />
+              ) : navigation.folder === "requests" ? (
+                <Suspense fallback={null}>
+                  <RequestsTriageBoard
+                    emails={source.emails}
+                    onUpdateEmail={source.updateEmail}
+                    onShowToast={showToast}
+                    isDemoMode={isDemoMode}
+                  />
+                </Suspense>
+              ) : mobileView === "list" ? (
+                <EmailList
+                  emails={source.emails}
+                  selectedId={navigation.selectedId}
+                  selectedIds={navigation.selectedIds}
+                  onSelect={(id) => {
+                    navigation.setSelectedId(id);
+                    setMobileView("detail");
+                  }}
+                  onSelectionChange={navigation.setSelectedIds}
+                  onBulkAction={bulk.handleBulkActionRequest}
+                  bulkProgress={bulk.bulkProgress}
+                  bulkFailures={bulk.bulkFailures}
+                  onConvertSender={openSenderConversion}
+                  folder={navigation.folder}
+                  filters={navigation.filters}
+                  customFolder={navigation.customFolder}
+                  compact={layout.compactMode || preferences.compactMode}
+                  showAvatars={preferences.showAvatars}
+                  useMobile
+                  onArchive={actions.handleArchive}
+                  onStar={actions.handleStar}
+                  onSnooze={(email) => snooze.open({ emailId: email.id, subject: email.subject })}
+                  onMove={actions.handleMove}
+                  hasMore={source.hasMore}
+                  onLoadMore={() => {
+                    void source.loadMore();
+                  }}
+                  isLoadingMore={source.isLoadingMore}
+                />
+              ) : (
+                <EmailView
+                  email={readerEmail}
+                  thread={threadRead.thread}
+                  threadView={threadRead.view}
+                  onRetryThread={() => {
+                    void threadRead.retry();
+                  }}
+                  actions={actions.emailActions}
+                />
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Mobile sidebar drawer */}
+        <AnimatePresence>
+          {isMobile && sidebarDrawerOpen && (
             <>
-              <ResizablePanel
-                defaultSize={layout.sidebarWidth}
-                minSize={4}
-                maxSize={20}
-                collapsible
-                onCollapse={() => setLayout({ sidebarCollapsed: true })}
-                onExpand={() => setLayout({ sidebarCollapsed: false })}
-                className={cn(
-                  layout.sidebarCollapsed && "min-w-[50px] transition-all duration-300 ease-in-out",
-                )}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setSidebarDrawerOpen(false)}
+                className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm"
+              />
+              <motion.div
+                initial={{ x: -280 }}
+                animate={{ x: 0 }}
+                exit={{ x: -280 }}
+                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                className="fixed inset-y-0 left-0 z-[70] w-[280px]"
               >
                 <Sidebar
                   active={navigation.folder}
                   counts={navigation.folderCounts}
-                  onSelect={navigation.selectFolder}
-                  collapsed={layout.sidebarCollapsed}
-                  onToggle={() => setLayout({ sidebarCollapsed: !layout.sidebarCollapsed })}
-                  onCompose={() => overlays.openCompose()}
+                  onSelect={(f) => {
+                    navigation.selectFolder(f);
+                    setSidebarDrawerOpen(false);
+                  }}
+                  collapsed={false}
+                  onToggle={() => setSidebarDrawerOpen(false)}
+                  onCompose={() => {
+                    setSidebarDrawerOpen(false);
+                    overlays.openCompose();
+                  }}
                   customFolder={navigation.customFolder}
                   onSelectCustomFolder={navigation.setCustomFolder}
-                  onOpenSenderJourney={() => overlays.setShowSenderJourney(true)}
                 />
-              </ResizablePanel>
-              <ResizableHandle withHandle />
+              </motion.div>
             </>
           )}
-          {isMobile && (
-            <Sidebar
-              active={navigation.folder}
-              counts={navigation.folderCounts}
-              onSelect={navigation.selectFolder}
-              collapsed={layout.sidebarCollapsed}
-              onToggle={() => setLayout({ sidebarCollapsed: !layout.sidebarCollapsed })}
-              onCompose={() => overlays.openCompose()}
-              customFolder={navigation.customFolder}
-              onSelectCustomFolder={navigation.setCustomFolder}
-            />
-          )}
-
-          <ResizablePanel defaultSize={isMobile ? 100 : 100 - layout.sidebarWidth}>
-            <main
-              id="main-content"
-              tabIndex={-1}
-              className="flex h-full flex-col min-w-0 pb-[72px] focus:outline-none md:pb-0"
-            >
-              <Topbar
-                onOpenPalette={() => overlays.setPaletteOpen(true)}
-                onOpenSettings={() => overlays.openSettings(preferences)}
-                onOpenProofInspector={() => runCommand("open-proof-inspector")}
-                onOpenShortcuts={() => overlays.setShortcutOverlayOpen(true)}
-                onImportContacts={() => overlays.setImportOpen(true)}
-                onShowToast={showToast}
-                filters={navigation.filters}
-                onFiltersChange={navigation.setFilters}
-                onQuickAction={(action) => {
-                  navigation.setCustomFolder(null);
-                  if (action === "proofs") navigation.setFolder("pending");
-                  if (action === "later") navigation.setFolder("snoozed");
-                  if (action === "files") {
-                    navigation.setFolder("all");
-                    navigation.setFilters({ ...defaultMailFilters, hasAttachments: true });
-                  }
-                }}
-                onViewNotifications={() => {
-                  navigation.setCustomFolder(null);
-                  navigation.setFolder("inbox");
-                  navigation.setFilters({ ...defaultMailFilters, unreadOnly: true });
-                }}
-                onOpenLogin={() => overlays.setAuthModalOpen(true)}
-                notifications={notificationCenter.notifications}
-                onMarkNotificationRead={notificationCenter.markRead}
-                onMarkAllNotificationsRead={notificationCenter.markAllRead}
-              />
-              {source.connectivity.paused &&
-              source.sourceView.kind !== "error" &&
-              !blockingSource ? (
-                <DegradedStateBanner
-                  failure={offlineAppFailure()}
-                  compact
-                  onRetry={() => void source.retry()}
-                />
-              ) : null}
-              {source.sourceView.kind === "error" && source.sourceView.hasCachedData ? (
-                <MailMailboxStatus
-                  view={source.sourceView}
-                  compact
-                  onRetry={() => void source.retry()}
-                  onSignIn={() => overlays.setAuthModalOpen(true)}
-                />
-              ) : null}
-              <div className="flex min-h-0 min-w-0 flex-1">
-                {blockingSource ? (
-                  <MailMailboxStatus
-                    view={source.sourceView}
-                    onRetry={() => void source.retry()}
-                    onSignIn={() => overlays.setAuthModalOpen(true)}
-                  />
-                ) : navigation.folder === "requests" ? (
-                  <Suspense fallback={null}>
-                    <RequestsTriageBoard
-                      emails={source.emails}
-                      onUpdateEmail={source.updateEmail}
-                      onShowToast={showToast}
-                      isDemoMode={isDemoMode}
-                    />
-                  </Suspense>
-                ) : (
-                  <ResizablePanelGroup
-                    direction="horizontal"
-                    className="h-full w-full"
-                    onLayoutChanged={(sizes) => {
-                      if (isMobile || sizes.length < 2) return;
-                      const listWidth = sizes[0];
-                      const readerWidth = sizes[1];
-                      if (listWidth >= 20 && readerWidth >= 30) {
-                        setLayout({
-                          listWidth,
-                          readerWidth,
-                        });
-                      }
-                    }}
-                  >
-                    <ResizablePanel defaultSize={isMobile ? 100 : layout.listWidth} minSize={20}>
-                      <EmailList
-                        emails={source.emails}
-                        selectedId={navigation.selectedId}
-                        selectedIds={navigation.selectedIds}
-                        onSelect={navigation.setSelectedId}
-                        onSelectionChange={navigation.setSelectedIds}
-                        onBulkAction={bulk.handleBulkActionRequest}
-                        bulkProgress={bulk.bulkProgress}
-                        bulkFailures={bulk.bulkFailures}
-                        onConvertSender={openSenderConversion}
-                        folder={navigation.folder}
-                        filters={navigation.filters}
-                        customFolder={navigation.customFolder}
-                        compact={layout.compactMode || preferences.compactMode}
-                        showAvatars={preferences.showAvatars}
-                        useMobile={isMobile}
-                        onArchive={actions.handleArchive}
-                        onStar={actions.handleStar}
-                        onSnooze={(email) =>
-                          snooze.open({ emailId: email.id, subject: email.subject })
-                        }
-                        onMove={actions.handleMove}
-                        hasMore={source.hasMore}
-                        onLoadMore={() => {
-                          void source.loadMore();
-                        }}
-                        isLoadingMore={source.isLoadingMore}
-                      />
-                    </ResizablePanel>
-                    {!isMobile && (
-                      <>
-                        <ResizableHandle withHandle />
-                        <ResizablePanel defaultSize={layout.readerWidth} minSize={30}>
-                          <EmailView
-                            email={readerEmail}
-                            thread={threadRead.thread}
-                            threadView={threadRead.view}
-                            onRetryThread={() => {
-                              void threadRead.retry();
-                            }}
-                            actions={actions.emailActions}
-                          />
-                        </ResizablePanel>
-                        <ResizableHandle withHandle />
-                        <ResizablePanel
-                          defaultSize={100 - layout.listWidth - layout.readerWidth}
-                          minSize={15}
-                          collapsible
-                          collapsedSize={0}
-                          onCollapse={() => setLayout({ rightPanelCollapsed: true })}
-                          onExpand={() => setLayout({ rightPanelCollapsed: false })}
-                        >
-                          <RightPanel
-                            email={readerEmail}
-                            onAction={actions.handleContextAction}
-                            onConvertSender={openSenderConversion}
-                            onSnooze={(email) =>
-                              snooze.open({ emailId: email.id, subject: email.subject })
-                            }
-                            calendarEvents={calendar.visibleEvents}
-                            calendars={calendar.calendars}
-                            onShowToast={showToast}
-                            onOpenCalendar={overlays.openCalendar}
-                            onCreateEvent={overlays.requestCalendarCreate}
-                            onDraftReply={(email, prompt) =>
-                              overlays.openCompose({
-                                to: email.email,
-                                subject: email.subject.startsWith("Re: ")
-                                  ? email.subject
-                                  : `Re: ${email.subject}`,
-                                body: `${prompt}\n\nDrafted response:\nThanks for the note. I reviewed the context and will follow up with the next step shortly.${quoteBody(
-                                  email,
-                                )}`,
-                              })
-                            }
-                            onPreviewAttachment={(attachment) =>
-                              overlays.setPreviewAttachment(attachment)
-                            }
-                          />
-                        </ResizablePanel>
-                      </>
-                    )}
-                  </ResizablePanelGroup>
-                )}
-              </div>
-            </main>
-          </ResizablePanel>
-        </ResizablePanelGroup>
+        </AnimatePresence>
 
         <MailOverlayStack
           overlays={overlays}

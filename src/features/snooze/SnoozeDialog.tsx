@@ -121,7 +121,7 @@ export function SnoozeDialog({ target, initialState, events, onConfirm, onClose 
             onKeyDown={(event) => {
               if (event.key === "Enter" && canConfirm) handleConfirm();
             }}
-            className="glass-strong fixed left-1/2 top-1/2 z-50 w-[min(460px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl"
+            className="glass-strong fixed inset-0 z-50 flex flex-col overflow-hidden sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl sm:w-[min(460px,calc(100vw-2rem))]"
           >
             <div className="flex items-start justify-between gap-3 px-6 pt-5">
               <div className="min-w-0 space-y-1">

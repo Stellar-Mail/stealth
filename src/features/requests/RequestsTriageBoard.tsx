@@ -441,7 +441,7 @@ export function RequestsTriageBoard({
             initial={{ y: 50, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 50, opacity: 0 }}
-            className="absolute bottom-6 left-1/2 z-40 flex -translate-x-1/2 items-center gap-4 rounded-xl border border-white/10 bg-black/85 px-6 py-3 shadow-2xl backdrop-blur-md"
+            className="absolute bottom-6 left-1/2 z-40 flex w-[calc(100%-2rem)] max-w-[600px] -translate-x-1/2 flex-wrap items-center gap-3 rounded-xl border border-white/10 bg-black/85 px-4 py-3 shadow-2xl backdrop-blur-md sm:w-auto sm:flex-nowrap sm:px-6"
           >
             <span className="text-xs text-foreground/80 font-medium">
               {selectedIds.size} request{selectedIds.size > 1 ? "s" : ""} selected

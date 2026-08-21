@@ -170,10 +170,10 @@ export function SettingsModal({
             exit={{ opacity: 0, scale: 0.96, y: 8 }}
             transition={panelTransition}
             className={cn(
-              "glass-strong fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl transition-all outline-none",
+              "glass-strong fixed inset-0 z-50 flex flex-col overflow-hidden transition-all outline-none sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl",
               activeTab === "audit" || activeTab === "changelog"
-                ? "w-[min(800px,calc(100vw-2rem))]"
-                : "w-[min(680px,calc(100vw-2rem))]",
+                ? "sm:w-[min(800px,calc(100vw-2rem))]"
+                : "sm:w-[min(680px,calc(100vw-2rem))]",
             )}
           >
             {/* Header */}
@@ -192,23 +192,23 @@ export function SettingsModal({
 
             <div
               className={cn(
-                "flex",
+                "flex flex-1 overflow-hidden",
                 activeTab === "audit" || activeTab === "changelog" ? "h-[520px]" : "min-h-[400px]",
               )}
             >
-              {/* Sidebar tabs */}
-              <div className="w-48 border-r border-white/5 p-3">
+              {/* Sidebar tabs - vertical on desktop, horizontal scroll on mobile */}
+              <div className="w-full shrink-0 border-b border-white/5 p-2 sm:w-48 sm:border-b-0 sm:border-r sm:p-3">
                 <nav
                   role="tablist"
-                  aria-orientation="vertical"
+                  aria-orientation="horizontal"
                   aria-label="Settings sections"
                   onKeyDown={onTabListKeyDown}
-                  className="space-y-1"
+                  className="flex overflow-x-auto gap-1 sm:flex-col sm:overflow-x-visible"
                 >
                   {tabs.map((tab) => {
                     const Icon = tab.icon;
                     const isActive = activeTab === tab.id;
-                    const hasUnread = false; // Stubbed to prevent TS error, since it's not present in this scope.
+                    const hasUnread = false;
                     return (
                       <button
                         key={tab.id}
@@ -219,7 +219,7 @@ export function SettingsModal({
                         tabIndex={isActive ? 0 : -1}
                         onClick={() => setActiveTab(tab.id)}
                         className={cn(
-                          "glow-ring flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition active:scale-[0.98]",
+                          "glow-ring flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition active:scale-[0.98] whitespace-nowrap sm:w-full sm:whitespace-normal",
                           isActive
                             ? "bg-white/[0.08] text-foreground"
                             : "text-muted-foreground hover:bg-white/[0.04] hover:text-foreground",

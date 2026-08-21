@@ -52,7 +52,7 @@ export function ProvenanceInspector({
             aria-modal="true"
             aria-labelledby={headingId}
             tabIndex={-1}
-            className="glass-modal fixed left-1/2 top-1/2 z-[60] w-[min(540px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl shadow-2xl focus:outline-none"
+            className="glass-modal fixed inset-0 z-[60] flex flex-col overflow-hidden sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl sm:w-[min(540px,calc(100vw-2rem))] shadow-2xl focus:outline-none"
           >
             {/* Header */}
             <div className="flex items-center justify-between border-b border-white/5 px-5 py-4">

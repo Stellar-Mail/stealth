@@ -510,7 +510,7 @@ export function Compose({
             animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
             exit={{ opacity: 0, y: 24, scale: 0.97, filter: "blur(6px)" }}
             transition={{ type: "spring", stiffness: 280, damping: 28 }}
-            className="glass-strong fixed bottom-6 right-6 z-50 w-[min(640px,calc(100vw-2rem))] overflow-hidden rounded-2xl"
+            className="glass-strong fixed inset-0 z-50 flex flex-col overflow-hidden sm:bottom-6 sm:right-6 sm:inset-auto sm:w-[min(640px,calc(100vw-2rem))] sm:rounded-2xl"
           >
             <div className="flex items-center justify-between border-b border-white/5 px-4 py-3">
               <div className="flex items-center gap-3">
@@ -572,7 +572,7 @@ export function Compose({
                 onChange={setSubject}
               />
             </div>
-            <div className="px-4 pb-2">
+            <div className="flex-1 overflow-y-auto px-4 pb-2">
               <textarea
                 ref={textareaRef}
                 rows={8}
@@ -580,7 +580,7 @@ export function Compose({
                 onChange={(e) => setBody(e.target.value)}
                 placeholder="Write your message…"
                 aria-label="Message"
-                className="glow-ring w-full resize-none rounded-lg border border-transparent bg-transparent px-1 py-2 text-sm placeholder:text-muted-foreground focus:border-white/10"
+                className="glow-ring w-full resize-none rounded-lg border border-transparent bg-transparent px-1 py-2 text-sm placeholder:text-muted-foreground focus:border-white/10 min-h-[120px] sm:min-h-[180px]"
               />
 
               {sendStages.length > 0 && (

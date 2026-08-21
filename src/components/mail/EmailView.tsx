@@ -118,7 +118,7 @@ export function EmailView({
   const outboxEntry = email ? getEntry(email.id) : null;
 
   return (
-    <section className="mail-reader-atmosphere relative m-3 ml-0 flex h-[calc(100vh-3.5rem-1.5rem)] flex-1 flex-col overflow-hidden rounded-[8px]">
+    <section className="mail-reader-atmosphere relative m-3 flex h-[calc(100vh-3.5rem-1.5rem)] flex-1 flex-col overflow-hidden rounded-[8px] sm:m-3 sm:ml-0">
       <AnimatePresence mode="wait">
         {threadView.kind === "loading" ? (
           <MailReaderSkeleton key="thread-loading" className="h-full" />
@@ -874,7 +874,7 @@ function ProtocolStatus({
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 16 }}
               transition={{ type: "spring", stiffness: 350, damping: 28 }}
-              className="glass-modal fixed left-1/2 top-1/2 z-[60] w-[min(460px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl shadow-2xl p-5"
+              className="glass-modal fixed inset-0 z-[60] flex flex-col overflow-hidden p-5 sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl sm:w-[min(460px,calc(100vw-2rem))] shadow-2xl"
             >
               <div className="flex items-center justify-between border-b border-white/5 pb-3">
                 <div className="flex items-center gap-2">

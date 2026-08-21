@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
+  ArrowLeft,
   Bell,
   Calendar,
   Check,
@@ -80,6 +81,7 @@ type TopbarProps = {
   onViewNotifications: () => void;
   onSignOut?: () => void;
   onOpenLogin?: () => void;
+  onBack?: () => void;
   notifications: InAppNotification[];
   onMarkNotificationRead: (id: string) => void;
   onMarkAllNotificationsRead: () => void;
@@ -109,6 +111,7 @@ export function Topbar({
   onViewNotifications,
   onSignOut,
   onOpenLogin,
+  onBack,
   notifications,
   onMarkNotificationRead,
   onMarkAllNotificationsRead,
@@ -177,8 +180,18 @@ export function Topbar({
   }, [filterOpen, accountOpen, helpOpen, notificationsOpen]);
 
   return (
-    <header className="glass relative z-50 m-0 flex h-14 items-center gap-2 overflow-hidden rounded-none border-t-0 px-3">
-      <motion.div className="relative flex h-9 min-w-[220px] flex-[1_1_320px] items-center lg:max-w-[430px]">
+    <header className="glass relative z-50 m-0 flex h-14 items-center gap-2 overflow-hidden rounded-none border-t-0 px-3 safe-area-inset-top">
+      {onBack && (
+        <motion.button
+          whileTap={{ scale: 0.92 }}
+          onClick={onBack}
+          aria-label="Go back to list"
+          className="glow-ring shrink-0 rounded-[6px] p-2 text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </motion.button>
+      )}
+      <motion.div className="relative flex h-9 min-w-0 flex-[1_1_160px] items-center sm:min-w-[220px] sm:flex-[1_1_320px] lg:max-w-[430px]">
         <Search className="pointer-events-none absolute left-3 h-4 w-4 text-muted-foreground" />
         <input
           onFocus={() => setFocused(true)}

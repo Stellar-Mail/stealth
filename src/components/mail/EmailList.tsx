@@ -281,7 +281,7 @@ export function EmailList({
   };
 
   return (
-    <section className="mail-list-atmosphere relative m-3 flex h-[calc(100vh-3.5rem-1.5rem)] w-full flex-col overflow-hidden rounded-[8px] md:w-[328px] md:shrink-0 lg:w-[336px]">
+    <section className="mail-list-atmosphere relative m-3 flex h-[calc(100vh-3.5rem-1.5rem)] w-full flex-col overflow-hidden rounded-[8px] sm:w-[328px] sm:shrink-0 md:w-[328px] lg:w-[336px]">
       <div className="relative z-10 flex items-center justify-between border-b border-white/10 bg-white/[0.025] px-3.5 py-3 backdrop-blur-sm">
         <div>
           <h2 className="text-[13px] font-semibold leading-5 tracking-normal text-foreground">

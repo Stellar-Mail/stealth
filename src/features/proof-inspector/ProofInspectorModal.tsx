@@ -205,7 +205,7 @@ export function ProofInspectorModal({
             role="dialog"
             aria-modal="true"
             aria-label="Cryptographic proof inspector"
-            className="glass-strong fixed left-1/2 top-1/2 z-[101] w-[min(640px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl border border-white/10"
+            className="glass-strong fixed inset-0 z-[101] flex flex-col overflow-hidden sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl sm:w-[min(640px,calc(100vw-2rem))]"
           >
             {/* Header */}
             <div className="flex items-start justify-between border-b border-white/[0.08] px-6 py-4 bg-white/[0.01]">
