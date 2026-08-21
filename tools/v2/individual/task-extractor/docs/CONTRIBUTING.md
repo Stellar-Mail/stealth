@@ -194,11 +194,7 @@ it("extracts TODO-prefixed tasks", () => {
 ```typescript
 // In types/taskExtractor.ts
 export type TaskTrigger =
-  | "checkbox"
-  | "request-phrase"
-  | "bullet-action"
-  | "imperative-line"
-  | "todo-prefix"; // Add new trigger
+  "checkbox" | "request-phrase" | "bullet-action" | "imperative-line" | "todo-prefix"; // Add new trigger
 ```
 
 #### Step 3: Implement Logic

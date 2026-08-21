@@ -35,11 +35,7 @@ export const SECURITY_LIMITS = {
 export type SecurityIssueField = "input" | "subject" | "sender" | "receivedAt" | "body";
 
 export type SecurityIssueCode =
-  | "not-an-object"
-  | "missing-field"
-  | "wrong-type"
-  | "too-long"
-  | "invalid-timestamp";
+  "not-an-object" | "missing-field" | "wrong-type" | "too-long" | "invalid-timestamp";
 
 export interface SecurityIssue {
   field: SecurityIssueField;

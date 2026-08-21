@@ -41,8 +41,7 @@ The result is a discriminated union:
 
 ```ts
 type EscalationToolResult =
-  | { ok: true; data: EscalationRecord }
-  | { ok: false; error: EscalationError };
+  { ok: true; data: EscalationRecord } | { ok: false; error: EscalationError };
 ```
 
 A successful `EscalationRecord` contains:
