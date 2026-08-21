@@ -35,10 +35,10 @@ export const Route = createFileRoute("/api/v1/policies/$owner")({
           const body = await parseJsonBody(request, mailboxPolicyPutSchema, {
             route: "PUT /policies/{owner}",
           });
-          const { requireReceipt, version, ...policy } = body;
+          const { requireReceipt, expectedVersion, version, ...policy } = body;
           const result = await setMailboxPolicy(context.repository, owner, policy, {
             requireReceipt,
-            version,
+            expectedVersion: expectedVersion ?? version,
           });
           await syncMailboxPolicyWrite(
             context.repository,

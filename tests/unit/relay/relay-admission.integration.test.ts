@@ -176,7 +176,7 @@ describe("relay admission integration", () => {
     const secondBody = await second.json();
     expect(secondBody.data.replayed).toBe(true);
     expect(secondBody.data.admission).toEqual(firstBody.data.admission);
-    expect(persistence.getMessage(messageId)?.admission.disposition).toBe("request");
+    expect(persistence.getMessage(messageId)?.admission?.disposition).toBe("request");
   });
 
   it("verified journey: unverified sender is denied without storing ciphertext", async () => {

@@ -49,7 +49,6 @@ function buildConfig(): RelayServiceConfig {
       sorobanRpcUrl: config.network.sorobanRpcUrl,
       networkPassphrase: config.network.networkPassphrase,
     },
-    audience: process.env.STEALTH_RELAY_AUDIENCE ?? "relay:test.stealth",
   };
 }
 

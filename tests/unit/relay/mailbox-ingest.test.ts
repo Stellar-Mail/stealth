@@ -114,7 +114,9 @@ describe("mailbox ingestion", () => {
     await queue.enqueue(envelope());
     const worker = new InProcessRelayWorker(queue, {
       pollIntervalMs: 10,
-      onMessage: (item) => ingestMailboxEnvelope(mailbox, item),
+      onMessage: async (item) => {
+        await ingestMailboxEnvelope(mailbox, item);
+      },
     });
     await worker.start();
     const deadline = Date.now() + 500;

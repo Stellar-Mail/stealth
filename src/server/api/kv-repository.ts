@@ -1,8 +1,10 @@
 import type {
   ApiRepository,
+  CompareSetSenderRuleResult,
   ContactQueryOptions,
   InsertEnvelopeResult,
   PostageTransitionResult,
+  SenderRuleEntry,
   UpdateContactResult,
   UpdateProvisioningResult,
   UpdateRecoveryCodeSetResult,

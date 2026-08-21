@@ -41,6 +41,7 @@ import type {
 } from "./domain";
 import type {
   ApiRepository,
+  CompareSetSenderRuleResult,
   ContactQueryOptions,
   ConsumeVerificationTokenResult,
   CreateManagedWalletResult,
@@ -48,6 +49,7 @@ import type {
   IssueVerificationTokenResult,
   PostageTransitionResult,
   RecordVerificationAttemptResult,
+  SenderRuleEntry,
   UpdateContactResult,
   UpdateProvisioningResult,
   UpdateRecoveryCodeSetResult,
@@ -74,6 +76,8 @@ export class MemoryApiRepository implements ApiRepository {
   private readonly deliveryStatuses = new Map<string, MessageDeliveryStatusRecord>();
 
   private readonly senderRules = new Map<string, SenderRule>();
+  private readonly senderRuleRecords = new Map<string, SenderRuleRecord>();
+  private readonly senderRuleWriteIntents = new Map<string, SenderRuleWriteIntent>();
   private readonly counters = new Map<string, number[]>();
   private readonly idempotency = new Map<string, IdempotencyRecord>();
   private readonly externalWallets = new Map<string, ExternalWallet[]>();
@@ -1517,6 +1521,8 @@ export class MemoryApiRepository implements ApiRepository {
     this.receipts.clear();
     this.deliveryStatuses.clear();
     this.senderRules.clear();
+    this.senderRuleRecords.clear();
+    this.senderRuleWriteIntents.clear();
     this.counters.clear();
     this.idempotency.clear();
     this.externalWallets.clear();

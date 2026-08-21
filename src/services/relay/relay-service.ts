@@ -21,9 +21,17 @@
  */
 import { z } from "zod";
 
-import { hash32Schema, stellarAddressSchema } from "@/server/api/domain";
+import { ApiError } from "@/server/api/errors";
+import {
+  hash32Schema,
+  stellarAddressSchema,
+  stroopAmountSchema,
+  type AdmissionEvidence,
+} from "@/server/api/domain";
 import { InMemoryNonceStore, NonceService } from "@/server/api/auth/nonce-service";
-import type { RelayPersistence } from "./persistence";
+import { admissionDenialError, type RelayAdmissionEvaluator } from "./admission";
+import type { RelayObjectStore } from "./object-store";
+import type { RelayAdmissionRecord, RelayPersistence } from "./persistence";
 import type { RelayWorker } from "./worker";
 
 export const RELAY_SERVICE_NAME = "stealth-relay";
@@ -56,7 +64,8 @@ export const relaySubmissionSchema = z.object({
   receipt: z.boolean().optional().default(false),
 });
 
-export type RelaySubmissionInput = z.infer<typeof relaySubmissionSchema>;
+export type RelaySubmissionInput = z.input<typeof relaySubmissionSchema>;
+export type RelaySubmission = z.infer<typeof relaySubmissionSchema>;
 
 export interface RelayHealth {
   status: "ok";
@@ -105,9 +114,8 @@ export interface RelayServiceConfig {
   nonceService?: NonceService;
   nowSeconds?: () => number;
   /**
-   * Best-effort hook invoked after a message is enqueued (e.g. scheduling the
-   * lifecycle anchor for the commitment). Failures are swallowed: the durable
-   * anchor record owns retries and reconciliation.
+   * Best-effort hook after a message is enqueued (e.g. lifecycle anchor).
+   * Failures are swallowed; durable records own retries.
    */
   onAccepted?: (envelope: RelayAcceptedEnvelope) => void | Promise<void>;
   onIngestedReceipt?: (input: {
@@ -151,6 +159,9 @@ function payloadToBytes(payload: string): Uint8Array {
 }
 
 export class RelayService {
+  private readonly admission?: RelayAdmissionEvaluator;
+  private readonly objectStore?: RelayObjectStore;
+  private readonly now: () => Date;
   private readonly nonceService: NonceService;
   private readonly audience: string;
   private readonly idempotencyStore = new Map<string, unknown>();
@@ -160,7 +171,11 @@ export class RelayService {
     private readonly persistence: RelayPersistence,
     private readonly worker: RelayWorker,
     private readonly config: RelayServiceConfig,
+    options: RelayServiceOptions = {},
   ) {
+    this.admission = options.admission;
+    this.objectStore = options.objectStore;
+    this.now = options.now ?? (() => new Date());
     this.nonceService = config.nonceService ?? new NonceService(new InMemoryNonceStore());
     this.audience = config.audience ?? "relay:stealth.test";
   }
@@ -305,7 +320,7 @@ export class RelayService {
    */
   private async completeAdmittedSubmission(
     existing: RelayAdmissionRecord,
-    input: RelaySubmissionInput,
+    input: RelaySubmission,
     replayed: boolean,
   ): Promise<RelaySubmitResult> {
     if (!existing.admission.allowed) {
@@ -341,14 +356,13 @@ export class RelayService {
       throw error;
     }
 
-    await this.persistence.enqueue(envelope);
     if (this.config.onAccepted) {
       try {
         await this.config.onAccepted({
-          messageId: envelope.messageId,
-          sender: envelope.sender,
-          recipient: envelope.recipient,
-          receivedAt: envelope.receivedAt,
+          messageId: input.messageId,
+          sender: input.sender,
+          recipient: input.recipient,
+          receivedAt: existing.recordedAt,
         });
       } catch {
         // Best-effort; the durable anchor record owns the outcome.
@@ -357,15 +371,16 @@ export class RelayService {
     if (this.config.onIngestedReceipt) {
       try {
         await this.config.onIngestedReceipt({
-          messageId: envelope.messageId,
-          sender: envelope.sender,
-          recipient: envelope.recipient,
-          payload: envelope.payload,
+          messageId: input.messageId,
+          sender: input.sender,
+          recipient: input.recipient,
+          payload: input.payload,
         });
       } catch {
-        // Log / fail-soft: receipt publication error does not fail queue enqueue
+        // Fail-soft: receipt publication must not fail queue enqueue.
       }
     }
+
     return {
       accepted: true,
       messageId: existing.messageId,

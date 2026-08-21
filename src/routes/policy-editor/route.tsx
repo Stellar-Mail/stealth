@@ -1,17 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Surface, ActionButton, useFeedback } from "@/features/design-system";
 import { Check, X, Shield, ShieldAlert, Code, Loader2, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { simulateSenderAdmission } from "./-simulate-sender";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { sharedTypedApi, queryKeys } from "@/lib/api";
-import { isApiClientError } from "@/lib/api/errors";
-import { RefreshCw } from "lucide-react";
-import type { MailboxPolicyWrite, MailboxPolicy } from "@/lib/api/types";
 
 export const Route = createFileRoute("/policy-editor")({
-  component: PolicyEditorPageWrapper,
+  component: PolicyEditorPage,
 });
 
 const DEMO_OWNER = `G${"A".repeat(55)}`;
@@ -33,108 +28,102 @@ const SENDER_LABELS: Record<"trusted" | "blocked" | "verified" | "unverified", s
   unverified: "Unverified sender",
 };
 
-function PolicyEditorPageWrapper() {
-  const { data: profileData } = useQuery({
-    queryKey: queryKeys.account.profile,
-    queryFn: ({ signal }) => sharedTypedApi.account.getProfile(signal),
-  });
+function PolicyEditorPage() {
+  const [owner] = useState(() => localStorage.getItem(OWNER_STORAGE_KEY) ?? DEMO_OWNER);
+  const [allowUnknown, setAllowUnknown] = useState(true);
+  const [requireVerified, setRequireVerified] = useState(false);
+  const [minimumPostage, setMinimumPostage] = useState(0.01);
+  const [policyVersion, setPolicyVersion] = useState(0);
+  const [syncStatus, setSyncStatus] = useState<PolicySyncStatus>("pending");
+  const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [apiError, setApiError] = useState<string | null>(null);
 
-  if (!profileData) {
-    return (
-      <div className="min-h-screen bg-background p-6 md:p-12 text-foreground animate-pulse text-muted-foreground text-sm">
-        Loading profile...
-      </div>
-    );
-  }
-
-  return <PolicyEditorPage address={profileData.account.address} />;
-}
-
-function PolicyEditorPage({ address }: { address: string }) {
-  const queryClient = useQueryClient();
   const { notify } = useFeedback();
 
-  const {
-    data: reconciliation,
-    isLoading,
-    isError,
-    error,
-    refetch,
-  } = useQuery({
-    queryKey: queryKeys.policies.reconciliation(address),
-    queryFn: ({ signal }) => sharedTypedApi.policies.getReconciliation(address, undefined, signal),
-  });
-
-  const livePolicy = reconciliation?.offchain.policy ?? {
-    allowUnknown: true,
-    requireVerified: false,
-    minimumPostage: "0.01",
-  };
-
-  const [draftPolicy, setDraftPolicy] = useState<MailboxPolicyWrite | null>(null);
-
-  // Sync draft to server state initially and when server state updates
-  // (unless user is currently editing and has diverged, though we're simplifying here)
   useEffect(() => {
-    if (reconciliation?.offchain.policy) {
-      setDraftPolicy({
-        ...reconciliation.offchain.policy,
-        minimumPostage: reconciliation.offchain.policy.minimumPostage,
-      });
-    } else {
-      setDraftPolicy({ allowUnknown: true, requireVerified: false, minimumPostage: "0.01" });
+    localStorage.setItem(OWNER_STORAGE_KEY, owner);
+  }, [owner]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadPolicy() {
+      setIsLoading(true);
+      setApiError(null);
+      try {
+        const res = await fetch(`/api/v1/policies/${owner}`);
+        if (!res.ok) throw new Error(`Failed to load policy (${res.status})`);
+        const body = await res.json();
+        const policy = body.data?.policy;
+        if (policy && !cancelled) {
+          setAllowUnknown(policy.allowUnknown);
+          setRequireVerified(policy.requireVerified);
+          setMinimumPostage(Number(policy.minimumPostage) / 10_000_000 || 0);
+        }
+        const reconciliation = await fetch(`/api/v1/policies/${owner}/reconciliation`);
+        if (reconciliation.ok) {
+          const reconBody = await reconciliation.json();
+          const state = reconBody.data?.state;
+          if (state === "synced") setSyncStatus("confirmed");
+          else if (state === "diverged") setSyncStatus("drift");
+          else if (reconBody.data?.writeIntent?.status === "failed") setSyncStatus("failed");
+          else setSyncStatus("pending");
+          setPolicyVersion(reconBody.data?.writeIntent?.version ?? 0);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setApiError(error instanceof Error ? error.message : "Failed to load policy");
+        }
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
     }
-  }, [reconciliation?.offchain.policy]);
+    void loadPolicy();
+    return () => {
+      cancelled = true;
+    };
+  }, [owner]);
 
-  const currentForm = draftPolicy ?? livePolicy;
-
-  const mutation = useMutation({
-    mutationFn: (policy: MailboxPolicyWrite) => sharedTypedApi.policies.update(address, policy),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.policies.reconciliation(address) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.policies.policy(address) });
-      notify("Policy saved successfully!", { tone: "success" });
-    },
-    onError: (e: any) => {
-      notify("Failed to save policy", { tone: "danger" });
-    },
-  });
+  const payload = {
+    allowUnknown,
+    requireVerified,
+    minimumPostage: String(Math.round(minimumPostage * 10_000_000)),
+    expectedVersion: policyVersion,
+  };
 
   const handleSave = async () => {
-    if (!draftPolicy) return;
-    mutation.mutate({
-      ...draftPolicy,
-      version: reconciliation?.offchain.version ?? undefined,
-    });
+    setIsSaving(true);
+    setApiError(null);
+    try {
+      const res = await fetch(`/api/v1/policies/${owner}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "x-stealth-address": owner,
+        },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(
+          err.error?.message || `Validation/Authorization failed with status ${res.status}`,
+        );
+      }
+      const body = await res.json();
+      setPolicyVersion(body.data?.version ?? policyVersion + 1);
+      setSyncStatus(body.data?.sync ?? "pending");
+      notify("Policy saved successfully!", { tone: "success" });
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Failed to save policy";
+      setApiError(message);
+      notify("Failed to save policy", { tone: "danger" });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const updateDraft = (updates: Partial<MailboxPolicyWrite>) => {
-    setDraftPolicy((prev) => (prev ? { ...prev, ...updates } : { ...livePolicy, ...updates }));
-  };
-
-  const verificationDisabled = !currentForm.allowUnknown;
-  const postageDisabled = !currentForm.allowUnknown;
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background p-6 md:p-12 text-foreground animate-pulse text-muted-foreground text-sm">
-        Loading policy...
-      </div>
-    );
-  }
-
-  if (isError) {
-    return (
-      <div className="min-h-screen bg-background p-6 md:p-12 text-foreground">
-        <div className="rounded-lg border border-rose-500/20 bg-rose-500/10 p-4 text-sm text-rose-200">
-          Could not load policy.{" "}
-          <button onClick={() => refetch()} className="underline">
-            Retry
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const verificationDisabled = !allowUnknown;
+  const postageDisabled = !allowUnknown;
 
   return (
     <div className="min-h-screen bg-background p-6 md:p-12 text-foreground">
@@ -159,57 +148,6 @@ function PolicyEditorPage({ address }: { address: string }) {
             {SYNC_LABELS[syncStatus]}
           </p>
         </div>
-
-        {mutation.isError && isApiClientError(mutation.error) && mutation.error.status === 409 && (
-          <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-sm flex items-start gap-3">
-            <ShieldAlert className="h-4 w-4 shrink-0 text-amber-400 mt-0.5" />
-            <div className="text-amber-200">
-              <p className="font-medium">Policy updated elsewhere</p>
-              <p className="mt-0.5 text-xs opacity-80">
-                These settings were modified from another session or tab.
-              </p>
-              <button
-                onClick={() => refetch()}
-                className="mt-2 text-xs font-medium text-amber-300 hover:text-amber-200 underline underline-offset-2"
-              >
-                Reload latest changes
-              </button>
-            </div>
-          </div>
-        )}
-
-        {reconciliation?.state === "pending_write" && (
-          <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-3 text-sm flex items-start gap-3">
-            <RefreshCw className="h-4 w-4 shrink-0 text-emerald-400 mt-0.5 animate-spin" />
-            <div className="text-emerald-200">
-              <p className="font-medium">Changes pending on chain</p>
-              <p className="mt-0.5 text-xs opacity-80">Your policy is confirming on the network.</p>
-            </div>
-          </div>
-        )}
-
-        {reconciliation?.state === "failed" && (
-          <div className="rounded-lg border border-rose-500/20 bg-rose-500/10 p-3 text-sm flex items-start gap-3">
-            <ShieldAlert className="h-4 w-4 shrink-0 text-rose-400 mt-0.5" />
-            <div className="text-rose-200">
-              <p className="font-medium">Policy write failed</p>
-              <p className="mt-0.5 text-xs opacity-80">
-                {reconciliation.offchain.intentError || "An error occurred writing to the network."}
-              </p>
-              <button
-                onClick={() =>
-                  mutation.mutate({
-                    ...livePolicy,
-                    version: reconciliation.offchain.version ?? undefined,
-                  })
-                }
-                className="mt-2 text-xs font-medium text-rose-300 hover:text-rose-200 underline"
-              >
-                Retry
-              </button>
-            </div>
-          </div>
-        )}
 
         <div className="grid md:grid-cols-2 gap-8">
           <Surface className="p-6 space-y-8 h-fit">
@@ -237,15 +175,15 @@ function PolicyEditorPage({ address }: { address: string }) {
                   <button
                     id="toggle-allow-unknown"
                     role="switch"
-                    aria-checked={currentForm.allowUnknown}
+                    aria-checked={allowUnknown}
                     aria-label="Allow unknown senders"
-                    onClick={() => updateDraft({ allowUnknown: !currentForm.allowUnknown })}
+                    onClick={() => setAllowUnknown(!allowUnknown)}
                     className={cn(
                       "glow-ring relative inline-flex h-6 w-11 shrink-0 items-center rounded-full",
                       "transition-colors duration-200",
                       "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                       "active:scale-95",
-                      currentForm.allowUnknown
+                      allowUnknown
                         ? "bg-emerald-500 hover:bg-emerald-400"
                         : "bg-white/20 hover:bg-white/30",
                     )}
@@ -253,7 +191,7 @@ function PolicyEditorPage({ address }: { address: string }) {
                     <span
                       className={cn(
                         "inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200",
-                        currentForm.allowUnknown ? "translate-x-6" : "translate-x-1",
+                        allowUnknown ? "translate-x-6" : "translate-x-1",
                       )}
                     />
                   </button>
@@ -285,19 +223,16 @@ function PolicyEditorPage({ address }: { address: string }) {
                   <button
                     id="toggle-require-verified"
                     role="switch"
-                    aria-checked={currentForm.requireVerified}
+                    aria-checked={requireVerified}
                     aria-label="Require verification"
                     aria-disabled={verificationDisabled}
-                    onClick={() =>
-                      !verificationDisabled &&
-                      updateDraft({ requireVerified: !currentForm.requireVerified })
-                    }
+                    onClick={() => !verificationDisabled && setRequireVerified(!requireVerified)}
                     className={cn(
                       "glow-ring relative inline-flex h-6 w-11 shrink-0 items-center rounded-full",
                       "transition-colors duration-200",
                       "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                       verificationDisabled ? "opacity-40 cursor-not-allowed" : "active:scale-95",
-                      currentForm.requireVerified && !verificationDisabled
+                      requireVerified && !verificationDisabled
                         ? "bg-emerald-500 hover:bg-emerald-400"
                         : verificationDisabled
                           ? "bg-white/20"
@@ -307,7 +242,7 @@ function PolicyEditorPage({ address }: { address: string }) {
                     <span
                       className={cn(
                         "inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200",
-                        currentForm.requireVerified && !verificationDisabled
+                        requireVerified && !verificationDisabled
                           ? "translate-x-6"
                           : "translate-x-1",
                       )}
@@ -330,7 +265,7 @@ function PolicyEditorPage({ address }: { address: string }) {
                         postageDisabled ? "text-muted-foreground opacity-40" : "text-emerald-400",
                       )}
                     >
-                      {Number(currentForm.minimumPostage).toFixed(3)} XLM
+                      {minimumPostage.toFixed(3)} XLM
                     </span>
                   </div>
                   <p
@@ -350,9 +285,9 @@ function PolicyEditorPage({ address }: { address: string }) {
                     max="1"
                     step="0.005"
                     disabled={postageDisabled}
-                    value={Number(currentForm.minimumPostage)}
-                    onChange={(e) => updateDraft({ minimumPostage: e.target.value })}
-                    aria-valuetext={`${Number(currentForm.minimumPostage).toFixed(3)} XLM`}
+                    value={minimumPostage}
+                    onChange={(e) => setMinimumPostage(parseFloat(e.target.value))}
+                    aria-valuetext={`${minimumPostage.toFixed(3)} XLM`}
                     className={cn(
                       "w-full accent-emerald-500 transition-opacity",
                       "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 rounded",
@@ -380,10 +315,10 @@ function PolicyEditorPage({ address }: { address: string }) {
               </p>
               <ActionButton
                 onClick={handleSave}
-                disabled={mutation.isPending}
-                aria-label={mutation.isPending ? "Saving policy…" : "Save policy"}
+                disabled={isSaving}
+                aria-label={isSaving ? "Saving policy…" : "Save policy"}
               >
-                {mutation.isPending ? (
+                {isSaving ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
                     <span>Saving…</span>
@@ -406,11 +341,7 @@ function PolicyEditorPage({ address }: { address: string }) {
               <div className="space-y-2" role="list" aria-label="Sender admission results">
                 {(["trusted", "blocked", "verified", "unverified"] as const).map((type) => {
                   const result = simulateSenderAdmission(
-                    {
-                      allowUnknown: currentForm.allowUnknown,
-                      requireVerified: currentForm.requireVerified,
-                      minimumPostage: Number(currentForm.minimumPostage),
-                    },
+                    { allowUnknown, requireVerified, minimumPostage },
                     type,
                   );
                   return (
@@ -451,24 +382,23 @@ function PolicyEditorPage({ address }: { address: string }) {
                 className="text-xs text-emerald-300 bg-black/60 p-4 rounded-lg overflow-x-auto border border-white/5 leading-relaxed"
                 aria-label="Current policy JSON payload"
               >
-                {JSON.stringify(currentForm, null, 2)}
+                {JSON.stringify(payload, null, 2)}
               </pre>
 
               {/* Error state */}
-              {mutation.isError &&
-                !(isApiClientError(mutation.error) && mutation.error.status === 409) && (
-                  <div
-                    role="alert"
-                    aria-live="polite"
-                    className="mt-4 flex items-start gap-3 text-rose-300 text-xs bg-rose-400/10 p-3.5 rounded-lg border border-rose-400/20"
-                  >
-                    <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" aria-hidden="true" />
-                    <div className="min-w-0">
-                      <p className="font-medium text-rose-200 mb-0.5">Save failed</p>
-                      <p className="text-rose-300/80 break-words">{mutation.error?.message}</p>
-                    </div>
+              {apiError && (
+                <div
+                  role="alert"
+                  aria-live="polite"
+                  className="mt-4 flex items-start gap-3 text-rose-300 text-xs bg-rose-400/10 p-3.5 rounded-lg border border-rose-400/20"
+                >
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" aria-hidden="true" />
+                  <div className="min-w-0">
+                    <p className="font-medium text-rose-200 mb-0.5">Save failed</p>
+                    <p className="text-rose-300/80 break-words">{apiError}</p>
                   </div>
-                )}
+                </div>
+              )}
             </Surface>
           </div>
         </div>

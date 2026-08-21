@@ -92,6 +92,9 @@ class FailingPersistence implements RelayPersistence {
   }
   async recordRetry(): Promise<void> {}
   async recordDeadLetter(): Promise<void> {}
+  async listRecipientQueue(): Promise<RelayEnvelope[]> {
+    return [];
+  }
 }
 
 describe("RelayService submit policy admission", () => {
