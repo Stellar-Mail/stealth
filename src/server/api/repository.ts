@@ -53,8 +53,7 @@ import { ApiError, DataIntegrityError, RetryExhaustedError } from "./errors";
  *   `current` reflects the authoritative state for reconciliation.
  */
 export type UpdateDraftResult =
-  | { updated: true; draft: DraftRecord }
-  | { updated: false; current: DraftRecord | null };
+  { updated: true; draft: DraftRecord } | { updated: false; current: DraftRecord | null };
 
 export interface DraftQueryOptions {
   limit?: number;

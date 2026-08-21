@@ -612,8 +612,7 @@ export class StealthCoordinator extends DurableObjectBase {
   // user; duplicate saves overwrite in place so no duplicates can accumulate.
   async getOnboardingDraft(userId: string): Promise<OnboardingDraftRecord | null> {
     const record = (await this.ctx.storage.get(`onboarding:${userId}`)) as
-      | OnboardingDraftRecord
-      | undefined;
+      OnboardingDraftRecord | undefined;
     return record ?? null;
   }
 
