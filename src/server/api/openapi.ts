@@ -749,7 +749,10 @@ export const openApiDocument = {
                 description: "Stable domain-specific error code.",
                 "x-optic-ignore": true,
                 enum: API_ERROR_CODES.filter(
-                  (c) => c !== "recent_auth_required" && c !== "chain_error",
+                  (c) =>
+                    c !== "recent_auth_required" &&
+                    c !== "chain_error" &&
+                    c !== "cursor_expired",
                 ),
               },
               message: {
