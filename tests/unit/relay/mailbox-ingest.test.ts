@@ -24,6 +24,16 @@ function envelope(overrides: Partial<RelayEnvelope> = {}): RelayEnvelope {
     payload: "aGVsbG8=",
     ttlMs: 60_000,
     receivedAt: "2026-08-19T00:00:00.000Z",
+    admission: {
+      policyVersion: 1,
+      allowed: true,
+      kind: "trusted",
+      reason: "sender_allowed",
+      rule: "allow",
+      requiredPostage: "0",
+      source: "chain",
+      evaluatedAt: "2026-08-19T00:00:00.000Z",
+    },
     ...overrides,
   };
 }

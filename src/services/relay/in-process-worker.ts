@@ -5,19 +5,20 @@
  * injectable delivery callback. Used by the Docker entry so messages accepted
  * over HTTP are drained in the same process.
  */
+import type { IngestOutcome } from "./ingest";
 import type { RelayEnvelope, RelayPersistence } from "./persistence";
 import type { RelayWorker, RelayWorkerStatus } from "./worker";
 
 export interface InProcessRelayWorkerOptions {
   pollIntervalMs?: number;
   maxRetries?: number;
-  onMessage?: (envelope: RelayEnvelope) => Promise<void>;
+  onMessage?: (envelope: RelayEnvelope) => Promise<void | IngestOutcome>;
 }
 
 export class InProcessRelayWorker implements RelayWorker {
   private readonly pollIntervalMs: number;
   private readonly maxRetries: number;
-  private readonly onMessage: (envelope: RelayEnvelope) => Promise<void>;
+  private readonly onMessage: (envelope: RelayEnvelope) => Promise<void | IngestOutcome>;
   private status: RelayWorkerStatus = "stopped";
   private timer: ReturnType<typeof setTimeout> | undefined;
   private readonly attempts = new Map<string, number>();
