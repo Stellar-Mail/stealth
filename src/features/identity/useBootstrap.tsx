@@ -73,6 +73,21 @@ export function BootstrapProvider({
     }
   }, [initialState, load, state.branch]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const handleOnline = () => {
+      if (state.branch === "outage" || state.error?.code === "offline") {
+        void load(true);
+      }
+    };
+
+    window.addEventListener("online", handleOnline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+    };
+  }, [load, state.branch, state.error?.code]);
+
   const retry = useCallback(async () => {
     await load(true);
   }, [load]);

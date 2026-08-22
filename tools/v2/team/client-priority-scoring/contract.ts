@@ -17,8 +17,7 @@ export enum PriorityErrorCode {
 
 /** Discriminated outcome returned by every contract operation. */
 export type PriorityResult<T> =
-  | { ok: true; value: T }
-  | { ok: false; error: PriorityErrorCode; message: string };
+  { ok: true; value: T } | { ok: false; error: PriorityErrorCode; message: string };
 
 /** Operations supported by the priority contract. */
 export type PriorityOperation = {

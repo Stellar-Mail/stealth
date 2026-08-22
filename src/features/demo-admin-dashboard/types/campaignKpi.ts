@@ -1,10 +1,5 @@
 export type KpiMetricKind =
-  | "opens"
-  | "approvals"
-  | "replies"
-  | "refunds"
-  | "proof_inspections"
-  | "conversions";
+  "opens" | "approvals" | "replies" | "refunds" | "proof_inspections" | "conversions";
 
 export type KpiStatus = "on-track" | "at-risk" | "met" | "missed";
 

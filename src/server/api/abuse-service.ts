@@ -8,11 +8,7 @@ function rateLimited(retryAfterSeconds: number) {
 }
 
 export type AbuseRoute =
-  | "postage_submit"
-  | "registration"
-  | "verification"
-  | "password_reset"
-  | "testnet_funding";
+  "postage_submit" | "registration" | "verification" | "password_reset" | "testnet_funding";
 
 export type AbuseCheck =
   | "account"

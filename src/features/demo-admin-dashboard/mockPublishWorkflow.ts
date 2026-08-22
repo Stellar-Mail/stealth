@@ -1,10 +1,5 @@
 export type MockPublishStatus =
-  | "idle"
-  | "preview"
-  | "publishing"
-  | "published"
-  | "failed"
-  | "rolled-back";
+  "idle" | "preview" | "publishing" | "published" | "failed" | "rolled-back";
 
 export interface MockPublishStep {
   id: string;

@@ -109,12 +109,7 @@ export class FriendbotFundingAdapter implements StellarFundingAdapter {
 }
 
 export type FakeFundingFailure =
-  | "timeout"
-  | "rate_limited"
-  | "invalid"
-  | "exhausted"
-  | "already_funded"
-  | "generic";
+  "timeout" | "rate_limited" | "invalid" | "exhausted" | "already_funded" | "generic";
 
 /** Deterministic in-memory funding adapter for unit/integration tests. */
 export class FakeFundingAdapter implements StellarFundingAdapter {

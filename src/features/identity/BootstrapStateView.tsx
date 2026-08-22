@@ -78,7 +78,19 @@ export function BootstrapStateView() {
 
   if (branch === "outage" || branch === "maintenance") {
     const isOffline = error?.code === "offline";
+    const isRateLimited = error?.code === "rate_limited";
+    const isTimeout = error?.code === "timeout";
     const Icon = isOffline ? WifiOff : AlertTriangle;
+
+    const title = isOffline
+      ? "You are offline"
+      : isRateLimited
+        ? "Too many startup requests"
+        : isTimeout
+          ? "Connection timed out"
+          : branch === "maintenance"
+            ? "Scheduled maintenance"
+            : "Service temporarily unavailable";
 
     return (
       <main className="ambient-bg flex min-h-screen items-center justify-center p-4 sm:p-6">
@@ -88,7 +100,7 @@ export function BootstrapStateView() {
               <Icon className="size-6" />
             </div>
             <CardTitle tabIndex={-1} ref={headingRef} className="outline-none">
-              {isOffline ? "You are offline" : "Service temporarily unavailable"}
+              {title}
             </CardTitle>
             <CardDescription>
               {error?.message ??

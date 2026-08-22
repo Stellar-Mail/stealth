@@ -2,13 +2,7 @@ import type { UnknownSenderPolicy } from "@/features/preferences";
 import type { ChainMailboxPolicy, MailboxPolicy } from "@/server/api/domain";
 
 export type OnboardingStep =
-  | "profile"
-  | "stealth-address"
-  | "recovery"
-  | "sender-policy"
-  | "postage"
-  | "receipts"
-  | "review";
+  "profile" | "stealth-address" | "recovery" | "sender-policy" | "postage" | "receipts" | "review";
 
 export const ONBOARDING_STEPS: OnboardingStep[] = [
   "profile",

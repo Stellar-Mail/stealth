@@ -26,8 +26,7 @@ export enum AuditErrorCode {
 
 /** Discriminated outcome returned by every contract operation. */
 export type AuditResult<T> =
-  | { ok: true; value: T }
-  | { ok: false; error: AuditErrorCode; message: string };
+  { ok: true; value: T } | { ok: false; error: AuditErrorCode; message: string };
 
 /** Operations supported by the audit log viewer contract. */
 export type AuditOperation =

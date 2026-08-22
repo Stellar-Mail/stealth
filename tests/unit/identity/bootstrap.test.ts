@@ -179,4 +179,26 @@ describe("Client Bootstrap Layer", () => {
     clearBootstrapCache();
     expect(getCachedBootstrap()).toBeNull();
   });
+
+  it("handles 429 rate limited response with rate_limited error code", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(JSON.stringify({ error: { code: "rate_limited" } }), { status: 429 }),
+    );
+
+    const state = await fetchBootstrap({ bypassCache: true });
+    expect(state.branch).toBe("outage");
+    expect(state.error?.code).toBe("rate_limited");
+    expect(state.error?.retryable).toBe(true);
+  });
+
+  it("handles 500 server error response with server_error error code", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(JSON.stringify({ error: { code: "server_error" } }), { status: 500 }),
+    );
+
+    const state = await fetchBootstrap({ bypassCache: true });
+    expect(state.branch).toBe("outage");
+    expect(state.error?.code).toBe("server_error");
+    expect(state.error?.retryable).toBe(true);
+  });
 });
