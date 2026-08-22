@@ -340,6 +340,17 @@ describe("Authenticated Recipient Mailbox Queue API (BETA-033)", () => {
       };
       const service = new RelayService(persistence, worker, config);
 
+      const admittedEvidence = {
+        policyVersion: 1,
+        allowed: true as const,
+        kind: "request" as const,
+        reason: "policy_satisfied" as const,
+        rule: "default" as const,
+        requiredPostage: "0",
+        source: "offchain_fallback" as const,
+        evaluatedAt: new Date().toISOString(),
+      };
+
       await persistence.enqueue({
         messageId: MSG1,
         sender: BOB,
@@ -348,6 +359,7 @@ describe("Authenticated Recipient Mailbox Queue API (BETA-033)", () => {
         payload: "encrypted-payload",
         ttlMs: 3600000,
         receivedAt: new Date().toISOString(),
+        admission: admittedEvidence,
       });
 
       await persistence.enqueue({
@@ -358,6 +370,7 @@ describe("Authenticated Recipient Mailbox Queue API (BETA-033)", () => {
         payload: "encrypted-payload-2",
         ttlMs: 3600000,
         receivedAt: new Date().toISOString(),
+        admission: admittedEvidence,
       });
 
       // Test transport handler for Alice

@@ -7,6 +7,7 @@ import { canonicalizeSignedRequest } from "../../../src/server/api/auth/signed-r
 import { MemoryRelayPersistence } from "../../../src/services/relay/memory-persistence";
 import { InProcessRelayWorker } from "../../../src/services/relay/in-process-worker";
 import { RelayService, type RelayServiceConfig } from "../../../src/services/relay/relay-service";
+import type { RelayAdmissionEvaluator } from "../../../src/services/relay/policy-admission";
 import {
   handleRelayHealth,
   handleRelayReadiness,
@@ -35,10 +36,27 @@ function makeConfig(overrides: Partial<RelayServiceConfig> = {}): RelayServiceCo
   };
 }
 
+function allowAllEvaluator(): RelayAdmissionEvaluator {
+  return {
+    async evaluate() {
+      return {
+        policyVersion: 1,
+        allowed: true,
+        kind: "trusted",
+        reason: "sender_allowed",
+        rule: "allow",
+        requiredPostage: "0",
+        source: "offchain_fallback",
+        evaluatedAt: "2026-01-01T00:00:00.000Z",
+      };
+    },
+  };
+}
+
 function makeService(config: RelayServiceConfig = makeConfig()) {
   const persistence = new MemoryRelayPersistence();
   const worker = new InProcessRelayWorker(persistence);
-  return new RelayService(persistence, worker, config);
+  return new RelayService(persistence, worker, config, { evaluator: allowAllEvaluator() });
 }
 
 function getRequest(path = "/api/v1/relay/health") {
@@ -181,6 +199,14 @@ describe("relay message submission endpoint", () => {
         messageId,
         queueDepth: 1,
         service: "stealth-relay",
+        replayed: false,
+        admission: {
+          allowed: true,
+          kind: "trusted",
+          reason: "sender_allowed",
+          policyVersion: 1,
+          requiredPostage: "0",
+        },
       },
     });
   });

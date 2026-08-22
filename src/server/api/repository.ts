@@ -236,6 +236,25 @@ export interface MailboxQueryOptions {
 }
 
 /**
+ * Options for searching a user's mailbox across safe metadata.
+ * Issue #1972 (BETA-065).
+ */
+export interface SearchMailboxQueryOptions {
+  query?: string;
+  folder?: string;
+  unread?: boolean;
+  starred?: boolean;
+  hasAttachments?: boolean;
+  sender?: string;
+  recipient?: string;
+  afterDate?: string;
+  beforeDate?: string;
+  includeDeleted?: boolean;
+  limit?: number;
+  after?: string;
+}
+
+/**
  * Outcome of an atomic managed-wallet create.
  *
  * - "created": a new managed wallet record was stored for the user.
@@ -531,6 +550,7 @@ export interface ApiRepository {
     recipient: string,
     patch: MailboxFlagsPatch,
   ): Promise<StoredEnvelope>;
+  searchMailbox(actor: string, options?: SearchMailboxQueryOptions): Promise<Page<StoredEnvelope>>;
 
   // ---------------------------------------------------------------------------
   // Issue #1934 (BETA-027) — Versioned Public Encryption-Key Directory & Rotation
@@ -1276,6 +1296,17 @@ export class ValidatedApiRepository implements ApiRepository {
     return validateRecord<StoredEnvelope>("storedEnvelope", result);
   }
 
+  async searchMailbox(
+    actor: string,
+    options?: SearchMailboxQueryOptions,
+  ): Promise<Page<StoredEnvelope>> {
+    const page = await this.inner.searchMailbox(actor, options);
+    return {
+      ...page,
+      items: page.items.map((item) => validateRecord<StoredEnvelope>("storedEnvelope", item)),
+    };
+  }
+
   getExternalWallets(owner: string): Promise<ExternalWallet[]> {
     return this.inner.getExternalWallets(owner);
   }
@@ -1580,6 +1611,7 @@ const RETRY_SAFE_OPERATIONS = new Set<string>([
   "getActiveVerificationToken",
   "invalidateActiveVerificationToken",
   "listRecipientEnvelopes",
+  "searchMailbox",
   "getExternalWallets",
   "findExternalWalletOwner",
   "getVerificationToken",
@@ -2099,6 +2131,10 @@ export class RetryableApiRepository implements ApiRepository {
     return this.inner.patchMailboxFlags(messageId, recipient, patch);
   }
 
+  searchMailbox(actor: string, options?: SearchMailboxQueryOptions): Promise<Page<StoredEnvelope>> {
+    return this.withRetry("searchMailbox", () => this.inner.searchMailbox(actor, options));
+  }
+
   getExternalWallets(owner: string): Promise<ExternalWallet[]> {
     return this.withRetry("getExternalWallets", () => this.inner.getExternalWallets(owner));
   }
@@ -2558,6 +2594,15 @@ export const PAGINATED_QUERY_ORDERINGS = {
    * unique tie-breaker so the walk is stable.
    */
   listDrafts: declareOrdering<DraftRecord>([{ field: "updatedAt", direction: "desc" }], "draftId"),
+  /**
+   * Issue #1972 (BETA-065): Actor-scoped mailbox search listing.
+   * Ordered by creation time descending (newest first); messageId is the
+   * unique tie-breaker so pagination is stable.
+   */
+  searchMailbox: declareOrdering<StoredEnvelope>(
+    [{ field: "createdAt", direction: "desc" }],
+    "messageId",
+  ),
 } as const;
 
 export type PaginatedQueryName = keyof typeof PAGINATED_QUERY_ORDERINGS;

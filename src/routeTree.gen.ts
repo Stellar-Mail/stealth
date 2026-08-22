@@ -21,6 +21,7 @@ import { Route as ApiV1ProtocolRouteImport } from './routes/api/v1/protocol'
 import { Route as ApiV1OpenapiDotjsonRouteImport } from './routes/api/v1/openapi[.]json'
 import { Route as ApiV1HealthRouteImport } from './routes/api/v1/health'
 import { Route as ApiV1BootstrapRouteImport } from './routes/api/v1/bootstrap'
+import { Route as ApiV1SearchIndexRouteImport } from './routes/api/v1/search/index'
 import { Route as ApiV1RequestsIndexRouteImport } from './routes/api/v1/requests/index'
 import { Route as ApiV1ReceiptsIndexRouteImport } from './routes/api/v1/receipts/index'
 import { Route as ApiV1PostageIndexRouteImport } from './routes/api/v1/postage/index'
@@ -165,6 +166,11 @@ const ApiV1HealthRoute = ApiV1HealthRouteImport.update({
 const ApiV1BootstrapRoute = ApiV1BootstrapRouteImport.update({
   id: '/api/v1/bootstrap',
   path: '/api/v1/bootstrap',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1SearchIndexRoute = ApiV1SearchIndexRouteImport.update({
+  id: '/api/v1/search/',
+  path: '/api/v1/search/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiV1RequestsIndexRoute = ApiV1RequestsIndexRouteImport.update({
@@ -633,17 +639,17 @@ export interface FileRoutesByFullPath {
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
   '/api/v1/protocol': typeof ApiV1ProtocolRoute
-  '/api/v1/attachments/abort': typeof ApiV1AttachmentsAbortRoute
-  '/api/v1/attachments/chunk': typeof ApiV1AttachmentsChunkRoute
-  '/api/v1/attachments/download': typeof ApiV1AttachmentsDownloadRoute
-  '/api/v1/attachments/finalize': typeof ApiV1AttachmentsFinalizeRoute
-  '/api/v1/attachments/initiate': typeof ApiV1AttachmentsInitiateRoute
   '/api/v1/accounts/account-info': typeof ApiV1AccountsAccountInfoRoute
   '/api/v1/accounts/deletion': typeof ApiV1AccountsDeletionRoute
   '/api/v1/accounts/deletion-cancel': typeof ApiV1AccountsDeletionCancelRoute
   '/api/v1/accounts/export': typeof ApiV1AccountsExportRoute
   '/api/v1/accounts/profile': typeof ApiV1AccountsProfileRoute
   '/api/v1/accounts/provisioning': typeof ApiV1AccountsProvisioningRouteWithChildren
+  '/api/v1/attachments/abort': typeof ApiV1AttachmentsAbortRoute
+  '/api/v1/attachments/chunk': typeof ApiV1AttachmentsChunkRoute
+  '/api/v1/attachments/download': typeof ApiV1AttachmentsDownloadRoute
+  '/api/v1/attachments/finalize': typeof ApiV1AttachmentsFinalizeRoute
+  '/api/v1/attachments/initiate': typeof ApiV1AttachmentsInitiateRoute
   '/api/v1/auth/login': typeof ApiV1AuthLoginRoute
   '/api/v1/auth/logout': typeof ApiV1AuthLogoutRoute
   '/api/v1/auth/logout-all': typeof ApiV1AuthLogoutAllRoute
@@ -681,6 +687,7 @@ export interface FileRoutesByFullPath {
   '/api/v1/postage/': typeof ApiV1PostageIndexRoute
   '/api/v1/receipts/': typeof ApiV1ReceiptsIndexRoute
   '/api/v1/requests/': typeof ApiV1RequestsIndexRoute
+  '/api/v1/search/': typeof ApiV1SearchIndexRoute
   '/api/v1/accounts/provisioning/retry': typeof ApiV1AccountsProvisioningRetryRoute
   '/api/v1/admin/dlq/$id': typeof ApiV1AdminDlqIdRouteWithChildren
   '/api/v1/admin/jobs/$id': typeof ApiV1AdminJobsIdRoute
@@ -732,17 +739,17 @@ export interface FileRoutesByTo {
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
   '/api/v1/protocol': typeof ApiV1ProtocolRoute
-  '/api/v1/attachments/abort': typeof ApiV1AttachmentsAbortRoute
-  '/api/v1/attachments/chunk': typeof ApiV1AttachmentsChunkRoute
-  '/api/v1/attachments/download': typeof ApiV1AttachmentsDownloadRoute
-  '/api/v1/attachments/finalize': typeof ApiV1AttachmentsFinalizeRoute
-  '/api/v1/attachments/initiate': typeof ApiV1AttachmentsInitiateRoute
   '/api/v1/accounts/account-info': typeof ApiV1AccountsAccountInfoRoute
   '/api/v1/accounts/deletion': typeof ApiV1AccountsDeletionRoute
   '/api/v1/accounts/deletion-cancel': typeof ApiV1AccountsDeletionCancelRoute
   '/api/v1/accounts/export': typeof ApiV1AccountsExportRoute
   '/api/v1/accounts/profile': typeof ApiV1AccountsProfileRoute
   '/api/v1/accounts/provisioning': typeof ApiV1AccountsProvisioningRouteWithChildren
+  '/api/v1/attachments/abort': typeof ApiV1AttachmentsAbortRoute
+  '/api/v1/attachments/chunk': typeof ApiV1AttachmentsChunkRoute
+  '/api/v1/attachments/download': typeof ApiV1AttachmentsDownloadRoute
+  '/api/v1/attachments/finalize': typeof ApiV1AttachmentsFinalizeRoute
+  '/api/v1/attachments/initiate': typeof ApiV1AttachmentsInitiateRoute
   '/api/v1/auth/login': typeof ApiV1AuthLoginRoute
   '/api/v1/auth/logout': typeof ApiV1AuthLogoutRoute
   '/api/v1/auth/logout-all': typeof ApiV1AuthLogoutAllRoute
@@ -780,6 +787,7 @@ export interface FileRoutesByTo {
   '/api/v1/postage': typeof ApiV1PostageIndexRoute
   '/api/v1/receipts': typeof ApiV1ReceiptsIndexRoute
   '/api/v1/requests': typeof ApiV1RequestsIndexRoute
+  '/api/v1/search': typeof ApiV1SearchIndexRoute
   '/api/v1/accounts/provisioning/retry': typeof ApiV1AccountsProvisioningRetryRoute
   '/api/v1/admin/dlq/$id': typeof ApiV1AdminDlqIdRouteWithChildren
   '/api/v1/admin/jobs/$id': typeof ApiV1AdminJobsIdRoute
@@ -832,17 +840,17 @@ export interface FileRoutesById {
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
   '/api/v1/protocol': typeof ApiV1ProtocolRoute
-  '/api/v1/attachments/abort': typeof ApiV1AttachmentsAbortRoute
-  '/api/v1/attachments/chunk': typeof ApiV1AttachmentsChunkRoute
-  '/api/v1/attachments/download': typeof ApiV1AttachmentsDownloadRoute
-  '/api/v1/attachments/finalize': typeof ApiV1AttachmentsFinalizeRoute
-  '/api/v1/attachments/initiate': typeof ApiV1AttachmentsInitiateRoute
   '/api/v1/accounts/account-info': typeof ApiV1AccountsAccountInfoRoute
   '/api/v1/accounts/deletion': typeof ApiV1AccountsDeletionRoute
   '/api/v1/accounts/deletion-cancel': typeof ApiV1AccountsDeletionCancelRoute
   '/api/v1/accounts/export': typeof ApiV1AccountsExportRoute
   '/api/v1/accounts/profile': typeof ApiV1AccountsProfileRoute
   '/api/v1/accounts/provisioning': typeof ApiV1AccountsProvisioningRouteWithChildren
+  '/api/v1/attachments/abort': typeof ApiV1AttachmentsAbortRoute
+  '/api/v1/attachments/chunk': typeof ApiV1AttachmentsChunkRoute
+  '/api/v1/attachments/download': typeof ApiV1AttachmentsDownloadRoute
+  '/api/v1/attachments/finalize': typeof ApiV1AttachmentsFinalizeRoute
+  '/api/v1/attachments/initiate': typeof ApiV1AttachmentsInitiateRoute
   '/api/v1/auth/login': typeof ApiV1AuthLoginRoute
   '/api/v1/auth/logout': typeof ApiV1AuthLogoutRoute
   '/api/v1/auth/logout-all': typeof ApiV1AuthLogoutAllRoute
@@ -880,6 +888,7 @@ export interface FileRoutesById {
   '/api/v1/postage/': typeof ApiV1PostageIndexRoute
   '/api/v1/receipts/': typeof ApiV1ReceiptsIndexRoute
   '/api/v1/requests/': typeof ApiV1RequestsIndexRoute
+  '/api/v1/search/': typeof ApiV1SearchIndexRoute
   '/api/v1/accounts/provisioning/retry': typeof ApiV1AccountsProvisioningRetryRoute
   '/api/v1/admin/dlq/$id': typeof ApiV1AdminDlqIdRouteWithChildren
   '/api/v1/admin/jobs/$id': typeof ApiV1AdminJobsIdRoute
@@ -933,17 +942,17 @@ export interface FileRouteTypes {
     | '/api/v1/health'
     | '/api/v1/openapi.json'
     | '/api/v1/protocol'
-    | '/api/v1/attachments/abort'
-    | '/api/v1/attachments/chunk'
-    | '/api/v1/attachments/download'
-    | '/api/v1/attachments/finalize'
-    | '/api/v1/attachments/initiate'
     | '/api/v1/accounts/account-info'
     | '/api/v1/accounts/deletion'
     | '/api/v1/accounts/deletion-cancel'
     | '/api/v1/accounts/export'
     | '/api/v1/accounts/profile'
     | '/api/v1/accounts/provisioning'
+    | '/api/v1/attachments/abort'
+    | '/api/v1/attachments/chunk'
+    | '/api/v1/attachments/download'
+    | '/api/v1/attachments/finalize'
+    | '/api/v1/attachments/initiate'
     | '/api/v1/auth/login'
     | '/api/v1/auth/logout'
     | '/api/v1/auth/logout-all'
@@ -981,6 +990,7 @@ export interface FileRouteTypes {
     | '/api/v1/postage/'
     | '/api/v1/receipts/'
     | '/api/v1/requests/'
+    | '/api/v1/search/'
     | '/api/v1/accounts/provisioning/retry'
     | '/api/v1/admin/dlq/$id'
     | '/api/v1/admin/jobs/$id'
@@ -1032,17 +1042,17 @@ export interface FileRouteTypes {
     | '/api/v1/health'
     | '/api/v1/openapi.json'
     | '/api/v1/protocol'
-    | '/api/v1/attachments/abort'
-    | '/api/v1/attachments/chunk'
-    | '/api/v1/attachments/download'
-    | '/api/v1/attachments/finalize'
-    | '/api/v1/attachments/initiate'
     | '/api/v1/accounts/account-info'
     | '/api/v1/accounts/deletion'
     | '/api/v1/accounts/deletion-cancel'
     | '/api/v1/accounts/export'
     | '/api/v1/accounts/profile'
     | '/api/v1/accounts/provisioning'
+    | '/api/v1/attachments/abort'
+    | '/api/v1/attachments/chunk'
+    | '/api/v1/attachments/download'
+    | '/api/v1/attachments/finalize'
+    | '/api/v1/attachments/initiate'
     | '/api/v1/auth/login'
     | '/api/v1/auth/logout'
     | '/api/v1/auth/logout-all'
@@ -1080,6 +1090,7 @@ export interface FileRouteTypes {
     | '/api/v1/postage'
     | '/api/v1/receipts'
     | '/api/v1/requests'
+    | '/api/v1/search'
     | '/api/v1/accounts/provisioning/retry'
     | '/api/v1/admin/dlq/$id'
     | '/api/v1/admin/jobs/$id'
@@ -1131,17 +1142,17 @@ export interface FileRouteTypes {
     | '/api/v1/health'
     | '/api/v1/openapi.json'
     | '/api/v1/protocol'
-    | '/api/v1/attachments/abort'
-    | '/api/v1/attachments/chunk'
-    | '/api/v1/attachments/download'
-    | '/api/v1/attachments/finalize'
-    | '/api/v1/attachments/initiate'
     | '/api/v1/accounts/account-info'
     | '/api/v1/accounts/deletion'
     | '/api/v1/accounts/deletion-cancel'
     | '/api/v1/accounts/export'
     | '/api/v1/accounts/profile'
     | '/api/v1/accounts/provisioning'
+    | '/api/v1/attachments/abort'
+    | '/api/v1/attachments/chunk'
+    | '/api/v1/attachments/download'
+    | '/api/v1/attachments/finalize'
+    | '/api/v1/attachments/initiate'
     | '/api/v1/auth/login'
     | '/api/v1/auth/logout'
     | '/api/v1/auth/logout-all'
@@ -1179,6 +1190,7 @@ export interface FileRouteTypes {
     | '/api/v1/postage/'
     | '/api/v1/receipts/'
     | '/api/v1/requests/'
+    | '/api/v1/search/'
     | '/api/v1/accounts/provisioning/retry'
     | '/api/v1/admin/dlq/$id'
     | '/api/v1/admin/jobs/$id'
@@ -1231,17 +1243,17 @@ export interface RootRouteChildren {
   ApiV1HealthRoute: typeof ApiV1HealthRoute
   ApiV1OpenapiDotjsonRoute: typeof ApiV1OpenapiDotjsonRoute
   ApiV1ProtocolRoute: typeof ApiV1ProtocolRoute
-  ApiV1AttachmentsAbortRoute: typeof ApiV1AttachmentsAbortRoute
-  ApiV1AttachmentsChunkRoute: typeof ApiV1AttachmentsChunkRoute
-  ApiV1AttachmentsDownloadRoute: typeof ApiV1AttachmentsDownloadRoute
-  ApiV1AttachmentsFinalizeRoute: typeof ApiV1AttachmentsFinalizeRoute
-  ApiV1AttachmentsInitiateRoute: typeof ApiV1AttachmentsInitiateRoute
   ApiV1AccountsAccountInfoRoute: typeof ApiV1AccountsAccountInfoRoute
   ApiV1AccountsDeletionRoute: typeof ApiV1AccountsDeletionRoute
   ApiV1AccountsDeletionCancelRoute: typeof ApiV1AccountsDeletionCancelRoute
   ApiV1AccountsExportRoute: typeof ApiV1AccountsExportRoute
   ApiV1AccountsProfileRoute: typeof ApiV1AccountsProfileRoute
   ApiV1AccountsProvisioningRoute: typeof ApiV1AccountsProvisioningRouteWithChildren
+  ApiV1AttachmentsAbortRoute: typeof ApiV1AttachmentsAbortRoute
+  ApiV1AttachmentsChunkRoute: typeof ApiV1AttachmentsChunkRoute
+  ApiV1AttachmentsDownloadRoute: typeof ApiV1AttachmentsDownloadRoute
+  ApiV1AttachmentsFinalizeRoute: typeof ApiV1AttachmentsFinalizeRoute
+  ApiV1AttachmentsInitiateRoute: typeof ApiV1AttachmentsInitiateRoute
   ApiV1AuthLoginRoute: typeof ApiV1AuthLoginRoute
   ApiV1AuthLogoutRoute: typeof ApiV1AuthLogoutRoute
   ApiV1AuthLogoutAllRoute: typeof ApiV1AuthLogoutAllRoute
@@ -1279,6 +1291,7 @@ export interface RootRouteChildren {
   ApiV1PostageIndexRoute: typeof ApiV1PostageIndexRoute
   ApiV1ReceiptsIndexRoute: typeof ApiV1ReceiptsIndexRoute
   ApiV1RequestsIndexRoute: typeof ApiV1RequestsIndexRoute
+  ApiV1SearchIndexRoute: typeof ApiV1SearchIndexRoute
   ApiV1AdminDlqIdRoute: typeof ApiV1AdminDlqIdRouteWithChildren
   ApiV1AdminJobsIdRoute: typeof ApiV1AdminJobsIdRoute
   ApiV1AuthPasswordResetCompleteRoute: typeof ApiV1AuthPasswordResetCompleteRoute
@@ -1388,6 +1401,13 @@ declare module '@tanstack/react-router' {
       path: '/api/v1/bootstrap'
       fullPath: '/api/v1/bootstrap'
       preLoaderRoute: typeof ApiV1BootstrapRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/search/': {
+      id: '/api/v1/search/'
+      path: '/api/v1/search'
+      fullPath: '/api/v1/search/'
+      preLoaderRoute: typeof ApiV1SearchIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/requests/': {
@@ -1682,6 +1702,8 @@ declare module '@tanstack/react-router' {
       path: '/api/v1/attachments/abort'
       fullPath: '/api/v1/attachments/abort'
       preLoaderRoute: typeof ApiV1AttachmentsAbortRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/accounts/provisioning': {
       id: '/api/v1/accounts/provisioning'
       path: '/api/v1/accounts/provisioning'
@@ -2109,17 +2131,17 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1HealthRoute: ApiV1HealthRoute,
   ApiV1OpenapiDotjsonRoute: ApiV1OpenapiDotjsonRoute,
   ApiV1ProtocolRoute: ApiV1ProtocolRoute,
-  ApiV1AttachmentsAbortRoute: ApiV1AttachmentsAbortRoute,
-  ApiV1AttachmentsChunkRoute: ApiV1AttachmentsChunkRoute,
-  ApiV1AttachmentsDownloadRoute: ApiV1AttachmentsDownloadRoute,
-  ApiV1AttachmentsFinalizeRoute: ApiV1AttachmentsFinalizeRoute,
-  ApiV1AttachmentsInitiateRoute: ApiV1AttachmentsInitiateRoute,
   ApiV1AccountsAccountInfoRoute: ApiV1AccountsAccountInfoRoute,
   ApiV1AccountsDeletionRoute: ApiV1AccountsDeletionRoute,
   ApiV1AccountsDeletionCancelRoute: ApiV1AccountsDeletionCancelRoute,
   ApiV1AccountsExportRoute: ApiV1AccountsExportRoute,
   ApiV1AccountsProfileRoute: ApiV1AccountsProfileRoute,
   ApiV1AccountsProvisioningRoute: ApiV1AccountsProvisioningRouteWithChildren,
+  ApiV1AttachmentsAbortRoute: ApiV1AttachmentsAbortRoute,
+  ApiV1AttachmentsChunkRoute: ApiV1AttachmentsChunkRoute,
+  ApiV1AttachmentsDownloadRoute: ApiV1AttachmentsDownloadRoute,
+  ApiV1AttachmentsFinalizeRoute: ApiV1AttachmentsFinalizeRoute,
+  ApiV1AttachmentsInitiateRoute: ApiV1AttachmentsInitiateRoute,
   ApiV1AuthLoginRoute: ApiV1AuthLoginRoute,
   ApiV1AuthLogoutRoute: ApiV1AuthLogoutRoute,
   ApiV1AuthLogoutAllRoute: ApiV1AuthLogoutAllRoute,
@@ -2157,6 +2179,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1PostageIndexRoute: ApiV1PostageIndexRoute,
   ApiV1ReceiptsIndexRoute: ApiV1ReceiptsIndexRoute,
   ApiV1RequestsIndexRoute: ApiV1RequestsIndexRoute,
+  ApiV1SearchIndexRoute: ApiV1SearchIndexRoute,
   ApiV1AdminDlqIdRoute: ApiV1AdminDlqIdRouteWithChildren,
   ApiV1AdminJobsIdRoute: ApiV1AdminJobsIdRoute,
   ApiV1AuthPasswordResetCompleteRoute: ApiV1AuthPasswordResetCompleteRoute,

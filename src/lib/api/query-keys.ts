@@ -70,6 +70,10 @@ export const queryKeys = {
     all: ["wallet"] as const,
     status: ["wallet", "status"] as const,
   },
+  search: {
+    all: ["search"] as const,
+    query: (actor: string, query: Record<string, unknown>) => ["search", actor, query] as const,
+  },
 } as const;
 
 /** Mutation → query invalidation map. Extend as new mutations are added. */

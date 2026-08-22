@@ -336,6 +336,15 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
                 notifications={notificationCenter.notifications}
                 onMarkNotificationRead={notificationCenter.markRead}
                 onMarkAllNotificationsRead={notificationCenter.markAllRead}
+                actor={source.actor}
+                emails={source.emails}
+                onSelectEmail={(emailId, folder) => {
+                  if (folder && folder !== "all") {
+                    navigation.selectFolder(folder as any);
+                  }
+                  navigation.setSelectedId(emailId);
+                  navigation.setSelectedIds([emailId]);
+                }}
               />
               {source.connectivity.paused &&
               source.sourceView.kind !== "error" &&

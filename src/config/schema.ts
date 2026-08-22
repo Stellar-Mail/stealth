@@ -79,6 +79,7 @@ export const contractConfigSchema = z.object({
   postageContractId: z.string().min(1, "Postage contract ID cannot be empty"),
   lifecycleContractId: z.string().min(1, "Lifecycle contract ID cannot be empty"),
   receiptsContractId: z.string().min(1, "Receipts contract ID cannot be empty"),
+  policiesContractId: z.string().min(1, "Policies contract ID cannot be empty"),
   domainTag: z.string().min(1, "Domain tag cannot be empty"),
   protocolVersion: z.string().min(1, "Protocol version cannot be empty"),
 });

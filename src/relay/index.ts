@@ -11,6 +11,7 @@ import { createServer, type IncomingMessage } from "node:http";
 
 import { loadRuntimeConfig } from "@/config";
 import { protocolManifest } from "@/server/api/protocol";
+import { MemoryApiRepository } from "@/server/api/memory-repository";
 import { getVersionInfo } from "@/server/api/version";
 import { ingestMailboxEnvelope } from "@/services/relay/ingest";
 import { InProcessRelayWorker } from "@/services/relay/in-process-worker";
@@ -18,6 +19,7 @@ import { MemoryMailboxSyncPersistence } from "@/services/relay/memory-mailbox-sy
 import { MemoryRelayPersistence } from "@/services/relay/memory-persistence";
 import { MailboxSyncService } from "@/services/relay/mailbox-sync-service";
 import { handleMailboxSync } from "@/services/relay/mailbox-sync-transport";
+import { createConfiguredAdmissionEvaluator } from "@/services/relay/policy-chain";
 import {
   RELAY_SERVICE_NAME,
   RelayService,
@@ -47,6 +49,7 @@ function buildConfig(): RelayServiceConfig {
       networkPassphrase: config.network.networkPassphrase,
     },
     audience: process.env.STEALTH_RELAY_AUDIENCE ?? "relay:test.stealth",
+    policiesContractId: config.contract.policiesContractId,
   };
 }
 
@@ -59,6 +62,8 @@ function getService(): RelayService {
 
   const persistence = new MemoryRelayPersistence();
   const mailboxPersistence = new MemoryMailboxSyncPersistence();
+  const repository = new MemoryApiRepository();
+  const runtime = loadRuntimeConfig();
   mailboxSync = new MailboxSyncService(mailboxPersistence);
   worker = new InProcessRelayWorker(persistence, {
     onMessage: async (envelope) => {
@@ -87,7 +92,15 @@ function getService(): RelayService {
     },
   });
 
-  service = new RelayService(persistence, worker, buildConfig());
+  service = new RelayService(persistence, worker, buildConfig(), {
+    evaluator: createConfiguredAdmissionEvaluator({
+      repository,
+      policiesContractId: runtime.contract.policiesContractId,
+      networkPassphrase: runtime.network.networkPassphrase,
+      sorobanRpcUrl: runtime.network.sorobanRpcUrl,
+    }),
+    mailbox: repository,
+  });
   void worker.start();
   return service;
 }

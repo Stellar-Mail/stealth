@@ -1700,3 +1700,80 @@ export const draftUpdateSchema = z.object({
   expectedVersion: z.number().int().positive(),
 });
 export type DraftUpdateInput = z.input<typeof draftUpdateSchema>;
+
+// ---------------------------------------------------------------------------
+// Issue #1972 (BETA-065) — Server-Backed Mailbox Search Domain
+// ---------------------------------------------------------------------------
+
+export const searchFilterSchema = z.object({
+  folder: mailboxLiveFolderSchema.or(z.literal("all")).optional(),
+  unread: z.boolean().optional(),
+  starred: z.boolean().optional(),
+  hasAttachments: z.boolean().optional(),
+  sender: z.string().trim().optional(),
+  recipient: z.string().trim().optional(),
+  afterDate: z.string().trim().optional(),
+  beforeDate: z.string().trim().optional(),
+  includeDeleted: z.boolean().default(false),
+});
+export type SearchFilter = z.infer<typeof searchFilterSchema>;
+
+export const searchQuerySchema = z.object({
+  q: z.string().default(""),
+  folder: mailboxLiveFolderSchema.or(z.literal("all")).optional(),
+  unread: z.coerce.boolean().optional(),
+  starred: z.coerce.boolean().optional(),
+  hasAttachments: z.coerce.boolean().optional(),
+  sender: z.string().trim().optional(),
+  recipient: z.string().trim().optional(),
+  afterDate: z.string().trim().optional(),
+  beforeDate: z.string().trim().optional(),
+  includeDeleted: z.coerce.boolean().default(false),
+  cursor: z.string().trim().min(1).optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(25),
+});
+export type SearchQuery = z.infer<typeof searchQuerySchema>;
+
+export const searchHighlightSchema = z.object({
+  field: z.string(),
+  snippet: z.string(),
+});
+export type SearchHighlight = z.infer<typeof searchHighlightSchema>;
+
+export const searchResultItemSchema = z.object({
+  type: z.enum(["message", "contact", "draft"]),
+  id: z.string(),
+  messageId: z.string().optional(),
+  senderId: z.string(),
+  recipientId: z.string(),
+  folder: z.string(),
+  subject: z.string().optional(),
+  preview: z.string().optional(),
+  createdAt: z.string().datetime(),
+  unread: z.boolean(),
+  starred: z.boolean(),
+  hasAttachments: z.boolean(),
+  isTombstone: z.boolean(),
+  deletedAt: z.string().datetime().nullable().optional(),
+  highlights: z.array(searchHighlightSchema).default([]),
+});
+export type SearchResultItem = z.infer<typeof searchResultItemSchema>;
+
+export const searchIndexLimitationsSchema = z.object({
+  serverIndexLimited: z.literal(true).default(true),
+  encryptedBodyIndexed: z.literal(false).default(false),
+  safeMetadataFields: z.array(z.string()),
+  notice: z.string(),
+});
+export type SearchIndexLimitations = z.infer<typeof searchIndexLimitationsSchema>;
+
+export const searchResponseSchema = z.object({
+  items: z.array(searchResultItemSchema),
+  nextCursor: z.string().nullable(),
+  hasMore: z.boolean(),
+  totalMatches: z.number().int().nonnegative(),
+  query: z.string(),
+  parsedFilters: z.record(z.unknown()),
+  indexLimitations: searchIndexLimitationsSchema,
+});
+export type SearchResponse = z.infer<typeof searchResponseSchema>;

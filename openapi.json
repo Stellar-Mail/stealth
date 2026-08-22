@@ -6208,6 +6208,316 @@
           }
         }
       }
+    },
+    "/search": {
+      "get": {
+        "operationId": "searchMailbox",
+        "summary": "Privacy-safe mailbox metadata search",
+        "security": [
+          {
+            "StellarSignedRequest": []
+          },
+          {
+            "SessionCookie": []
+          }
+        ],
+        "x-stability": "beta",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Free text search query or structured search directives"
+          },
+          {
+            "name": "folder",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "all",
+                "inbox",
+                "pending",
+                "requests",
+                "archive",
+                "spam",
+                "trash",
+                "sent",
+                "drafts",
+                "outbox"
+              ]
+            },
+            "description": "Folder filter"
+          },
+          {
+            "name": "unread",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "starred",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "hasAttachments",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "sender",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "recipient",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "afterDate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "beforeDate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "includeDeleted",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Search results with safe metadata and highlights",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items",
+                    "nextCursor",
+                    "hasMore",
+                    "totalMatches",
+                    "query",
+                    "parsedFilters",
+                    "indexLimitations"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "type",
+                          "id",
+                          "senderId",
+                          "recipientId",
+                          "folder",
+                          "createdAt",
+                          "unread",
+                          "starred",
+                          "hasAttachments",
+                          "isTombstone",
+                          "highlights"
+                        ],
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "enum": ["message", "contact", "draft"]
+                          },
+                          "id": {
+                            "type": "string"
+                          },
+                          "messageId": {
+                            "type": "string"
+                          },
+                          "senderId": {
+                            "type": "string"
+                          },
+                          "recipientId": {
+                            "type": "string"
+                          },
+                          "folder": {
+                            "type": "string"
+                          },
+                          "subject": {
+                            "type": "string"
+                          },
+                          "preview": {
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "unread": {
+                            "type": "boolean"
+                          },
+                          "starred": {
+                            "type": "boolean"
+                          },
+                          "hasAttachments": {
+                            "type": "boolean"
+                          },
+                          "isTombstone": {
+                            "type": "boolean"
+                          },
+                          "deletedAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "nullable": true
+                          },
+                          "highlights": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "required": ["field", "snippet"],
+                              "properties": {
+                                "field": {
+                                  "type": "string"
+                                },
+                                "snippet": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "nextCursor": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "hasMore": {
+                      "type": "boolean"
+                    },
+                    "totalMatches": {
+                      "type": "integer"
+                    },
+                    "query": {
+                      "type": "string"
+                    },
+                    "parsedFilters": {
+                      "type": "object"
+                    },
+                    "indexLimitations": {
+                      "type": "object",
+                      "required": [
+                        "serverIndexLimited",
+                        "encryptedBodyIndexed",
+                        "safeMetadataFields",
+                        "notice"
+                      ],
+                      "properties": {
+                        "serverIndexLimited": {
+                          "type": "boolean"
+                        },
+                        "encryptedBodyIndexed": {
+                          "type": "boolean"
+                        },
+                        "safeMetadataFields": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "notice": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": ""
+          }
+        }
+      }
     }
   }
 }

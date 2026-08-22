@@ -635,6 +635,13 @@ export class HybridApiRepository implements ApiRepository {
     return result;
   }
 
+  async searchMailbox(
+    actor: string,
+    options?: import("./repository").SearchMailboxQueryOptions,
+  ): Promise<import("./repository").Page<StoredEnvelope>> {
+    return this.getStub().searchMailbox(actor, options);
+  }
+
   // ---------------------------------------------------------------------------
   // Issue #1934 (BETA-027) — Versioned Public Encryption-Key Directory & Rotation
   // ---------------------------------------------------------------------------

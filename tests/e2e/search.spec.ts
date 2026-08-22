@@ -5,14 +5,47 @@ test.describe("search and filter", () => {
     await openDemoMailbox(page);
   });
 
-  test("clicking the search bar opens the command palette", async ({ page }) => {
-    await page.getByPlaceholder("Search messages, people, proofs, attachments...").click();
-    await expect(page.getByRole("dialog", { name: "Command palette" })).toBeVisible();
+  test("focusing search bar opens the privacy-safe search dropdown", async ({ page }) => {
+    const searchInput = page.getByPlaceholder("Search messages, contacts, drafts", {
+      exact: false,
+    });
+    await searchInput.click();
+
+    await expect(page.getByText("Privacy-Safe Index:")).toBeVisible();
+    await expect(page.getByRole("listbox", { name: /Search results/i })).toBeVisible();
+  });
+
+  test("typing query in search bar shows live search results and keyword highlighting", async ({
+    page,
+  }) => {
+    const searchInput = page.getByPlaceholder("Search messages, contacts, drafts", {
+      exact: false,
+    });
+    await searchInput.fill("Architecture");
+
+    await expect(page.getByText("Privacy-Safe Index:")).toBeVisible();
+    await expect(page.getByRole("option", { name: /Architecture/i })).toBeVisible();
   });
 
   test("keyboard shortcut Ctrl+K opens the command palette", async ({ page }) => {
     await page.keyboard.press("Control+k");
     await expect(page.getByRole("dialog", { name: "Command palette" })).toBeVisible();
+  });
+
+  test("clicking the Cmd+K badge in search bar opens the command palette", async ({ page }) => {
+    await page.getByRole("button", { name: "Open command palette" }).click();
+    await expect(page.getByRole("dialog", { name: "Command palette" })).toBeVisible();
+  });
+
+  test("Escape closes the search dropdown", async ({ page }) => {
+    const searchInput = page.getByPlaceholder("Search messages, contacts, drafts", {
+      exact: false,
+    });
+    await searchInput.click();
+    await expect(page.getByText("Privacy-Safe Index:")).toBeVisible();
+
+    await page.keyboard.press("Escape");
+    await expect(page.getByText("Privacy-Safe Index:")).not.toBeVisible();
   });
 
   test("question mark opens the shortcut overlay", async ({ page }) => {

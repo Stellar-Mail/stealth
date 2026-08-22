@@ -33,6 +33,18 @@ export interface LogoutOptions {
   host?: string;
 }
 
+export function sessionCookieConfig(): { isProd: boolean; domain?: string } {
+  const isProd =
+    (typeof process !== "undefined" && process.env.STEALTH_ENV === "production") ||
+    (typeof import.meta !== "undefined" && import.meta.env?.PROD === true);
+  const domain = typeof process !== "undefined" ? process.env.STEALTH_COOKIE_DOMAIN : undefined;
+  return { isProd, ...(domain && isValidCookieDomain(domain) ? { domain: domain.trim() } : {}) };
+}
+
+function isValidCookieDomain(domain: string): boolean {
+  return /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/i.test(domain.trim());
+}
+
 export function parseSessionCookie(cookieHeader: string | null | undefined): string | null {
   if (!cookieHeader) return null;
   const pairs = cookieHeader.split(";");
@@ -54,15 +66,17 @@ export function buildSessionCookie(
   sessionId: string,
   maxAgeSeconds = DEFAULT_SESSION_TTL_SECONDS,
   isProd = false,
+  domain?: string,
 ): string {
   const expires = new Date(Date.now() + maxAgeSeconds * 1000).toUTCString();
   const secureFlag = isProd ? "Secure; " : "";
-  return `${SESSION_COOKIE_NAME}=${sessionId}; HttpOnly; ${secureFlag}SameSite=Lax; Path=/; Max-Age=${maxAgeSeconds}; Expires=${expires}`;
+  const domainFlag = domain && isValidCookieDomain(domain) ? `Domain=${domain.trim()}; ` : "";
+  return `${SESSION_COOKIE_NAME}=${sessionId}; HttpOnly; ${secureFlag}${domainFlag}SameSite=Lax; Path=/; Max-Age=${maxAgeSeconds}; Expires=${expires}`;
 }
 
 export function buildClearSessionCookie(isProd = false, domain?: string): string {
   const secureFlag = isProd ? "Secure; " : "";
-  const domainFlag = domain ? `Domain=${domain}; ` : "";
+  const domainFlag = domain && isValidCookieDomain(domain) ? `Domain=${domain.trim()}; ` : "";
   return `${SESSION_COOKIE_NAME}=; HttpOnly; ${secureFlag}${domainFlag}SameSite=Lax; Path=/; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT`;
 }
 
@@ -181,9 +195,9 @@ export async function authenticateWithPassword(
 
   await repo.createSession(session);
 
-  const isProd = import.meta.env?.PROD ?? false;
+  const { isProd, domain } = sessionCookieConfig();
   const maxAgeSeconds = Math.max(0, Math.floor((expiresMs - nowMs) / 1000));
-  const cookieHeader = buildSessionCookie(newSessionId, maxAgeSeconds, isProd);
+  const cookieHeader = buildSessionCookie(newSessionId, maxAgeSeconds, isProd, domain);
 
   return { user, session, cookieHeader };
 }
@@ -332,9 +346,9 @@ export async function renewSession(
   await repo.deleteSession(currentSession.sessionId);
   await repo.createSession(newSession);
 
-  const isProd = import.meta.env?.PROD ?? false;
+  const { isProd, domain } = sessionCookieConfig();
   const maxAgeSeconds = Math.max(0, Math.floor((nextExpiresMs - nowMs) / 1000));
-  const cookieHeader = buildSessionCookie(newSessionId, maxAgeSeconds, isProd);
+  const cookieHeader = buildSessionCookie(newSessionId, maxAgeSeconds, isProd, domain);
 
   return { user, session: newSession, cookieHeader };
 }
@@ -367,8 +381,10 @@ export async function logoutSession(
     await apiContext.repository.deleteSession(sessionId);
   }
 
-  const isProd = options.isProd ?? import.meta.env?.PROD ?? false;
-  const domain = options.domain ?? (options.host ? options.host.split(":")[0] : undefined);
+  const configured = sessionCookieConfig();
+  const isProd = options.isProd ?? configured.isProd;
+  const domain =
+    options.domain ?? configured.domain ?? (isProd ? undefined : options.host?.split(":")[0]);
   const cookieHeaders = buildClearSessionCookies(isProd, domain);
   const cookieHeader = cookieHeaders[0];
 
@@ -394,8 +410,10 @@ export async function revokeAllSessions(
 ): Promise<{ cookieHeader: string; cookieHeaders: string[] }> {
   await apiContext.repository.deleteUserSessions(userId);
 
-  const isProd = options.isProd ?? import.meta.env?.PROD ?? false;
-  const domain = options.domain ?? (options.host ? options.host.split(":")[0] : undefined);
+  const configured = sessionCookieConfig();
+  const isProd = options.isProd ?? configured.isProd;
+  const domain =
+    options.domain ?? configured.domain ?? (isProd ? undefined : options.host?.split(":")[0]);
   const cookieHeaders = buildClearSessionCookies(isProd, domain);
   const cookieHeader = cookieHeaders[0];
 

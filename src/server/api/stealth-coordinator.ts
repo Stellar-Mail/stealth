@@ -1214,6 +1214,96 @@ export class StealthCoordinator extends DurableObjectBase {
     });
   }
 
+  async searchMailbox(
+    actor: string,
+    options: import("./repository").SearchMailboxQueryOptions = {},
+  ): Promise<import("./repository").Page<StoredEnvelope>> {
+    const { paginate, PAGINATED_QUERY_ORDERINGS } = await import("./repository");
+    const { readMailboxFlags } = await import("./mailbox-live");
+    const normActor = actor.toUpperCase().trim();
+    const limit = options.limit ?? 25;
+    const folderFilter = options.folder;
+    const includeDeleted = options.includeDeleted ?? folderFilter === "trash";
+    const query = options.query?.trim().toLowerCase();
+
+    const envelopesMap = (await this.ctx.storage.list({
+      prefix: "envelope:",
+    })) as Map<string, StoredEnvelope>;
+
+    const filtered: StoredEnvelope[] = [];
+    for (const env of envelopesMap.values()) {
+      if (!env || !env.recipientId || !env.senderId) continue;
+      const isRecipient = env.recipientId.toUpperCase().trim() === normActor;
+      const isSender = env.senderId.toUpperCase().trim() === normActor;
+      if (!isRecipient && !isSender) continue;
+
+      const isDeleted = Boolean(env.deletedAt);
+      if (isDeleted && !includeDeleted) continue;
+
+      const flags = readMailboxFlags(env);
+      if (folderFilter && folderFilter !== "all" && flags.folder !== folderFilter) continue;
+
+      if (options.unread !== undefined && flags.unread !== options.unread) continue;
+      if (options.starred !== undefined && flags.starred !== options.starred) continue;
+
+      if (options.hasAttachments !== undefined) {
+        const metadata =
+          env.metadata && typeof env.metadata === "object"
+            ? (env.metadata as Record<string, unknown>)
+            : {};
+        const attachments = Array.isArray(metadata.attachments) ? metadata.attachments : [];
+        const has = attachments.length > 0;
+        if (has !== options.hasAttachments) continue;
+      }
+
+      if (options.sender) {
+        const normSender = options.sender.toLowerCase().trim();
+        const headers = (env.protectedHeaders ?? {}) as Record<string, unknown>;
+        const senderMatch =
+          env.senderId.toLowerCase().includes(normSender) ||
+          (typeof headers.from === "string" && headers.from.toLowerCase().includes(normSender));
+        if (!senderMatch) continue;
+      }
+
+      if (options.recipient) {
+        const normRecipient = options.recipient.toLowerCase().trim();
+        const headers = (env.protectedHeaders ?? {}) as Record<string, unknown>;
+        const recipientMatch =
+          env.recipientId.toLowerCase().includes(normRecipient) ||
+          (typeof headers.to === "string" && headers.to.toLowerCase().includes(normRecipient));
+        if (!recipientMatch) continue;
+      }
+
+      if (options.afterDate && env.createdAt < options.afterDate) continue;
+      if (options.beforeDate && env.createdAt > options.beforeDate) continue;
+
+      if (query) {
+        const headers = (env.protectedHeaders ?? {}) as Record<string, unknown>;
+        const metadata = (env.metadata ?? {}) as Record<string, unknown>;
+        const mailboxMeta = (metadata.mailbox ?? {}) as Record<string, unknown>;
+        const labels = Array.isArray(mailboxMeta.labels) ? mailboxMeta.labels.join(" ") : "";
+        const haystack = [
+          env.senderId,
+          env.recipientId,
+          env.messageId,
+          typeof headers.subject === "string" ? headers.subject : "",
+          typeof headers.from === "string" ? headers.from : "",
+          typeof headers.to === "string" ? headers.to : "",
+          labels,
+        ]
+          .join(" ")
+          .toLowerCase();
+
+        if (!haystack.includes(query)) continue;
+      }
+
+      filtered.push(env);
+    }
+
+    const spec = PAGINATED_QUERY_ORDERINGS.searchMailbox;
+    return paginate(filtered, spec, { limit, after: options.after });
+  }
+
   // ---------------------------------------------------------------------------
   // Issue #1952 (BETA-045) — Durable jobs, retries, DLQ, and receipt indexing
   // ---------------------------------------------------------------------------

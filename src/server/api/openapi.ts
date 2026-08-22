@@ -869,17 +869,68 @@ export const openApiDocument = {
             type: "integer",
             description: "Delivery TTL in milliseconds.",
           },
+          postage: {
+            $ref: "#/components/schemas/StroopAmount",
+            description: "Attached postage in stroops. Defaults to 0 when omitted.",
+          },
+          verified: {
+            type: "boolean",
+            description: "Whether the sender identity has been verified. Defaults to false.",
+          },
+          receipt: {
+            type: "boolean",
+            description: "Whether the submission includes a delivery-receipt commitment.",
+          },
+        },
+      },
+      RelayAdmissionDecision: {
+        type: "object",
+        required: ["allowed", "kind", "reason", "policyVersion", "requiredPostage"],
+        additionalProperties: false,
+        properties: {
+          allowed: { type: "boolean" },
+          kind: {
+            type: "string",
+            enum: ["trusted", "request", "verified", "priced", "blocked"],
+            description: "Sender-actionable admission class.",
+          },
+          reason: {
+            type: "string",
+            enum: [
+              "sender_allowed",
+              "sender_blocked",
+              "unknown_senders_disabled",
+              "verification_required",
+              "receipt_required",
+              "insufficient_postage",
+              "policy_satisfied",
+              "tier_satisfied",
+            ],
+          },
+          policyVersion: {
+            type: "integer",
+            description: "Policy version evaluated at admission time. Immutable on the message.",
+          },
+          requiredPostage: {
+            $ref: "#/components/schemas/StroopAmount",
+          },
         },
       },
       RelaySubmissionResult: {
         type: "object",
-        required: ["accepted", "messageId", "queueDepth", "service"],
+        required: ["accepted", "messageId", "queueDepth", "service", "replayed", "admission"],
         additionalProperties: false,
         properties: {
           accepted: { type: "boolean", enum: [true] },
           messageId: { $ref: "#/components/schemas/Hash32" },
           queueDepth: { type: "integer" },
           service: { type: "string", description: "Service name." },
+          replayed: {
+            type: "boolean",
+            description:
+              "True when this messageId was already admitted and the original decision was returned.",
+          },
+          admission: { $ref: "#/components/schemas/RelayAdmissionDecision" },
         },
       },
       MailboxIncrementalSyncRequest: {
@@ -5517,6 +5568,228 @@ export const openApiDocument = {
           },
           "404": {
             description: "No lifecycle anchor for this message",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorEnvelope" },
+              },
+            },
+          },
+          "422": {
+            description: "Request validation failed",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorEnvelope" },
+              },
+            },
+          },
+          "503": {
+            description: "Dependency unavailable",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorEnvelope" },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/search": {
+      get: {
+        operationId: "searchMailbox",
+        summary: "Privacy-safe mailbox metadata search",
+        security: [
+          {
+            StellarSignedRequest: [],
+          },
+          {
+            SessionCookie: [],
+          },
+        ],
+        "x-stability": "beta",
+        parameters: [
+          {
+            name: "q",
+            in: "query",
+            required: false,
+            schema: { type: "string" },
+            description: "Free text search query or structured search directives",
+          },
+          {
+            name: "folder",
+            in: "query",
+            required: false,
+            schema: {
+              type: "string",
+              enum: [
+                "all",
+                "inbox",
+                "pending",
+                "requests",
+                "archive",
+                "spam",
+                "trash",
+                "sent",
+                "drafts",
+                "outbox",
+              ],
+            },
+            description: "Folder filter",
+          },
+          {
+            name: "unread",
+            in: "query",
+            required: false,
+            schema: { type: "boolean" },
+          },
+          {
+            name: "starred",
+            in: "query",
+            required: false,
+            schema: { type: "boolean" },
+          },
+          {
+            name: "hasAttachments",
+            in: "query",
+            required: false,
+            schema: { type: "boolean" },
+          },
+          {
+            name: "sender",
+            in: "query",
+            required: false,
+            schema: { type: "string" },
+          },
+          {
+            name: "recipient",
+            in: "query",
+            required: false,
+            schema: { type: "string" },
+          },
+          {
+            name: "afterDate",
+            in: "query",
+            required: false,
+            schema: { type: "string" },
+          },
+          {
+            name: "beforeDate",
+            in: "query",
+            required: false,
+            schema: { type: "string" },
+          },
+          {
+            name: "includeDeleted",
+            in: "query",
+            required: false,
+            schema: { type: "boolean" },
+          },
+          {
+            name: "cursor",
+            in: "query",
+            required: false,
+            schema: { type: "string" },
+          },
+          {
+            name: "limit",
+            in: "query",
+            required: false,
+            schema: { type: "integer", minimum: 1, maximum: 100, default: 25 },
+          },
+        ],
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Search results with safe metadata and highlights",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: [
+                    "items",
+                    "nextCursor",
+                    "hasMore",
+                    "totalMatches",
+                    "query",
+                    "parsedFilters",
+                    "indexLimitations",
+                  ],
+                  properties: {
+                    items: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        required: [
+                          "type",
+                          "id",
+                          "senderId",
+                          "recipientId",
+                          "folder",
+                          "createdAt",
+                          "unread",
+                          "starred",
+                          "hasAttachments",
+                          "isTombstone",
+                          "highlights",
+                        ],
+                        properties: {
+                          type: { type: "string", enum: ["message", "contact", "draft"] },
+                          id: { type: "string" },
+                          messageId: { type: "string" },
+                          senderId: { type: "string" },
+                          recipientId: { type: "string" },
+                          folder: { type: "string" },
+                          subject: { type: "string" },
+                          preview: { type: "string" },
+                          createdAt: { type: "string", format: "date-time" },
+                          unread: { type: "boolean" },
+                          starred: { type: "boolean" },
+                          hasAttachments: { type: "boolean" },
+                          isTombstone: { type: "boolean" },
+                          deletedAt: { type: "string", format: "date-time", nullable: true },
+                          highlights: {
+                            type: "array",
+                            items: {
+                              type: "object",
+                              required: ["field", "snippet"],
+                              properties: {
+                                field: { type: "string" },
+                                snippet: { type: "string" },
+                              },
+                            },
+                          },
+                        },
+                      },
+                    },
+                    nextCursor: { type: "string", nullable: true },
+                    hasMore: { type: "boolean" },
+                    totalMatches: { type: "integer" },
+                    query: { type: "string" },
+                    parsedFilters: { type: "object" },
+                    indexLimitations: {
+                      type: "object",
+                      required: [
+                        "serverIndexLimited",
+                        "encryptedBodyIndexed",
+                        "safeMetadataFields",
+                        "notice",
+                      ],
+                      properties: {
+                        serverIndexLimited: { type: "boolean" },
+                        encryptedBodyIndexed: { type: "boolean" },
+                        safeMetadataFields: {
+                          type: "array",
+                          items: { type: "string" },
+                        },
+                        notice: { type: "string" },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
             content: {
               "application/json": {
                 schema: { $ref: "#/components/schemas/ErrorEnvelope" },

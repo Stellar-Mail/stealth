@@ -32,9 +32,17 @@ export class MemoryRelayPersistence implements RelayPersistence {
     return this.deadLetterCount;
   }
 
+  async get(messageId: string): Promise<RelayEnvelope | null> {
+    return this.messages.get(messageId) ?? null;
+  }
+
   async enqueue(envelope: RelayEnvelope): Promise<{ messageId: string }> {
     if (!this.available) {
       throw new Error("Relay storage is unavailable");
+    }
+    const existing = this.messages.get(envelope.messageId);
+    if (existing) {
+      return { messageId: existing.messageId };
     }
     this.messages.set(envelope.messageId, envelope);
     if (!this.queuedIds.has(envelope.messageId)) {

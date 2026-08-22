@@ -17,10 +17,24 @@
  */
 import { z } from "zod";
 
-import { hash32Schema, stellarAddressSchema } from "@/server/api/domain";
+import {
+  hash32Schema,
+  stellarAddressSchema,
+  stroopAmountSchema,
+  type StoredEnvelope,
+} from "@/server/api/domain";
+import { ApiError } from "@/server/api/errors";
+import type { InsertEnvelopeResult } from "@/server/api/repository";
 import { InMemoryNonceStore, NonceService } from "@/server/api/auth/nonce-service";
 import type { RelayPersistence } from "./persistence";
 import type { RelayWorker } from "./worker";
+import type { RelayObjectStore } from "./object-store";
+import {
+  toSafeAdmissionDecision,
+  type RelayAdmissionEvaluator,
+  type RelayAdmissionEvidence,
+  type SafeAdmissionDecision,
+} from "./policy-admission";
 
 export const RELAY_SERVICE_NAME = "stealth-relay";
 
@@ -47,9 +61,12 @@ export const relaySubmissionSchema = z.object({
     .min(1, "Payload must not be empty")
     .max(RELAY_MAX_PAYLOAD_BYTES, `Payload exceeds ${RELAY_MAX_PAYLOAD_BYTES} bytes`),
   ttlMs: z.number().int().positive().max(MAX_RELAY_TTL_MS).optional(),
+  postage: stroopAmountSchema.optional().default("0"),
+  verified: z.boolean().optional().default(false),
+  receipt: z.boolean().optional().default(false),
 });
 
-export type RelaySubmissionInput = z.infer<typeof relaySubmissionSchema>;
+export type RelaySubmissionInput = z.input<typeof relaySubmissionSchema>;
 
 export interface RelayHealth {
   status: "ok";
@@ -109,12 +126,27 @@ export interface RelayServiceConfig {
     recipient: string;
     payload: string;
   }) => Promise<unknown>;
+  /** Deployed Policies contract id used for live chain evaluation. */
+  policiesContractId?: string;
 }
 
 export interface RelaySubmitResult {
-  accepted: boolean;
+  accepted: true;
   messageId: string;
   queueDepth: number;
+  replayed: boolean;
+  admission: SafeAdmissionDecision;
+}
+
+export interface RelayMailboxStore {
+  insertEnvelope(envelope: StoredEnvelope): Promise<InsertEnvelopeResult>;
+}
+
+export interface RelayServiceDependencies {
+  evaluator: RelayAdmissionEvaluator;
+  objectStore?: RelayObjectStore;
+  mailbox?: RelayMailboxStore;
+  now?: () => Date;
 }
 
 export interface ReadinessOptions {
@@ -136,12 +168,30 @@ export class RelayService {
   private readonly audience: string;
   private readonly idempotencyStore = new Map<string, unknown>();
   private readonly seenNonces = new Set<string>();
+  private readonly deps: RelayServiceDependencies;
 
   constructor(
     private readonly persistence: RelayPersistence,
     private readonly worker: RelayWorker,
     private readonly config: RelayServiceConfig,
+    deps: RelayServiceDependencies = {
+      evaluator: {
+        async evaluate() {
+          return {
+            policyVersion: 0,
+            allowed: true,
+            kind: "request",
+            reason: "policy_satisfied",
+            rule: "default",
+            requiredPostage: "0",
+            source: "offchain_fallback",
+            evaluatedAt: new Date().toISOString(),
+          };
+        },
+      },
+    },
   ) {
+    this.deps = deps;
     this.nonceService = config.nonceService ?? new NonceService(new InMemoryNonceStore());
     this.audience = config.audience ?? "relay:stealth.test";
   }
@@ -228,9 +278,11 @@ export class RelayService {
   }
 
   /**
-   * Accept a relay message into the queue. Input is re-validated at the domain
-   * boundary (never trusted from the caller) and a {@link ZodError} is thrown
-   * for invalid payloads.
+   * Accept a relay message into the queue only after the recipient's current
+   * policy admits the sender. Blocked decisions never reach payload storage.
+   * A retry of the same messageId returns the original recorded admission and
+   * does not re-evaluate live policy (so a later policy change cannot rewrite
+   * history).
    */
   async submit(input: RelaySubmissionInput): Promise<RelaySubmitResult> {
     const parsed = relaySubmissionSchema.safeParse(input);
@@ -238,6 +290,40 @@ export class RelayService {
       throw parsed.error;
     }
 
+    const existing = await this.persistence.get(parsed.data.messageId);
+    if (existing) {
+      return {
+        accepted: true,
+        messageId: existing.messageId,
+        queueDepth: await this.persistence.getQueueDepth(),
+        replayed: true,
+        admission: toSafeAdmissionDecision(existing.admission),
+      };
+    }
+
+    const evidence = await this.deps.evaluator.evaluate({
+      owner: parsed.data.recipient,
+      sender: parsed.data.sender,
+      postage: parsed.data.postage,
+      verified: parsed.data.verified,
+      receipt: parsed.data.receipt,
+    });
+
+    if (!evidence.allowed) {
+      throwDeniedAdmission(evidence);
+    }
+
+    let payloadStorageKey: string | undefined;
+    if (this.deps.objectStore) {
+      payloadStorageKey = await this.deps.objectStore.storeEnvelopeBody({
+        messageId: parsed.data.messageId,
+        ownerAddress: parsed.data.recipient,
+        contentType: "application/octet-stream",
+        bytes: new TextEncoder().encode(parsed.data.payload),
+      });
+    }
+
+    const receivedAt = (this.deps.now ?? (() => new Date()))().toISOString();
     const envelope = {
       messageId: parsed.data.messageId,
       sender: parsed.data.sender,
@@ -245,7 +331,9 @@ export class RelayService {
       recipientDomain: parsed.data.recipientDomain,
       payload: parsed.data.payload,
       ttlMs: parsed.data.ttlMs ?? DEFAULT_RELAY_TTL_MS,
-      receivedAt: new Date().toISOString(),
+      receivedAt,
+      admission: evidence,
+      ...(payloadStorageKey === undefined ? {} : { payloadStorageKey }),
     };
 
     await this.persistence.enqueue(envelope);
@@ -273,10 +361,26 @@ export class RelayService {
         // Log / fail-soft: receipt publication error does not fail queue enqueue
       }
     }
+
+    if (this.deps.mailbox) {
+      await this.deps.mailbox.insertEnvelope({
+        messageId: envelope.messageId,
+        senderId: envelope.sender,
+        recipientId: envelope.recipient,
+        ciphertext: envelope.payload,
+        protectedHeaders: {},
+        createdAt: receivedAt,
+        status: "pending",
+        metadata: { admission: toSafeAdmissionDecision(evidence) },
+      });
+    }
+
     return {
       accepted: true,
       messageId: envelope.messageId,
       queueDepth: await this.persistence.getQueueDepth(),
+      replayed: false,
+      admission: toSafeAdmissionDecision(evidence),
     };
   }
 
@@ -320,4 +424,22 @@ export class RelayService {
       if (timer) clearTimeout(timer);
     }
   }
+}
+
+/**
+ * Maps a denied admission to a sender-actionable API error. The details object
+ * is the safe decision (kind / reason / required postage / version) and never
+ * includes the recipient's full policy, payload, or secrets.
+ */
+function throwDeniedAdmission(evidence: RelayAdmissionEvidence): never {
+  const details = toSafeAdmissionDecision(evidence);
+  if (evidence.kind === "priced") {
+    throw new ApiError(
+      422,
+      "insufficient_postage",
+      "The postage amount is below the required minimum",
+      details,
+    );
+  }
+  throw new ApiError(403, "forbidden", "The recipient policy does not admit this message", details);
 }

@@ -39,6 +39,7 @@ describe("BETA-001 :: Beta Runtime Configuration Contract", () => {
       expect(config.relay.relayUrl).toBe("https://relay-testnet.stealth.mail");
       expect(config.contract.domainTag).toBe("Stealth_Mail_Protocol");
       expect(config.contract.protocolVersion).toBe("v1");
+      expect(config.contract.policiesContractId).toBe("C".repeat(56));
       expect(config.origin.appUrl).toBe("http://localhost:3000");
     });
 
@@ -131,6 +132,18 @@ describe("BETA-001 :: Beta Runtime Configuration Contract", () => {
           },
         }),
       ).toThrow(/STEALTH_REGISTRY_CONTRACT_ID is required and cannot be a placeholder/);
+    });
+
+    it("fails production startup when STEALTH_POLICIES_CONTRACT_ID is a placeholder", () => {
+      expect(() =>
+        loadRuntimeConfig({
+          profile: "production",
+          env: {
+            ...baseProdEnv,
+            STEALTH_POLICIES_CONTRACT_ID: "C_POLICIES_PLACEHOLDER",
+          },
+        }),
+      ).toThrow(/STEALTH_POLICIES_CONTRACT_ID is required and cannot be a placeholder/);
     });
 
     it("fails production startup when STEALTH_APP_URL is localhost", () => {

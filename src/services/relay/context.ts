@@ -21,6 +21,8 @@ import { MemoryMailboxSyncPersistence } from "./memory-mailbox-sync";
 import { MemoryRelayPersistence } from "./memory-persistence";
 import { MailboxSyncService } from "./mailbox-sync-service";
 import type { MailboxSyncPersistence } from "./mailbox-sync-persistence";
+import { createRelayObjectStore } from "./object-store";
+import { createConfiguredAdmissionEvaluator } from "./policy-chain";
 import { RELAY_SERVICE_NAME, RelayService, type RelayServiceConfig } from "./relay-service";
 
 const globalRelay = globalThis as typeof globalThis & {
@@ -42,6 +44,7 @@ function buildConfig(): RelayServiceConfig {
       sorobanRpcUrl: config.network.sorobanRpcUrl,
       networkPassphrase: config.network.networkPassphrase,
     },
+    policiesContractId: config.contract.policiesContractId,
   };
 }
 
@@ -84,6 +87,17 @@ async function ensureRelayRuntime(): Promise<void> {
     return;
   }
 
+  const runtime = loadRuntimeConfig();
+  const relayConfig = buildConfig();
+  const { getApiContext } = await import("@/server/api/context");
+  const { repository } = await getApiContext();
+  const evaluator = createConfiguredAdmissionEvaluator({
+    repository,
+    policiesContractId: runtime.contract.policiesContractId,
+    networkPassphrase: runtime.network.networkPassphrase,
+    sorobanRpcUrl: runtime.network.sorobanRpcUrl,
+  });
+
   if (!import.meta.env.PROD) {
     const persistence = new MemoryRelayPersistence();
     const mailboxPersistence = new MemoryMailboxSyncPersistence();
@@ -92,10 +106,18 @@ async function ensureRelayRuntime(): Promise<void> {
     });
     globalRelay.__stealthMailboxSyncPersistence = mailboxPersistence;
     globalRelay.__stealthMailboxSync = new MailboxSyncService(mailboxPersistence);
-    globalRelay.__stealthRelayService = new RelayService(persistence, worker, {
-      ...buildConfig(),
-      onAccepted: buildOnAcceptedHook(await getLifecycleRepository()),
-    });
+    globalRelay.__stealthRelayService = new RelayService(
+      persistence,
+      worker,
+      {
+        ...relayConfig,
+        onAccepted: buildOnAcceptedHook(await getLifecycleRepository()),
+      },
+      {
+        evaluator,
+        mailbox: repository,
+      },
+    );
     void worker.start();
     return;
   }
@@ -109,15 +131,28 @@ async function ensureRelayRuntime(): Promise<void> {
 
   const persistence = new KvRelayPersistence(env.STEALTH_KV);
   const mailboxPersistence = new KvMailboxSyncPersistence(env.STEALTH_KV);
+  const objectStore = env.STEALTH_OBJECT_STORE
+    ? createRelayObjectStore(env.STEALTH_OBJECT_STORE)
+    : undefined;
   const worker = new InProcessRelayWorker(persistence, {
-    onMessage: (envelope) => ingestMailboxEnvelope(mailboxPersistence, envelope),
+    onMessage: (envelope) =>
+      ingestMailboxEnvelope(mailboxPersistence, envelope, { objectStore }),
   });
   globalRelay.__stealthMailboxSyncPersistence = mailboxPersistence;
   globalRelay.__stealthMailboxSync = new MailboxSyncService(mailboxPersistence);
-  globalRelay.__stealthRelayService = new RelayService(persistence, worker, {
-    ...buildConfig(),
-    onAccepted: buildOnAcceptedHook(await getLifecycleRepository()),
-  });
+  globalRelay.__stealthRelayService = new RelayService(
+    persistence,
+    worker,
+    {
+      ...relayConfig,
+      onAccepted: buildOnAcceptedHook(await getLifecycleRepository()),
+    },
+    {
+      evaluator,
+      objectStore,
+      mailbox: repository,
+    },
+  );
   void worker.start();
 }
 

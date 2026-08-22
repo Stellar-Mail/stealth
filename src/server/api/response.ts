@@ -1,5 +1,5 @@
 import { normalizeApiError, type RetryClassification } from "./errors";
-import { apiCorsPolicy, applyCors, corsEarlyResponse } from "./cors";
+import { apiCorsPolicy, applyCors, corsEarlyResponse, csrfEarlyResponse } from "./cors";
 
 interface ApiMeta {
   requestId: string;
@@ -215,6 +215,10 @@ export async function handleApiRequest(
   const earlyResponse = corsEarlyResponse(request, apiCorsPolicy);
   if (earlyResponse) {
     return earlyResponse;
+  }
+  const csrfResponse = csrfEarlyResponse(request, apiCorsPolicy);
+  if (csrfResponse) {
+    return csrfResponse;
   }
 
   try {

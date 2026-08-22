@@ -505,3 +505,65 @@ export interface PublicWalletStatus {
   stale: boolean;
   freshness: WalletStatusFreshness;
 }
+
+// ---------------------------------------------------------------------------
+// Search (Issue #1972 / BETA-065)
+// ---------------------------------------------------------------------------
+
+export interface SearchFilterQuery {
+  folder?: string;
+  unread?: boolean;
+  starred?: boolean;
+  hasAttachments?: boolean;
+  sender?: string;
+  recipient?: string;
+  afterDate?: string;
+  beforeDate?: string;
+  includeDeleted?: boolean;
+}
+
+export interface SearchQueryInput extends SearchFilterQuery {
+  q?: string;
+  cursor?: string;
+  limit?: number;
+}
+
+export interface SearchHighlightItem {
+  field: string;
+  snippet: string;
+}
+
+export interface SearchResultItemDto {
+  type: "message" | "contact" | "draft";
+  id: string;
+  messageId?: string;
+  senderId: string;
+  recipientId: string;
+  folder: string;
+  subject?: string;
+  preview?: string;
+  createdAt: string;
+  unread: boolean;
+  starred: boolean;
+  hasAttachments: boolean;
+  isTombstone: boolean;
+  deletedAt?: string | null;
+  highlights: SearchHighlightItem[];
+}
+
+export interface SearchIndexLimitationsDto {
+  serverIndexLimited: boolean;
+  encryptedBodyIndexed: boolean;
+  safeMetadataFields: string[];
+  notice: string;
+}
+
+export interface SearchResponseDto {
+  items: SearchResultItemDto[];
+  nextCursor: string | null;
+  hasMore: boolean;
+  totalMatches: number;
+  query: string;
+  parsedFilters: Record<string, unknown>;
+  indexLimitations: SearchIndexLimitationsDto;
+}

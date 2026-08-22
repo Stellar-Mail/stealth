@@ -660,6 +660,13 @@ class FailingRepository implements ApiRepository {
     this.maybeFail("saveOnboardingDraft");
     return this.inner.saveOnboardingDraft(record);
   }
+  async searchMailbox(
+    actor: string,
+    options?: import("../../../src/server/api/repository").SearchMailboxQueryOptions,
+  ) {
+    this.maybeFail("searchMailbox");
+    return this.inner.searchMailbox(actor, options);
+  }
   reset(): void {
     this.inner.reset();
   }

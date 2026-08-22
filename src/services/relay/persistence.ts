@@ -6,6 +6,8 @@
  * memory, Cloudflare KV, and future durable adapters all implement it. Health
  * and readiness probes only ever read aggregate, non-sensitive counters.
  */
+import type { RelayAdmissionEvidence } from "./policy-admission";
+
 export interface RelayEnvelope {
   /** Immutable 32-byte lowercase hex message identifier. */
   messageId: string;
@@ -21,6 +23,13 @@ export interface RelayEnvelope {
   ttlMs: number;
   /** Server-side acceptance timestamp (ISO-8601). */
   receivedAt: string;
+  /**
+   * Immutable policy admission evidence recorded at accept time (BETA-036).
+   * A later policy change must not rewrite this snapshot.
+   */
+  admission: RelayAdmissionEvidence;
+  /** Content-addressed object-store key when the payload was staged to R2. */
+  payloadStorageKey?: string;
 }
 
 export interface RelayPersistence {
@@ -39,7 +48,14 @@ export interface RelayPersistence {
   /** Number of permanently failed (dead-lettered) deliveries. */
   getDeadLetterCount(): Promise<number>;
 
-  /** Durably accept a message into the relay queue. */
+  /** Look up a previously accepted message by id, or null when absent. */
+  get(messageId: string): Promise<RelayEnvelope | null>;
+
+  /**
+   * Durably accept a message into the relay queue.
+   * Re-enqueueing the same messageId is idempotent and must not duplicate the
+   * queue entry or rewrite stored admission evidence.
+   */
   enqueue(envelope: RelayEnvelope): Promise<{ messageId: string }>;
 
   /** Remove and return the next queued message, or null when empty. */
