@@ -23,9 +23,7 @@
         "scheme": "bearer",
         "bearerFormat": "SEP-10 JWT",
         "description": "Authenticates a Stellar account through the [SEP-10 Web Authentication](https://github.com/stellar/stellar-protocol/blob/master/ecosystem/sep-0010.md) challenge flow. Fetch a short-lived challenge transaction from the service's WEB_AUTH_ENDPOINT, verify the server signature and transaction fields, sign the challenge with an authorized Stellar account signer, and exchange the signed transaction for a token. Send that token on protected API calls as `Authorization: Bearer <SEP-10-token>`. Never send a Stellar secret seed. The server derives the actor from the verified token and enforces challenge expiry and replay protection; `x-stealth-address` alone is not proof of identity.",
-        "x-required-headers": [
-          "Authorization"
-        ],
+        "x-required-headers": ["Authorization"],
         "x-signing-specification": "https://github.com/stellar/stellar-protocol/blob/master/ecosystem/sep-0010.md",
         "x-challenge-flow": [
           "Request a challenge transaction from the WEB_AUTH_ENDPOINT for the Stellar account.",
@@ -45,10 +43,7 @@
     "schemas": {
       "ApiMeta": {
         "type": "object",
-        "required": [
-          "requestId",
-          "timestamp"
-        ],
+        "required": ["requestId", "timestamp"],
         "properties": {
           "requestId": {
             "type": "string",
@@ -63,10 +58,7 @@
       },
       "RecoveryCodeRedeemRequest": {
         "type": "object",
-        "required": [
-          "identifier",
-          "code"
-        ],
+        "required": ["identifier", "code"],
         "additionalProperties": false,
         "properties": {
           "identifier": {
@@ -81,10 +73,7 @@
       },
       "RecoveryCodeRedeemResponse": {
         "type": "object",
-        "required": [
-          "user",
-          "session"
-        ],
+        "required": ["user", "session"],
         "additionalProperties": false,
         "properties": {
           "user": {
@@ -115,12 +104,7 @@
               },
               "status": {
                 "type": "string",
-                "enum": [
-                  "active",
-                  "suspended",
-                  "pending_verification",
-                  "deactivated"
-                ]
+                "enum": ["active", "suspended", "pending_verification", "deactivated"]
               },
               "createdAt": {
                 "type": "string",
@@ -134,13 +118,7 @@
           },
           "session": {
             "type": "object",
-            "required": [
-              "sessionId",
-              "userId",
-              "createdAt",
-              "expiresAt",
-              "lastActiveAt"
-            ],
+            "required": ["sessionId", "userId", "createdAt", "expiresAt", "lastActiveAt"],
             "additionalProperties": false,
             "properties": {
               "sessionId": {
@@ -171,20 +149,12 @@
       },
       "RecoveryCodeRegenerateResponse": {
         "type": "object",
-        "required": [
-          "status",
-          "totalCodes",
-          "remainingCodes",
-          "generatedAt",
-          "codes"
-        ],
+        "required": ["status", "totalCodes", "remainingCodes", "generatedAt", "codes"],
         "additionalProperties": false,
         "properties": {
           "status": {
             "type": "string",
-            "enum": [
-              "active"
-            ]
+            "enum": ["active"]
           },
           "totalCodes": {
             "type": "integer"
@@ -209,21 +179,12 @@
       },
       "RecoveryCodeStatus": {
         "type": "object",
-        "required": [
-          "status",
-          "totalCodes",
-          "remainingCodes",
-          "generatedAt"
-        ],
+        "required": ["status", "totalCodes", "remainingCodes", "generatedAt"],
         "additionalProperties": false,
         "properties": {
           "status": {
             "type": "string",
-            "enum": [
-              "none",
-              "active",
-              "exhausted"
-            ],
+            "enum": ["none", "active", "exhausted"],
             "description": "Account recovery state. 'none' when no set was ever created; 'exhausted' when every code has been consumed."
           },
           "totalCodes": {
@@ -244,10 +205,7 @@
       },
       "SuccessEnvelope": {
         "type": "object",
-        "required": [
-          "data",
-          "meta"
-        ],
+        "required": ["data", "meta"],
         "properties": {
           "data": {
             "type": "object",
@@ -260,10 +218,7 @@
       },
       "DomainError": {
         "type": "object",
-        "required": [
-          "code",
-          "message"
-        ],
+        "required": ["code", "message"],
         "properties": {
           "code": {
             "type": "string",
@@ -319,11 +274,7 @@
       },
       "MailboxPolicy": {
         "type": "object",
-        "required": [
-          "allowUnknown",
-          "minimumPostage",
-          "requireVerified"
-        ],
+        "required": ["allowUnknown", "minimumPostage", "requireVerified"],
         "properties": {
           "allowUnknown": {
             "type": "boolean"
@@ -338,12 +289,7 @@
       },
       "ChainMailboxPolicy": {
         "type": "object",
-        "required": [
-          "allowUnknown",
-          "minimumPostage",
-          "requireReceipt",
-          "requireVerified"
-        ],
+        "required": ["allowUnknown", "minimumPostage", "requireReceipt", "requireVerified"],
         "properties": {
           "allowUnknown": {
             "type": "boolean"
@@ -362,11 +308,7 @@
       },
       "MailboxPolicyWriteRequest": {
         "type": "object",
-        "required": [
-          "allowUnknown",
-          "minimumPostage",
-          "requireVerified"
-        ],
+        "required": ["allowUnknown", "minimumPostage", "requireVerified"],
         "properties": {
           "allowUnknown": {
             "type": "boolean"
@@ -385,14 +327,7 @@
       },
       "PolicyWriteIntent": {
         "type": "object",
-        "required": [
-          "owner",
-          "policy",
-          "offchainVersion",
-          "status",
-          "scheduledAt",
-          "updatedAt"
-        ],
+        "required": ["owner", "policy", "offchainVersion", "status", "scheduledAt", "updatedAt"],
         "properties": {
           "owner": {
             "$ref": "#/components/schemas/StellarAddress"
@@ -407,12 +342,7 @@
           },
           "status": {
             "type": "string",
-            "enum": [
-              "pending",
-              "submitted",
-              "confirmed",
-              "failed"
-            ]
+            "enum": ["pending", "submitted", "confirmed", "failed"]
           },
           "scheduledAt": {
             "type": "string",
@@ -435,13 +365,7 @@
       },
       "InitializePolicyDefaultsResult": {
         "type": "object",
-        "required": [
-          "provisioned",
-          "policy",
-          "source",
-          "offchainVersion",
-          "scheduled"
-        ],
+        "required": ["provisioned", "policy", "source", "offchainVersion", "scheduled"],
         "properties": {
           "provisioned": {
             "type": "boolean",
@@ -452,10 +376,7 @@
           },
           "source": {
             "type": "string",
-            "enum": [
-              "default",
-              "configured"
-            ]
+            "enum": ["default", "configured"]
           },
           "offchainVersion": {
             "type": "integer",
@@ -470,23 +391,11 @@
       },
       "PolicyReconciliationState": {
         "type": "string",
-        "enum": [
-          "not_provisioned",
-          "pending_write",
-          "synced",
-          "chain_ahead",
-          "diverged"
-        ]
+        "enum": ["not_provisioned", "pending_write", "synced", "chain_ahead", "diverged"]
       },
       "PolicyReconciliation": {
         "type": "object",
-        "required": [
-          "owner",
-          "state",
-          "offchain",
-          "chain",
-          "writeIntent"
-        ],
+        "required": ["owner", "state", "offchain", "chain", "writeIntent"],
         "properties": {
           "owner": {
             "$ref": "#/components/schemas/StellarAddress"
@@ -496,21 +405,14 @@
           },
           "offchain": {
             "type": "object",
-            "required": [
-              "policy",
-              "source",
-              "version"
-            ],
+            "required": ["policy", "source", "version"],
             "properties": {
               "policy": {
                 "$ref": "#/components/schemas/MailboxPolicy"
               },
               "source": {
                 "type": "string",
-                "enum": [
-                  "default",
-                  "configured"
-                ],
+                "enum": ["default", "configured"],
                 "nullable": true
               },
               "version": {
@@ -522,10 +424,7 @@
           },
           "chain": {
             "type": "object",
-            "required": [
-              "policy",
-              "version"
-            ],
+            "required": ["policy", "version"],
             "properties": {
               "policy": {
                 "$ref": "#/components/schemas/MailboxPolicy"
@@ -558,21 +457,13 @@
       },
       "ValidationErrorItem": {
         "type": "object",
-        "required": [
-          "path",
-          "rule",
-          "message"
-        ],
+        "required": ["path", "rule", "message"],
         "additionalProperties": false,
         "properties": {
           "path": {
             "type": "string",
             "description": "Safe request field path using dot and bracket notation; root errors use $.",
-            "examples": [
-              "recipient",
-              "tags[0]",
-              "$"
-            ]
+            "examples": ["recipient", "tags[0]", "$"]
           },
           "rule": {
             "type": "string",
@@ -597,9 +488,7 @@
       },
       "ValidationErrorDetails": {
         "type": "object",
-        "required": [
-          "validationErrors"
-        ],
+        "required": ["validationErrors"],
         "additionalProperties": false,
         "properties": {
           "validationErrors": {
@@ -640,11 +529,7 @@
       },
       "PolicyEvaluationDecision": {
         "type": "object",
-        "required": [
-          "allowed",
-          "reasonCode",
-          "message"
-        ],
+        "required": ["allowed", "reasonCode", "message"],
         "additionalProperties": false,
         "properties": {
           "allowed": {
@@ -670,42 +555,23 @@
           "source": {
             "type": "string",
             "description": "Policy configuration source.",
-            "enum": [
-              "configured",
-              "default"
-            ]
+            "enum": ["configured", "default"]
           },
           "rule": {
             "type": "string",
             "description": "Applied sender override rule.",
-            "enum": [
-              "allow",
-              "block",
-              "default",
-              "verify",
-              "price"
-            ]
+            "enum": ["allow", "block", "default", "verify", "price"]
           }
         }
       },
       "RetryClassification": {
         "type": "string",
-        "enum": [
-          "permanent",
-          "transient",
-          "rate_limit",
-          "conflict"
-        ],
+        "enum": ["permanent", "transient", "rate_limit", "conflict"],
         "description": "Stable machine-readable classification of retry eligibility."
       },
       "ProvisioningStatus": {
         "type": "string",
-        "enum": [
-          "pending",
-          "retryable",
-          "active",
-          "failed"
-        ],
+        "enum": ["pending", "retryable", "active", "failed"],
         "description": "State of the transactional account-provisioning state machine."
       },
       "ProvisioningStep": {
@@ -720,12 +586,7 @@
       },
       "ProvisioningFailure": {
         "type": "object",
-        "required": [
-          "step",
-          "code",
-          "message",
-          "failedAt"
-        ],
+        "required": ["step", "code", "message", "failedAt"],
         "properties": {
           "step": {
             "$ref": "#/components/schemas/ProvisioningStep"
@@ -746,13 +607,7 @@
       },
       "ProvisioningProgress": {
         "type": "object",
-        "required": [
-          "status",
-          "requestedUsername",
-          "completedSteps",
-          "currentStep",
-          "attempts"
-        ],
+        "required": ["status", "requestedUsername", "completedSteps", "currentStep", "attempts"],
         "properties": {
           "status": {
             "$ref": "#/components/schemas/ProvisioningStatus"
@@ -805,11 +660,7 @@
       },
       "OnboardingSenderPolicy": {
         "type": "string",
-        "enum": [
-          "request",
-          "verified",
-          "block"
-        ]
+        "enum": ["request", "verified", "block"]
       },
       "OnboardingDraftFields": {
         "type": "object",
@@ -863,10 +714,7 @@
         "properties": {
           "status": {
             "type": "string",
-            "enum": [
-              "in_progress",
-              "completed"
-            ]
+            "enum": ["in_progress", "completed"]
           },
           "step": {
             "$ref": "#/components/schemas/OnboardingStep"
@@ -899,10 +747,7 @@
       },
       "OnboardingDraftSaveRequest": {
         "type": "object",
-        "required": [
-          "step",
-          "draft"
-        ],
+        "required": ["step", "draft"],
         "additionalProperties": false,
         "properties": {
           "step": {
@@ -915,9 +760,7 @@
       },
       "OnboardingCompleteRequest": {
         "type": "object",
-        "required": [
-          "draft"
-        ],
+        "required": ["draft"],
         "additionalProperties": false,
         "properties": {
           "draft": {
@@ -927,11 +770,7 @@
       },
       "OnboardingCompleteResponse": {
         "type": "object",
-        "required": [
-          "alreadyCompleted",
-          "draft",
-          "policy"
-        ],
+        "required": ["alreadyCompleted", "draft", "policy"],
         "additionalProperties": false,
         "properties": {
           "alreadyCompleted": {
@@ -948,20 +787,12 @@
       },
       "ErrorEnvelope": {
         "type": "object",
-        "required": [
-          "error",
-          "meta"
-        ],
+        "required": ["error", "meta"],
         "additionalProperties": false,
         "properties": {
           "error": {
             "type": "object",
-            "required": [
-              "code",
-              "message",
-              "retryable",
-              "retryClassification"
-            ],
+            "required": ["code", "message", "retryable", "retryClassification"],
             "additionalProperties": false,
             "properties": {
               "code": {
@@ -1014,10 +845,7 @@
           },
           "meta": {
             "type": "object",
-            "required": [
-              "requestId",
-              "timestamp"
-            ],
+            "required": ["requestId", "timestamp"],
             "additionalProperties": false,
             "properties": {
               "requestId": {
@@ -1177,20 +1005,13 @@
       },
       "RelayHealth": {
         "type": "object",
-        "required": [
-          "status",
-          "service",
-          "version",
-          "time"
-        ],
+        "required": ["status", "service", "version", "time"],
         "additionalProperties": false,
         "description": "Relay liveness payload. Never contains secrets or user data.",
         "properties": {
           "status": {
             "type": "string",
-            "enum": [
-              "ok"
-            ]
+            "enum": ["ok"]
           },
           "service": {
             "type": "string",
@@ -1208,11 +1029,7 @@
       },
       "RelayReadiness": {
         "type": "object",
-        "required": [
-          "ready",
-          "dependencies",
-          "timeoutMs"
-        ],
+        "required": ["ready", "dependencies", "timeoutMs"],
         "additionalProperties": false,
         "description": "Relay readiness payload. Dependency details never include URLs, keys, or user data.",
         "properties": {
@@ -1221,36 +1038,20 @@
           },
           "dependencies": {
             "type": "object",
-            "required": [
-              "storage",
-              "queue",
-              "network"
-            ],
+            "required": ["storage", "queue", "network"],
             "additionalProperties": false,
             "properties": {
               "storage": {
                 "type": "string",
-                "enum": [
-                  "ok",
-                  "unavailable",
-                  "timeout"
-                ]
+                "enum": ["ok", "unavailable", "timeout"]
               },
               "queue": {
                 "type": "string",
-                "enum": [
-                  "ok",
-                  "unavailable",
-                  "timeout"
-                ]
+                "enum": ["ok", "unavailable", "timeout"]
               },
               "network": {
                 "type": "string",
-                "enum": [
-                  "ok",
-                  "unavailable",
-                  "timeout"
-                ]
+                "enum": ["ok", "unavailable", "timeout"]
               }
             }
           },
@@ -1262,19 +1063,12 @@
       },
       "RelayVersion": {
         "type": "object",
-        "required": [
-          "app",
-          "apiVersion",
-          "protocolVersion",
-          "build"
-        ],
+        "required": ["app", "apiVersion", "protocolVersion", "build"],
         "additionalProperties": false,
         "properties": {
           "app": {
             "type": "string",
-            "enum": [
-              "stealth-relay"
-            ]
+            "enum": ["stealth-relay"]
           },
           "apiVersion": {
             "type": "string",
@@ -1292,13 +1086,7 @@
       },
       "RelaySubmissionRequest": {
         "type": "object",
-        "required": [
-          "messageId",
-          "sender",
-          "recipient",
-          "recipientDomain",
-          "payload"
-        ],
+        "required": ["messageId", "sender", "recipient", "recipientDomain", "payload"],
         "additionalProperties": false,
         "properties": {
           "messageId": {
@@ -1338,13 +1126,7 @@
       },
       "RelayAdmissionDecision": {
         "type": "object",
-        "required": [
-          "allowed",
-          "kind",
-          "reason",
-          "policyVersion",
-          "requiredPostage"
-        ],
+        "required": ["allowed", "kind", "reason", "policyVersion", "requiredPostage"],
         "additionalProperties": false,
         "properties": {
           "allowed": {
@@ -1352,13 +1134,7 @@
           },
           "kind": {
             "type": "string",
-            "enum": [
-              "trusted",
-              "request",
-              "verified",
-              "priced",
-              "blocked"
-            ],
+            "enum": ["trusted", "request", "verified", "priced", "blocked"],
             "description": "Sender-actionable admission class."
           },
           "reason": {
@@ -1385,21 +1161,12 @@
       },
       "RelaySubmissionResult": {
         "type": "object",
-        "required": [
-          "accepted",
-          "messageId",
-          "queueDepth",
-          "service",
-          "replayed",
-          "admission"
-        ],
+        "required": ["accepted", "messageId", "queueDepth", "service", "replayed", "admission"],
         "additionalProperties": false,
         "properties": {
           "accepted": {
             "type": "boolean",
-            "enum": [
-              true
-            ]
+            "enum": [true]
           },
           "messageId": {
             "$ref": "#/components/schemas/Hash32"
@@ -1422,9 +1189,7 @@
       },
       "MailboxIncrementalSyncRequest": {
         "type": "object",
-        "required": [
-          "deviceId"
-        ],
+        "required": ["deviceId"],
         "additionalProperties": false,
         "properties": {
           "deviceId": {
@@ -1447,13 +1212,7 @@
       },
       "MailboxIncrementalSyncEvent": {
         "type": "object",
-        "required": [
-          "seq",
-          "type",
-          "messageId",
-          "occurredAt",
-          "recipient"
-        ],
+        "required": ["seq", "type", "messageId", "occurredAt", "recipient"],
         "additionalProperties": false,
         "properties": {
           "seq": {
@@ -1462,11 +1221,7 @@
           },
           "type": {
             "type": "string",
-            "enum": [
-              "upsert",
-              "state",
-              "tombstone"
-            ]
+            "enum": ["upsert", "state", "tombstone"]
           },
           "messageId": {
             "$ref": "#/components/schemas/Hash32"
@@ -1505,30 +1260,18 @@
           },
           "reason": {
             "type": "string",
-            "enum": [
-              "deleted",
-              "expired",
-              "user"
-            ]
+            "enum": ["deleted", "expired", "user"]
           }
         }
       },
       "MailboxIncrementalSyncResult": {
         "type": "object",
-        "required": [
-          "mode",
-          "events",
-          "cursor",
-          "hasMore"
-        ],
+        "required": ["mode", "events", "cursor", "hasMore"],
         "additionalProperties": false,
         "properties": {
           "mode": {
             "type": "string",
-            "enum": [
-              "initial",
-              "delta"
-            ]
+            "enum": ["initial", "delta"]
           },
           "events": {
             "type": "array",
@@ -1583,12 +1326,7 @@
           },
           "status": {
             "type": "string",
-            "enum": [
-              "pending",
-              "submitted",
-              "confirmed",
-              "failed"
-            ]
+            "enum": ["pending", "submitted", "confirmed", "failed"]
           },
           "scheduledAt": {
             "type": "string",
@@ -1663,21 +1401,12 @@
           },
           "trust": {
             "type": "string",
-            "enum": [
-              "default",
-              "allow",
-              "block"
-            ],
+            "enum": ["default", "allow", "block"],
             "description": "Sender rule. Never applied to policy unless the owner opts in."
           },
           "source": {
             "type": "string",
-            "enum": [
-              "manual",
-              "csv",
-              "vcard",
-              "api"
-            ],
+            "enum": ["manual", "csv", "vcard", "api"],
             "description": "Origin of this contact row."
           },
           "createdAt": {
@@ -1697,10 +1426,7 @@
       },
       "ContactResolution": {
         "type": "object",
-        "required": [
-          "senderRule",
-          "senderRuleConfigured"
-        ],
+        "required": ["senderRule", "senderRuleConfigured"],
         "additionalProperties": false,
         "properties": {
           "identity": {
@@ -1774,22 +1500,14 @@
                   },
                   "freshness": {
                     "type": "string",
-                    "enum": [
-                      "fresh",
-                      "stale",
-                      "unknown"
-                    ]
+                    "enum": ["fresh", "stale", "unknown"]
                   },
                   "memo": {
                     "type": "string"
                   },
                   "memoType": {
                     "type": "string",
-                    "enum": [
-                      "text",
-                      "id",
-                      "hash"
-                    ]
+                    "enum": ["text", "id", "hash"]
                   }
                 }
               },
@@ -1813,11 +1531,7 @@
           },
           "senderRule": {
             "type": "string",
-            "enum": [
-              "default",
-              "allow",
-              "block"
-            ]
+            "enum": ["default", "allow", "block"]
           },
           "senderRuleConfigured": {
             "type": "boolean",
@@ -1827,10 +1541,7 @@
       },
       "ContactWithResolution": {
         "type": "object",
-        "required": [
-          "contact",
-          "resolution"
-        ],
+        "required": ["contact", "resolution"],
         "additionalProperties": false,
         "properties": {
           "contact": {
@@ -1843,10 +1554,7 @@
       },
       "ContactListResult": {
         "type": "object",
-        "required": [
-          "items",
-          "nextContinuationKey"
-        ],
+        "required": ["items", "nextContinuationKey"],
         "additionalProperties": false,
         "properties": {
           "items": {
@@ -1870,10 +1578,7 @@
       },
       "ContactMergeResult": {
         "type": "object",
-        "required": [
-          "contact",
-          "resolution"
-        ],
+        "required": ["contact", "resolution"],
         "additionalProperties": false,
         "description": "The surviving contact after merging, re-resolved against live state.",
         "properties": {
@@ -1901,10 +1606,7 @@
         "properties": {
           "format": {
             "type": "string",
-            "enum": [
-              "csv",
-              "vcard"
-            ]
+            "enum": ["csv", "vcard"]
           },
           "totalRows": {
             "type": "integer",
@@ -1928,9 +1630,7 @@
           },
           "limit": {
             "type": "object",
-            "required": [
-              "maxRows"
-            ],
+            "required": ["maxRows"],
             "properties": {
               "maxRows": {
                 "type": "integer",
@@ -1942,12 +1642,7 @@
             "type": "array",
             "items": {
               "type": "object",
-              "required": [
-                "rowNumber",
-                "name",
-                "address",
-                "status"
-              ],
+              "required": ["rowNumber", "name", "address", "status"],
               "additionalProperties": false,
               "properties": {
                 "rowNumber": {
@@ -1962,11 +1657,7 @@
                 },
                 "status": {
                   "type": "string",
-                  "enum": [
-                    "valid",
-                    "duplicate",
-                    "error"
-                  ]
+                  "enum": ["valid", "duplicate", "error"]
                 },
                 "error": {
                   "anyOf": [
@@ -2013,21 +1704,14 @@
                   "anyOf": [
                     {
                       "type": "object",
-                      "required": [
-                        "contactId",
-                        "trust"
-                      ],
+                      "required": ["contactId", "trust"],
                       "properties": {
                         "contactId": {
                           "type": "string"
                         },
                         "trust": {
                           "type": "string",
-                          "enum": [
-                            "default",
-                            "allow",
-                            "block"
-                          ]
+                          "enum": ["default", "allow", "block"]
                         }
                       }
                     },
@@ -2089,11 +1773,7 @@
       },
       "DraftAttachmentDescriptor": {
         "type": "object",
-        "required": [
-          "filename",
-          "contentType",
-          "sizeBytes"
-        ],
+        "required": ["filename", "contentType", "sizeBytes"],
         "additionalProperties": false,
         "properties": {
           "filename": {
@@ -2184,10 +1864,7 @@
       },
       "DraftListResult": {
         "type": "object",
-        "required": [
-          "items",
-          "nextContinuationKey"
-        ],
+        "required": ["items", "nextContinuationKey"],
         "additionalProperties": false,
         "properties": {
           "items": {
@@ -2271,9 +1948,7 @@
       },
       "DraftUpdateInput": {
         "type": "object",
-        "required": [
-          "expectedVersion"
-        ],
+        "required": ["expectedVersion"],
         "additionalProperties": false,
         "properties": {
           "to": {
@@ -3604,20 +3279,12 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "operation"
-                ],
+                "required": ["operation"],
                 "additionalProperties": false,
                 "properties": {
                   "operation": {
                     "type": "string",
-                    "enum": [
-                      "settle",
-                      "refund",
-                      "dispute",
-                      "expire",
-                      "reclaim"
-                    ]
+                    "enum": ["settle", "refund", "dispute", "expire", "reclaim"]
                   }
                 }
               },
@@ -4538,9 +4205,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "draft"
-                  ],
+                  "required": ["draft"],
                   "properties": {
                     "draft": {
                       "allOf": [
@@ -4619,9 +4284,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "draft"
-                  ],
+                  "required": ["draft"],
                   "properties": {
                     "draft": {
                       "$ref": "#/components/schemas/OnboardingDraft"
@@ -4715,9 +4378,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "data"
-                  ],
+                  "required": ["data"],
                   "properties": {
                     "data": {
                       "$ref": "#/components/schemas/OnboardingCompleteResponse"
@@ -4801,22 +4462,14 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "provisioning",
-                    "accountStatus"
-                  ],
+                  "required": ["provisioning", "accountStatus"],
                   "properties": {
                     "provisioning": {
                       "$ref": "#/components/schemas/ProvisioningProgress"
                     },
                     "accountStatus": {
                       "type": "string",
-                      "enum": [
-                        "active",
-                        "suspended",
-                        "pending_verification",
-                        "deactivated"
-                      ]
+                      "enum": ["active", "suspended", "pending_verification", "deactivated"]
                     }
                   }
                 }
@@ -4970,10 +4623,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "email",
-                  "token"
-                ],
+                "required": ["email", "token"],
                 "properties": {
                   "email": {
                     "type": "string",
@@ -5047,9 +4697,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "email"
-                ],
+                "required": ["email"],
                 "properties": {
                   "email": {
                     "type": "string",
@@ -5140,9 +4788,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "email"
-                ],
+                "required": ["email"],
                 "properties": {
                   "email": {
                     "type": "string",
@@ -5233,10 +4879,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "token",
-                  "password"
-                ],
+                "required": ["token", "password"],
                 "properties": {
                   "token": {
                     "type": "string"
@@ -5427,10 +5070,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "name",
-                  "address"
-                ],
+                "required": ["name", "address"],
                 "additionalProperties": false,
                 "properties": {
                   "name": {
@@ -5443,11 +5083,7 @@
                   },
                   "trust": {
                     "type": "string",
-                    "enum": [
-                      "default",
-                      "allow",
-                      "block"
-                    ]
+                    "enum": ["default", "allow", "block"]
                   }
                 }
               }
@@ -5625,11 +5261,7 @@
                   },
                   "trust": {
                     "type": "string",
-                    "enum": [
-                      "default",
-                      "allow",
-                      "block"
-                    ]
+                    "enum": ["default", "allow", "block"]
                   },
                   "expectedVersion": {
                     "type": "integer",
@@ -5809,10 +5441,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "keepContactId",
-                  "mergeContactIds"
-                ],
+                "required": ["keepContactId", "mergeContactIds"],
                 "additionalProperties": false,
                 "properties": {
                   "keepContactId": {
@@ -5934,18 +5563,12 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "format",
-                  "content"
-                ],
+                "required": ["format", "content"],
                 "additionalProperties": false,
                 "properties": {
                   "format": {
                     "type": "string",
-                    "enum": [
-                      "csv",
-                      "vcard"
-                    ]
+                    "enum": ["csv", "vcard"]
                   },
                   "content": {
                     "type": "string",
@@ -6030,9 +5653,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "rows"
-                ],
+                "required": ["rows"],
                 "additionalProperties": false,
                 "properties": {
                   "rows": {
@@ -6041,10 +5662,7 @@
                     "maxItems": 1000,
                     "items": {
                       "type": "object",
-                      "required": [
-                        "name",
-                        "address"
-                      ],
+                      "required": ["name", "address"],
                       "additionalProperties": false,
                       "properties": {
                         "name": {
@@ -6057,18 +5675,11 @@
                         },
                         "trust": {
                           "type": "string",
-                          "enum": [
-                            "default",
-                            "allow",
-                            "block"
-                          ]
+                          "enum": ["default", "allow", "block"]
                         },
                         "source": {
                           "type": "string",
-                          "enum": [
-                            "csv",
-                            "vcard"
-                          ]
+                          "enum": ["csv", "vcard"]
                         }
                       }
                     }
@@ -6569,20 +6180,12 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "status",
-                    "updatedAt"
-                  ],
+                  "required": ["status", "updatedAt"],
                   "additionalProperties": false,
                   "properties": {
                     "status": {
                       "type": "string",
-                      "enum": [
-                        "pending",
-                        "submitted",
-                        "confirmed",
-                        "failed"
-                      ]
+                      "enum": ["pending", "submitted", "confirmed", "failed"]
                     },
                     "updatedAt": {
                       "type": "string",
@@ -6679,10 +6282,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "sender",
-                  "recipient"
-                ],
+                "required": ["sender", "recipient"],
                 "additionalProperties": false,
                 "properties": {
                   "sender": {
@@ -6711,10 +6311,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "messageId",
-                    "status"
-                  ],
+                  "required": ["messageId", "status"],
                   "additionalProperties": false,
                   "properties": {
                     "messageId": {
@@ -6722,11 +6319,7 @@
                     },
                     "status": {
                       "type": "string",
-                      "enum": [
-                        "pending",
-                        "submitted",
-                        "confirmed"
-                      ]
+                      "enum": ["pending", "submitted", "confirmed"]
                     },
                     "txHash": {
                       "type": "string",
@@ -6824,10 +6417,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "messageId",
-                    "status"
-                  ],
+                  "required": ["messageId", "status"],
                   "additionalProperties": false,
                   "properties": {
                     "messageId": {
@@ -6835,12 +6425,7 @@
                     },
                     "status": {
                       "type": "string",
-                      "enum": [
-                        "pending",
-                        "submitted",
-                        "confirmed",
-                        "failed"
-                      ]
+                      "enum": ["pending", "submitted", "confirmed", "failed"]
                     },
                     "updatedAt": {
                       "type": "string",
@@ -7062,11 +6647,7 @@
                         "properties": {
                           "type": {
                             "type": "string",
-                            "enum": [
-                              "message",
-                              "contact",
-                              "draft"
-                            ]
+                            "enum": ["message", "contact", "draft"]
                           },
                           "id": {
                             "type": "string"
@@ -7114,10 +6695,7 @@
                             "type": "array",
                             "items": {
                               "type": "object",
-                              "required": [
-                                "field",
-                                "snippet"
-                              ],
+                              "required": ["field", "snippet"],
                               "properties": {
                                 "field": {
                                   "type": "string"

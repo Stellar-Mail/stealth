@@ -750,9 +750,7 @@ export const openApiDocument = {
                 "x-optic-ignore": true,
                 enum: API_ERROR_CODES.filter(
                   (c) =>
-                    c !== "recent_auth_required" &&
-                    c !== "chain_error" &&
-                    c !== "cursor_expired",
+                    c !== "recent_auth_required" && c !== "chain_error" && c !== "cursor_expired",
                 ),
               },
               message: {
