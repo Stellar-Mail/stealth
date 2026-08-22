@@ -135,8 +135,7 @@ async function ensureRelayRuntime(): Promise<void> {
     ? createRelayObjectStore(env.STEALTH_OBJECT_STORE)
     : undefined;
   const worker = new InProcessRelayWorker(persistence, {
-    onMessage: (envelope) =>
-      ingestMailboxEnvelope(mailboxPersistence, envelope, { objectStore }),
+    onMessage: (envelope) => ingestMailboxEnvelope(mailboxPersistence, envelope, { objectStore }),
   });
   globalRelay.__stealthMailboxSyncPersistence = mailboxPersistence;
   globalRelay.__stealthMailboxSync = new MailboxSyncService(mailboxPersistence);
