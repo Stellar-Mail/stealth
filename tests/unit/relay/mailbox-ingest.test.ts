@@ -15,6 +15,8 @@ function messageId(n: number): string {
   return n.toString(16).padStart(64, "0");
 }
 
+const ingestNow = () => new Date("2026-08-19T00:00:01.000Z");
+
 function envelope(overrides: Partial<RelayEnvelope> = {}): RelayEnvelope {
   return {
     messageId: messageId(1),
@@ -41,8 +43,8 @@ function envelope(overrides: Partial<RelayEnvelope> = {}): RelayEnvelope {
 describe("mailbox ingestion", () => {
   it("delivers a valid opaque payload and appends a single upsert", async () => {
     const persistence = new MemoryMailboxSyncPersistence();
-    const first = await ingestMailboxEnvelope(persistence, envelope());
-    const second = await ingestMailboxEnvelope(persistence, envelope());
+    const first = await ingestMailboxEnvelope(persistence, envelope(), { now: ingestNow });
+    const second = await ingestMailboxEnvelope(persistence, envelope(), { now: ingestNow });
     expect(first).toMatchObject({ status: "delivered", created: true, seq: 1 });
     expect(second).toMatchObject({ status: "delivered", created: false, seq: 1 });
     const page = await persistence.listEvents(recipient, 0, 10);
@@ -53,7 +55,7 @@ describe("mailbox ingestion", () => {
   it("quarantines invalid envelopes without exposing the payload", async () => {
     const persistence = new MemoryMailboxSyncPersistence();
     const bad = envelope({ payload: "!!!not-base64!!!" });
-    const result = await ingestMailboxEnvelope(persistence, bad);
+    const result = await ingestMailboxEnvelope(persistence, bad, { now: ingestNow });
     expect(result).toMatchObject({
       status: "quarantined",
       reason: "invalid_payload_encoding",
@@ -83,7 +85,9 @@ describe("mailbox ingestion", () => {
       ciphertext: "aaaa",
     };
     const payload = Buffer.from(JSON.stringify(inner), "utf8").toString("base64");
-    const result = await ingestMailboxEnvelope(persistence, envelope({ payload }));
+    const result = await ingestMailboxEnvelope(persistence, envelope({ payload }), {
+      now: ingestNow,
+    });
     expect(result).toMatchObject({ status: "quarantined", reason: "sender_mismatch" });
     expect(JSON.stringify(await persistence.listEvents(recipient, 0, 10))).not.toContain("aaaa");
   });
@@ -92,9 +96,9 @@ describe("mailbox ingestion", () => {
     const persistence = new MemoryMailboxSyncPersistence();
     const shared = envelope();
     const results = await Promise.all([
-      ingestMailboxEnvelope(persistence, shared),
-      ingestMailboxEnvelope(persistence, shared),
-      ingestMailboxEnvelope(persistence, shared),
+      ingestMailboxEnvelope(persistence, shared, { now: ingestNow }),
+      ingestMailboxEnvelope(persistence, shared, { now: ingestNow }),
+      ingestMailboxEnvelope(persistence, shared, { now: ingestNow }),
     ]);
     const delivered = results.filter((result) => result.status === "delivered");
     expect(delivered.filter((result) => result.created)).toHaveLength(1);
@@ -106,8 +110,8 @@ describe("mailbox ingestion", () => {
     const persistence = new MemoryMailboxSyncPersistence();
     const bad = envelope({ payload: "%%%%" });
     const results = await Promise.all([
-      ingestMailboxEnvelope(persistence, bad),
-      ingestMailboxEnvelope(persistence, bad),
+      ingestMailboxEnvelope(persistence, bad, { now: ingestNow }),
+      ingestMailboxEnvelope(persistence, bad, { now: ingestNow }),
     ]);
     expect(
       results.every((result) => result.status === "quarantined" || result.status === "skipped"),
@@ -125,7 +129,7 @@ describe("mailbox ingestion", () => {
     const worker = new InProcessRelayWorker(queue, {
       pollIntervalMs: 10,
       onMessage: async (item) => {
-        await ingestMailboxEnvelope(mailbox, item);
+        await ingestMailboxEnvelope(mailbox, item, { now: ingestNow });
       },
     });
     await worker.start();
@@ -145,7 +149,10 @@ describe("mailbox ingestion", () => {
       stagedTtlMs: 60_000,
     });
     const persistence = new MemoryMailboxSyncPersistence();
-    const delivered = await ingestMailboxEnvelope(persistence, envelope(), { objectStore });
+    const delivered = await ingestMailboxEnvelope(persistence, envelope(), {
+      now: ingestNow,
+      objectStore,
+    });
     expect(delivered.status).toBe("delivered");
     if (delivered.status === "delivered") {
       expect(delivered.objectKey).toMatch(/^envelopes\//);
@@ -157,7 +164,7 @@ describe("mailbox ingestion", () => {
     const quarantined = await ingestMailboxEnvelope(
       persistence,
       envelope({ messageId: messageId(9), payload: "not*valid" }),
-      { objectStore },
+      { now: ingestNow, objectStore },
     );
     expect(quarantined.status).toBe("quarantined");
     expect(bucket.size).toBe(beforeQuarantine);

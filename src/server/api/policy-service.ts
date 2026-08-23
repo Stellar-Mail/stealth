@@ -11,9 +11,6 @@ import type {
 import type { ApiRepository } from "./repository";
 import { defaultMailboxPolicy } from "./repository";
 import { ApiError } from "./errors";
-import type { PolicyChainClient } from "../../services/stellar/policy-chain-client";
-import { getPolicyChainClient } from "../../services/stellar/policy-chain-client";
-import { loadRuntimeConfig } from "../../config";
 import {
   defaultAdmissionPolicy,
   toAdmissionPolicy,
@@ -811,16 +808,9 @@ export async function getPolicyReconciliation(
   repository: ApiRepository,
   owner: string,
   chain: PolicyReconciliationChainState = {},
-  chainClient: PolicyChainClient = getPolicyChainClient(loadRuntimeConfig()),
 ): Promise<PolicyReconciliation> {
-  let chainPolicy = chain.policy ?? null;
-  let chainVersion = chain.version ?? null;
-
-  if (chainVersion === null && chainPolicy === null) {
-    const snapshot = await chainClient.readMailboxPolicy(owner);
-    chainPolicy = snapshot.policy;
-    chainVersion = snapshot.version;
-  }
+  const chainPolicy = chain.policy ?? null;
+  const chainVersion = chain.version ?? null;
 
   const stored = await repository.getPolicy(owner);
   const intent = await repository.getPolicyWriteIntent(owner);
@@ -886,11 +876,10 @@ export async function getSenderRuleReconciliation(
   repository: ApiRepository,
   owner: string,
   sender: string,
-  chainClient: PolicyChainClient = getPolicyChainClient(loadRuntimeConfig()),
+  chainRule: SenderRule | null = null,
 ) {
   const record = await repository.getSenderRuleRecord(owner, sender);
   const writeIntent = await repository.getSenderRuleWriteIntent(owner, sender);
-  const chainRule = await chainClient.readSenderRule(owner, sender);
   const offchainRule = record?.rule ?? "default";
 
   let state: "pending_write" | "synced" | "diverged" = "synced";

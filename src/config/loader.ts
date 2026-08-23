@@ -181,10 +181,7 @@ export function loadRuntimeConfig(options: LoadConfigOptions = {}): BetaRuntimeC
   const receiptsContractId =
     (env.STEALTH_RECEIPTS_CONTRACT_ID as string) ??
     "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC";
-  const policiesContractId =
-    (env.STEALTH_POLICIES_CONTRACT_ID as string) ??
-    (env.STEALTH_REGISTRY_CONTRACT_ID as string) ??
-    "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+  const policiesContractId = (env.STEALTH_POLICIES_CONTRACT_ID as string) ?? "C".repeat(56);
   const domainTag = (env.STEALTH_DOMAIN_TAG as string) ?? "Stealth_Mail_Protocol";
   const protocolVersion = (env.STEALTH_PROTOCOL_VERSION as string) ?? "v1";
 
