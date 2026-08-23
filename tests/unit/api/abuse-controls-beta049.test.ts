@@ -33,11 +33,23 @@ describe("BETA-049 Abuse Controls & Quotas", () => {
       const res1 = await consumeRecipientQuota(repo, sender, recipient, 2, 3600);
       expect(res1.allowed).toBe(true);
 
-      const res2 = await consumeRecipientQuota(repo, "alice+alias99@stealth.mail", "bob+alias99@stealth.mail", 2, 3600);
+      const res2 = await consumeRecipientQuota(
+        repo,
+        "alice+alias99@stealth.mail",
+        "bob+alias99@stealth.mail",
+        2,
+        3600,
+      );
       expect(res2.allowed).toBe(true);
 
       // Third attempt with clean spelling should be blocked as quota is 2
-      const res3 = await consumeRecipientQuota(repo, "alice@stealth.mail", "bob@stealth.mail", 2, 3600);
+      const res3 = await consumeRecipientQuota(
+        repo,
+        "alice@stealth.mail",
+        "bob@stealth.mail",
+        2,
+        3600,
+      );
       expect(res3.allowed).toBe(false);
       expect(res3.retryAfterSeconds).toBe(3600);
     });
@@ -151,11 +163,15 @@ describe("BETA-049 Abuse Controls & Quotas", () => {
 
       // Exhaust chain write budget (5 max)
       for (let i = 0; i < 5; i++) {
-        await handler(new Request("https://api.stealth.mail/chain-test", { headers: normalHeaders }));
+        await handler(
+          new Request("https://api.stealth.mail/chain-test", { headers: normalHeaders }),
+        );
       }
 
       // Next normal request is 429
-      const resNormal = await handler(new Request("https://api.stealth.mail/chain-test", { headers: normalHeaders }));
+      const resNormal = await handler(
+        new Request("https://api.stealth.mail/chain-test", { headers: normalHeaders }),
+      );
       expect(resNormal.status).toBe(429);
 
       // Request with valid operator override succeeds with 200
@@ -163,7 +179,9 @@ describe("BETA-049 Abuse Controls & Quotas", () => {
         "cf-connecting-ip": "192.0.2.105",
         "x-stealth-operator-override": "override_secret_xyz",
       });
-      const resOverride = await handler(new Request("https://api.stealth.mail/chain-test", { headers: overrideHeaders }));
+      const resOverride = await handler(
+        new Request("https://api.stealth.mail/chain-test", { headers: overrideHeaders }),
+      );
       expect(resOverride.status).toBe(200);
     });
   });

@@ -212,9 +212,7 @@ const file = userSelectedFile;
 const records = await db.mail.findMany();
 
 // ❌ DO NOT write to main app database
-await db.summary.create({
-  /* ... */
-});
+await db.summary.create({/* ... */});
 
 // ❌ DO NOT use main app schema
 import { schema } from "../../../src/server/schema";
