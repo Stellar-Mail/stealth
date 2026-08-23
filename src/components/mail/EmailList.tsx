@@ -27,7 +27,7 @@ type FilterTab = "all" | "unread" | "flagged";
 // never clipped; overscan covers the gap.
 const DESKTOP_ROW_HEIGHT = 68;
 const MOBILE_ROW_HEIGHT = 104;
-const VERIFIED_PROFILE_EFFECTS = ["lunar", "ember", "prism"] as const;
+const VERIFIED_PROFILE_EFFECTS = ["lunar", "ember", "tide"] as const;
 
 function getVerifiedProfileEffect(email: Email) {
   const fingerprint = `${email.id}:${email.email}`;

@@ -142,11 +142,21 @@
     overflow: hidden;
     background-position: 50% 50%;
     background-repeat: no-repeat;
-    background-size: 112% 112%;
+    background-size: 126% 118%;
     opacity: 0;
     pointer-events: none;
     transform: translateY(24%);
-    clip-path: inset(100% 0 0 0 round 14px);
+    clip-path: polygon(
+      42% 100%,
+      100% 100%,
+      100% 100%,
+      68% 100%,
+      60% 100%,
+      51% 100%,
+      49% 100%,
+      42% 100%
+    );
+    filter: saturate(1.08) drop-shadow(-10px 2px 10px oklch(0 0 0 / 0.58));
     will-change: background-position, clip-path, transform;
     animation:
       mail-verified-profile-effect-rise 740ms cubic-bezier(0.16, 1, 0.3, 1) forwards,
@@ -161,21 +171,30 @@
     background-image: url("/profile-effects/ember.svg");
   }
 
-  .mail-preview-card__verified-effect--prism {
-    background-image: url("/profile-effects/prism.svg");
+  .mail-preview-card__verified-effect--tide {
+    background-image: url("/profile-effects/tide.svg");
   }
 
   @keyframes mail-verified-profile-effect-rise {
     0% {
       opacity: 0;
       transform: translateY(24%);
-      clip-path: inset(100% 0 0 0 round 14px);
+      clip-path: polygon(
+        42% 100%,
+        100% 100%,
+        100% 100%,
+        68% 100%,
+        60% 100%,
+        51% 100%,
+        49% 100%,
+        42% 100%
+      );
     }
 
     100% {
       opacity: 0.94;
       transform: translateY(0);
-      clip-path: inset(0 0 0 0 round 14px);
+      clip-path: polygon(42% 0, 100% 0, 100% 100%, 68% 100%, 60% 83%, 51% 70%, 49% 49%, 42% 36%);
     }
   }
 
@@ -194,7 +213,7 @@
       animation: none;
       opacity: 0.94;
       transform: none;
-      clip-path: none;
+      clip-path: polygon(42% 0, 100% 0, 100% 100%, 68% 100%, 60% 83%, 51% 70%, 49% 49%, 42% 36%);
     }
   }
 

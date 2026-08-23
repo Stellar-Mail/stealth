@@ -1,0 +1,45 @@
+<svg width="960" height="180" viewBox="0 0 960 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="sea" x1="0" y1="0" x2="960" y2="180" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#122F3B" />
+      <stop offset="0.46" stop-color="#1B5965" />
+      <stop offset="1" stop-color="#172640" />
+    </linearGradient>
+    <linearGradient id="waveA" x1="227" y1="162" x2="688" y2="94" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1D6874" stop-opacity="0" />
+      <stop offset="0.34" stop-color="#5AD8D7" stop-opacity="0.78" />
+      <stop offset="0.64" stop-color="#2C9DB6" stop-opacity="0.82" />
+      <stop offset="1" stop-color="#203E75" stop-opacity="0" />
+    </linearGradient>
+    <filter id="soft" x="-50" y="-45" width="1060" height="290" filterUnits="userSpaceOnUse">
+      <feGaussianBlur stdDeviation="9" />
+    </filter>
+  </defs>
+  <rect width="960" height="180" fill="url(#sea)" />
+  <circle cx="723" cy="42" r="34" fill="#D5FFFF" fill-opacity="0.7" />
+  <circle cx="735" cy="33" r="7" fill="#7FC8D3" fill-opacity="0.32" />
+  <circle cx="708" cy="55" r="5" fill="#679EAF" fill-opacity="0.3" />
+  <path
+    d="M-30 154C90 121 151 177 272 141C402 102 495 169 626 126C749 85 847 143 994 104V200H-30V154Z"
+    fill="url(#waveA)"
+    filter="url(#soft)"
+  />
+  <path
+    d="M-25 172C102 139 189 187 320 151C449 115 561 178 688 137C809 99 880 146 994 119V198H-25V172Z"
+    fill="#173D5E"
+    fill-opacity="0.82"
+  />
+  <path
+    d="M-8 160C104 133 187 168 298 146C422 121 513 162 628 137C748 111 849 151 981 119"
+    stroke="#9AF4EE"
+    stroke-opacity="0.58"
+    stroke-width="3"
+  />
+  <g fill="#D7FFFF" fill-opacity="0.8">
+    <circle cx="108" cy="36" r="1.5" />
+    <circle cx="265" cy="64" r="1" />
+    <circle cx="406" cy="30" r="1.7" />
+    <circle cx="533" cy="76" r="1.2" />
+    <circle cx="858" cy="39" r="1.5" />
+  </g>
+</svg>
