@@ -362,8 +362,25 @@ describe("BETA-076 SC-20/SC-11: migration rollback is fail-closed and reversible
     };
   }
 
-  it("refuses rollback without an explicit positive target version", async () => {
-    const report = await rollback(new InMemoryMigrationStorage(), identityRecordFamilies, {});
+  it("refuses mutating migrations without explicit operator approval", async () => {
+    const storage = new InMemoryMigrationStorage();
+    storage.seed("user:id:u_1", wrapEnvelope(validUser("u_1"), 1));
+
+    const unapprovedForward = await forward(storage, [v2UserFamily()]);
+    expect(unapprovedForward.ok).toBe(false);
+    expect(unapprovedForward.families[0].errors[0]).toContain(
+      "operator approval is required for mutating migrations",
+    );
+
+    const unapprovedRollback = await rollback(storage, [v2UserFamily()], { targetVersion: 1 });
+    expect(unapprovedRollback.ok).toBe(false);
+    expect(unapprovedRollback.families[0].errors[0]).toContain("operator approval is required");
+  });
+
+  it("refuses approved rollback without an explicit positive target version", async () => {
+    const report = await rollback(new InMemoryMigrationStorage(), identityRecordFamilies, {
+      approval: "approved",
+    });
     expect(report.ok).toBe(false);
     expect(report.families[0].errors[0]).toContain("--target-version");
   });
@@ -373,11 +390,14 @@ describe("BETA-076 SC-20/SC-11: migration rollback is fail-closed and reversible
     const original = wrapEnvelope(validUser("u_1"), 1);
     storage.seed("user:id:u_1", original);
 
-    const up = await forward(storage, [v2UserFamily()]);
+    const up = await forward(storage, [v2UserFamily()], { approval: "approved" });
     expect(up.ok).toBe(true);
     expect(await storage.get("user:id:u_1")).toMatchObject({ $v: 2 });
 
-    const down = await rollback(storage, [v2UserFamily()], { targetVersion: 1 });
+    const down = await rollback(storage, [v2UserFamily()], {
+      targetVersion: 1,
+      approval: "approved",
+    });
     expect(down.ok).toBe(true);
     expect(await storage.get("user:id:u_1")).toEqual(original);
   });

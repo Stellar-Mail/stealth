@@ -15,6 +15,7 @@ Threat models, abuse cases, key-handling assumptions, audit notes, and privacy/s
   block production promotion via the release gates.
 
 ## Protocol & policy references
+
 ## Browser boundary verification (BETA-078)
 
 The application server applies security headers to every response, including static routes,
