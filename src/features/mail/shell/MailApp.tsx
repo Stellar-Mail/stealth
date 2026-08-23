@@ -239,7 +239,6 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
           )}
 
           <div className="flex min-w-0 flex-1">
-
             <div className="flex h-full flex-col min-w-0 pb-[72px] md:pb-0">
               <Topbar
                 onOpenPalette={() => overlays.setPaletteOpen(true)}
@@ -395,7 +394,6 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
             </div>
           </div>
         </div>
-
 
         <MailOverlayStack
           overlays={overlays}

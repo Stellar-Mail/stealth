@@ -3,7 +3,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useBootstrap } from "@/features/identity";
 import { MailApp } from "@/features/mail";
 
-
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
@@ -34,4 +33,3 @@ function IndexPage() {
   const useDemo = import.meta.env.DEV && branch !== "active";
   return <MailApp isDemoMode={useDemo} />;
 }
-
