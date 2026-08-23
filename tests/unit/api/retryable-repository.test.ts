@@ -12,6 +12,7 @@ import type {
 import type {
   AcquireIdempotencyResult,
   ApiRepository,
+  CompareSetSenderRuleRecordInput,
   InsertEnvelopeResult,
   PostageTransitionResult,
 } from "../../../src/server/api/repository";
@@ -133,6 +134,14 @@ class FailingRepository implements ApiRepository {
   ) {
     this.maybeFail("compareAndSetSenderRule");
     return this.inner.compareAndSetSenderRule(owner, sender, rule, expectedVersion, now);
+  }
+  async compareAndSetSenderRuleRecord(
+    input: CompareSetSenderRuleRecordInput,
+    expectedVersion?: number,
+    now?: Date,
+  ) {
+    this.maybeFail("compareAndSetSenderRuleRecord");
+    return this.inner.compareAndSetSenderRuleRecord(input, expectedVersion, now);
   }
   async getSenderRuleWriteIntent(owner: string, sender: string) {
     this.maybeFail("getSenderRuleWriteIntent");
