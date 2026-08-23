@@ -144,13 +144,6 @@ export const API_ERROR_REGISTRY = {
     description:
       "The postage escrow operation failed to reach on-chain confirmation; the caller may retry with the same idempotency key.",
   },
-  cursor_expired: {
-    status: 410,
-    message: "Pagination cursor has expired",
-    retryable: false,
-    description:
-      "The provided pagination or sync cursor has expired and must be refreshed via initial sync.",
-  },
   recent_auth_required: {
     status: 403,
     message: "Recent authentication is required",
