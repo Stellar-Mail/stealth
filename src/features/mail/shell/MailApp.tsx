@@ -266,6 +266,12 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
                 notifications={notificationCenter.notifications}
                 onMarkNotificationRead={notificationCenter.markRead}
                 onMarkAllNotificationsRead={notificationCenter.markAllRead}
+                actor={source.actor}
+                emails={source.emails}
+                onSelectEmail={(emailId) => {
+                  const email = source.emails.find((item) => item.id === emailId);
+                  if (email) navigation.openMessage(email);
+                }}
               />
               {source.connectivity.paused &&
               source.sourceView.kind !== "error" &&
