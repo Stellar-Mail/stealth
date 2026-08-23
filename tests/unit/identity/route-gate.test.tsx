@@ -73,7 +73,25 @@ const indexRoute = createRoute({
   component: () => <div>Protected App Page</div>,
 });
 
-const routeTree = rootRoute.addChildren([signInRoute, onboardingRoute, indexRoute]);
+const inboxRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/inbox",
+  component: () => <div>Protected App Page</div>,
+});
+
+const mailRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/mail/$id",
+  component: () => <div>Protected App Page</div>,
+});
+
+const routeTree = rootRoute.addChildren([
+  signInRoute,
+  onboardingRoute,
+  indexRoute,
+  inboxRoute,
+  mailRoute,
+]);
 
 function makeRouter(initialUrl: string) {
   return createRouter({
