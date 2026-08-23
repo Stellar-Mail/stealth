@@ -244,7 +244,10 @@
               "duplicate_receipt",
               "duplicate_postage",
               "invalid_quote",
-              "request_in_progress"
+              "request_in_progress",
+              "chain_error",
+              "cursor_expired",
+              "recent_auth_required"
             ],
             "example": "invalid_state_transition"
           },
@@ -816,7 +819,8 @@
                   "duplicate_receipt",
                   "duplicate_postage",
                   "invalid_quote",
-                  "request_in_progress"
+                  "request_in_progress",
+                  "cursor_expired"
                 ]
               },
               "message": {
