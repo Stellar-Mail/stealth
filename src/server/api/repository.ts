@@ -24,6 +24,7 @@ import type {
   RecoveryCodeSet,
   RetiredSession,
   SenderRule,
+  SenderRuleAction,
   SenderRuleRecord,
   SenderRuleWriteIntent,
   Session,
@@ -284,6 +285,15 @@ export type CompareSetSenderRuleResult =
   | { outcome: "applied"; record: SenderRuleRecord }
   | { outcome: "conflict"; current: SenderRuleRecord | null };
 
+/** Atomic create/update input for versioned sender rule records (BETA-037). */
+export interface CompareSetSenderRuleRecordInput {
+  owner: string;
+  sender: string;
+  rule: SenderRuleAction;
+  pricePayload?: { minimumPostage: string };
+  idempotencyKey?: string;
+}
+
 export interface ApiRepository {
   getPolicy(owner: string): Promise<MailboxPolicy | null>;
   setPolicy(owner: string, policy: MailboxPolicy): Promise<MailboxPolicy>;
@@ -312,6 +322,11 @@ export interface ApiRepository {
     owner: string,
     sender: string,
     rule: SenderRule,
+    expectedVersion?: number,
+    now?: Date,
+  ): Promise<CompareSetSenderRuleResult>;
+  compareAndSetSenderRuleRecord(
+    input: CompareSetSenderRuleRecordInput,
     expectedVersion?: number,
     now?: Date,
   ): Promise<CompareSetSenderRuleResult>;
@@ -817,6 +832,20 @@ export class ValidatedApiRepository implements ApiRepository {
       expectedVersion,
       now,
     );
+    if (result.outcome === "applied") {
+      result.record = validateRecord<SenderRuleRecord>("senderRuleRecord", result.record);
+    } else if (result.current) {
+      result.current = validateRecord<SenderRuleRecord>("senderRuleRecord", result.current);
+    }
+    return result;
+  }
+
+  async compareAndSetSenderRuleRecord(
+    input: CompareSetSenderRuleRecordInput,
+    expectedVersion?: number,
+    now?: Date,
+  ): Promise<CompareSetSenderRuleResult> {
+    const result = await this.inner.compareAndSetSenderRuleRecord(input, expectedVersion, now);
     if (result.outcome === "applied") {
       result.record = validateRecord<SenderRuleRecord>("senderRuleRecord", result.record);
     } else if (result.current) {
@@ -1654,6 +1683,7 @@ const RETRY_SAFE_OPERATIONS = new Set<string>([
   "setSenderRuleRecord",
   "deleteSenderRuleRecord",
   "compareAndSetSenderRule",
+  "compareAndSetSenderRuleRecord",
   "setSenderRuleWriteIntent",
   "setPostage",
   "setReceipt",
@@ -1833,6 +1863,16 @@ export class RetryableApiRepository implements ApiRepository {
   ): Promise<CompareSetSenderRuleResult> {
     return this.withRetry("compareAndSetSenderRule", () =>
       this.inner.compareAndSetSenderRule(owner, sender, rule, expectedVersion, now),
+    );
+  }
+
+  compareAndSetSenderRuleRecord(
+    input: CompareSetSenderRuleRecordInput,
+    expectedVersion?: number,
+    now?: Date,
+  ): Promise<CompareSetSenderRuleResult> {
+    return this.withRetry("compareAndSetSenderRuleRecord", () =>
+      this.inner.compareAndSetSenderRuleRecord(input, expectedVersion, now),
     );
   }
 

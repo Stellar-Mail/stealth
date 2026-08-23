@@ -369,8 +369,12 @@ export class InMemoryPolicyChainClient implements PolicyChainClient {
       throw new Error(`Sender rule '${rule}' must not be submitted via set_sender_rule`);
     }
     const key = `${owner}:${sender}`;
-    if (rule === "default") this.rules.delete(key);
-    else this.rules.set(key, rule);
+    if (rule === "default") {
+      this.rules.delete(key);
+      this.tiers.delete(key);
+    } else {
+      this.rules.set(key, rule);
+    }
     return { txHash: `mem-sender-${sender.slice(0, 8)}` };
   }
 

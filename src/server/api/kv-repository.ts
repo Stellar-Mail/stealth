@@ -1,5 +1,7 @@
 import type {
   ApiRepository,
+  CompareSetSenderRuleRecordInput,
+  CompareSetSenderRuleResult,
   ContactQueryOptions,
   DraftQueryOptions,
   InsertEnvelopeResult,
@@ -209,6 +211,26 @@ export class HybridApiRepository implements ApiRepository {
     await this.setSenderRuleRecord(record);
     await this.kv.put(this.key("sender-rule", owner, sender), rule);
     return { outcome: "applied", record };
+  }
+
+  async compareAndSetSenderRuleRecord(
+    input: CompareSetSenderRuleRecordInput,
+    expectedVersion?: number,
+    now = new Date(),
+  ): Promise<CompareSetSenderRuleResult> {
+    const result = await this.getStub().compareAndSetSenderRuleRecord(
+      input,
+      expectedVersion,
+      now.toISOString(),
+    );
+    if (result.outcome === "applied") {
+      await this.kv.put(
+        this.key("sender-rule-record", input.owner, input.sender),
+        JSON.stringify(result.record),
+      );
+      await this.kv.put(this.key("sender-rule", input.owner, input.sender), input.rule);
+    }
+    return result;
   }
 
   async getSenderRuleWriteIntent(

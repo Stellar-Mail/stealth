@@ -45,6 +45,7 @@ import type {
 import { toPublicProfile, toPublicUser } from "./domain";
 import type {
   ApiRepository,
+  CompareSetSenderRuleRecordInput,
   CompareSetSenderRuleResult,
   ContactQueryOptions,
   DraftQueryOptions,
@@ -392,6 +393,43 @@ export class MemoryApiRepository implements ApiRepository {
     };
     this.senderRuleRecords.set(ruleKey, structuredClone(record));
     this.senderRules.set(ruleKey, rule);
+    return { outcome: "applied", record: structuredClone(record) };
+  }
+
+  async compareAndSetSenderRuleRecord(
+    input: CompareSetSenderRuleRecordInput,
+    expectedVersion?: number,
+    now = new Date(),
+  ): Promise<CompareSetSenderRuleResult> {
+    const ruleKey = key(input.owner, input.sender);
+    const current = this.senderRuleRecords.get(ruleKey) ?? null;
+    const iso = now.toISOString();
+
+    if (expectedVersion === undefined) {
+      if (current) {
+        return { outcome: "conflict", current: structuredClone(current) };
+      }
+    } else if (!current || current.version !== expectedVersion) {
+      return { outcome: "conflict", current: current ? structuredClone(current) : null };
+    }
+
+    const record: SenderRuleRecord = {
+      owner: input.owner,
+      sender: input.sender,
+      rule: input.rule,
+      pricePayload: input.rule === "price" ? input.pricePayload : undefined,
+      version: (current?.version ?? 0) + 1,
+      chainStatus: "pending",
+      scheduledAt: iso,
+      updatedAt: iso,
+      confirmedAt: null,
+      failureCount: 0,
+      lastError: null,
+      txHash: null,
+      idempotencyKey: input.idempotencyKey,
+    };
+    this.senderRuleRecords.set(ruleKey, structuredClone(record));
+    this.senderRules.set(ruleKey, input.rule as SenderRule);
     return { outcome: "applied", record: structuredClone(record) };
   }
 

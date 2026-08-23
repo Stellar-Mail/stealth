@@ -181,7 +181,16 @@ export async function syncVersionedSenderRuleRecord(
   const { owner, sender } = record;
 
   if (record.rule === "verify") {
-    return transitionSenderRuleChainStatus(repository, owner, sender, "confirmed");
+    await scheduleSenderRuleWrite(repository, owner, sender, "default");
+    const clearResult = await syncSenderRuleWrite(repository, owner, sender, requestId, deps);
+    if (clearResult.status === "failed") {
+      return transitionSenderRuleChainStatus(repository, owner, sender, "failed", {
+        lastError: clearResult.error ?? "failed to clear on-chain sender override",
+      });
+    }
+    return transitionSenderRuleChainStatus(repository, owner, sender, "confirmed", {
+      txHash: clearResult.txHash,
+    });
   }
 
   await scheduleSenderRuleWrite(repository, owner, sender, record.rule, {

@@ -179,10 +179,17 @@ export class ManagedWalletService {
     const args = invoke.args().map((arg: any) => scValToNative(arg));
 
     if (intent.type === "policy") {
-      if (contractAddress !== config.contract.registryContractId) {
+      if (contractAddress !== config.contract.policiesContractId) {
         throw new Error("Invalid contract ID for policy intent");
       }
-      const allowedFuncs = ["set_policy", "set_policy_as", "set_sender_rule", "set_sender_rule_as"];
+      const allowedFuncs = [
+        "set_policy",
+        "set_policy_as",
+        "set_sender_rule",
+        "set_sender_rule_as",
+        "set_sender_tier",
+        "set_sender_tier_as",
+      ];
       if (!allowedFuncs.includes(functionName)) {
         throw new Error(`Function ${functionName} is not allowed for policy intents`);
       }

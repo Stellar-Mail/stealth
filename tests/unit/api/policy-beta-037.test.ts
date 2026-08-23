@@ -132,7 +132,9 @@ describe("BETA-037 sender rule persistence and chain sync", () => {
     expect(await chainClient.readSenderRule(owner, sender)).toBe("block");
   });
 
-  it("marks verify sender rules confirmed without a chain write", async () => {
+  it("clears on-chain overrides before confirming verify sender rules", async () => {
+    chainClient.seedSenderRule(owner, sender, "block");
+    chainClient.seedSenderTier(owner, sender, "1000000");
     const created = await createOrUpdateSenderRule(repository, owner, sender, {
       rule: "verify",
     });
@@ -140,6 +142,8 @@ describe("BETA-037 sender rule persistence and chain sync", () => {
       chainClient,
     });
     expect(synced.chainStatus).toBe("confirmed");
-    expect(chainClient.submitCalls).toBe(0);
+    expect(await chainClient.readSenderRule(owner, sender)).toBe("default");
+    expect(await chainClient.readSenderTier(owner, sender)).toBeNull();
+    expect(chainClient.submitCalls).toBeGreaterThan(0);
   });
 });

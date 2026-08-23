@@ -1140,6 +1140,46 @@ export class StealthCoordinator extends DurableObjectBase {
     return { records: page, nextCursor };
   }
 
+  async compareAndSetSenderRuleRecord(
+    input: import("./repository").CompareSetSenderRuleRecordInput,
+    expectedVersion?: number,
+    nowIso?: string,
+  ): Promise<import("./repository").CompareSetSenderRuleResult> {
+    const now = nowIso ?? new Date().toISOString();
+    return this.runExclusive(`sender-rule:${input.owner}:${input.sender}`, async () => {
+      const storageKey = `sender-rule-record:${input.owner}:${input.sender}`;
+      const current = (await this.ctx.storage.get(storageKey)) as
+        | import("./domain").SenderRuleRecord
+        | undefined;
+
+      if (expectedVersion === undefined) {
+        if (current) {
+          return { outcome: "conflict", current };
+        }
+      } else if (!current || current.version !== expectedVersion) {
+        return { outcome: "conflict", current: current ?? null };
+      }
+
+      const record: import("./domain").SenderRuleRecord = {
+        owner: input.owner,
+        sender: input.sender,
+        rule: input.rule,
+        pricePayload: input.rule === "price" ? input.pricePayload : undefined,
+        version: (current?.version ?? 0) + 1,
+        chainStatus: "pending",
+        scheduledAt: now,
+        updatedAt: now,
+        confirmedAt: null,
+        failureCount: 0,
+        lastError: null,
+        txHash: null,
+        idempotencyKey: input.idempotencyKey,
+      };
+      await this.ctx.storage.put(storageKey, record);
+      return { outcome: "applied", record };
+    });
+  }
+
   async listRecipientEnvelopes(
     recipient: string,
     options: import("./repository").MailboxQueryOptions = {},
