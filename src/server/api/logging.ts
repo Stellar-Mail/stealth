@@ -1,21 +1,10 @@
 export type ApiLogOutcome = "success" | "security_denied" | "unexpected_error";
 
 export type ObservabilityStage =
-  | "auth"
-  | "provisioning"
-  | "relay"
-  | "storage"
-  | "sync"
-  | "chain_queue"
-  | "delivery"
-  | "api";
+  "auth" | "provisioning" | "relay" | "storage" | "sync" | "chain_queue" | "delivery" | "api";
 
 export type ObservabilityOutcome =
-  | "success"
-  | "security_denied"
-  | "unexpected_error"
-  | "rate_limited"
-  | "transient_failure";
+  "success" | "security_denied" | "unexpected_error" | "rate_limited" | "transient_failure";
 
 export interface ApiLogSamplingConfig {
   /** 1 logs every routine success; 0 suppresses every routine success log. */

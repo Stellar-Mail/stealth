@@ -17,10 +17,7 @@ export const APP_FAILURE_KINDS = [
 export type AppFailureKind = (typeof APP_FAILURE_KINDS)[number];
 
 export type AppFailureAction =
-  | "retry"
-  | "reauthenticate"
-  | "copy_support_id"
-  | "preserve_unsent_work";
+  "retry" | "reauthenticate" | "copy_support_id" | "preserve_unsent_work";
 
 export interface ClassifyAppFailureOptions {
   online?: boolean;

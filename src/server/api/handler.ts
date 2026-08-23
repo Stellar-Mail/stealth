@@ -5,15 +5,25 @@ import { ApiError, normalizeApiError } from "./errors";
 import { apiFailure, apiSuccess } from "./response";
 import * as metrics from "./metrics";
 import { parseJsonBody } from "./request";
-import { consumeRouteQuota, type RateLimitConfig } from "./rate-limit";
+import {
+  consumeRouteQuota,
+  consumeStorageByteQuota,
+  consumeChainWriteQuota,
+  consumeSessionQuota,
+  isOperatorOverride,
+  type RateLimitConfig,
+} from "./rate-limit";
 import { applyCors, corsEarlyResponse, validateCorsPolicy, type CorsPolicy } from "./cors";
 import { planPrivacySafeLog } from "./logging";
 
 export type { RateLimitConfig } from "./rate-limit";
 export type { CorsPolicy } from "./cors";
 
-// Define authentication mode options
-export type AuthMode = "public" | "optional" | "required";
+export type AbuseBudgetConfig = {
+  session?: boolean;
+  storageBytes?: number;
+  chainWrite?: boolean;
+};
 
 export type RouteConfig<
   BodySchema extends z.ZodTypeAny,
@@ -36,6 +46,7 @@ export type RouteConfig<
   /** Optional authorization policy function. Return true to allow, false to reject. */
   authPolicy?: (actorId: string, request: Request) => boolean | Promise<boolean>;
   rateLimit?: RateLimitConfig;
+  abuseBudget?: AbuseBudgetConfig;
   bodySchema?: BodySchema;
   querySchema?: QuerySchema;
   paramsSchema?: ParamsSchema;
@@ -107,37 +118,98 @@ export function createRouteHandler<
         }
       }
 
-      // 3. Rate Limiting
-      if (config.rateLimit) {
-        const repo = apiContext.repository;
-        let subject: string;
-        if (config.rateLimit.type === "account") {
-          if (!actorId) {
-            throw new ApiError(401, "unauthorized", "Account rate limit requires authentication");
+      // 3. Operator Override & Rate Limiting / Abuse Controls
+      const hasOverride = isOperatorOverride(request);
+
+      if (!hasOverride) {
+        if (config.rateLimit) {
+          const repo = apiContext.repository;
+          let subject: string;
+          if (config.rateLimit.type === "account") {
+            if (!actorId) {
+              throw new ApiError(401, "unauthorized", "Account rate limit requires authentication");
+            }
+            subject = actorId;
+          } else {
+            subject =
+              request.headers.get("cf-connecting-ip") ??
+              request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+              "unknown";
           }
-          subject = actorId;
-        } else {
-          subject =
+
+          const limit = await consumeRouteQuota(
+            repo,
+            config.rateLimit.type,
+            subject,
+            config.rateLimit.operation,
+          );
+          if (!limit.allowed) {
+            metrics.incrementCounter("abuse_throttled_total", {
+              route: path,
+              type: config.rateLimit.type,
+            });
+            throw new ApiError(
+              429,
+              "too_many_requests",
+              `${config.rateLimit.type === "account" ? "Account" : "IP"} limit exceeded`,
+              {
+                retryAfterSeconds: limit.retryAfterSeconds,
+              },
+            );
+          }
+        }
+
+        if (config.abuseBudget) {
+          const repo = apiContext.repository;
+          const ip =
             request.headers.get("cf-connecting-ip") ??
             request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
             "unknown";
-        }
 
-        const limit = await consumeRouteQuota(
-          repo,
-          config.rateLimit.type,
-          subject,
-          config.rateLimit.operation,
-        );
-        if (!limit.allowed) {
-          throw new ApiError(
-            429,
-            "too_many_requests",
-            `${config.rateLimit.type === "account" ? "Account" : "IP"} limit exceeded`,
-            {
-              retryAfterSeconds: limit.retryAfterSeconds,
-            },
-          );
+          if (config.abuseBudget.session) {
+            const sessionId = request.headers.get("x-session-id") ?? actorId ?? ip;
+            const sessLimit = await consumeSessionQuota(repo, sessionId);
+            if (!sessLimit.allowed) {
+              metrics.incrementCounter("abuse_throttled_total", { route: path, type: "session" });
+              throw new ApiError(429, "too_many_requests", "Session quota exceeded", {
+                retryAfterSeconds: sessLimit.retryAfterSeconds,
+              });
+            }
+          }
+
+          if (config.abuseBudget.chainWrite) {
+            const subject = actorId ?? ip;
+            const chainLimit = await consumeChainWriteQuota(repo, subject);
+            if (!chainLimit.allowed) {
+              metrics.incrementCounter("abuse_throttled_total", {
+                route: path,
+                type: "chain_write",
+              });
+              throw new ApiError(429, "too_many_requests", "Chain-write quota exceeded", {
+                retryAfterSeconds: chainLimit.retryAfterSeconds,
+              });
+            }
+          }
+
+          if (typeof config.abuseBudget.storageBytes === "number") {
+            const subject = actorId ?? ip;
+            const contentLength = parseInt(request.headers.get("content-length") ?? "0", 10);
+            const byteLimit = await consumeStorageByteQuota(
+              repo,
+              subject,
+              contentLength > 0 ? contentLength : 1024,
+              config.abuseBudget.storageBytes,
+            );
+            if (!byteLimit.allowed) {
+              metrics.incrementCounter("abuse_throttled_total", {
+                route: path,
+                type: "storage_bytes",
+              });
+              throw new ApiError(429, "too_many_requests", "Storage byte quota exceeded", {
+                retryAfterSeconds: byteLimit.retryAfterSeconds,
+              });
+            }
+          }
         }
       }
 

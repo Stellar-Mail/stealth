@@ -113,8 +113,7 @@ export class SorobanLifecycleChainAdapter implements LifecycleChainAdapter {
     });
 
     const simulated = tx.result as
-      | contract.Ok<lifecycle.LifecycleRecord>
-      | contract.Err<{ message: string }>;
+      contract.Ok<lifecycle.LifecycleRecord> | contract.Err<{ message: string }>;
     if (simulated.isErr()) {
       return classifyContractError(simulated.unwrapErr().message);
     }
@@ -122,8 +121,7 @@ export class SorobanLifecycleChainAdapter implements LifecycleChainAdapter {
     try {
       const sent = await tx.signAndSend();
       const result = sent.result as
-        | contract.Ok<lifecycle.LifecycleRecord>
-        | contract.Err<{ message: string }>;
+        contract.Ok<lifecycle.LifecycleRecord> | contract.Err<{ message: string }>;
       if (result.isErr()) {
         return classifyContractError(result.unwrapErr().message);
       }

@@ -166,15 +166,7 @@ export interface MailboxSealedMessage extends MailboxDescriptor {
 }
 
 export type MailboxLiveFolder =
-  | "inbox"
-  | "pending"
-  | "requests"
-  | "archive"
-  | "spam"
-  | "trash"
-  | "sent"
-  | "drafts"
-  | "outbox";
+  "inbox" | "pending" | "requests" | "archive" | "spam" | "trash" | "sent" | "drafts" | "outbox";
 
 export type MailboxCountKey =
   | "inbox"
@@ -220,11 +212,7 @@ export interface MailboxCountsResponse {
 // ---------------------------------------------------------------------------
 
 export type UnknownSenderRequestStatus =
-  | "pending"
-  | "approved"
-  | "rejected"
-  | "blocked"
-  | "expired";
+  "pending" | "approved" | "rejected" | "blocked" | "expired";
 
 export type UnknownSenderDecision = "approve_once" | "always_allow" | "reject" | "block" | "expire";
 
@@ -278,12 +266,7 @@ export type SenderRule = "default" | "allow" | "block";
 export type PolicyWriteStatus = "pending" | "submitted" | "confirmed" | "failed";
 
 export type PolicyReconciliationState =
-  | "synced"
-  | "pending_write"
-  | "failed"
-  | "diverged"
-  | "not_provisioned"
-  | "chain_ahead";
+  "synced" | "pending_write" | "failed" | "diverged" | "not_provisioned" | "chain_ahead";
 
 export interface PolicyWriteIntent {
   status: PolicyWriteStatus;
@@ -343,12 +326,7 @@ export interface PostageQuote {
 }
 
 export type PostageStatus =
-  | "pending"
-  | "expired"
-  | "disputed"
-  | "settled"
-  | "refunded"
-  | "reclaimed";
+  "pending" | "expired" | "disputed" | "settled" | "refunded" | "reclaimed";
 
 export interface PostageRecord {
   amount: string;

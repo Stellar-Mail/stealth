@@ -35,6 +35,12 @@ import {
   type RelayAdmissionEvidence,
   type SafeAdmissionDecision,
 } from "./policy-admission";
+import { MemoryApiRepository } from "@/server/api/memory-repository";
+import {
+  normalizeCanonicalEntity,
+  consumeRecipientQuota,
+  consumeStorageByteQuota,
+} from "@/server/api/rate-limit";
 
 export const RELAY_SERVICE_NAME = "stealth-relay";
 
@@ -216,12 +222,43 @@ export class RelayService {
     this.seenNonces.add(nonce);
   }
 
-  getIdempotencyResult(key: string): unknown | null {
-    return this.idempotencyStore.get(key) ?? null;
-  }
-
   storeIdempotencyResult(key: string, result: unknown): void {
     this.idempotencyStore.set(key, result);
+  }
+
+  private readonly abuseRepo = new MemoryApiRepository();
+
+  async checkAbuse(
+    sender: string,
+    recipient: string,
+    ip: string,
+    byteLength: number,
+  ): Promise<{ allowed: boolean; retryAfterSeconds?: number }> {
+    const normSender = normalizeCanonicalEntity(sender);
+    const normRecipient = normalizeCanonicalEntity(recipient);
+
+    const recipientCheck = await consumeRecipientQuota(
+      this.abuseRepo,
+      normSender,
+      normRecipient,
+      50,
+      3600,
+    );
+    if (!recipientCheck.allowed) {
+      return recipientCheck;
+    }
+
+    const storageCheck = await consumeStorageByteQuota(
+      this.abuseRepo,
+      normSender,
+      byteLength,
+      20_971_520,
+    );
+    if (!storageCheck.allowed) {
+      return storageCheck;
+    }
+
+    return { allowed: true };
   }
 
   /**

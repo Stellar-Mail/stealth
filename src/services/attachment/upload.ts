@@ -44,13 +44,7 @@ export interface UploadProgress {
 }
 
 export type UploadStatus =
-  | "idle"
-  | "encrypting"
-  | "uploading"
-  | "finalizing"
-  | "done"
-  | "error"
-  | "cancelled";
+  "idle" | "encrypting" | "uploading" | "finalizing" | "done" | "error" | "cancelled";
 
 export class AttachmentUploadError extends Error {
   readonly code: string;

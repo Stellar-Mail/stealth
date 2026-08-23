@@ -113,8 +113,12 @@ export function handleRelayVersion(request: Request, service: RelayService) {
   });
 }
 
+import { isOperatorOverride } from "@/server/api/rate-limit";
+
 export function handleRelaySubmit(request: Request, service: RelayService) {
   return handleApiRequest(request, async () => {
+    const isOverride = isOperatorOverride(request);
+
     const rawBodyText = await request.text();
     if (!rawBodyText || !rawBodyText.trim()) {
       throw new ApiError(400, "bad_request", "Request body must not be empty");
@@ -140,9 +144,29 @@ export function handleRelaySubmit(request: Request, service: RelayService) {
     }
     const input = parsedInput.data;
 
+    if (!isOverride) {
+      // Central abuse check for relay
+      const ip =
+        request.headers.get("cf-connecting-ip") ??
+        request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+        "unknown";
+      const relayLimit = await service.checkAbuse(
+        input.sender,
+        input.recipient,
+        ip,
+        Buffer.byteLength(rawBodyText, "utf8"),
+      );
+      if (!relayLimit.allowed) {
+        throw new ApiError(429, "too_many_requests", "Relay abuse quota exceeded", {
+          retryAfterSeconds: relayLimit.retryAfterSeconds ?? 3600,
+        });
+      }
+    }
+
     const nowSeconds = service.getConfig().nowSeconds
       ? service.getConfig().nowSeconds!()
       : Math.floor(Date.now() / 1000);
+
     const nowMs = nowSeconds * 1000;
 
     let relayReq: RelayRequest | null = null;

@@ -44,12 +44,7 @@ export const VERIFICATION_PURPOSE = "email_verification" as const;
 export const VERIFICATION_TOKEN_BYTES = 32;
 
 export type VerifyFailureReason =
-  | "invalid_token"
-  | "expired"
-  | "reused"
-  | "replaced"
-  | "brute_force_blocked"
-  | "activation_failed";
+  "invalid_token" | "expired" | "reused" | "replaced" | "brute_force_blocked" | "activation_failed";
 
 export type VerifyOutcome =
   | { outcome: "verified"; userId: string }

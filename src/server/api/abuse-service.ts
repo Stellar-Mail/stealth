@@ -8,11 +8,7 @@ function rateLimited(retryAfterSeconds: number) {
 }
 
 export type AbuseRoute =
-  | "postage_submit"
-  | "registration"
-  | "verification"
-  | "password_reset"
-  | "testnet_funding";
+  "postage_submit" | "registration" | "verification" | "password_reset" | "testnet_funding";
 
 export type AbuseCheck =
   | "account"
@@ -208,13 +204,16 @@ export function buildDeviceFingerprint(headers: {
   return createHash("sha256").update(payload).digest("hex").slice(0, 16);
 }
 
+import { normalizeCanonicalEntity } from "./rate-limit";
+
 export async function checkAccountLimit(
   repository: ApiRepository,
   sender: string,
   route: AbuseRoute = "postage_submit",
 ): Promise<AbuseDecision> {
+  const normSender = normalizeCanonicalEntity(sender);
   return withOutagePolicy(route, "account", () =>
-    checkIncrementedLimit(repository, `abuse:account:${sender}`, 50, 3600),
+    checkIncrementedLimit(repository, `abuse:account:${normSender}`, 50, 3600),
   );
 }
 
@@ -225,11 +224,12 @@ export async function checkIpLimit(
   max = 100,
   windowSeconds = 3600,
 ): Promise<AbuseDecision> {
-  if (ip === "" || ip === "unknown") {
+  const normIp = ip.trim().toLowerCase();
+  if (normIp === "" || normIp === "unknown") {
     return { allowed: true, flagged: true };
   }
 
-  const key = route === "postage_submit" ? `abuse:ip:${ip}` : `abuse:ip:${ip}:${route}`;
+  const key = route === "postage_submit" ? `abuse:ip:${normIp}` : `abuse:ip:${normIp}:${route}`;
 
   return withOutagePolicy(route, "ip", () =>
     checkIncrementedLimit(repository, key, max, windowSeconds),
@@ -242,8 +242,10 @@ export async function checkSenderRecipientLimit(
   recipient: string,
   route: AbuseRoute = "postage_submit",
 ): Promise<AbuseDecision> {
+  const normSender = normalizeCanonicalEntity(sender);
+  const normRecipient = normalizeCanonicalEntity(recipient);
   return withOutagePolicy(route, "sender_recipient", () =>
-    checkIncrementedLimit(repository, `abuse:pair:${sender}:${recipient}`, 10, 3600),
+    checkIncrementedLimit(repository, `abuse:pair:${normSender}:${normRecipient}`, 10, 3600),
   );
 }
 
