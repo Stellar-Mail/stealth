@@ -44,6 +44,16 @@ export function SenderAvatar({
     >
       <Sparkles className="absolute h-[58%] w-[58%] opacity-25" aria-hidden />
       <span className="relative font-semibold tracking-tight">{initials}</span>
+      <img
+        src={`https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(
+          email.from,
+        )}&backgroundColor=1a1a1d`}
+        alt=""
+        className="absolute inset-0 h-full w-full object-cover"
+        onError={(event) => {
+          event.currentTarget.hidden = true;
+        }}
+      />
       {unread ? (
         <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-[oklch(0.9_0.005_270)] ring-2 ring-[oklch(0.18_0.005_270)]" />
       ) : null}
