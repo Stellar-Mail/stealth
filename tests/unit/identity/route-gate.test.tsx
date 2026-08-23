@@ -73,11 +73,7 @@ const indexRoute = createRoute({
   component: () => <div>Protected App Page</div>,
 });
 
-const routeTree = (
-  rootRoute as unknown as {
-    addChildren: (children: Array<typeof signInRoute>) => typeof rootRoute;
-  }
-).addChildren([signInRoute, onboardingRoute, indexRoute]);
+const routeTree = rootRoute.addChildren([signInRoute, onboardingRoute, indexRoute]);
 
 function makeRouter(initialUrl: string) {
   return createRouter({
