@@ -107,7 +107,10 @@ export const TrustBadge = memo(function TrustBadge({
   if (state === "verified" && !showLabel) {
     const check = (
       <span
-        className={cn("inline-flex items-center justify-center text-zinc-400", className)}
+        className={cn(
+          "inline-flex items-center justify-center text-zinc-200 drop-shadow-[0_1px_1px_rgba(0,0,0,0.85)]",
+          className,
+        )}
         aria-label={meta.label}
       >
         <Icon className={size === "sm" ? "h-4 w-4" : "h-[18px] w-[18px]"} aria-hidden />
