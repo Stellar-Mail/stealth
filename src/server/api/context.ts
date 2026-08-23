@@ -6,6 +6,7 @@ import {
   mailboxPolicySchema,
   senderRuleSchema,
   senderRuleRecordSchema,
+  senderRuleWriteIntentSchema,
   postageSchema,
   receiptSchema,
   idempotencyRecordSchema,
@@ -209,6 +210,7 @@ registerRecordSchema("mailboxPolicy", 1, mailboxPolicySchema);
 registerRecordSchema("senderRule", 1, senderRuleSchema);
 // BETA-037 (Issue #1944): versioned sender rule records with chain reconciliation
 registerRecordSchema("senderRuleRecord", 1, senderRuleRecordSchema);
+registerRecordSchema("senderRuleWriteIntent", 1, senderRuleWriteIntentSchema);
 registerRecordSchema("postage", 1, postageSchema);
 registerRecordSchema("receipt", 1, receiptSchema);
 registerRecordSchema("user", 1, userSchema);

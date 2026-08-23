@@ -244,9 +244,7 @@
               "duplicate_receipt",
               "duplicate_postage",
               "invalid_quote",
-              "request_in_progress",
-              "chain_error",
-              "recent_auth_required"
+              "request_in_progress"
             ],
             "example": "invalid_state_transition"
           },
@@ -974,13 +972,19 @@
             "status": 422,
             "message": "The postage quote is invalid",
             "retryable": false,
-            "description": "The supplied postage quote failed integrity validation: it is tampered, reused for another message or recipient, bound to a different asset or network, or stale because the recipient policy changed after the quote was issued."
+            "description": "The supplied postage quote failed integrity validation."
           },
           "request_in_progress": {
             "status": 409,
             "message": "An equivalent request is already in progress",
             "retryable": true,
             "description": "A matching operation currently holds the idempotency lease."
+          },
+          "cursor_expired": {
+            "status": 410,
+            "message": "The mailbox sync cursor has expired",
+            "retryable": false,
+            "description": "The supplied mailbox sync cursor is past its lifetime or older than the retained event window. The client must start a bounded full resync without a cursor."
           },
           "chain_error": {
             "status": 502,
@@ -1102,12 +1106,59 @@
           "ttlMs": {
             "type": "integer",
             "description": "Delivery TTL in milliseconds."
+          },
+          "postage": {
+            "$ref": "#/components/schemas/StroopAmount",
+            "description": "Attached postage in stroops. Defaults to 0 when omitted."
+          },
+          "verified": {
+            "type": "boolean",
+            "description": "Whether the sender identity has been verified. Defaults to false."
+          },
+          "receipt": {
+            "type": "boolean",
+            "description": "Whether the submission includes a delivery-receipt commitment."
+          }
+        }
+      },
+      "RelayAdmissionDecision": {
+        "type": "object",
+        "required": ["allowed", "kind", "reason", "policyVersion", "requiredPostage"],
+        "additionalProperties": false,
+        "properties": {
+          "allowed": {
+            "type": "boolean"
+          },
+          "kind": {
+            "type": "string",
+            "enum": ["trusted", "request", "verified", "priced", "blocked"],
+            "description": "Sender-actionable admission class."
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "sender_allowed",
+              "sender_blocked",
+              "unknown_senders_disabled",
+              "verification_required",
+              "receipt_required",
+              "insufficient_postage",
+              "policy_satisfied",
+              "tier_satisfied"
+            ]
+          },
+          "policyVersion": {
+            "type": "integer",
+            "description": "Policy version evaluated at admission time. Immutable on the message."
+          },
+          "requiredPostage": {
+            "$ref": "#/components/schemas/StroopAmount"
           }
         }
       },
       "RelaySubmissionResult": {
         "type": "object",
-        "required": ["accepted", "messageId", "queueDepth", "service"],
+        "required": ["accepted", "messageId", "queueDepth", "service", "replayed", "admission"],
         "additionalProperties": false,
         "properties": {
           "accepted": {
@@ -1123,6 +1174,114 @@
           "service": {
             "type": "string",
             "description": "Service name."
+          },
+          "replayed": {
+            "type": "boolean",
+            "description": "True when this messageId was already admitted and the original decision was returned."
+          },
+          "admission": {
+            "$ref": "#/components/schemas/RelayAdmissionDecision"
+          }
+        }
+      },
+      "MailboxIncrementalSyncRequest": {
+        "type": "object",
+        "required": ["deviceId"],
+        "additionalProperties": false,
+        "properties": {
+          "deviceId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "description": "Stable per-device identifier used to bind the durable cursor."
+          },
+          "cursor": {
+            "type": "string",
+            "description": "Opaque signed cursor from the previous sync. Omit for an initial or bounded full resync."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200,
+            "description": "Maximum events to return. Defaults to 100."
+          }
+        }
+      },
+      "MailboxIncrementalSyncEvent": {
+        "type": "object",
+        "required": ["seq", "type", "messageId", "occurredAt", "recipient"],
+        "additionalProperties": false,
+        "properties": {
+          "seq": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "type": {
+            "type": "string",
+            "enum": ["upsert", "state", "tombstone"]
+          },
+          "messageId": {
+            "$ref": "#/components/schemas/Hash32"
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "recipient": {
+            "$ref": "#/components/schemas/StellarAddress"
+          },
+          "sender": {
+            "$ref": "#/components/schemas/StellarAddress"
+          },
+          "ciphertext": {
+            "type": "string",
+            "description": "Encrypted payload only. Never plaintext or a quarantined body."
+          },
+          "objectKey": {
+            "type": "string"
+          },
+          "state": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "unread": {
+                "type": "boolean"
+              },
+              "starred": {
+                "type": "boolean"
+              },
+              "folder": {
+                "type": "string"
+              }
+            }
+          },
+          "reason": {
+            "type": "string",
+            "enum": ["deleted", "expired", "user"]
+          }
+        }
+      },
+      "MailboxIncrementalSyncResult": {
+        "type": "object",
+        "required": ["mode", "events", "cursor", "hasMore"],
+        "additionalProperties": false,
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": ["initial", "delta"]
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MailboxIncrementalSyncEvent"
+            }
+          },
+          "cursor": {
+            "type": "string",
+            "description": "Opaque signed cursor acknowledging the last returned seq."
+          },
+          "hasMore": {
+            "type": "boolean"
           }
         }
       },
@@ -3348,6 +3507,117 @@
           },
           "401": {
             "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/mailbox/sync": {
+      "post": {
+        "operationId": "syncMailbox",
+        "summary": "Incrementally synchronize a recipient mailbox from a durable cursor",
+        "description": "Returns initial or delta mailbox events after the caller's last acknowledged cursor. Expired cursors require a bounded full resync. Quarantined payloads are never included.",
+        "x-stability": "stable",
+        "x-max-body-bytes": 16384,
+        "security": [
+          {
+            "StellarSignedRequest": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MailboxIncrementalSyncRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Incremental mailbox events and the next durable cursor.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/MailboxIncrementalSyncResult"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Cursor expired — client must start a bounded full resync.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
             "content": {
               "application/json": {
                 "schema": {

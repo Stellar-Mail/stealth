@@ -193,21 +193,19 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
   }
 
   return (
-    <MotionConfig transition={isTest ? { duration: 0 } : undefined}>
-      <a
-        href="#main-content"
-        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-background focus:px-4 focus:py-2 focus:text-sm focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-foreground"
-      >
-        Skip to mailbox
-      </a>
+    <MotionConfig transition={isTest ? { duration: 0 } : undefined} reducedMotion="user">
       <div
         data-hydrated={layoutHydrated && prefHydrated}
-        id="main-content"
-        tabIndex={-1}
-        className="relative h-screen overflow-hidden text-foreground outline-none"
+        className="relative h-screen overflow-hidden text-foreground"
       >
+        <a
+          href="#main-content"
+          className="sr-only absolute left-4 top-4 z-[100] rounded-md bg-foreground px-3 py-2 text-sm font-semibold text-background focus:not-sr-only focus:outline-none focus:ring-2 focus:ring-emerald-400"
+        >
+          Skip to mailbox
+        </a>
         <AmbientBackground />
-        <div className="flex h-full w-full">
+        <main id="main-content" tabIndex={-1} className="flex h-full w-full">
           {!isMobile ? (
             <div
               className={cn(
@@ -242,7 +240,6 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
           <div className="flex min-w-0 flex-1">
             <div className="flex h-full flex-col min-w-0 pb-[72px] md:pb-0">
               <Topbar
-                emails={source.emails}
                 onOpenPalette={() => overlays.setPaletteOpen(true)}
                 onOpenSettings={() => overlays.openSettings(preferences)}
                 onOpenProofInspector={() => runCommand("open-proof-inspector")}
@@ -269,6 +266,12 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
                 notifications={notificationCenter.notifications}
                 onMarkNotificationRead={notificationCenter.markRead}
                 onMarkAllNotificationsRead={notificationCenter.markAllRead}
+                actor={source.actor}
+                emails={source.emails}
+                onSelectEmail={(emailId) => {
+                  const email = source.emails.find((item) => item.id === emailId);
+                  if (email) navigation.openMessage(email);
+                }}
               />
               {source.connectivity.paused &&
               source.sourceView.kind !== "error" &&
@@ -388,7 +391,7 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
               </div>
             </div>
           </div>
-        </div>
+        </main>
 
         <MailOverlayStack
           overlays={overlays}

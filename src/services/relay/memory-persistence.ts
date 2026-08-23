@@ -1,4 +1,4 @@
-/**
+﻿/**
  * In-memory relay persistence (Issue #1935 BETA-028).
  *
  * Used by the Docker entry and development builds. Not durable across restarts;

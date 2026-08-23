@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Relay service context factory (Issue #1935 BETA-028).
  *
  * Builds the relay service singleton for the Cloudflare worker path. Dev mode

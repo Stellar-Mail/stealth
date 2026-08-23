@@ -861,6 +861,195 @@
           }
         }
       ]
+    },
+    "relay_admission": {
+      "description": "Relay mailbox policy admission. Every sender-facing disposition and the stale-chain fallback. Addresses: owner=GAAA…, sender=GBBB….",
+      "owner": "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "sender": "GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+      "cases": [
+        {
+          "id": "relay-admission/trusted",
+          "description": "Explicit allow is trusted admission.",
+          "setup": {
+            "senderRule": "allow",
+            "policy": {
+              "allowUnknown": false,
+              "requireVerified": true,
+              "requireReceipt": false,
+              "minimumPostage": "1000"
+            },
+            "chainVersion": 1,
+            "offchainVersion": 1
+          },
+          "input": { "postage": "0", "verified": false, "receipt": false },
+          "expected": {
+            "allowed": true,
+            "disposition": "trusted",
+            "reason": "sender_allowed",
+            "source": "chain"
+          }
+        },
+        {
+          "id": "relay-admission/blocked",
+          "description": "Explicit block never admits.",
+          "setup": {
+            "senderRule": "block",
+            "policy": {
+              "allowUnknown": true,
+              "requireVerified": false,
+              "requireReceipt": false,
+              "minimumPostage": "0"
+            },
+            "chainVersion": 1,
+            "offchainVersion": 1
+          },
+          "input": { "postage": "1000", "verified": true, "receipt": true },
+          "expected": {
+            "allowed": false,
+            "disposition": "blocked",
+            "reason": "sender_blocked",
+            "source": "chain"
+          }
+        },
+        {
+          "id": "relay-admission/request",
+          "description": "Unknown sender admitted as a review request.",
+          "setup": {
+            "senderRule": "default",
+            "policy": {
+              "allowUnknown": true,
+              "requireVerified": false,
+              "requireReceipt": false,
+              "minimumPostage": "0"
+            },
+            "chainVersion": 1,
+            "offchainVersion": 1
+          },
+          "input": { "postage": "0", "verified": false, "receipt": false },
+          "expected": {
+            "allowed": true,
+            "disposition": "request",
+            "reason": "policy_satisfied",
+            "source": "chain"
+          }
+        },
+        {
+          "id": "relay-admission/verified-denied",
+          "description": "Verification required for an unverified sender.",
+          "setup": {
+            "senderRule": "default",
+            "policy": {
+              "allowUnknown": true,
+              "requireVerified": true,
+              "requireReceipt": false,
+              "minimumPostage": "0"
+            },
+            "chainVersion": 1,
+            "offchainVersion": 1
+          },
+          "input": { "postage": "0", "verified": false, "receipt": false },
+          "expected": {
+            "allowed": false,
+            "disposition": "verified",
+            "reason": "verification_required",
+            "source": "chain"
+          }
+        },
+        {
+          "id": "relay-admission/verified-admitted",
+          "description": "Verified unknown sender admitted.",
+          "setup": {
+            "senderRule": "default",
+            "policy": {
+              "allowUnknown": true,
+              "requireVerified": true,
+              "requireReceipt": false,
+              "minimumPostage": "0"
+            },
+            "chainVersion": 1,
+            "offchainVersion": 1
+          },
+          "input": { "postage": "0", "verified": true, "receipt": false },
+          "expected": {
+            "allowed": true,
+            "disposition": "verified",
+            "reason": "policy_satisfied",
+            "source": "chain"
+          }
+        },
+        {
+          "id": "relay-admission/priced-denied",
+          "description": "Postage below mailbox minimum.",
+          "setup": {
+            "senderRule": "default",
+            "policy": {
+              "allowUnknown": true,
+              "requireVerified": false,
+              "requireReceipt": false,
+              "minimumPostage": "500"
+            },
+            "chainVersion": 1,
+            "offchainVersion": 1
+          },
+          "input": { "postage": "499", "verified": false, "receipt": false },
+          "expected": {
+            "allowed": false,
+            "disposition": "priced",
+            "reason": "insufficient_postage",
+            "source": "chain"
+          }
+        },
+        {
+          "id": "relay-admission/priced-admitted",
+          "description": "Postage meets mailbox minimum.",
+          "setup": {
+            "senderRule": "default",
+            "policy": {
+              "allowUnknown": true,
+              "requireVerified": false,
+              "requireReceipt": false,
+              "minimumPostage": "500"
+            },
+            "chainVersion": 1,
+            "offchainVersion": 1
+          },
+          "input": { "postage": "500", "verified": false, "receipt": false },
+          "expected": {
+            "allowed": true,
+            "disposition": "priced",
+            "reason": "policy_satisfied",
+            "source": "chain"
+          }
+        },
+        {
+          "id": "relay-admission/stale-chain-fallback",
+          "description": "Chain version behind off-chain uses the local policy (request), not the stale chain block-unknown policy.",
+          "setup": {
+            "senderRule": "default",
+            "policy": {
+              "allowUnknown": true,
+              "requireVerified": false,
+              "requireReceipt": false,
+              "minimumPostage": "0"
+            },
+            "chainPolicy": {
+              "allowUnknown": false,
+              "requireVerified": true,
+              "requireReceipt": false,
+              "minimumPostage": "0"
+            },
+            "chainVersion": 1,
+            "offchainVersion": 3
+          },
+          "input": { "postage": "0", "verified": false, "receipt": false },
+          "expected": {
+            "allowed": true,
+            "disposition": "request",
+            "reason": "policy_satisfied",
+            "source": "stale_chain_fallback"
+          }
+        }
+      ]
     }
   }
 }

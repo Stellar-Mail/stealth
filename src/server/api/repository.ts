@@ -24,7 +24,9 @@ import type {
   RecoveryCodeSet,
   RetiredSession,
   SenderRule,
+  SenderRuleAction,
   SenderRuleRecord,
+  SenderRuleWriteIntent,
   Session,
   StoredEnvelope,
   MailboxFlagsPatch,
@@ -279,6 +281,19 @@ export interface ContactQueryOptions {
   after?: string;
 }
 
+export type CompareSetSenderRuleResult =
+  | { outcome: "applied"; record: SenderRuleRecord }
+  | { outcome: "conflict"; current: SenderRuleRecord | null };
+
+/** Atomic create/update input for versioned sender rule records (BETA-037). */
+export interface CompareSetSenderRuleRecordInput {
+  owner: string;
+  sender: string;
+  rule: SenderRuleAction;
+  pricePayload?: { minimumPostage: string };
+  idempotencyKey?: string;
+}
+
 export interface ApiRepository {
   getPolicy(owner: string): Promise<MailboxPolicy | null>;
   setPolicy(owner: string, policy: MailboxPolicy): Promise<MailboxPolicy>;
@@ -303,6 +318,21 @@ export interface ApiRepository {
     owner: string,
     options?: { limit?: number; after?: string },
   ): Promise<{ records: SenderRuleRecord[]; nextCursor?: string }>;
+  compareAndSetSenderRule(
+    owner: string,
+    sender: string,
+    rule: SenderRule,
+    expectedVersion?: number,
+    now?: Date,
+  ): Promise<CompareSetSenderRuleResult>;
+  compareAndSetSenderRuleRecord(
+    input: CompareSetSenderRuleRecordInput,
+    expectedVersion?: number,
+    now?: Date,
+  ): Promise<CompareSetSenderRuleResult>;
+  getSenderRuleWriteIntent(owner: string, sender: string): Promise<SenderRuleWriteIntent | null>;
+  setSenderRuleWriteIntent(intent: SenderRuleWriteIntent): Promise<SenderRuleWriteIntent>;
+  listSenderRuleWriteIntents(owner: string): Promise<SenderRuleWriteIntent[]>;
   getPostage(messageId: string): Promise<Postage | null>;
   setPostage(postage: Postage): Promise<Postage>;
   /**
@@ -786,6 +816,61 @@ export class ValidatedApiRepository implements ApiRepository {
       ...result,
       records: result.records.map((r) => validateRecord<SenderRuleRecord>("senderRuleRecord", r)),
     };
+  }
+
+  async compareAndSetSenderRule(
+    owner: string,
+    sender: string,
+    rule: SenderRule,
+    expectedVersion?: number,
+    now?: Date,
+  ): Promise<CompareSetSenderRuleResult> {
+    const result = await this.inner.compareAndSetSenderRule(
+      owner,
+      sender,
+      rule,
+      expectedVersion,
+      now,
+    );
+    if (result.outcome === "applied") {
+      result.record = validateRecord<SenderRuleRecord>("senderRuleRecord", result.record);
+    } else if (result.current) {
+      result.current = validateRecord<SenderRuleRecord>("senderRuleRecord", result.current);
+    }
+    return result;
+  }
+
+  async compareAndSetSenderRuleRecord(
+    input: CompareSetSenderRuleRecordInput,
+    expectedVersion?: number,
+    now?: Date,
+  ): Promise<CompareSetSenderRuleResult> {
+    const result = await this.inner.compareAndSetSenderRuleRecord(input, expectedVersion, now);
+    if (result.outcome === "applied") {
+      result.record = validateRecord<SenderRuleRecord>("senderRuleRecord", result.record);
+    } else if (result.current) {
+      result.current = validateRecord<SenderRuleRecord>("senderRuleRecord", result.current);
+    }
+    return result;
+  }
+
+  async getSenderRuleWriteIntent(
+    owner: string,
+    sender: string,
+  ): Promise<SenderRuleWriteIntent | null> {
+    const raw = await this.inner.getSenderRuleWriteIntent(owner, sender);
+    return raw ? validateRecord<SenderRuleWriteIntent>("senderRuleWriteIntent", raw) : null;
+  }
+
+  setSenderRuleWriteIntent(intent: SenderRuleWriteIntent): Promise<SenderRuleWriteIntent> {
+    return this.inner.setSenderRuleWriteIntent(versionRecord("senderRuleWriteIntent", intent));
+  }
+
+  async listSenderRuleWriteIntents(owner: string): Promise<SenderRuleWriteIntent[]> {
+    const intents = await this.inner.listSenderRuleWriteIntents(owner);
+    return intents.map((intent) =>
+      validateRecord<SenderRuleWriteIntent>("senderRuleWriteIntent", intent),
+    );
   }
 
   async getPostage(messageId: string): Promise<Postage | null> {
@@ -1580,6 +1665,8 @@ const RETRY_SAFE_OPERATIONS = new Set<string>([
   "getSenderRule",
   "getSenderRuleRecord",
   "listSenderRuleRecords",
+  "getSenderRuleWriteIntent",
+  "listSenderRuleWriteIntents",
   "getPostage",
   "getReceipt",
   "getIdempotencyRecord",
@@ -1595,6 +1682,9 @@ const RETRY_SAFE_OPERATIONS = new Set<string>([
   "setSenderRule",
   "setSenderRuleRecord",
   "deleteSenderRuleRecord",
+  "compareAndSetSenderRule",
+  "compareAndSetSenderRuleRecord",
+  "setSenderRuleWriteIntent",
   "setPostage",
   "setReceipt",
   "createReceiptIfAbsent",
@@ -1761,6 +1851,46 @@ export class RetryableApiRepository implements ApiRepository {
   ): Promise<{ records: SenderRuleRecord[]; nextCursor?: string }> {
     return this.withRetry("listSenderRuleRecords", () =>
       this.inner.listSenderRuleRecords(owner, options),
+    );
+  }
+
+  compareAndSetSenderRule(
+    owner: string,
+    sender: string,
+    rule: SenderRule,
+    expectedVersion?: number,
+    now?: Date,
+  ): Promise<CompareSetSenderRuleResult> {
+    return this.withRetry("compareAndSetSenderRule", () =>
+      this.inner.compareAndSetSenderRule(owner, sender, rule, expectedVersion, now),
+    );
+  }
+
+  compareAndSetSenderRuleRecord(
+    input: CompareSetSenderRuleRecordInput,
+    expectedVersion?: number,
+    now?: Date,
+  ): Promise<CompareSetSenderRuleResult> {
+    return this.withRetry("compareAndSetSenderRuleRecord", () =>
+      this.inner.compareAndSetSenderRuleRecord(input, expectedVersion, now),
+    );
+  }
+
+  getSenderRuleWriteIntent(owner: string, sender: string): Promise<SenderRuleWriteIntent | null> {
+    return this.withRetry("getSenderRuleWriteIntent", () =>
+      this.inner.getSenderRuleWriteIntent(owner, sender),
+    );
+  }
+
+  setSenderRuleWriteIntent(intent: SenderRuleWriteIntent): Promise<SenderRuleWriteIntent> {
+    return this.withRetry("setSenderRuleWriteIntent", () =>
+      this.inner.setSenderRuleWriteIntent(intent),
+    );
+  }
+
+  listSenderRuleWriteIntents(owner: string): Promise<SenderRuleWriteIntent[]> {
+    return this.withRetry("listSenderRuleWriteIntents", () =>
+      this.inner.listSenderRuleWriteIntents(owner),
     );
   }
 

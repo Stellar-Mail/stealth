@@ -1,5 +1,9 @@
 import { API_ERROR_CODES, API_ERROR_REGISTRY } from "./errors";
 
+const OPENAPI_ERROR_CODES = API_ERROR_CODES.filter(
+  (c) => c !== "recent_auth_required" && c !== "chain_error" && c !== "cursor_expired",
+);
+
 export const openApiDocument = {
   openapi: "3.1.0",
   info: {
@@ -192,7 +196,7 @@ export const openApiDocument = {
             type: "string",
             description: "Stable domain error code.",
             "x-optic-ignore": true,
-            enum: API_ERROR_CODES,
+            enum: OPENAPI_ERROR_CODES,
             example: "invalid_state_transition",
           },
           message: {
@@ -748,9 +752,7 @@ export const openApiDocument = {
                 type: "string",
                 description: "Stable domain-specific error code.",
                 "x-optic-ignore": true,
-                enum: API_ERROR_CODES.filter(
-                  (c) => c !== "recent_auth_required" && c !== "chain_error",
-                ),
+                enum: OPENAPI_ERROR_CODES,
               },
               message: {
                 type: "string",
@@ -931,6 +933,75 @@ export const openApiDocument = {
               "True when this messageId was already admitted and the original decision was returned.",
           },
           admission: { $ref: "#/components/schemas/RelayAdmissionDecision" },
+        },
+      },
+      MailboxIncrementalSyncRequest: {
+        type: "object",
+        required: ["deviceId"],
+        additionalProperties: false,
+        properties: {
+          deviceId: {
+            type: "string",
+            minLength: 1,
+            maxLength: 128,
+            description: "Stable per-device identifier used to bind the durable cursor.",
+          },
+          cursor: {
+            type: "string",
+            description:
+              "Opaque signed cursor from the previous sync. Omit for an initial or bounded full resync.",
+          },
+          limit: {
+            type: "integer",
+            minimum: 1,
+            maximum: 200,
+            description: "Maximum events to return. Defaults to 100.",
+          },
+        },
+      },
+      MailboxIncrementalSyncEvent: {
+        type: "object",
+        required: ["seq", "type", "messageId", "occurredAt", "recipient"],
+        additionalProperties: false,
+        properties: {
+          seq: { type: "integer", minimum: 1 },
+          type: { type: "string", enum: ["upsert", "state", "tombstone"] },
+          messageId: { $ref: "#/components/schemas/Hash32" },
+          occurredAt: { type: "string", format: "date-time" },
+          recipient: { $ref: "#/components/schemas/StellarAddress" },
+          sender: { $ref: "#/components/schemas/StellarAddress" },
+          ciphertext: {
+            type: "string",
+            description: "Encrypted payload only. Never plaintext or a quarantined body.",
+          },
+          objectKey: { type: "string" },
+          state: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              unread: { type: "boolean" },
+              starred: { type: "boolean" },
+              folder: { type: "string" },
+            },
+          },
+          reason: { type: "string", enum: ["deleted", "expired", "user"] },
+        },
+      },
+      MailboxIncrementalSyncResult: {
+        type: "object",
+        required: ["mode", "events", "cursor", "hasMore"],
+        additionalProperties: false,
+        properties: {
+          mode: { type: "string", enum: ["initial", "delta"] },
+          events: {
+            type: "array",
+            items: { $ref: "#/components/schemas/MailboxIncrementalSyncEvent" },
+          },
+          cursor: {
+            type: "string",
+            description: "Opaque signed cursor acknowledging the last returned seq.",
+          },
+          hasMore: { type: "boolean" },
         },
       },
       LifecycleAnchor: {
@@ -2799,6 +2870,94 @@ export const openApiDocument = {
                 schema: {
                   $ref: "#/components/schemas/ErrorEnvelope",
                 },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/mailbox/sync": {
+      post: {
+        operationId: "syncMailbox",
+        summary: "Incrementally synchronize a recipient mailbox from a durable cursor",
+        description:
+          "Returns initial or delta mailbox events after the caller's last acknowledged cursor. Expired cursors require a bounded full resync. Quarantined payloads are never included.",
+        "x-stability": "stable",
+        "x-max-body-bytes": 16 * 1024,
+        security: [{ StellarSignedRequest: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/MailboxIncrementalSyncRequest" },
+            },
+          },
+        },
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Incremental mailbox events and the next durable cursor.",
+            content: {
+              "application/json": {
+                schema: {
+                  allOf: [
+                    { $ref: "#/components/schemas/SuccessEnvelope" },
+                    {
+                      type: "object",
+                      properties: {
+                        data: { $ref: "#/components/schemas/MailboxIncrementalSyncResult" },
+                      },
+                    },
+                  ],
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Bad Request",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorEnvelope" },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorEnvelope" },
+              },
+            },
+          },
+          "403": {
+            description: "Forbidden",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorEnvelope" },
+              },
+            },
+          },
+          "410": {
+            description: "Cursor expired — client must start a bounded full resync.",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorEnvelope" },
+              },
+            },
+          },
+          "422": {
+            description: "Validation Error",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorEnvelope" },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorEnvelope" },
               },
             },
           },

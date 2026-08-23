@@ -12,6 +12,7 @@ import type {
 import type {
   AcquireIdempotencyResult,
   ApiRepository,
+  CompareSetSenderRuleRecordInput,
   InsertEnvelopeResult,
   PostageTransitionResult,
 } from "../../../src/server/api/repository";
@@ -123,6 +124,38 @@ class FailingRepository implements ApiRepository {
   async listSenderRuleRecords(owner: string, options?: { limit?: number; after?: string }) {
     this.maybeFail("listSenderRuleRecords");
     return this.inner.listSenderRuleRecords(owner, options);
+  }
+  async compareAndSetSenderRule(
+    owner: string,
+    sender: string,
+    rule: SenderRule,
+    expectedVersion?: number,
+    now?: Date,
+  ) {
+    this.maybeFail("compareAndSetSenderRule");
+    return this.inner.compareAndSetSenderRule(owner, sender, rule, expectedVersion, now);
+  }
+  async compareAndSetSenderRuleRecord(
+    input: CompareSetSenderRuleRecordInput,
+    expectedVersion?: number,
+    now?: Date,
+  ) {
+    this.maybeFail("compareAndSetSenderRuleRecord");
+    return this.inner.compareAndSetSenderRuleRecord(input, expectedVersion, now);
+  }
+  async getSenderRuleWriteIntent(owner: string, sender: string) {
+    this.maybeFail("getSenderRuleWriteIntent");
+    return this.inner.getSenderRuleWriteIntent(owner, sender);
+  }
+  async setSenderRuleWriteIntent(
+    intent: import("../../../src/server/api/domain").SenderRuleWriteIntent,
+  ) {
+    this.maybeFail("setSenderRuleWriteIntent");
+    return this.inner.setSenderRuleWriteIntent(intent);
+  }
+  async listSenderRuleWriteIntents(owner: string) {
+    this.maybeFail("listSenderRuleWriteIntents");
+    return this.inner.listSenderRuleWriteIntents(owner);
   }
   async getPostage(messageId: string): Promise<Postage | null> {
     this.maybeFail("getPostage");

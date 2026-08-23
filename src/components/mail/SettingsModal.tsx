@@ -285,7 +285,7 @@ export function SettingsModal({
                     onSave();
                     onClose();
                   }}
-                  className="rounded-lg bg-foreground px-4 py-2 text-xs font-semibold text-background transition hover:opacity-90 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-emerald-400 outline-none"
+                  className="rounded-lg bg-zinc-950 px-4 py-2 text-xs font-semibold text-zinc-50 transition hover:bg-zinc-800 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-emerald-400 outline-none"
                 >
                   Save changes
                 </button>

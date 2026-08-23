@@ -1,0 +1,29 @@
+# Audited synthetic test values and documentation examples present before the
+# governance baseline. Each entry is tied to one immutable commit fingerprint;
+# edits or newly introduced lookalikes are scanned normally.
+31711103b542f181ae93d4b0ee7ec4e9f3763fa2:tests/unit/mailbox/mailbox-thread.test.ts:generic-api-key:41
+7a70adce5ecba95bc4c5748af5c14f76cbc7f431:tests/unit/mailbox/mailbox-sync.test.ts:generic-api-key:44
+7522f14c3e5cb9ff6b781e6fe91db5d6f53c47d3:tests/unit/backup/miniflare.test.ts:generic-api-key:7
+19340e95751aafa549f647b7ebbe9e22af946e11:tests/unit/api/durable-jobs-dlq.test.ts:generic-api-key:79
+19340e95751aafa549f647b7ebbe9e22af946e11:tests/unit/api/durable-jobs-dlq.test.ts:generic-api-key:283
+984d81e31a41af8af88db4fa1213b1ecd1863d4b:PROGRESS-1953.md:generic-api-key:20
+e93f0953618549bc2ca817e99a3b5fde987545f5:tests/unit/mailbox/mailbox-queue.test.ts:generic-api-key:49
+1bde6d6ad49a3adedccd24571c263800d5706bdf:tests/unit/relay/relay-transport.test.ts:generic-api-key:246
+1e335c579ec50bee804c91c84b3e9a18d869bf25:tests/unit/config/runtime-config.test.ts:generic-api-key:15
+b29ec44ef68feca281a75c8d7fc9684749d39eeb:tests/unit/api/repository-contract.ts:generic-api-key:297
+b29ec44ef68feca281a75c8d7fc9684749d39eeb:tests/unit/api/user-domain.test.ts:generic-api-key:75
+0069562d9923e3ae122dfcb53a3be831979db2d5:tests/unit/config/runtime-config.test.ts:generic-api-key:42
+0069562d9923e3ae122dfcb53a3be831979db2d5:tests/unit/config/runtime-config.test.ts:generic-api-key:93
+0069562d9923e3ae122dfcb53a3be831979db2d5:tests/unit/config/runtime-config.test.ts:generic-api-key:106
+0069562d9923e3ae122dfcb53a3be831979db2d5:tests/unit/config/runtime-config.test.ts:generic-api-key:120
+0069562d9923e3ae122dfcb53a3be831979db2d5:tests/unit/config/runtime-config.test.ts:generic-api-key:133
+2ec24a38d58c8895d151451064072967b940ec77:tests/unit/api/postage-refund-idempotency.test.ts:generic-api-key:443
+2ec24a38d58c8895d151451064072967b940ec77:tests/unit/api/postage-refund-idempotency.test.ts:generic-api-key:444
+4bdd4a4733e734edc2cd809da57c741dbb1e50d7:docs/protocol/relay-auth-replay.md:generic-api-key:46
+735fab702ed689d793db3138dbe69db38ded64da:tests/unit/crypto/errors.test.ts:generic-api-key:57
+c316625ddccc72e42486212acbcc8fb94c22f782:tools/v2/individual/email-translator/tests/validation.test.ts:generic-api-key:170
+75a0269a79164ae4f104e0d9b19aa7903575a04c:tools/v2/individual/email-translator/tests/validation.test.ts:generic-api-key:165
+1a3234b3f82370d5bef0192d6bbb515be7586f97:tests/unit/api/idempotency-service.test.ts:generic-api-key:11
+88a13d5985929761937b33e6f3203a04162864da:tests/unit/api/idempotency-service.test.ts:generic-api-key:11
+d23c23675bf29f1d7c15d368617fc114e9ebe9a3:protocol/vectors/vectors.json:generic-api-key:749
+d23c23675bf29f1d7c15d368617fc114e9ebe9a3:tests/unit/api/idempotency-service.test.ts:generic-api-key:11

@@ -52,6 +52,7 @@ describe("Managed Wallet Boundary", () => {
     contract: {
       registryContractId: knownContract3,
       postageContractId: knownContract2,
+      policiesContractId: knownContract1,
       domainTag: "test",
       protocolVersion: "1.0",
     },
@@ -88,7 +89,7 @@ describe("Managed Wallet Boundary", () => {
 
   it("signs a valid policy intent and returns XDR", async () => {
     const intent = { type: "policy", ownerAddress: actorAddress } as const;
-    const txXdr = buildMockTx(knownContract3, "set_policy", [actorAddress]);
+    const txXdr = buildMockTx(knownContract1, "set_policy", [actorAddress]);
 
     const signedXdr = await wallet.signTransaction(intent, actorAddress, txXdr, "req-123");
 
@@ -97,9 +98,18 @@ describe("Managed Wallet Boundary", () => {
     expect(operatorKeypair.verify(parsed.hash(), parsed.signatures[0].signature())).toBe(true);
   });
 
+  it("allows set_sender_tier for policy intents", async () => {
+    const intent = { type: "policy", ownerAddress: actorAddress } as const;
+    const txXdr = buildMockTx(knownContract1, "set_sender_tier", [actorAddress]);
+
+    await expect(
+      wallet.signTransaction(intent, actorAddress, txXdr, "req-tier"),
+    ).resolves.toBeTruthy();
+  });
+
   it("rejects mismatched function for intent type", async () => {
     const intent = { type: "policy", ownerAddress: actorAddress } as const;
-    const txXdr = buildMockTx(knownContract3, "submit");
+    const txXdr = buildMockTx(knownContract1, "submit");
 
     await expect(wallet.signTransaction(intent, actorAddress, txXdr, "req-123")).rejects.toThrow(
       "Function submit is not allowed for policy intents",
@@ -108,7 +118,7 @@ describe("Managed Wallet Boundary", () => {
 
   it("rejects invalid contract id", async () => {
     const intent = { type: "policy", ownerAddress: actorAddress } as const;
-    const txXdr = buildMockTx(knownContract1, "set_policy", [actorAddress]); // knownContract1 is wrong, config has knownContract3
+    const txXdr = buildMockTx(knownContract3, "set_policy", [actorAddress]); // registry, not policies
 
     await expect(wallet.signTransaction(intent, actorAddress, txXdr, "req-123")).rejects.toThrow(
       "Invalid contract ID for policy intent",
@@ -118,7 +128,7 @@ describe("Managed Wallet Boundary", () => {
   it("rejects mismatched owner address", async () => {
     const intent = { type: "policy", ownerAddress: actorAddress } as const;
     const maliciousActor = Keypair.random().publicKey();
-    const txXdr = buildMockTx(knownContract3, "set_policy", [maliciousActor]);
+    const txXdr = buildMockTx(knownContract1, "set_policy", [maliciousActor]);
 
     await expect(wallet.signTransaction(intent, actorAddress, txXdr, "req-123")).rejects.toThrow(
       `Transaction alters policy for a different owner: ${maliciousActor}`,
@@ -167,6 +177,7 @@ describe("managed wallet envelope custody", () => {
       contract: {
         registryContractId: contractId,
         postageContractId: contractId,
+        policiesContractId: contractId,
         domainTag: "test",
         protocolVersion: "1",
       },

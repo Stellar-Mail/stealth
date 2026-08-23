@@ -54,12 +54,6 @@ reviewed (never blindly updated):
    intended and not a regression.
 3. Only then run `bun run test:visual:update` and commit the changed baselines.
 
-### Seeding Linux baselines (first-time setup)
-
-The CI job uses `--update-snapshots` on the first run to generate Linux
-baselines. After the first CI pass, download the baselines from the CI
-artifacts and commit them so subsequent runs can detect regressions.
-
 ## CI
 
 The `visual-e2e` job in `.github/workflows/ci.yml` installs all three browser

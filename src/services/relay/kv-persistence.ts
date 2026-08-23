@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Cloudflare KV relay persistence (Issue #1935 BETA-028).
  *
  * Production adapter used inside the Cloudflare worker. Messages are stored

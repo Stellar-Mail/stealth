@@ -5,7 +5,7 @@ import {
   type NotificationTransport,
   type PublicConfig,
 } from "./schema";
-import { validateRegistryDrift } from "./registry";
+import { loadManifest, validateRegistryDrift } from "./registry";
 
 const DEFAULT_ALLOWED_METHODS = ["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "PATCH"];
 

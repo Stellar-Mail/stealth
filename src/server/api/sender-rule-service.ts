@@ -8,6 +8,7 @@ import type {
 import type { ApiRepository } from "./repository";
 import { ApiError } from "./errors";
 import { recordAuditEvent } from "./audit";
+import { scheduleSenderRuleWrite } from "./policy-service";
 
 // ---------------------------------------------------------------------------
 // BETA-037 (Issue #1944) — Live, versioned sender rules
@@ -64,7 +65,6 @@ export async function createOrUpdateSenderRule(
   },
   now = new Date(),
 ): Promise<SenderRuleServiceResult> {
-  const iso = now.toISOString();
   const existing = await repository.getSenderRuleRecord(owner, sender);
 
   // --- Validate price rule requires pricePayload ---
@@ -92,7 +92,7 @@ export async function createOrUpdateSenderRule(
     }
   }
 
-  // --- Optimistic concurrency check ---
+  // --- Optimistic concurrency pre-checks (fast path; CAS enforces atomically) ---
   if (input.version !== undefined) {
     if (!existing) {
       throw new ApiError(
@@ -113,40 +113,39 @@ export async function createOrUpdateSenderRule(
       );
     }
   } else if (existing) {
-    // No version supplied and rule exists — reject to prevent silent overwrite
     throw new ApiError(409, "conflict", "Sender rule already exists; supply a version to update", {
       details: { currentVersion: existing.version },
     });
   }
 
-  const version = existing ? existing.version + 1 : 1;
+  const cas = await repository.compareAndSetSenderRuleRecord(
+    {
+      owner,
+      sender,
+      rule: input.rule,
+      pricePayload: input.pricePayload,
+      idempotencyKey: input.idempotencyKey,
+    },
+    input.version,
+    now,
+  );
 
-  const record: SenderRuleRecord = {
-    owner,
-    sender,
-    rule: input.rule,
-    pricePayload: input.rule === "price" ? input.pricePayload : undefined,
-    version,
-    chainStatus: "pending",
-    scheduledAt: iso,
-    updatedAt: iso,
-    confirmedAt: null,
-    failureCount: 0,
-    lastError: null,
-    txHash: null,
-    idempotencyKey: input.idempotencyKey,
-  };
+  if (cas.outcome === "conflict") {
+    throw new ApiError(409, "conflict", "Sender rule has been modified since you last loaded it", {
+      details: {
+        currentVersion: cas.current?.version ?? null,
+        suppliedVersion: input.version ?? null,
+      },
+    });
+  }
 
-  const saved = await repository.setSenderRuleRecord(record);
-
-  // Mirror into the legacy sender rule map so evaluateMailboxPolicy sees it
-  await repository.setSenderRule(owner, sender, input.rule as SenderRule);
+  const saved = cas.record;
 
   recordAuditEvent({
     actor: owner,
     action: existing ? "sender_rule.update" : "sender_rule.create",
     targetType: "sender_rule",
-    safeTargetReference: `sender_rule:${owner}:${sender}:${input.rule}:v${version}`,
+    safeTargetReference: `sender_rule:${owner}:${sender}:${input.rule}:v${saved.version}`,
     result: "success",
     requestId: "",
   });
@@ -227,7 +226,7 @@ export async function getSenderRuleRecord(
  *   drift     → pending   (re-sync scheduled)
  */
 const ALLOWED_CHAIN_TRANSITIONS: Record<SenderRuleChainStatus, Set<SenderRuleChainStatus>> = {
-  pending: new Set(["submitted", "failed"]),
+  pending: new Set(["submitted", "confirmed", "failed"]),
   submitted: new Set(["confirmed", "failed"]),
   confirmed: new Set(["drift"]),
   failed: new Set(["pending"]),
@@ -305,7 +304,22 @@ export async function retrySenderRuleWrite(
     return record; // already in-flight, no-op
   }
 
-  return transitionSenderRuleChainStatus(repository, owner, sender, "pending", {}, now);
+  const reset = await transitionSenderRuleChainStatus(
+    repository,
+    owner,
+    sender,
+    "pending",
+    {},
+    now,
+  );
+
+  if (record.rule !== "verify") {
+    await scheduleSenderRuleWrite(repository, owner, sender, record.rule, {
+      minimumPostage: record.rule === "price" ? record.pricePayload?.minimumPostage : null,
+    });
+  }
+
+  return reset;
 }
 
 // ---------------------------------------------------------------------------

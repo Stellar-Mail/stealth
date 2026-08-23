@@ -14,6 +14,7 @@ const nonOwner = `G${"C".repeat(55)}`;
 const delegate = `G${"D".repeat(55)}`;
 
 const updatePolicyHandler = (PolicyRoute.options as any).server?.handlers?.PUT;
+const getSenderRuleHandler = (SenderRuleRoute.options as any).server?.handlers?.GET;
 const updateSenderRuleHandler = (SenderRuleRoute.options as any).server?.handlers?.PUT;
 const deleteSenderRuleHandler = (SenderRuleRoute.options as any).server?.handlers?.DELETE;
 
@@ -84,6 +85,22 @@ function deleteSenderRuleRequest(actor?: string, delegationHeader?: unknown) {
 
   return new Request(`https://stealth.test/api/v1/policies/${owner}/senders/${targetSender}`, {
     method: "DELETE",
+    headers,
+  });
+}
+
+function getSenderRuleRequest(actor?: string, delegationHeader?: unknown) {
+  const headers: Record<string, string> = {};
+  if (actor !== undefined) {
+    headers[ACTOR_HEADER] = actor;
+  }
+  if (delegationHeader !== undefined) {
+    headers[DELEGATION_HEADER] =
+      typeof delegationHeader === "string" ? delegationHeader : JSON.stringify(delegationHeader);
+  }
+
+  return new Request(`https://stealth.test/api/v1/policies/${owner}/senders/${targetSender}`, {
+    method: "GET",
     headers,
   });
 }
@@ -211,6 +228,39 @@ describe("policy mutation route actor authorization", () => {
         });
       },
     );
+  });
+
+  describe("GET /api/v1/policies/$owner/senders/$sender", () => {
+    beforeEach(async () => {
+      await repo.setSenderRule(owner, targetSender, "block");
+    });
+
+    it("allows the owner to read a sender rule", async () => {
+      const response = await getSenderRuleHandler({
+        request: getSenderRuleRequest(owner),
+        params: { owner, sender: targetSender },
+      });
+
+      expect(response.status).toBe(200);
+    });
+
+    it("rejects non-owner reads with forbidden", async () => {
+      const response = await getSenderRuleHandler({
+        request: getSenderRuleRequest(nonOwner),
+        params: { owner, sender: targetSender },
+      });
+
+      expect(response.status).toBe(403);
+    });
+
+    it("rejects anonymous reads with unauthorized", async () => {
+      const response = await getSenderRuleHandler({
+        request: getSenderRuleRequest(undefined),
+        params: { owner, sender: targetSender },
+      });
+
+      expect(response.status).toBe(401);
+    });
   });
 
   describe("PUT /api/v1/policies/$owner/senders/$sender", () => {

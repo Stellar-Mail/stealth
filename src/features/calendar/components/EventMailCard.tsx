@@ -1,12 +1,12 @@
 import {
   Bell,
-  CalendarDays,
   Check,
   ChevronDown,
   Clock3,
   ExternalLink,
   MapPin,
   Plus,
+  SlidersHorizontal,
 } from "lucide-react";
 import { useState } from "react";
 import type { CalendarEvent, CalendarResponse, MailEvent } from "../types";
@@ -63,10 +63,11 @@ export function EventMailCard({
           </button>
           <button
             onClick={() => onOpen?.(savedEvent?.id)}
-            className="ml-auto inline-flex items-center gap-1 rounded-md border border-white/10 px-2 py-1.5 text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground"
+            title="Open calendar"
+            aria-label="Open calendar"
+            className="ml-auto grid h-7 w-7 place-items-center rounded-md text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground"
           >
-            <CalendarDays className="h-3.5 w-3.5" />
-            Open calendar
+            <SlidersHorizontal className="h-3.5 w-3.5" />
           </button>
         </div>
 

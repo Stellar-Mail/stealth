@@ -1,0 +1,42 @@
+<svg width="960" height="180" viewBox="0 0 960 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="base" x1="0" y1="0" x2="960" y2="180" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#271716" />
+      <stop offset="0.52" stop-color="#5A211B" />
+      <stop offset="1" stop-color="#1D1519" />
+    </linearGradient>
+    <linearGradient id="fire" x1="464" y1="180" x2="670" y2="18" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F1461C" />
+      <stop offset="0.52" stop-color="#FF8B21" />
+      <stop offset="1" stop-color="#FFE091" />
+    </linearGradient>
+    <filter id="glow" x="-80" y="-80" width="1120" height="340" filterUnits="userSpaceOnUse">
+      <feGaussianBlur stdDeviation="12" />
+    </filter>
+  </defs>
+  <rect width="960" height="180" fill="url(#base)" />
+  <g filter="url(#glow)" opacity="0.68">
+    <path
+      d="M241 205C253 115 326 144 332 56C399 106 360 150 429 178C449 105 521 113 531 17C602 91 565 138 652 191L241 205Z"
+      fill="#F13D1A"
+    />
+    <path d="M530 207C547 134 618 141 629 74C681 117 652 159 724 194L530 207Z" fill="#FFB02F" />
+  </g>
+  <path
+    d="M189 196C219 112 283 141 293 72C344 119 322 147 367 179C383 115 438 100 454 38C502 97 470 145 535 186C562 119 616 130 626 77C673 119 649 156 725 196H189Z"
+    fill="url(#fire)"
+    fill-opacity="0.9"
+  />
+  <path
+    d="M256 193C275 145 306 148 311 113C340 145 325 165 359 186C382 146 413 143 422 96C457 139 437 170 476 192H256Z"
+    fill="#FFE09A"
+    fill-opacity="0.62"
+  />
+  <g fill="#FFB135">
+    <circle cx="146" cy="50" r="2" />
+    <circle cx="245" cy="26" r="1.5" />
+    <circle cx="712" cy="48" r="2" />
+    <circle cx="821" cy="87" r="1.4" />
+    <circle cx="898" cy="34" r="1.8" />
+  </g>
+</svg>

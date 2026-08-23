@@ -25,6 +25,7 @@ import type {
   RetiredSession,
   SenderRule,
   SenderRuleRecord,
+  SenderRuleWriteIntent,
   Session,
   StoredEnvelope,
   UnknownSenderDecision,
@@ -44,6 +45,8 @@ import type {
 import { toPublicProfile, toPublicUser } from "./domain";
 import type {
   ApiRepository,
+  CompareSetSenderRuleRecordInput,
+  CompareSetSenderRuleResult,
   ContactQueryOptions,
   DraftQueryOptions,
   SearchMailboxQueryOptions,
@@ -82,6 +85,7 @@ export class MemoryApiRepository implements ApiRepository {
   private readonly senderRules = new Map<string, SenderRule>();
   // BETA-037 (Issue #1944): versioned sender rule records keyed by `${owner}:${sender}`
   private readonly senderRuleRecords = new Map<string, SenderRuleRecord>();
+  private readonly senderRuleWriteIntents = new Map<string, SenderRuleWriteIntent>();
   private readonly counters = new Map<string, number[]>();
   private readonly idempotency = new Map<string, IdempotencyRecord>();
   private readonly externalWallets = new Map<string, ExternalWallet[]>();
@@ -332,6 +336,124 @@ export class MemoryApiRepository implements ApiRepository {
     }
     const nextCursor = records.length > limit ? records[limit - 1].sender : undefined;
     return { records: records.slice(0, limit), nextCursor };
+  }
+
+  async compareAndSetSenderRule(
+    owner: string,
+    sender: string,
+    rule: SenderRule,
+    expectedVersion?: number,
+    now = new Date(),
+  ): Promise<CompareSetSenderRuleResult> {
+    const ruleKey = key(owner, sender);
+    const current = this.senderRuleRecords.get(ruleKey) ?? null;
+    const iso = now.toISOString();
+
+    if (expectedVersion !== undefined) {
+      const actualVersion = current?.version ?? 0;
+      if (actualVersion !== expectedVersion) {
+        return { outcome: "conflict", current: structuredClone(current) };
+      }
+    }
+
+    if (rule === "default") {
+      this.senderRuleRecords.delete(ruleKey);
+      this.senderRules.delete(ruleKey);
+      const nextVersion = (current?.version ?? 0) + 1;
+      const record: SenderRuleRecord = current
+        ? { ...structuredClone(current), version: nextVersion, updatedAt: iso }
+        : {
+            owner,
+            sender,
+            rule: "allow",
+            version: nextVersion,
+            chainStatus: "pending",
+            scheduledAt: iso,
+            updatedAt: iso,
+            confirmedAt: null,
+            failureCount: 0,
+            lastError: null,
+            txHash: null,
+          };
+      return { outcome: "applied", record };
+    }
+
+    const record: SenderRuleRecord = {
+      owner,
+      sender,
+      rule,
+      version: (current?.version ?? 0) + 1,
+      chainStatus: "pending",
+      scheduledAt: iso,
+      updatedAt: iso,
+      confirmedAt: null,
+      failureCount: 0,
+      lastError: null,
+      txHash: null,
+    };
+    this.senderRuleRecords.set(ruleKey, structuredClone(record));
+    this.senderRules.set(ruleKey, rule);
+    return { outcome: "applied", record: structuredClone(record) };
+  }
+
+  async compareAndSetSenderRuleRecord(
+    input: CompareSetSenderRuleRecordInput,
+    expectedVersion?: number,
+    now = new Date(),
+  ): Promise<CompareSetSenderRuleResult> {
+    const ruleKey = key(input.owner, input.sender);
+    const current = this.senderRuleRecords.get(ruleKey) ?? null;
+    const iso = now.toISOString();
+
+    if (expectedVersion === undefined) {
+      if (current) {
+        return { outcome: "conflict", current: structuredClone(current) };
+      }
+    } else if (!current || current.version !== expectedVersion) {
+      return { outcome: "conflict", current: current ? structuredClone(current) : null };
+    }
+
+    const record: SenderRuleRecord = {
+      owner: input.owner,
+      sender: input.sender,
+      rule: input.rule,
+      pricePayload: input.rule === "price" ? input.pricePayload : undefined,
+      version: (current?.version ?? 0) + 1,
+      chainStatus: "pending",
+      scheduledAt: iso,
+      updatedAt: iso,
+      confirmedAt: null,
+      failureCount: 0,
+      lastError: null,
+      txHash: null,
+      idempotencyKey: input.idempotencyKey,
+    };
+    this.senderRuleRecords.set(ruleKey, structuredClone(record));
+    this.senderRules.set(ruleKey, input.rule as SenderRule);
+    return { outcome: "applied", record: structuredClone(record) };
+  }
+
+  async getSenderRuleWriteIntent(
+    owner: string,
+    sender: string,
+  ): Promise<SenderRuleWriteIntent | null> {
+    return structuredClone(this.senderRuleWriteIntents.get(key(owner, sender)) ?? null);
+  }
+
+  async setSenderRuleWriteIntent(intent: SenderRuleWriteIntent): Promise<SenderRuleWriteIntent> {
+    this.senderRuleWriteIntents.set(key(intent.owner, intent.sender), structuredClone(intent));
+    return structuredClone(intent);
+  }
+
+  async listSenderRuleWriteIntents(owner: string): Promise<SenderRuleWriteIntent[]> {
+    const prefix = `${owner}:`;
+    const intents: SenderRuleWriteIntent[] = [];
+    for (const [compound, intent] of this.senderRuleWriteIntents.entries()) {
+      if (compound.startsWith(prefix)) {
+        intents.push(structuredClone(intent));
+      }
+    }
+    return intents.sort((left, right) => left.sender.localeCompare(right.sender));
   }
 
   async getPostage(messageId: string) {

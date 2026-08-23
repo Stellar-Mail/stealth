@@ -11,11 +11,15 @@ import { createServer, type IncomingMessage } from "node:http";
 
 import { loadRuntimeConfig } from "@/config";
 import { protocolManifest } from "@/server/api/protocol";
-import { getVersionInfo } from "@/server/api/version";
 import { MemoryApiRepository } from "@/server/api/memory-repository";
-import { InProcessRelayWorker } from "@/services/relay/in-process-worker";
-import { MemoryRelayPersistence } from "@/services/relay/memory-persistence";
+import { getVersionInfo } from "@/server/api/version";
 import { createConfiguredAdmissionEvaluator } from "@/services/relay/policy-chain";
+import { ingestMailboxEnvelope } from "@/services/relay/ingest";
+import { InProcessRelayWorker } from "@/services/relay/in-process-worker";
+import { MemoryMailboxSyncPersistence } from "@/services/relay/memory-mailbox-sync";
+import { MemoryRelayPersistence } from "@/services/relay/memory-persistence";
+import { MailboxSyncService } from "@/services/relay/mailbox-sync-service";
+import { handleMailboxSync } from "@/services/relay/mailbox-sync-transport";
 import {
   RELAY_SERVICE_NAME,
   RelayService,
@@ -51,15 +55,22 @@ function buildConfig(): RelayServiceConfig {
 
 let service: RelayService | undefined;
 let worker: InProcessRelayWorker | undefined;
+let mailboxSync: MailboxSyncService | undefined;
 
 function getService(): RelayService {
-  if (service) return service;
+  if (service && mailboxSync) return service;
 
   const persistence = new MemoryRelayPersistence();
   const repository = new MemoryApiRepository();
   const runtime = loadRuntimeConfig();
+  const mailboxPersistence = new MemoryMailboxSyncPersistence();
+  mailboxSync = new MailboxSyncService(mailboxPersistence);
   worker = new InProcessRelayWorker(persistence, {
     onMessage: async (envelope) => {
+      const outcome = await ingestMailboxEnvelope(mailboxPersistence, envelope);
+      if (outcome.status !== "delivered") {
+        return;
+      }
       await submitToRelay(
         {
           messageId: envelope.messageId,
@@ -92,6 +103,11 @@ function getService(): RelayService {
   });
   void worker.start();
   return service;
+}
+
+function getMailboxSync(): MailboxSyncService {
+  getService();
+  return mailboxSync!;
 }
 
 function readBody(req: IncomingMessage): Promise<Buffer> {
@@ -135,6 +151,8 @@ const server = createServer(async (req, res) => {
     response = await handleRelayVersion(request, relay);
   } else if (method === "POST" && (path === "/messages" || path === "/api/v1/relay/messages")) {
     response = await handleRelaySubmit(request, relay);
+  } else if (method === "POST" && (path === "/mailbox/sync" || path === "/api/v1/mailbox/sync")) {
+    response = await handleMailboxSync(request, getMailboxSync());
   } else {
     response = new Response(
       JSON.stringify({ error: { code: "not_found", message: "Not found" } }),
@@ -152,6 +170,7 @@ server.listen(PORT, () => {
 
 function shutdown(): void {
   service = undefined;
+  mailboxSync = undefined;
   if (worker) {
     void worker.stop();
     worker = undefined;

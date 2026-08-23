@@ -33,6 +33,9 @@ export default defineConfig({
   ],
   webServer: {
     command: "npm run dev",
+    // Preserve the normal development demo inbox while making browser tests
+    // exercise their mocked bootstrap states through the route guard.
+    env: { VITE_E2E: "true" },
     url: BASE_URL,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
