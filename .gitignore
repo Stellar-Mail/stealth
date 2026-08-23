@@ -24,6 +24,9 @@ target/
 # Playwright
 playwright-report/
 test-results/
+.playwright-cli/
+.playwright-e2e-server.pid
+beta-open-issues-audit.json
 
 # Editor directories and files
 .vscode/*

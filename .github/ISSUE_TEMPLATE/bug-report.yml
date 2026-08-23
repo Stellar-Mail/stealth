@@ -1,0 +1,53 @@
+name: Bug report
+description: Report a reproducible product or protocol defect.
+title: "bug: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: Do not include credentials, private keys, tokens, message content, or sensitive diagnostics.
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact
+      description: Who is affected and what can they no longer do safely or correctly?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: Provide deterministic steps, route/environment, and sanitized test data.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Redacted evidence
+      description: Add screenshots, logs, request IDs, browser/OS, commit SHA, or test output with sensitive values removed.
+    validations:
+      required: true
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      options:
+        - Critical - security, funds, data loss, or complete outage
+        - High - critical journey blocked without a safe workaround
+        - Medium - degraded behavior with a workaround
+        - Low - minor defect or polish
+    validations:
+      required: true

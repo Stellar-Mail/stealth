@@ -1,0 +1,85 @@
+name: BETA campaign delivery
+description: Define a reviewable BETA implementation or release-readiness slice.
+title: "BETA-000 :: "
+labels:
+  - GrantFox OSS
+  - Maybe Rewarded
+  - Official Campaign
+  - Campaign
+  - Third Campaign
+body:
+  - type: input
+    id: beta-id
+    attributes:
+      label: BETA identifier
+      placeholder: BETA-000/100
+    validations:
+      required: true
+  - type: dropdown
+    id: workflow
+    attributes:
+      label: Workflow
+      options:
+        - Workflow 1 - Identity, Access & Beta Foundation
+        - Workflow 2 - Live Protocol, Relay & Testnet Delivery
+        - Workflow 3 - Real Web Mail Experience
+        - Workflow 4 - Security, Operations & Beta Launch
+    validations:
+      required: true
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal and current gap
+      description: State the concrete missing capability and why it blocks the beta.
+    validations:
+      required: true
+  - type: textarea
+    id: actor
+    attributes:
+      label: User or operator journey
+      description: Name the actor, starting state, actions, and observable outcome.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Implementation scope
+      description: List owned modules, integration boundaries, and explicit non-goals.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance scenarios
+      description: Include success, denial/failure, retry or rollback, and privacy/security behavior.
+      placeholder: |
+        - [ ] Successful path
+        - [ ] Failure or denial path
+        - [ ] Retry, recovery, or rollback path
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Required evidence
+      description: Specify automated tests, deployed-path proof, redacted logs, transaction references, screenshots, or operator sign-off.
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies and owner
+      description: Link blocking issues and identify the person or team responsible for external actions.
+    validations:
+      required: true
+  - type: checkboxes
+    id: safeguards
+    attributes:
+      label: Definition of done safeguards
+      options:
+        - label: The real beta path is used; a mock or demo-only implementation cannot close this issue.
+          required: true
+        - label: Required CI and release gates must pass for the exact commit being accepted.
+          required: true
+        - label: Evidence must not contain credentials, private keys, tokens, message content, or sensitive diagnostics.
+          required: true
