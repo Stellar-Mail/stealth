@@ -112,6 +112,25 @@
     transition: opacity 260ms ease;
   }
 
+  .mail-preview-card--active {
+    border-color: oklch(0.78 0.01 270 / 0.42);
+    background:
+      radial-gradient(circle at 20% 16%, oklch(1 0 0 / 0.16), transparent 40%),
+      linear-gradient(135deg, oklch(0.42 0.009 270 / 0.78), oklch(0.29 0.006 270 / 0.72));
+    box-shadow:
+      0 14px 30px oklch(0 0 0 / 0.38),
+      0 0 0 1px oklch(1 0 0 / 0.07),
+      inset 0 1px 0 oklch(1 0 0 / 0.22),
+      inset 0 -1px 0 oklch(0 0 0 / 0.24);
+  }
+
+  .mail-preview-card--active::after {
+    opacity: 1;
+    background:
+      radial-gradient(circle at 22% 18%, oklch(1 0 0 / 0.2), transparent 38%),
+      linear-gradient(135deg, oklch(1 0 0 / 0.06), transparent 58%);
+  }
+
   .mail-preview-card:hover {
     border-color: oklch(1 0 0 / 0.14);
     background: oklch(0.34 0.006 270 / 0.48);

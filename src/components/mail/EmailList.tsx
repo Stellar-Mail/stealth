@@ -268,7 +268,7 @@ export function EmailList({
                 className={cn(
                   "mail-preview-card group relative flex h-[60px] w-full items-center gap-3 rounded-[14px] border px-3 py-2 text-left transition-[background,border-color,box-shadow] duration-200",
                   active
-                    ? "border-white/20 bg-[oklch(0.38_0.007_270/0.55)] shadow-[0_12px_28px_-18px_oklch(0_0_0/0.9),inset_0_1px_0_oklch(1_0_0/0.14)]"
+                    ? "mail-preview-card--active"
                     : "border-white/[0.09] bg-[oklch(0.3_0.006_270/0.42)]",
                 )}
               >
