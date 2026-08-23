@@ -47,7 +47,7 @@
     }
   },
   "dependencies": {
-    "@cloudflare/vite-plugin": "^1.25.5",
+    "@cloudflare/vite-plugin": "^1.53.1",
     "@hookform/resolvers": "^5.2.2",
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-alert-dialog": "^1.1.15",
@@ -128,7 +128,7 @@
     "fast-check": "^4.9.0",
     "globals": "^15.15.0",
     "jsdom": "^29.1.1",
-    "miniflare": "3.20241218.0",
+    "miniflare": "5.20260820.0-alpha",
     "prettier": "^3.7.3",
     "tsx": "^4.23.12",
     "typescript": "^5.8.3",
