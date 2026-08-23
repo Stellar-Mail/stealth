@@ -11,7 +11,6 @@ import {
   type MailLocation,
 } from "./data";
 import { cn } from "@/lib/utils";
-import { ConvertSenderButton } from "@/features/sender-conversion";
 import { MobileMailCard } from "./MobileMailCard";
 import { EmailTrustBadges } from "./EmailTrustBadges";
 import { SenderAvatar } from "./SenderAvatar";
@@ -32,7 +31,6 @@ export function EmailList({
   emails,
   selectedId,
   onSelect,
-  onConvertSender,
   folder,
   filters,
   customFolder,
@@ -49,7 +47,6 @@ export function EmailList({
   emails: Email[];
   selectedId: string | null;
   onSelect: (id: string) => void;
-  onConvertSender: (email: Email) => void;
   folder: MailFolder;
   filters: MailFilters;
   customFolder?: string | null;
@@ -256,15 +253,6 @@ export function EmailList({
                   onStar={() => onStar?.(e)}
                   onSnooze={() => onSnooze?.(e)}
                 />
-                {e.folder === "requests" && (
-                  <div className="mt-1 flex justify-end px-2">
-                    <ConvertSenderButton
-                      variant="subtle"
-                      label="Review sender"
-                      onClick={() => onConvertSender(e)}
-                    />
-                  </div>
-                )}
               </li>
             );
           }
@@ -318,15 +306,6 @@ export function EmailList({
                   </div>
                 </div>
               </motion.button>
-              {e.folder === "requests" && (
-                <div className="mt-1 flex justify-end px-2">
-                  <ConvertSenderButton
-                    variant="subtle"
-                    label="Review sender"
-                    onClick={() => onConvertSender(e)}
-                  />
-                </div>
-              )}
             </li>
           );
         })}

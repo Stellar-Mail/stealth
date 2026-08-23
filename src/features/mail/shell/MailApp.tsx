@@ -310,7 +310,6 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
                         emails={source.emails}
                         selectedId={navigation.selectedId}
                         onSelect={navigation.setSelectedId}
-                        onConvertSender={openSenderConversion}
                         folder={navigation.folder}
                         filters={navigation.filters}
                         customFolder={navigation.customFolder}

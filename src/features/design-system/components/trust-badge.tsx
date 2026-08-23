@@ -104,6 +104,28 @@ export const TrustBadge = memo(function TrustBadge({
   const meta = TRUST_STATE_META[state];
   const Icon = meta.icon;
 
+  if (state === "verified" && !showLabel) {
+    const check = (
+      <span
+        className={cn("inline-flex items-center justify-center text-zinc-400", className)}
+        aria-label={meta.label}
+      >
+        <Icon className={size === "sm" ? "h-4 w-4" : "h-[18px] w-[18px]"} aria-hidden />
+      </span>
+    );
+
+    if (!showTooltip) return check;
+
+    return (
+      <TooltipProvider delayDuration={150}>
+        <Tooltip>
+          <TooltipTrigger asChild>{check}</TooltipTrigger>
+          <TooltipContent>{meta.tooltip}</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
+
   const pill = (
     <span
       className={cn(
