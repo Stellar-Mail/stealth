@@ -1,0 +1,67 @@
+# Beta Security-Control Ownership Map (BETA-076)
+
+Companion to the [beta threat model](./beta-threat-model.md). This is the authoritative registry
+that assigns every required control to exactly one category — **code**, **infrastructure**,
+**operator procedure**, or **accepted beta limitation** — and to a named owner role with a concrete
+enforcement point in the repository. "Verification" names the executable test or repeatable command
+that proves the control is active; results are recorded in the
+[verification checklist](./beta-verification-checklist.md).
+
+Owner roles are roles, not individuals; the release sign-off table in
+[`RELEASE_GATES.md`](../deployment/RELEASE_GATES.md) records which person filled each role for a
+given release.
+
+## 1. Registry
+
+| ID    | Control statement                                                                                      | Category         | Owner role      | Enforcement point                                                             | Verification                                                                     |
+| :---- | :----------------------------------------------------------------------------------------------------- | :--------------- | :-------------- | :---------------------------------------------------------------------------- | :------------------------------------------------------------------------------- |
+| SC-01 | Envelopes use only the normative suite: AES-256-GCM, 256-bit key, 96-bit nonce, 128-bit tag            | Code             | Crypto Owner    | `src/services/crypto/algorithm-suite.ts`, `suites.ts`                         | `tests/unit/security/beta-controls.test.ts` (suite section); `tests/unit/crypto` |
+| SC-02 | Every protected route requires an Ed25519 signed request (`STEALTH-AUTH-V1`, 5-min life + 30s skew)    | Code             | Identity Owner  | `src/server/api/auth/signed-request.ts`, `handler.ts` authMode                | `tests/unit/api/auth/*`; vectors in `test-fixtures/auth/signed-request-v1.json`  |
+| SC-03 | Sessions are created server-side, versioned, and retired on rotation/logout                            | Code             | Identity Owner  | `src/server/api/auth/session-service.ts`                                      | `tests/unit/api/**` session suites                                               |
+| SC-04 | Auth nonces are consumed atomically and exactly once (replay fails closed)                             | Code             | Identity Owner  | `src/server/api/auth/nonce-service.ts`                                        | `docs/security/relay-auth-replay.md` R1–R5 + unit tests                          |
+| SC-05 | Repeated auth failures are throttled per IP+account and per IP with exponential backoff                | Code             | Identity Owner  | `checkAuthFailureThrottle` / `recordAuthFailure` in `rate-limit.ts`           | `tests/unit/security/beta-controls.test.ts` (throttle section)                   |
+| SC-06 | Operations draw from weighted quotas: account 50/h, IP 100/h; costs 1/3/5/10 by class                  | Code             | Relay Owner     | `consumeRouteQuota` + `RATE_LIMIT_OPERATION_COSTS` in `rate-limit.ts`         | `tests/unit/security/beta-controls.test.ts` (quota section)                      |
+| SC-07 | CORS uses an explicit origin allowlist; wildcard origins (with or without credentials) are rejected    | Code + config    | Deploy Owner    | `validateCorsPolicy`, `corsEarlyResponse`, `applyCors` in `cors.ts`           | `tests/unit/security/beta-controls.test.ts` (CORS section)                       |
+| SC-08 | Content keys are wrapped per recipient (ECDH P-256 + HKDF-SHA256 + AES-GCM) with blinded recipient IDs | Code             | Crypto Owner    | `src/services/crypto/key-wrap.ts`, `recipient-privacy.ts`                     | `tests/unit/security/beta-controls.test.ts` (key-wrap round trip)                |
+| SC-09 | Envelope integrity binds ciphertext to attachment AAD and SHA-256 commitment; opening fails closed     | Code             | Crypto Owner    | `src/services/crypto/aad.ts`, `commitment.ts`, `open-envelope.ts`             | tamper matrix under `tests/unit/crypto`                                          |
+| SC-10 | Secret-derived values are compared in constant time, including length-mismatch paths                   | Code             | Crypto Owner    | `src/services/crypto/constant-time.ts`                                        | `tests/unit/security/beta-controls.test.ts` (constant-time section)              |
+| SC-11 | Envelope storage is insert-only: byte-equal retries dedupe, differing payloads conflict                | Code             | Storage Owner   | `insertEnvelope` in `memory-repository.ts` / `kv-repository.ts`               | `tests/unit/server` envelope persistence tests                                   |
+| SC-12 | Verification tokens are stored hashed, single-active-per-purpose, attempt-capped                       | Code             | Identity Owner  | BETA-005 token lifecycle in `verification-service.ts`, repositories           | `tests/unit/otp`, `tests/unit/identity` suites                                   |
+| SC-13 | Telemetry is opt-in, blocklisted keys throw, privacy budget caps volume                                | Code             | Privacy Owner   | `PrivacyAnalytics.track` in `src/services/analytics.ts`                       | `tests/unit/security/beta-controls.test.ts` (analytics section)                  |
+| SC-14 | Metadata retention limits are enforced (30d telemetry eviction; 48h relay buffers; 1h log scrub)       | Code + procedure | Privacy Owner   | `enforceRetention` in `analytics.ts`; matrix in `metadata-policy.md` §4       | `tests/unit/security/beta-controls.test.ts`; operator sweep procedure            |
+| SC-15 | Wallet linking requires a fresh challenge: 32 random bytes, 5-min expiry, address+network binding      | Code             | Wallet Owner    | `src/server/api/wallet-link-service.ts`                                       | denial-path walkthrough, threat model §5.1 (TM-B08); unit coverage               |
+| SC-16 | Published recipient keys are versioned directory records; clients pin fingerprints before sending      | Code             | Key Dir. Owner  | `key-directory-service.ts`; `src/services/crypto/fingerprint.ts`, `key-id.ts` | key-directory + fingerprint unit tests                                           |
+| SC-17 | Soroban contract entry points enforce authorization boundaries captured as snapshot tests              | Code (tests)     | Contract Owner  | `contracts/soroban/*/test_snapshots/auth_boundaries/`                         | `cargo test --workspace` (contract CI job)                                       |
+| SC-18 | Postage/receipt state transitions are deterministic and snapshot-tested incl. refund paths             | Code (tests)     | Contract Owner  | `contracts/soroban/postage`, `receipts` snapshots                             | `cargo test --workspace`; TS mirror `tests/unit/server/postage-transitions*`     |
+| SC-19 | Only hash-pinned wasm artifacts are promoted; provenance job publishes SHA-256 sums                    | Infrastructure   | Release Manager | `.github/workflows/ci.yml` provenance job; RELEASE_GATES artifact tables      | checklist item VC-P0-9                                                           |
+| SC-20 | Promotion follows the runbook: canary sequence, irreversible-change gate, rollback rehearsal           | Procedure        | Release Manager | `docs/deployment/RELEASE_GATES.md` §§4–6                                      | checklist items VC-P1-3 / VC-P1-4                                                |
+| SC-21 | Mailbox abuse is priced and filtered: mailbox policies, sender rules, postage quotes/lifecycle         | Code             | Relay Owner     | `policy-service.ts`, `postage-service.ts`, `abuse-service.ts`                 | policy/postage unit suites                                                       |
+| SC-22 | Dependency changes on PRs pass dependency review before merge                                          | Infrastructure   | Release Manager | `actions/dependency-review-action@v4` in ci.yml security job                  | GitHub check on this PR                                                          |
+| SC-23 | Installs resolve through committed lock files (`bun.lockb` / `package-lock.json`)                      | Procedure        | Release Manager | lock files at repo root                                                       | checklist item VC-P0-2 (clean install from lockfile)                             |
+| SC-24 | Committed wrangler config contains placeholders only; preview/production KV namespaces never collide   | Code             | Deploy Owner    | `wrangler-config-guard.ts` + `bun run config:check`                           | `tests/unit/security/beta-controls.test.ts` (guard section) + VC-P0-6            |
+| SC-25 | Secrets live in operator consoles/CI stores only; repo-side scan compensates when gitleaks is disabled | Procedure        | Deploy Owner    | `docs/deployment/SECRETS.md`; gitleaks job (conditional); local scan          | checklist item VC-P0-8                                                           |
+
+## 2. Accepted beta limitations
+
+These are posture decisions, registered here so they are visible and reviewable rather than silent:
+
+| ID    | Limitation                                                                            | Owner role     | Linked risk |
+| :---- | :------------------------------------------------------------------------------------ | :------------- | :---------- |
+| AL-01 | No server-side key recovery; losing the device loses the identity                     | Product Owner  | RR-06       |
+| AL-02 | Stellar testnet resets can invalidate chain-linked receipts/postage state             | Contract Owner | RR-05       |
+| AL-03 | Protocol manifest reports non-durable `memory` persistence adapter by default         | Relay Owner    | RR-01       |
+| AL-04 | Gitleaks runs in CI only when a license secret exists; local scan is the compensation | Deploy Owner   | RR-07       |
+
+## 3. Ownership coverage against live components
+
+Acceptance scenario 1 requires every live beta component to have an owner and boundary:
+
+| Live component           | Trust boundaries | Primary controls          | Owner role                     |
+| :----------------------- | :--------------- | :------------------------ | :----------------------------- |
+| Identity & auth API      | TB2, TB3         | SC-02–SC-07, SC-12, SC-15 | Identity Owner                 |
+| Encrypted relay          | TB2–TB4          | SC-06, SC-11, SC-21       | Relay Owner                    |
+| Managed storage KV/R2/DO | TB4              | SC-11, SC-24, SC-19       | Storage Owner                  |
+| Client crypto library    | TB1              | SC-01, SC-08–SC-10, SC-16 | Crypto Owner                   |
+| Wallet linking           | TB6              | SC-15                     | Wallet Owner                   |
+| Soroban contracts        | TB5              | SC-17–SC-20               | Contract Owner                 |
+| Deployment pipeline      | TB8              | SC-07, SC-19, SC-22–SC-25 | Deploy Owner / Release Manager |

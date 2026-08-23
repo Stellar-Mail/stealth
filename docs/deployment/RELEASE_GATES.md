@@ -90,7 +90,11 @@ Record these values before beginning a deployment:
 
 ## 3. Production Promotion Gates
 
-- [ ] Security review and threat-model updates are approved.
+- [ ] Security review and threat-model updates are approved. The beta threat model
+      ([`docs/security/beta-threat-model.md`](../security/beta-threat-model.md)), control
+      ownership map, verification checklist, and residual-risk register are reviewed together:
+      the register ([`docs/security/beta-risk-register.md`](../security/beta-risk-register.md))
+      must contain no open P0 rows, or an explicit acceptance recorded in the sign-off table below.
 - [ ] Legal/compliance and product sign-off are recorded where required.
 - [ ] The incident commander, database owner, security owner, and release manager are
       present for the deployment window.
