@@ -193,6 +193,12 @@ export function TopbarSearch({
       return;
     }
 
+    if (e.key === "Escape") {
+      e.preventDefault();
+      setIsOpen(false);
+      return;
+    }
+
     if (e.key === "Enter") {
       if (isOpen && activeIndex >= 0) {
         e.preventDefault();
@@ -260,7 +266,12 @@ export function TopbarSearch({
         <button
           type="button"
           aria-label="Open command palette"
-          onClick={onOpenPalette}
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsOpen(false);
+            onOpenPalette();
+          }}
           className="flex items-center gap-1 rounded border border-white/10 bg-black/30 px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground transition hover:border-white/20 hover:text-foreground"
         >
           <Command className="h-3 w-3" /> K
