@@ -54,9 +54,7 @@ describe("API error registry", () => {
     ).toEqual(
       API_ERROR_CODES.filter(
         (code) =>
-          code !== "recent_auth_required" &&
-          code !== "chain_error" &&
-          code !== "cursor_expired",
+          code !== "recent_auth_required" && code !== "chain_error" && code !== "cursor_expired",
       ),
     );
     expect(openApiDocument.components.schemas.ApiErrorRegistry["x-error-registry"]).toEqual(
