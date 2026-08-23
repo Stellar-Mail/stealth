@@ -1,4 +1,4 @@
-﻿import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { createPrivateKey, sign } from "node:crypto";
 import { Keypair } from "@stellar/stellar-sdk";
 import { canonicalizePayload } from "../../../src/services/crypto/envelope";

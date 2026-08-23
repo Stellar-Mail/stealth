@@ -371,14 +371,8 @@ export type AdmissionSource = z.infer<typeof admissionSourceSchema>;
 export type AdmissionEvidence = z.infer<typeof admissionEvidenceSchema>;
 
 // ---------------------------------------------------------------------------
-// BETA-037 — versioned sender rules and durable chain-write intents
+// BETA-037 — durable chain-write intents for sender rules
 // ---------------------------------------------------------------------------
-
-export const senderRuleRecordSchema = z.object({
-  rule: senderRuleSchema,
-  version: z.number().int().positive(),
-  updatedAt: z.string().datetime(),
-});
 
 /**
  * Durable intent to write a sender override to the Policies contract.
@@ -401,7 +395,6 @@ export const senderRuleWriteIntentSchema = z.object({
 /** Client-facing chain sync status for policy and sender-rule mutations. */
 export const policySyncStatusSchema = z.enum(["pending", "confirmed", "failed", "drift"]);
 
-export type SenderRuleRecord = z.infer<typeof senderRuleRecordSchema>;
 export type SenderRuleWriteIntent = z.infer<typeof senderRuleWriteIntentSchema>;
 export type PolicySyncStatus = z.infer<typeof policySyncStatusSchema>;
 

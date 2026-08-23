@@ -1,11 +1,11 @@
 import type {
   ApiRepository,
-  CompareSetSenderRuleResult,
   ContactQueryOptions,
+  DraftQueryOptions,
   InsertEnvelopeResult,
   PostageTransitionResult,
-  SenderRuleEntry,
   UpdateContactResult,
+  UpdateDraftResult,
   UpdateProvisioningResult,
   UpdateRecoveryCodeSetResult,
   UpdateUserResult,
@@ -14,6 +14,7 @@ import type {
 } from "./repository";
 import type {
   Contact,
+  DraftRecord,
   Credential,
   DeadLetter,
   DeadLetterStatus,
@@ -39,7 +40,6 @@ import type {
   RetiredSession,
   SenderRule,
   SenderRuleRecord,
-  SenderRuleWriteIntent,
   Session,
   StoredEnvelope,
   User,
@@ -50,6 +50,8 @@ import type {
   FundingOperation,
   Wallet,
   OnboardingDraftRecord,
+  AccountDeletionRequest,
+  AccountExport,
 } from "./domain";
 import { ApiError } from "./errors";
 
@@ -94,30 +96,47 @@ export class HybridApiRepository implements ApiRepository {
   }
 
   async getSenderRule(owner: string, sender: string): Promise<SenderRule> {
-    const record = await this.getSenderRuleRecord(owner, sender);
-    return record?.rule ?? "default";
+    const rule = await this.kv.get(this.key("sender-rule", owner, sender), "text");
+    return (rule as SenderRule) ?? "default";
   }
 
   async setSenderRule(owner: string, sender: string, rule: SenderRule): Promise<SenderRule> {
-    const result = await this.compareAndSetSenderRule(owner, sender, rule);
-    if (result.outcome === "conflict") {
-      throw new ApiError(409, "conflict", "Sender rule version conflict");
+    const ruleKey = this.key("sender-rule", owner, sender);
+    if (rule === "default") {
+      await this.kv.delete(ruleKey);
+    } else {
+      await this.kv.put(ruleKey, rule);
     }
     return rule;
   }
 
+  // BETA-037 (Issue #1944): versioned sender rule records
   async getSenderRuleRecord(owner: string, sender: string): Promise<SenderRuleRecord | null> {
-    const recordKey = this.key("sender-rule-record", owner, sender);
-    const stored = (await this.kv.get(recordKey, "json")) as SenderRuleRecord | null;
-    if (stored) return stored;
+    const record = await this.kv.get(this.key("sender-rule-record", owner, sender), "json");
+    return (record as SenderRuleRecord) ?? null;
+  }
 
-    const legacy = await this.kv.get(this.key("sender-rule", owner, sender), "text");
-    if (!legacy || legacy === "default") return null;
-    return {
-      rule: legacy as SenderRule,
-      version: 1,
-      updatedAt: new Date(0).toISOString(),
-    };
+  async setSenderRuleRecord(record: SenderRuleRecord): Promise<SenderRuleRecord> {
+    await this.kv.put(
+      this.key("sender-rule-record", record.owner, record.sender),
+      JSON.stringify(record),
+    );
+    return record;
+  }
+
+  async deleteSenderRuleRecord(owner: string, sender: string): Promise<boolean> {
+    const existing = await this.getSenderRuleRecord(owner, sender);
+    if (!existing) return false;
+    await this.kv.delete(this.key("sender-rule-record", owner, sender));
+    return true;
+  }
+
+  async listSenderRuleRecords(
+    owner: string,
+    options?: { limit?: number; after?: string },
+  ): Promise<{ records: SenderRuleRecord[]; nextCursor?: string }> {
+    // BETA-037: Delegate to the DO coordinator for consistent listing.
+    return this.getStub().listSenderRuleRecords(owner, options);
   }
 
   async compareAndSetSenderRule(
@@ -125,75 +144,53 @@ export class HybridApiRepository implements ApiRepository {
     sender: string,
     rule: SenderRule,
     expectedVersion?: number,
-    now = new Date(),
-  ): Promise<CompareSetSenderRuleResult> {
-    const recordKey = this.key("sender-rule-record", owner, sender);
-    const legacyKey = this.key("sender-rule", owner, sender);
-    const current = await this.getSenderRuleRecord(owner, sender);
-
-    if (expectedVersion !== undefined) {
-      const actualVersion = current?.version ?? 0;
-      if (actualVersion !== expectedVersion) {
-        return { outcome: "conflict", current };
+    now?: Date,
+  ): Promise<import("./repository").CompareSetSenderRuleResult> {
+    const result = await this.getStub().compareAndSetSenderRule(
+      owner,
+      sender,
+      rule,
+      expectedVersion,
+      now,
+    );
+    if (result.outcome === "applied") {
+      await this.kv.put(
+        this.key("sender-rule-record", owner, sender),
+        JSON.stringify(result.record),
+      );
+      const ruleKey = this.key("sender-rule", owner, sender);
+      if (rule === "default") {
+        await this.kv.delete(ruleKey);
+      } else {
+        await this.kv.put(ruleKey, rule);
       }
     }
-
-    const nextVersion = (current?.version ?? 0) + 1;
-    const iso = now.toISOString();
-
-    if (rule === "default") {
-      await this.kv.delete(recordKey);
-      await this.kv.delete(legacyKey);
-      return {
-        outcome: "applied",
-        record: { rule: "default", version: nextVersion, updatedAt: iso },
-      };
-    }
-
-    const record: SenderRuleRecord = { rule, version: nextVersion, updatedAt: iso };
-    await this.kv.put(recordKey, JSON.stringify(record));
-    await this.kv.put(legacyKey, rule);
-    return { outcome: "applied", record };
-  }
-
-  async listSenderRuleRecords(owner: string): Promise<SenderRuleEntry[]> {
-    const prefix = this.key("sender-rule-record", owner);
-    const listed = await this.kv.list({ prefix: `${prefix}:` });
-    const entries: SenderRuleEntry[] = [];
-    for (const item of listed.keys) {
-      const sender = item.name.slice(`${prefix}:`.length);
-      const record = (await this.kv.get(item.name, "json")) as SenderRuleRecord | null;
-      if (!record || record.rule === "default") continue;
-      entries.push({ sender, record });
-    }
-    return entries.sort((left, right) => left.sender.localeCompare(right.sender));
+    return result;
   }
 
   async getSenderRuleWriteIntent(
     owner: string,
     sender: string,
-  ): Promise<SenderRuleWriteIntent | null> {
+  ): Promise<import("./domain").SenderRuleWriteIntent | null> {
     const intent = await this.kv.get(this.key("sender-rule-write", owner, sender), "json");
-    return (intent as SenderRuleWriteIntent) ?? null;
+    return (intent as import("./domain").SenderRuleWriteIntent) ?? null;
   }
 
-  async setSenderRuleWriteIntent(intent: SenderRuleWriteIntent): Promise<SenderRuleWriteIntent> {
+  async setSenderRuleWriteIntent(
+    intent: import("./domain").SenderRuleWriteIntent,
+  ): Promise<import("./domain").SenderRuleWriteIntent> {
     await this.kv.put(
       this.key("sender-rule-write", intent.owner, intent.sender),
       JSON.stringify(intent),
     );
+    await this.getStub().setSenderRuleWriteIntent(intent);
     return intent;
   }
 
-  async listSenderRuleWriteIntents(owner: string): Promise<SenderRuleWriteIntent[]> {
-    const prefix = this.key("sender-rule-write", owner);
-    const listed = await this.kv.list({ prefix: `${prefix}:` });
-    const intents: SenderRuleWriteIntent[] = [];
-    for (const item of listed.keys) {
-      const intent = (await this.kv.get(item.name, "json")) as SenderRuleWriteIntent | null;
-      if (intent) intents.push(intent);
-    }
-    return intents.sort((left, right) => left.sender.localeCompare(right.sender));
+  async listSenderRuleWriteIntents(
+    owner: string,
+  ): Promise<import("./domain").SenderRuleWriteIntent[]> {
+    return this.getStub().listSenderRuleWriteIntents(owner);
   }
 
   async getPostage(messageId: string): Promise<Postage | null> {
@@ -332,6 +329,22 @@ export class HybridApiRepository implements ApiRepository {
     return this.getStub().setCredential(credential);
   }
 
+  getAccountDeletionRequest(userId: string): Promise<AccountDeletionRequest | null> {
+    return this.getStub().getAccountDeletionRequest(userId);
+  }
+
+  setAccountDeletionRequest(request: AccountDeletionRequest): Promise<AccountDeletionRequest> {
+    return this.getStub().setAccountDeletionRequest(request);
+  }
+
+  exportAccount(userId: string, address: string, now?: Date): Promise<AccountExport> {
+    return this.getStub().exportAccount(userId, address, now);
+  }
+
+  deleteAccountData(userId: string, address: string, now?: Date) {
+    return this.getStub().deleteAccountData(userId, address, now);
+  }
+
   // BETA-014: Provisioning state is coordinated by the DO (single authority);
   // KV holds no provisioning mirror because every write is a CAS transition.
   async getProvisioningRecord(userId: string): Promise<ProvisioningRecord | null> {
@@ -458,6 +471,14 @@ export class HybridApiRepository implements ApiRepository {
 
   async deleteUserSessions(userId: string): Promise<void> {
     return this.getStub().deleteUserSessions(userId);
+  }
+
+  async listUserSessions(userId: string): Promise<Session[]> {
+    return this.getStub().listUserSessions(userId);
+  }
+
+  async deleteOtherUserSessions(userId: string, currentSessionId: string): Promise<void> {
+    return this.getStub().deleteOtherUserSessions(userId, currentSessionId);
   }
 
   async getRetiredSession(sessionId: string): Promise<RetiredSession | null> {
@@ -676,6 +697,13 @@ export class HybridApiRepository implements ApiRepository {
     return result;
   }
 
+  async searchMailbox(
+    actor: string,
+    options?: import("./repository").SearchMailboxQueryOptions,
+  ): Promise<import("./repository").Page<StoredEnvelope>> {
+    return this.getStub().searchMailbox(actor, options);
+  }
+
   // ---------------------------------------------------------------------------
   // Issue #1934 (BETA-027) — Versioned Public Encryption-Key Directory & Rotation
   // ---------------------------------------------------------------------------
@@ -829,6 +857,76 @@ export class HybridApiRepository implements ApiRepository {
     }
     contacts.splice(index, 1);
     await this.kv.put(this.contactKey(normOwner), JSON.stringify(contacts));
+  }
+
+  // ---------------------------------------------------------------------------
+  // Issue #1965 (BETA-058) — Live drafts CRUD
+  // ---------------------------------------------------------------------------
+
+  private draftKey(owner: string): string {
+    return this.key("drafts", owner.toUpperCase().trim());
+  }
+
+  private async readDrafts(owner: string): Promise<DraftRecord[]> {
+    const stored = await this.kv.get(this.draftKey(owner), "json");
+    return (stored as DraftRecord[]) ?? [];
+  }
+
+  async listDrafts(
+    owner: string,
+    options: DraftQueryOptions = {},
+  ): Promise<import("./repository").Page<DraftRecord>> {
+    const normOwner = owner.toUpperCase().trim();
+    const limit = options.limit ?? 25;
+    const { paginate, PAGINATED_QUERY_ORDERINGS } = await import("./repository");
+
+    const drafts = await this.readDrafts(normOwner);
+    const spec = PAGINATED_QUERY_ORDERINGS.listDrafts;
+    return paginate(drafts, spec, { limit, after: options.after });
+  }
+
+  async getDraft(owner: string, draftId: string): Promise<DraftRecord | null> {
+    const drafts = await this.readDrafts(owner);
+    return drafts.find((d) => d.draftId === draftId) ?? null;
+  }
+
+  async createDraft(draft: DraftRecord): Promise<DraftRecord> {
+    const normOwner = draft.owner.toUpperCase().trim();
+    const drafts = await this.readDrafts(normOwner);
+    if (drafts.some((d) => d.draftId === draft.draftId)) {
+      throw new ApiError(409, "conflict", `A draft already exists for ${draft.draftId}`);
+    }
+    drafts.push(draft);
+    await this.kv.put(this.draftKey(normOwner), JSON.stringify(drafts));
+    return draft;
+  }
+
+  async updateDraft(draft: DraftRecord, expectedVersion: number): Promise<UpdateDraftResult> {
+    const normOwner = draft.owner.toUpperCase().trim();
+    const drafts = await this.readDrafts(normOwner);
+    const index = drafts.findIndex((d) => d.draftId === draft.draftId);
+    if (index < 0) {
+      return { updated: false, current: null };
+    }
+    const existing = drafts[index];
+    if (existing.version !== expectedVersion) {
+      return { updated: false, current: existing };
+    }
+    const updated = { ...draft, version: expectedVersion + 1 };
+    drafts[index] = updated;
+    await this.kv.put(this.draftKey(normOwner), JSON.stringify(drafts));
+    return { updated: true, draft: updated };
+  }
+
+  async deleteDraft(owner: string, draftId: string): Promise<void> {
+    const normOwner = owner.toUpperCase().trim();
+    const drafts = await this.readDrafts(normOwner);
+    const index = drafts.findIndex((d) => d.draftId === draftId);
+    if (index < 0) {
+      throw new ApiError(404, "not_found", `No draft found for ${draftId}`);
+    }
+    drafts.splice(index, 1);
+    await this.kv.put(this.draftKey(normOwner), JSON.stringify(drafts));
   }
 
   // ---------------------------------------------------------------------------

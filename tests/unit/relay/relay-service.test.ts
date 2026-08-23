@@ -1,4 +1,4 @@
-﻿import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { MemoryRelayPersistence } from "../../../src/services/relay/memory-persistence";
 import { RelayService, type RelayServiceConfig } from "../../../src/services/relay/relay-service";

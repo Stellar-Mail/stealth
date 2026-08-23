@@ -13,7 +13,7 @@ import { loadRuntimeConfig } from "@/config";
 import { protocolManifest } from "@/server/api/protocol";
 import { MemoryApiRepository } from "@/server/api/memory-repository";
 import { getVersionInfo } from "@/server/api/version";
-import { createRelayAdmissionEvaluator } from "@/services/relay/admission";
+import { createConfiguredAdmissionEvaluator } from "@/services/relay/policy-chain";
 import { ingestMailboxEnvelope } from "@/services/relay/ingest";
 import { InProcessRelayWorker } from "@/services/relay/in-process-worker";
 import { MemoryMailboxSyncPersistence } from "@/services/relay/memory-mailbox-sync";
@@ -32,7 +32,6 @@ import {
   handleRelaySubmit,
   handleRelayVersion,
 } from "@/services/relay/transport";
-import { getPolicyChainClient } from "@/services/stellar/policy-chain-client";
 
 const PORT = Number(process.env.PORT ?? 3000);
 
@@ -49,6 +48,8 @@ function buildConfig(): RelayServiceConfig {
       sorobanRpcUrl: config.network.sorobanRpcUrl,
       networkPassphrase: config.network.networkPassphrase,
     },
+    audience: process.env.STEALTH_RELAY_AUDIENCE ?? "relay:test.stealth",
+    policiesContractId: config.contract.policiesContractId,
   };
 }
 
@@ -60,6 +61,8 @@ function getService(): RelayService {
   if (service && mailboxSync) return service;
 
   const persistence = new MemoryRelayPersistence();
+  const repository = new MemoryApiRepository();
+  const runtime = loadRuntimeConfig();
   const mailboxPersistence = new MemoryMailboxSyncPersistence();
   mailboxSync = new MailboxSyncService(mailboxPersistence);
   worker = new InProcessRelayWorker(persistence, {
@@ -90,10 +93,13 @@ function getService(): RelayService {
   });
 
   service = new RelayService(persistence, worker, buildConfig(), {
-    admission: createRelayAdmissionEvaluator({
-      repository: new MemoryApiRepository(),
-      chainClient: getPolicyChainClient(),
+    evaluator: createConfiguredAdmissionEvaluator({
+      repository,
+      policiesContractId: runtime.contract.policiesContractId,
+      networkPassphrase: runtime.network.networkPassphrase,
+      sorobanRpcUrl: runtime.network.sorobanRpcUrl,
     }),
+    mailbox: repository,
   });
   void worker.start();
   return service;
