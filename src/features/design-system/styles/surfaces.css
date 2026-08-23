@@ -131,6 +131,51 @@
       linear-gradient(135deg, oklch(1 0 0 / 0.06), transparent 58%);
   }
 
+  .mail-preview-card--verified {
+    border-color: oklch(0.62 0.008 270 / 0.22);
+  }
+
+  .mail-preview-card__verified-reveal {
+    position: absolute;
+    z-index: 0;
+    right: 16%;
+    bottom: -18px;
+    left: 16%;
+    height: 34px;
+    border-radius: 999px 999px 0 0;
+    background:
+      radial-gradient(ellipse at center, oklch(0.72 0.008 270 / 0.36), transparent 68%),
+      linear-gradient(to top, oklch(0.4 0.006 270 / 0.28), transparent);
+    filter: blur(6px);
+    opacity: 0.5;
+    pointer-events: none;
+    transform: translateY(110%);
+    animation: mail-verified-reveal 620ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  @keyframes mail-verified-reveal {
+    0% {
+      opacity: 0;
+      transform: translateY(110%);
+    }
+
+    70% {
+      opacity: 0.7;
+    }
+
+    100% {
+      opacity: 0.5;
+      transform: translateY(0);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .mail-preview-card__verified-reveal {
+      animation: none;
+      transform: translateY(0);
+    }
+  }
+
   .mail-reader-atmosphere {
     background:
       radial-gradient(circle at 86% 6%, oklch(0.55 0.008 270 / 0.1), transparent 38%),

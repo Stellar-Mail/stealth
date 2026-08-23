@@ -15,6 +15,7 @@ import { MobileMailCard } from "./MobileMailCard";
 import { EmailTrustBadges } from "./EmailTrustBadges";
 import { SenderAvatar } from "./SenderAvatar";
 import { DROP_TARGET_FOLDERS, getDropRejectionReason } from "./useDragDrop";
+import { getTrustStates } from "./trust-state";
 import { computeVirtualWindow } from "./virtual-window";
 
 type FilterTab = "all" | "unread" | "flagged";
@@ -241,6 +242,7 @@ export function EmailList({
         {virtualStart > 0 && <li aria-hidden="true" style={{ height: virtualStart * rowHeight }} />}
         {virtualItems.map((e, idx) => {
           const active = selectedId === e.id;
+          const verifiedSender = getTrustStates(e).includes("verified");
 
           if (useMobile) {
             return (
@@ -266,14 +268,20 @@ export function EmailList({
                 transition={{ type: "spring", stiffness: 520, damping: 30 }}
                 aria-current={active ? "true" : undefined}
                 className={cn(
-                  "mail-preview-card group relative flex h-[60px] w-full items-center gap-3 rounded-[14px] border px-3 py-2 text-left transition-[background,border-color,box-shadow] duration-200",
+                  "mail-preview-card group relative flex h-[60px] w-full items-center gap-3 overflow-hidden rounded-[14px] border px-3 py-2 text-left transition-[background,border-color,box-shadow] duration-200",
                   active
                     ? "mail-preview-card--active"
                     : "border-white/[0.09] bg-[oklch(0.3_0.006_270/0.42)]",
+                  verifiedSender && "mail-preview-card--verified",
                 )}
               >
-                {showAvatars && <SenderAvatar email={e} size="md" unread={e.unread} />}
-                <div className="relative min-w-0 flex-1">
+                {verifiedSender && (
+                  <span aria-hidden="true" className="mail-preview-card__verified-reveal" />
+                )}
+                {showAvatars && (
+                  <SenderAvatar email={e} size="md" unread={e.unread} className="z-[1]" />
+                )}
+                <div className="relative z-[1] min-w-0 flex-1">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex min-w-0 items-center gap-1.5">
                       <span
