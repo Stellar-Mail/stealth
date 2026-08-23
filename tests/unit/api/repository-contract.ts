@@ -1,6 +1,6 @@
-﻿import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 
-import type { Contact, StoredEnvelope } from "../../../src/server/api/domain";
+import type { Contact, DraftRecord, StoredEnvelope } from "../../../src/server/api/domain";
 import type { ApiRepository } from "../../../src/server/api/repository";
 
 // Issue #1494: one reusable repository conformance suite that every adapter must
@@ -655,6 +655,122 @@ export function runRepositoryContractTests(
         expect(second.items[0].contactId).not.toBe(first.items[0].contactId);
 
         const last = await repo.listContacts(owner, {
+          limit: 5,
+          after: second.nextContinuationKey ?? undefined,
+        });
+        expect(last.items).toHaveLength(1);
+        expect(last.nextContinuationKey).toBeNull();
+      });
+    });
+
+    describe("drafts (BETA-058 / Issue #1965)", () => {
+      const otherOwner = `G${"C".repeat(55)}`;
+
+      function sampleDraft(id: string, overrides: Partial<DraftRecord> = {}): DraftRecord {
+        return {
+          draftId: id,
+          owner,
+          encryptedPayload: "ZW5jcnlwdGVkLWRhdGE=",
+          nonce: "bm9uY2UtZGF0YQ==",
+          tag: "dGFnLWRhdGE=",
+          algorithm: "AES-256-GCM",
+          version: 1,
+          createdAt: "2026-01-01T00:00:00.000Z",
+          updatedAt: "2026-01-01T00:00:00.000Z",
+          ...overrides,
+        };
+      }
+
+      it("returns null for a missing draft", async () => {
+        await expect(repo.getDraft(owner, "d_missing")).resolves.toBeNull();
+      });
+
+      it("round-trips a created draft keyed by draftId and isolated by owner", async () => {
+        const draft = sampleDraft("d_1");
+        const created = await repo.createDraft(draft);
+        expect(created).toMatchObject({
+          draftId: "d_1",
+          owner,
+          version: 1,
+          algorithm: "AES-256-GCM",
+        });
+
+        const fetched = await repo.getDraft(owner, "d_1");
+        expect(fetched).toMatchObject({
+          draftId: "d_1",
+          owner,
+          encryptedPayload: "ZW5jcnlwdGVkLWRhdGE=",
+        });
+
+        await expect(repo.getDraft(otherOwner, "d_1")).resolves.toBeNull();
+      });
+
+      it("rejects duplicate draftId creation with a 409 conflict", async () => {
+        await repo.createDraft(sampleDraft("d_dup"));
+        await expect(repo.createDraft(sampleDraft("d_dup"))).rejects.toMatchObject({
+          status: 409,
+          code: "conflict",
+        });
+      });
+
+      it("applies compare-and-swap updates when expectedVersion matches and increments version", async () => {
+        await repo.createDraft(sampleDraft("d_cas"));
+
+        const first = await repo.updateDraft(
+          sampleDraft("d_cas", { encryptedPayload: "bmV3LXBheWxvYWQ=" }),
+          1,
+        );
+        expect(first.updated).toBe(true);
+        if (first.updated) {
+          expect(first.draft.version).toBe(2);
+          expect(first.draft.encryptedPayload).toBe("bmV3LXBheWxvYWQ=");
+        }
+
+        const stale = await repo.updateDraft(sampleDraft("d_cas"), 1);
+        expect(stale.updated).toBe(false);
+        if (!stale.updated) {
+          expect(stale.current).not.toBeNull();
+          expect(stale.current?.version).toBe(2);
+        }
+      });
+
+      it("reports not-found CAS when the draft never existed", async () => {
+        const result = await repo.updateDraft(sampleDraft("d_ghost"), 1);
+        expect(result).toEqual({ updated: false, current: null });
+      });
+
+      it("deletes a draft and leaves other owners untouched", async () => {
+        await repo.createDraft(sampleDraft("d_del", { owner: otherOwner }));
+        await repo.createDraft(sampleDraft("d_keep"));
+
+        await repo.deleteDraft(owner, "d_keep");
+        await expect(repo.getDraft(owner, "d_keep")).resolves.toBeNull();
+        await expect(repo.getDraft(otherOwner, "d_del")).resolves.not.toBeNull();
+      });
+
+      it("lists drafts scoped to the owner with pagination", async () => {
+        for (let i = 0; i < 5; i += 1) {
+          await repo.createDraft(
+            sampleDraft(`d_page_${i}`, {
+              updatedAt: `2026-01-0${i + 1}T00:00:00.000Z`,
+            }),
+          );
+        }
+        await repo.createDraft(sampleDraft("d_other", { owner: otherOwner }));
+
+        const first = await repo.listDrafts(owner, { limit: 2 });
+        expect(first.items).toHaveLength(2);
+        expect(first.items.every((d) => d.owner === owner)).toBe(true);
+        expect(first.nextContinuationKey).not.toBeNull();
+
+        const second = await repo.listDrafts(owner, {
+          limit: 2,
+          after: first.nextContinuationKey ?? undefined,
+        });
+        expect(second.items).toHaveLength(2);
+        expect(second.items[0].draftId).not.toBe(first.items[0].draftId);
+
+        const last = await repo.listDrafts(owner, {
           limit: 5,
           after: second.nextContinuationKey ?? undefined,
         });

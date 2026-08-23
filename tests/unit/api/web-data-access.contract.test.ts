@@ -174,7 +174,10 @@ describe("query keys and cache invalidation rules", () => {
   });
 
   it("mutations invalidate the documented dependent queries", () => {
-    expect(cacheInvalidations.sessionLogout()).toEqual([["auth", "session"]]);
+    expect(cacheInvalidations.sessionLogout()).toEqual([
+      ["auth", "session"],
+      ["auth", "sessions"],
+    ]);
     expect(cacheInvalidations.tombstoneMessage("GABC")).toEqual([
       ["mailbox", "queue", "GABC"],
       ["mailbox", "sync", "GABC"],

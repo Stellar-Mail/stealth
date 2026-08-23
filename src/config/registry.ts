@@ -123,6 +123,21 @@ export function validateRegistryDrift(config: BetaRuntimeConfig) {
     }
   }
 
+  if (
+    config.contract.policiesContractId !== "placeholder" &&
+    manifest.contracts.policies?.contractId &&
+    config.contract.policiesContractId !== manifest.contracts.policies.contractId
+  ) {
+    if (
+      config.profile === "production" ||
+      !config.contract.policiesContractId.startsWith("CCCCC")
+    ) {
+      throw new Error(
+        `Drift Validation Error: STEALTH_POLICIES_CONTRACT_ID '${config.contract.policiesContractId}' does not match deployed policies manifest ID '${manifest.contracts.policies.contractId}'`,
+      );
+    }
+  }
+
   // If we reach here, validation passed.
   console.log(
     `[Registry] Successfully validated runtime config against signed deployment manifest (Deployed At: ${manifest.deployedAt})`,

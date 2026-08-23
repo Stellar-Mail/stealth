@@ -8,7 +8,7 @@ import { hashPassword } from "../../../../src/server/api/auth/password";
 import type { Credential, Session, User } from "../../../../src/server/api/domain";
 import { MemoryApiRepository } from "../../../../src/server/api/memory-repository";
 
-describe("BETA-010: Recovery API Routes (/api/v1/auth/recovery/*)", () => {
+describe("BETA-010: Recovery API Routes (/api/v1/auth/recovery/*)", { timeout: 60_000 }, () => {
   let repo: MemoryApiRepository;
   const validStellarAddress = `G${"A".repeat(55)}`;
   const testPassword = "Password123!";

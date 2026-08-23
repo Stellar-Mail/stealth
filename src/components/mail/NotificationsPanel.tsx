@@ -12,6 +12,7 @@ export function NotificationsPanel({
   open,
   onClose,
   anchorRect,
+  panelRef,
   onViewAll,
   notifications,
   onMarkRead,
@@ -20,6 +21,7 @@ export function NotificationsPanel({
   open: boolean;
   onClose: () => void;
   anchorRect: DOMRect | null;
+  panelRef?: React.Ref<HTMLDivElement>;
   onViewAll: () => void;
   notifications: InAppNotification[];
   onMarkRead: (id: string) => void;
@@ -49,9 +51,13 @@ export function NotificationsPanel({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
+            aria-hidden="true"
             className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-xl"
           />
           <motion.div
+            ref={panelRef}
+            role="dialog"
+            aria-label="Notifications"
             initial={{ opacity: 0, y: -8, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -8, scale: 0.96 }}
@@ -86,6 +92,7 @@ export function NotificationsPanel({
                 )}
                 <button
                   onClick={onClose}
+                  aria-label="Close notifications"
                   className="rounded-lg p-1.5 text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground"
                 >
                   <X className="h-4 w-4" />

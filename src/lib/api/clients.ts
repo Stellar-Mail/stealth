@@ -15,6 +15,7 @@ import type {
   ContactListResponse,
   DeliveryReceipt,
   KeyDirectoryRecord,
+  LifecycleAnchorRecord,
   MailboxDescriptor,
   MailboxSealedMessage,
   MailboxCountsResponse,
@@ -29,16 +30,21 @@ import type {
   PostageRecord,
   PublicProfile,
   PublicWalletStatus,
+  ReceiptRecord,
   RegistrationResponse,
   ResolvedIdentity,
   SenderRule,
   SessionBundle,
   UnknownSenderDecision,
   UnknownSenderRequest,
+  UnknownSenderRequestsResponse,
   AccountInfo,
   AccountProfileResponse,
   ProfileUpdateInput,
   ProfileUpdateResponse,
+  SearchQueryInput,
+  SearchResponseDto,
+  ActiveSessionDto,
 } from "./types";
 
 export interface ApiContext {
@@ -55,9 +61,11 @@ export interface TypedApi {
   policies: PoliciesClient;
   postage: PostageClient;
   receipts: ReceiptsClient;
+  lifecycle: LifecycleClient;
   contacts: ContactsClient;
   settings: SettingsClient;
   wallet: WalletClient;
+  search: SearchClient;
 }
 
 // ---------------------------------------------------------------------------
@@ -104,6 +112,18 @@ export class AuthClient {
 
   logoutAll(): Promise<{ success: boolean }> {
     return this.client.post<{ success: boolean }>("/auth/logout-all");
+  }
+
+  listSessions(signal?: AbortSignal): Promise<ActiveSessionDto[]> {
+    return this.client.get<ActiveSessionDto[]>("/auth/sessions", { signal });
+  }
+
+  revokeSession(id: string): Promise<{ success: boolean }> {
+    return this.client.post<{ success: boolean }>("/auth/sessions/revoke", { id });
+  }
+
+  revokeOthers(): Promise<{ success: boolean }> {
+    return this.client.post<{ success: boolean }>("/auth/sessions/revoke-others");
   }
 }
 
@@ -223,8 +243,11 @@ export class MailboxClient {
 export class RequestsClient {
   constructor(private readonly client: ApiClient) {}
 
-  list(signal?: AbortSignal): Promise<UnknownSenderRequest[]> {
-    return this.client.get<UnknownSenderRequest[]>("/requests", { signal });
+  list(
+    query?: { cursor?: string; limit?: number },
+    signal?: AbortSignal,
+  ): Promise<UnknownSenderRequestsResponse> {
+    return this.client.get<UnknownSenderRequestsResponse>("/requests", { query, signal });
   }
 
   decide(
@@ -366,6 +389,32 @@ export class ReceiptsClient {
   publish(input: DeliveryReceipt, signal?: AbortSignal): Promise<DeliveryReceipt> {
     return this.client.post<DeliveryReceipt>("/receipts", input, { signal });
   }
+
+  get(messageId: string, signal?: AbortSignal): Promise<ReceiptRecord> {
+    return this.client.get<ReceiptRecord>(`/receipts/${encodeURIComponent(messageId)}`, { signal });
+  }
+
+  markRead(messageId: string, signal?: AbortSignal): Promise<ReceiptRecord> {
+    return this.client.post<ReceiptRecord>(
+      `/receipts/${encodeURIComponent(messageId)}/read`,
+      undefined,
+      { signal },
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Lifecycle anchors (BETA-043)
+// ---------------------------------------------------------------------------
+
+export class LifecycleClient {
+  constructor(private readonly client: ApiClient) {}
+
+  get(messageId: string, signal?: AbortSignal): Promise<LifecycleAnchorRecord> {
+    return this.client.get<LifecycleAnchorRecord>(`/lifecycle/${encodeURIComponent(messageId)}`, {
+      signal,
+    });
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -449,6 +498,34 @@ export class WalletClient {
 }
 
 // ---------------------------------------------------------------------------
+// Search (Issue #1972 / BETA-065)
+// ---------------------------------------------------------------------------
+
+export class SearchClient {
+  constructor(private readonly client: ApiClient) {}
+
+  search(query: SearchQueryInput = {}, signal?: AbortSignal): Promise<SearchResponseDto> {
+    return this.client.get<SearchResponseDto>("/search", {
+      query: {
+        q: query.q,
+        folder: query.folder,
+        unread: query.unread,
+        starred: query.starred,
+        hasAttachments: query.hasAttachments,
+        sender: query.sender,
+        recipient: query.recipient,
+        afterDate: query.afterDate,
+        beforeDate: query.beforeDate,
+        includeDeleted: query.includeDeleted,
+        cursor: query.cursor,
+        limit: query.limit,
+      },
+      signal,
+    });
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Factory
 // ---------------------------------------------------------------------------
 
@@ -470,9 +547,11 @@ export function createTypedApi(options: CreateTypedApiOptions = {}): TypedApi {
     policies,
     postage: new PostageClient(client),
     receipts: new ReceiptsClient(client),
+    lifecycle: new LifecycleClient(client),
     contacts: new ContactsClient(client),
     settings: new SettingsClient(client, policies),
     wallet: new WalletClient(client),
+    search: new SearchClient(client),
   };
 }
 

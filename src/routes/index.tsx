@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 
+import { useBootstrap } from "@/features/identity";
 import { MailApp } from "@/features/mail";
+
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -21,12 +23,15 @@ export const Route = createFileRoute("/")({
 });
 
 function IndexPage() {
-  // BETA-012: the root route is a protected route. The root route guard
-  // (RouteGate) only ever lets authenticated, active visitors reach this page,
-  // so the app shell never renders in demo mode here. Demo mode lives on the
-  // isolated `/demo` route behind an explicit development-only flag.
-  //
   // BETA-053: this file is only the composition entrypoint. Mailbox
   // orchestration lives in `src/features/mail/shell`.
-  return <MailApp isDemoMode={false} />;
+  //
+  // In development builds the backend bindings are absent, so bootstrap never
+  // resolves an active session. Rather than bouncing to sign-in, render the
+  // mailbox with demo data so the UI is editable; auth routes stay reachable
+  // by URL. In production this is statically false.
+  const { branch } = useBootstrap();
+  const useDemo = import.meta.env.DEV && branch !== "active";
+  return <MailApp isDemoMode={useDemo} />;
 }
+

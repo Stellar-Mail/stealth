@@ -1,27 +1,17 @@
-import type {
+﻿import type {
   ChainMailboxPolicy,
   MailboxPolicy,
-  PolicySyncStatus,
   PolicyWriteIntent,
   PolicyWriteStatus,
   SenderRule,
   SenderRuleRecord,
-  SenderRuleWriteIntent,
 } from "./domain";
 import type { ApiRepository } from "./repository";
 import { defaultMailboxPolicy } from "./repository";
 import { ApiError } from "./errors";
-import type { PolicyChainClient } from "../../services/stellar/policy-chain-client";
-import { getPolicyChainClient } from "../../services/stellar/policy-chain-client";
-import { loadRuntimeConfig } from "../../config";
-import {
-  defaultAdmissionPolicy,
-  toAdmissionPolicy,
-  type AdmissionPolicySnapshot,
-} from "./policy-admission";
 
 // ---------------------------------------------------------------------------
-// BETA-023 (Issue #1930) — privacy-safe mailbox policy defaults
+// BETA-023 (Issue #1930) ΓÇö privacy-safe mailbox policy defaults
 //
 // The beta default routes unknown senders to a review request, charges no
 // (or the configured) minimum postage, and does not force delivery receipts.
@@ -86,13 +76,15 @@ export async function setMailboxPolicy(
   repository: ApiRepository,
   owner: string,
   policy: MailboxPolicy,
-  options: { requireReceipt?: boolean; expectedVersion?: number } = {},
+  options: { requireReceipt?: boolean; version?: number } = {},
 ) {
-  if (options.expectedVersion !== undefined) {
+  if (options.version !== undefined) {
     const intent = await repository.getPolicyWriteIntent(owner);
-    const actualVersion = intent?.offchainVersion ?? 0;
-    if (actualVersion !== options.expectedVersion) {
-      throw new ApiError(409, "conflict", "Mailbox policy version conflict");
+    const currentVersion = intent?.offchainVersion ?? 0;
+    if (options.version !== currentVersion) {
+      throw new ApiError(409, "conflict", "Policy has been modified since you last loaded it", {
+        details: { currentVersion, suppliedVersion: options.version },
+      });
     }
   }
 
@@ -106,48 +98,15 @@ export async function setMailboxPolicy(
     owner,
     policy: stored,
     source: "configured" as const,
-    version: (await repository.getPolicyWriteIntent(owner))?.offchainVersion ?? 1,
-    sync: await deriveMailboxSyncStatus(repository, owner),
   };
 }
 
 export async function getSenderRule(repository: ApiRepository, owner: string, sender: string) {
-  const record = await repository.getSenderRuleRecord(owner, sender);
-  const writeIntent = await repository.getSenderRuleWriteIntent(owner, sender);
   return {
     owner,
+    rule: await repository.getSenderRule(owner, sender),
     sender,
-    rule: record?.rule ?? "default",
-    version: record?.version ?? 0,
-    updatedAt: record?.updatedAt ?? null,
-    sync: deriveSenderSyncStatus(record, writeIntent, owner, sender),
-    writeIntent: summarizeSenderWriteIntent(writeIntent),
   };
-}
-
-export async function listSenderRules(repository: ApiRepository, owner: string) {
-  const records = await repository.listSenderRuleRecords(owner);
-  const intents = await repository.listSenderRuleWriteIntents(owner);
-  const intentBySender = new Map(intents.map((intent) => [intent.sender, intent]));
-
-  const items = await Promise.all(
-    records.map(async (entry) => ({
-      owner,
-      sender: entry.sender,
-      rule: entry.record.rule,
-      version: entry.record.version,
-      updatedAt: entry.record.updatedAt,
-      sync: deriveSenderSyncStatus(
-        entry.record,
-        intentBySender.get(entry.sender) ?? null,
-        owner,
-        entry.sender,
-      ),
-      writeIntent: summarizeSenderWriteIntent(intentBySender.get(entry.sender) ?? null),
-    })),
-  );
-
-  return { owner, items };
 }
 
 export async function setSenderRule(
@@ -155,136 +114,302 @@ export async function setSenderRule(
   owner: string,
   sender: string,
   rule: SenderRule,
-  options: { expectedVersion?: number } = {},
 ) {
-  const result = await repository.compareAndSetSenderRule(
-    owner,
-    sender,
-    rule,
-    options.expectedVersion,
-  );
-  if (result.outcome === "conflict") {
-    throw new ApiError(409, "conflict", "Sender rule version conflict");
-  }
-
-  await scheduleSenderRuleWrite(repository, owner, sender, rule);
-  const writeIntent = await repository.getSenderRuleWriteIntent(owner, sender);
-
   return {
     owner,
+    rule: await repository.setSenderRule(owner, sender, rule),
     sender,
-    rule,
-    version: result.record.version,
-    updatedAt: result.record.updatedAt,
-    sync: deriveSenderSyncStatus(result.record, writeIntent, owner, sender),
-    writeIntent: summarizeSenderWriteIntent(writeIntent),
   };
 }
 
-function summarizeSenderWriteIntent(intent: SenderRuleWriteIntent | null) {
-  if (!intent) return null;
-  return {
-    status: intent.status,
-    version: intent.offchainVersion,
-    scheduledAt: intent.scheduledAt,
-    updatedAt: intent.updatedAt,
-    failureCount: intent.failureCount,
-    lastError: intent.lastError,
-    txHash: intent.txHash,
-  };
-}
+/**
+ * Stable policy-decision reason codes. These match the Policies contract
+ * `PolicyReason` variants (snake_case) so off-chain evaluation, relay
+ * admission, and on-chain `evaluate` stay comparable.
+ */
+export type PolicyReasonCode =
+  | "sender_allowed"
+  | "sender_blocked"
+  | "unknown_senders_disabled"
+  | "verification_required"
+  | "receipt_required"
+  | "insufficient_postage"
+  | "policy_satisfied"
+  | "tier_satisfied";
 
-function deriveSenderSyncStatus(
-  record: SenderRuleRecord | null,
-  intent: SenderRuleWriteIntent | null,
-  owner: string,
-  sender: string,
-): PolicySyncStatus {
-  if (!intent) return "confirmed";
-  if (intent.status === "confirmed") return "confirmed";
-  if (intent.status === "failed") return "failed";
-  if (intent.status === "pending" || intent.status === "submitted") return "pending";
-  void owner;
-  void sender;
-  void record;
-  return "pending";
-}
+/**
+ * Sender-facing admission class used by live relay admission (BETA-036).
+ *
+ * - trusted  : explicit allow rule
+ * - request  : unknown sender admitted for review (no postage due)
+ * - verified : sender must present a verified identity or receipt
+ * - priced   : postage / sender-tier path (paid or still short)
+ * - blocked  : explicit block or unknown senders disabled
+ */
+export type PolicyDecisionKind = "trusted" | "request" | "verified" | "priced" | "blocked";
 
-async function deriveMailboxSyncStatus(
-  repository: ApiRepository,
-  owner: string,
-): Promise<PolicySyncStatus> {
-  const intent = await repository.getPolicyWriteIntent(owner);
-  if (!intent) return "confirmed";
-  if (intent.status === "confirmed") return "confirmed";
-  if (intent.status === "failed") return "failed";
-  return "pending";
-}
-
-export function deriveReconciliationSyncStatus(state: PolicyReconciliationState): PolicySyncStatus {
-  switch (state) {
-    case "synced":
-      return "confirmed";
-    case "diverged":
-      return "drift";
-    case "pending_write":
-      return "pending";
-    default:
-      return "pending";
+export function policyDecisionKind(
+  reason: PolicyReasonCode,
+  requiredPostage = "0",
+): PolicyDecisionKind {
+  switch (reason) {
+    case "sender_allowed":
+      return "trusted";
+    case "sender_blocked":
+    case "unknown_senders_disabled":
+      return "blocked";
+    case "verification_required":
+    case "receipt_required":
+      return "verified";
+    case "insufficient_postage":
+    case "tier_satisfied":
+      return "priced";
+    case "policy_satisfied":
+      return BigInt(requiredPostage) > 0n ? "priced" : "request";
   }
+}
+
+export interface MailboxPolicyEvaluation {
+  allowed: boolean;
+  policy: MailboxPolicy;
+  source: "configured" | "default";
+  reason: PolicyReasonCode;
+  rule: SenderRule;
+  kind: PolicyDecisionKind;
+  requiredPostage: string;
+  policyVersion: number;
+  versionedRule?: SenderRuleRecord;
+}
+
+export interface EvaluateMailboxPolicyInput {
+  owner: string;
+  postage: string;
+  sender: string;
+  verified: boolean;
+  /** Whether the submission includes a delivery-receipt commitment. */
+  receipt?: boolean;
+  /**
+   * Sender-specific minimum postage from the Policies contract tier map.
+   * When set, evaluation follows the on-chain tier branch after identity checks.
+   */
+  senderTier?: string | null;
+}
+
+function decision(base: Omit<MailboxPolicyEvaluation, "kind">): MailboxPolicyEvaluation {
+  return {
+    ...base,
+    kind: policyDecisionKind(base.reason, base.requiredPostage),
+  };
 }
 
 export async function evaluateMailboxPolicy(
   repository: ApiRepository,
-  input: {
-    owner: string;
-    postage: string;
-    sender: string;
-    verified: boolean;
-  },
-) {
-  const rule = await repository.getSenderRule(input.owner, input.sender);
+  input: EvaluateMailboxPolicyInput,
+): Promise<MailboxPolicyEvaluation> {
   const { policy, source } = await getMailboxPolicy(repository, input.owner);
-  if (rule === "allow")
-    return { allowed: true, policy, source, reason: "sender_allowed" as const, rule };
-  if (rule === "block")
-    return { allowed: false, policy, source, reason: "sender_blocked" as const, rule };
+  const intent = await repository.getPolicyWriteIntent(input.owner);
+  const policyVersion = intent?.offchainVersion ?? 0;
+  const requireReceipt = intent?.policy.requireReceipt ?? false;
+  const mailboxMinimum = policy.minimumPostage;
+  const receipt = input.receipt ?? false;
+
+  // BETA-037: Check versioned sender rule first; fall back to legacy rule.
+  const record = await repository.getSenderRuleRecord(input.owner, input.sender);
+  if (record) {
+    switch (record.rule) {
+      case "allow":
+        return decision({
+          allowed: true,
+          policy,
+          source,
+          reason: "sender_allowed",
+          rule: record.rule,
+          requiredPostage: "0",
+          policyVersion,
+          versionedRule: record,
+        });
+      case "block":
+        return decision({
+          allowed: false,
+          policy,
+          source,
+          reason: "sender_blocked",
+          rule: record.rule,
+          requiredPostage: mailboxMinimum,
+          policyVersion,
+          versionedRule: record,
+        });
+      case "verify": {
+        if (!input.verified) {
+          return decision({
+            allowed: false,
+            policy,
+            source,
+            reason: "verification_required",
+            rule: record.rule,
+            requiredPostage: mailboxMinimum,
+            policyVersion,
+            versionedRule: record,
+          });
+        }
+        if (BigInt(input.postage) < BigInt(policy.minimumPostage)) {
+          return decision({
+            allowed: false,
+            policy,
+            source,
+            reason: "insufficient_postage",
+            rule: record.rule,
+            requiredPostage: mailboxMinimum,
+            policyVersion,
+            versionedRule: record,
+          });
+        }
+        return decision({
+          allowed: true,
+          policy,
+          source,
+          reason: "policy_satisfied",
+          rule: record.rule,
+          requiredPostage: mailboxMinimum,
+          policyVersion,
+          versionedRule: record,
+        });
+      }
+      case "price": {
+        const minPostage = record.pricePayload?.minimumPostage ?? "0";
+        if (BigInt(input.postage) < BigInt(minPostage)) {
+          return decision({
+            allowed: false,
+            policy,
+            source,
+            reason: "insufficient_postage",
+            rule: record.rule,
+            requiredPostage: minPostage,
+            policyVersion,
+            versionedRule: record,
+          });
+        }
+        if (policy.requireVerified && !input.verified) {
+          return decision({
+            allowed: false,
+            policy,
+            source,
+            reason: "verification_required",
+            rule: record.rule,
+            requiredPostage: minPostage,
+            policyVersion,
+            versionedRule: record,
+          });
+        }
+        return decision({
+          allowed: true,
+          policy,
+          source,
+          reason: "policy_satisfied",
+          rule: record.rule,
+          requiredPostage: minPostage,
+          policyVersion,
+          versionedRule: record,
+        });
+      }
+    }
+  }
+
+  // Legacy / default-rule fallback (contract-faithful tree for relay admission).
+  const rule = await repository.getSenderRule(input.owner, input.sender);
+
+  if (rule === "allow") {
+    return decision({
+      allowed: true,
+      policy,
+      source,
+      reason: "sender_allowed",
+      rule,
+      requiredPostage: "0",
+      policyVersion,
+    });
+  }
+  if (rule === "block") {
+    return decision({
+      allowed: false,
+      policy,
+      source,
+      reason: "sender_blocked",
+      rule,
+      requiredPostage: mailboxMinimum,
+      policyVersion,
+    });
+  }
 
   if (!policy.allowUnknown) {
-    return { allowed: false, policy, source, reason: "unknown_senders_disabled" as const, rule };
+    return decision({
+      allowed: false,
+      policy,
+      source,
+      reason: "unknown_senders_disabled",
+      rule,
+      requiredPostage: mailboxMinimum,
+      policyVersion,
+    });
   }
   if (policy.requireVerified && !input.verified) {
-    return { allowed: false, policy, source, reason: "verification_required" as const, rule };
+    return decision({
+      allowed: false,
+      policy,
+      source,
+      reason: "verification_required",
+      rule,
+      requiredPostage: input.senderTier ?? mailboxMinimum,
+      policyVersion,
+    });
   }
+  if (requireReceipt && !receipt) {
+    return decision({
+      allowed: false,
+      policy,
+      source,
+      reason: "receipt_required",
+      rule,
+      requiredPostage: input.senderTier ?? mailboxMinimum,
+      policyVersion,
+    });
+  }
+
+  if (input.senderTier != null) {
+    const requiredPostage = input.senderTier;
+    const allowed = BigInt(input.postage) >= BigInt(requiredPostage);
+    return decision({
+      allowed,
+      policy,
+      source,
+      reason: allowed ? "tier_satisfied" : "insufficient_postage",
+      rule,
+      requiredPostage,
+      policyVersion,
+    });
+  }
+
   if (BigInt(input.postage) < BigInt(policy.minimumPostage)) {
-    return { allowed: false, policy, source, reason: "insufficient_postage" as const, rule };
+    return decision({
+      allowed: false,
+      policy,
+      source,
+      reason: "insufficient_postage",
+      rule,
+      requiredPostage: mailboxMinimum,
+      policyVersion,
+    });
   }
 
-  return { allowed: true, policy, source, reason: "policy_satisfied" as const, rule };
-}
-
-/**
- * Loads the current off-chain policy snapshot used by relay admission
- * (Issue #1943 BETA-036). Version comes from the durable write intent so a
- * pending local change is visible even before the chain confirms it.
- */
-export async function loadOffchainAdmissionSnapshot(
-  repository: ApiRepository,
-  owner: string,
-  sender: string,
-): Promise<AdmissionPolicySnapshot> {
-  const stored = await repository.getPolicy(owner);
-  const intent = await repository.getPolicyWriteIntent(owner);
-  const rule = await repository.getSenderRule(owner, sender);
-  const policy = stored
-    ? toAdmissionPolicy(stored, intent?.policy.requireReceipt ?? false)
-    : (intent?.policy ?? defaultAdmissionPolicy());
-  return {
+  return decision({
+    allowed: true,
     policy,
-    version: intent?.offchainVersion ?? 0,
+    source,
+    reason: "policy_satisfied",
     rule,
-    tier: null,
-  };
+    requiredPostage: mailboxMinimum,
+    policyVersion,
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -414,107 +539,6 @@ function sanitizeFailureReason(message: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// Durable sender-rule write intents (BETA-037)
-// ---------------------------------------------------------------------------
-
-export async function getSenderRuleWriteIntent(
-  repository: ApiRepository,
-  owner: string,
-  sender: string,
-): Promise<SenderRuleWriteIntent | null> {
-  return repository.getSenderRuleWriteIntent(owner, sender);
-}
-
-export async function scheduleSenderRuleWrite(
-  repository: ApiRepository,
-  owner: string,
-  sender: string,
-  rule: SenderRule,
-  now = new Date(),
-): Promise<SenderRuleWriteIntent> {
-  const iso = now.toISOString();
-  const existing = await repository.getSenderRuleWriteIntent(owner, sender);
-
-  if (existing && existing.rule === rule) {
-    if (existing.status === "failed") {
-      return repository.setSenderRuleWriteIntent({
-        ...existing,
-        status: "pending",
-        updatedAt: iso,
-        lastError: null,
-      });
-    }
-    return existing;
-  }
-
-  const offchainVersion = existing ? existing.offchainVersion + 1 : 1;
-  const intent: SenderRuleWriteIntent = {
-    owner,
-    sender,
-    rule,
-    offchainVersion,
-    status: "pending",
-    scheduledAt: iso,
-    updatedAt: iso,
-    failureCount: existing?.failureCount ?? 0,
-    lastError: null,
-    txHash: null,
-  };
-  return repository.setSenderRuleWriteIntent(intent);
-}
-
-export async function submitSenderRuleWrite(
-  repository: ApiRepository,
-  owner: string,
-  sender: string,
-  now = new Date(),
-): Promise<SenderRuleWriteIntent | null> {
-  const existing = await repository.getSenderRuleWriteIntent(owner, sender);
-  if (!existing || existing.status !== "pending") return existing;
-  return repository.setSenderRuleWriteIntent({
-    ...existing,
-    status: "submitted",
-    updatedAt: now.toISOString(),
-  });
-}
-
-export async function confirmSenderRuleWrite(
-  repository: ApiRepository,
-  owner: string,
-  sender: string,
-  txHash?: string,
-  now = new Date(),
-): Promise<SenderRuleWriteIntent | null> {
-  const existing = await repository.getSenderRuleWriteIntent(owner, sender);
-  if (!existing) return null;
-  return repository.setSenderRuleWriteIntent({
-    ...existing,
-    status: "confirmed",
-    updatedAt: now.toISOString(),
-    txHash: txHash ?? existing.txHash,
-    lastError: null,
-  });
-}
-
-export async function failSenderRuleWrite(
-  repository: ApiRepository,
-  owner: string,
-  sender: string,
-  message: string,
-  now = new Date(),
-): Promise<SenderRuleWriteIntent | null> {
-  const existing = await repository.getSenderRuleWriteIntent(owner, sender);
-  if (!existing) return null;
-  return repository.setSenderRuleWriteIntent({
-    ...existing,
-    status: "failed",
-    updatedAt: now.toISOString(),
-    failureCount: existing.failureCount + 1,
-    lastError: sanitizeFailureReason(message),
-  });
-}
-
-// ---------------------------------------------------------------------------
 // Reconciliation state: API policy version vs chain policy version.
 // ---------------------------------------------------------------------------
 
@@ -563,21 +587,13 @@ export async function getPolicyReconciliation(
   repository: ApiRepository,
   owner: string,
   chain: PolicyReconciliationChainState = {},
-  chainClient: PolicyChainClient = getPolicyChainClient(loadRuntimeConfig()),
 ): Promise<PolicyReconciliation> {
-  let chainPolicy = chain.policy ?? null;
-  let chainVersion = chain.version ?? null;
-
-  if (chainVersion === null && chainPolicy === null) {
-    const snapshot = await chainClient.readMailboxPolicy(owner);
-    chainPolicy = snapshot.policy;
-    chainVersion = snapshot.version;
-  }
-
   const stored = await repository.getPolicy(owner);
   const intent = await repository.getPolicyWriteIntent(owner);
   const { policy, source } = await getMailboxPolicy(repository, owner);
 
+  const chainPolicy = chain.policy ?? null;
+  const chainVersion = chain.version ?? null;
   const offchainVersion = intent?.offchainVersion ?? null;
 
   const writeIntent = intent
@@ -632,39 +648,4 @@ export async function getPolicyReconciliation(
     return { ...base, state: "diverged" as const };
   }
   return { ...base, state: "synced" as const };
-}
-
-export async function getSenderRuleReconciliation(
-  repository: ApiRepository,
-  owner: string,
-  sender: string,
-  chainClient: PolicyChainClient = getPolicyChainClient(loadRuntimeConfig()),
-) {
-  const record = await repository.getSenderRuleRecord(owner, sender);
-  const writeIntent = await repository.getSenderRuleWriteIntent(owner, sender);
-  const chainRule = await chainClient.readSenderRule(owner, sender);
-  const offchainRule = record?.rule ?? "default";
-
-  let state: "pending_write" | "synced" | "diverged" = "synced";
-  if (writeIntent && writeIntent.status !== "confirmed") {
-    state = "pending_write";
-  } else if (chainRule !== offchainRule) {
-    state = "diverged";
-  }
-
-  return {
-    owner,
-    sender,
-    state,
-    offchain: {
-      rule: offchainRule,
-      version: record?.version ?? 0,
-    },
-    chain: {
-      rule: chainRule,
-    },
-    writeIntent: summarizeSenderWriteIntent(writeIntent),
-    sync:
-      state === "diverged" ? "drift" : deriveSenderSyncStatus(record, writeIntent, owner, sender),
-  };
 }

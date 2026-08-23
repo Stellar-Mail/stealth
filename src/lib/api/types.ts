@@ -244,6 +244,15 @@ export interface UnknownSenderRequest {
   status: UnknownSenderRequestStatus;
   decidedAt?: string;
   decision?: UnknownSenderDecision;
+  postageAmount?: string;
+  verifiedSender?: boolean;
+  proofSummary?: string;
+}
+
+export interface UnknownSenderRequestsResponse {
+  items: UnknownSenderRequest[];
+  nextCursor: string | null;
+  hasMore: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -361,6 +370,39 @@ export interface DeliveryReceipt {
   sender: string;
 }
 
+/** Delivery/read receipt persisted by the receipts service (BETA-044). */
+export interface ReceiptRecord {
+  deliveredAt: string;
+  messageId: string;
+  readAt: string | null;
+  recipient: string;
+  sender: string;
+  payloadHash?: string;
+  protocolVersion?: number;
+  txHash?: string | null;
+  chainStatus?: "pending" | "confirmed" | "failed" | null;
+  ledgerSeq?: number | null;
+  confirmedAt?: string | null;
+}
+
+export type LifecycleAnchorStatus = "pending" | "submitted" | "confirmed" | "failed";
+
+/** On-chain lifecycle anchor for a message (BETA-043). */
+export interface LifecycleAnchorRecord {
+  messageId: string;
+  sender: string;
+  recipient: string;
+  amount: string;
+  verified: boolean;
+  receiptRequired: boolean;
+  status: LifecycleAnchorStatus;
+  scheduledAt: string;
+  updatedAt: string;
+  failureCount: number;
+  lastError: string | null;
+  txHash: string | null;
+}
+
 // ---------------------------------------------------------------------------
 // Contacts
 // ---------------------------------------------------------------------------
@@ -462,4 +504,75 @@ export interface PublicWalletStatus {
   lastSyncedAt: string | null;
   stale: boolean;
   freshness: WalletStatusFreshness;
+}
+
+// ---------------------------------------------------------------------------
+// Search (Issue #1972 / BETA-065)
+// ---------------------------------------------------------------------------
+
+export interface SearchFilterQuery {
+  folder?: string;
+  unread?: boolean;
+  starred?: boolean;
+  hasAttachments?: boolean;
+  sender?: string;
+  recipient?: string;
+  afterDate?: string;
+  beforeDate?: string;
+  includeDeleted?: boolean;
+}
+
+export interface SearchQueryInput extends SearchFilterQuery {
+  q?: string;
+  cursor?: string;
+  limit?: number;
+}
+
+export interface SearchHighlightItem {
+  field: string;
+  snippet: string;
+}
+
+export interface SearchResultItemDto {
+  type: "message" | "contact" | "draft";
+  id: string;
+  messageId?: string;
+  senderId: string;
+  recipientId: string;
+  folder: string;
+  subject?: string;
+  preview?: string;
+  createdAt: string;
+  unread: boolean;
+  starred: boolean;
+  hasAttachments: boolean;
+  isTombstone: boolean;
+  deletedAt?: string | null;
+  highlights: SearchHighlightItem[];
+}
+
+export interface SearchIndexLimitationsDto {
+  serverIndexLimited: boolean;
+  encryptedBodyIndexed: boolean;
+  safeMetadataFields: string[];
+  notice: string;
+}
+
+export interface SearchResponseDto {
+  items: SearchResultItemDto[];
+  nextCursor: string | null;
+  hasMore: boolean;
+  totalMatches: number;
+  query: string;
+  parsedFilters: Record<string, unknown>;
+  indexLimitations: SearchIndexLimitationsDto;
+}
+
+export interface ActiveSessionDto {
+  id: string;
+  device: string;
+  region: string;
+  created: string;
+  lastUsed: string;
+  isCurrent: boolean;
 }

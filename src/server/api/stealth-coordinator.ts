@@ -26,7 +26,10 @@ import type {
   VerificationToken,
   Wallet,
   OnboardingDraftRecord,
+  AccountDeletionRequest,
+  AccountExport,
 } from "./domain";
+import { toPublicProfile, toPublicUser } from "./domain";
 import type {
   AcquireIdempotencyResult,
   ConsumeVerificationTokenResult,
@@ -72,6 +75,25 @@ export class StealthCoordinator extends DurableObjectBase {
 
   constructor(ctx: DurableObjectState, env: any) {
     super(ctx, env);
+  }
+
+  /** Run the reviewed identity migration plan against this DO's own storage. */
+  async runIdentityMigrations(
+    command: MigrationCommand,
+    options: MigrationRunOptions = {},
+  ): Promise<MigrationReport> {
+    const storage = createDurableObjectMigrationStorage(this.ctx);
+    const families = selectFamilies(identityRecordFamilies, options);
+    switch (command) {
+      case "dry-run":
+        return dryRun(storage, families, options);
+      case "forward":
+        return forward(storage, families, options);
+      case "rollback":
+        return rollback(storage, families, options);
+      case "integrity-check":
+        return integrityCheck(storage, families, options);
+    }
   }
 
   private runExclusive<T>(lockKey: string, fn: () => Promise<T>): Promise<T> {
@@ -356,6 +378,99 @@ export class StealthCoordinator extends DurableObjectBase {
     return credential;
   }
 
+  async getAccountDeletionRequest(userId: string): Promise<AccountDeletionRequest | null> {
+    return (
+      ((await this.ctx.storage.get(`account-deletion:${userId}`)) as AccountDeletionRequest) ?? null
+    );
+  }
+
+  async setAccountDeletionRequest(
+    request: AccountDeletionRequest,
+  ): Promise<AccountDeletionRequest> {
+    await this.ctx.storage.put(`account-deletion:${request.userId}`, request);
+    return request;
+  }
+
+  async exportAccount(userId: string, address: string, now = new Date()): Promise<AccountExport> {
+    const user = await this.getUserById(userId);
+    if (!user || user.address.toUpperCase() !== address.toUpperCase()) {
+      throw new ApiError(404, "not_found", "Account data not found");
+    }
+    const envelopeRecords = await this.ctx.storage.list({ prefix: "envelope:" });
+    const mailbox = [...envelopeRecords.values()].filter(
+      (value) => (value as StoredEnvelope).recipientId.toUpperCase() === address.toUpperCase(),
+    ) as StoredEnvelope[];
+    const requestRecords = await this.ctx.storage.list({ prefix: "sender-request:" });
+    const senderRequests = [...requestRecords.values()].filter(
+      (value) => (value as UnknownSenderRequest).recipient.toUpperCase() === address.toUpperCase(),
+    ) as UnknownSenderRequest[];
+    const profile = await this.getProfile(userId);
+    return {
+      format: "stealth-account-export-v1",
+      generatedAt: now.toISOString(),
+      account: toPublicUser(user),
+      profile: profile ? toPublicProfile(profile) : null,
+      contacts: [],
+      mailbox,
+      senderRequests,
+      publicKeys: [],
+      ciphertextReferences: mailbox.map((envelope) => ({
+        messageId: envelope.messageId,
+        objectKey: envelope.objectRef ?? null,
+        contentCommitment: envelope.contentCommitment ?? null,
+        deletedAt: envelope.deletedAt ?? null,
+      })),
+      onChainLimitations: [
+        "Stellar testnet transactions, account history, contract events, and published lifecycle commitments are immutable and are not erased.",
+        "This export contains ciphertext and references only; Stealth never exports plaintext message content or credentials.",
+      ],
+    };
+  }
+
+  async deleteAccountData(userId: string, address: string, now = new Date()) {
+    return this.runExclusive(`account-deletion:${userId}`, async () => {
+      const user = await this.getUserById(userId);
+      if (!user || user.address.toUpperCase() !== address.toUpperCase()) {
+        throw new ApiError(404, "not_found", "Account data not found");
+      }
+      await this.deleteUserSessions(userId);
+      for (const prefix of [
+        "profile:",
+        "credential:",
+        "onboarding:",
+        "provisioning:",
+        "wallet:",
+        "managed-wallet:",
+      ]) {
+        await this.ctx.storage.delete(`${prefix}${userId}`);
+      }
+      const envelopes = await this.ctx.storage.list({ prefix: "envelope:" });
+      for (const [key, value] of envelopes) {
+        const envelope = value as StoredEnvelope;
+        if (envelope.recipientId.toUpperCase() === address.toUpperCase()) {
+          await this.ctx.storage.put(key, { ...envelope, deletedAt: now.toISOString() });
+        }
+      }
+      await this.ctx.storage.delete(`user:email:${user.email.toLowerCase()}`);
+      await this.ctx.storage.delete(`user:username:${user.username.toLowerCase()}`);
+      await this.ctx.storage.put(`user:id:${userId}`, {
+        ...user,
+        email: `deleted-${userId}@invalid.example`,
+        username: `deleted-${userId}`.slice(0, 30),
+        status: "deactivated",
+        updatedAt: now.toISOString(),
+        version: user.version + 1,
+      });
+      return {
+        deleted: ["profile", "credential", "sessions", "mailbox ciphertext access"],
+        retained: [
+          "testnet account and transaction history",
+          "on-chain contract events and lifecycle commitments",
+        ],
+      };
+    });
+  }
+
   // ---------------------------------------------------------------------------
   // BETA-014: Transactional account-provisioning DO methods
   //
@@ -557,6 +672,37 @@ export class StealthCoordinator extends DurableObjectBase {
     const deletes: string[] = [];
     for (const key of sessionIndex.keys()) {
       deletes.push(key, `session:${key.slice(prefix.length)}`);
+    }
+    if (deletes.length > 0) {
+      await this.ctx.storage.delete(deletes);
+    }
+  }
+
+  async listUserSessions(userId: string): Promise<Session[]> {
+    const prefix = `session:user:${userId}:`;
+    const sessionIndex = await this.ctx.storage.list({ prefix });
+    const keys: string[] = [];
+    for (const key of sessionIndex.keys()) {
+      keys.push(`session:${key.slice(prefix.length)}`);
+    }
+    if (keys.length === 0) return [];
+    const sessionsMap = (await this.ctx.storage.get(keys)) as Map<string, Session>;
+    const sessions: Session[] = [];
+    for (const s of sessionsMap.values()) {
+      if (s) sessions.push(s);
+    }
+    return sessions;
+  }
+
+  async deleteOtherUserSessions(userId: string, currentSessionId: string): Promise<void> {
+    const prefix = `session:user:${userId}:`;
+    const sessionIndex = await this.ctx.storage.list({ prefix });
+    const deletes: string[] = [];
+    for (const key of sessionIndex.keys()) {
+      const sessionId = key.slice(prefix.length);
+      if (sessionId !== currentSessionId) {
+        deletes.push(key, `session:${sessionId}`);
+      }
     }
     if (deletes.length > 0) {
       await this.ctx.storage.delete(deletes);
@@ -965,6 +1111,35 @@ export class StealthCoordinator extends DurableObjectBase {
     return matches.slice(0, limit);
   }
 
+  // ---------------------------------------------------------------------------
+  // BETA-037 (Issue #1944): versioned sender rule records
+  // ---------------------------------------------------------------------------
+
+  async listSenderRuleRecords(
+    owner: string,
+    options?: { limit?: number; after?: string },
+  ): Promise<{ records: import("./domain").SenderRuleRecord[]; nextCursor?: string }> {
+    const limit = options?.limit ?? 50;
+    const records: import("./domain").SenderRuleRecord[] = [];
+    const all = (await this.ctx.storage.list({
+      prefix: `sender-rule-record:${owner}:`,
+    })) as Map<string, import("./domain").SenderRuleRecord>;
+    for (const record of all.values()) {
+      if (record && record.owner === owner) {
+        records.push(record);
+      }
+    }
+    records.sort((a, b) => a.sender.localeCompare(b.sender));
+    let startIndex = 0;
+    if (options?.after) {
+      startIndex = records.findIndex((r) => r.sender === options.after) + 1;
+    }
+    const page = records.slice(startIndex, startIndex + limit);
+    const nextCursor =
+      startIndex + limit < records.length ? page[page.length - 1]?.sender : undefined;
+    return { records: page, nextCursor };
+  }
+
   async listRecipientEnvelopes(
     recipient: string,
     options: import("./repository").MailboxQueryOptions = {},
@@ -1068,6 +1243,96 @@ export class StealthCoordinator extends DurableObjectBase {
       await this.ctx.storage.put(`envelope:${messageId}`, updated);
       return updated;
     });
+  }
+
+  async searchMailbox(
+    actor: string,
+    options: import("./repository").SearchMailboxQueryOptions = {},
+  ): Promise<import("./repository").Page<StoredEnvelope>> {
+    const { paginate, PAGINATED_QUERY_ORDERINGS } = await import("./repository");
+    const { readMailboxFlags } = await import("./mailbox-live");
+    const normActor = actor.toUpperCase().trim();
+    const limit = options.limit ?? 25;
+    const folderFilter = options.folder;
+    const includeDeleted = options.includeDeleted ?? folderFilter === "trash";
+    const query = options.query?.trim().toLowerCase();
+
+    const envelopesMap = (await this.ctx.storage.list({
+      prefix: "envelope:",
+    })) as Map<string, StoredEnvelope>;
+
+    const filtered: StoredEnvelope[] = [];
+    for (const env of envelopesMap.values()) {
+      if (!env || !env.recipientId || !env.senderId) continue;
+      const isRecipient = env.recipientId.toUpperCase().trim() === normActor;
+      const isSender = env.senderId.toUpperCase().trim() === normActor;
+      if (!isRecipient && !isSender) continue;
+
+      const isDeleted = Boolean(env.deletedAt);
+      if (isDeleted && !includeDeleted) continue;
+
+      const flags = readMailboxFlags(env);
+      if (folderFilter && folderFilter !== "all" && flags.folder !== folderFilter) continue;
+
+      if (options.unread !== undefined && flags.unread !== options.unread) continue;
+      if (options.starred !== undefined && flags.starred !== options.starred) continue;
+
+      if (options.hasAttachments !== undefined) {
+        const metadata =
+          env.metadata && typeof env.metadata === "object"
+            ? (env.metadata as Record<string, unknown>)
+            : {};
+        const attachments = Array.isArray(metadata.attachments) ? metadata.attachments : [];
+        const has = attachments.length > 0;
+        if (has !== options.hasAttachments) continue;
+      }
+
+      if (options.sender) {
+        const normSender = options.sender.toLowerCase().trim();
+        const headers = (env.protectedHeaders ?? {}) as Record<string, unknown>;
+        const senderMatch =
+          env.senderId.toLowerCase().includes(normSender) ||
+          (typeof headers.from === "string" && headers.from.toLowerCase().includes(normSender));
+        if (!senderMatch) continue;
+      }
+
+      if (options.recipient) {
+        const normRecipient = options.recipient.toLowerCase().trim();
+        const headers = (env.protectedHeaders ?? {}) as Record<string, unknown>;
+        const recipientMatch =
+          env.recipientId.toLowerCase().includes(normRecipient) ||
+          (typeof headers.to === "string" && headers.to.toLowerCase().includes(normRecipient));
+        if (!recipientMatch) continue;
+      }
+
+      if (options.afterDate && env.createdAt < options.afterDate) continue;
+      if (options.beforeDate && env.createdAt > options.beforeDate) continue;
+
+      if (query) {
+        const headers = (env.protectedHeaders ?? {}) as Record<string, unknown>;
+        const metadata = (env.metadata ?? {}) as Record<string, unknown>;
+        const mailboxMeta = (metadata.mailbox ?? {}) as Record<string, unknown>;
+        const labels = Array.isArray(mailboxMeta.labels) ? mailboxMeta.labels.join(" ") : "";
+        const haystack = [
+          env.senderId,
+          env.recipientId,
+          env.messageId,
+          typeof headers.subject === "string" ? headers.subject : "",
+          typeof headers.from === "string" ? headers.from : "",
+          typeof headers.to === "string" ? headers.to : "",
+          labels,
+        ]
+          .join(" ")
+          .toLowerCase();
+
+        if (!haystack.includes(query)) continue;
+      }
+
+      filtered.push(env);
+    }
+
+    const spec = PAGINATED_QUERY_ORDERINGS.searchMailbox;
+    return paginate(filtered, spec, { limit, after: options.after });
   }
 
   // ---------------------------------------------------------------------------

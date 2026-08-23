@@ -11,10 +11,14 @@ import type { UnknownSenderDecision, UnknownSenderRequest } from "@/lib/api";
  * Reads the pending unknown-sender requests awaiting the actor's decision,
  * through the typed requests client.
  */
-export function useRequests(actor: string | null, enabled = true) {
+export function useRequests(
+  actor: string | null,
+  options?: { cursor?: string; limit?: number },
+  enabled = true,
+) {
   return useQuery({
-    queryKey: queryKeys.requests.list(actor ?? "anonymous"),
-    queryFn: ({ signal }) => api.requests.list(signal),
+    queryKey: queryKeys.requests.list(actor ?? "anonymous", options),
+    queryFn: ({ signal }) => api.requests.list(options, signal),
     enabled: Boolean(actor) && enabled,
   });
 }

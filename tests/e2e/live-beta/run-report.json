@@ -1,0 +1,66 @@
+{
+  "runAt": "2026-08-21T16:23:17.791Z",
+  "network": "local",
+  "mode": "fake",
+  "messageId": "ef1bc422d86b01e1bee68993f54d1d5ea5b1204403576587172e5dc0467f7448",
+  "steps": [
+    {
+      "step": "identity-provisioning",
+      "status": "ok",
+      "detail": {
+        "aliceAddress": "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        "bobAddress": "GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
+      }
+    },
+    {
+      "step": "empty-inbox-sync",
+      "status": "ok",
+      "detail": {
+        "aliceCount": 0,
+        "bobCount": 0
+      }
+    },
+    {
+      "step": "postage-policy-preview",
+      "status": "ok",
+      "detail": {
+        "quoteAmount": "100",
+        "asset": "native"
+      }
+    },
+    {
+      "step": "compose-seal-dispatch",
+      "status": "ok",
+      "detail": {
+        "messageId": "ad3c4041e78d96dbad1651a744a40167bdf7ad88d6532a4a47a76f8d4f03973d",
+        "commitment": "v1:sha256:hex:546e6905e2b64044f1f8252ee358cc38a374e68b79b50a0dd038743687337f6b"
+      }
+    },
+    {
+      "step": "ingest-decrypt-proof",
+      "status": "ok",
+      "detail": {
+        "messageId": "c4c8e1320d53877869fc1381dbf46290e438a411c35d204fb1fcc20ef7618a75",
+        "verdict": "incomplete"
+      }
+    },
+    {
+      "step": "requests-triage-receipts",
+      "status": "ok",
+      "detail": {
+        "rule": "allow",
+        "deliveredAt": 1787329397534,
+        "readAt": 1787329397784
+      }
+    },
+    {
+      "step": "search-contacts-settings",
+      "status": "ok",
+      "detail": {
+        "contactFound": true,
+        "searchHits": 1,
+        "recoveryCodesGenerated": 3
+      }
+    }
+  ]
+}

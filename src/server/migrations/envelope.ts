@@ -114,3 +114,8 @@ export function digestKey(value: string): string {
   }
   return (fnv >>> 0).toString(16).padStart(8, "0") + (lin >>> 0).toString(16).padStart(8, "0");
 }
+
+/** Deterministic redacted checksum for migration evidence and drift checks. */
+export function checksumValue(value: unknown): string {
+  return digestKey(JSON.stringify(value) ?? "undefined");
+}

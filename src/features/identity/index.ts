@@ -20,3 +20,15 @@ export {
 } from "./keys";
 export { maskEmail, registrationRequestSchema, registrationResponseSchema } from "./registration";
 export { IdentityResolverService, parseIdentifier, normalizeIdentifier } from "./resolver";
+export {
+  normalizeUsername,
+  validateUsername,
+  checkUsernameAvailability,
+  reserveUsername,
+  isReservedWord,
+  confusableNormalized,
+  containsConfusables,
+  USERNAME_MIN_LENGTH,
+  USERNAME_MAX_LENGTH,
+  USERNAME_RESERVATION_LEASE_MS,
+} from "./username-validation";

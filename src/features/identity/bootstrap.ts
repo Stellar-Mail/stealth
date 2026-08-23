@@ -184,13 +184,28 @@ function getDemoState(): BootstrapState {
   };
 }
 
+/**
+ * Returns true when the cached bootstrap session is expired or will expire
+ * within the next 60 seconds, signalling that a re-fetch is needed even if
+ * the TTL has not elapsed.
+ */
+function isSessionStale(data: BootstrapData | null): boolean {
+  if (!data?.session?.expiresAt) return false;
+  return Date.now() >= new Date(data.session.expiresAt).getTime() - 60_000;
+}
+
 export async function fetchBootstrap(options?: {
   bypassCache?: boolean;
   timeoutMs?: number;
 }): Promise<BootstrapState> {
   const { bypassCache = false, timeoutMs = 10000 } = options ?? {};
 
-  if (!bypassCache && cachedState && Date.now() - (cachedState.timestamp ?? 0) < 30000) {
+  if (
+    !bypassCache &&
+    cachedState &&
+    Date.now() - (cachedState.timestamp ?? 0) < 30000 &&
+    !isSessionStale(cachedState.data)
+  ) {
     return cachedState;
   }
 
@@ -310,7 +325,12 @@ export async function fetchBootstrap(options?: {
       return successState;
     } catch (cause) {
       clearTimeout(timer);
-      const isAbort = cause instanceof Error && cause.name === "AbortError";
+      const isAbort =
+        (cause instanceof Error && cause.name === "AbortError") ||
+        (cause !== null &&
+          typeof cause === "object" &&
+          "name" in cause &&
+          cause.name === "AbortError");
       const errorState: BootstrapState = {
         data: null,
         branch: isAbort ? "outage" : "outage",

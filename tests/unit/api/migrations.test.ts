@@ -6,8 +6,60 @@ import {
   versionRecord,
 } from "../../../src/server/api/repository";
 import { DataIntegrityError } from "../../../src/server/api/errors";
+import { identityRecordFamilies } from "../../../src/server/migrations/adapters";
+import { InMemoryMigrationStorage } from "../../../src/server/migrations/in-memory-storage";
+import { forward, rollback } from "../../../src/server/migrations/runner";
+import { wrapEnvelope } from "../../../src/server/migrations/envelope";
 
 describe("Schema Versioning and Migrations", () => {
+  it("denies unapproved mutation and resumes an approved batch with checksums", async () => {
+    const base = identityRecordFamilies[0];
+    const family = {
+      ...base,
+      currentVersion: 2,
+      schema: z.any(),
+      forward: { 1: (data: Record<string, unknown>) => ({ ...data, migrated: true }) },
+      backward: {
+        2: (data: Record<string, unknown>) => {
+          const { migrated, ...rest } = data;
+          return rest;
+        },
+      },
+    };
+    const storage = new InMemoryMigrationStorage();
+    storage.seed("user:id:a", wrapEnvelope({ userId: "a" }, 1));
+    storage.seed("user:id:b", wrapEnvelope({ userId: "b" }, 1));
+
+    const denied = await forward(storage, [family], { batchSize: 1 });
+    expect(denied.failureKind).toBe("precondition_failed");
+    expect(await storage.get("user:id:a")).toEqual(wrapEnvelope({ userId: "a" }, 1));
+
+    const first = await forward(storage, [family], { approval: "approved", batchSize: 1 });
+    expect(first.families[0].changed).toBe(1);
+    expect(first.families[0].nextCursor).toBe("user:id:a");
+    expect(first.families[0].beforeChecksum).toBeTruthy();
+    expect(first.families[0].afterChecksum).toBeTruthy();
+
+    const resumed = await forward(storage, [family], {
+      approval: "approved",
+      batchSize: 1,
+      resumeAfter: first.families[0].nextCursor,
+    });
+    expect(resumed.families[0].changed).toBe(1);
+    expect(resumed.families[0].resumed).toBe(true);
+  });
+
+  it("blocks rollback when a backward transform is not registered", async () => {
+    const family = { ...identityRecordFamilies[0], currentVersion: 2 };
+    const storage = new InMemoryMigrationStorage();
+    storage.seed("user:id:a", wrapEnvelope({ userId: "a" }, 2));
+
+    const report = await rollback(storage, [family], { targetVersion: 1, approval: "approved" });
+    expect(report.failureKind).toBe("rollback_blocked");
+    expect(report.ok).toBe(false);
+    expect(await storage.get("user:id:a")).toEqual(wrapEnvelope({ userId: "a" }, 2));
+  });
+
   it("uses version 1 by default when no version is provided", () => {
     const testSchema = z.object({ foo: z.string() });
     // Register v1 with no migrations

@@ -1,21 +1,14 @@
-/**
+﻿/**
  * In-memory relay persistence (Issue #1935 BETA-028).
  *
  * Used by the Docker entry and development builds. Not durable across restarts;
  * the Cloudflare deployment uses {@link KvRelayPersistence} instead.
  */
-import type {
-  RelayAdmissionRecord,
-  RelayEnvelope,
-  RelayPersistence,
-  RecordAdmissionResult,
-} from "./persistence";
+import type { RelayEnvelope, RelayPersistence } from "./persistence";
 
 export class MemoryRelayPersistence implements RelayPersistence {
   private readonly queue: RelayEnvelope[] = [];
-  private readonly queuedIds = new Set<string>();
   private readonly messages = new Map<string, RelayEnvelope>();
-  private readonly admissions = new Map<string, RelayAdmissionRecord>();
   private retryCount = 0;
   private deadLetterCount = 0;
   private available = true;
@@ -38,39 +31,26 @@ export class MemoryRelayPersistence implements RelayPersistence {
     return this.deadLetterCount;
   }
 
-  async getAdmission(messageId: string): Promise<RelayAdmissionRecord | null> {
-    return this.admissions.get(messageId) ?? null;
-  }
-
-  async recordAdmission(record: RelayAdmissionRecord): Promise<RecordAdmissionResult> {
-    if (!this.available) {
-      throw new Error("Relay storage is unavailable");
-    }
-    const existing = this.admissions.get(record.messageId);
-    if (existing) {
-      return { record: existing, duplicate: true };
-    }
-    this.admissions.set(record.messageId, record);
-    return { record, duplicate: false };
+  async get(messageId: string): Promise<RelayEnvelope | null> {
+    return this.messages.get(messageId) ?? null;
   }
 
   async enqueue(envelope: RelayEnvelope): Promise<{ messageId: string }> {
     if (!this.available) {
       throw new Error("Relay storage is unavailable");
     }
-    this.messages.set(envelope.messageId, envelope);
-    if (!this.queuedIds.has(envelope.messageId)) {
-      this.queue.push(envelope);
-      this.queuedIds.add(envelope.messageId);
+    const existing = this.messages.get(envelope.messageId);
+    if (existing) {
+      return { messageId: existing.messageId };
     }
+    this.messages.set(envelope.messageId, envelope);
+    this.queue.push(envelope);
     return { messageId: envelope.messageId };
   }
 
   async dequeue(): Promise<RelayEnvelope | null> {
     if (this.queue.length === 0) return null;
-    const envelope = this.queue.shift()!;
-    this.queuedIds.delete(envelope.messageId);
-    return envelope;
+    return this.queue.shift()!;
   }
 
   async recordRetry(): Promise<void> {
@@ -96,10 +76,5 @@ export class MemoryRelayPersistence implements RelayPersistence {
   /** Test/ops hook: inspect an accepted message. */
   getMessage(messageId: string): RelayEnvelope | undefined {
     return this.messages.get(messageId);
-  }
-
-  /** Test/ops hook: count of stored payload envelopes (never includes blocked). */
-  storedPayloadCount(): number {
-    return this.messages.size;
   }
 }

@@ -1,9 +1,10 @@
-import { describe, expect, it } from "vitest";
+﻿import { describe, expect, it } from "vitest";
 
 import { MemoryRelayPersistence } from "../../../src/services/relay/memory-persistence";
 import { RelayService, type RelayServiceConfig } from "../../../src/services/relay/relay-service";
 import type { RelayEnvelope, RelayPersistence } from "../../../src/services/relay/persistence";
 import { InProcessRelayWorker } from "../../../src/services/relay/in-process-worker";
+import type { RelayAdmissionEvaluator } from "../../../src/services/relay/policy-admission";
 import { z } from "zod";
 
 import type { RelaySubmissionInput } from "../../../src/services/relay/relay-service";
@@ -28,13 +29,33 @@ function makeConfig(overrides: Partial<RelayServiceConfig> = {}): RelayServiceCo
   };
 }
 
-function makeService(config: RelayServiceConfig = makeConfig()) {
+function allowAllEvaluator(): RelayAdmissionEvaluator {
+  return {
+    async evaluate() {
+      return {
+        policyVersion: 1,
+        allowed: true,
+        kind: "trusted",
+        reason: "sender_allowed",
+        rule: "allow",
+        requiredPostage: "0",
+        source: "offchain_fallback",
+        evaluatedAt: "2026-01-01T00:00:00.000Z",
+      };
+    },
+  };
+}
+
+function makeService(
+  config: RelayServiceConfig = makeConfig(),
+  evaluator: RelayAdmissionEvaluator = allowAllEvaluator(),
+) {
   const persistence = new MemoryRelayPersistence();
   const worker = new InProcessRelayWorker(persistence);
   return {
     persistence,
     worker,
-    service: new RelayService(persistence, worker, config),
+    service: new RelayService(persistence, worker, config, { evaluator }),
   };
 }
 
@@ -60,11 +81,8 @@ class FailingPersistence implements RelayPersistence {
   async getDeadLetterCount(): Promise<number> {
     return 0;
   }
-  async getAdmission() {
+  async get(_messageId: string): Promise<RelayEnvelope | null> {
     return null;
-  }
-  async recordAdmission(record: { messageId: string }) {
-    return { record: record as never, duplicate: false };
   }
   async enqueue(_envelope: RelayEnvelope): Promise<{ messageId: string }> {
     return { messageId };
@@ -121,7 +139,9 @@ describe("RelayService readiness", () => {
 
   it("is not ready when the queue is unavailable", async () => {
     const worker = new InProcessRelayWorker(new FailingPersistence());
-    const service = new RelayService(new FailingPersistence(), worker, makeConfig());
+    const service = new RelayService(new FailingPersistence(), worker, makeConfig(), {
+      evaluator: allowAllEvaluator(),
+    });
 
     const readiness = await service.checkReadiness();
     expect(readiness.ready).toBe(false);
@@ -196,14 +216,19 @@ describe("RelayService submit", () => {
     expect(result.accepted).toBe(true);
     expect(result.messageId).toBe(messageId);
     expect(result.queueDepth).toBe(1);
-    expect(result.admission.disposition).toBe("request");
+    expect(result.replayed).toBe(false);
+    expect(result.admission).toMatchObject({
+      allowed: true,
+      kind: "trusted",
+      reason: "sender_allowed",
+      policyVersion: 1,
+    });
     expect(persistence.getMessage(messageId)).toMatchObject({
       sender,
       recipient,
       recipientDomain: "example.com",
       ttlMs: 60_000,
       receivedAt: expect.any(String),
-      admission: expect.objectContaining({ allowed: true, disposition: "request" }),
     });
   });
 
@@ -233,6 +258,14 @@ describe("RelayService submit", () => {
     const { service } = makeService();
     const input = validInput();
     input.payload = "x".repeat(2 * 1024 * 1024 + 1);
+
+    await expect(service.submit(input)).rejects.toBeInstanceOf(z.ZodError);
+  });
+
+  it("rejects a malformed postage amount at the schema boundary", async () => {
+    const { service } = makeService();
+    const input = validInput() as RelaySubmissionInput & { postage: string };
+    input.postage = "-1";
 
     await expect(service.submit(input)).rejects.toBeInstanceOf(z.ZodError);
   });

@@ -24,6 +24,8 @@ describe("Runtime Registry Drift Validation", () => {
       postageContractId: "CBBBB1",
       registryContractId: "CAAAA1",
       lifecycleContractId: "CAAAA1",
+      policiesContractId: "CCCCC1",
+      receiptsContractId: "CCCCC2",
     },
   };
 
@@ -32,6 +34,7 @@ describe("Runtime Registry Drift Validation", () => {
     contracts: {
       postage: { contractId: "CBBBB1" },
       lifecycle: { contractId: "CAAAA1" },
+      policies: { contractId: "CCCCC1" },
     },
   };
 
@@ -101,6 +104,20 @@ describe("Runtime Registry Drift Validation", () => {
 
     expect(() => validateRegistryDrift(mockConfigBase)).toThrowError(
       /STEALTH_REGISTRY_CONTRACT_ID/,
+    );
+  });
+
+  it("fails on policies contract ID mismatch", () => {
+    vi.mocked(existsSync).mockReturnValue(true);
+    vi.mocked(readFileSync).mockReturnValue(
+      JSON.stringify({
+        ...mockManifest,
+        contracts: { ...mockManifest.contracts, policies: { contractId: "CCCCC2" } },
+      }),
+    );
+
+    expect(() => validateRegistryDrift(mockConfigBase)).toThrowError(
+      /STEALTH_POLICIES_CONTRACT_ID/,
     );
   });
 });

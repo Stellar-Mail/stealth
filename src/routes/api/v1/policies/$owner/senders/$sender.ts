@@ -1,18 +1,19 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { z } from "zod";
+﻿import { createFileRoute } from "@tanstack/react-router";
 
 import { parseDelegationHeader, requireActorMatches } from "@/server/api/actor";
 import { getApiContext } from "@/server/api/context";
-import { senderRuleSchema, stellarAddressSchema } from "@/server/api/domain";
+import { senderRuleWriteSchema, stellarAddressSchema } from "@/server/api/domain";
 import { getSenderRule, setSenderRule } from "@/server/api/policy-service";
-import { syncSenderRuleWrite } from "@/server/api/policy-sync-service";
+import {
+  createOrUpdateSenderRule,
+  deleteSenderRule,
+  getSenderRuleRecord,
+  transitionSenderRuleChainStatus,
+  retrySenderRuleWrite,
+  evaluateSenderRuleForAdmission,
+} from "@/server/api/sender-rule-service";
 import { parseJsonBody } from "@/server/api/request";
 import { apiSuccess, handleApiRequest } from "@/server/api/response";
-
-const ruleBodySchema = z.object({
-  rule: senderRuleSchema.exclude(["default"]),
-  expectedVersion: z.number().int().min(0).optional(),
-});
 
 export const Route = createFileRoute("/api/v1/policies/$owner/senders/$sender")({
   server: {
@@ -22,8 +23,27 @@ export const Route = createFileRoute("/api/v1/policies/$owner/senders/$sender")(
           const context = await getApiContext(request);
           const owner = stellarAddressSchema.parse(params.owner);
           const sender = stellarAddressSchema.parse(params.sender);
+
+          // Return versioned record if available, fall back to legacy
+          const record = await getSenderRuleRecord(context.repository, owner, sender);
+          if (record) {
+            return apiSuccess(request, {
+              owner,
+              sender,
+              rule: record.rule,
+              pricePayload: record.pricePayload,
+              version: record.version,
+              chainStatus: record.chainStatus,
+              scheduledAt: record.scheduledAt,
+              updatedAt: record.updatedAt,
+              confirmedAt: record.confirmedAt,
+              txHash: record.txHash,
+            });
+          }
+
           return apiSuccess(request, await getSenderRule(context.repository, owner, sender));
         }),
+
       PUT: ({ request, params }) =>
         handleApiRequest(request, async () => {
           const context = await getApiContext(request);
@@ -38,20 +58,31 @@ export const Route = createFileRoute("/api/v1/policies/$owner/senders/$sender")(
               `mailbox:${owner}:senders:${sender}`,
             ),
           );
-          const { rule, expectedVersion } = await parseJsonBody(request, ruleBodySchema, {
+
+          const body = await parseJsonBody(request, senderRuleWriteSchema, {
             route: "PUT /policies/{owner}/senders/{sender}",
           });
-          const result = await setSenderRule(context.repository, owner, sender, rule, {
-            expectedVersion,
+
+          const result = await createOrUpdateSenderRule(context.repository, owner, sender, {
+            rule: body.rule,
+            pricePayload: body.pricePayload,
+            version: body.version,
+            idempotencyKey: body.idempotencyKey,
           });
-          await syncSenderRuleWrite(
-            context.repository,
-            owner,
-            sender,
-            context.requestId ?? "policy-sync",
-          );
-          return apiSuccess(request, await getSenderRule(context.repository, owner, sender));
+
+          return apiSuccess(request, {
+            owner: result.owner,
+            sender: result.sender,
+            rule: result.rule.rule,
+            pricePayload: result.rule.pricePayload,
+            version: result.rule.version,
+            chainStatus: result.rule.chainStatus,
+            scheduledAt: result.rule.scheduledAt,
+            updatedAt: result.rule.updatedAt,
+            created: result.created,
+          });
         }),
+
       DELETE: ({ request, params }) =>
         handleApiRequest(request, async () => {
           const context = await getApiContext(request);
@@ -66,20 +97,14 @@ export const Route = createFileRoute("/api/v1/policies/$owner/senders/$sender")(
               `mailbox:${owner}:senders:${sender}`,
             ),
           );
-          return apiSuccess(
-            request,
-            await (async () => {
-              const result = await setSenderRule(context.repository, owner, sender, "default");
-              await syncSenderRuleWrite(
-                context.repository,
-                owner,
-                sender,
-                context.requestId ?? "policy-sync",
-              );
-              void result;
-              return getSenderRule(context.repository, owner, sender);
-            })(),
-          );
+
+          // Delete versioned record + legacy rule
+          const { deleted } = await deleteSenderRule(context.repository, owner, sender);
+
+          // Also clear the legacy sender rule
+          await setSenderRule(context.repository, owner, sender, "default");
+
+          return apiSuccess(request, { owner, sender, deleted });
         }),
     },
   },

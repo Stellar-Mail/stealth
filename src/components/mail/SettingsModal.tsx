@@ -1614,6 +1614,13 @@ function ReceiptSettings({
     });
   };
 
+  const setReceiptOnDelivery = (value: boolean) => {
+    onChange({
+      ...preferences,
+      receiptOnDelivery: value,
+    });
+  };
+
   const receiptOptions: {
     value: ReceiptPreference;
     label: string;
@@ -1659,6 +1666,8 @@ function ReceiptSettings({
     },
   ];
 
+  const hasAnyAuto = Object.values(preferences.receipts).some((v) => v === "auto");
+
   return (
     <div className="space-y-6">
       <div>
@@ -1667,33 +1676,109 @@ function ReceiptSettings({
           Control when read receipts are sent. You decide what senders see.
         </p>
       </div>
-      <div className="space-y-4">
-        {senderTypes.map((type) => (
-          <div key={type.key} className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-foreground">{type.label}</span>
-            </div>
-            <p className="text-[11px] text-muted-foreground">{type.help}</p>
-            <div className="mt-2 flex gap-2">
-              {receiptOptions.map((opt) => (
-                <button
-                  key={opt.value}
-                  onClick={() => setReceipt(type.key, opt.value)}
-                  aria-pressed={preferences.receipts[type.key] === opt.value}
-                  className={cn(
-                    "flex-1 rounded-lg border px-3 py-2 text-left transition focus-visible:ring-2 focus-visible:ring-emerald-400",
-                    preferences.receipts[type.key] === opt.value
-                      ? "border-emerald-200/20 bg-emerald-200/[0.06]"
-                      : "border-white/10 bg-white/[0.025] hover:bg-white/[0.05]",
-                  )}
-                >
-                  <div className="text-[11px] font-medium text-foreground">{opt.label}</div>
-                  <div className="text-[10px] text-muted-foreground mt-0.5">{opt.description}</div>
-                </button>
-              ))}
+
+      <div className="rounded-lg border border-white/10 bg-white/[0.025] p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-xs font-medium text-foreground">Enable read receipts</div>
+            <div className="text-[11px] text-muted-foreground mt-0.5">
+              When enabled, your configured receipt policy applies per sender type below.
             </div>
           </div>
-        ))}
+          <button
+            role="switch"
+            aria-checked={preferences.receiptOnDelivery}
+            onClick={() => setReceiptOnDelivery(!preferences.receiptOnDelivery)}
+            className={cn(
+              "relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors",
+              preferences.receiptOnDelivery ? "bg-emerald-500" : "bg-white/20",
+            )}
+          >
+            <span
+              className={cn(
+                "inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform",
+                preferences.receiptOnDelivery ? "translate-x-4" : "translate-x-0.5",
+              )}
+            />
+          </button>
+        </div>
+      </div>
+
+      {preferences.receiptOnDelivery && (
+        <div className="space-y-4">
+          {senderTypes.map((type) => (
+            <div key={type.key} className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-foreground">{type.label}</span>
+              </div>
+              <p className="text-[11px] text-muted-foreground">{type.help}</p>
+              <div className="mt-2 flex gap-2">
+                {receiptOptions.map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setReceipt(type.key, opt.value)}
+                    aria-pressed={preferences.receipts[type.key] === opt.value}
+                    className={cn(
+                      "flex-1 rounded-lg border px-3 py-2 text-left transition focus-visible:ring-2 focus-visible:ring-emerald-400",
+                      preferences.receipts[type.key] === opt.value
+                        ? "border-emerald-200/20 bg-emerald-200/[0.06]"
+                        : "border-white/10 bg-white/[0.025] hover:bg-white/[0.05]",
+                    )}
+                  >
+                    <div className="text-[11px] font-medium text-foreground">{opt.label}</div>
+                    <div className="text-[10px] text-muted-foreground mt-0.5">
+                      {opt.description}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {hasAnyAuto && preferences.receiptOnDelivery && (
+        <div className="rounded-lg border border-emerald-200/15 bg-emerald-200/[0.03] p-3">
+          <p className="text-[11px] text-emerald-200">
+            When &quot;Automatic&quot; is selected, the sender will be notified that you opened
+            their message. No additional content is shared beyond the read timestamp.
+          </p>
+        </div>
+      )}
+
+      <div className="space-y-3">
+        <h4 className="text-xs font-medium text-foreground">What recipients see</h4>
+        <ul className="space-y-1.5 text-[11px] text-muted-foreground">
+          <li className="flex items-start gap-2">
+            <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400" />
+            <span>
+              <strong className="text-foreground">Automatic:</strong> Sender sees a &quot;Read&quot;
+              timestamp immediately when you open the message.
+            </span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400" />
+            <span>
+              <strong className="text-foreground">Manual:</strong> You are prompted before any
+              receipt is sent. Sender sees nothing until you approve.
+            </span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-white/30" />
+            <span>
+              <strong className="text-foreground">Never:</strong> Sender has no read confirmation.
+              Your local read/unread state is unaffected.
+            </span>
+          </li>
+        </ul>
+      </div>
+
+      <div className="rounded-lg border border-white/5 bg-white/[0.02] p-3">
+        <p className="text-[11px] text-muted-foreground">
+          Disabling read receipts prevents the read event from being published to the sender, but
+          does not change how messages appear in your own inbox. Your local read/unread state is
+          always independent of receipt publication.
+        </p>
       </div>
     </div>
   );
@@ -1916,53 +2001,70 @@ function SettingsField({
 }
 
 function SecuritySettings() {
+  const queryClient = useQueryClient();
   const [confirmDialog, setConfirmDialog] = useState<{
     title: string;
     description: string;
     onConfirm: () => void;
   } | null>(null);
   const [copiedKey, setCopiedKey] = useState(false);
-  const [editingDevice, setEditingDevice] = useState<string | null>(null);
-  const [deviceName, setDeviceName] = useState("");
 
-  const sessions = [
-    {
-      id: "1",
-      device: "Current session - MacBook Air",
-      location: "San Francisco, CA",
-      lastActive: "Just now",
-      isCurrent: true,
-    },
-    {
-      id: "2",
-      device: "iPhone 15 Pro",
-      location: "San Francisco, CA",
-      lastActive: "2 hours ago",
-      isCurrent: false,
-    },
-  ];
+  const { data: sessions = [], refetch: refetchSessions } = useQuery({
+    queryKey: queryKeys.auth.sessions,
+    queryFn: () => sharedTypedApi.auth.listSessions(),
+    refetchOnWindowFocus: true,
+  });
 
-  const devices = [
-    {
-      id: "1",
-      name: "MacBook Air",
-      type: "Desktop",
-      lastActive: "Just now",
-      trusted: true,
-    },
-    {
-      id: "2",
-      name: "iPhone 15 Pro",
-      type: "Mobile",
-      lastActive: "2 hours ago",
-      trusted: true,
-    },
-  ];
+  const { data: profileData } = useQuery({
+    queryKey: queryKeys.account.profile,
+    queryFn: ({ signal }) => sharedTypedApi.account.getProfile(signal),
+  });
+
+  const ownerAddress = profileData?.account.address;
+
+  const handleRevoke = async (id: string, isCurrent: boolean) => {
+    try {
+      await sharedTypedApi.auth.revokeSession(id);
+      if (isCurrent) {
+        queryClient.clear();
+        window.location.href = "/";
+      } else {
+        await queryClient.invalidateQueries({ queryKey: queryKeys.auth.sessions });
+      }
+    } catch (err: any) {
+      alert(err.message || "Failed to revoke session");
+    }
+  };
+
+  const handleRevokeOthers = async () => {
+    try {
+      await sharedTypedApi.auth.revokeOthers();
+      await queryClient.invalidateQueries({ queryKey: queryKeys.auth.sessions });
+    } catch (err: any) {
+      alert(err.message || "Failed to revoke other sessions");
+    }
+  };
 
   const handleCopyKey = () => {
     navigator.clipboard.writeText("GDQJMSGKJGQ2X576L33OY4JFDZ7NJG5OJ3LJ44V33PUPU7D5Q5X4KJ");
     setCopiedKey(true);
     setTimeout(() => setCopiedKey(false), 2000);
+  };
+
+  const formatRelativeTime = (isoString: string) => {
+    try {
+      const date = new Date(isoString);
+      const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+      if (seconds < 60) return "Just now";
+      const minutes = Math.floor(seconds / 60);
+      if (minutes < 60) return `${minutes}m ago`;
+      const hours = Math.floor(minutes / 60);
+      if (hours < 24) return `${hours}h ago`;
+      const days = Math.floor(hours / 24);
+      return `${days}d ago`;
+    } catch {
+      return "Unknown";
+    }
   };
 
   return (
@@ -1973,7 +2075,7 @@ function SecuritySettings() {
       </div>
 
       {/* External Wallet Linking */}
-      <ExternalWalletSettings />
+      <ExternalWalletSettings ownerAddress={ownerAddress} />
 
       {/* Active Sessions */}
       <div className="space-y-3">
@@ -1984,25 +2086,21 @@ function SecuritySettings() {
               Sessions currently signed in to your account
             </p>
           </div>
-          <button
-            onClick={() =>
-              setConfirmDialog({
-                title: "Revoke all sessions?",
-                description: "This will revoke all active sessions across all devices.",
-                onConfirm: async () => {
-                  try {
-                    await sharedTypedApi.auth.logoutAll();
-                  } catch {
-                    // Fallthrough safely
-                  }
-                  setConfirmDialog(null);
-                },
-              })
-            }
-            className="rounded-lg border border-red-500/20 bg-red-500/10 px-2.5 py-1 text-xs font-medium text-red-400 hover:bg-red-500/20 transition"
-          >
-            Revoke all sessions
-          </button>
+          {sessions.length > 1 && (
+            <button
+              onClick={() =>
+                setConfirmDialog({
+                  title: "Revoke other sessions?",
+                  description:
+                    "This will sign out all other devices from your account. Your current session will remain active.",
+                  onConfirm: () => handleRevokeOthers(),
+                })
+              }
+              className="rounded-lg border border-red-500/20 bg-red-500/10 px-2.5 py-1 text-xs font-medium text-red-400 hover:bg-red-500/20 transition"
+            >
+              Revoke other sessions
+            </button>
+          )}
         </div>
         <div className="space-y-2">
           {sessions.map((session) => (
@@ -2022,89 +2120,25 @@ function SecuritySettings() {
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    {session.location} • {session.lastActive}
+                    {session.region} • Active {formatRelativeTime(session.lastUsed)} • Created{" "}
+                    {new Date(session.created).toLocaleDateString()}
                   </p>
                 </div>
               </div>
-              {!session.isCurrent && (
-                <button
-                  onClick={() =>
-                    setConfirmDialog({
-                      title: "Revoke session?",
-                      description: "This will sign out this device from your account.",
-                      onConfirm: async () => {
-                        try {
-                          await sharedTypedApi.auth.logout();
-                        } catch {
-                          // Fallthrough safely
-                        }
-                        setConfirmDialog(null);
-                      },
-                    })
-                  }
-                  className="rounded-lg px-3 py-1.5 text-xs text-red-400 hover:bg-red-500/10 transition"
-                >
-                  Revoke
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Trusted Devices */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-foreground">Trusted devices</p>
-            <p className="text-xs text-muted-foreground">
-              Devices that can access your account without extra verification
-            </p>
-          </div>
-        </div>
-        <div className="space-y-2">
-          {devices.map((device) => (
-            <div
-              key={device.id}
-              className="flex items-center justify-between rounded-lg border border-white/5 bg-white/[0.02] p-3"
-            >
-              <div className="flex items-center gap-3">
-                <Laptop className="h-4 w-4 text-muted-foreground" />
-                {editingDevice === device.id ? (
-                  <div className="flex items-center gap-2">
-                    <input
-                      value={deviceName}
-                      onChange={(e) => setDeviceName(e.target.value)}
-                      className="rounded border border-white/10 bg-white/[0.04] px-2 py-1 text-sm text-foreground outline-none focus:border-white/20"
-                    />
-                    <button
-                      onClick={() => setEditingDevice(null)}
-                      className="rounded p-1 text-emerald-400 hover:bg-emerald-500/10"
-                    >
-                      <Check className="h-3 w-3" />
-                    </button>
-                  </div>
-                ) : (
-                  <div>
-                    <p className="text-sm text-foreground">{device.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {device.type} • {device.lastActive}
-                    </p>
-                  </div>
-                )}
-              </div>
-              {!editingDevice && (
-                <button
-                  onClick={() => {
-                    setDeviceName(device.name);
-                    setEditingDevice(device.id);
-                  }}
-                  aria-label={`Edit ${device.name}`}
-                  className="rounded-lg p-1.5 text-muted-foreground hover:bg-white/[0.06] hover:text-foreground transition focus-visible:ring-2 focus-visible:ring-emerald-400"
-                >
-                  <Edit className="h-3.5 w-3.5" aria-hidden="true" />
-                </button>
-              )}
+              <button
+                onClick={() =>
+                  setConfirmDialog({
+                    title: session.isCurrent ? "Revoke current session?" : "Revoke session?",
+                    description: session.isCurrent
+                      ? "This will sign you out of your current session immediately."
+                      : "This will sign out this device from your account.",
+                    onConfirm: () => handleRevoke(session.id, session.isCurrent),
+                  })
+                }
+                className="rounded-lg px-3 py-1.5 text-xs text-red-400 hover:bg-red-500/10 transition"
+              >
+                Revoke
+              </button>
             </div>
           ))}
         </div>
@@ -2171,10 +2205,20 @@ function SecuritySettings() {
 
       {/* Confirmation Dialog */}
       {confirmDialog && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm">
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="confirm-dialog-title"
+          aria-describedby="confirm-dialog-desc"
+        >
           <div className="glass-strong w-full max-w-sm rounded-2xl p-5 space-y-4">
-            <h4 className="text-sm font-medium text-foreground">{confirmDialog.title}</h4>
-            <p className="text-xs text-muted-foreground">{confirmDialog.description}</p>
+            <h4 id="confirm-dialog-title" className="text-sm font-medium text-foreground">
+              {confirmDialog.title}
+            </h4>
+            <p id="confirm-dialog-desc" className="text-xs text-muted-foreground">
+              {confirmDialog.description}
+            </p>
             <div className="flex gap-2 pt-2">
               <button
                 onClick={() => setConfirmDialog(null)}

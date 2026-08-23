@@ -40,10 +40,20 @@ const ResizablePanelGroup = ({
   );
 };
 
+// react-resizable-panels v4 interprets bare numbers as PIXELS and bare numeric
+// strings as PERCENTAGES. The app passes percentages as numbers (the v2 API),
+// so normalize them here to keep the three-pane layout proportional.
+const asPercent = (value: number | string | undefined) =>
+  typeof value === "number" ? `${value}` : value;
+
 const ResizablePanel = ({
   onCollapse,
   onExpand,
   onResize,
+  defaultSize,
+  minSize,
+  maxSize,
+  collapsedSize,
   ...props
 }: Omit<React.ComponentProps<typeof Panel>, "onResize"> & {
   onCollapse?: () => void;
@@ -72,8 +82,18 @@ const ResizablePanel = ({
     }
   };
 
-  return <Panel onResize={handleResize} {...props} />;
+  return (
+    <Panel
+      defaultSize={asPercent(defaultSize)}
+      minSize={asPercent(minSize)}
+      maxSize={asPercent(maxSize)}
+      collapsedSize={asPercent(collapsedSize)}
+      onResize={handleResize}
+      {...props}
+    />
+  );
 };
+
 
 const ResizableHandle = ({
   withHandle,

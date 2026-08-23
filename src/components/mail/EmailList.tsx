@@ -322,8 +322,8 @@ export function EmailList({
 
       <ul
         ref={listRef}
-        role="listbox"
-        aria-multiselectable="true"
+        role="list"
+        aria-label={`${folderLabel} conversations`}
         tabIndex={0}
         className={cn(
           "scrollbar-thin relative z-10 flex-1 overflow-y-auto",
@@ -438,7 +438,7 @@ export function EmailList({
                   onClick={(event) => selectMessage(event.shiftKey)}
                   whileTap={{ scale: 0.975 }}
                   transition={{ type: "spring", stiffness: 520, damping: 30 }}
-                  aria-selected={active}
+                  aria-current={active ? "true" : undefined}
                   className={cn(
                     "mail-preview-card group relative flex w-full items-start gap-3 px-3 text-left transition-[background,border-color,box-shadow,transform] duration-300",
                     active
@@ -557,7 +557,12 @@ export function EmailList({
             transition={{ duration: 0.15 }}
             className="absolute inset-0 z-30 flex items-center justify-center bg-black/50 backdrop-blur-sm rounded-[8px]"
           >
-            <div className="w-56 rounded-xl border border-white/12 bg-[oklch(0.15_0.005_270)] shadow-2xl overflow-hidden">
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-label="Move to folder"
+              className="w-56 rounded-xl border border-white/12 bg-[oklch(0.15_0.005_270)] shadow-2xl overflow-hidden"
+            >
               <div className="flex items-center gap-2 px-3 py-2.5 border-b border-white/10">
                 <FolderInput className="h-3.5 w-3.5 text-muted-foreground" />
                 <span className="text-xs font-medium text-foreground">Move to folder</span>

@@ -51,6 +51,8 @@ export interface IdentityRecordFamily {
   schema: ZodType;
   forward: Record<number, (data: Record<string, unknown>) => Record<string, unknown>>;
   backward: Record<number, (data: Record<string, unknown>) => Record<string, unknown>>;
+  /** Optional deployment checks that must pass before a mutating run. */
+  preconditions?: (storage: MigrationStorage) => Promise<string[]>;
   checkRecord?: (
     payload: unknown,
     key: string,
@@ -71,6 +73,14 @@ export interface MigrationRunOptions {
   family?: string;
   /** Rollback target version (rollback command only). */
   targetVersion?: number;
+  /** Maximum number of records changed in one invocation. */
+  batchSize?: number;
+  /** Continue after the last key reported by an earlier batch. */
+  resumeAfter?: string;
+  /** Explicit operator approval required by mutating coordinator calls. */
+  approval?: string;
+  /** Expected registry fingerprint from the reviewed migration manifest. */
+  expectedRegistryChecksum?: string;
 }
 
 export type IntegrityIssueKind =
@@ -80,6 +90,11 @@ export type IntegrityIssueKind =
   | "index_mismatch"
   | "dangling_index"
   | "corrupt_envelope";
+
+export type MigrationFailureKind =
+  | "precondition_failed"
+  | "rollback_blocked"
+  | "compatibility_failed";
 
 export interface IntegrityIssue {
   kind: IntegrityIssueKind;
@@ -103,6 +118,11 @@ export interface FamilyReport {
   errors: string[];
   /** Integrity findings (integrity-check command only). */
   issues: IntegrityIssue[];
+  /** Stable, redacted fingerprints for audit evidence. */
+  beforeChecksum?: string;
+  afterChecksum?: string;
+  nextCursor?: string;
+  resumed?: boolean;
 }
 
 export interface MigrationReport {
@@ -110,4 +130,7 @@ export interface MigrationReport {
   generatedAt: string;
   families: FamilyReport[];
   ok: boolean;
+  registryChecksum?: string;
+  preconditions?: string[];
+  failureKind?: MigrationFailureKind;
 }

@@ -98,6 +98,10 @@ export function resolveRouteGuard(input: RouteGuardInput): GuardDecision {
 
     case "anonymous": {
       if (isPublicAuthPath(pathname)) return { kind: "render" };
+      // Development bypass: in dev builds the backend bindings are absent, so
+      // bootstrap always resolves anonymous. Render the app shell instead of
+      // bouncing to sign-in — the auth routes stay reachable by URL for testing.
+      if (isDev) return { kind: "render" };
       // Demo mode is reachable only on its isolated route, only in dev,
       // only when the explicit demo flag is present.
       if (isDev && demoFlag && pathname === DEMO_ROUTE) return { kind: "render" };
@@ -109,6 +113,7 @@ export function resolveRouteGuard(input: RouteGuardInput): GuardDecision {
 
     case "onboarding":
     case "verified": {
+      if (isDev) return { kind: "render" };
       if (pathname === ONBOARDING_ROUTE || pathname === "/auth/verify") {
         return { kind: "render" };
       }
@@ -119,7 +124,9 @@ export function resolveRouteGuard(input: RouteGuardInput): GuardDecision {
       return { kind: "state-view", view: "suspended" };
 
     case "outage":
+      if (isDev) return { kind: "render" };
       return { kind: "state-view", view: "outage" };
+
 
     case "active": {
       if (isPublicAuthPath(pathname) || pathname === ONBOARDING_ROUTE) {

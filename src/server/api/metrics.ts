@@ -1,5 +1,6 @@
 // Issue #1510: API request latency histograms and counters.
 // Issue #1518: API service-level objective indicators (SLIs & SLOs).
+// Issue #1999 (BETA-092): RED/USE metrics across live account, relay, chain, storage, sync, delivery, and web workflows.
 //
 // Default histogram bucket boundaries (in milliseconds) suitable for API
 // request durations. These cover sub-5 ms fast-path responses through
@@ -75,6 +76,7 @@ function bucketFor(value: number, buckets: readonly number[]): string {
 }
 
 export const METRIC_DESCRIPTORS = {
+  // API Core
   api_requests_total: ["method", "path", "status", "type", "synthetic"],
   api_latency: ["method", "path", "status", "type", "synthetic"],
   api_errors_total: ["method", "path", "status", "type", "synthetic", "error_type"],
@@ -83,6 +85,48 @@ export const METRIC_DESCRIPTORS = {
   abuse_disposable_email_blocked: ["domain"],
   abuse_invite_code_invalid: ["code"],
   abuse_verification_token_locked: ["tokenId"],
+
+  // 1. Auth & Session Management (RED / USE)
+  auth_requests_total: ["operation", "status", "outcome"],
+  auth_latency: ["operation", "status"],
+  auth_errors_total: ["operation", "error_type"],
+  auth_active_sessions: ["method"],
+
+  // 2. Account Provisioning (RED)
+  provisioning_operations_total: ["step", "status", "outcome"],
+  provisioning_latency: ["step", "status"],
+  provisioning_errors_total: ["step", "error_type"],
+
+  // 3. Relay Dispatch & Delivery (RED / USE)
+  relay_requests_total: ["stage", "status", "delivery_state"],
+  relay_latency: ["stage", "status"],
+  relay_errors_total: ["stage", "error_type"],
+  relay_retry_count: ["stage", "reason"],
+
+  // 4. Envelope Storage (R2 / KV / Memory) (RED / USE)
+  storage_operations_total: ["backend", "operation", "status"],
+  storage_latency: ["backend", "operation"],
+  storage_errors_total: ["backend", "operation", "error_type"],
+  storage_utilization_ratio: ["backend"],
+
+  // 5. Mailbox & Message Sync (RED / USE)
+  sync_operations_total: ["operation", "status"],
+  sync_latency: ["operation", "status"],
+  sync_errors_total: ["operation", "error_type"],
+  sync_gaps_detected_total: ["stream_type"],
+
+  // 6. Chain Queues & Soroban Operations (RED / USE)
+  chain_queue_depth: ["queue_name", "status"],
+  chain_queue_operations_total: ["operation", "status", "outcome"],
+  chain_queue_latency: ["operation", "status"],
+  chain_queue_errors_total: ["operation", "error_type"],
+  chain_dead_letters_total: ["job_type", "error_code"],
+
+  // 7. Delivery State Transitions (RED)
+  delivery_operations_total: ["stage", "status", "outcome"],
+  delivery_latency: ["stage", "status"],
+  delivery_errors_total: ["stage", "error_type"],
+  delivery_stage_transitions_total: ["from_stage", "to_stage", "status"],
 } as const;
 
 export type MetricName = keyof typeof METRIC_DESCRIPTORS;
@@ -265,8 +309,19 @@ export function computeAuthAvailabilitySLI(
   let numerator = 0;
   let denominator = 0;
 
+  // Process standard api_requests_total with auth path or type
   for (const [key, count] of Object.entries(snap.counters)) {
     const { name, labels } = parseKey(key);
+    if (name === "auth_requests_total") {
+      denominator += count;
+      const status = labels.status ?? "200";
+      const outcome = labels.outcome ?? "success";
+      if (!status.startsWith("5") && outcome !== "unexpected_error") {
+        numerator += count;
+      }
+      continue;
+    }
+
     if (name !== "api_requests_total") continue;
     if (labels.path && excludePaths.includes(labels.path)) continue;
     if (options?.excludeSynthetic && labels.synthetic === "true") continue;
@@ -337,14 +392,237 @@ export function computePostageTransitionSLI(
 }
 
 /**
- * Computes a summary of all API Service-Level Indicators.
+ * Computes Relay Delivery SLI.
+ * Numerator: Successful relay submissions (delivered, ACKNOWLEDGED, DEDUPLICATED, non-5xx).
+ * Denominator: Total relay submission attempts.
  */
-export function computeSLOSummary(options?: ComputeSLOOptions) {
-  const snap = snapshot();
+export function computeRelayDeliverySLI(options?: ComputeSLOOptions, snap = snapshot()): SLIResult {
+  let numerator = 0;
+  let denominator = 0;
+
+  for (const [key, count] of Object.entries(snap.counters)) {
+    const { name, labels } = parseKey(key);
+    if (name !== "relay_requests_total") continue;
+
+    denominator += count;
+    const status = labels.status ?? "200";
+    const state = (labels.delivery_state ?? "").toUpperCase();
+    const isSuccess =
+      !status.startsWith("5") &&
+      (state === "ACKNOWLEDGED" ||
+        state === "DEDUPLICATED" ||
+        state === "DELIVERED" ||
+        status.startsWith("2") ||
+        state === "");
+
+    if (isSuccess) {
+      numerator += count;
+    }
+  }
+
+  const ratio = denominator === 0 ? 1.0 : numerator / denominator;
+  const target = 0.995;
   return {
-    availability: computeAvailabilitySLI(options, snap),
-    latency: computeLatencySLI(250, options, snap),
-    authAvailability: computeAuthAvailabilitySLI(options, snap),
-    postageTransitions: computePostageTransitionSLI(options, snap),
+    name: "Relay Delivery SLI",
+    numerator,
+    denominator,
+    ratio,
+    target,
+    met: ratio >= target,
+  };
+}
+
+/**
+ * Computes Chain Queue SLI.
+ * Numerator: Count of successfully executed / settled chain queue jobs.
+ * Denominator: Total chain queue operations executed + dead letters recorded.
+ */
+export function computeChainQueueSLI(options?: ComputeSLOOptions, snap = snapshot()): SLIResult {
+  let successful = 0;
+  let failed = 0;
+  let deadLetters = 0;
+
+  for (const [key, count] of Object.entries(snap.counters)) {
+    const { name, labels } = parseKey(key);
+    if (name === "chain_queue_operations_total") {
+      const outcome = labels.outcome ?? "success";
+      const status = labels.status ?? "200";
+      if (outcome === "success" || (!status.startsWith("5") && outcome !== "unexpected_error")) {
+        successful += count;
+      } else {
+        failed += count;
+      }
+    } else if (name === "chain_dead_letters_total") {
+      deadLetters += count;
+    }
+  }
+
+  const denominator = successful + failed + deadLetters;
+  const numerator = successful;
+  const ratio = denominator === 0 ? 1.0 : numerator / denominator;
+  const target = 0.999;
+  return {
+    name: "Chain Queue SLI",
+    numerator,
+    denominator,
+    ratio,
+    target,
+    met: ratio >= target,
+  };
+}
+
+/**
+ * Computes Storage Availability SLI.
+ * Numerator: Count of non-5xx storage operations across all storage backends.
+ * Denominator: Total count of storage read/write operations.
+ */
+export function computeStorageAvailabilitySLI(
+  options?: ComputeSLOOptions,
+  snap = snapshot(),
+): SLIResult {
+  let numerator = 0;
+  let denominator = 0;
+
+  for (const [key, count] of Object.entries(snap.counters)) {
+    const { name, labels } = parseKey(key);
+    if (name !== "storage_operations_total") continue;
+
+    denominator += count;
+    const status = labels.status ?? "200";
+    if (!status.startsWith("5") && status !== "error") {
+      numerator += count;
+    }
+  }
+
+  const ratio = denominator === 0 ? 1.0 : numerator / denominator;
+  const target = 0.9999;
+  return {
+    name: "Storage Availability SLI",
+    numerator,
+    denominator,
+    ratio,
+    target,
+    met: ratio >= target,
+  };
+}
+
+/**
+ * Computes Account Provisioning SLI.
+ * Numerator: Count of successful account creation, wallet linking, and username reservation steps.
+ * Denominator: Total count of provisioning step executions.
+ */
+export function computeProvisioningSLI(options?: ComputeSLOOptions, snap = snapshot()): SLIResult {
+  let numerator = 0;
+  let denominator = 0;
+
+  for (const [key, count] of Object.entries(snap.counters)) {
+    const { name, labels } = parseKey(key);
+    if (name !== "provisioning_operations_total") continue;
+
+    denominator += count;
+    const status = labels.status ?? "200";
+    const outcome = labels.outcome ?? "success";
+    if (!status.startsWith("5") && outcome !== "unexpected_error") {
+      numerator += count;
+    }
+  }
+
+  const ratio = denominator === 0 ? 1.0 : numerator / denominator;
+  const target = 0.99;
+  return {
+    name: "Account Provisioning SLI",
+    numerator,
+    denominator,
+    ratio,
+    target,
+    met: ratio >= target,
+  };
+}
+
+/**
+ * Computes Mailbox & Message Sync Availability SLI.
+ * Numerator: Count of non-5xx sync requests processed.
+ * Denominator: Total count of sync requests processed.
+ */
+export function computeSyncAvailabilitySLI(
+  options?: ComputeSLOOptions,
+  snap = snapshot(),
+): SLIResult {
+  let numerator = 0;
+  let denominator = 0;
+
+  for (const [key, count] of Object.entries(snap.counters)) {
+    const { name, labels } = parseKey(key);
+    if (name !== "sync_operations_total") continue;
+
+    denominator += count;
+    const status = labels.status ?? "200";
+    if (!status.startsWith("5")) {
+      numerator += count;
+    }
+  }
+
+  const ratio = denominator === 0 ? 1.0 : numerator / denominator;
+  const target = 0.999;
+  return {
+    name: "Sync Availability SLI",
+    numerator,
+    denominator,
+    ratio,
+    target,
+    met: ratio >= target,
+  };
+}
+
+export interface SLOSummary {
+  availability: SLIResult;
+  latency: SLIResult;
+  authAvailability: SLIResult;
+  postageTransitions: SLIResult;
+  relayDelivery: SLIResult;
+  chainQueue: SLIResult;
+  storageAvailability: SLIResult;
+  provisioning: SLIResult;
+  syncAvailability: SLIResult;
+  allMet: boolean;
+}
+
+/**
+ * Computes a summary of all API Service-Level Indicators across core and beta workflows.
+ */
+export function computeSLOSummary(options?: ComputeSLOOptions): SLOSummary {
+  const snap = snapshot();
+  const availability = computeAvailabilitySLI(options, snap);
+  const latency = computeLatencySLI(250, options, snap);
+  const authAvailability = computeAuthAvailabilitySLI(options, snap);
+  const postageTransitions = computePostageTransitionSLI(options, snap);
+  const relayDelivery = computeRelayDeliverySLI(options, snap);
+  const chainQueue = computeChainQueueSLI(options, snap);
+  const storageAvailability = computeStorageAvailabilitySLI(options, snap);
+  const provisioning = computeProvisioningSLI(options, snap);
+  const syncAvailability = computeSyncAvailabilitySLI(options, snap);
+
+  const allMet =
+    availability.met &&
+    latency.met &&
+    authAvailability.met &&
+    postageTransitions.met &&
+    relayDelivery.met &&
+    chainQueue.met &&
+    storageAvailability.met &&
+    provisioning.met &&
+    syncAvailability.met;
+
+  return {
+    availability,
+    latency,
+    authAvailability,
+    postageTransitions,
+    relayDelivery,
+    chainQueue,
+    storageAvailability,
+    provisioning,
+    syncAvailability,
+    allMet,
   };
 }

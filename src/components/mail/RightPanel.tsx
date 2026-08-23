@@ -74,7 +74,7 @@ export function RightPanel({
   };
 
   return (
-    <aside className="scrollbar-thin m-3 ml-0 hidden h-[calc(100vh-1.5rem-3.5rem)] w-[292px] shrink-0 flex-col gap-3 overflow-y-auto 2xl:flex">
+    <aside className="scrollbar-thin m-3 ml-0 flex h-full min-w-0 flex-col gap-3 overflow-y-auto">
       <Card>
         <SectionHeader icon={Sparkles} title="AI assistant" badge="beta" />
         <div className="mt-3 rounded-xl border border-white/10 bg-black/20 p-3 text-xs text-foreground/80">

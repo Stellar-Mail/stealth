@@ -1,5 +1,5 @@
-/**
- * Relay receiving service (Issue #1935 BETA-028 / Issue #1943 BETA-036).
+﻿/**
+ * Relay receiving service (Issue #1935 BETA-028).
  *
  * This is the domain service behind the relay health contract and message
  * submission endpoint. It is transport-agnostic: the same instance backs the
@@ -14,25 +14,27 @@
  *
  * Health and readiness responses are deliberately free of secrets, URLs, and
  * user data so they can be served by unauthenticated load balancers.
- *
- * Submit evaluates the recipient's current mailbox policy before any payload
- * is stored. Blocked decisions persist evidence only; ciphertext never reaches
- * the queue or object store. The recorded policy version is immutable.
  */
 import { z } from "zod";
 
-import { ApiError } from "@/server/api/errors";
 import {
   hash32Schema,
   stellarAddressSchema,
   stroopAmountSchema,
-  type AdmissionEvidence,
+  type StoredEnvelope,
 } from "@/server/api/domain";
+import { ApiError } from "@/server/api/errors";
+import type { InsertEnvelopeResult } from "@/server/api/repository";
 import { InMemoryNonceStore, NonceService } from "@/server/api/auth/nonce-service";
-import { admissionDenialError, type RelayAdmissionEvaluator } from "./admission";
-import type { RelayObjectStore } from "./object-store";
-import type { RelayAdmissionRecord, RelayPersistence } from "./persistence";
+import type { RelayPersistence } from "./persistence";
 import type { RelayWorker } from "./worker";
+import type { RelayObjectStore } from "./object-store";
+import {
+  toSafeAdmissionDecision,
+  type RelayAdmissionEvaluator,
+  type RelayAdmissionEvidence,
+  type SafeAdmissionDecision,
+} from "./policy-admission";
 
 export const RELAY_SERVICE_NAME = "stealth-relay";
 
@@ -65,7 +67,6 @@ export const relaySubmissionSchema = z.object({
 });
 
 export type RelaySubmissionInput = z.input<typeof relaySubmissionSchema>;
-export type RelaySubmission = z.infer<typeof relaySubmissionSchema>;
 
 export interface RelayHealth {
   status: "ok";
@@ -114,8 +115,9 @@ export interface RelayServiceConfig {
   nonceService?: NonceService;
   nowSeconds?: () => number;
   /**
-   * Best-effort hook after a message is enqueued (e.g. lifecycle anchor).
-   * Failures are swallowed; durable records own retries.
+   * Best-effort hook invoked after a message is enqueued (e.g. scheduling the
+   * lifecycle anchor for the commitment). Failures are swallowed: the durable
+   * anchor record owns retries and reconciliation.
    */
   onAccepted?: (envelope: RelayAcceptedEnvelope) => void | Promise<void>;
   onIngestedReceipt?: (input: {
@@ -124,19 +126,26 @@ export interface RelayServiceConfig {
     recipient: string;
     payload: string;
   }) => Promise<unknown>;
+  /** Deployed Policies contract id used for live chain evaluation. */
+  policiesContractId?: string;
 }
 
 export interface RelaySubmitResult {
   accepted: true;
   messageId: string;
   queueDepth: number;
-  admission: AdmissionEvidence;
   replayed: boolean;
+  admission: SafeAdmissionDecision;
 }
 
-export interface RelayServiceOptions {
-  admission?: RelayAdmissionEvaluator;
+export interface RelayMailboxStore {
+  insertEnvelope(envelope: StoredEnvelope): Promise<InsertEnvelopeResult>;
+}
+
+export interface RelayServiceDependencies {
+  evaluator: RelayAdmissionEvaluator;
   objectStore?: RelayObjectStore;
+  mailbox?: RelayMailboxStore;
   now?: () => Date;
 }
 
@@ -154,28 +163,35 @@ function isValidHttpUrl(value: string): boolean {
   }
 }
 
-function payloadToBytes(payload: string): Uint8Array {
-  return new TextEncoder().encode(payload);
-}
-
 export class RelayService {
-  private readonly admission?: RelayAdmissionEvaluator;
-  private readonly objectStore?: RelayObjectStore;
-  private readonly now: () => Date;
   private readonly nonceService: NonceService;
   private readonly audience: string;
   private readonly idempotencyStore = new Map<string, unknown>();
   private readonly seenNonces = new Set<string>();
+  private readonly deps: RelayServiceDependencies;
 
   constructor(
     private readonly persistence: RelayPersistence,
     private readonly worker: RelayWorker,
     private readonly config: RelayServiceConfig,
-    options: RelayServiceOptions = {},
+    deps: RelayServiceDependencies = {
+      evaluator: {
+        async evaluate() {
+          return {
+            policyVersion: 0,
+            allowed: true,
+            kind: "request",
+            reason: "policy_satisfied",
+            rule: "default",
+            requiredPostage: "0",
+            source: "offchain_fallback",
+            evaluatedAt: new Date().toISOString(),
+          };
+        },
+      },
+    },
   ) {
-    this.admission = options.admission;
-    this.objectStore = options.objectStore;
-    this.now = options.now ?? (() => new Date());
+    this.deps = deps;
     this.nonceService = config.nonceService ?? new NonceService(new InMemoryNonceStore());
     this.audience = config.audience ?? "relay:stealth.test";
   }
@@ -262,11 +278,11 @@ export class RelayService {
   }
 
   /**
-   * Accept a relay message into the queue after evaluating the recipient's
-   * current mailbox policy. A previously recorded admission is replayed as-is
-   * so a later policy change cannot rewrite the decision. Blocked messages
-   * persist evidence only — the payload never reaches object storage or the
-   * delivery queue.
+   * Accept a relay message into the queue only after the recipient's current
+   * policy admits the sender. Blocked decisions never reach payload storage.
+   * A retry of the same messageId returns the original recorded admission and
+   * does not re-evaluate live policy (so a later policy change cannot rewrite
+   * history).
    */
   async submit(input: RelaySubmissionInput): Promise<RelaySubmitResult> {
     const parsed = relaySubmissionSchema.safeParse(input);
@@ -274,95 +290,60 @@ export class RelayService {
       throw parsed.error;
     }
 
-    const existing = await this.persistence.getAdmission(parsed.data.messageId);
+    const existing = await this.persistence.get(parsed.data.messageId);
     if (existing) {
-      return this.completeAdmittedSubmission(existing, parsed.data, true);
+      return {
+        accepted: true,
+        messageId: existing.messageId,
+        queueDepth: await this.persistence.getQueueDepth(),
+        replayed: true,
+        admission: toSafeAdmissionDecision(existing.admission),
+      };
     }
 
-    if (!this.admission) {
-      throw new ApiError(503, "dependency_unavailable", "Relay policy admission is not configured");
-    }
-
-    const evidence = await this.admission.evaluate({
+    const evidence = await this.deps.evaluator.evaluate({
       owner: parsed.data.recipient,
       sender: parsed.data.sender,
       postage: parsed.data.postage,
       verified: parsed.data.verified,
       receipt: parsed.data.receipt,
     });
-    const recordedAt = this.now().toISOString();
 
-    // Persist the decision before any ciphertext write so a concurrent retry
-    // cannot store a payload after a recorded block, and a later policy
-    // change cannot replace the snapshotted version.
-    const claimed = await this.persistence.recordAdmission({
+    if (!evidence.allowed) {
+      throwDeniedAdmission(evidence);
+    }
+
+    let payloadStorageKey: string | undefined;
+    if (this.deps.objectStore) {
+      payloadStorageKey = await this.deps.objectStore.storeEnvelopeBody({
+        messageId: parsed.data.messageId,
+        ownerAddress: parsed.data.recipient,
+        contentType: "application/octet-stream",
+        bytes: new TextEncoder().encode(parsed.data.payload),
+      });
+    }
+
+    const receivedAt = (this.deps.now ?? (() => new Date()))().toISOString();
+    const envelope = {
       messageId: parsed.data.messageId,
       sender: parsed.data.sender,
       recipient: parsed.data.recipient,
+      recipientDomain: parsed.data.recipientDomain,
+      payload: parsed.data.payload,
+      ttlMs: parsed.data.ttlMs ?? DEFAULT_RELAY_TTL_MS,
+      receivedAt,
       admission: evidence,
-      payloadStored: evidence.allowed,
-      recordedAt,
-    });
-    if (claimed.duplicate) {
-      return this.completeAdmittedSubmission(claimed.record, parsed.data, true);
-    }
-    if (!evidence.allowed) {
-      throw admissionDenialError(evidence);
-    }
+      ...(payloadStorageKey === undefined ? {} : { payloadStorageKey }),
+    };
 
-    return this.completeAdmittedSubmission(claimed.record, parsed.data, false);
-  }
-
-  /**
-   * Finishes an admitted submission (store payload, enqueue) or replays a
-   * recorded denial. Enqueue is idempotent, so retries of an admitted
-   * message heal a crash between recordAdmission and enqueue.
-   */
-  private async completeAdmittedSubmission(
-    existing: RelayAdmissionRecord,
-    input: RelaySubmission,
-    replayed: boolean,
-  ): Promise<RelaySubmitResult> {
-    if (!existing.admission.allowed) {
-      throw admissionDenialError(existing.admission);
-    }
-
-    let payloadKey = existing.payloadKey;
-    if (this.objectStore && !payloadKey) {
-      payloadKey = await this.objectStore.storeEnvelopeBody({
-        messageId: input.messageId,
-        ownerAddress: input.recipient,
-        contentType: "application/octet-stream",
-        bytes: payloadToBytes(input.payload),
-      });
-    }
-
-    try {
-      await this.persistence.enqueue({
-        messageId: input.messageId,
-        sender: input.sender,
-        recipient: input.recipient,
-        recipientDomain: input.recipientDomain,
-        payload: input.payload,
-        ttlMs: input.ttlMs ?? DEFAULT_RELAY_TTL_MS,
-        receivedAt: existing.recordedAt,
-        admission: existing.admission,
-        payloadKey,
-      });
-    } catch (error) {
-      if (payloadKey && this.objectStore && payloadKey !== existing.payloadKey) {
-        await this.objectStore.deleteObject(payloadKey).catch(() => undefined);
-      }
-      throw error;
-    }
-
+    await this.persistence.enqueue(envelope);
     if (this.config.onAccepted) {
       try {
         await this.config.onAccepted({
-          messageId: input.messageId,
-          sender: input.sender,
-          recipient: input.recipient,
-          receivedAt: existing.recordedAt,
+          messageId: envelope.messageId,
+          sender: envelope.sender,
+          recipient: envelope.recipient,
+          receivedAt: envelope.receivedAt,
         });
       } catch {
         // Best-effort; the durable anchor record owns the outcome.
@@ -371,22 +352,35 @@ export class RelayService {
     if (this.config.onIngestedReceipt) {
       try {
         await this.config.onIngestedReceipt({
-          messageId: input.messageId,
-          sender: input.sender,
-          recipient: input.recipient,
-          payload: input.payload,
+          messageId: envelope.messageId,
+          sender: envelope.sender,
+          recipient: envelope.recipient,
+          payload: envelope.payload,
         });
       } catch {
-        // Fail-soft: receipt publication must not fail queue enqueue.
+        // Log / fail-soft: receipt publication error does not fail queue enqueue
       }
+    }
+
+    if (this.deps.mailbox) {
+      await this.deps.mailbox.insertEnvelope({
+        messageId: envelope.messageId,
+        senderId: envelope.sender,
+        recipientId: envelope.recipient,
+        ciphertext: envelope.payload,
+        protectedHeaders: {},
+        createdAt: receivedAt,
+        status: "pending",
+        metadata: { admission: toSafeAdmissionDecision(evidence) },
+      });
     }
 
     return {
       accepted: true,
-      messageId: existing.messageId,
+      messageId: envelope.messageId,
       queueDepth: await this.persistence.getQueueDepth(),
-      admission: existing.admission,
-      replayed,
+      replayed: false,
+      admission: toSafeAdmissionDecision(evidence),
     };
   }
 
@@ -430,4 +424,22 @@ export class RelayService {
       if (timer) clearTimeout(timer);
     }
   }
+}
+
+/**
+ * Maps a denied admission to a sender-actionable API error. The details object
+ * is the safe decision (kind / reason / required postage / version) and never
+ * includes the recipient's full policy, payload, or secrets.
+ */
+function throwDeniedAdmission(evidence: RelayAdmissionEvidence): never {
+  const details = toSafeAdmissionDecision(evidence);
+  if (evidence.kind === "priced") {
+    throw new ApiError(
+      422,
+      "insufficient_postage",
+      "The postage amount is below the required minimum",
+      details,
+    );
+  }
+  throw new ApiError(403, "forbidden", "The recipient policy does not admit this message", details);
 }

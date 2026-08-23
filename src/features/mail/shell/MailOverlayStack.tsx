@@ -91,6 +91,8 @@ export function MailOverlayStack({
   onCloseSnooze,
   onImportComplete,
   composeOwner,
+  actor,
+  offline,
 }: {
   overlays: MailOverlays;
   emails: Email[];
@@ -127,6 +129,8 @@ export function MailOverlayStack({
     rows: Array<{ name: string; address: string }>;
   }) => void;
   composeOwner: string;
+  actor: string | null;
+  offline: boolean;
 }) {
   return (
     <>
@@ -140,123 +144,108 @@ export function MailOverlayStack({
         }}
       />
 
-      <Suspense fallback={null}>
-        <Compose
-          open={overlays.composeOpen}
-          onClose={() => overlays.setComposeOpen(false)}
-          onShowToast={onShowToast}
-          initialTo={overlays.composeInitial.to}
-          initialSubject={overlays.composeInitial.subject}
-          initialBody={overlays.composeInitial.body}
-          initialPostage={preferences.minimumPostage}
-          onSubmit={onComposeSubmit}
-        />
-      </Suspense>
-      <Suspense fallback={null}>
-        <SettingsModal
-          open={overlays.settingsOpen}
-          onClose={overlays.closeSettings}
-          onCancel={() => {
-            if (overlays.settingsSnapshot) setPreferences(overlays.settingsSnapshot);
-            overlays.closeSettings();
-            onShowToast("Settings changes discarded");
-          }}
-          preferences={preferences}
-          onChange={setPreferences}
-          layout={layout}
-          onLayoutChange={setLayout}
-          onResetLayout={resetLayout}
-          onSave={() => {
-            overlays.setSettingsSnapshot(null);
-            onShowToast("Settings saved");
-          }}
-        />
-      </Suspense>
-      <Suspense fallback={null}>
-        <CommandPalette
-          open={overlays.paletteOpen}
-          onClose={() => overlays.setPaletteOpen(false)}
-          context={{ email: selected, folder }}
-          emails={emails}
-          onRunCommand={onRunCommand}
-          onNavigate={onNavigate}
-          onSelectEmail={onSelectEmail}
-          onOpenSettings={onOpenSettings}
-        />
-      </Suspense>
-      <Suspense fallback={null}>
-        <ShortcutOverlay
-          open={overlays.shortcutOverlayOpen}
-          onClose={() => overlays.setShortcutOverlayOpen(false)}
-        />
-      </Suspense>
-      <Suspense fallback={null}>
-        <ProofInspectorModal
-          open={overlays.proofInspectorOpen}
-          onClose={() => overlays.setProofInspectorOpen(false)}
-          emails={emails}
-          onOpenMessage={onOpenMessage}
-          onShowToast={onShowToast}
-          initialQuery={overlays.proofInspectorQuery}
-        />
-      </Suspense>
-      <Suspense fallback={null}>
-        <CalendarWorkspace
-          open={overlays.calendarOpen}
-          onClose={() => overlays.setCalendarOpen(false)}
-          calendars={calendar.calendars}
-          events={calendar.events}
-          initialEventId={overlays.calendarEventId}
-          createRequest={overlays.calendarCreateRequest}
-          onSaveEvent={calendar.saveEvent}
-          onDeleteEvent={calendar.deleteEvent}
-          onDuplicateEvent={calendar.duplicateEvent}
-          onResponseChange={calendar.updateResponse}
-          onReminderChange={calendar.updateReminder}
-          onToggleCalendar={calendar.toggleCalendar}
-          onAddCalendar={calendar.addCalendar}
-          onShowToast={onShowToast}
-        />
-      </Suspense>
-      <Suspense fallback={null}>
-        <ContactMigrationDialog
-          open={overlays.importOpen}
-          onClose={() => overlays.setImportOpen(false)}
-          onComplete={onImportComplete}
-          owner={composeOwner}
-        />
-      </Suspense>
-      <Suspense fallback={null}>
-        <SenderConversionDialog
-          target={senderTarget}
-          onConfirm={onConvertSender}
-          onClose={onCloseSenderConversion}
-        />
-      </Suspense>
-      <Suspense fallback={null}>
-        <SnoozeDialog
-          target={snoozeTarget}
-          initialState={selectedSnoozeState}
-          events={calendar.events}
-          onConfirm={onConfirmSnooze}
-          onClose={onCloseSnooze}
-        />
-      </Suspense>
-      <Suspense fallback={null}>
-        <AttachmentPreviewDrawer
-          isOpen={!!overlays.previewAttachment}
-          onClose={() => overlays.setPreviewAttachment(null)}
-          attachment={overlays.previewAttachment}
-          senderAddress={selected?.email}
-        />
-      </Suspense>
-      <Suspense fallback={null}>
-        <AuthModal
-          open={overlays.authModalOpen}
-          onClose={() => overlays.setAuthModalOpen(false)}
-          onSuccess={(user) => onShowToast(`Signed in as ${user.username}`)}
-        />
-      </Suspense>
+      <Compose
+        open={overlays.composeOpen}
+        onClose={() => overlays.setComposeOpen(false)}
+        onShowToast={onShowToast}
+        initialTo={overlays.composeInitial.to}
+        initialSubject={overlays.composeInitial.subject}
+        initialBody={overlays.composeInitial.body}
+        initialDraftId={overlays.composeInitial.draftId}
+        initialVersion={overlays.composeInitial.version}
+        initialPostage={preferences.minimumPostage}
+        onSubmit={onComposeSubmit}
+      />
+      <SettingsModal
+        open={overlays.settingsOpen}
+        onClose={overlays.closeSettings}
+        onCancel={() => {
+          if (overlays.settingsSnapshot) setPreferences(overlays.settingsSnapshot);
+          overlays.closeSettings();
+          onShowToast("Settings changes discarded");
+        }}
+        preferences={preferences}
+        onChange={setPreferences}
+        layout={layout}
+        onLayoutChange={setLayout}
+        onResetLayout={resetLayout}
+        onSave={() => {
+          overlays.setSettingsSnapshot(null);
+          onShowToast("Settings saved");
+        }}
+      />
+      <CommandPalette
+        open={overlays.paletteOpen}
+        onClose={() => overlays.setPaletteOpen(false)}
+        context={{ email: selected, folder }}
+        emails={emails}
+        onRunCommand={onRunCommand}
+        onNavigate={onNavigate}
+        onSelectEmail={onSelectEmail}
+        onOpenSettings={onOpenSettings}
+      />
+      <ShortcutOverlay
+        open={overlays.shortcutOverlayOpen}
+        onClose={() => overlays.setShortcutOverlayOpen(false)}
+      />
+      <ProofInspectorModal
+        open={overlays.proofInspectorOpen}
+        onClose={() => overlays.setProofInspectorOpen(false)}
+        emails={emails}
+        onOpenMessage={onOpenMessage}
+        onShowToast={onShowToast}
+        initialQuery={overlays.proofInspectorQuery}
+      />
+      <CalendarWorkspace
+        open={overlays.calendarOpen}
+        onClose={() => overlays.setCalendarOpen(false)}
+        calendars={calendar.calendars}
+        events={calendar.events}
+        initialEventId={overlays.calendarEventId}
+        createRequest={overlays.calendarCreateRequest}
+        onSaveEvent={calendar.saveEvent}
+        onDeleteEvent={calendar.deleteEvent}
+        onDuplicateEvent={calendar.duplicateEvent}
+        onResponseChange={calendar.updateResponse}
+        onReminderChange={calendar.updateReminder}
+        onToggleCalendar={calendar.toggleCalendar}
+        onAddCalendar={calendar.addCalendar}
+        onShowToast={onShowToast}
+      />
+      <ContactMigrationDialog
+        open={overlays.importOpen}
+        onClose={() => overlays.setImportOpen(false)}
+        onComplete={onImportComplete}
+        owner={composeOwner}
+      />
+      <SenderConversionDialog
+        target={senderTarget}
+        onConfirm={onConvertSender}
+        onClose={onCloseSenderConversion}
+      />
+      <SnoozeDialog
+        target={snoozeTarget}
+        initialState={selectedSnoozeState}
+        events={calendar.events}
+        onConfirm={onConfirmSnooze}
+        onClose={onCloseSnooze}
+      />
+      <AttachmentPreviewDrawer
+        isOpen={!!overlays.previewAttachment}
+        onClose={() => overlays.setPreviewAttachment(null)}
+        attachment={overlays.previewAttachment}
+        senderAddress={overlays.previewAttachment?.senderAddress ?? selected?.email}
+        encryptedCiphertext={overlays.previewAttachment?.encryptedCiphertext}
+        encryptedNonce={overlays.previewAttachment?.encryptedNonce}
+        encryptedMac={overlays.previewAttachment?.encryptedMac}
+        expectedContentHash={overlays.previewAttachment?.expectedContentHash}
+        contentKey={overlays.previewAttachment?.contentKey}
+      />
+      <AuthModal
+        open={overlays.authModalOpen}
+        onClose={() => overlays.setAuthModalOpen(false)}
+        onSuccess={(user) => onShowToast(`Signed in as ${user.username}`)}
+      />
     </>
   );
 }

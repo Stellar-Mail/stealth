@@ -1,4 +1,12 @@
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 
 import {
   fetchBootstrap,
@@ -40,6 +48,10 @@ export function BootstrapProvider({
   );
   const [isRetrying, setIsRetrying] = useState(false);
 
+  // BETA-052: keep a ref to the latest load fn so event handlers don't
+  // go stale across re-renders.
+  const loadRef = useRef<((bypassCache?: boolean) => Promise<void>) | null>(null);
+
   const load = useCallback(async (bypassCache = false) => {
     if (bypassCache) {
       setIsRetrying(true);
@@ -67,11 +79,45 @@ export function BootstrapProvider({
     }
   }, []);
 
+  loadRef.current = load;
+
+  // BETA-052: Initial bootstrap fetch on mount (only when no initialState is
+  // provided by the server).
   useEffect(() => {
     if (!initialState && state.branch === "loading") {
       void load(false);
     }
   }, [initialState, load, state.branch]);
+
+  // BETA-052: Re-fetch when the user returns to the tab after being away.
+  // This catches session expiry, stale data, and server-side state changes
+  // without requiring a full page reload.
+  useEffect(() => {
+    function handleVisibilityChange() {
+      if (document.visibilityState !== "visible") return;
+      // If the user has an active or outage branch (i.e. they completed the
+      // initial load), silently re-fetch to check session freshness.
+      const current = state.branch;
+      if (current !== "loading" && current !== "unauthorized" && loadRef.current) {
+        void loadRef.current(false);
+      }
+    }
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [state.branch]);
+
+  // BETA-052: Re-fetch when the browser transitions from offline to online.
+  useEffect(() => {
+    function handleOnline() {
+      if (loadRef.current && (state.branch === "outage" || state.branch === "maintenance")) {
+        void loadRef.current(false);
+      }
+    }
+
+    window.addEventListener("online", handleOnline);
+    return () => window.removeEventListener("online", handleOnline);
+  }, [state.branch]);
 
   const retry = useCallback(async () => {
     await load(true);

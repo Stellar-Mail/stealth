@@ -137,6 +137,13 @@ export const API_ERROR_REGISTRY = {
     description:
       "The supplied mailbox sync cursor is past its lifetime or older than the retained event window. The client must start a bounded full resync without a cursor.",
   },
+  chain_error: {
+    status: 502,
+    message: "The on-chain operation could not be confirmed",
+    retryable: true,
+    description:
+      "The postage escrow operation failed to reach on-chain confirmation; the caller may retry with the same idempotency key.",
+  },
   recent_auth_required: {
     status: 403,
     message: "Recent authentication is required",

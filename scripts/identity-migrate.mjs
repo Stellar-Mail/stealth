@@ -37,6 +37,10 @@ const options = {};
 for (let i = 0; i < args.length; i++) {
   if (args[i] === "--family") options.family = args[++i];
   else if (args[i] === "--target-version") options.targetVersion = Number(args[++i]);
+  else if (args[i] === "--batch-size") options.batchSize = Number(args[++i]);
+  else if (args[i] === "--resume-after") options.resumeAfter = args[++i];
+  else if (args[i] === "--approval") options.approval = args[++i];
+  else if (args[i] === "--registry-checksum") options.expectedRegistryChecksum = args[++i];
 }
 
 if (

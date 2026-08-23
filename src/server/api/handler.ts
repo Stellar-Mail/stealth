@@ -7,6 +7,7 @@ import * as metrics from "./metrics";
 import { parseJsonBody } from "./request";
 import { consumeRouteQuota, type RateLimitConfig } from "./rate-limit";
 import { applyCors, corsEarlyResponse, validateCorsPolicy, type CorsPolicy } from "./cors";
+import { planPrivacySafeLog } from "./logging";
 
 export type { RateLimitConfig } from "./rate-limit";
 export type { CorsPolicy } from "./cors";
@@ -197,7 +198,24 @@ export function createRouteHandler<
         status: String(response.status),
       });
 
-      console.log(`[API SUCCESS] ${method} ${path} - ${response.status} (${latency.toFixed(2)}ms)`);
+      const successLog = planPrivacySafeLog({
+        stage: "api",
+        operation: "route_request",
+        method,
+        route: path,
+        status: response.status,
+        outcome: "success",
+        requestId: apiContext.requestId ?? "unknown",
+        traceId: apiContext.traceContext?.traceId,
+        spanId: apiContext.traceContext?.spanId,
+        latencyMs: latency,
+      });
+
+      if (successLog.log) {
+        console.log(
+          `[API SUCCESS] ${method} ${path} - ${response.status} (${latency.toFixed(2)}ms) [supportId=${successLog.log.supportId}]`,
+        );
+      }
 
       return config.cors ? applyCors(request, response, config.cors) : response;
     } catch (error: any) {
@@ -222,7 +240,27 @@ export function createRouteHandler<
         status: String(status),
       });
 
-      console.error(`[API ERROR] ${method} ${path} - ${status} (${latency.toFixed(2)}ms)`, apiErr);
+      const outcome = status === 401 || status === 403 ? "security_denied" : "unexpected_error";
+      const errorLog = planPrivacySafeLog({
+        stage: "api",
+        operation: "route_request",
+        method,
+        route: path,
+        status,
+        outcome,
+        requestId: request.headers.get("x-request-id") ?? "unknown",
+        errorCode: apiErr.code,
+        errorType: apiErr.name,
+        retryable: apiErr.retryable,
+        retryClassification: apiErr.retryClassification,
+        latencyMs: latency,
+      });
+
+      if (errorLog.log) {
+        console.error(
+          `[API ERROR] ${method} ${path} - ${status} (${latency.toFixed(2)}ms) [supportId=${errorLog.log.supportId}] ${apiErr.code}: ${apiErr.message}`,
+        );
+      }
 
       const response = apiFailure(request, apiErr);
       return config.cors ? applyCors(request, response, config.cors) : response;

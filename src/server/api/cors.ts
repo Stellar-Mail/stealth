@@ -5,7 +5,15 @@ export type CorsPolicy = {
   allowCredentials?: boolean;
 };
 
-const DEFAULT_ALLOWED_METHODS = ["GET", "POST", "PUT", "DELETE"] as const;
+const DEFAULT_ALLOWED_METHODS = [
+  "GET",
+  "POST",
+  "PUT",
+  "DELETE",
+  "OPTIONS",
+  "HEAD",
+  "PATCH",
+] as const;
 const DEFAULT_ALLOWED_HEADERS = [
   "Content-Type",
   "X-Idempotency-Key",
@@ -46,14 +54,35 @@ export function validateCorsPolicy(policy: CorsPolicy) {
 export function corsPolicyFromEnv(
   env: Record<string, string | undefined> = process.env,
 ): CorsPolicy {
+  const isProduction = env.STEALTH_ENV === "production";
+  const defaultOrigin = isProduction
+    ? "https://app.stealth.mail"
+    : (env.STEALTH_APP_URL ?? "http://localhost:3000");
   const policy: CorsPolicy = {
-    allowedOrigins: configuredList(env.STEALTH_CORS_ALLOWED_ORIGINS),
+    allowedOrigins: configuredList(env.STEALTH_CORS_ALLOWED_ORIGINS, [defaultOrigin]),
     allowedMethods: configuredList(env.STEALTH_CORS_ALLOWED_METHODS, DEFAULT_ALLOWED_METHODS),
     allowedHeaders: configuredList(env.STEALTH_CORS_ALLOWED_HEADERS, DEFAULT_ALLOWED_HEADERS),
-    allowCredentials: env.STEALTH_CORS_ALLOW_CREDENTIALS?.toLowerCase() === "true",
+    allowCredentials: env.STEALTH_CORS_ALLOW_CREDENTIALS?.toLowerCase() !== "false",
   };
   validateCorsPolicy(policy);
   return policy;
+}
+
+const UNSAFE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+
+export function csrfEarlyResponse(request: Request, policy: CorsPolicy): Response | undefined {
+  if (policy.allowedOrigins.some((origin) => origin.startsWith("http://localhost"))) {
+    return undefined;
+  }
+  if (!UNSAFE_METHODS.has(request.method.toUpperCase())) return undefined;
+  if (!request.headers.get("cookie")) return undefined;
+  if (request.headers.get("Origin") || request.headers.get("Referer")) return undefined;
+
+  // SameSite=Lax is the primary browser defense; this closes clients that send
+  // the session cookie without the browser's Origin/Referer context.
+  const headers = new Headers();
+  appendVary(headers, "Origin");
+  return new Response(null, { status: 403, headers });
 }
 
 export const apiCorsPolicy = corsPolicyFromEnv();

@@ -233,17 +233,17 @@ export function maxMailboxTimestamp(
   envelopes: readonly StoredEnvelope[],
   fallback: string,
 ): string {
-  let max = fallback;
+  let max: string | null = null;
   for (const envelope of envelopes) {
     for (const value of [
       envelope.createdAt,
       envelope.deletedAt,
       readMailboxFlags(envelope).updatedAt,
     ]) {
-      if (value && value > max) max = value;
+      if (value && (max === null || value > max)) max = value;
     }
   }
-  return max;
+  return max ?? fallback;
 }
 
 export async function listAllRecipientEnvelopes(

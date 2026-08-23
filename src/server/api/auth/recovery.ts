@@ -13,6 +13,7 @@ import {
   DEFAULT_ABSOLUTE_TIMEOUT_SECONDS,
   DEFAULT_IDLE_TIMEOUT_SECONDS,
   buildSessionCookie,
+  sessionCookieConfig,
 } from "./session-service";
 
 /**
@@ -364,11 +365,11 @@ async function mintRecoverySession(
   };
 
   await repo.createSession(session);
-  const isProd = import.meta.env?.PROD ?? false;
+  const { isProd, domain } = sessionCookieConfig();
   const maxAgeSeconds = Math.max(0, Math.floor((expiresMs - nowMs) / 1000));
   return {
     ...session,
-    cookieHeader: buildSessionCookie(session.sessionId, maxAgeSeconds, isProd),
+    cookieHeader: buildSessionCookie(session.sessionId, maxAgeSeconds, isProd, domain),
   };
 }
 

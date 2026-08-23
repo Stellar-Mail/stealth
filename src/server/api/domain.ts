@@ -29,7 +29,81 @@ export const stroopAmountSchema = z
     }
   }, "Amount exceeds Soroban i128");
 
-export const senderRuleSchema = z.enum(["default", "allow", "block"]);
+export const senderRuleSchema = z.enum(["default", "allow", "block", "verify", "price"]);
+
+/**
+ * BETA-037 (Issue #1944) — live, versioned sender rules.
+ *
+ * `senderRuleActionSchema` covers the subset of rule types that can be explicitly
+ * set via the API. "default" is the absence of a rule and is set by deleting.
+ */
+export const senderRuleActionSchema = z.enum(["allow", "block", "verify", "price"]);
+export type SenderRuleAction = z.infer<typeof senderRuleActionSchema>;
+
+/**
+ * Chain synchronization status for a sender rule. Each state-changing
+ * operation schedules a testnet contract write; this field tracks where
+ * that write is in its lifecycle and whether local state matches chain state.
+ *
+ * - pending:   local rule recorded, testnet write scheduled but not yet submitted
+ * - submitted: signed transaction submitted to testnet, awaiting confirmation
+ * - confirmed: chain confirmed the rule matches local state
+ * - failed:    testnet write failed after retries; local rule still applies off-chain
+ * - drift:     chain version diverged from local (e.g. external set_sender_rule call)
+ */
+export const senderRuleChainStatusSchema = z.enum([
+  "pending",
+  "submitted",
+  "confirmed",
+  "failed",
+  "drift",
+]);
+
+export type SenderRuleChainStatus = z.infer<typeof senderRuleChainStatusSchema>;
+
+/**
+ * Price rule payload: the minimum postage (in stroops) the sender must attach.
+ * Only valid when rule is "price".
+ */
+export const senderRulePricePayloadSchema = z
+  .object({
+    minimumPostage: stroopAmountSchema,
+  })
+  .optional();
+
+/**
+ * Full versioned sender rule record. Persisted server-side (survives refresh)
+ * and reconciled against testnet.
+ */
+export const senderRuleRecordSchema = z.object({
+  owner: stellarAddressSchema,
+  sender: stellarAddressSchema,
+  rule: senderRuleActionSchema,
+  pricePayload: senderRulePricePayloadSchema,
+  version: z.number().int().nonnegative(),
+  chainStatus: senderRuleChainStatusSchema,
+  scheduledAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+  confirmedAt: z.string().datetime().nullable().default(null),
+  failureCount: z.number().int().nonnegative().default(0),
+  lastError: z.string().max(300).nullable().default(null),
+  txHash: z.string().nullable().default(null),
+  idempotencyKey: z.string().min(1).optional(),
+});
+
+export type SenderRuleRecord = z.infer<typeof senderRuleRecordSchema>;
+
+/**
+ * Chain-side representation of a sender rule for reconciliation. Queried
+ * from the Policies contract to compare against local state.
+ */
+export const chainSenderRuleSchema = z.object({
+  rule: senderRuleActionSchema,
+  minimumPostage: stroopAmountSchema.optional(),
+  version: z.number().int().nonnegative(),
+});
+
+export type ChainSenderRule = z.infer<typeof chainSenderRuleSchema>;
 export const postageStatusSchema = z.enum([
   "pending",
   "expired",
@@ -37,6 +111,12 @@ export const postageStatusSchema = z.enum([
   "settled",
   "refunded",
   "reclaimed",
+]);
+export const postageChainStatusSchema = z.enum([
+  "not_submitted",
+  "submitted",
+  "confirmed",
+  "failed",
 ]);
 
 export const mailboxPolicySchema = z.object({
@@ -58,9 +138,27 @@ export const mailboxPolicyWriteSchema = z.object({
   version: z.number().int().nonnegative().optional(),
 });
 
-export const senderRuleWriteSchema = z.object({
-  rule: senderRuleSchema,
-});
+/**
+ * Request body for creating or updating a versioned sender rule.
+ * `version` is required for updates (optimistic concurrency check);
+ * omitted for creates.
+ */
+export const senderRuleWriteSchema = z
+  .object({
+    rule: senderRuleActionSchema,
+    pricePayload: senderRulePricePayloadSchema,
+    version: z.number().int().nonnegative().optional(),
+    idempotencyKey: z.string().min(1).max(128).optional(),
+  })
+  .refine(
+    (data) => {
+      if (data.rule === "price" && !data.pricePayload?.minimumPostage) {
+        return false;
+      }
+      return true;
+    },
+    { message: "pricePayload.minimumPostage is required when rule is 'price'" },
+  );
 
 // ---------------------------------------------------------------------------
 // BETA-023 (Issue #1930) — privacy-safe mailbox policy provisioning
@@ -141,6 +239,16 @@ export const postageSchema = z.object({
   recipient: stellarAddressSchema,
   sender: stellarAddressSchema,
   status: postageStatusSchema,
+  // BETA-042: chain-sync bookkeeping fields. Kept optional so pre-existing
+  // records and test fixtures remain assignable; the service writes all of
+  // them explicitly when it touches the chain.
+  chainStatus: postageChainStatusSchema.optional(),
+  txHash: z.string().nullable().optional(),
+  ledger: z.number().int().nonnegative().nullable().optional(),
+  retryCount: z.number().int().nonnegative().optional(),
+  lastError: z.string().max(500).nullable().optional(),
+  submittedAt: z.string().datetime().nullable().optional(),
+  confirmedAt: z.string().datetime().nullable().optional(),
 });
 
 export const DEFAULT_RECEIPT_FUTURE_TOLERANCE_MS = 5 * 60 * 1000;
@@ -212,6 +320,7 @@ export type PolicyWriteIntent = z.infer<typeof policyWriteIntentSchema>;
 export type PolicyWriteStatus = z.infer<typeof policyWriteStatusSchema>;
 export type Postage = z.infer<typeof postageSchema>;
 export type PostageStatus = z.infer<typeof postageStatusSchema>;
+export type PostageChainStatus = z.infer<typeof postageChainStatusSchema>;
 export type Receipt = z.infer<typeof receiptSchema>;
 export type SenderRule = z.infer<typeof senderRuleSchema>;
 export type LifecycleAnchor = z.infer<typeof lifecycleAnchorSchema>;
@@ -847,6 +956,46 @@ export type ProvisioningFailure = z.infer<typeof provisioningFailureSchema>;
 export type ProvisioningRecord = z.infer<typeof provisioningRecordSchema>;
 export type Wallet = z.infer<typeof walletSchema>;
 export type UsernameReservation = z.infer<typeof usernameReservationSchema>;
+
+// BETA-080 (Issue #1987): account deletion is a durable, cancellable workflow.
+export const accountDeletionStatusSchema = z.enum([
+  "cooling_off",
+  "processing",
+  "partial_failure",
+  "completed",
+  "cancelled",
+]);
+
+export const accountDeletionRequestSchema = z.object({
+  userId: z.string().min(1),
+  requestedAt: z.string().datetime(),
+  coolingOffEndsAt: z.string().datetime(),
+  status: accountDeletionStatusSchema,
+  attempt: z.number().int().nonnegative(),
+  lastError: z.string().max(500).nullable(),
+  updatedAt: z.string().datetime(),
+});
+
+export type AccountDeletionStatus = z.infer<typeof accountDeletionStatusSchema>;
+export type AccountDeletionRequest = z.infer<typeof accountDeletionRequestSchema>;
+
+export interface AccountExport {
+  format: "stealth-account-export-v1";
+  generatedAt: string;
+  account: PublicUser;
+  profile: PublicProfile | null;
+  contacts: Contact[];
+  mailbox: StoredEnvelope[];
+  senderRequests: UnknownSenderRequest[];
+  publicKeys: PublishedKey[];
+  ciphertextReferences: Array<{
+    messageId: string;
+    objectKey: string | null;
+    contentCommitment: string | null;
+    deletedAt: string | null;
+  }>;
+  onChainLimitations: string[];
+}
 
 // ---------------------------------------------------------------------------
 // BETA-013 (Issue #1920): Profile-first account onboarding
@@ -1487,3 +1636,223 @@ export const sendOperationStateSchema = z.object({
   updatedAt: z.string().datetime(),
 });
 export type SendOperationState = z.infer<typeof sendOperationStateSchema>;
+
+// ---------------------------------------------------------------------------
+// Issue #1965 (BETA-058) — Durable Drafts, Scheduled Autosave & Conflict Handling
+// ---------------------------------------------------------------------------
+
+export const draftAttachmentDescriptorSchema = z.object({
+  filename: z.string().trim().min(1).max(255),
+  contentType: z.string().trim().default("application/octet-stream"),
+  sizeBytes: z.number().int().nonnegative(),
+  contentHash: z.string().trim().optional(),
+});
+export type DraftAttachmentDescriptor = z.infer<typeof draftAttachmentDescriptorSchema>;
+
+export const draftContentSchema = z.object({
+  to: z.array(z.string().trim()).default([]),
+  cc: z.array(z.string().trim()).default([]),
+  bcc: z.array(z.string().trim()).default([]),
+  subject: z.string().default(""),
+  body: z.string().default(""),
+  attachments: z.array(draftAttachmentDescriptorSchema).default([]),
+});
+export type DraftContent = z.infer<typeof draftContentSchema>;
+
+/**
+ * Encrypted-at-rest persistence record for drafts.
+ * Plaintext draft content (subject, body, recipients, attachments) is
+ * sealed using AES-256-GCM with AAD bound to the owner and draftId.
+ */
+export const draftRecordSchema = z.object({
+  draftId: z.string().trim().min(1),
+  owner: stellarAddressSchema,
+  encryptedPayload: z.string().min(1),
+  nonce: z.string().min(1),
+  tag: z.string().min(1),
+  algorithm: z.literal("AES-256-GCM").default("AES-256-GCM"),
+  version: z.number().int().positive(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+export type DraftRecord = z.infer<typeof draftRecordSchema>;
+
+/**
+ * Decrypted draft representation exposed to authenticated callers.
+ */
+export const draftSchema = z.object({
+  draftId: z.string().trim().min(1),
+  owner: stellarAddressSchema,
+  to: z.array(z.string().trim()).default([]),
+  cc: z.array(z.string().trim()).default([]),
+  bcc: z.array(z.string().trim()).default([]),
+  subject: z.string().default(""),
+  body: z.string().default(""),
+  attachments: z.array(draftAttachmentDescriptorSchema).default([]),
+  version: z.number().int().positive(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+export type Draft = z.infer<typeof draftSchema>;
+
+export const draftCreateSchema = z.object({
+  draftId: z.string().trim().min(1).optional(),
+  to: z
+    .union([z.string(), z.array(z.string())])
+    .transform((val) =>
+      Array.isArray(val)
+        ? val.map((s) => s.trim()).filter(Boolean)
+        : val
+            .split(/[;,]/)
+            .map((s) => s.trim())
+            .filter(Boolean),
+    )
+    .optional()
+    .default([]),
+  cc: z
+    .union([z.string(), z.array(z.string())])
+    .transform((val) =>
+      Array.isArray(val)
+        ? val.map((s) => s.trim()).filter(Boolean)
+        : val
+            .split(/[;,]/)
+            .map((s) => s.trim())
+            .filter(Boolean),
+    )
+    .optional()
+    .default([]),
+  bcc: z
+    .union([z.string(), z.array(z.string())])
+    .transform((val) =>
+      Array.isArray(val)
+        ? val.map((s) => s.trim()).filter(Boolean)
+        : val
+            .split(/[;,]/)
+            .map((s) => s.trim())
+            .filter(Boolean),
+    )
+    .optional()
+    .default([]),
+  subject: z.string().optional().default(""),
+  body: z.string().optional().default(""),
+  attachments: z.array(draftAttachmentDescriptorSchema).optional().default([]),
+});
+export type DraftCreateInput = z.input<typeof draftCreateSchema>;
+
+export const draftUpdateSchema = z.object({
+  to: z
+    .union([z.string(), z.array(z.string())])
+    .transform((val) =>
+      Array.isArray(val)
+        ? val.map((s) => s.trim()).filter(Boolean)
+        : val
+            .split(/[;,]/)
+            .map((s) => s.trim())
+            .filter(Boolean),
+    )
+    .optional(),
+  cc: z
+    .union([z.string(), z.array(z.string())])
+    .transform((val) =>
+      Array.isArray(val)
+        ? val.map((s) => s.trim()).filter(Boolean)
+        : val
+            .split(/[;,]/)
+            .map((s) => s.trim())
+            .filter(Boolean),
+    )
+    .optional(),
+  bcc: z
+    .union([z.string(), z.array(z.string())])
+    .transform((val) =>
+      Array.isArray(val)
+        ? val.map((s) => s.trim()).filter(Boolean)
+        : val
+            .split(/[;,]/)
+            .map((s) => s.trim())
+            .filter(Boolean),
+    )
+    .optional(),
+  subject: z.string().optional(),
+  body: z.string().optional(),
+  attachments: z.array(draftAttachmentDescriptorSchema).optional(),
+  expectedVersion: z.number().int().positive(),
+});
+export type DraftUpdateInput = z.input<typeof draftUpdateSchema>;
+
+// ---------------------------------------------------------------------------
+// Issue #1972 (BETA-065) — Server-Backed Mailbox Search Domain
+// ---------------------------------------------------------------------------
+
+export const searchFilterSchema = z.object({
+  folder: mailboxLiveFolderSchema.or(z.literal("all")).optional(),
+  unread: z.boolean().optional(),
+  starred: z.boolean().optional(),
+  hasAttachments: z.boolean().optional(),
+  sender: z.string().trim().optional(),
+  recipient: z.string().trim().optional(),
+  afterDate: z.string().trim().optional(),
+  beforeDate: z.string().trim().optional(),
+  includeDeleted: z.boolean().default(false),
+});
+export type SearchFilter = z.infer<typeof searchFilterSchema>;
+
+export const searchQuerySchema = z.object({
+  q: z.string().default(""),
+  folder: mailboxLiveFolderSchema.or(z.literal("all")).optional(),
+  unread: z.coerce.boolean().optional(),
+  starred: z.coerce.boolean().optional(),
+  hasAttachments: z.coerce.boolean().optional(),
+  sender: z.string().trim().optional(),
+  recipient: z.string().trim().optional(),
+  afterDate: z.string().trim().optional(),
+  beforeDate: z.string().trim().optional(),
+  includeDeleted: z.coerce.boolean().default(false),
+  cursor: z.string().trim().min(1).optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(25),
+});
+export type SearchQuery = z.infer<typeof searchQuerySchema>;
+
+export const searchHighlightSchema = z.object({
+  field: z.string(),
+  snippet: z.string(),
+});
+export type SearchHighlight = z.infer<typeof searchHighlightSchema>;
+
+export const searchResultItemSchema = z.object({
+  type: z.enum(["message", "contact", "draft"]),
+  id: z.string(),
+  messageId: z.string().optional(),
+  senderId: z.string(),
+  recipientId: z.string(),
+  folder: z.string(),
+  subject: z.string().optional(),
+  preview: z.string().optional(),
+  createdAt: z.string().datetime(),
+  unread: z.boolean(),
+  starred: z.boolean(),
+  hasAttachments: z.boolean(),
+  isTombstone: z.boolean(),
+  deletedAt: z.string().datetime().nullable().optional(),
+  highlights: z.array(searchHighlightSchema).default([]),
+});
+export type SearchResultItem = z.infer<typeof searchResultItemSchema>;
+
+export const searchIndexLimitationsSchema = z.object({
+  serverIndexLimited: z.literal(true).default(true),
+  encryptedBodyIndexed: z.literal(false).default(false),
+  safeMetadataFields: z.array(z.string()),
+  notice: z.string(),
+});
+export type SearchIndexLimitations = z.infer<typeof searchIndexLimitationsSchema>;
+
+export const searchResponseSchema = z.object({
+  items: z.array(searchResultItemSchema),
+  nextCursor: z.string().nullable(),
+  hasMore: z.boolean(),
+  totalMatches: z.number().int().nonnegative(),
+  query: z.string(),
+  parsedFilters: z.record(z.unknown()),
+  indexLimitations: searchIndexLimitationsSchema,
+});
+export type SearchResponse = z.infer<typeof searchResponseSchema>;

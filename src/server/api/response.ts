@@ -1,10 +1,12 @@
 import { normalizeApiError, type RetryClassification } from "./errors";
-import { apiCorsPolicy, applyCors, corsEarlyResponse } from "./cors";
+import { apiCorsPolicy, applyCors, corsEarlyResponse, csrfEarlyResponse } from "./cors";
+import { deriveSupportId } from "./logging";
 
 interface ApiMeta {
   requestId: string;
   timestamp: string;
   correlationId?: string;
+  supportId?: string;
 }
 
 /**
@@ -20,6 +22,12 @@ export const CLIENT_CORRELATION_HEADER = "x-request-id";
  */
 export const CORRELATION_ID_HEADER = "x-correlation-id";
 
+/**
+ * Header returning a browser-safe support identifier for reporting issues without
+ * disclosing account credentials or message identifiers.
+ */
+export const SUPPORT_ID_HEADER = "x-support-id";
+
 /** Maximum accepted length of a client-supplied correlation ID. */
 export const MAX_CORRELATION_ID_LENGTH = 128;
 
@@ -33,6 +41,8 @@ const CORRELATION_ID_PATTERN = /^[A-Za-z0-9._~-]+$/;
 interface RequestIdentity {
   /** Canonical, always server-generated request identifier. */
   requestId: string;
+  /** Browser-safe support identifier. */
+  supportId: string;
   /** Optional client-supplied correlation ID, present only when valid. */
   correlationId?: string;
 }
@@ -60,8 +70,11 @@ export function validateCorrelationId(raw: string | null | undefined): string | 
  */
 function resolveRequestIdentity(request: Request): RequestIdentity {
   const correlationId = validateCorrelationId(request.headers.get(CLIENT_CORRELATION_HEADER));
+  const requestId = crypto.randomUUID();
+  const supportId = deriveSupportId(requestId);
   return {
-    requestId: crypto.randomUUID(),
+    requestId,
+    supportId,
     ...(correlationId === undefined ? {} : { correlationId }),
   };
 }
@@ -111,6 +124,7 @@ function responseHeaders(
   headers?: HeadersInit,
   cachePolicy: CachePolicy = "NO_STORE",
   correlationId?: string,
+  supportId?: string,
 ) {
   const result = new Headers(headers);
   const cacheControl = CACHE_POLICIES[cachePolicy];
@@ -125,6 +139,9 @@ function responseHeaders(
   result.set("cache-control", cacheControl);
   result.set("content-type", "application/json; charset=utf-8");
   result.set("x-request-id", requestId);
+  if (supportId !== undefined) {
+    result.set(SUPPORT_ID_HEADER, supportId);
+  }
   if (correlationId !== undefined) {
     result.set(CORRELATION_ID_HEADER, correlationId);
   }
@@ -134,10 +151,11 @@ function responseHeaders(
   return result;
 }
 
-function meta(requestId: string, correlationId?: string): ApiMeta {
+function meta(requestId: string, correlationId?: string, supportId?: string): ApiMeta {
   return {
     requestId,
     timestamp: new Date().toISOString(),
+    ...(supportId === undefined ? {} : { supportId }),
     ...(correlationId === undefined ? {} : { correlationId }),
   };
 }
@@ -156,15 +174,21 @@ function enforceJsonSecurityHeaders(response: Response) {
 }
 
 export function apiSuccess<T>(request: Request, data: T, options: ResponseOptions = {}) {
-  const { requestId, correlationId } = resolveRequestIdentity(request);
+  const { requestId, correlationId, supportId } = resolveRequestIdentity(request);
   const body: SuccessEnvelope<T> = {
     data,
-    meta: meta(requestId, correlationId),
+    meta: meta(requestId, correlationId, supportId),
   };
 
   return new Response(JSON.stringify(body), {
     status: options.status ?? 200,
-    headers: responseHeaders(requestId, options.headers, options.cachePolicy, correlationId),
+    headers: responseHeaders(
+      requestId,
+      options.headers,
+      options.cachePolicy,
+      correlationId,
+      supportId,
+    ),
   });
 }
 
@@ -175,15 +199,16 @@ export function jsonResponse(
 ) {
   const requestId =
     typeof requestOrRequestId === "string" ? requestOrRequestId : getRequestId(requestOrRequestId);
+  const supportId = deriveSupportId(requestId);
 
   return new Response(JSON.stringify(body), {
     status: options.status ?? 200,
-    headers: responseHeaders(requestId, options.headers, options.cachePolicy),
+    headers: responseHeaders(requestId, options.headers, options.cachePolicy, undefined, supportId),
   });
 }
 
 export function apiFailure(request: Request, caught: unknown) {
-  const { requestId, correlationId } = resolveRequestIdentity(request);
+  const { requestId, correlationId, supportId } = resolveRequestIdentity(request);
   const error = normalizeApiError(caught);
   const body: ErrorEnvelope = {
     error: {
@@ -194,10 +219,10 @@ export function apiFailure(request: Request, caught: unknown) {
       ...(error.retryAfterSeconds === undefined ? {} : { retryAfter: error.retryAfterSeconds }),
       ...(error.details === undefined ? {} : { details: error.details }),
     },
-    meta: meta(requestId, correlationId),
+    meta: meta(requestId, correlationId, supportId),
   };
 
-  const headers = responseHeaders(requestId, undefined, undefined, correlationId);
+  const headers = responseHeaders(requestId, undefined, undefined, correlationId, supportId);
   if (error.retryAfterSeconds !== undefined) {
     headers.set("retry-after", String(error.retryAfterSeconds));
   }
@@ -215,6 +240,10 @@ export async function handleApiRequest(
   const earlyResponse = corsEarlyResponse(request, apiCorsPolicy);
   if (earlyResponse) {
     return earlyResponse;
+  }
+  const csrfResponse = csrfEarlyResponse(request, apiCorsPolicy);
+  if (csrfResponse) {
+    return csrfResponse;
   }
 
   try {

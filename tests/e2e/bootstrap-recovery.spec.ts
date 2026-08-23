@@ -29,6 +29,10 @@ test.describe("App Bootstrap & Failure Recovery Journey", () => {
   });
 
   test("never lands an anonymous visitor on demo data in production mode", async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.removeItem("STEALTH_DEMO_BYPASS_FETCH");
+    });
+
     await page.route("**/api/v1/bootstrap", async (route) => {
       await route.fulfill({
         status: 401,
