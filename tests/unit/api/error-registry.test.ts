@@ -52,7 +52,12 @@ describe("API error registry", () => {
     expect(
       openApiDocument.components.schemas.ErrorEnvelope.properties.error.properties.code.enum,
     ).toEqual(
-      API_ERROR_CODES.filter((code) => code !== "recent_auth_required" && code !== "chain_error"),
+      API_ERROR_CODES.filter(
+        (code) =>
+          code !== "recent_auth_required" &&
+          code !== "chain_error" &&
+          code !== "cursor_expired",
+      ),
     );
     expect(openApiDocument.components.schemas.ApiErrorRegistry["x-error-registry"]).toEqual(
       API_ERROR_REGISTRY,

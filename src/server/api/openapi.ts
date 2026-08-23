@@ -1,7 +1,7 @@
 import { API_ERROR_CODES, API_ERROR_REGISTRY } from "./errors";
 
 const OPENAPI_ERROR_CODES = API_ERROR_CODES.filter(
-  (c) => c !== "recent_auth_required" && c !== "chain_error",
+  (c) => c !== "recent_auth_required" && c !== "chain_error" && c !== "cursor_expired",
 );
 
 export const openApiDocument = {
