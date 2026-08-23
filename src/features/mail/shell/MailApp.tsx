@@ -279,7 +279,10 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
                 onMarkAllNotificationsRead={notificationCenter.markAllRead}
                 actor={source.actor}
                 emails={source.emails}
-                onSelectEmail={navigation.openMessage}
+                onSelectEmail={(emailId) => {
+                  const email = source.emails.find((item) => item.id === emailId);
+                  if (email) navigation.openMessage(email);
+                }}
               />
               {source.connectivity.paused &&
               source.sourceView.kind !== "error" &&
