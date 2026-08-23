@@ -56,7 +56,7 @@ jobs:
           NODE
 
       - name: Create missing crypto issues without duplicates
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
