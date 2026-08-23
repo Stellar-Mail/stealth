@@ -241,17 +241,10 @@ jobs:
       - name: Install Playwright browsers
         run: bun x playwright install --with-deps chromium firefox webkit
 
-      - name: Run visual & cross-browser tests (update baselines)
-        run: bun run test:visual:update
+      - name: Run visual & cross-browser regression tests
+        run: bun run test:visual
         env:
           CI: true
-
-      - name: Upload Linux visual baselines
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: visual-baselines
-          path: tests/e2e/visual/__screenshots__/
-          retention-days: 7
 
       - name: Upload Playwright report
         if: always()
