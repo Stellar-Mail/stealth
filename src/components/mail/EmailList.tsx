@@ -272,10 +272,10 @@ export function EmailList({
                   active
                     ? "mail-preview-card--active"
                     : "border-white/[0.09] bg-[oklch(0.3_0.006_270/0.42)]",
-                  verifiedSender && "mail-preview-card--verified",
+                  verifiedSender && active && "mail-preview-card--verified",
                 )}
               >
-                {verifiedSender && (
+                {verifiedSender && active && (
                   <span aria-hidden="true" className="mail-preview-card__verified-reveal" />
                 )}
                 {showAvatars && (

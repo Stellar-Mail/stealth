@@ -138,34 +138,39 @@
   .mail-preview-card__verified-reveal {
     position: absolute;
     z-index: 0;
-    right: 16%;
-    bottom: -18px;
-    left: 16%;
-    height: 34px;
-    border-radius: 999px 999px 0 0;
-    background:
-      radial-gradient(ellipse at center, oklch(0.72 0.008 270 / 0.36), transparent 68%),
-      linear-gradient(to top, oklch(0.4 0.006 270 / 0.28), transparent);
-    filter: blur(6px);
-    opacity: 0.5;
+    right: 18%;
+    bottom: 5px;
+    left: 18%;
+    height: 2px;
+    border-radius: 999px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      oklch(0.92 0.006 270 / 0.9) 26%,
+      oklch(0.72 0.008 270 / 0.95) 50%,
+      oklch(0.92 0.006 270 / 0.9) 74%,
+      transparent
+    );
+    box-shadow: 0 -3px 20px oklch(0.72 0.008 270 / 0.48);
+    opacity: 0.72;
     pointer-events: none;
-    transform: translateY(110%);
-    animation: mail-verified-reveal 620ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    transform: translateY(26px) scaleX(0.35);
+    animation: mail-verified-reveal 760ms cubic-bezier(0.16, 1, 0.3, 1) both;
   }
 
   @keyframes mail-verified-reveal {
     0% {
       opacity: 0;
-      transform: translateY(110%);
+      transform: translateY(26px) scaleX(0.35);
     }
 
     70% {
-      opacity: 0.7;
+      opacity: 1;
     }
 
     100% {
-      opacity: 0.5;
-      transform: translateY(0);
+      opacity: 0.72;
+      transform: translateY(0) scaleX(1);
     }
   }
 
