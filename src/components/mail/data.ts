@@ -254,8 +254,8 @@ export const emails: Email[] = [
     time: "9:18 AM",
     unread: true,
     starred: false,
-    folder: "verified",
-    labels: ["Event", "Verified", "Pass"],
+    folder: "inbox",
+    labels: ["Event", "Pass"],
     avatarColor: c(1),
     event: {
       id: "mail-token2049",
@@ -298,8 +298,8 @@ export const emails: Email[] = [
   },
   {
     id: "4",
-    from: "Uthaimin Lawal",
-    email: "mina*lumos.capital",
+    from: "Kryputh",
+    email: "kryputh@stealth.me",
     subject: "Investor update and postage policy",
     preview: "The paid-inbox model makes sense. Can you send over the sender-tier thresholds...",
     body: "The paid-inbox model makes sense.\n\nCan you send over the sender-tier thresholds and how postage refunds work for approved contacts? I want to understand what happens when a verified sender is whitelisted.",
@@ -309,6 +309,7 @@ export const emails: Email[] = [
     folder: "inbox",
     labels: ["Investors", "Postage"],
     avatarColor: c(3),
+    verifiedSender: true,
     receiptState: "pending",
   },
   {

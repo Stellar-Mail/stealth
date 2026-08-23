@@ -1,12 +1,12 @@
 import {
   Bell,
-  CalendarDays,
   Check,
   ChevronDown,
   Clock3,
   ExternalLink,
   MapPin,
   Plus,
+  SlidersHorizontal,
 } from "lucide-react";
 import { useState } from "react";
 import type { CalendarEvent, CalendarResponse, MailEvent } from "../types";
@@ -37,9 +37,9 @@ export function EventMailCard({
   };
 
   return (
-    <div className="event-mail-hero relative mb-6 mt-7 min-h-[260px] max-w-[560px] overflow-hidden rounded-2xl border border-white/[0.09] shadow-[0_24px_72px_-42px_rgba(0,0,0,0.95),inset_0_1px_0_rgba(255,255,255,0.12)]">
+    <div className="event-mail-hero relative mb-6 mt-7 min-h-[246px] max-w-[640px] overflow-hidden rounded-2xl border border-white/[0.09] shadow-[0_24px_72px_-42px_rgba(0,0,0,0.95),inset_0_1px_0_rgba(255,255,255,0.12)]">
       <div className="event-mail-ridges" />
-      <div className="event-calendar-card relative z-10 m-3.5 w-[calc(100%-1.75rem)] rounded-[20px] border border-white/[0.13] p-3.5 text-foreground shadow-[0_28px_70px_-36px_rgba(0,0,0,0.95),inset_0_1px_0_rgba(255,255,255,0.16)]">
+      <div className="event-calendar-card relative z-10 mx-auto mt-7 w-[300px] max-w-[calc(100%-2rem)] rounded-[20px] border border-white/[0.13] p-3 text-foreground shadow-[0_28px_70px_-36px_rgba(0,0,0,0.95),inset_0_1px_0_rgba(255,255,255,0.16)]">
         <div className="mail-reader-meta flex items-center gap-2 text-[10px] text-muted-foreground">
           <button
             onClick={() => setView("event")}
@@ -63,10 +63,11 @@ export function EventMailCard({
           </button>
           <button
             onClick={() => onOpen?.(savedEvent?.id)}
-            className="ml-auto inline-flex items-center gap-1 rounded-md border border-white/10 px-2 py-1.5 text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground"
+            title="Open calendar"
+            aria-label="Open calendar"
+            className="ml-auto grid h-7 w-7 place-items-center rounded-md text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground"
           >
-            <CalendarDays className="h-3.5 w-3.5" />
-            Open calendar
+            <SlidersHorizontal className="h-3.5 w-3.5" />
           </button>
         </div>
 

@@ -259,12 +259,12 @@ export function EmailView({
             transition={{ duration: 0.35, ease: [0.2, 0.8, 0.2, 1] }}
             className="flex h-full flex-col"
           >
-            <div className="flex flex-wrap items-center gap-2 border-b border-white/5 px-4 py-2.5">
-              <div className="min-w-[220px] flex-1">
+            <div className="flex min-w-0 flex-nowrap items-center gap-2 border-b border-white/5 px-4 py-2.5">
+              <div className="w-[280px] min-w-0 shrink">
                 <SenderIdentity email={email} compact />
               </div>
 
-              <div className="order-3 flex w-full min-w-0 items-center justify-center gap-1 md:order-none md:w-auto md:flex-none">
+              <div className="flex min-w-0 flex-1 items-center justify-end gap-1">
                 <div className="relative">
                   <motion.button
                     key="reply"
@@ -834,7 +834,7 @@ function ProtocolStatus({
 
   return (
     <div className="mt-5 flex flex-wrap items-center gap-2 rounded-lg border border-white/[0.08] bg-black/15 px-3 py-2">
-      <BadgeCheck className={cn("h-4 w-4", verified ? "text-emerald-300" : "text-amber-200")} />
+      <BadgeCheck className={cn("h-4 w-4", verified ? "text-zinc-300" : "text-amber-200")} />
       <span className="text-xs font-medium text-foreground">{label}</span>
       <span className="font-mono text-[10px] text-muted-foreground">{proof}</span>
       <div className="ml-auto flex items-center gap-2">

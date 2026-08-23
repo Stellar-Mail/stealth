@@ -127,7 +127,6 @@ export function resolveRouteGuard(input: RouteGuardInput): GuardDecision {
       if (isDev) return { kind: "render" };
       return { kind: "state-view", view: "outage" };
 
-
     case "active": {
       if (isPublicAuthPath(pathname) || pathname === ONBOARDING_ROUTE) {
         return { kind: "redirect", to: HOME_ROUTE };

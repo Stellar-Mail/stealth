@@ -16,13 +16,15 @@ describe("mail shell production path (BETA-053)", () => {
   it("exports the composed MailApp from the mail feature", () => {
     expect(typeof MailApp).toBe("function");
   });
-  it("keeps the root route as a thin composition entrypoint", () => {
+  it("keeps the root route as a thin development-aware composition entrypoint", () => {
     const route = read("src/routes/index.tsx");
     expect(route).toContain('createFileRoute("/")');
-    expect(route).toContain("<MailApp isDemoMode={false} />");
+    expect(route).toContain("useBootstrap");
+    expect(route).toContain("import.meta.env.DEV");
+    expect(route).toContain("<MailApp isDemoMode={useDemo} />");
     expect(route).not.toContain("useState");
     expect(route).not.toContain("useMailbox");
-    expect(route.split("\n").length).toBeLessThan(40);
+    expect(route.split("\n").length).toBeLessThan(45);
   });
 
   it("does not statically import the mock email catalog into the production shell", () => {

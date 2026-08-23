@@ -94,7 +94,6 @@ const ResizablePanel = ({
   );
 };
 
-
 const ResizableHandle = ({
   withHandle,
   className,
