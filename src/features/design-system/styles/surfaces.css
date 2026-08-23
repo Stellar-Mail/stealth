@@ -135,49 +135,61 @@
     border-color: oklch(0.62 0.008 270 / 0.22);
   }
 
-  .mail-preview-card__verified-reveal {
+  .mail-preview-card__verified-effect {
     position: absolute;
     z-index: 0;
-    right: 18%;
-    bottom: 5px;
-    left: 18%;
-    height: 2px;
-    border-radius: 999px;
-    background: linear-gradient(
-      90deg,
-      transparent,
-      oklch(0.92 0.006 270 / 0.9) 26%,
-      oklch(0.72 0.008 270 / 0.95) 50%,
-      oklch(0.92 0.006 270 / 0.9) 74%,
-      transparent
-    );
-    box-shadow: 0 -3px 20px oklch(0.72 0.008 270 / 0.48);
-    opacity: 0.72;
+    inset: 0;
+    overflow: hidden;
+    background:
+      linear-gradient(108deg, transparent 18%, oklch(0.74 0.008 270 / 0.12) 50%, transparent 82%),
+      radial-gradient(120px 70px at 65% 120%, oklch(0.74 0.008 270 / 0.32), transparent 70%);
     pointer-events: none;
-    transform: translateY(26px) scaleX(0.35);
-    animation: mail-verified-reveal 760ms cubic-bezier(0.16, 1, 0.3, 1) both;
   }
 
-  @keyframes mail-verified-reveal {
-    0% {
-      opacity: 0;
-      transform: translateY(26px) scaleX(0.35);
-    }
+  .mail-preview-card__verified-effect::before,
+  .mail-preview-card__verified-effect::after {
+    content: "";
+    position: absolute;
+    bottom: -54px;
+    width: 150px;
+    height: 96px;
+    border-radius: 50%;
+    filter: blur(10px);
+    opacity: 0.82;
+    background:
+      radial-gradient(ellipse at 50% 24%, oklch(0.94 0.004 270 / 0.56), transparent 21%),
+      radial-gradient(ellipse at 44% 62%, oklch(0.58 0.009 270 / 0.64), transparent 54%),
+      linear-gradient(142deg, oklch(0.18 0.006 270 / 0.18), oklch(0.76 0.008 270 / 0.28));
+    box-shadow: 0 -10px 30px oklch(0.78 0.008 270 / 0.22);
+    animation: mail-verified-profile-effect 3.8s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
+  }
 
-    70% {
-      opacity: 1;
+  .mail-preview-card__verified-effect::before {
+    left: -32px;
+  }
+
+  .mail-preview-card__verified-effect::after {
+    right: -42px;
+    bottom: -62px;
+    opacity: 0.58;
+    animation-delay: -1.9s;
+  }
+
+  @keyframes mail-verified-profile-effect {
+    0% {
+      transform: translate3d(-8px, 24px, 0) rotate(-8deg) scale(0.84);
     }
 
     100% {
-      opacity: 0.72;
-      transform: translateY(0) scaleX(1);
+      transform: translate3d(22px, -12px, 0) rotate(8deg) scale(1.12);
     }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .mail-preview-card__verified-reveal {
+    .mail-preview-card__verified-effect::before,
+    .mail-preview-card__verified-effect::after {
       animation: none;
-      transform: translateY(0);
+      transform: translate3d(10px, 0, 0) scale(1);
     }
   }
 

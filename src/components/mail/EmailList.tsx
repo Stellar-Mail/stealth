@@ -276,7 +276,7 @@ export function EmailList({
                 )}
               >
                 {verifiedSender && active && (
-                  <span aria-hidden="true" className="mail-preview-card__verified-reveal" />
+                  <span aria-hidden="true" className="mail-preview-card__verified-effect" />
                 )}
                 {showAvatars && (
                   <SenderAvatar email={e} size="md" unread={e.unread} className="z-[1]" />
