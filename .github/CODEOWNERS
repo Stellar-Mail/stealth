@@ -1,11 +1,11 @@
-# Repository-wide ownership. Either maintainer may review ordinary changes.
-* @kryputh @mysterio123865
+# Repository-wide ownership and review routing.
+* @kryputh
 
 # Trust-sensitive areas always require a code-owner review.
-/.github/ @kryputh @mysterio123865
-/contracts/ @kryputh @mysterio123865
-/infra/ @kryputh @mysterio123865
-/protocol/ @kryputh @mysterio123865
-/src/server/ @kryputh @mysterio123865
-/docs/security/ @kryputh @mysterio123865
-/docs/deployment/ @kryputh @mysterio123865
+/.github/ @kryputh
+/contracts/ @kryputh
+/infra/ @kryputh
+/protocol/ @kryputh
+/src/server/ @kryputh
+/docs/security/ @kryputh
+/docs/deployment/ @kryputh
