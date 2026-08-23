@@ -27,6 +27,13 @@ type FilterTab = "all" | "unread" | "flagged";
 // never clipped; overscan covers the gap.
 const DESKTOP_ROW_HEIGHT = 68;
 const MOBILE_ROW_HEIGHT = 104;
+const VERIFIED_PROFILE_EFFECTS = ["lunar", "ember", "prism"] as const;
+
+function getVerifiedProfileEffect(email: Email) {
+  const fingerprint = `${email.id}:${email.email}`;
+  const hash = [...fingerprint].reduce((value, character) => value + character.charCodeAt(0), 0);
+  return VERIFIED_PROFILE_EFFECTS[hash % VERIFIED_PROFILE_EFFECTS.length];
+}
 
 export function EmailList({
   emails,
@@ -243,6 +250,7 @@ export function EmailList({
         {virtualItems.map((e, idx) => {
           const active = selectedId === e.id;
           const verifiedSender = getTrustStates(e).includes("verified");
+          const verifiedEffect = verifiedSender ? getVerifiedProfileEffect(e) : null;
 
           if (useMobile) {
             return (
@@ -276,7 +284,10 @@ export function EmailList({
                 )}
               >
                 {verifiedSender && active && (
-                  <span aria-hidden="true" className="mail-preview-card__verified-effect" />
+                  <span
+                    aria-hidden="true"
+                    className={`mail-preview-card__verified-effect mail-preview-card__verified-effect--${verifiedEffect}`}
+                  />
                 )}
                 {showAvatars && (
                   <SenderAvatar email={e} size="md" unread={e.unread} className="z-[1]" />

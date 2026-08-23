@@ -1,0 +1,54 @@
+<svg width="960" height="180" viewBox="0 0 960 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="960" y2="180" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#211D42" />
+      <stop offset="0.54" stop-color="#3E2B63" />
+      <stop offset="1" stop-color="#16121F" />
+    </linearGradient>
+    <radialGradient
+      id="moon"
+      cx="0"
+      cy="0"
+      r="1"
+      gradientTransform="translate(743 52) rotate(132.839) scale(93.1736)"
+      gradientUnits="userSpaceOnUse"
+    >
+      <stop stop-color="#F5EFFF" />
+      <stop offset="0.55" stop-color="#B6A9D9" />
+      <stop offset="1" stop-color="#756596" />
+    </radialGradient>
+    <linearGradient id="cloud" x1="108" y1="166" x2="749" y2="101" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#594674" stop-opacity="0" />
+      <stop offset="0.34" stop-color="#B99BD8" stop-opacity="0.72" />
+      <stop offset="0.7" stop-color="#786194" stop-opacity="0.66" />
+      <stop offset="1" stop-color="#443553" stop-opacity="0" />
+    </linearGradient>
+    <filter id="blur" x="-40" y="-40" width="1040" height="260" filterUnits="userSpaceOnUse">
+      <feGaussianBlur stdDeviation="13" />
+    </filter>
+  </defs>
+  <rect width="960" height="180" fill="url(#sky)" />
+  <g opacity="0.7">
+    <circle cx="89" cy="40" r="1.5" fill="#F4EDFF" />
+    <circle cx="204" cy="74" r="1" fill="#F4EDFF" />
+    <circle cx="319" cy="30" r="2" fill="#E9DFFF" />
+    <circle cx="431" cy="90" r="1.4" fill="#F4EDFF" />
+    <circle cx="564" cy="39" r="1" fill="#F4EDFF" />
+    <circle cx="652" cy="91" r="1.5" fill="#E9DFFF" />
+    <circle cx="848" cy="36" r="1.2" fill="#F4EDFF" />
+  </g>
+  <circle cx="743" cy="52" r="61" fill="url(#moon)" />
+  <circle cx="719" cy="34" r="9" fill="#9687B7" fill-opacity="0.38" />
+  <circle cx="766" cy="67" r="13" fill="#806F9D" fill-opacity="0.34" />
+  <circle cx="754" cy="27" r="5" fill="#75658F" fill-opacity="0.34" />
+  <path
+    d="M-43 158C102 110 166 182 301 135C427 91 539 151 648 123C778 89 845 138 1002 97V210H-43V158Z"
+    fill="url(#cloud)"
+    filter="url(#blur)"
+  />
+  <path
+    d="M-35 174C109 135 200 183 323 149C448 114 562 169 689 132C784 105 865 149 1002 117V198H-35V174Z"
+    fill="#6D5687"
+    fill-opacity="0.42"
+  />
+</svg>
