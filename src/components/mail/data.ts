@@ -254,8 +254,8 @@ export const emails: Email[] = [
     time: "9:18 AM",
     unread: true,
     starred: false,
-    folder: "verified",
-    labels: ["Event", "Verified", "Pass"],
+    folder: "inbox",
+    labels: ["Event", "Pass"],
     avatarColor: c(1),
     event: {
       id: "mail-token2049",
