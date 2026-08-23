@@ -198,8 +198,14 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
         data-hydrated={layoutHydrated && prefHydrated}
         className="relative h-screen overflow-hidden text-foreground"
       >
+        <a
+          href="#main-content"
+          className="sr-only absolute left-4 top-4 z-[100] rounded-md bg-foreground px-3 py-2 text-sm font-semibold text-background focus:not-sr-only focus:outline-none focus:ring-2 focus:ring-emerald-400"
+        >
+          Skip to mailbox
+        </a>
         <AmbientBackground />
-        <div className="flex h-full w-full">
+        <main id="main-content" tabIndex={-1} className="flex h-full w-full">
           {!isMobile ? (
             <div
               className={cn(
@@ -379,7 +385,7 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
               </div>
             </div>
           </div>
-        </div>
+        </main>
 
         <MailOverlayStack
           overlays={overlays}
