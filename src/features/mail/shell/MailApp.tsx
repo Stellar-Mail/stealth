@@ -194,9 +194,17 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
 
   return (
     <MotionConfig transition={isTest ? { duration: 0 } : undefined}>
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-background focus:px-4 focus:py-2 focus:text-sm focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-foreground"
+      >
+        Skip to mailbox
+      </a>
       <div
         data-hydrated={layoutHydrated && prefHydrated}
-        className="relative h-screen overflow-hidden text-foreground"
+        id="main-content"
+        tabIndex={-1}
+        className="relative h-screen overflow-hidden text-foreground outline-none"
       >
         <AmbientBackground />
         <div className="flex h-full w-full">
@@ -234,6 +242,7 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
           <div className="flex min-w-0 flex-1">
             <div className="flex h-full flex-col min-w-0 pb-[72px] md:pb-0">
               <Topbar
+                emails={source.emails}
                 onOpenPalette={() => overlays.setPaletteOpen(true)}
                 onOpenSettings={() => overlays.openSettings(preferences)}
                 onOpenProofInspector={() => runCommand("open-proof-inspector")}
