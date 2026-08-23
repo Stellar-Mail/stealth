@@ -1,31 +1,41 @@
 import { describe, it, expect } from "vitest";
-import { exec } from "node:child_process";
+import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { resolve } from "node:path";
 
-const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 
 describe("Deployment Script Constraints", () => {
   const scriptPath = resolve(process.cwd(), "scripts/stellar/deploy.ts");
+  const tsxCli = resolve(process.cwd(), "node_modules/tsx/dist/cli.mjs");
 
   it("fails if mainnet is used without release-mode", { timeout: 60000 }, async () => {
     try {
-      await execAsync(
-        `npx tsx ${scriptPath} --network mainnet --deployer SECRET --network-passphrase "Public Global Stellar Network ; September 2015"`,
-      );
+      await execFileAsync(process.execPath, [
+        tsxCli,
+        scriptPath,
+        "--network",
+        "mainnet",
+        "--deployer",
+        "SECRET",
+        "--network-passphrase",
+        "Public Global Stellar Network ; September 2015",
+      ]);
       expect.fail("Should have failed on mainnet without --release-mode");
     } catch (err: any) {
-      expect(err.stderr).toContain("Refusing to deploy to mainnet without --release-mode flag");
+      expect(err.stderr || err.stdout).toContain(
+        "Refusing to deploy to mainnet without --release-mode flag",
+      );
       expect(err.code).toBe(1);
     }
   });
 
   it("fails if deployer is missing", { timeout: 60000 }, async () => {
     try {
-      await execAsync(`npx tsx ${scriptPath} --network testnet`);
+      await execFileAsync(process.execPath, [tsxCli, scriptPath, "--network", "testnet"]);
       expect.fail("Should have failed without deployer");
     } catch (err: any) {
-      expect(err.stderr).toContain("--deployer (secret key) is required");
+      expect(err.stderr || err.stdout).toContain("--deployer (secret key) is required");
       expect(err.code).toBe(1);
     }
   });

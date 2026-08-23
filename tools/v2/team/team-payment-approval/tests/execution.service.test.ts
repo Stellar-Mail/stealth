@@ -108,7 +108,9 @@ describe("paymentApprovalExecutor - contract", () => {
 
   describe("validation failure", () => {
     it("rejects a missing paymentId with VALIDATION_FAILED", () => {
-      const executor = createPaymentApprovalExecutor({ store: createMemoryStore() });
+      const executor = createPaymentApprovalExecutor({
+        store: createMemoryStore(),
+      });
 
       const result = executor.execute(fixtureValidationFailureInput);
 
@@ -156,7 +158,9 @@ describe("paymentApprovalExecutor - contract", () => {
 
   describe("unexpected internal / service failure", () => {
     it("returns INTERNAL_ERROR instead of throwing", () => {
-      const executor = createPaymentApprovalExecutor({ store: createFailingStore() });
+      const executor = createPaymentApprovalExecutor({
+        store: createFailingStore(),
+      });
 
       const result = executor.execute(fixtureApproveInput);
 
@@ -167,7 +171,9 @@ describe("paymentApprovalExecutor - contract", () => {
 
   describe("boundary conditions", () => {
     it("returns PAYMENT_NOT_FOUND for a missing payment", () => {
-      const executor = createPaymentApprovalExecutor({ store: createMemoryStore() });
+      const executor = createPaymentApprovalExecutor({
+        store: createMemoryStore(),
+      });
 
       const result = executor.execute(fixtureNotFoundInput);
 

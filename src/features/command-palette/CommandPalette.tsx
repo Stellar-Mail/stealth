@@ -331,7 +331,13 @@ const RowView = memo(function RowView({
   );
 });
 
-type RowMeta = { Icon: LucideIcon; label: string; sub?: string; hint?: string; danger?: boolean };
+type RowMeta = {
+  Icon: LucideIcon;
+  label: string;
+  sub?: string;
+  hint?: string;
+  danger?: boolean;
+};
 
 function rowMeta(row: PaletteRow): RowMeta {
   switch (row.type) {
@@ -350,7 +356,11 @@ function rowMeta(row: PaletteRow): RowMeta {
     case "proof":
       return { Icon: ShieldCheck, label: row.proof, sub: row.email.subject };
     case "setting":
-      return { Icon: SlidersHorizontal, label: row.setting.label, sub: "Settings" };
+      return {
+        Icon: SlidersHorizontal,
+        label: row.setting.label,
+        sub: "Settings",
+      };
   }
 }
 

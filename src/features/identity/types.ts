@@ -96,3 +96,5 @@ export const resolveIdentityRequestSchema = z.object({
 });
 
 export type ResolveIdentityRequest = z.infer<typeof resolveIdentityRequestSchema>;
+
+export * from "./bootstrap";

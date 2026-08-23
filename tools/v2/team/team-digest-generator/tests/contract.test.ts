@@ -36,7 +36,10 @@ describe("digest contract — result helpers", () => {
 describe("digest contract — generate", () => {
   it("aggregates counts and action items from input", () => {
     const contract = createDigestContract();
-    const res = contract.execute({ operation: "generate", items: DIGEST_FIXTURES });
+    const res = contract.execute({
+      operation: "generate",
+      items: DIGEST_FIXTURES,
+    });
     expect(res.ok).toBe(true);
     if (res.ok && res.value.operation === "generate") {
       const s = res.value.summary;

@@ -119,7 +119,10 @@ describe("authorization policy helpers (#1467)", () => {
     });
 
     expect(result.authorized).toBe(false);
-    expect(result.audit).toMatchObject({ decision: "deny", reason: "not_owner" });
+    expect(result.audit).toMatchObject({
+      decision: "deny",
+      reason: "not_owner",
+    });
   });
 
   it("denies an expired delegation without throwing in evaluate mode", () => {

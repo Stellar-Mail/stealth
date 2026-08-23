@@ -151,7 +151,11 @@ describe("isPrototypeSafe", () => {
 
   it("returns false for __proto__", () => {
     const obj = {};
-    Object.defineProperty(obj, "__proto__", { value: {}, enumerable: true, configurable: true });
+    Object.defineProperty(obj, "__proto__", {
+      value: {},
+      enumerable: true,
+      configurable: true,
+    });
     expect(isPrototypeSafe(obj as Record<string, unknown>)).toBe(false);
   });
 
@@ -377,7 +381,11 @@ describe("validateContext", () => {
 
   it("rejects prototype pollution in context", () => {
     const ctx = { approverId: "u1", role: "manager" };
-    Object.defineProperty(ctx, "__proto__", { value: {}, enumerable: true, configurable: true });
+    Object.defineProperty(ctx, "__proto__", {
+      value: {},
+      enumerable: true,
+      configurable: true,
+    });
     const issue = validateContext(ctx);
     expect(issue).not.toBeNull();
   });
@@ -393,19 +401,25 @@ describe("checkInputLimits", () => {
   });
 
   it("flags oversized paymentId", () => {
-    const input = validInput({ paymentId: "x".repeat(GUARD_LIMITS.maxPaymentIdChars + 1) });
+    const input = validInput({
+      paymentId: "x".repeat(GUARD_LIMITS.maxPaymentIdChars + 1),
+    });
     const issues = checkInputLimits(input);
     expect(issues.some((i) => i.field === "paymentId")).toBe(true);
   });
 
   it("flags oversized approverId", () => {
-    const input = validInput({ approverId: "x".repeat(GUARD_LIMITS.maxApproverIdChars + 1) });
+    const input = validInput({
+      approverId: "x".repeat(GUARD_LIMITS.maxApproverIdChars + 1),
+    });
     const issues = checkInputLimits(input);
     expect(issues.some((i) => i.field === "approverId")).toBe(true);
   });
 
   it("flags oversized notes", () => {
-    const input = validInput({ notes: "x".repeat(GUARD_LIMITS.maxNotesChars + 1) });
+    const input = validInput({
+      notes: "x".repeat(GUARD_LIMITS.maxNotesChars + 1),
+    });
     const issues = checkInputLimits(input);
     expect(issues.some((i) => i.field === "notes")).toBe(true);
   });
@@ -532,7 +546,10 @@ describe("safeExecuteApproval", () => {
   });
 
   it("returns error for missing paymentId", () => {
-    const result = safeExecuteApproval({ approverId: "u1", decision: "approve" });
+    const result = safeExecuteApproval({
+      approverId: "u1",
+      decision: "approve",
+    });
     expect(result.status).toBe("error");
   });
 
@@ -571,7 +588,9 @@ describe("safeExecuteApproval", () => {
   it("returns error for invalid context", () => {
     const result = safeExecuteApproval(
       validInput({
-        context: { role: "manager" } as import("../types/contract").PaymentApprovalContext,
+        context: {
+          role: "manager",
+        } as import("../types/contract").PaymentApprovalContext,
       }),
     );
     expect(result.status).toBe("error");

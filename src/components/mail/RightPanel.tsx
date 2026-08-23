@@ -74,7 +74,7 @@ export function RightPanel({
   };
 
   return (
-    <aside className="scrollbar-thin m-3 ml-0 hidden h-[calc(100vh-1.5rem-3.5rem)] w-[292px] shrink-0 flex-col gap-3 overflow-y-auto 2xl:flex">
+    <aside className="scrollbar-thin m-3 ml-0 flex h-full min-w-0 flex-col gap-3 overflow-y-auto">
       <Card>
         <SectionHeader icon={Sparkles} title="AI assistant" badge="beta" />
         <div className="mt-3 rounded-xl border border-white/10 bg-black/20 p-3 text-xs text-foreground/80">
@@ -145,7 +145,9 @@ export function RightPanel({
                   >
                     <span
                       className="h-8 w-1 rounded-full"
-                      style={{ background: calendar?.color ?? "oklch(0.75 0.005 270)" }}
+                      style={{
+                        background: calendar?.color ?? "oklch(0.75 0.005 270)",
+                      }}
                     />
                     <div className="min-w-0 flex-1">
                       <div className="text-[11px] tabular-nums text-muted-foreground">
@@ -209,7 +211,9 @@ export function RightPanel({
           <div className="mt-3 flex items-center gap-3">
             <div
               className="grid h-10 w-10 place-items-center rounded-full text-xs font-medium text-white/90"
-              style={{ background: `linear-gradient(135deg, ${email.avatarColor}, #1a1a1d)` }}
+              style={{
+                background: `linear-gradient(135deg, ${email.avatarColor}, #1a1a1d)`,
+              }}
             >
               {email.from
                 .split(" ")

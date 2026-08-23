@@ -1,81 +1,33 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Mail, AtSign, Bell, Check } from "lucide-react";
-import { useEffect, useState } from "react";
+import { X, Mail, Bell, Check } from "lucide-react";
+import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 
-type Notification = {
-  id: string;
-  type: "email" | "mention" | "system";
-  title: string;
-  message: string;
-  time: string;
-  read: boolean;
-};
+import type { InAppNotification } from "@/features/notifications";
 
-const initialNotifications: Notification[] = [
-  {
-    id: "1",
-    type: "email",
-    title: "New message from Lina Park",
-    message: "Q2 brand system — final direction",
-    time: "2 min ago",
-    read: false,
-  },
-  {
-    id: "2",
-    type: "mention",
-    title: "Marcus mentioned you",
-    message: "in Architecture review notes",
-    time: "1 hour ago",
-    read: false,
-  },
-  {
-    id: "3",
-    type: "system",
-    title: "Sync complete",
-    message: "All messages synced to the blockchain",
-    time: "3 hours ago",
-    read: true,
-  },
-  {
-    id: "4",
-    type: "email",
-    title: "New message from Stripe",
-    message: "Your monthly invoice is ready",
-    time: "Yesterday",
-    read: true,
-  },
-];
-
-const icons = {
-  email: Mail,
-  mention: AtSign,
-  system: Bell,
-};
+const icons = { mail: Mail, requests: Bell, failures: Bell, receipts: Check };
 
 export function NotificationsPanel({
   open,
   onClose,
   anchorRect,
+  panelRef,
   onViewAll,
+  notifications,
+  onMarkRead,
+  onMarkAllRead,
 }: {
   open: boolean;
   onClose: () => void;
   anchorRect: DOMRect | null;
+  panelRef?: React.Ref<HTMLDivElement>;
   onViewAll: () => void;
+  notifications: InAppNotification[];
+  onMarkRead: (id: string) => void;
+  onMarkAllRead: () => void;
 }) {
-  const [notifications, setNotifications] = useState(initialNotifications);
-
   const unreadCount = notifications.filter((n) => !n.read).length;
-
-  const markAllRead = () => {
-    setNotifications(notifications.map((n) => ({ ...n, read: true })));
-  };
-
-  const markAsRead = (id: string) => {
-    setNotifications(notifications.map((n) => (n.id === id ? { ...n, read: true } : n)));
-  };
 
   useEffect(() => {
     if (!open) return;
@@ -99,14 +51,24 @@ export function NotificationsPanel({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
+            aria-hidden="true"
             className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-xl"
           />
           <motion.div
+            ref={panelRef}
+            role="dialog"
+            aria-label="Notifications"
             initial={{ opacity: 0, y: -8, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -8, scale: 0.96 }}
             transition={{ type: "spring", stiffness: 300, damping: 28 }}
-            style={{ position: "fixed", top, right, width: panelWidth, zIndex: 110 }}
+            style={{
+              position: "fixed",
+              top,
+              right,
+              width: panelWidth,
+              zIndex: 110,
+            }}
             className="glass-modal overflow-hidden rounded-2xl"
           >
             {/* Header */}
@@ -122,7 +84,7 @@ export function NotificationsPanel({
               <div className="flex items-center gap-1">
                 {unreadCount > 0 && (
                   <button
-                    onClick={markAllRead}
+                    onClick={onMarkAllRead}
                     className="rounded-lg px-2 py-1 text-[11px] text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground"
                   >
                     Mark all read
@@ -130,6 +92,7 @@ export function NotificationsPanel({
                 )}
                 <button
                   onClick={onClose}
+                  aria-label="Close notifications"
                   className="rounded-lg p-1.5 text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground"
                 >
                   <X className="h-4 w-4" />
@@ -140,11 +103,11 @@ export function NotificationsPanel({
             {/* Notifications list */}
             <ul className="max-h-[400px] overflow-y-auto divide-y divide-white/[0.04]">
               {notifications.map((n) => {
-                const Icon = icons[n.type];
+                const Icon = icons[n.category];
                 return (
                   <li key={n.id}>
                     <button
-                      onClick={() => markAsRead(n.id)}
+                      onClick={() => onMarkRead(n.id)}
                       className={cn(
                         "flex w-full items-start gap-3 px-4 py-3 text-left transition hover:bg-white/[0.04]",
                         !n.read && "bg-white/[0.02]",
@@ -173,7 +136,9 @@ export function NotificationsPanel({
                           )}
                         </div>
                         <p className="truncate text-xs text-muted-foreground">{n.message}</p>
-                        <p className="mt-1 text-[10px] text-muted-foreground/70">{n.time}</p>
+                        <p className="mt-1 text-[10px] text-muted-foreground/70">
+                          {new Date(n.createdAt).toLocaleString()}
+                        </p>
                       </div>
                       {n.read && <Check className="h-4 w-4 shrink-0 text-muted-foreground/50" />}
                     </button>

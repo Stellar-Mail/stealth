@@ -80,8 +80,14 @@ describe("adminEditHistoryReducer", () => {
 
   it("undoes and redoes edits in order", () => {
     const initial = createAdminEditHistory(emptyDataset);
-    const first = adminEditHistoryReducer(initial, { type: "push", payload: oneDraftDataset });
-    const second = adminEditHistoryReducer(first, { type: "push", payload: twoDraftDataset });
+    const first = adminEditHistoryReducer(initial, {
+      type: "push",
+      payload: oneDraftDataset,
+    });
+    const second = adminEditHistoryReducer(first, {
+      type: "push",
+      payload: twoDraftDataset,
+    });
 
     const undone = adminEditHistoryReducer(second, { type: "undo" });
     expect(undone.present).toBe(oneDraftDataset);
@@ -95,8 +101,14 @@ describe("adminEditHistoryReducer", () => {
 
   it("keeps only the latest past states when the limit is reached", () => {
     let history = createAdminEditHistory(emptyDataset, 2);
-    history = adminEditHistoryReducer(history, { type: "push", payload: oneDraftDataset });
-    history = adminEditHistoryReducer(history, { type: "push", payload: twoDraftDataset });
+    history = adminEditHistoryReducer(history, {
+      type: "push",
+      payload: oneDraftDataset,
+    });
+    history = adminEditHistoryReducer(history, {
+      type: "push",
+      payload: twoDraftDataset,
+    });
     history = adminEditHistoryReducer(history, {
       type: "push",
       payload: { ...twoDraftDataset, selectedId: null },
@@ -111,7 +123,10 @@ describe("adminEditHistoryReducer", () => {
       type: "push",
       payload: oneDraftDataset,
     });
-    const reset = adminEditHistoryReducer(history, { type: "reset", payload: twoDraftDataset });
+    const reset = adminEditHistoryReducer(history, {
+      type: "reset",
+      payload: twoDraftDataset,
+    });
 
     expect(reset).toEqual({
       past: [],
@@ -123,10 +138,19 @@ describe("adminEditHistoryReducer", () => {
 
   it("normalizes limit changes and trims existing past states", () => {
     let history = createAdminEditHistory(emptyDataset, 5);
-    history = adminEditHistoryReducer(history, { type: "push", payload: oneDraftDataset });
-    history = adminEditHistoryReducer(history, { type: "push", payload: twoDraftDataset });
+    history = adminEditHistoryReducer(history, {
+      type: "push",
+      payload: oneDraftDataset,
+    });
+    history = adminEditHistoryReducer(history, {
+      type: "push",
+      payload: twoDraftDataset,
+    });
 
-    const limited = adminEditHistoryReducer(history, { type: "setLimit", payload: 1.8 });
+    const limited = adminEditHistoryReducer(history, {
+      type: "setLimit",
+      payload: 1.8,
+    });
 
     expect(limited.limit).toBe(1);
     expect(limited.past).toEqual([oneDraftDataset]);

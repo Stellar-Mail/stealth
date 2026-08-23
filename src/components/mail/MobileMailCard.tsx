@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import type { Email } from "./data";
 import { isVerified, mailFolders } from "./data";
 import { EmailTrustBadges } from "./EmailTrustBadges";
+import { SenderAvatar } from "./SenderAvatar";
 
 type MobileMailCardProps = {
   email: Email;
@@ -61,19 +62,7 @@ export function MobileMailCard({
         <div className="flex items-start gap-2.5">
           {/* Avatar with unread indicator */}
           <div className="relative shrink-0">
-            <div className="h-9 w-9 overflow-hidden rounded-full ring-1 ring-white/15 shadow-[0_8px_18px_-12px_rgba(0,0,0,0.9)]">
-              <img
-                src={`https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(
-                  email.from,
-                )}&backgroundColor=1a1a1d`}
-                alt={email.from}
-                loading="lazy"
-                className="h-full w-full object-cover"
-              />
-            </div>
-            {email.unread && (
-              <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-[oklch(0.9_0.005_270)] ring-2 ring-[oklch(0.18_0.005_270)]" />
-            )}
+            <SenderAvatar email={email} size="lg" unread={email.unread} />
           </div>
 
           {/* Sender and time */}
@@ -107,7 +96,7 @@ export function MobileMailCard({
                 {verified && (
                   <Badge
                     variant="outline"
-                    className="h-4.5 border-emerald-500/30 bg-emerald-500/10 px-1.5 text-[9px] text-emerald-300"
+                    className="h-4.5 border-zinc-300/25 bg-zinc-300/10 px-1.5 text-[9px] text-zinc-200"
                   >
                     Verified
                   </Badge>

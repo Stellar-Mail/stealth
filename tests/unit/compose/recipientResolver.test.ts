@@ -298,5 +298,62 @@ describe("recipientResolver", () => {
       expect(result.policyType).toBe("default");
       expect(result.message).toContain("Stellar federation");
     });
+
+    it("should propagate AbortSignal and handle cancellation during resolution", async () => {
+      const blocked = new Set<string>();
+      const context: RecipientResolutionContext = {
+        resolveContact: vi.fn().mockResolvedValue({
+          id: "contact-1",
+          name: "Alice",
+          address: "GBRPYHIL2CI3WHZDTOOQFC6EB4KJJGUJGU7XYBNBNQ2LMCAKLKZ6DXA",
+          publicKey: "pubkey123",
+          trusted: true,
+        }),
+      };
+
+      const controller = new AbortController();
+      controller.abort();
+
+      await expect(
+        resolveRecipient("alice", blocked, context, controller.signal),
+      ).rejects.toThrow();
+    });
+
+    it("should block recipient if key directory reports key is revoked", async () => {
+      const blocked = new Set<string>();
+      const context: RecipientResolutionContext = {
+        resolveContact: vi.fn().mockResolvedValue({
+          id: "contact-1",
+          name: "Alice",
+          address: "GBRPYHIL2CI3WHZDTOOQFC6EB4KJJGUJGU7XYBNBNQ2LMCAKLKZ6DXA",
+          publicKey: "pubkey123",
+          trusted: true,
+        }),
+      };
+
+      const originalFetch = globalThis.fetch;
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          data: {
+            currentKeys: {
+              encryption: {
+                publicKey: "pubkey123",
+                status: "revoked",
+              },
+            },
+          },
+        }),
+      });
+
+      try {
+        const result = await resolveRecipient("alice", blocked, context);
+        expect(result.state).toBe("blocked");
+        expect(result.keyStatus).toBe("revoked");
+        expect(result.message).toContain("revoked");
+      } finally {
+        globalThis.fetch = originalFetch;
+      }
+    });
   });
 });

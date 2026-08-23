@@ -13,7 +13,12 @@ import {
 describe("Dataset Versioning", () => {
   describe("versionToNumber", () => {
     it("converts semantic version to comparable number", () => {
-      const v = { major: 1, minor: 2, patch: 3, timestamp: "2026-06-16T00:00:00Z" };
+      const v = {
+        major: 1,
+        minor: 2,
+        patch: 3,
+        timestamp: "2026-06-16T00:00:00Z",
+      };
       expect(versionToNumber(v)).toBe(10203);
     });
 
@@ -43,8 +48,18 @@ describe("Dataset Versioning", () => {
     });
 
     it("accepts version objects", () => {
-      const v1 = { major: 1, minor: 0, patch: 0, timestamp: "2026-06-16T00:00:00Z" };
-      const v2 = { major: 1, minor: 0, patch: 1, timestamp: "2026-06-16T00:00:00Z" };
+      const v1 = {
+        major: 1,
+        minor: 0,
+        patch: 0,
+        timestamp: "2026-06-16T00:00:00Z",
+      };
+      const v2 = {
+        major: 1,
+        minor: 0,
+        patch: 1,
+        timestamp: "2026-06-16T00:00:00Z",
+      };
       expect(compareVersions(v1, v2)).toBe(-1);
     });
   });

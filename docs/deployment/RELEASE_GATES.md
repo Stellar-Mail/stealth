@@ -63,6 +63,7 @@ Record these values before beginning a deployment:
       migration, and its location, encryption key reference, timestamp, and retention
       period are in the release record.
 - [ ] A restore rehearsal has proven the backup can be read in an isolated environment.
+      (BETA-081: run `npm run backup:rehearsal` per `docs/deployment/BACKUPS.md`.)
 - [ ] Append-only financial transitions, externally published events, and on-chain
       writes affected by the release are identified as irreversible.
 

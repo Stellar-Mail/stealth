@@ -24,7 +24,12 @@ export class FakeR2Bucket {
   ): Promise<R2Object> {
     const bytes = await toBytes(value);
     const uploaded = new Date();
-    this.objects.set(key, { key, bytes, uploaded, customMetadata: options?.customMetadata ?? {} });
+    this.objects.set(key, {
+      key,
+      bytes,
+      uploaded,
+      customMetadata: options?.customMetadata ?? {},
+    });
     return {
       key,
       size: bytes.length,
@@ -62,6 +67,20 @@ export class FakeR2Bucket {
       async json<T>(): Promise<T> {
         return JSON.parse(new TextDecoder().decode(stored.bytes)) as T;
       },
+    };
+  }
+
+  async head(key: string): Promise<R2Object | null> {
+    const stored = this.objects.get(key);
+    if (!stored) return null;
+    return {
+      key: stored.key,
+      size: stored.bytes.length,
+      uploaded: stored.uploaded,
+      etag: `${stored.key}-${stored.bytes.length}`,
+      httpMetadata: {},
+      customMetadata: stored.customMetadata,
+      checksums: {},
     };
   }
 

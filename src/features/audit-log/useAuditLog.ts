@@ -37,7 +37,10 @@ export function hasActiveAuditFilter(filter: AuditFilter): boolean {
 }
 
 export function useAuditLog(initialEvents: AuditEvent[] = MOCK_AUDIT_EVENTS) {
-  const [filter, setFilter] = useState<AuditFilter>({ category: "all", search: "" });
+  const [filter, setFilter] = useState<AuditFilter>({
+    category: "all",
+    search: "",
+  });
 
   const filtered = useMemo(() => filterAuditEvents(initialEvents, filter), [initialEvents, filter]);
 
@@ -57,7 +60,9 @@ export function useAuditLog(initialEvents: AuditEvent[] = MOCK_AUDIT_EVENTS) {
     if (filtered.length === 0) return false;
 
     try {
-      const blob = new Blob([JSON.stringify(filtered, null, 2)], { type: "application/json" });
+      const blob = new Blob([JSON.stringify(filtered, null, 2)], {
+        type: "application/json",
+      });
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = url;

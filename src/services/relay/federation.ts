@@ -21,12 +21,33 @@
  * 5. DEAD_LETTER: Permanent failure or expired retries. Emits actionable error code. Terminal state.
  */
 
+import type { MessageDeliveryState } from "@/server/api/domain";
+
 export type DeliveryState =
   | "DISCOVERY"
   | "HANDOFF"
   | "ACKNOWLEDGED"
   | "DEDUPLICATED"
   | "DEAD_LETTER";
+
+export function mapRelayStateToMessageDeliveryState(
+  relayState: DeliveryState,
+  errorCode?: ActionableErrorCode,
+): MessageDeliveryState {
+  switch (relayState) {
+    case "DISCOVERY":
+      return "queued";
+    case "HANDOFF":
+      return "accepted";
+    case "ACKNOWLEDGED":
+    case "DEDUPLICATED":
+      return "delivered";
+    case "DEAD_LETTER":
+      return errorCode === "ERR_DELIVERY_EXPIRED" ? "expired" : "failed";
+    default:
+      return "failed";
+  }
+}
 
 export interface FederationMessage {
   id: string;
@@ -61,7 +82,10 @@ export class FederationDeliveryService {
   // In-memory duplicate tracking (in a real system, this is backed by Redis/DB)
   private seenMessageIds: Set<string> = new Set();
   // Simulated dead-letter queue
-  public deadLetterQueue: Array<{ message: FederationMessage; code: ActionableErrorCode }> = [];
+  public deadLetterQueue: Array<{
+    message: FederationMessage;
+    code: ActionableErrorCode;
+  }> = [];
 
   constructor(
     private resolveRelay: (domain: string) => Promise<RelayNode | null>,
@@ -86,7 +110,11 @@ export class FederationDeliveryService {
     while (state !== "ACKNOWLEDGED" && state !== "DEAD_LETTER" && state !== "DEDUPLICATED") {
       if (Date.now() > message.expiryTimestamp) {
         this.moveToDeadLetter(message, "ERR_DELIVERY_EXPIRED");
-        return { state: "DEAD_LETTER", attempts, errorCode: "ERR_DELIVERY_EXPIRED" };
+        return {
+          state: "DEAD_LETTER",
+          attempts,
+          errorCode: "ERR_DELIVERY_EXPIRED",
+        };
       }
 
       try {

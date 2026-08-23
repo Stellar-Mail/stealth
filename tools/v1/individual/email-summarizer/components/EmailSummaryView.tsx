@@ -62,8 +62,8 @@ export function EmailSummaryView({ summary }: EmailSummaryViewProps): JSX.Elemen
             aria-label="Summary truncated"
             style={{ fontSize: "0.8rem", color: "#888", fontStyle: "italic" }}
           >
-            Summary limited to {sentenceCount} sentence{sentenceCount !== 1 ? "s" : ""}. View the
-            original email for full context.
+            Summary limited to {sentenceCount} sentence
+            {sentenceCount !== 1 ? "s" : ""}. View the original email for full context.
           </p>
         )}
 
@@ -81,7 +81,14 @@ export function EmailSummaryView({ summary }: EmailSummaryViewProps): JSX.Elemen
             </h3>
             <ul style={{ margin: 0, paddingLeft: "1.25rem" }}>
               {actionItems.map((item, i) => (
-                <li key={i} style={{ marginBottom: "0.4rem", lineHeight: 1.5, color: "#444" }}>
+                <li
+                  key={i}
+                  style={{
+                    marginBottom: "0.4rem",
+                    lineHeight: 1.5,
+                    color: "#444",
+                  }}
+                >
                   {item}
                 </li>
               ))}

@@ -43,7 +43,11 @@ describe("Authorization Intents Validation", () => {
     // Under ceiling (100 XLM max)
     expect(
       validateIntent(
-        { type: "postage", senderAddress: "G_ACTOR", amountStroops: "100000000" },
+        {
+          type: "postage",
+          senderAddress: "G_ACTOR",
+          amountStroops: "100000000",
+        },
         "G_ACTOR",
         mockConfig,
       ),
@@ -52,7 +56,11 @@ describe("Authorization Intents Validation", () => {
     // Over ceiling
     expect(() =>
       validateIntent(
-        { type: "postage", senderAddress: "G_ACTOR", amountStroops: "2000000000" },
+        {
+          type: "postage",
+          senderAddress: "G_ACTOR",
+          amountStroops: "2000000000",
+        },
         "G_ACTOR",
         mockConfig,
       ),

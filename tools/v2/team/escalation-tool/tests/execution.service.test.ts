@@ -59,7 +59,9 @@ describe("escalationToolService execution contract", () => {
   });
 
   it("propagates persistence failure when repository throws", async () => {
-    const service = createEscalationToolService({ repository: failingRepository });
+    const service = createEscalationToolService({
+      repository: failingRepository,
+    });
     const result = await service.execute(successfulEscalationInput);
 
     expect(result.ok).toBe(false);

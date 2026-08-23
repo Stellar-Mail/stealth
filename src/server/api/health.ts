@@ -82,7 +82,10 @@ export async function checkApiReadiness(options: ReadinessOptions = {}): Promise
     repository: ApiRepository | null;
   }>(
     (options.getContext ?? getApiContext)()
-      .then((context) => ({ status: "ok" as const, repository: context.repository }))
+      .then((context) => ({
+        status: "ok" as const,
+        repository: context.repository,
+      }))
       .catch(() => ({ status: "unavailable" as const, repository: null })),
     timeoutMs,
     () => ({ status: "timeout" as const, repository: null }),

@@ -29,15 +29,44 @@ export class PostageTransitionError extends Error {
 }
 
 /**
- * Allowed forward transitions for each status. `pending` may become
- * `settled` (payment captured) or `refunded` (reversed). `settled` may only go
- * to `refunded` (a refund after settlement). `refunded` is terminal: no
- * outgoing transitions are permitted.
+ * Allowed forward transitions for each status.
+ *
+ * Lifecycle state machine mirrors the on-chain Postage contract:
+ *
+ *           submit
+ *  [start] ──────►  pending
+ *                      │
+ *           ┌──────────┼──────────┬─────────────┐
+ *           │          │          │             │
+ *         settle     refund    expire       reclaim
+ *           │          │          │          (after
+ *           ▼          ▼          │        reclaimable_at)
+ *        settled   refunded       │             │
+ *                            expired            │
+ *                                │              │
+ *                     dispute ───┤              │
+ *                    (in window) │              │
+ *                                ▼              │
+ *                            disputed ───► reclaimed
+ *                                      refund/
+ *                                      reclaim
+ *
+ * Terminal states (`settled`, `refunded`, `reclaimed`) have no outgoing
+ * transitions on-chain, but `settled → refunded` is permitted off-chain for
+ * manual chargeback compensation. The on-chain contract will always enforce
+ * its own stricter rules at transaction submission time.
+ *
+ * Terminal retries MUST be deterministic: re-applying a transition whose
+ * `next` equals the current status is a no-op success (idempotent), not an
+ * error, so callers can safely retry without producing spurious conflicts.
  */
 export const ALLOWED_POSTAGE_TRANSITIONS: Record<PostageStatus, readonly PostageStatus[]> = {
-  pending: ["settled", "refunded"],
+  pending: ["settled", "refunded", "expired", "disputed", "reclaimed"],
   settled: ["refunded"],
   refunded: [],
+  expired: ["disputed", "settled", "refunded", "reclaimed"],
+  disputed: ["settled", "refunded", "reclaimed"],
+  reclaimed: [],
 };
 
 /** True iff `from -> to` is a permitted transition (including the idempotent no-op `from -> from`). */

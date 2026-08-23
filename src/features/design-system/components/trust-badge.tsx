@@ -4,6 +4,7 @@ import {
   BadgeCheck,
   Ban,
   Cable,
+  Check,
   CircleDollarSign,
   CircleHelp,
   Lock,
@@ -37,8 +38,8 @@ export const TRUST_STATE_META: Record<TrustState, TrustStateMeta> = {
   verified: {
     label: "Verified",
     tooltip: "This sender's Stellar identity has been cryptographically verified.",
-    icon: ShieldCheck,
-    className: "border-sky-300/25 bg-sky-300/10 text-sky-200",
+    icon: BadgeCheck,
+    className: "border-zinc-300/25 bg-zinc-300/10 text-zinc-200",
   },
   allowed: {
     label: "Allowed",
@@ -103,6 +104,42 @@ export const TrustBadge = memo(function TrustBadge({
 }: TrustBadgeProps) {
   const meta = TRUST_STATE_META[state];
   const Icon = meta.icon;
+
+  if (state === "verified" && !showLabel) {
+    const check = (
+      <span
+        className={cn(
+          "relative inline-flex h-[18px] w-[18px] items-center justify-center overflow-hidden rounded-full border border-zinc-200/45 text-zinc-50",
+          className,
+        )}
+        style={{
+          background:
+            "linear-gradient(145deg, rgba(103, 110, 121, 0.96), rgba(28, 31, 37, 0.98) 72%)",
+          boxShadow:
+            "0 4px 10px rgba(0, 0, 0, 0.62), inset 0 1px 0 rgba(255, 255, 255, 0.32), inset 0 -1px 0 rgba(0, 0, 0, 0.5)",
+        }}
+        aria-label={meta.label}
+      >
+        <span className="absolute left-[3px] top-[2px] h-1.5 w-2.5 rounded-full bg-white/35 blur-[1px]" />
+        <Check
+          className={size === "sm" ? "relative h-3.5 w-3.5" : "relative h-4 w-4"}
+          strokeWidth={3}
+          aria-hidden
+        />
+      </span>
+    );
+
+    if (!showTooltip) return check;
+
+    return (
+      <TooltipProvider delayDuration={150}>
+        <Tooltip>
+          <TooltipTrigger asChild>{check}</TooltipTrigger>
+          <TooltipContent>{meta.tooltip}</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
 
   const pill = (
     <span

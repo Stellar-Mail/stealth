@@ -13,7 +13,10 @@ describe("draftReducer", () => {
   it("edits a draft partially", () => {
     const loadAction: DraftAction = { type: "loadDraft", payload: draftSample };
     const stateAfterLoad = draftReducer(initialState, loadAction);
-    const editAction: DraftAction = { type: "editDraft", payload: { subject: "Updated Subject" } };
+    const editAction: DraftAction = {
+      type: "editDraft",
+      payload: { subject: "Updated Subject" },
+    };
     const editedState = draftReducer(stateAfterLoad, editAction);
     expect(editedState.current?.subject).toBe("Updated Subject");
     expect(editedState.current?.body).toBe(draftSample.body);

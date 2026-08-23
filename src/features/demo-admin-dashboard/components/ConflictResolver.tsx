@@ -193,7 +193,13 @@ export function applyResolutions(
 
 const CONFLICT_TYPE_META: Record<
   ConflictType,
-  { label: string; icon: React.ElementType; color: string; borderColor: string; bgColor: string }
+  {
+    label: string;
+    icon: React.ElementType;
+    color: string;
+    borderColor: string;
+    bgColor: string;
+  }
 > = {
   "duplicate-id": {
     label: "Duplicate ID",
@@ -219,10 +225,22 @@ const CONFLICT_TYPE_META: Record<
 };
 
 const RESOLUTION_LABELS: Record<ResolutionAction, { label: string; description: string }> = {
-  overwrite: { label: "Overwrite", description: "Replace existing with incoming" },
-  "keep-existing": { label: "Keep Existing", description: "Ignore the incoming draft" },
-  "keep-both": { label: "Keep Both", description: "Auto-rename incoming and keep both" },
-  "merge-labels": { label: "Merge", description: "Combine recipients from both" },
+  overwrite: {
+    label: "Overwrite",
+    description: "Replace existing with incoming",
+  },
+  "keep-existing": {
+    label: "Keep Existing",
+    description: "Ignore the incoming draft",
+  },
+  "keep-both": {
+    label: "Keep Both",
+    description: "Auto-rename incoming and keep both",
+  },
+  "merge-labels": {
+    label: "Merge",
+    description: "Combine recipients from both",
+  },
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────

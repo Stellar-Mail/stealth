@@ -128,7 +128,12 @@ export function safeWriteColdEmail(input: unknown, options?: unknown): SafeColdE
       status: "error",
       code: "invalid-input",
       message: "Input does not match the ColdEmailWriterInput contract.",
-      issues: [{ code: "invalid-input", message: "Input failed structural validation." }],
+      issues: [
+        {
+          code: "invalid-input",
+          message: "Input failed structural validation.",
+        },
+      ],
     };
   }
   if (!validateColdEmailOptions(options)) {
@@ -136,7 +141,12 @@ export function safeWriteColdEmail(input: unknown, options?: unknown): SafeColdE
       status: "error",
       code: "invalid-options",
       message: `maxBodyWords must be an integer from 1 to ${MAX_BODY_WORDS_LIMIT}.`,
-      issues: [{ code: "invalid-options", message: "Options failed structural validation." }],
+      issues: [
+        {
+          code: "invalid-options",
+          message: "Options failed structural validation.",
+        },
+      ],
     };
   }
   const limitIssues = checkColdEmailInputLimits(input);
@@ -162,7 +172,12 @@ export function safeWriteColdEmail(input: unknown, options?: unknown): SafeColdE
       status: "error",
       code: "empty-content",
       message: "Required text fields must not be empty after sanitization.",
-      issues: [{ code: "empty-content", message: "One or more required fields are empty." }],
+      issues: [
+        {
+          code: "empty-content",
+          message: "One or more required fields are empty.",
+        },
+      ],
     };
   }
   return { status: "ok", result: writeColdEmail(sanitized, options) };

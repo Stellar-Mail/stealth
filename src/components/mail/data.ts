@@ -71,6 +71,9 @@ export type SnoozeState = {
   createdAt: string;
 };
 
+import type { VerifiedEnvelopeProvenance } from "@/services/crypto/open-envelope";
+import type { QuarantinedMailRecord } from "@/features/mail/quarantine";
+
 export type Email = {
   id: string;
   from: string;
@@ -84,6 +87,27 @@ export type Email = {
   folder: MailLocation;
   labels?: string[];
   attachments?: { name: string; size: string; type: string }[];
+  /**
+   * BETA-067: Per-attachment crypto context from the sealed envelope.
+   * When present, the preview drawer can decrypt and verify the attachment.
+   * When absent, the drawer shows a locked/unavailable state.
+   */
+  attachmentCrypto?: {
+    /** The AES-GCM content key for decrypting attachments. */
+    contentKey: CryptoKey;
+    /** Per-attachment encrypted data from the sealed envelope. */
+    attachments: Array<{
+      filename: string;
+      /** Base64-encoded ciphertext (includes trailing GCM auth tag). */
+      ciphertext: string;
+      /** Hex-encoded 12-byte nonce. */
+      nonce: string;
+      /** Hex-encoded 16-byte GCM auth tag. */
+      mac: string;
+      /** SHA-256 hex content hash of the plaintext. */
+      contentHash: string;
+    }>;
+  };
   avatarColor: string;
   event?: MailEvent;
   senderPolicy?: SenderPolicy;
@@ -92,6 +116,9 @@ export type Email = {
   postageAmount?: string;
   verifiedSender?: boolean;
   encryptedPayload?: EncryptedPayload;
+  provenanceData?: VerifiedEnvelopeProvenance;
+  quarantineRecord?: QuarantinedMailRecord;
+  threadId?: string;
 };
 
 export type MailFilters = {
@@ -176,6 +203,10 @@ export function isVerified(email: Email) {
  * badge and the command palette so "inspect proof" and the badge agree.
  */
 export function deriveProof(email: Email) {
+  const digest = email.provenanceData?.digest;
+  if (digest && digest.length >= 12) {
+    return `${digest.slice(0, 8)}...${digest.slice(-4)}`;
+  }
   return `${email.id.padStart(2, "0")}c7...${email.from.length.toString(16)}a9`;
 }
 

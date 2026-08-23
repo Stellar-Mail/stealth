@@ -10,7 +10,10 @@ import type { IdentityRecordFamily } from "./types";
 // repository's "legacy records are implicitly version 1" rule.
 // ---------------------------------------------------------------------------
 
-export function readEnvelope(raw: unknown): { version: number; payload: Record<string, unknown> } {
+export function readEnvelope(raw: unknown): {
+  version: number;
+  payload: Record<string, unknown>;
+} {
   if (typeof raw === "object" && raw !== null) {
     const record = raw as Record<string, unknown>;
     if (typeof record.$v === "number" && Number.isInteger(record.$v) && record.$v >= 1) {
@@ -110,4 +113,9 @@ export function digestKey(value: string): string {
     lin = (lin * 31 + value.charCodeAt(i)) | 0;
   }
   return (fnv >>> 0).toString(16).padStart(8, "0") + (lin >>> 0).toString(16).padStart(8, "0");
+}
+
+/** Deterministic redacted checksum for migration evidence and drift checks. */
+export function checksumValue(value: unknown): string {
+  return digestKey(JSON.stringify(value) ?? "undefined");
 }

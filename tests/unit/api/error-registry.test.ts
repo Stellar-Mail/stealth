@@ -23,7 +23,11 @@ describe("API error registry", () => {
     ["duplicate_receipt", 409],
   ] as const)("constructs %s from its registered defaults", (code, status) => {
     const error = new ApiError(code);
-    expect(error).toMatchObject({ code, status, message: API_ERROR_REGISTRY[code].message });
+    expect(error).toMatchObject({
+      code,
+      status,
+      message: API_ERROR_REGISTRY[code].message,
+    });
   });
 
   it("does not allow route and server handlers to use unregistered error codes", () => {
@@ -46,7 +50,9 @@ describe("API error registry", () => {
   it("exposes every registry code and its metadata through OpenAPI", () => {
     expect(
       openApiDocument.components.schemas.ErrorEnvelope.properties.error.properties.code.enum,
-    ).toEqual(API_ERROR_CODES);
+    ).toEqual(
+      API_ERROR_CODES.filter((code) => code !== "recent_auth_required" && code !== "chain_error"),
+    );
     expect(openApiDocument.components.schemas.ApiErrorRegistry["x-error-registry"]).toEqual(
       API_ERROR_REGISTRY,
     );

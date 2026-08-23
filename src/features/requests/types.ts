@@ -1,15 +1,17 @@
 import type { Email } from "@/components/mail/data";
 
-export type TriageAction = "approve" | "block" | "refund";
+export type TriageAction = "approve_once" | "always_allow" | "reject" | "block";
 
 export type CardStatus =
   | "idle"
-  | "pending-approve"
+  | "pending-approve_once"
+  | "pending-always_allow"
+  | "pending-reject"
   | "pending-block"
-  | "pending-refund"
-  | "success-approve"
+  | "success-approve_once"
+  | "success-always_allow"
+  | "success-reject"
   | "success-block"
-  | "success-refund"
   | "failure"
   | "undoing";
 

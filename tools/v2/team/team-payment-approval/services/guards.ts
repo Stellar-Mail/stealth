@@ -125,7 +125,10 @@ export function safeJsonParse<T>(
   try {
     parsed = JSON.parse(raw);
   } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : "JSON parse failed" };
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "JSON parse failed",
+    };
   }
   if (!guard(parsed)) {
     return { ok: false, error: "Parsed JSON did not match expected shape" };
@@ -178,12 +181,18 @@ export interface PaymentApprovalGuardIssue {
  */
 export function validatePaymentApprovalInput(input: unknown): PaymentApprovalGuardIssue | null {
   if (typeof input !== "object" || input === null || Array.isArray(input)) {
-    return { code: "invalid-input", message: "Input must be a non-null object." };
+    return {
+      code: "invalid-input",
+      message: "Input must be a non-null object.",
+    };
   }
   const v = input as Record<string, unknown>;
 
   if (!isPrototypeSafe(v)) {
-    return { code: "invalid-input", message: "Input contains prohibited prototype keys." };
+    return {
+      code: "invalid-input",
+      message: "Input contains prohibited prototype keys.",
+    };
   }
 
   if (!isNonEmptyString(v.paymentId)) {
@@ -258,7 +267,11 @@ export function validateContext(value: unknown): PaymentApprovalGuardIssue | nul
     };
   }
   if (!isNonEmptyString(v.role)) {
-    return { code: "invalid-input", field: "context.role", message: "context.role is required." };
+    return {
+      code: "invalid-input",
+      field: "context.role",
+      message: "context.role is required.",
+    };
   }
   if (v.approvalLimit !== undefined && !isFiniteNumber(v.approvalLimit)) {
     return {
@@ -386,7 +399,10 @@ export function batchSizeGuard(
   if (size < 1) {
     return {
       ok: false,
-      issue: { code: "input-too-large", message: "batchSize must be at least 1." },
+      issue: {
+        code: "input-too-large",
+        message: "batchSize must be at least 1.",
+      },
     };
   }
   if (size > GUARD_LIMITS.maxBatchSize) {

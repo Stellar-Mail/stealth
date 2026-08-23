@@ -30,8 +30,17 @@ import { EventMailCard, type CalendarEvent, type CalendarResponse } from "@/feat
 import { OTPCard, detectOtp } from "@/features/otp";
 import { ConvertSenderButton, SenderBadge } from "@/features/sender-conversion";
 import { SnoozeBanner } from "@/features/snooze";
+import { MailReaderSkeleton } from "@/features/design-system";
+import { DegradedStateBanner } from "@/features/design-system/feedback/DegradedStateBanner";
+import type { MailThread } from "@/features/mail/live-thread";
+import { canRenderBody, isTrustedContent } from "@/features/mail/live-thread";
+import type { ThreadReadView } from "@/features/mail/useThreadRead";
+import type { ClassifiedMailSourceError } from "@/features/mail/source-view";
+import { classifyAppFailure } from "@/lib/api";
+import { parseSafeContent, type BodyBlock as SafeBodyBlock } from "@/features/mail/safe-rendering";
 import { ProvenancePanel } from "./ProvenancePanel";
 import { EmailTrustBadges } from "./EmailTrustBadges";
+import { EncryptedPayloadBanner } from "./EncryptedPayloadBanner";
 import type { Email } from "./data";
 import {
   getRecipientReadiness,
@@ -40,6 +49,8 @@ import {
   type ComposeMode,
   type ComposeSubmission,
 } from "./composeValidation";
+import { getEntry } from "@/services/storage/outbox";
+import { SendProgress } from "@/features/compose/SendProgress";
 
 export type EmailViewActions = {
   onReply?: (email: Email, body?: string) => void;
@@ -60,15 +71,33 @@ export type EmailViewActions = {
   onOpenCalendar?: (eventId?: string) => void;
   onCalendarResponseChange?: (eventId: string, response: CalendarResponse) => void;
   onCalendarReminderChange?: (eventId: string, reminder: string) => void;
-  onPreviewAttachment?: (attachment: { name: string; size: string; type: string }) => void;
+  onPreviewAttachment?: (attachment: {
+    name: string;
+    size: string;
+    type: string;
+    senderAddress?: string;
+    encryptedCiphertext?: string;
+    encryptedNonce?: string;
+    encryptedMac?: string;
+    expectedContentHash?: string;
+    contentKey?: CryptoKey;
+  }) => void;
+  onRetrySend?: (email: Email) => void;
+  onCancelSend?: (email: Email) => void;
 };
 
 export function EmailView({
   email,
   actions = {},
+  thread = null,
+  threadView = { kind: "idle" },
+  onRetryThread,
 }: {
   email: Email | null;
   actions?: EmailViewActions;
+  thread?: MailThread | null;
+  threadView?: ThreadReadView;
+  onRetryThread?: () => void;
 }) {
   const [replyMenuOpen, setReplyMenuOpen] = useState(false);
   const [inlineMode, setInlineMode] = useState<ComposeMode | null>(null);
@@ -78,10 +107,22 @@ export function EmailView({
     setInlineMode(null);
   }, [email?.id]);
 
+  const selectedThreadMessage =
+    thread?.messages.find((message) => message.messageId === email?.id) ??
+    thread?.messages[0] ??
+    null;
+  const showTrustedBody = selectedThreadMessage
+    ? canRenderBody(selectedThreadMessage)
+    : threadView.kind === "idle";
+
+  const outboxEntry = email ? getEntry(email.id) : null;
+
   return (
     <section className="mail-reader-atmosphere relative m-3 ml-0 flex h-[calc(100vh-3.5rem-1.5rem)] flex-1 flex-col overflow-hidden rounded-[8px]">
       <AnimatePresence mode="wait">
-        {!email ? (
+        {threadView.kind === "loading" ? (
+          <MailReaderSkeleton key="thread-loading" className="h-full" />
+        ) : !email ? (
           <motion.div
             key="empty"
             initial={{ opacity: 0 }}
@@ -99,7 +140,7 @@ export function EmailView({
               </p>
             </div>
           </motion.div>
-        ) : (
+        ) : outboxEntry ? (
           <motion.div
             key={email.id}
             initial={false}
@@ -109,11 +150,121 @@ export function EmailView({
             className="flex h-full flex-col"
           >
             <div className="flex flex-wrap items-center gap-2 border-b border-white/5 px-4 py-2.5">
-              <div className="min-w-[220px] flex-1">
+              <div className="flex-1">
+                <span className="rounded-full bg-white/5 border border-white/10 px-2.5 py-0.5 text-[10px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
+                  {outboxEntry.status === "failed" ? "Failed Delivery" : "Pending Outbox"}
+                </span>
+              </div>
+
+              <div className="ml-auto flex flex-none items-center justify-end gap-2">
+                {!outboxEntry.isCommitted && (
+                  <motion.button
+                    whileTap={{ scale: 0.96 }}
+                    whileHover={{ y: -1 }}
+                    onClick={() => actions.onCancelSend?.(email)}
+                    className="flex items-center gap-1.5 rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-muted-foreground transition hover:bg-white/10 hover:text-foreground"
+                  >
+                    Cancel Send
+                  </motion.button>
+                )}
+                {outboxEntry.status === "failed" && outboxEntry.canRetry !== false && (
+                  <motion.button
+                    whileTap={{ scale: 0.96 }}
+                    whileHover={{ y: -1 }}
+                    onClick={() => actions.onRetrySend?.(email)}
+                    className="flex items-center gap-1.5 rounded-md border border-blue-400/30 bg-blue-500/20 px-3.5 py-1.5 text-xs font-semibold text-blue-100 transition hover:bg-blue-500/30"
+                  >
+                    Retry Send
+                  </motion.button>
+                )}
+              </div>
+            </div>
+
+            <div className="scrollbar-thin flex-1 overflow-y-auto px-5 py-5 sm:px-7">
+              <article className="mx-auto w-full max-w-[920px]">
+                <div className="border-b border-white/[0.07] pb-5">
+                  <p className="mail-reader-meta mb-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                    Outbound Message
+                  </p>
+                  <h1 className="mail-reader-title max-w-[720px] text-[26px] font-semibold leading-[1.12] text-foreground sm:text-[30px]">
+                    {email.subject}
+                  </h1>
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <span className="mail-reader-meta rounded-md border border-white/[0.1] bg-white/[0.045] px-2 py-1 text-[10px] uppercase text-muted-foreground">
+                      Recipients: {outboxEntry.recipients.join(", ")}
+                    </span>
+                    {outboxEntry.postageAmount && (
+                      <span className="mail-reader-meta rounded-md border border-white/[0.1] bg-white/[0.045] px-2 py-1 text-[10px] uppercase text-muted-foreground">
+                        Postage: {outboxEntry.postageAmount} XLM
+                      </span>
+                    )}
+                    <span className="mail-reader-meta rounded-md border border-white/[0.1] bg-white/[0.045] px-2 py-1 text-[10px] uppercase text-muted-foreground">
+                      Started: {email.time}
+                    </span>
+                  </div>
+                </div>
+
+                {outboxEntry.stages && outboxEntry.stages.length > 0 && (
+                  <div className="mt-6">
+                    <SendProgress
+                      stages={outboxEntry.stages.map((s) => ({
+                        id: s.id as any,
+                        label: s.label,
+                        status: s.status as any,
+                        detail: s.detail,
+                      }))}
+                      error={
+                        outboxEntry.errorMessage ||
+                        (outboxEntry.status === "failed" ? "Relay submission failed" : null)
+                      }
+                      failureDetails={{
+                        stage: outboxEntry.stages.find((s) => s.status === "error")?.id,
+                        code: outboxEntry.errorCode,
+                        message: outboxEntry.errorMessage,
+                        supportId: outboxEntry.supportId,
+                        timestamp: outboxEntry.updatedAt,
+                        isCommitted: outboxEntry.isCommitted,
+                        canRetry: outboxEntry.canRetry,
+                      }}
+                      supportId={outboxEntry.supportId}
+                      canRetry={outboxEntry.canRetry}
+                      isCommitted={outboxEntry.isCommitted}
+                      onRetry={() => actions.onRetrySend?.(email)}
+                      onSaveDraft={() => {
+                        actions.onShowToast?.("Draft already saved.");
+                      }}
+                    />
+                  </div>
+                )}
+
+                <div className="mt-7 max-w-[68ch] space-y-4 text-sm text-muted-foreground">
+                  <p>Plaintext body is not persisted locally for security and privacy reasons.</p>
+                  {outboxEntry.status === "failed" && (
+                    <p className="text-xs text-red-300">
+                      Error Details:{" "}
+                      {outboxEntry.errorMessage ??
+                        "No detailed error message was returned from the relay."}
+                    </p>
+                  )}
+                </div>
+              </article>
+            </div>
+          </motion.div>
+        ) : (
+          <motion.div
+            key={email.id}
+            initial={false}
+            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+            exit={{ opacity: 0, y: -8, filter: "blur(8px)" }}
+            transition={{ duration: 0.35, ease: [0.2, 0.8, 0.2, 1] }}
+            className="flex h-full flex-col"
+          >
+            <div className="flex min-w-0 flex-nowrap items-center gap-2 border-b border-white/5 px-4 py-2.5">
+              <div className="w-[280px] min-w-0 shrink">
                 <SenderIdentity email={email} compact />
               </div>
 
-              <div className="order-3 flex w-full min-w-0 items-center justify-center gap-1 md:order-none md:w-auto md:flex-none">
+              <div className="flex min-w-0 flex-1 items-center justify-end gap-1">
                 <div className="relative">
                   <motion.button
                     key="reply"
@@ -177,12 +328,17 @@ export function EmailView({
                     label: "Reply all",
                     onClick: () => actions.onReplyAll?.(email),
                   },
-                  { icon: Forward, label: "Forward", onClick: () => actions.onForward?.(email) },
+                  {
+                    icon: Forward,
+                    label: "Forward",
+                    onClick: () => actions.onForward?.(email),
+                  },
                 ].map(({ icon: Icon, label, onClick }) => (
                   <motion.button
                     key={label}
                     whileTap={{ scale: 0.96 }}
                     whileHover={{ y: -1 }}
+                    aria-label={label}
                     onClick={() => {
                       if (label === "Reply all") setInlineMode("reply-all");
                       else if (label === "Forward") setInlineMode("forward");
@@ -302,14 +458,89 @@ export function EmailView({
                   />
                 ) : null}
 
-                {(() => {
-                  const otp = detectOtp(email.body);
-                  return otp ? <OTPCard code={otp} /> : null;
-                })()}
+                {threadView.kind === "error" ? (
+                  <ThreadReadError failure={threadView.failure} onRetry={onRetryThread} />
+                ) : null}
 
-                <ReaderBody body={email.body} />
+                {thread?.mixedState ? (
+                  <p
+                    role="status"
+                    className="mt-5 rounded-lg border border-amber-200/20 bg-amber-200/[0.04] px-3 py-2 text-xs text-amber-100"
+                  >
+                    This conversation contains mixed verification states. Unverified or failed
+                    messages never render as trusted content.
+                  </p>
+                ) : null}
 
-                {email.attachments?.length ? (
+                {thread && thread.messages.length > 1 ? (
+                  <ol className="mt-5 space-y-3" aria-label="Conversation messages">
+                    {thread.messages.map((message) => (
+                      <li
+                        key={message.messageId}
+                        className="rounded-md border border-white/[0.08] bg-black/10 px-3 py-2"
+                      >
+                        <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+                          <span className="font-medium text-foreground/90">{message.sender}</span>
+                          <time dateTime={message.timestamp}>{message.timestamp}</time>
+                          <span className="uppercase tracking-[0.14em]">{message.trust}</span>
+                        </div>
+                        {message.authenticityWarning ? (
+                          <p className="mt-1 text-[11px] text-amber-100/90">
+                            {message.authenticityWarning}
+                          </p>
+                        ) : null}
+                      </li>
+                    ))}
+                  </ol>
+                ) : null}
+
+                {email.encryptedPayload ? (
+                  <EncryptedPayloadBanner
+                    payload={email.encryptedPayload}
+                    actions={{ onRetry: onRetryThread }}
+                  />
+                ) : null}
+
+                {selectedThreadMessage?.authenticityWarning &&
+                !isTrustedContent(selectedThreadMessage) ? (
+                  <p
+                    role="alert"
+                    className="mt-5 rounded-lg border border-amber-200/20 bg-amber-200/[0.04] px-3 py-2 text-xs text-amber-100"
+                  >
+                    {selectedThreadMessage.authenticityWarning}
+                  </p>
+                ) : null}
+
+                {selectedThreadMessage?.remoteResources.blockedCount ? (
+                  <p role="status" className="mt-3 text-[11px] text-muted-foreground">
+                    {selectedThreadMessage.remoteResources.blockedCount} remote resource
+                    {selectedThreadMessage.remoteResources.blockedCount === 1 ? "" : "s"} blocked.
+                    Opening this message does not load external content.
+                  </p>
+                ) : null}
+
+                {showTrustedBody
+                  ? (() => {
+                      const otp = detectOtp(email.body);
+                      return otp ? <OTPCard code={otp} /> : null;
+                    })()
+                  : null}
+
+                {showTrustedBody ? (
+                  <ReaderBody
+                    body={email.body}
+                    blocks={selectedThreadMessage?.safeContent?.blocks}
+                    trusted={selectedThreadMessage ? isTrustedContent(selectedThreadMessage) : true}
+                  />
+                ) : selectedThreadMessage ? (
+                  <p className="mt-7 text-sm text-muted-foreground">
+                    Message body is hidden until the envelope verifies and decrypts.
+                  </p>
+                ) : (
+                  <ReaderBody body={email.body} trusted />
+                )}
+
+                {showTrustedBody && email.attachments?.length ? (
                   <div className="mt-7 max-w-[500px]">
                     <div className="mail-reader-meta mb-2 flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
                       <Paperclip className="h-3 w-3" /> {email.attachments.length} attachment
@@ -319,7 +550,31 @@ export function EmailView({
                       {email.attachments.map((attachment) => (
                         <motion.div
                           key={attachment.name}
-                          onClick={() => actions.onPreviewAttachment?.(attachment)}
+                          onClick={() =>
+                            actions.onPreviewAttachment?.({
+                              ...attachment,
+                              senderAddress: email.email,
+                              ...(email.attachmentCrypto?.attachments.find(
+                                (a) => a.filename === attachment.name,
+                              )
+                                ? {
+                                    encryptedCiphertext: email.attachmentCrypto!.attachments.find(
+                                      (a) => a.filename === attachment.name,
+                                    )!.ciphertext,
+                                    encryptedNonce: email.attachmentCrypto!.attachments.find(
+                                      (a) => a.filename === attachment.name,
+                                    )!.nonce,
+                                    encryptedMac: email.attachmentCrypto!.attachments.find(
+                                      (a) => a.filename === attachment.name,
+                                    )!.mac,
+                                    expectedContentHash: email.attachmentCrypto!.attachments.find(
+                                      (a) => a.filename === attachment.name,
+                                    )!.contentHash,
+                                    contentKey: email.attachmentCrypto!.contentKey,
+                                  }
+                                : {}),
+                            })
+                          }
                           whileHover={{ scale: 1.02 }}
                           whileTap={{ scale: 0.98 }}
                           className={cn(
@@ -405,7 +660,12 @@ function InlineReplyComposer({
   const readiness = getRecipientReadiness(to, postage, blockedRecipients);
 
   const submit = (scheduled = false) => {
-    const validationError = validateComposeDraft({ to, body, postage, blockedRecipients });
+    const validationError = validateComposeDraft({
+      to,
+      body,
+      postage,
+      blockedRecipients,
+    });
     if (validationError) {
       onShowToast?.(validationError);
       return;
@@ -560,15 +820,22 @@ function ProtocolStatus({
   onShowToast?: (message: string) => void;
 }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const verified = ["verified", "priority", "encrypted", "receipts"].includes(email.folder);
-  const proof = `${email.id.padStart(2, "0")}c7...${email.from.length.toString(16)}a9`;
+  const verified = Boolean(email.provenanceData?.senderVerified);
+  const digest = email.provenanceData?.digest;
+  const proof =
+    digest && digest.length >= 12
+      ? `${digest.slice(0, 8)}...${digest.slice(-4)}`
+      : "proof unavailable";
+  const label = email.quarantineRecord
+    ? email.quarantineRecord.userHeadline
+    : verified
+      ? "Stellar identity verified"
+      : "Authenticity not verified";
 
   return (
     <div className="mt-5 flex flex-wrap items-center gap-2 rounded-lg border border-white/[0.08] bg-black/15 px-3 py-2">
-      <BadgeCheck className={cn("h-4 w-4", verified ? "text-emerald-300" : "text-amber-200")} />
-      <span className="text-xs font-medium text-foreground">
-        {verified ? "Stellar identity verified" : "Proof verification pending"}
-      </span>
+      <BadgeCheck className={cn("h-4 w-4", verified ? "text-zinc-300" : "text-amber-200")} />
+      <span className="text-xs font-medium text-foreground">{label}</span>
       <span className="font-mono text-[10px] text-muted-foreground">{proof}</span>
       <div className="ml-auto flex items-center gap-2">
         <button
@@ -579,6 +846,10 @@ function ProtocolStatus({
         </button>
         <button
           onClick={async () => {
+            if (proof === "proof unavailable") {
+              onShowToast?.("No verified proof is available for this message");
+              return;
+            }
             await navigator.clipboard?.writeText(proof);
             onShowToast?.(`Proof ${proof} copied`);
           }}
@@ -645,11 +916,11 @@ function ReceiptStatus({
   email: Email;
   onSendReadReceipt?: (email: Email) => void;
 }) {
-  if (!email.receiptState || email.receiptState === "none") {
-    return null;
-  }
+  const receiptState = email.receiptState ?? "none";
 
-  if (email.receiptState === "sent") {
+  if (receiptState === "none") return null;
+
+  if (receiptState === "sent") {
     return (
       <div className="mt-3 flex items-center gap-2 rounded-lg border border-emerald-200/15 bg-emerald-200/[0.03] px-3 py-2">
         <CheckCheck className="h-4 w-4 text-emerald-300" />
@@ -658,14 +929,14 @@ function ReceiptStatus({
     );
   }
 
-  if (email.receiptState === "pending") {
+  if (receiptState === "pending") {
     return (
       <div className="mt-3 flex items-center gap-3 rounded-lg border border-amber-200/15 bg-amber-200/[0.03] px-3 py-2">
         <CheckCheck className="h-4 w-4 text-amber-200" />
         <div className="flex-1">
           <div className="text-xs font-medium text-foreground">Read receipt pending</div>
           <div className="text-[11px] text-muted-foreground">
-            Send a read receipt to let them know you've seen this
+            Send a read receipt to let them know you&apos;ve seen this
           </div>
         </div>
         {onSendReadReceipt && (
@@ -721,7 +992,10 @@ function AttachmentIcon({ type }: { type: string }) {
   );
 }
 
-function getAttachmentIcon(type: string): { icon: LucideIcon; className: string } {
+function getAttachmentIcon(type: string): {
+  icon: LucideIcon;
+  className: string;
+} {
   const normalized = type.toLowerCase();
 
   if (normalized === "pdf") return { icon: FileText, className: "text-red-300" };
@@ -747,7 +1021,9 @@ function SenderIdentity({ email, compact = false }: { email: Email; compact?: bo
         className={`flex shrink-0 items-center justify-center rounded-md text-xs font-semibold text-white/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] ${
           compact ? "h-8 w-8" : "h-10 w-10"
         }`}
-        style={{ background: `linear-gradient(135deg, ${email.avatarColor}, #1a1a1d)` }}
+        style={{
+          background: `linear-gradient(135deg, ${email.avatarColor}, #1a1a1d)`,
+        }}
       >
         {email.from
           .split(" ")
@@ -771,17 +1047,44 @@ function SenderIdentity({ email, compact = false }: { email: Email; compact?: bo
   );
 }
 
-type BodyBlock =
-  | { kind: "paragraph"; text: string }
-  | { kind: "fields"; fields: { label: string; value: string }[] }
-  | { kind: "list"; items: string[] };
+function ThreadReadError({
+  failure,
+  onRetry,
+}: {
+  failure: ClassifiedMailSourceError;
+  onRetry?: () => void;
+}) {
+  const classified = classifyAppFailure(failure.error, {
+    online: failure.kind !== "offline",
+  });
+  return (
+    <DegradedStateBanner
+      failure={classified}
+      compact
+      className="mx-0 mb-0 mt-5"
+      onRetry={onRetry}
+    />
+  );
+}
 
-function ReaderBody({ body }: { body: string }) {
-  const blocks = getBodyBlocks(body);
+function ReaderBody({
+  body,
+  blocks,
+  trusted = true,
+}: {
+  body: string;
+  blocks?: SafeBodyBlock[];
+  trusted?: boolean;
+}) {
+  const resolved = blocks?.length ? blocks : parseSafeContent(body).blocks;
 
   return (
-    <div className="mail-reader-body reader-copy mt-7 max-w-[68ch] space-y-5 text-[16px] leading-7 text-foreground/88 sm:text-[17px] sm:leading-8">
-      {blocks.map((block, index) => {
+    <div
+      data-trusted={trusted ? "true" : "false"}
+      aria-label={trusted ? "Verified message body" : "Unverified sanitized message body"}
+      className="mail-reader-body reader-copy mt-7 max-w-[68ch] space-y-5 text-[16px] leading-7 text-foreground/88 sm:text-[17px] sm:leading-8"
+    >
+      {resolved.map((block, index) => {
         if (block.kind === "paragraph") {
           return (
             <p key={index} className="text-pretty">
@@ -823,63 +1126,4 @@ function ReaderBody({ body }: { body: string }) {
       })}
     </div>
   );
-}
-
-function getBodyBlocks(body: string): BodyBlock[] {
-  const blocks: BodyBlock[] = [];
-  const lines = body.split(/\r?\n/);
-  let index = 0;
-
-  while (index < lines.length) {
-    const line = lines[index].trim();
-
-    if (!line) {
-      index += 1;
-      continue;
-    }
-
-    if (isBulletLine(line)) {
-      const items: string[] = [];
-      while (index < lines.length && isBulletLine(lines[index].trim())) {
-        items.push(lines[index].trim().replace(/^-\s+/, ""));
-        index += 1;
-      }
-      blocks.push({ kind: "list", items });
-      continue;
-    }
-
-    if (isFieldLine(line)) {
-      const fields: { label: string; value: string }[] = [];
-      while (index < lines.length && isFieldLine(lines[index].trim())) {
-        fields.push(splitFieldLine(lines[index].trim()));
-        index += 1;
-      }
-      blocks.push({ kind: "fields", fields });
-      continue;
-    }
-
-    const paragraph: string[] = [];
-    while (index < lines.length) {
-      const current = lines[index].trim();
-      if (!current || isBulletLine(current) || isFieldLine(current)) break;
-      paragraph.push(current);
-      index += 1;
-    }
-    blocks.push({ kind: "paragraph", text: paragraph.join(" ") });
-  }
-
-  return blocks;
-}
-
-function isBulletLine(line: string) {
-  return /^-\s+/.test(line);
-}
-
-function isFieldLine(line: string) {
-  return /^[A-Za-z][A-Za-z0-9 -]{1,32}:\s+\S/.test(line);
-}
-
-function splitFieldLine(line: string) {
-  const [label, ...value] = line.split(":");
-  return { label, value: value.join(":").trim() };
 }

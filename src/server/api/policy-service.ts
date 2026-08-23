@@ -4,9 +4,11 @@ import type {
   PolicyWriteIntent,
   PolicyWriteStatus,
   SenderRule,
+  SenderRuleRecord,
 } from "./domain";
 import type { ApiRepository } from "./repository";
 import { defaultMailboxPolicy } from "./repository";
+import { ApiError } from "./errors";
 
 // ---------------------------------------------------------------------------
 // BETA-023 (Issue #1930) — privacy-safe mailbox policy defaults
@@ -74,8 +76,18 @@ export async function setMailboxPolicy(
   repository: ApiRepository,
   owner: string,
   policy: MailboxPolicy,
-  options: { requireReceipt?: boolean } = {},
+  options: { requireReceipt?: boolean; version?: number } = {},
 ) {
+  if (options.version !== undefined) {
+    const intent = await repository.getPolicyWriteIntent(owner);
+    const currentVersion = intent?.offchainVersion ?? 0;
+    if (options.version !== currentVersion) {
+      throw new ApiError(409, "conflict", "Policy has been modified since you last loaded it", {
+        details: { currentVersion, suppliedVersion: options.version },
+      });
+    }
+  }
+
   const stored = await repository.setPolicy(owner, policy);
   await schedulePolicyWrite(
     repository,
@@ -110,33 +122,294 @@ export async function setSenderRule(
   };
 }
 
+/**
+ * Stable policy-decision reason codes. These match the Policies contract
+ * `PolicyReason` variants (snake_case) so off-chain evaluation, relay
+ * admission, and on-chain `evaluate` stay comparable.
+ */
+export type PolicyReasonCode =
+  | "sender_allowed"
+  | "sender_blocked"
+  | "unknown_senders_disabled"
+  | "verification_required"
+  | "receipt_required"
+  | "insufficient_postage"
+  | "policy_satisfied"
+  | "tier_satisfied";
+
+/**
+ * Sender-facing admission class used by live relay admission (BETA-036).
+ *
+ * - trusted  : explicit allow rule
+ * - request  : unknown sender admitted for review (no postage due)
+ * - verified : sender must present a verified identity or receipt
+ * - priced   : postage / sender-tier path (paid or still short)
+ * - blocked  : explicit block or unknown senders disabled
+ */
+export type PolicyDecisionKind = "trusted" | "request" | "verified" | "priced" | "blocked";
+
+export function policyDecisionKind(
+  reason: PolicyReasonCode,
+  requiredPostage = "0",
+): PolicyDecisionKind {
+  switch (reason) {
+    case "sender_allowed":
+      return "trusted";
+    case "sender_blocked":
+    case "unknown_senders_disabled":
+      return "blocked";
+    case "verification_required":
+    case "receipt_required":
+      return "verified";
+    case "insufficient_postage":
+    case "tier_satisfied":
+      return "priced";
+    case "policy_satisfied":
+      return BigInt(requiredPostage) > 0n ? "priced" : "request";
+  }
+}
+
+export interface MailboxPolicyEvaluation {
+  allowed: boolean;
+  policy: MailboxPolicy;
+  source: "configured" | "default";
+  reason: PolicyReasonCode;
+  rule: SenderRule;
+  kind: PolicyDecisionKind;
+  requiredPostage: string;
+  policyVersion: number;
+  versionedRule?: SenderRuleRecord;
+}
+
+export interface EvaluateMailboxPolicyInput {
+  owner: string;
+  postage: string;
+  sender: string;
+  verified: boolean;
+  /** Whether the submission includes a delivery-receipt commitment. */
+  receipt?: boolean;
+  /**
+   * Sender-specific minimum postage from the Policies contract tier map.
+   * When set, evaluation follows the on-chain tier branch after identity checks.
+   */
+  senderTier?: string | null;
+}
+
+function decision(base: Omit<MailboxPolicyEvaluation, "kind">): MailboxPolicyEvaluation {
+  return {
+    ...base,
+    kind: policyDecisionKind(base.reason, base.requiredPostage),
+  };
+}
+
 export async function evaluateMailboxPolicy(
   repository: ApiRepository,
-  input: {
-    owner: string;
-    postage: string;
-    sender: string;
-    verified: boolean;
-  },
-) {
-  const rule = await repository.getSenderRule(input.owner, input.sender);
+  input: EvaluateMailboxPolicyInput,
+): Promise<MailboxPolicyEvaluation> {
   const { policy, source } = await getMailboxPolicy(repository, input.owner);
-  if (rule === "allow")
-    return { allowed: true, policy, source, reason: "sender_allowed" as const, rule };
-  if (rule === "block")
-    return { allowed: false, policy, source, reason: "sender_blocked" as const, rule };
+  const intent = await repository.getPolicyWriteIntent(input.owner);
+  const policyVersion = intent?.offchainVersion ?? 0;
+  const requireReceipt = intent?.policy.requireReceipt ?? false;
+  const mailboxMinimum = policy.minimumPostage;
+  const receipt = input.receipt ?? false;
+
+  // BETA-037: Check versioned sender rule first; fall back to legacy rule.
+  const record = await repository.getSenderRuleRecord(input.owner, input.sender);
+  if (record) {
+    switch (record.rule) {
+      case "allow":
+        return decision({
+          allowed: true,
+          policy,
+          source,
+          reason: "sender_allowed",
+          rule: record.rule,
+          requiredPostage: "0",
+          policyVersion,
+          versionedRule: record,
+        });
+      case "block":
+        return decision({
+          allowed: false,
+          policy,
+          source,
+          reason: "sender_blocked",
+          rule: record.rule,
+          requiredPostage: mailboxMinimum,
+          policyVersion,
+          versionedRule: record,
+        });
+      case "verify": {
+        if (!input.verified) {
+          return decision({
+            allowed: false,
+            policy,
+            source,
+            reason: "verification_required",
+            rule: record.rule,
+            requiredPostage: mailboxMinimum,
+            policyVersion,
+            versionedRule: record,
+          });
+        }
+        if (BigInt(input.postage) < BigInt(policy.minimumPostage)) {
+          return decision({
+            allowed: false,
+            policy,
+            source,
+            reason: "insufficient_postage",
+            rule: record.rule,
+            requiredPostage: mailboxMinimum,
+            policyVersion,
+            versionedRule: record,
+          });
+        }
+        return decision({
+          allowed: true,
+          policy,
+          source,
+          reason: "policy_satisfied",
+          rule: record.rule,
+          requiredPostage: mailboxMinimum,
+          policyVersion,
+          versionedRule: record,
+        });
+      }
+      case "price": {
+        const minPostage = record.pricePayload?.minimumPostage ?? "0";
+        if (BigInt(input.postage) < BigInt(minPostage)) {
+          return decision({
+            allowed: false,
+            policy,
+            source,
+            reason: "insufficient_postage",
+            rule: record.rule,
+            requiredPostage: minPostage,
+            policyVersion,
+            versionedRule: record,
+          });
+        }
+        if (policy.requireVerified && !input.verified) {
+          return decision({
+            allowed: false,
+            policy,
+            source,
+            reason: "verification_required",
+            rule: record.rule,
+            requiredPostage: minPostage,
+            policyVersion,
+            versionedRule: record,
+          });
+        }
+        return decision({
+          allowed: true,
+          policy,
+          source,
+          reason: "policy_satisfied",
+          rule: record.rule,
+          requiredPostage: minPostage,
+          policyVersion,
+          versionedRule: record,
+        });
+      }
+    }
+  }
+
+  // Legacy / default-rule fallback (contract-faithful tree for relay admission).
+  const rule = await repository.getSenderRule(input.owner, input.sender);
+
+  if (rule === "allow") {
+    return decision({
+      allowed: true,
+      policy,
+      source,
+      reason: "sender_allowed",
+      rule,
+      requiredPostage: "0",
+      policyVersion,
+    });
+  }
+  if (rule === "block") {
+    return decision({
+      allowed: false,
+      policy,
+      source,
+      reason: "sender_blocked",
+      rule,
+      requiredPostage: mailboxMinimum,
+      policyVersion,
+    });
+  }
 
   if (!policy.allowUnknown) {
-    return { allowed: false, policy, source, reason: "unknown_senders_disabled" as const, rule };
+    return decision({
+      allowed: false,
+      policy,
+      source,
+      reason: "unknown_senders_disabled",
+      rule,
+      requiredPostage: mailboxMinimum,
+      policyVersion,
+    });
   }
   if (policy.requireVerified && !input.verified) {
-    return { allowed: false, policy, source, reason: "verification_required" as const, rule };
+    return decision({
+      allowed: false,
+      policy,
+      source,
+      reason: "verification_required",
+      rule,
+      requiredPostage: input.senderTier ?? mailboxMinimum,
+      policyVersion,
+    });
   }
-  if (BigInt(input.postage) < BigInt(policy.minimumPostage)) {
-    return { allowed: false, policy, source, reason: "insufficient_postage" as const, rule };
+  if (requireReceipt && !receipt) {
+    return decision({
+      allowed: false,
+      policy,
+      source,
+      reason: "receipt_required",
+      rule,
+      requiredPostage: input.senderTier ?? mailboxMinimum,
+      policyVersion,
+    });
   }
 
-  return { allowed: true, policy, source, reason: "policy_satisfied" as const, rule };
+  if (input.senderTier != null) {
+    const requiredPostage = input.senderTier;
+    const allowed = BigInt(input.postage) >= BigInt(requiredPostage);
+    return decision({
+      allowed,
+      policy,
+      source,
+      reason: allowed ? "tier_satisfied" : "insufficient_postage",
+      rule,
+      requiredPostage,
+      policyVersion,
+    });
+  }
+
+  if (BigInt(input.postage) < BigInt(policy.minimumPostage)) {
+    return decision({
+      allowed: false,
+      policy,
+      source,
+      reason: "insufficient_postage",
+      rule,
+      requiredPostage: mailboxMinimum,
+      policyVersion,
+    });
+  }
+
+  return decision({
+    allowed: true,
+    policy,
+    source,
+    reason: "policy_satisfied",
+    rule,
+    requiredPostage: mailboxMinimum,
+    policyVersion,
+  });
 }
 
 // ---------------------------------------------------------------------------

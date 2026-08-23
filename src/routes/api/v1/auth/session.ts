@@ -4,6 +4,7 @@ import {
   buildSessionCookie,
   parseSessionCookie,
   renewSession,
+  sessionCookieConfig,
   validateSession,
 } from "@/server/api/auth/session-service";
 import { getApiContext } from "@/server/api/context";
@@ -31,11 +32,12 @@ export const Route = createFileRoute("/api/v1/auth/session")({
           const nowMs = Date.now();
           const expiresMs = new Date(activeSession.session.expiresAt).getTime();
           const maxAgeSeconds = Math.max(0, Math.floor((expiresMs - nowMs) / 1000));
-          const isProd = import.meta.env?.PROD ?? false;
+          const { isProd, domain } = sessionCookieConfig();
           const cookieHeader = buildSessionCookie(
             activeSession.session.sessionId,
             maxAgeSeconds,
             isProd,
+            domain,
           );
 
           const response = apiSuccess(request, {

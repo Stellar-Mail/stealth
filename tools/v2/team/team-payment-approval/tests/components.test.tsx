@@ -76,7 +76,9 @@ describe("PaymentApprovalList component", () => {
     expect(screen.getByText("Stellar Development")).toBeDefined();
 
     // Find review button
-    const reviewBtns = screen.getAllByRole("button", { name: /Review payment of/ });
+    const reviewBtns = screen.getAllByRole("button", {
+      name: /Review payment of/,
+    });
     expect(reviewBtns.length).toBeGreaterThan(0);
     fireEvent.click(reviewBtns[0]);
     expect(onSelectMock).toHaveBeenCalledWith(mockPayments[0]);
@@ -141,7 +143,9 @@ describe("PaymentApprovalForm component", () => {
       />,
     );
 
-    const submitBtn = screen.getByRole("button", { name: "Select a decision to continue" });
+    const submitBtn = screen.getByRole("button", {
+      name: "Select a decision to continue",
+    });
     // It should be disabled initially
     expect(submitBtn.hasAttribute("disabled")).toBe(true);
   });
@@ -168,7 +172,9 @@ describe("PaymentApprovalForm component", () => {
     fireEvent.change(notesTextarea, { target: { value: "Approved notes" } });
 
     // Submit form
-    const submitBtn = screen.getByRole("button", { name: /Confirm approval of/ });
+    const submitBtn = screen.getByRole("button", {
+      name: /Confirm approval of/,
+    });
     expect(submitBtn.hasAttribute("disabled")).toBe(false);
 
     // Simulate form submission
@@ -188,7 +194,9 @@ describe("TeamPaymentApprovalTool component integration", () => {
     expect(screen.getByText("Pending Approvals (6)")).toBeDefined();
 
     // Click review on first item
-    const reviewBtns = screen.getAllByRole("button", { name: /Review payment of/ });
+    const reviewBtns = screen.getAllByRole("button", {
+      name: /Review payment of/,
+    });
     fireEvent.click(reviewBtns[0]);
 
     // Should display form now
@@ -198,7 +206,9 @@ describe("TeamPaymentApprovalTool component integration", () => {
     const approveRadio = screen.getByLabelText("Approve this payment");
     fireEvent.click(approveRadio);
 
-    const submitBtn = screen.getByRole("button", { name: /Confirm approval of/ });
+    const submitBtn = screen.getByRole("button", {
+      name: /Confirm approval of/,
+    });
     fireEvent.click(submitBtn);
 
     // Wait and verify we enter SuccessState

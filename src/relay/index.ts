@@ -12,8 +12,10 @@ import { createServer, type IncomingMessage } from "node:http";
 import { loadRuntimeConfig } from "@/config";
 import { protocolManifest } from "@/server/api/protocol";
 import { getVersionInfo } from "@/server/api/version";
+import { MemoryApiRepository } from "@/server/api/memory-repository";
 import { InProcessRelayWorker } from "@/services/relay/in-process-worker";
 import { MemoryRelayPersistence } from "@/services/relay/memory-persistence";
+import { createConfiguredAdmissionEvaluator } from "@/services/relay/policy-chain";
 import {
   RELAY_SERVICE_NAME,
   RelayService,
@@ -43,6 +45,7 @@ function buildConfig(): RelayServiceConfig {
       networkPassphrase: config.network.networkPassphrase,
     },
     audience: process.env.STEALTH_RELAY_AUDIENCE ?? "relay:test.stealth",
+    policiesContractId: config.contract.policiesContractId,
   };
 }
 
@@ -53,13 +56,17 @@ function getService(): RelayService {
   if (service) return service;
 
   const persistence = new MemoryRelayPersistence();
+  const repository = new MemoryApiRepository();
+  const runtime = loadRuntimeConfig();
   worker = new InProcessRelayWorker(persistence, {
     onMessage: async (envelope) => {
       await submitToRelay(
         {
           messageId: envelope.messageId,
+          sender: envelope.sender,
+          recipient: envelope.recipient,
           recipientDomain: envelope.recipientDomain,
-          envelopePayload: envelope.payload,
+          payload: envelope.payload,
           ttlMs: envelope.ttlMs,
         },
         {
@@ -74,7 +81,15 @@ function getService(): RelayService {
     },
   });
 
-  service = new RelayService(persistence, worker, buildConfig());
+  service = new RelayService(persistence, worker, buildConfig(), {
+    evaluator: createConfiguredAdmissionEvaluator({
+      repository,
+      policiesContractId: runtime.contract.policiesContractId,
+      networkPassphrase: runtime.network.networkPassphrase,
+      sorobanRpcUrl: runtime.network.sorobanRpcUrl,
+    }),
+    mailbox: repository,
+  });
   void worker.start();
   return service;
 }

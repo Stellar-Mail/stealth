@@ -1,4 +1,5 @@
 import type { Email } from "./data";
+import type { ProofEvidence } from "@/features/proof-inspector/evidence";
 
 export interface ProvenanceItemDetails {
   title: string;
@@ -107,21 +108,26 @@ function formatIdentifier(id: string, start: number = 6, end: number = 6): strin
   return `${id.slice(0, start)}...${id.slice(-end)}`;
 }
 
-export function getEmailProvenance(email: Email): ProvenanceDetails {
+export function getEmailProvenance(
+  email: Email,
+  evidence?: ProofEvidence | null,
+): ProvenanceDetails {
   const seed = email.id;
   const isSmtpBridge = email.folder === "spam" || email.from.toLowerCase().includes("bridge");
   const isRequest = email.folder === "requests" || email.from.toLowerCase().includes("unknown");
   const isVerified =
-    !isSmtpBridge &&
-    (["verified", "priority", "encrypted", "receipts", "inbox"].includes(email.folder) ||
-      !!email.senderPolicy);
+    email.provenanceData?.senderVerified ??
+    (!isSmtpBridge &&
+      (["verified", "priority", "encrypted", "receipts", "inbox"].includes(email.folder) ||
+        !!email.senderPolicy));
 
   // 1. Sender Identity
   let resolvedKey = "";
-  const rawIdentity = email.email || "unknown@stealth.network";
+  const rawIdentity = email.provenanceData?.sender || email.email || "unknown@stealth.network";
 
-  // Check if raw identity looks like a public key already
-  if (/^G[A-Z2-7]{55}$/.test(rawIdentity)) {
+  if (email.provenanceData?.signerAddress) {
+    resolvedKey = email.provenanceData.signerAddress;
+  } else if (/^G[A-Z2-7]{55}$/.test(rawIdentity)) {
     resolvedKey = rawIdentity;
   } else {
     resolvedKey = getDeterministicStellarAddress(rawIdentity, "G");
@@ -176,7 +182,12 @@ export function getEmailProvenance(email: Email): ProvenanceDetails {
               action: "Lookup domain stellar.toml",
               status: rawIdentity.includes("*") ? "OK" : "SKIP",
             },
-            { step: 2, action: "Resolve account alias", status: "OK", result: resolvedKey },
+            {
+              step: 2,
+              action: "Resolve account alias",
+              status: "OK",
+              result: resolvedKey,
+            },
             {
               step: 3,
               action: "Validate cryptographic envelope signature",
@@ -197,9 +208,10 @@ export function getEmailProvenance(email: Email): ProvenanceDetails {
   const relayPubkey = getDeterministicStellarAddress(relayDomain, "G");
   const relaySignature = `sig_${getDeterministicHash(seed, "relay_sig", 64)}`;
   const relayTimestamp =
-    email.time.includes("AM") || email.time.includes("PM")
+    email.provenanceData?.timestamp ??
+    (email.time.includes("AM") || email.time.includes("PM")
       ? `2026-06-16 ${email.time}`
-      : `2026-06-15 14:32:10 UTC`;
+      : `2026-06-15 14:32:10 UTC`);
 
   const relaySourceInspector: ProvenanceItemDetails = {
     title: "Relay Node Processing Record",
@@ -233,7 +245,7 @@ export function getEmailProvenance(email: Email): ProvenanceDetails {
   };
 
   // 3. Message Hash
-  const rawMessageHash = getDeterministicHash(seed, email.body, 64);
+  const rawMessageHash = email.provenanceData?.digest ?? getDeterministicHash(seed, email.body, 64);
   const sizeBytes = new Blob([email.body]).size;
 
   const messageHashInspector: ProvenanceItemDetails = {
@@ -268,7 +280,8 @@ export function getEmailProvenance(email: Email): ProvenanceDetails {
   };
 
   // 4. Payload Commitment
-  const rawPayloadCommitment = getDeterministicHash(seed, "commitment", 64);
+  const rawPayloadCommitment =
+    email.provenanceData?.contentCommitment ?? getDeterministicHash(seed, "commitment", 64);
   const ephemeralKey = getDeterministicStellarAddress(seed + "ephemeral", "G");
 
   const payloadCommitmentInspector: ProvenanceItemDetails = {
@@ -276,7 +289,10 @@ export function getEmailProvenance(email: Email): ProvenanceDetails {
     description:
       "The commitment hash registered on-chain. It proves the message was sent at a specific time without revealing its encrypted contents to the public ledger.",
     keyValuePairs: [
-      { label: "Encryption Envelope", value: "AES-256-GCM (256-bit key, 12-byte nonce)" },
+      {
+        label: "Encryption Envelope",
+        value: "AES-256-GCM (256-bit key, 12-byte nonce)",
+      },
       { label: "Commitment Hash", value: rawPayloadCommitment, isCode: true },
       { label: "Ephemeral Session Key", value: ephemeralKey, isCode: true },
     ],
@@ -301,18 +317,31 @@ export function getEmailProvenance(email: Email): ProvenanceDetails {
   };
 
   // 5. Postage Record
-  const postageTxHash = getDeterministicHash(seed, "postage_tx", 64);
+  const postageTxHash =
+    evidence?.postage?.paymentHash ?? getDeterministicHash(seed, "postage_tx", 64);
   const postageEscrow = getDeterministicStellarAddress(seed + "escrow", "C");
-  const postageAmount = isSmtpBridge
-    ? "0.00000 XLM (No postage)"
-    : isRequest
-      ? "0.00500 XLM"
-      : "0.00001 XLM";
-  const postageStatus = isSmtpBridge
-    ? "Bypassed (Bridge Route)"
-    : isRequest
-      ? "Held in Escrow"
-      : "Settled / Fees Burned";
+  const postageAmount = evidence?.postage
+    ? `${(Number(evidence.postage.amount) / 10_000_000).toFixed(5)} XLM`
+    : isSmtpBridge
+      ? "0.00000 XLM (No postage)"
+      : isRequest
+        ? "0.00500 XLM"
+        : "0.00001 XLM";
+  const postageStatus = evidence?.postage
+    ? evidence.postage.status === "settled"
+      ? "Settled / Fees Burned"
+      : evidence.postage.status === "refunded"
+        ? "Refunded to Sender"
+        : evidence.postage.status === "reclaimed"
+          ? "Reclaimed"
+          : evidence.postage.status === "disputed"
+            ? "Under Dispute"
+            : "Held in Escrow"
+    : isSmtpBridge
+      ? "Bypassed (Bridge Route)"
+      : isRequest
+        ? "Held in Escrow"
+        : "Settled / Fees Burned";
 
   const postageRecordInspector: ProvenanceItemDetails = {
     title: "On-chain Postage Ledger Entry",
@@ -346,8 +375,16 @@ export function getEmailProvenance(email: Email): ProvenanceDetails {
 
   // 6. Receipt Record
   const receiptContract = getDeterministicStellarAddress(seed + "receipt_contract", "C");
-  const receiptTxHash = getDeterministicHash(seed, "receipt_tx", 64);
-  const receiptStatus = isSmtpBridge ? "Not Requested" : "Confirmed / Proof Written";
+  const receiptTxHash = evidence?.receipt?.txHash ?? getDeterministicHash(seed, "receipt_tx", 64);
+  const receiptStatus = evidence?.receipt
+    ? evidence.receipt.chainStatus === "failed"
+      ? "Failed / Mismatch Detected"
+      : evidence.receipt.readAt
+        ? "Confirmed / Proof Written"
+        : "Pending Confirmation"
+    : isSmtpBridge
+      ? "Not Requested"
+      : "Confirmed / Proof Written";
 
   const receiptRecordInspector: ProvenanceItemDetails = {
     title: "Soroban Delivery Receipt Proof",
@@ -386,8 +423,18 @@ export function getEmailProvenance(email: Email): ProvenanceDetails {
     },
   };
 
-  const receiptTimestamp = isSmtpBridge ? "Not requested" : "2026-06-16 14:58:22 UTC";
-  const postageTimestamp = isSmtpBridge ? "Not requested" : "2026-06-16 14:34:18 UTC";
+  const receiptTimestamp = evidence?.receipt
+    ? evidence.receipt.readAt
+      ? new Date(evidence.receipt.readAt).toLocaleString()
+      : new Date(evidence.receipt.deliveredAt).toLocaleString()
+    : isSmtpBridge
+      ? "Not requested"
+      : "2026-06-16 14:58:22 UTC";
+  const postageTimestamp = evidence?.postage
+    ? new Date(evidence.postage.createdAt).toLocaleString()
+    : isSmtpBridge
+      ? "Not requested"
+      : "2026-06-16 14:34:18 UTC";
 
   const timelineItems: ProvenanceTimelineItem[] = [
     {
@@ -420,8 +467,20 @@ export function getEmailProvenance(email: Email): ProvenanceDetails {
       title: "Postage payment recorded",
       description: isSmtpBridge
         ? "Bridged messages skip on-chain postage settlement."
-        : "Postage was settled on the Stellar ledger to secure delivery priority.",
-      status: isSmtpBridge ? "skipped" : "complete",
+        : evidence?.postage
+          ? evidence.postage.status === "settled"
+            ? "Postage was settled on the Stellar ledger to secure delivery priority."
+            : evidence.postage.status === "pending"
+              ? "Postage escrow is pending settlement on the Stellar ledger."
+              : "Postage escrow is recorded on the Stellar ledger."
+          : "Postage was settled on the Stellar ledger to secure delivery priority.",
+      status: isSmtpBridge
+        ? "skipped"
+        : evidence?.postage
+          ? evidence.postage.status === "pending" || evidence.postage.status === "expired"
+            ? "pending"
+            : "complete"
+          : "complete",
       timestamp: postageTimestamp,
     },
     {
@@ -429,14 +488,26 @@ export function getEmailProvenance(email: Email): ProvenanceDetails {
       title: "Delivery proof recorded",
       description: isSmtpBridge
         ? "No receipt proof is available for bridged delivery."
-        : receiptStatus === "Confirmed / Proof Written"
-          ? "A Soroban delivery receipt was written when the recipient read the message."
-          : "Receipt proof is pending until delivery is confirmed.",
+        : evidence?.receipt
+          ? evidence.receipt.chainStatus === "failed"
+            ? "The receipt contract reported a failed confirmation."
+            : evidence.receipt.readAt
+              ? "A Soroban delivery receipt was written when the recipient read the message."
+              : "Receipt proof is pending until delivery is confirmed."
+          : receiptStatus === "Confirmed / Proof Written"
+            ? "A Soroban delivery receipt was written when the recipient read the message."
+            : "Receipt proof is pending until delivery is confirmed.",
       status: isSmtpBridge
         ? "skipped"
-        : receiptStatus === "Confirmed / Proof Written"
-          ? "complete"
-          : "pending",
+        : evidence?.receipt
+          ? evidence.receipt.chainStatus === "failed"
+            ? "complete"
+            : evidence.receipt.readAt
+              ? "complete"
+              : "pending"
+          : receiptStatus === "Confirmed / Proof Written"
+            ? "complete"
+            : "pending",
       timestamp: receiptTimestamp,
     },
   ];

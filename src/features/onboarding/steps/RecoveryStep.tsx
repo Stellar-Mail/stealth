@@ -1,30 +1,39 @@
 import { ShieldAlert } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import type { OnboardingDraft } from "../types";
 
 type Props = {
+  draft: OnboardingDraft;
+  onUpdate: (patch: Partial<OnboardingDraft>) => void;
   onAdvance: () => void;
   onRetreat: () => void;
 };
 
 const ACKNOWLEDGMENTS = [
-  "I have backed up my wallet seed phrase in a safe location.",
-  "I understand that losing my seed phrase means permanent loss of access to my mailbox.",
+  "I have secured access to my account recovery in a safe location.",
+  "I understand that losing recovery access means permanent loss of access to my mailbox.",
 ] as const;
 
 /**
- * Step 2: Recovery Acknowledgment
+ * Step 3: Recovery acknowledgment (BETA-013)
  *
- * Forces the user to consciously confirm they have secured their recovery phrase
- * before continuing. Both checkboxes must be checked to unlock "Continue".
+ * Both checkboxes must be checked to unlock "Continue". The acknowledgment is
+ * persisted to the server-backed draft so a refresh can never silently reset
+ * it to "not acknowledged".
  */
-export function RecoveryStep({ onAdvance, onRetreat }: Props) {
-  const [checked, setChecked] = useState<boolean[]>([false, false]);
+export function RecoveryStep({ draft, onUpdate, onAdvance, onRetreat }: Props) {
+  const acknowledged = draft.recoveryAcknowledged;
+  const [checked, setChecked] = useState<boolean[]>([acknowledged, acknowledged]);
 
   const allChecked = checked.every(Boolean);
 
   function toggle(index: number) {
-    setChecked((prev) => prev.map((v, i) => (i === index ? !v : v)));
+    setChecked((prev) => {
+      const next = prev.map((v, i) => (i === index ? !v : v));
+      onUpdate({ recoveryAcknowledged: next.every(Boolean) });
+      return next;
+    });
   }
 
   return (
@@ -32,16 +41,15 @@ export function RecoveryStep({ onAdvance, onRetreat }: Props) {
       <div className="space-y-1">
         <h2 className="text-base font-semibold text-foreground">Secure your recovery</h2>
         <p className="text-sm text-muted-foreground">
-          Your wallet holds the only key to your Stealth mailbox. Anyone who obtains your seed
-          phrase can impersonate you.
+          Recovery access protects your Stealth mailbox. Anyone who gains it can impersonate you.
         </p>
       </div>
 
       <div className="flex items-start gap-3 rounded-xl border border-amber-400/20 bg-amber-400/[0.06] p-4">
         <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" />
         <p className="text-xs text-amber-200">
-          Stealth has no account recovery system. If you lose your seed phrase, your mailbox address
-          and all associated mail history become permanently inaccessible.
+          Stealth has no account recovery system. If you lose your recovery access, your mailbox
+          address and all associated mail history become permanently inaccessible.
         </p>
       </div>
 

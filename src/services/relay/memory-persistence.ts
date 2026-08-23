@@ -31,9 +31,17 @@ export class MemoryRelayPersistence implements RelayPersistence {
     return this.deadLetterCount;
   }
 
+  async get(messageId: string): Promise<RelayEnvelope | null> {
+    return this.messages.get(messageId) ?? null;
+  }
+
   async enqueue(envelope: RelayEnvelope): Promise<{ messageId: string }> {
     if (!this.available) {
       throw new Error("Relay storage is unavailable");
+    }
+    const existing = this.messages.get(envelope.messageId);
+    if (existing) {
+      return { messageId: existing.messageId };
     }
     this.messages.set(envelope.messageId, envelope);
     this.queue.push(envelope);
@@ -51,6 +59,13 @@ export class MemoryRelayPersistence implements RelayPersistence {
 
   async recordDeadLetter(): Promise<void> {
     this.deadLetterCount++;
+  }
+
+  async listRecipientQueue(recipient: string): Promise<RelayEnvelope[]> {
+    const norm = recipient.toUpperCase().trim();
+    return this.queue
+      .filter((env) => env.recipient.toUpperCase().trim() === norm)
+      .map((env) => ({ ...env }));
   }
 
   /** Test/ops hook: simulate a storage outage. */

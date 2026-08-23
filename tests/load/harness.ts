@@ -81,7 +81,9 @@ export async function runLoadTest(
     `  Requests: ${result.totalRequests} (Success: ${result.successes}, Fail: ${result.failures})`,
   );
   console.log(
-    `  Latency (ms): min=${min.toFixed(2)}, p50=${p50.toFixed(2)}, p90=${p90.toFixed(2)}, p99=${p99.toFixed(2)}, max=${max.toFixed(2)}`,
+    `  Latency (ms): min=${min.toFixed(2)}, p50=${p50.toFixed(2)}, p90=${p90.toFixed(
+      2,
+    )}, p99=${p99.toFixed(2)}, max=${max.toFixed(2)}`,
   );
   console.log(`  Status Codes:`, result.statusCodes);
 

@@ -9,7 +9,9 @@ export interface UseCollisionDetectionReturn {
 }
 
 export function useCollisionDetection(): UseCollisionDetectionReturn {
-  const [state, setState] = useState<CollisionDetectionState>({ status: "idle" });
+  const [state, setState] = useState<CollisionDetectionState>({
+    status: "idle",
+  });
 
   const scan = useCallback((replies: ActiveReply[], monitoredThreads: number) => {
     setState({ status: "loading" });

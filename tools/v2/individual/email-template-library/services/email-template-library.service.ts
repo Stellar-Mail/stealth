@@ -29,7 +29,10 @@ function failure(
 }
 
 function cloneTemplate(template: EmailTemplate): EmailTemplate {
-  return { ...template, variables: template.variables.map((variable) => ({ ...variable })) };
+  return {
+    ...template,
+    variables: template.variables.map((variable) => ({ ...variable })),
+  };
 }
 
 const MAX_SUBJECT_LENGTH = 255;
@@ -81,7 +84,9 @@ export function createEmailTemplateLibraryService(
     throw new Error(`Invalid email template catalog entry: ${invalidTemplate.id || "unknown"}`);
   }
 
-  return { execute: (request) => executeEmailTemplateLibrary(request, templates) };
+  return {
+    execute: (request) => executeEmailTemplateLibrary(request, templates),
+  };
 }
 
 export function executeEmailTemplateLibrary(

@@ -35,7 +35,10 @@ describe("priority contract — result helpers", () => {
 describe("priority contract — score", () => {
   it("scores and ranks clients by weighted score (desc default)", () => {
     const contract = createPriorityContract();
-    const res = contract.execute({ operation: "score", input: { clients: PRIORITY_FIXTURES } });
+    const res = contract.execute({
+      operation: "score",
+      input: { clients: PRIORITY_FIXTURES },
+    });
     expect(res.ok).toBe(true);
     if (res.ok && res.value.operation === "score") {
       const ranked = res.value.ranked;
@@ -66,7 +69,10 @@ describe("priority contract — score", () => {
 
   it("derives priority bands from thresholds", () => {
     const contract = createPriorityContract();
-    const res = contract.execute({ operation: "score", input: { clients: PRIORITY_FIXTURES } });
+    const res = contract.execute({
+      operation: "score",
+      input: { clients: PRIORITY_FIXTURES },
+    });
     if (res.ok && res.value.operation === "score") {
       const bands = Object.fromEntries(res.value.ranked.map((c) => [c.id, c.priority]));
       expect(bands["client-initech"]).toBe("high"); // 20 >= 10
@@ -77,7 +83,10 @@ describe("priority contract — score", () => {
 
   it("returns an empty ranking for no clients (no throw)", () => {
     const contract = createPriorityContract();
-    const res = contract.execute({ operation: "score", input: { clients: EMPTY_CLIENTS } });
+    const res = contract.execute({
+      operation: "score",
+      input: { clients: EMPTY_CLIENTS },
+    });
     expect(res.ok).toBe(true);
     if (res.ok && res.value.operation === "score") {
       expect(res.value.ranked).toEqual([]);
@@ -90,7 +99,11 @@ describe("priority contract — score", () => {
       operation: "score",
       input: {
         clients: [
-          { id: "x", name: "X", signals: [{ name: "revenue", value: NaN, weight: 1 }] } as never,
+          {
+            id: "x",
+            name: "X",
+            signals: [{ name: "revenue", value: NaN, weight: 1 }],
+          } as never,
         ],
       },
     });

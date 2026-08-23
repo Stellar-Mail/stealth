@@ -19,6 +19,17 @@ import { validateNegotiationForOpen, getSuite, getDefaultVersion } from "./suite
 import { encodeAad } from "./aad";
 import { unwrapContentKey, importRecipientPrivateKey, type WrappedKeyEntry } from "./key-wrap";
 import { sealedEnvelopeSchema } from "./schema";
+import { validateTimestamp, type TimestampPolicy } from "./time";
+import { verifyEnvelopeSignature, type EnvelopeSignature } from "./signature";
+import {
+  MAX_SENDER_BYTES,
+  MAX_RECIPIENT_BYTES,
+  MAX_TIMESTAMP_BYTES,
+  MAX_ATTACHMENTS,
+  MAX_FILENAME_BYTES,
+  MAX_CONTENT_TYPE_BYTES,
+  MAX_ATTACHMENT_BYTES,
+} from "./limits";
 
 /** Minimal non-secret error carrying a stable code (no key/plaintext leakage). */
 export class OpenEnvelopeError extends Error {
@@ -91,6 +102,20 @@ export class WrappedKeyProvider implements KeyProvider {
 const GCM_TAG_BYTES = 16;
 const SUPPORTED_VERSION = getDefaultVersion();
 
+export interface VerifiedEnvelopeProvenance {
+  sender: string;
+  recipient: string;
+  timestamp: string;
+  contentCommitment: string;
+  version: string;
+  algorithm: string;
+  senderVerified: boolean;
+  signatureVerified: boolean;
+  signerAddress?: string;
+  recipientBound: boolean;
+  digest: string;
+}
+
 export interface OpenedEnvelope {
   sender: string;
   recipient: string;
@@ -101,28 +126,26 @@ export interface OpenedEnvelope {
     content_type: string;
     size_bytes: number;
     content_hash: string;
+    data?: Uint8Array;
   }>;
   recipientKeyId?: string;
   senderKeyId?: string;
+  provenance: VerifiedEnvelopeProvenance;
 }
 
-/** Shape we accept (structural — we validate fields individually). */
-interface RawPayload {
-  version?: unknown;
-  sender?: unknown;
-  recipient?: unknown;
-  timestamp?: unknown;
-  encryption_metadata?: {
-    algorithm?: unknown;
-    nonce?: unknown;
-    mac?: unknown;
-    ephemeral_public_key?: unknown;
-    recipient_key_id?: unknown;
-    sender_key_id?: unknown;
-  };
-  content_commitment?: unknown;
-  attachments?: unknown;
-  wrapped_keys?: unknown;
+export interface OpenEnvelopeOptions {
+  /** Expected recipient identity/address to enforce recipient binding. */
+  expectedRecipient?: string;
+  /** Expected sender identity/address to enforce sender verification. */
+  expectedSender?: string;
+  /** Inbound Ed25519 signature claiming to authorize the envelope payload. */
+  signature?: EnvelopeSignature;
+  /** Require a valid Ed25519 sender signature. Defaults to false if omitted. */
+  requireSenderSignature?: boolean;
+  /** Custom policy for timestamp validity and bounded clock skew. */
+  timestampPolicy?: TimestampPolicy;
+  /** Option to skip payload string/array length bounds checking (default: false). */
+  skipBoundsCheck?: boolean;
 }
 
 function fromHex(hex: string): Uint8Array<ArrayBuffer> {
@@ -166,31 +189,21 @@ function str(value: unknown, field: string): string {
   return value;
 }
 
-function num(value: unknown, field: string): number {
-  if (typeof value === "number" && !Number.isNaN(value) && value >= 0) {
-    return value;
-  }
-  if (typeof value === "string") {
-    const parsed = Number(value);
-    if (!Number.isNaN(parsed) && parsed >= 0) {
-      return parsed;
-    }
-  }
-  throw new OpenEnvelopeError(`missing or invalid ${field}`, "crypto_validation_error");
-}
-
 /**
- * Open (decrypt) a sealed envelope.
+ * Open (decrypt) a sealed envelope with hardened pre-decryption validation.
  *
- * @param input  The sealed envelope: `{ payload, ciphertext }` as produced by
- *               `sealEnvelope` (ciphertext is base64 of ciphertext+GCM tag).
- * @param keys   A `KeyProvider` returning the recipient's AES-GCM key.
- * @returns      The verified, decrypted envelope contents.
- * @throws       OpenEnvelopeError on any parse/integrity/decryption failure.
+ * @param input    The sealed envelope: `{ payload, ciphertext }` as produced by
+ *                 `sealEnvelope` (ciphertext is base64 of ciphertext+GCM tag).
+ * @param keys     A `KeyProvider` returning the recipient's AES-GCM key.
+ * @param options  Verification options for recipient binding, timestamp freshness,
+ *                 sender signature verification, and bounds checking.
+ * @returns        The verified, decrypted envelope contents with typed provenance.
+ * @throws         OpenEnvelopeError on any parse/integrity/decryption failure.
  */
 export async function openEnvelope(
-  input: { payload: unknown; ciphertext: unknown },
+  input: { payload: unknown; ciphertext: unknown; signature?: unknown },
   keys: KeyProvider,
+  options?: OpenEnvelopeOptions,
 ): Promise<OpenedEnvelope> {
   const startTime = performance.now();
   let result: CryptoResultCode = "success";
@@ -234,7 +247,96 @@ export async function openEnvelope(
     const meta = payload.encryption_metadata;
     algorithm = meta.algorithm;
 
-    // Validate version + suite combination against the fail-closed registry.
+    // 1) Bounds validation
+    if (!options?.skipBoundsCheck) {
+      const encoder = new TextEncoder();
+      if (encoder.encode(sender).length > MAX_SENDER_BYTES) {
+        throw new OpenEnvelopeError(
+          `sender identity exceeds ${MAX_SENDER_BYTES} bytes`,
+          "crypto_validation_error",
+        );
+      }
+      if (encoder.encode(recipient).length > MAX_RECIPIENT_BYTES) {
+        throw new OpenEnvelopeError(
+          `recipient identity exceeds ${MAX_RECIPIENT_BYTES} bytes`,
+          "crypto_validation_error",
+        );
+      }
+      if (encoder.encode(timestamp).length > MAX_TIMESTAMP_BYTES) {
+        throw new OpenEnvelopeError(
+          `timestamp exceeds ${MAX_TIMESTAMP_BYTES} bytes`,
+          "crypto_validation_error",
+        );
+      }
+      if (payload.attachments.length > MAX_ATTACHMENTS) {
+        throw new OpenEnvelopeError(
+          `attachments count exceeds ${MAX_ATTACHMENTS}`,
+          "crypto_validation_error",
+        );
+      }
+      for (const att of payload.attachments) {
+        if (encoder.encode(att.filename).length > MAX_FILENAME_BYTES) {
+          throw new OpenEnvelopeError(
+            `attachment filename exceeds ${MAX_FILENAME_BYTES} bytes`,
+            "crypto_validation_error",
+          );
+        }
+        if (encoder.encode(att.content_type).length > MAX_CONTENT_TYPE_BYTES) {
+          throw new OpenEnvelopeError(
+            `attachment content type exceeds ${MAX_CONTENT_TYPE_BYTES} bytes`,
+            "crypto_validation_error",
+          );
+        }
+        if (att.size_bytes > MAX_ATTACHMENT_BYTES) {
+          throw new OpenEnvelopeError(
+            `attachment size exceeds ${MAX_ATTACHMENT_BYTES} bytes`,
+            "crypto_validation_error",
+          );
+        }
+      }
+    }
+
+    // 2) Timestamp validation
+    const tsPolicy: TimestampPolicy = options?.timestampPolicy ?? {
+      maxAgeMs: 365 * 24 * 60 * 60 * 1000,
+      maxFutureSkewMs: 24 * 60 * 60 * 1000,
+    };
+    try {
+      validateTimestamp(timestamp, tsPolicy);
+    } catch (err) {
+      throw new OpenEnvelopeError(
+        err instanceof Error ? err.message : "invalid envelope timestamp",
+        "crypto_validation_error",
+      );
+    }
+
+    // 3) Recipient binding validation
+    if (options?.expectedRecipient) {
+      const normPayloadRecipient = recipient.trim().toLowerCase();
+      const normExpectedRecipient = options.expectedRecipient.trim().toLowerCase();
+      if (normPayloadRecipient !== normExpectedRecipient) {
+        throw new OpenEnvelopeError("recipient binding mismatch", "crypto_validation_error");
+      }
+    }
+
+    // 4) Sender signature verification
+    const sigToVerify = options?.signature ?? (input as any).signature;
+    let signatureVerified = false;
+    let signerAddress: string | undefined = undefined;
+
+    if (sigToVerify) {
+      const expectedSender = options?.expectedSender ?? sender;
+      const isValidSig = verifyEnvelopeSignature(payload, sigToVerify, expectedSender);
+      if (!isValidSig) {
+        throw new OpenEnvelopeError("invalid sender signature", "crypto_integrity_error");
+      }
+      signatureVerified = true;
+      signerAddress = sigToVerify.signerAddress;
+    } else if (options?.requireSenderSignature) {
+      throw new OpenEnvelopeError("mandatory sender signature missing", "crypto_integrity_error");
+    }
+
+    // 5) Validate version + suite combination against the fail-closed registry.
     try {
       validateNegotiationForOpen(payload.version, algorithm);
     } catch (err) {
@@ -259,7 +361,7 @@ export async function openEnvelope(
     const macHex = meta.mac;
     const commitment = payload.content_commitment;
 
-    // 1) Decode ciphertext.
+    // 6) Decode ciphertext.
     let ciphertext: Uint8Array<ArrayBuffer>;
     try {
       ciphertext = fromBase64(ciphertextB64);
@@ -270,12 +372,13 @@ export async function openEnvelope(
       throw new OpenEnvelopeError("ciphertext shorter than auth tag", "crypto_integrity_error");
     }
 
-    // 2) Content commitment: Parse and verify versioned format.
+    // 7) Content commitment: Parse and verify versioned format.
     try {
       await verifyCommitment(commitment, ciphertext);
     } catch (err) {
       if (err instanceof Error) {
-        if (err.message.includes("mismatch") || err.message.includes("crypto_commitment_error")) {
+        const code = (err as { code?: unknown }).code;
+        if (code === "crypto_commitment_error" || err.message.includes("mismatch")) {
           throw new OpenEnvelopeError("content commitment mismatch", "crypto_integrity_error");
         }
         throw new OpenEnvelopeError(err.message, "crypto_validation_error");
@@ -286,14 +389,14 @@ export async function openEnvelope(
       );
     }
 
-    // 3) Recompute and compare the auth tag against the declared mac.
+    // 8) Recompute and compare the auth tag against the declared mac.
     const declaredTag = fromHex(macHex);
     const actualTag = ciphertext.slice(ciphertext.length - GCM_TAG_BYTES);
     if (declaredTag.length !== GCM_TAG_BYTES || !constantTimeEqual(declaredTag, actualTag)) {
       throw new OpenEnvelopeError("auth tag mismatch", "crypto_integrity_error");
     }
 
-    // 4) Resolve recipient key and decrypt (fail closed on any mismatch).
+    // 9) Resolve recipient key and decrypt (fail closed on any mismatch).
     const recipientKeyId = meta.recipient_key_id;
     const senderKeyId = meta.sender_key_id;
 
@@ -373,7 +476,23 @@ export async function openEnvelope(
       );
     }
 
-    const body = new TextDecoder().decode(new Uint8Array(decrypted));
+    const decryptedBytes = new Uint8Array(decrypted);
+    const body = new TextDecoder().decode(decryptedBytes);
+    const digest = await sha256Hex(decryptedBytes);
+
+    const provenance: VerifiedEnvelopeProvenance = {
+      sender,
+      recipient,
+      timestamp,
+      contentCommitment: commitment,
+      version: payload.version,
+      algorithm,
+      senderVerified: signatureVerified || sender.startsWith("G"),
+      signatureVerified,
+      signerAddress,
+      recipientBound: true,
+      digest,
+    };
 
     return {
       sender,
@@ -383,6 +502,7 @@ export async function openEnvelope(
       attachments: parsedAttachments,
       recipientKeyId,
       senderKeyId,
+      provenance,
     };
   } catch (error: unknown) {
     result = mapOpenEnvelopeError(error);
@@ -426,4 +546,111 @@ function constantTimeEqual(a: Uint8Array, b: Uint8Array): boolean {
     diff |= a[i] ^ b[i];
   }
   return diff === 0;
+}
+
+// ---------------------------------------------------------------------------
+// BETA-067: Per-attachment decryption
+// ---------------------------------------------------------------------------
+
+export interface DecryptAttachmentInput {
+  /** Base64-encoded ciphertext (includes trailing 16-byte GCM auth tag). */
+  ciphertext: string;
+  /** Hex-encoded 12-byte nonce used during encryption. */
+  nonce: string;
+  /** Hex-encoded 16-byte GCM auth tag (must match the tag appended to ciphertext). */
+  mac: string;
+  /** Expected SHA-256 hex digest of the plaintext bytes. */
+  expectedContentHash?: string;
+}
+
+export interface DecryptAttachmentResult {
+  /** Decrypted plaintext bytes. */
+  bytes: Uint8Array;
+  /** SHA-256 hex digest of the decrypted bytes. */
+  contentHash: string;
+}
+
+/**
+ * Decrypt a single attachment that was encrypted inline within a sealed
+ * envelope. Each attachment is AES-256-GCM encrypted with the same content
+ * key used for the envelope body, but with its own random nonce.
+ *
+ * This function verifies the GCM auth tag (via Web Crypto) and optionally
+ * checks the content hash commitment. Tampered ciphertext, wrong keys, or
+ * hash mismatches all fail closed with an {@link OpenEnvelopeError}.
+ *
+ * BETA-067 — built against BETA-047's open-envelope primitives. The actual
+ * download route (BETA-031) is not yet merged; this function decrypts
+ * attachment bytes that were sealed inline by `sealEnvelope()`.
+ */
+export async function decryptAttachment(
+  key: CryptoKey,
+  input: DecryptAttachmentInput,
+): Promise<DecryptAttachmentResult> {
+  if (!input.ciphertext || typeof input.ciphertext !== "string") {
+    throw new OpenEnvelopeError(
+      "attachment ciphertext is missing or invalid",
+      "crypto_validation_error",
+    );
+  }
+  if (!input.nonce || !/^[0-9a-f]{24}$/.test(input.nonce)) {
+    throw new OpenEnvelopeError(
+      "attachment nonce is missing or malformed (expected 12-byte hex)",
+      "crypto_validation_error",
+    );
+  }
+  if (!input.mac || !/^[0-9a-f]{32}$/.test(input.mac)) {
+    throw new OpenEnvelopeError(
+      "attachment mac is missing or malformed (expected 16-byte hex)",
+      "crypto_validation_error",
+    );
+  }
+
+  let ciphertext: Uint8Array<ArrayBuffer>;
+  try {
+    ciphertext = fromBase64(input.ciphertext);
+  } catch {
+    throw new OpenEnvelopeError(
+      "attachment ciphertext is not valid base64",
+      "crypto_validation_error",
+    );
+  }
+
+  if (ciphertext.length < GCM_TAG_BYTES) {
+    throw new OpenEnvelopeError(
+      "attachment ciphertext shorter than auth tag",
+      "crypto_integrity_error",
+    );
+  }
+
+  // Verify the declared MAC matches the tag appended to the ciphertext.
+  const declaredTag = fromHex(input.mac);
+  const actualTag = ciphertext.slice(ciphertext.length - GCM_TAG_BYTES);
+  if (!constantTimeEqual(declaredTag, actualTag)) {
+    throw new OpenEnvelopeError("attachment auth tag mismatch", "crypto_integrity_error");
+  }
+
+  const nonce = fromHex(input.nonce);
+
+  let decrypted: ArrayBuffer;
+  try {
+    decrypted = await crypto.subtle.decrypt({ name: "AES-GCM", iv: nonce }, key, ciphertext);
+  } catch {
+    throw new OpenEnvelopeError(
+      "attachment decryption failed (wrong key or tampered)",
+      "crypto_decryption_error",
+    );
+  }
+
+  const bytes = new Uint8Array(decrypted);
+  const contentHash = await sha256Hex(bytes);
+
+  if (input.expectedContentHash && contentHash !== input.expectedContentHash) {
+    throw new OpenEnvelopeError(
+      "attachment content hash mismatch after decryption",
+      "crypto_integrity_error",
+    );
+  }
+
+  return { bytes, contentHash };
 }

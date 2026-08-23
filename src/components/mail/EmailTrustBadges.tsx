@@ -26,7 +26,10 @@ export function EmailTrustBadges({
   className,
 }: EmailTrustBadgesProps) {
   const states = getTrustStates(email);
-  const shown = typeof max === "number" ? states.slice(0, max) : states;
+  const limited = typeof max === "number" ? states.slice(0, max) : states;
+  // Inbox cards reserve their compact marker for proof-backed verification.
+  // Other trust states remain available as labeled badges in detailed views.
+  const shown = showLabels ? limited : limited.filter((state) => state === "verified");
 
   if (shown.length === 0) return null;
 

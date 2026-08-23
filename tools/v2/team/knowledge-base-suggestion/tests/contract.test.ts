@@ -116,18 +116,27 @@ describe("kb contract — tokenize/normalize", () => {
 
 describe("kb contract — scoring", () => {
   it("scoreArticle returns null for empty query tokens", () => {
-    const result = scoreArticle(KB_ARTICLES[0], [], { tagWeight: 2, titleWeight: 1 });
+    const result = scoreArticle(KB_ARTICLES[0], [], {
+      tagWeight: 2,
+      titleWeight: 1,
+    });
     expect(result).toBeNull();
   });
 
   it("scoreArticle returns null for null article", () => {
-    const result = scoreArticle(null as any, ["test"], { tagWeight: 2, titleWeight: 1 });
+    const result = scoreArticle(null as any, ["test"], {
+      tagWeight: 2,
+      titleWeight: 1,
+    });
     expect(result).toBeNull();
   });
 
   it("scoreArticle finds tag matches", () => {
     const article = KB_ARTICLES.find((a) => a.id === "kb-billing")!;
-    const result = scoreArticle(article, ["billing", "invoices"], { tagWeight: 2, titleWeight: 1 });
+    const result = scoreArticle(article, ["billing", "invoices"], {
+      tagWeight: 2,
+      titleWeight: 1,
+    });
     expect(result).not.toBeNull();
     expect(result!.suggestion.score).toBeGreaterThanOrEqual(4); // 2 tags * 2 weight
     expect(result!.reasons.some((r) => r.type === "tag-match")).toBe(true);
@@ -162,8 +171,14 @@ describe("kb contract — scoring", () => {
 describe("kb contract — ranking", () => {
   it("rankArticles sorts by score desc then title asc", () => {
     const scored: ScoredResult[] = [
-      { suggestion: { articleId: "a", title: "A", score: 1 } as any, reasons: [] },
-      { suggestion: { articleId: "b", title: "B", score: 2 } as any, reasons: [] },
+      {
+        suggestion: { articleId: "a", title: "A", score: 1 } as any,
+        reasons: [],
+      },
+      {
+        suggestion: { articleId: "b", title: "B", score: 2 } as any,
+        reasons: [],
+      },
     ];
     const ranked = rankArticles(scored);
     expect(ranked[0].suggestion.articleId).toBe("b");
@@ -172,9 +187,18 @@ describe("kb contract — ranking", () => {
 
   it("rankArticles respects limit", () => {
     const scored: ScoredResult[] = [
-      { suggestion: { articleId: "a", title: "A", score: 1 } as any, reasons: [] },
-      { suggestion: { articleId: "b", title: "B", score: 2 } as any, reasons: [] },
-      { suggestion: { articleId: "c", title: "C", score: 3 } as any, reasons: [] },
+      {
+        suggestion: { articleId: "a", title: "A", score: 1 } as any,
+        reasons: [],
+      },
+      {
+        suggestion: { articleId: "b", title: "B", score: 2 } as any,
+        reasons: [],
+      },
+      {
+        suggestion: { articleId: "c", title: "C", score: 3 } as any,
+        reasons: [],
+      },
     ];
     const ranked = rankArticles(scored, 2);
     expect(ranked.length).toBe(2);
@@ -479,7 +503,10 @@ describe("kb contract — execute", () => {
   it("respects the limit", () => {
     const contract = makeContract();
     const res = contract.execute(
-      { operation: "suggest", input: { query: "team security billing onboarding", limit: 1 } },
+      {
+        operation: "suggest",
+        input: { query: "team security billing onboarding", limit: 1 },
+      },
       KB_ARTICLES,
     );
     if (res.ok && res.value.operation === "suggest") {

@@ -1,28 +1,139 @@
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { CheckCircle, FileText, HelpCircle, ShieldCheck, Users, X } from "lucide-react";
+import {
+  CheckCircle,
+  FileText,
+  HelpCircle,
+  ShieldCheck,
+  Users,
+  X,
+  AlertTriangle,
+  Loader2,
+} from "lucide-react";
 import type { Email } from "@/components/mail/data";
 import { motionPresets } from "@/lib/motion-presets";
+import { useFocusTrap } from "@/lib/useFocusTrap";
 import { RequestCard } from "./RequestCard";
 import type { CardStatus, RequestCardState, TriageAction } from "./types";
+import { useSession, sessionActor } from "@/features/mail/useSession";
+import { useRequests, useSenderRequestDecision } from "@/features/mail/useRequests";
 
 interface RequestsTriageBoardProps {
   emails: Email[];
   onUpdateEmail: (id: string, patch: Partial<Email>) => void;
   onShowToast: (message: string, options?: { tone: "success" | "neutral" | "danger" }) => void;
+  isDemoMode?: boolean;
 }
 
 export function RequestsTriageBoard({
   emails,
   onUpdateEmail,
   onShowToast,
+  isDemoMode = false,
 }: Readonly<RequestsTriageBoardProps>) {
   const [cardStates, setCardStates] = useState<Record<string, RequestCardState>>({});
   const [simulateFailure, setSimulateFailure] = useState(false);
   const [inspectEmail, setInspectEmail] = useState<Email | null>(null);
 
-  // Get active requests in the folder
-  const requests = emails.filter((email) => email.folder === "requests");
+  // Pagination states
+  const [cursor, setCursor] = useState<string | undefined>(undefined);
+  const [liveRequests, setLiveRequests] = useState<any[]>([]);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+
+  // Selection states
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  // Bulk dialog states
+  const [bulkAction, setBulkAction] = useState<TriageAction | null>(null);
+  const [bulkProcessing, setBulkProcessing] = useState<{
+    action: TriageAction;
+    total: number;
+    processed: number;
+    succeeded: number;
+    failed: number;
+    failures: { sender: string; error: string }[];
+  } | null>(null);
+
+  // Session & Live Requests Queries
+  const session = useSession({ enabled: !isDemoMode });
+  const actor = sessionActor(session.data);
+
+  const { data: serverPage, isLoading: isRequestsLoading } = useRequests(
+    actor,
+    { cursor, limit: 10 },
+    !isDemoMode && !isDemoMode,
+  );
+
+  const decisionMutation = useSenderRequestDecision(actor);
+
+  // Sync server page to stateful live requests list
+  useEffect(() => {
+    if (isDemoMode) return;
+    if (serverPage) {
+      setLiveRequests((prev) => {
+        // If cursor is undefined, it's the first page / reset
+        if (!cursor) {
+          setNextCursor(serverPage.nextCursor);
+          return serverPage.items;
+        }
+        const prevMap = new Map(prev.map((item) => [item.requestId, item]));
+        for (const item of serverPage.items) {
+          prevMap.set(item.requestId, item);
+        }
+        setNextCursor(serverPage.nextCursor);
+        return [...prevMap.values()];
+      });
+    }
+  }, [serverPage, cursor, isDemoMode]);
+
+  // Reset live requests list if actor changes or isDemoMode switches
+  useEffect(() => {
+    setLiveRequests([]);
+    setCursor(undefined);
+    setSelectedIds(new Set());
+  }, [actor, isDemoMode]);
+
+  // Map requests to Email shape
+  const requests = useMemo(() => {
+    if (isDemoMode) {
+      return emails.filter((email) => email.folder === "requests");
+    }
+
+    return liveRequests.map((req) => {
+      const email = emails.find((e) => e.id === req.message.messageId);
+      if (email) {
+        return {
+          ...email,
+          folder: "requests" as const,
+          requestId: req.requestId,
+          postageAmount: req.postageAmount ?? email.postageAmount,
+          verifiedSender: req.verifiedSender ?? email.verifiedSender,
+        };
+      }
+      return {
+        id: req.message.messageId,
+        from: req.sender,
+        email: req.sender,
+        subject: "Unknown Sender Request",
+        preview: req.proofSummary || "Pending postage decision",
+        body: "Message details will load once decided.",
+        time: new Date(req.createdAt).toLocaleDateString(),
+        unread: true,
+        starred: false,
+        folder: "requests" as const,
+        requestId: req.requestId,
+        postageAmount: req.postageAmount,
+        verifiedSender: req.verifiedSender,
+      };
+    });
+  }, [emails, liveRequests, isDemoMode]);
+
+  // The failure simulation toggle is a QA-only control: it never renders in
+  // production builds, so shipped code audits against the live data path.
+  const showSimulationToggle = typeof import.meta !== "undefined" && import.meta.env?.DEV === true;
+
+  const closeInspector = useCallback(() => setInspectEmail(null), []);
+  const inspectorRef = useFocusTrap(inspectEmail !== null, closeInspector);
 
   const getCardStatus = (emailId: string): CardStatus => {
     return cardStates[emailId]?.status ?? "idle";
@@ -35,24 +146,35 @@ export function RequestsTriageBoard({
     }));
   };
 
-  // Triggering the action (approve/block/refund) -> starts the pending state
-  const handleTriggerAction = (emailId: string, action: TriageAction) => {
+  // Triggering the action (approve_once/always_allow/reject/block) -> starts the pending state
+  const handleTriggerAction = async (emailId: string, action: TriageAction) => {
+    const email = requests.find((e) => e.id === emailId);
+    if (!email) return;
+
     const pendingStatus = `pending-${action}` as CardStatus;
     setCardStatus(emailId, pendingStatus);
 
-    // Simulate API delay (800ms)
-    setTimeout(() => {
-      if (simulateFailure) {
-        setCardStatus(emailId, "failure");
-        onShowToast(`Stellar transaction failed for ${action}`, { tone: "danger" });
+    try {
+      if (isDemoMode) {
+        await new Promise((resolve) => setTimeout(resolve, 800));
+        if (simulateFailure) throw new Error("Simulated network transaction failed");
       } else {
-        const successStatus = `success-${action}` as CardStatus;
-        setCardStatus(emailId, successStatus);
-        onShowToast(`Optimistic ${action} registered. Reviewing details...`, {
-          tone: "neutral",
-        });
+        const requestId = (email as any).requestId;
+        if (!requestId) throw new Error("Request ID not found for message");
+        await decisionMutation.mutateAsync({ requestId, decision: action });
       }
-    }, 800);
+
+      const successStatus = `success-${action}` as CardStatus;
+      setCardStatus(emailId, successStatus);
+      onShowToast(`Decision ${action} registered successfully.`, {
+        tone: "neutral",
+      });
+    } catch (err: any) {
+      setCardStatus(emailId, "failure");
+      onShowToast(err.message || `Failed to apply ${action}`, {
+        tone: "danger",
+      });
+    }
   };
 
   // Undo triggers a loading revert state, then goes back to idle
@@ -69,14 +191,13 @@ export function RequestsTriageBoard({
     const email = emails.find((e) => e.id === emailId);
     if (!email) return;
 
-    // Apply cleaner label updates
     const cleanLabels = (labels?: string[], toAdd?: string) => {
       const filterOut = new Set(["Request", "Paid", "Pending"]);
       const current = labels ? labels.filter((l) => !filterOut.has(l)) : [];
       return toAdd ? [...current, toAdd] : current;
     };
 
-    if (action === "approve") {
+    if (action === "always_allow") {
       onUpdateEmail(emailId, {
         folder: "inbox",
         senderPolicy: "allow",
@@ -85,19 +206,31 @@ export function RequestsTriageBoard({
       onShowToast(`${email.from} added to Trusted Contacts. Mail moved to Inbox.`, {
         tone: "success",
       });
+    } else if (action === "approve_once") {
+      onUpdateEmail(emailId, {
+        folder: "inbox",
+        labels: cleanLabels(email.labels, "Approved Once"),
+      });
+      onShowToast(`Message from ${email.from} approved once and moved to Inbox.`, {
+        tone: "success",
+      });
     } else if (action === "block") {
       onUpdateEmail(emailId, {
         folder: "spam",
         senderPolicy: "block",
         labels: cleanLabels(email.labels, "Blocked"),
       });
-      onShowToast(`${email.from} blocked. Mail moved to Spam.`, { tone: "danger" });
-    } else if (action === "refund") {
+      onShowToast(`${email.from} blocked. Mail moved to Spam.`, {
+        tone: "danger",
+      });
+    } else if (action === "reject") {
       onUpdateEmail(emailId, {
         folder: "spam",
         labels: cleanLabels(email.labels, "Refunded"),
       });
-      onShowToast(`Postage refunded for message from ${email.from}.`, { tone: "success" });
+      onShowToast(`Postage refunded for message from ${email.from}.`, {
+        tone: "success",
+      });
     }
 
     // Clean up local card state
@@ -106,6 +239,89 @@ export function RequestsTriageBoard({
       delete next[emailId];
       return next;
     });
+
+    // Remove from liveRequests list
+    setLiveRequests((prev) => prev.filter((r) => r.message.messageId !== emailId));
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      next.delete(emailId);
+      return next;
+    });
+  };
+
+  const handleToggleSelect = (emailId: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(emailId)) {
+        next.delete(emailId);
+      } else {
+        next.add(emailId);
+      }
+      return next;
+    });
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedIds(new Set(requests.map((r) => r.id)));
+    } else {
+      setSelectedIds(new Set());
+    }
+  };
+
+  const executeBulkAction = async (action: TriageAction) => {
+    setBulkAction(null);
+    const ids = [...selectedIds];
+    setBulkProcessing({
+      action,
+      total: ids.length,
+      processed: 0,
+      succeeded: 0,
+      failed: 0,
+      failures: [],
+    });
+
+    for (const emailId of ids) {
+      const email = requests.find((e) => e.id === emailId);
+      if (!email) continue;
+
+      const pendingStatus = `pending-${action}` as CardStatus;
+      setCardStatus(emailId, pendingStatus);
+
+      try {
+        if (isDemoMode) {
+          await new Promise((resolve) => setTimeout(resolve, 600));
+          if (simulateFailure) throw new Error("Simulated network transaction failed");
+        } else {
+          const requestId = (email as any).requestId;
+          if (!requestId) throw new Error("Request ID not found");
+          await decisionMutation.mutateAsync({ requestId, decision: action });
+        }
+
+        const successStatus = `success-${action}` as CardStatus;
+        setCardStatus(emailId, successStatus);
+
+        setBulkProcessing((prev) => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            processed: prev.processed + 1,
+            succeeded: prev.succeeded + 1,
+          };
+        });
+      } catch (err: any) {
+        setCardStatus(emailId, "failure");
+        setBulkProcessing((prev) => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            processed: prev.processed + 1,
+            failed: prev.failed + 1,
+            failures: [...prev.failures, { sender: email.from, error: err.message || "Failed" }],
+          };
+        });
+      }
+    }
   };
 
   return (
@@ -121,63 +337,282 @@ export function RequestsTriageBoard({
             <span className="rounded-full bg-white/8 px-2 py-0.5 text-xs font-semibold tabular-nums text-muted-foreground">
               {requests.length} pending
             </span>
+            {requests.length > 0 && (
+              <label className="flex items-center gap-1.5 ml-4 text-xs text-muted-foreground select-none cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={selectedIds.size === requests.length && requests.length > 0}
+                  onChange={(e) => handleSelectAll(e.target.checked)}
+                  className="rounded border-white/20 bg-black/40 text-emerald-500 focus:ring-emerald-500/30"
+                />
+                <span>Select All</span>
+              </label>
+            )}
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Approve, block, or refund postage for unknown and paid senders from a unified interface.
+            Approve once, always allow, reject, or block unknown senders from a unified interface.
           </p>
         </div>
 
-        {/* QA Control panel */}
-        <div className="flex items-center gap-4">
-          <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground select-none hover:text-foreground transition">
-            <input
-              type="checkbox"
-              checked={simulateFailure}
-              onChange={(e) => setSimulateFailure(e.target.checked)}
-              className="rounded border-white/20 bg-black/40 text-emerald-500 focus:ring-emerald-500/30 focus:ring-offset-0 focus:outline-none"
-            />
-            <span>Simulate network failure</span>
-          </label>
-        </div>
+        {/* QA Control panel (development builds only) */}
+        {showSimulationToggle && (
+          <div className="flex items-center gap-4">
+            <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground select-none hover:text-foreground transition">
+              <input
+                type="checkbox"
+                checked={simulateFailure}
+                onChange={(e) => setSimulateFailure(e.target.checked)}
+                className="rounded border-white/20 bg-black/40 text-emerald-500 focus:ring-emerald-500/30 focus:ring-offset-0 focus:outline-none"
+              />
+              <span>Simulate network failure</span>
+            </label>
+          </div>
+        )}
       </div>
 
       {/* Main Cards Area */}
       <div className="scrollbar-thin relative z-10 flex-1 overflow-y-auto p-4 md:p-6">
-        <AnimatePresence mode="popLayout">
-          {requests.length === 0 ? (
-            <motion.div
-              key="empty-state"
-              {...motionPresets.entrance.scaleIn(0.98)}
-              className="flex h-[300px] flex-col items-center justify-center text-center p-6"
-            >
-              <div className="mb-4 rounded-full bg-emerald-500/10 p-3 text-emerald-400 border border-emerald-500/20">
-                <CheckCircle className="h-6 w-6" />
-              </div>
-              <h3 className="text-sm font-semibold text-foreground">All caught up!</h3>
-              <p className="max-w-[280px] text-xs text-muted-foreground mt-1 leading-normal">
-                There are no pending sender requests awaiting review. Your inbox policy is working
-                perfectly.
-              </p>
-            </motion.div>
-          ) : (
-            <motion.div key="cards-grid" className="grid grid-cols-1 gap-4 lg:grid-cols-2" layout>
-              {requests.map((email) => (
-                <motion.div key={email.id} layout>
-                  <RequestCard
-                    email={email}
-                    status={getCardStatus(email.id)}
-                    simulateFailure={simulateFailure}
-                    onTriggerAction={handleTriggerAction}
-                    onUndoAction={handleUndoAction}
-                    onFinalizeAction={handleFinalizeAction}
-                    onInspect={setInspectEmail}
-                  />
+        {isRequestsLoading && requests.length === 0 ? (
+          <div className="flex h-[200px] flex-col items-center justify-center gap-2.5">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            <p className="text-xs text-muted-foreground">Loading pending requests...</p>
+          </div>
+        ) : (
+          <AnimatePresence mode="popLayout">
+            {requests.length === 0 ? (
+              <motion.div
+                key="empty-state"
+                {...motionPresets.entrance.scaleIn(0.98)}
+                className="flex h-[300px] flex-col items-center justify-center text-center p-6"
+              >
+                <div className="mb-4 rounded-full bg-emerald-500/10 p-3 text-emerald-400 border border-emerald-500/20">
+                  <CheckCircle className="h-6 w-6" />
+                </div>
+                <h3 className="text-sm font-semibold text-foreground">All caught up!</h3>
+                <p className="max-w-[280px] text-xs text-muted-foreground mt-1 leading-normal">
+                  There are no pending sender requests awaiting review. Your inbox policy is working
+                  perfectly.
+                </p>
+              </motion.div>
+            ) : (
+              <div className="space-y-6">
+                <motion.div
+                  key="cards-grid"
+                  className="grid grid-cols-1 gap-4 lg:grid-cols-2"
+                  layout
+                >
+                  {requests.map((email) => (
+                    <motion.div key={email.id} layout className="relative">
+                      <RequestCard
+                        email={email}
+                        status={getCardStatus(email.id)}
+                        simulateFailure={simulateFailure}
+                        onTriggerAction={handleTriggerAction}
+                        onUndoAction={handleUndoAction}
+                        onFinalizeAction={handleFinalizeAction}
+                        onInspect={setInspectEmail}
+                        isSelected={selectedIds.has(email.id)}
+                        onToggleSelect={() => handleToggleSelect(email.id)}
+                      />
+                    </motion.div>
+                  ))}
                 </motion.div>
-              ))}
-            </motion.div>
-          )}
-        </AnimatePresence>
+
+                {nextCursor && (
+                  <div className="flex justify-center">
+                    <button
+                      onClick={() => setCursor(nextCursor)}
+                      className="rounded-lg border border-white/10 px-4 py-2 text-xs font-semibold text-foreground hover:bg-white/5 transition"
+                    >
+                      Load More Requests
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </AnimatePresence>
+        )}
       </div>
+
+      {/* Floating Bulk Action Bar */}
+      <AnimatePresence>
+        {selectedIds.size > 0 && (
+          <motion.div
+            initial={{ y: 50, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 50, opacity: 0 }}
+            className="absolute bottom-6 left-1/2 z-40 flex -translate-x-1/2 items-center gap-4 rounded-xl border border-white/10 bg-black/85 px-6 py-3 shadow-2xl backdrop-blur-md"
+          >
+            <span className="text-xs text-foreground/80 font-medium">
+              {selectedIds.size} request{selectedIds.size > 1 ? "s" : ""} selected
+            </span>
+            <div className="h-4 w-px bg-white/10" />
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setBulkAction("block")}
+                className="rounded-lg border border-red-500/20 bg-red-500/5 px-2.5 py-1.5 text-xs font-medium text-red-400 hover:bg-red-500/10 transition"
+              >
+                Bulk Block
+              </button>
+              <button
+                onClick={() => setBulkAction("reject")}
+                className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-2.5 py-1.5 text-xs font-medium text-amber-400 hover:bg-amber-500/10 transition"
+              >
+                Bulk Reject
+              </button>
+              <button
+                onClick={() => setBulkAction("approve_once")}
+                className="rounded-lg border border-white/10 px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-white/5 transition"
+              >
+                Approve Once
+              </button>
+              <button
+                onClick={() => setBulkAction("always_allow")}
+                className="rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-black hover:opacity-90 transition"
+              >
+                Always Allow
+              </button>
+            </div>
+            <button
+              onClick={() => setSelectedIds(new Set())}
+              className="rounded-lg p-1 text-muted-foreground hover:text-foreground transition ml-2"
+              aria-label="Clear selection"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Bulk Action Confirmation Modal */}
+      <AnimatePresence>
+        {bulkAction && (
+          <>
+            <motion.div
+              {...motionPresets.patterns.modal.backdrop}
+              onClick={() => setBulkAction(null)}
+              className="fixed inset-0 z-100 bg-black/80 backdrop-blur-md"
+            />
+            <motion.div
+              {...motionPresets.patterns.modal.content}
+              role="dialog"
+              aria-modal="true"
+              className="glass-strong fixed left-1/2 top-1/2 z-101 w-[min(420px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl border border-white/10 p-6"
+            >
+              <div className="flex items-start gap-3 text-amber-400 mb-3">
+                <AlertTriangle className="h-5 w-5 shrink-0" />
+                <h3 className="text-sm font-semibold text-foreground">Confirm Bulk Action</h3>
+              </div>
+              <p className="text-xs text-muted-foreground leading-normal mb-4">
+                Are you sure you want to perform <strong>{bulkAction.replace("_", " ")}</strong> for
+                the {selectedIds.size} selected sender request{selectedIds.size > 1 ? "s" : ""}?
+              </p>
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={() => setBulkAction(null)}
+                  className="rounded-lg border border-white/10 px-4 py-2 text-xs font-semibold text-foreground hover:bg-white/5 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => executeBulkAction(bulkAction)}
+                  className="rounded-lg bg-emerald-500 px-4 py-2 text-xs font-semibold text-black hover:opacity-90 transition"
+                >
+                  Confirm Action
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Bulk Processing Progress & Failure Report Modal */}
+      <AnimatePresence>
+        {bulkProcessing && (
+          <>
+            <div className="fixed inset-0 z-100 bg-black/80 backdrop-blur-md" />
+            <motion.div
+              {...motionPresets.patterns.modal.content}
+              role="dialog"
+              aria-modal="true"
+              className="glass-strong fixed left-1/2 top-1/2 z-101 w-[min(440px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl border border-white/10 p-6"
+            >
+              <h3 className="text-sm font-bold text-foreground mb-4">
+                Bulk Processing: {bulkProcessing.action.replace("_", " ")}
+              </h3>
+
+              {bulkProcessing.processed < bulkProcessing.total ? (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <Loader2 className="h-5 w-5 animate-spin text-emerald-400" />
+                    <span className="text-xs text-foreground/90 font-medium">
+                      Processing {bulkProcessing.processed} of {bulkProcessing.total}...
+                    </span>
+                  </div>
+                  <div className="h-1.5 w-full rounded-full bg-white/5 overflow-hidden">
+                    <div
+                      className="h-full bg-emerald-500 transition-all duration-300"
+                      style={{
+                        width: `${(bulkProcessing.processed / bulkProcessing.total) * 100}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-2 text-xs rounded-lg bg-white/2 border border-white/5 p-3">
+                    <div>
+                      <span className="text-muted-foreground">Succeeded</span>
+                      <span className="block font-semibold text-emerald-400 mt-0.5">
+                        {bulkProcessing.succeeded} items
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Failed</span>
+                      <span className="block font-semibold text-rose-400 mt-0.5">
+                        {bulkProcessing.failed} items
+                      </span>
+                    </div>
+                  </div>
+
+                  {bulkProcessing.failures.length > 0 && (
+                    <div className="space-y-1.5">
+                      <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                        Failure Details
+                      </span>
+                      <div className="max-h-[140px] overflow-y-auto rounded-lg border border-white/5 bg-black/20 p-2 space-y-2">
+                        {bulkProcessing.failures.map((f, i) => (
+                          <div
+                            key={i}
+                            className="text-[11px] leading-normal border-b border-white/4 pb-1 last:border-b-0 last:pb-0"
+                          >
+                            <span className="font-mono text-foreground/90 block truncate">
+                              {f.sender}
+                            </span>
+                            <span className="text-rose-400">{f.error}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex justify-end pt-2">
+                    <button
+                      onClick={() => {
+                        setBulkProcessing(null);
+                        setSelectedIds(new Set());
+                      }}
+                      className="rounded-lg bg-foreground px-4 py-2 text-xs font-semibold text-background hover:opacity-90 transition"
+                    >
+                      Done
+                    </button>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* CONTEXT INSPECTOR MODAL */}
       <AnimatePresence>
@@ -186,13 +621,15 @@ export function RequestsTriageBoard({
             {/* Backdrop */}
             <motion.div
               {...motionPresets.patterns.modal.backdrop}
-              onClick={() => setInspectEmail(null)}
+              onClick={closeInspector}
+              aria-hidden="true"
               className="fixed inset-0 z-100 bg-black/80 backdrop-blur-md"
             />
 
             {/* Panel */}
             <motion.div
               {...motionPresets.patterns.modal.content}
+              ref={inspectorRef}
               role="dialog"
               aria-modal="true"
               aria-label="Inspect sender request context"
@@ -208,7 +645,7 @@ export function RequestsTriageBoard({
                   </h3>
                 </div>
                 <button
-                  onClick={() => setInspectEmail(null)}
+                  onClick={closeInspector}
                   className="rounded-lg p-1 text-muted-foreground transition hover:bg-white/5 hover:text-foreground focus:outline-none focus:ring-2 focus:ring-white/10"
                   aria-label="Close details"
                 >
@@ -309,7 +746,7 @@ export function RequestsTriageBoard({
               {/* Inspector CTAs */}
               <div className="flex items-center justify-end gap-2 border-t border-white/8 px-6 py-4">
                 <button
-                  onClick={() => setInspectEmail(null)}
+                  onClick={closeInspector}
                   className="rounded-lg border border-white/10 px-4 py-2 text-xs font-semibold text-foreground transition hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-white/10"
                 >
                   Close

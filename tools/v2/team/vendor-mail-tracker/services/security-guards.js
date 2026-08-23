@@ -27,7 +27,10 @@ export function sanitizeText(value, options = {}) {
 }
 
 export function sanitizeVendorInput(input) {
-  const email = sanitizeText(input.email, { maxLength: 120, fallback: "" }).toLowerCase();
+  const email = sanitizeText(input.email, {
+    maxLength: 120,
+    fallback: "",
+  }).toLowerCase();
   if (!EMAIL_PATTERN.test(email)) {
     return { valid: false, reason: "invalid_email" };
   }
@@ -37,7 +40,10 @@ export function sanitizeVendorInput(input) {
     return { valid: false, reason: "invalid_name" };
   }
 
-  const category = sanitizeText(input.category, { maxLength: 40, fallback: "other" });
+  const category = sanitizeText(input.category, {
+    maxLength: 40,
+    fallback: "other",
+  });
   const allowedCategories = new Set([
     "email-service",
     "communication",
@@ -73,7 +79,10 @@ export function createSafeRecord(input) {
     }
 
     if (typeof value === "string") {
-      safeRecord[key] = sanitizeText(value, { maxLength: MAX_TEXT_LENGTH, fallback: "" });
+      safeRecord[key] = sanitizeText(value, {
+        maxLength: MAX_TEXT_LENGTH,
+        fallback: "",
+      });
       continue;
     }
 

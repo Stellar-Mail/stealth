@@ -31,18 +31,27 @@ function mapDraft(entry: unknown, index: number, issues: DatasetImportIssue[]): 
   }
 
   if (typeof entry.subject !== "string") {
-    issues.push({ path: `${base}.subject`, message: "Draft subject must be a string." });
+    issues.push({
+      path: `${base}.subject`,
+      message: "Draft subject must be a string.",
+    });
     valid = false;
   }
 
   if (typeof entry.body !== "string") {
-    issues.push({ path: `${base}.body`, message: "Draft body must be a string." });
+    issues.push({
+      path: `${base}.body`,
+      message: "Draft body must be a string.",
+    });
     valid = false;
   }
 
   const cleanRecipients: string[] = [];
   if (!Array.isArray(entry.recipients)) {
-    issues.push({ path: `${base}.recipients`, message: "Draft recipients must be an array." });
+    issues.push({
+      path: `${base}.recipients`,
+      message: "Draft recipients must be an array.",
+    });
     valid = false;
   } else {
     const recipients: unknown[] = entry.recipients;
@@ -85,7 +94,10 @@ export function mapImportedDataset(payload: unknown): DatasetImportResult {
   const issues: DatasetImportIssue[] = [];
 
   if (!isPlainObject(payload)) {
-    return { ok: false, issues: [{ path: "$", message: "Import payload must be a JSON object." }] };
+    return {
+      ok: false,
+      issues: [{ path: "$", message: "Import payload must be a JSON object." }],
+    };
   }
 
   if (payload.version !== DATASET_EXPORT_SCHEMA_VERSION) {
@@ -118,7 +130,10 @@ export function mapImportedDataset(payload: unknown): DatasetImportResult {
       return;
     }
     if (seenIds.has(draft.id)) {
-      issues.push({ path: `drafts[${index}].id`, message: `Duplicate draft id '${draft.id}'.` });
+      issues.push({
+        path: `drafts[${index}].id`,
+        message: `Duplicate draft id '${draft.id}'.`,
+      });
       return;
     }
     seenIds.add(draft.id);
@@ -141,7 +156,10 @@ export function parseDatasetImport(raw: string): DatasetImportResult {
   try {
     parsed = JSON.parse(raw);
   } catch {
-    return { ok: false, issues: [{ path: "$", message: "Import payload is not valid JSON." }] };
+    return {
+      ok: false,
+      issues: [{ path: "$", message: "Import payload is not valid JSON." }],
+    };
   }
   return mapImportedDataset(parsed);
 }

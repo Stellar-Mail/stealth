@@ -33,11 +33,13 @@ export class KvRelayPersistence implements RelayPersistence {
     return this.readCounter(KvRelayPersistence.DEAD_LETTER_KEY);
   }
 
+  async get(messageId: string): Promise<RelayEnvelope | null> {
+    const existing = await this.kv.get(`${KvRelayPersistence.MESSAGE_PREFIX}${messageId}`, "json");
+    return existing ? (existing as RelayEnvelope) : null;
+  }
+
   async enqueue(envelope: RelayEnvelope): Promise<{ messageId: string }> {
-    const existing = await this.kv.get(
-      `${KvRelayPersistence.MESSAGE_PREFIX}${envelope.messageId}`,
-      "json",
-    );
+    const existing = await this.get(envelope.messageId);
     if (existing) {
       return { messageId: envelope.messageId };
     }
@@ -60,6 +62,20 @@ export class KvRelayPersistence implements RelayPersistence {
 
   async recordDeadLetter(): Promise<void> {
     await this.incrementCounter(KvRelayPersistence.DEAD_LETTER_KEY);
+  }
+
+  async listRecipientQueue(recipient: string): Promise<RelayEnvelope[]> {
+    const kv = this.kv as any;
+    const list = await kv.list({ prefix: KvRelayPersistence.MESSAGE_PREFIX });
+    const results: RelayEnvelope[] = [];
+    const norm = recipient.toUpperCase().trim();
+    for (const key of list.keys) {
+      const envelope = (await this.kv.get(key.name, "json")) as RelayEnvelope | null;
+      if (envelope && envelope.recipient?.toUpperCase().trim() === norm) {
+        results.push(envelope);
+      }
+    }
+    return results;
   }
 
   private async readCounter(key: string): Promise<number> {

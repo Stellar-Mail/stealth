@@ -26,7 +26,11 @@ describe("envelope timestamp validation (#1710)", () => {
 
   it("rejects empty timestamps", () => {
     expect(() =>
-      validateTimestamp("  ", { maxAgeMs: 60_000, maxFutureSkewMs: 60_000, clock: fixedClock() }),
+      validateTimestamp("  ", {
+        maxAgeMs: 60_000,
+        maxFutureSkewMs: 60_000,
+        clock: fixedClock(),
+      }),
     ).toThrowError(TimestampError);
   });
 
@@ -47,7 +51,11 @@ describe("envelope timestamp validation (#1710)", () => {
   it("rejects timestamps older than maxAge (boundary exclusive)", () => {
     const ts = "2026-07-23T11:58:59.000Z"; // 61s before anchor
     expect(() =>
-      validateTimestamp(ts, { maxAgeMs: 60_000, maxFutureSkewMs: 0, clock: fixedClock() }),
+      validateTimestamp(ts, {
+        maxAgeMs: 60_000,
+        maxFutureSkewMs: 0,
+        clock: fixedClock(),
+      }),
     ).toThrowError(TimestampError);
   });
 
@@ -64,7 +72,11 @@ describe("envelope timestamp validation (#1710)", () => {
   it("rejects timestamps further in the future than maxFutureSkew", () => {
     const ts = "2026-07-23T12:01:01.000Z"; // 61s after anchor
     expect(() =>
-      validateTimestamp(ts, { maxAgeMs: 0, maxFutureSkewMs: 60_000, clock: fixedClock() }),
+      validateTimestamp(ts, {
+        maxAgeMs: 0,
+        maxFutureSkewMs: 60_000,
+        clock: fixedClock(),
+      }),
     ).toThrowError(TimestampError);
   });
 

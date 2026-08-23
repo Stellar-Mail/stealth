@@ -10,7 +10,10 @@
     },
     {
       "name": "members missing",
-      "input": { "teamId": "team-x", "period": { "start": "2026-06-09", "end": "2026-06-15" } },
+      "input": {
+        "teamId": "team-x",
+        "period": { "start": "2026-06-09", "end": "2026-06-15" }
+      },
       "expectedErrorCode": "INVALID_MEMBERS"
     },
     {

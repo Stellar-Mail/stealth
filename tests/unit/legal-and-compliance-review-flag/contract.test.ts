@@ -49,23 +49,35 @@ describe("createReviewFlag — valid path", () => {
 describe("createReviewFlag — invalid input", () => {
   it("rejects an empty reviewer", async () => {
     const outcome = await createReviewFlag(missingReviewerInput, makeDependency());
-    expect(outcome).toMatchObject({ code: "invalid_input", fields: ["reviewer"] });
+    expect(outcome).toMatchObject({
+      code: "invalid_input",
+      fields: ["reviewer"],
+    });
   });
 
   it("rejects an empty reason", async () => {
     const outcome = await createReviewFlag(missingReasonInput, makeDependency());
-    expect(outcome).toMatchObject({ code: "invalid_input", fields: ["flagReason"] });
+    expect(outcome).toMatchObject({
+      code: "invalid_input",
+      fields: ["flagReason"],
+    });
   });
 
   it("rejects an unknown severity", async () => {
     const outcome = await createReviewFlag(invalidSeverityInput, makeDependency());
-    expect(outcome).toMatchObject({ code: "invalid_input", fields: ["severity"] });
+    expect(outcome).toMatchObject({
+      code: "invalid_input",
+      fields: ["severity"],
+    });
   });
 });
 
 describe("createReviewFlag — guard failures", () => {
   it("rejects an unauthorized reviewer", async () => {
-    const input: ReviewFlagInput = { ...validInput, reviewer: "reviewer:intern-007" };
+    const input: ReviewFlagInput = {
+      ...validInput,
+      reviewer: "reviewer:intern-007",
+    };
     const outcome = await createReviewFlag(input, makeDependency({ authorized: false }));
     expect(outcome).toMatchObject({ code: "unauthorized_reviewer" });
   });

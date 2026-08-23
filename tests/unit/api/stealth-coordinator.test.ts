@@ -74,7 +74,10 @@ describe("StealthCoordinator - Durable Object Operations", () => {
       });
 
       const third = await coordinator.acquireIdempotencyRecord("key-2", "digest-a", 30_000);
-      expect(third).toMatchObject({ status: "completed", record: { body: { ok: true } } });
+      expect(third).toMatchObject({
+        status: "completed",
+        record: { body: { ok: true } },
+      });
     });
 
     it("returns conflict when the same key is reused with a different payload digest", async () => {
@@ -120,7 +123,10 @@ describe("StealthCoordinator - Durable Object Operations", () => {
 
       const independentContext = new StealthCoordinator(state as any, {});
       const replay = await independentContext.acquireIdempotencyRecord("key-4", "digest-a", 30_000);
-      expect(replay).toMatchObject({ status: "completed", record: { body: { settled: true } } });
+      expect(replay).toMatchObject({
+        status: "completed",
+        record: { body: { settled: true } },
+      });
     });
   });
 
@@ -231,12 +237,18 @@ describe("StealthCoordinator - Durable Object Operations", () => {
       await coordinator.setPostage(pendingPostage);
 
       const applied = await coordinator.transitionPostage(messageId, "pending", "settled");
-      expect(applied).toMatchObject({ outcome: "applied", postage: { status: "settled" } });
+      expect(applied).toMatchObject({
+        outcome: "applied",
+        postage: { status: "settled" },
+      });
 
       // A second attempt with the same expected status is now a conflict,
       // not a second settlement.
       const conflict = await coordinator.transitionPostage(messageId, "pending", "settled");
-      expect(conflict).toMatchObject({ outcome: "conflict", postage: { status: "settled" } });
+      expect(conflict).toMatchObject({
+        outcome: "conflict",
+        postage: { status: "settled" },
+      });
     });
 
     it("only lets one of two concurrent settlement calls win", async () => {
@@ -249,7 +261,9 @@ describe("StealthCoordinator - Durable Object Operations", () => {
 
       const outcomes = [first.outcome, second.outcome].sort();
       expect(outcomes).toEqual(["applied", "conflict"]);
-      expect(await coordinator.getPostage(messageId)).toMatchObject({ status: "settled" });
+      expect(await coordinator.getPostage(messageId)).toMatchObject({
+        status: "settled",
+      });
     });
   });
 });

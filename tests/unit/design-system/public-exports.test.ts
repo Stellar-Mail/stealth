@@ -24,6 +24,7 @@ describe("design-system public exports", () => {
   it("exports feedback queue helpers", () => {
     expect(DesignSystem.FeedbackViewport).toBeDefined();
     expect(typeof DesignSystem.useFeedback).toBe("function");
+    expect(DesignSystem.DegradedStateBanner).toBeDefined();
   });
 
   it("does not expose unexpected top-level exports (edge case)", () => {
@@ -34,6 +35,7 @@ describe("design-system public exports", () => {
       "Surface",
       "FeedbackViewport",
       "useFeedback",
+      "DegradedStateBanner",
       "TrustBadge",
       "TRUST_STATE_META",
       "SkeletonBlock",

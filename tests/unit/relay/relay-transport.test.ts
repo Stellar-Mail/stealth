@@ -7,6 +7,7 @@ import { canonicalizeSignedRequest } from "../../../src/server/api/auth/signed-r
 import { MemoryRelayPersistence } from "../../../src/services/relay/memory-persistence";
 import { InProcessRelayWorker } from "../../../src/services/relay/in-process-worker";
 import { RelayService, type RelayServiceConfig } from "../../../src/services/relay/relay-service";
+import type { RelayAdmissionEvaluator } from "../../../src/services/relay/policy-admission";
 import {
   handleRelayHealth,
   handleRelayReadiness,
@@ -35,10 +36,27 @@ function makeConfig(overrides: Partial<RelayServiceConfig> = {}): RelayServiceCo
   };
 }
 
+function allowAllEvaluator(): RelayAdmissionEvaluator {
+  return {
+    async evaluate() {
+      return {
+        policyVersion: 1,
+        allowed: true,
+        kind: "trusted",
+        reason: "sender_allowed",
+        rule: "allow",
+        requiredPostage: "0",
+        source: "offchain_fallback",
+        evaluatedAt: "2026-01-01T00:00:00.000Z",
+      };
+    },
+  };
+}
+
 function makeService(config: RelayServiceConfig = makeConfig()) {
   const persistence = new MemoryRelayPersistence();
   const worker = new InProcessRelayWorker(persistence);
-  return new RelayService(persistence, worker, config);
+  return new RelayService(persistence, worker, config, { evaluator: allowAllEvaluator() });
 }
 
 function getRequest(path = "/api/v1/relay/health") {
@@ -93,7 +111,10 @@ describe("relay readiness endpoint", () => {
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toMatchObject({
-      data: { ready: true, dependencies: { storage: "ok", queue: "ok", network: "ok" } },
+      data: {
+        ready: true,
+        dependencies: { storage: "ok", queue: "ok", network: "ok" },
+      },
     });
   });
 
@@ -142,7 +163,9 @@ describe("relay message submission endpoint", () => {
     const response = await handleRelaySubmit(request, makeService());
 
     expect(response.status).toBe(401);
-    await expect(response.json()).resolves.toMatchObject({ error: { code: "unauthorized" } });
+    await expect(response.json()).resolves.toMatchObject({
+      error: { code: "unauthorized" },
+    });
   });
 
   it("returns 401 when the actor header is not a Stellar address", async () => {
@@ -150,7 +173,9 @@ describe("relay message submission endpoint", () => {
     const response = await handleRelaySubmit(request, makeService());
 
     expect(response.status).toBe(401);
-    await expect(response.json()).resolves.toMatchObject({ error: { code: "unauthorized" } });
+    await expect(response.json()).resolves.toMatchObject({
+      error: { code: "unauthorized" },
+    });
   });
 
   it("returns 403 when the actor does not match the submitted sender", async () => {
@@ -158,7 +183,9 @@ describe("relay message submission endpoint", () => {
     const response = await handleRelaySubmit(request, makeService());
 
     expect(response.status).toBe(403);
-    await expect(response.json()).resolves.toMatchObject({ error: { code: "forbidden" } });
+    await expect(response.json()).resolves.toMatchObject({
+      error: { code: "forbidden" },
+    });
   });
 
   it("returns 202 and accepts a valid submission", async () => {
@@ -172,6 +199,14 @@ describe("relay message submission endpoint", () => {
         messageId,
         queueDepth: 1,
         service: "stealth-relay",
+        replayed: false,
+        admission: {
+          allowed: true,
+          kind: "trusted",
+          reason: "sender_allowed",
+          policyVersion: 1,
+          requiredPostage: "0",
+        },
       },
     });
   });
@@ -181,7 +216,9 @@ describe("relay message submission endpoint", () => {
     const response = await handleRelaySubmit(request, makeService());
 
     expect(response.status).toBe(422);
-    await expect(response.json()).resolves.toMatchObject({ error: { code: "validation_error" } });
+    await expect(response.json()).resolves.toMatchObject({
+      error: { code: "validation_error" },
+    });
   });
 
   it("returns 413 when the body exceeds the relay body limit", async () => {
@@ -193,7 +230,9 @@ describe("relay message submission endpoint", () => {
     const response = await handleRelaySubmit(request, makeService());
 
     expect(response.status).toBe(413);
-    await expect(response.json()).resolves.toMatchObject({ error: { code: "bad_request" } });
+    await expect(response.json()).resolves.toMatchObject({
+      error: { code: "bad_request" },
+    });
   });
 
   it("returns 503 when the relay is not ready", async () => {
@@ -295,7 +334,10 @@ describe("relay auth & anti-replay security boundary", () => {
     const res2 = await handleRelaySubmit(req2, service);
     expect(res2.status).toBe(409);
     await expect(res2.json()).resolves.toMatchObject({
-      error: { code: "conflict", message: expect.stringContaining("REPLAY_DETECTED") },
+      error: {
+        code: "conflict",
+        message: expect.stringContaining("REPLAY_DETECTED"),
+      },
     });
   });
 
@@ -310,7 +352,10 @@ describe("relay auth & anti-replay security boundary", () => {
 
     expect(response.status).toBe(401);
     await expect(response.json()).resolves.toMatchObject({
-      error: { code: "unauthorized", message: expect.stringContaining("INVALID_SIGNATURE") },
+      error: {
+        code: "unauthorized",
+        message: expect.stringContaining("INVALID_SIGNATURE"),
+      },
     });
   });
 
@@ -325,7 +370,10 @@ describe("relay auth & anti-replay security boundary", () => {
 
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toMatchObject({
-      error: { code: "bad_request", message: expect.stringContaining("STALE_REQUEST") },
+      error: {
+        code: "bad_request",
+        message: expect.stringContaining("STALE_REQUEST"),
+      },
     });
   });
 
@@ -340,7 +388,10 @@ describe("relay auth & anti-replay security boundary", () => {
 
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toMatchObject({
-      error: { code: "bad_request", message: expect.stringContaining("FUTURE_REQUEST") },
+      error: {
+        code: "bad_request",
+        message: expect.stringContaining("FUTURE_REQUEST"),
+      },
     });
   });
 
@@ -355,7 +406,10 @@ describe("relay auth & anti-replay security boundary", () => {
 
     expect(response.status).toBe(403);
     await expect(response.json()).resolves.toMatchObject({
-      error: { code: "forbidden", message: expect.stringContaining("AUDIENCE_MISMATCH") },
+      error: {
+        code: "forbidden",
+        message: expect.stringContaining("AUDIENCE_MISMATCH"),
+      },
     });
   });
 
@@ -437,7 +491,10 @@ describe("relay auth & anti-replay security boundary", () => {
 
     it("rejects an HTTP signed request with tampered body with 401", async () => {
       const service = makeRelayService();
-      const bodyOriginal = JSON.stringify({ ...validBody(), sender: testSender });
+      const bodyOriginal = JSON.stringify({
+        ...validBody(),
+        sender: testSender,
+      });
       const bodyTampered = JSON.stringify({
         ...validBody(),
         sender: testSender,

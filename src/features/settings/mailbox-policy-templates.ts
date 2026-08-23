@@ -1,4 +1,4 @@
-import type { UiPreferences, UnknownSenderPolicy } from "@/features/preferences";
+import type { MailboxPolicy } from "@/lib/api/types";
 
 export type MailboxPolicyTemplateId =
   | "private"
@@ -13,10 +13,7 @@ export type MailboxPolicyTemplate = {
   summary: string;
   tradeoff: string;
   senderExperience: string;
-  policy: {
-    unknownSenders: UnknownSenderPolicy;
-    minimumPostage: string;
-  };
+  policy: MailboxPolicy;
 };
 
 export type SavedMailboxPolicyTemplate = {
@@ -25,24 +22,16 @@ export type SavedMailboxPolicyTemplate = {
   summary: string;
   tradeoff: string;
   senderExperience: string;
-  policy: {
-    unknownSenders: UnknownSenderPolicy;
-    minimumPostage: string;
-  };
+  policy: MailboxPolicy;
   sourceTemplateId: MailboxPolicyTemplateId | null;
 };
 
-export function templateToPreferences(
-  template: MailboxPolicyTemplate,
-): Pick<UiPreferences, "unknownSenders" | "minimumPostage"> {
-  return {
-    unknownSenders: template.policy.unknownSenders,
-    minimumPostage: template.policy.minimumPostage,
-  };
+export function templateToPolicy(template: MailboxPolicyTemplate): MailboxPolicy {
+  return { ...template.policy };
 }
 
 export function buildCustomMailboxPolicyTemplate(
-  preferences: Pick<UiPreferences, "unknownSenders" | "minimumPostage">,
+  policy: MailboxPolicy,
   sourceTemplateId: MailboxPolicyTemplateId | null,
 ): SavedMailboxPolicyTemplate {
   return {
@@ -53,39 +42,30 @@ export function buildCustomMailboxPolicyTemplate(
       "This custom policy is a local draft snapshot and won't overwrite your current settings until applied.",
     senderExperience:
       "Your mailbox follows the exact sender-control and postage values you configured. Review before applying.",
-    policy: {
-      unknownSenders: preferences.unknownSenders,
-      minimumPostage: preferences.minimumPostage,
-    },
+    policy: { ...policy },
     sourceTemplateId,
   };
 }
 
-export function savedCustomTemplateToPreferences(
-  template: SavedMailboxPolicyTemplate,
-): Pick<UiPreferences, "unknownSenders" | "minimumPostage"> {
-  return {
-    unknownSenders: template.policy.unknownSenders,
-    minimumPostage: template.policy.minimumPostage,
-  };
+export function savedCustomTemplateToPolicy(template: SavedMailboxPolicyTemplate): MailboxPolicy {
+  return { ...template.policy };
 }
 
-export function mailboxPolicyTemplateMatchesPreferences(
+export function mailboxPolicyTemplateMatchesPolicy(
   template: MailboxPolicyTemplate,
-  preferences: Pick<UiPreferences, "unknownSenders" | "minimumPostage">,
+  policy: MailboxPolicy,
 ) {
   return (
-    template.policy.unknownSenders === preferences.unknownSenders &&
-    template.policy.minimumPostage === preferences.minimumPostage
+    template.policy.allowUnknown === policy.allowUnknown &&
+    template.policy.requireVerified === policy.requireVerified &&
+    template.policy.minimumPostage === policy.minimumPostage
   );
 }
 
-export function findMailboxPolicyTemplate(
-  preferences: Pick<UiPreferences, "unknownSenders" | "minimumPostage">,
-): MailboxPolicyTemplate | null {
+export function findMailboxPolicyTemplate(policy: MailboxPolicy): MailboxPolicyTemplate | null {
   return (
     MAILBOX_POLICY_TEMPLATES.find((template) =>
-      mailboxPolicyTemplateMatchesPreferences(template, preferences),
+      mailboxPolicyTemplateMatchesPolicy(template, policy),
     ) ?? null
   );
 }
@@ -100,7 +80,8 @@ export const MAILBOX_POLICY_TEMPLATES: MailboxPolicyTemplate[] = [
     senderExperience:
       "Trusted contacts arrive normally. Everyone else waits in a review queue until you explicitly approve them.",
     policy: {
-      unknownSenders: "request",
+      allowUnknown: true,
+      requireVerified: false,
       minimumPostage: "0.0001",
     },
   },
@@ -113,7 +94,8 @@ export const MAILBOX_POLICY_TEMPLATES: MailboxPolicyTemplate[] = [
     senderExperience:
       "Unknown senders can reach you after paying postage. Low-effort or bulk senders are filtered out automatically.",
     policy: {
-      unknownSenders: "request",
+      allowUnknown: true,
+      requireVerified: false,
       minimumPostage: "0.01",
     },
   },
@@ -126,7 +108,8 @@ export const MAILBOX_POLICY_TEMPLATES: MailboxPolicyTemplate[] = [
     senderExperience:
       "Senders must hold a verified cryptographic identity and attach a meaningful postage deposit before their message reaches you.",
     policy: {
-      unknownSenders: "verified",
+      allowUnknown: true,
+      requireVerified: true,
       minimumPostage: "0.1",
     },
   },
@@ -139,7 +122,8 @@ export const MAILBOX_POLICY_TEMPLATES: MailboxPolicyTemplate[] = [
     senderExperience:
       "Motivated candidates and referrals can still reach you. Low-effort senders who skip the postage requirement are filtered automatically.",
     policy: {
-      unknownSenders: "request",
+      allowUnknown: true,
+      requireVerified: false,
       minimumPostage: "0.001",
     },
   },
@@ -152,7 +136,8 @@ export const MAILBOX_POLICY_TEMPLATES: MailboxPolicyTemplate[] = [
     senderExperience:
       "Unknown senders are turned away at the door. There is no review queue or postage path — your mailbox is only reachable to people you have approved.",
     policy: {
-      unknownSenders: "block",
+      allowUnknown: false,
+      requireVerified: false,
       minimumPostage: "0",
     },
   },

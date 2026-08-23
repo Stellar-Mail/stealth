@@ -16,7 +16,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { EmojiPicker } from "./EmojiPicker";
 import { TrustBadge, type TrustState } from "@/features/design-system";
 import { cn } from "@/lib/utils";
-import { resolveRecipients } from "@/features/compose/recipientResolver";
+import { useFocusTrap } from "@/lib/useFocusTrap";
+import {
+  resolveRecipients,
+  type RecipientResolutionContext,
+} from "@/features/compose/recipientResolver";
 import { usePostageQuote } from "@/features/compose/usePostageQuote";
 import {
   RecipientPolicyBanner,
@@ -35,9 +39,18 @@ import {
   type RecipientReadiness,
 } from "./composeValidation";
 import { DeliveryEstimator, type RelayStatus } from "./DeliveryEstimator";
+import { PostageBalanceBadge } from "./PostageBalanceBadge";
 import { SendPipeline, type StageState } from "@/features/compose/sendPipeline";
-import { SendProgress } from "@/features/compose/SendProgress";
+import { SendProgress, type FailureInspectionDetails } from "@/features/compose/SendProgress";
 import { useFreighter } from "@/features/onboarding/useFreighter";
+import { resolveSenderAddress } from "@/services/stellar/wallet";
+import { useDraftAutosave } from "@/features/compose/useDraftAutosave";
+import { DraftStatusBadge } from "@/features/compose/DraftStatusBadge";
+import { DraftConflictBanner } from "@/features/compose/DraftConflictBanner";
+import type { Draft, DraftAttachmentDescriptor } from "@/server/api/domain";
+import { restoreDraftIfBlank, readUnsentDraft, saveUnsentDraft } from "@/features/mail/unsent-work";
+import { claimOnce, releaseOnce, classifyAppFailure } from "@/lib/api/failures";
+import { patchEntry } from "@/services/storage/outbox";
 const EMPTY_BLOCKED: string[] = [];
 const EMPTY_RESOLVED: RecipientReadiness[] = [];
 
@@ -48,6 +61,8 @@ export function Compose({
   initialTo = "",
   initialSubject = "",
   initialBody = "",
+  initialDraftId = null,
+  initialVersion = 1,
   initialPostage = "0.0001",
   mode = "compose",
   blockedRecipients = EMPTY_BLOCKED,
@@ -60,11 +75,13 @@ export function Compose({
   initialTo?: string;
   initialSubject?: string;
   initialBody?: string;
+  initialDraftId?: string | null;
+  initialVersion?: number;
   initialPostage?: string;
   mode?: ComposeMode;
   blockedRecipients?: string[];
   onSubmit?: (submission: ComposeSubmission) => void;
-  resolutionContext?: Parameters<typeof resolveRecipients>[2];
+  resolutionContext?: RecipientResolutionContext;
 }>) {
   const [to, setTo] = useState(initialTo);
   const [subject, setSubject] = useState(initialSubject);
@@ -74,7 +91,12 @@ export function Compose({
   const [isSending, setIsSending] = useState(false);
   const [sendStages, setSendStages] = useState<StageState[]>([]);
   const [sendError, setSendError] = useState<string | null>(null);
+  const [failureDetails, setFailureDetails] = useState<FailureInspectionDetails | null>(null);
+  const [supportId, setSupportId] = useState<string | undefined>(undefined);
+  const [canRetry, setCanRetry] = useState(true);
+  const [isCommitted, setIsCommitted] = useState(false);
   const pipelineRef = useRef<SendPipeline | null>(null);
+  const sendLock = useRef(new Set<string>());
   const [encrypted, setEncrypted] = useState(true);
   const [receipt, setReceipt] = useState(true);
   const [postage, setPostage] = useState(initialPostage);
@@ -92,6 +114,20 @@ export function Compose({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
+
+  // Stable close handler so the focus trap does not re-arm on every render.
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+  const close = useCallback(() => closeRef.current(), []);
+  const composerRef = useFocusTrap(open, close);
+
+  // Move focus to the first field on open, after the trap has mounted.
+  const toFieldRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const t = globalThis.setTimeout(() => toFieldRef.current?.focus(), 0);
+    return () => globalThis.clearTimeout(t);
+  }, [open]);
 
   const aiSuggestion =
     "Confirming Friday's review at 10am — let me know if that still works for you.";
@@ -118,13 +154,21 @@ export function Compose({
   // Hydrate / reset form when opening or closing
   useEffect(() => {
     if (open) {
-      setTo(initialTo);
-      setSubject(initialSubject);
-      setBody(initialBody);
+      const restored = restoreDraftIfBlank(
+        { to: initialTo, subject: initialSubject, body: initialBody },
+        readUnsentDraft(),
+      );
+      setTo(restored.to);
+      setSubject(restored.subject);
+      setBody(restored.body);
       setSendStages([]);
       setSendError(null);
+      setFailureDetails(null);
+      setSupportId(undefined);
+      setCanRetry(true);
+      setIsCommitted(false);
       pipelineRef.current = null;
-      setPostage(initialPostage);
+      setPostage(restored.restored && restored.postage ? restored.postage : initialPostage);
       postageManuallySet.current = false;
     } else {
       setTo("");
@@ -134,11 +178,53 @@ export function Compose({
       setEmojiOpen(false);
       setEncrypted(true);
       setReceipt(true);
+      setSendStages([]);
+      setSendError(null);
+      setFailureDetails(null);
+      setSupportId(undefined);
+      setCanRetry(true);
+      setIsCommitted(false);
+      pipelineRef.current = null;
       setPostage(initialPostage);
       setResolvedRecipients(EMPTY_RESOLVED);
       postageManuallySet.current = false;
     }
   }, [open, initialTo, initialSubject, initialBody, initialPostage]);
+
+  const attachmentDescriptors: DraftAttachmentDescriptor[] = attachments.map((att) => {
+    const rawNum = parseInt(att.size.replace(/[^0-9]/g, ""), 10) || 0;
+    const isMb = att.size.toLowerCase().includes("mb");
+    const sizeBytes = isMb ? rawNum * 1024 * 1024 : rawNum * 1024;
+    return {
+      filename: att.name,
+      contentType: att.type === "image" ? "image/png" : "application/octet-stream",
+      sizeBytes,
+    };
+  });
+
+  const handleApplyServerDraft = useCallback((serverDraft: Draft) => {
+    setTo(serverDraft.to.join(", "));
+    setSubject(serverDraft.subject);
+    setBody(serverDraft.body);
+    setAttachments(
+      serverDraft.attachments.map((att) => ({
+        name: att.filename,
+        size: `${Math.round(att.sizeBytes / 1024)} KB`,
+        type: att.contentType.startsWith("image/") ? ("image" as const) : ("file" as const),
+      })),
+    );
+  }, []);
+
+  const draftAutosave = useDraftAutosave({
+    initialDraftId,
+    initialVersion,
+    to,
+    subject,
+    body,
+    attachments: attachmentDescriptors,
+    enabled: open && !isSending,
+    onApplyServerDraft: handleApplyServerDraft,
+  });
 
   // Fetch relay status when compose opens
   useEffect(() => {
@@ -185,21 +271,42 @@ export function Compose({
     // Show initial "resolving" state immediately
     setResolvedRecipients(getRecipientReadiness(to, postage, blockedRecipients));
 
+    // AbortController for cancelling in-flight resolution requests
+    const controller = new AbortController();
+
     // Debounce resolution to avoid excessive API calls
     const timer = setTimeout(async () => {
-      const resolved = await resolveRecipients(addresses, blockedRecipients, resolutionContext);
+      try {
+        const resolved = await resolveRecipients(
+          addresses,
+          blockedRecipients,
+          resolutionContext,
+          controller.signal,
+        );
 
-      // Update postage state based on current postage value
-      const postageReady = Number.parseFloat(postage) > 0;
-      const withPostage = resolved.map((r) => ({
-        ...r,
-        postage: postageReady ? ("ready" as const) : ("required" as const),
-      }));
+        if (controller.signal.aborted) return;
 
-      setResolvedRecipients(withPostage);
+        // Update postage state based on current postage value
+        const postageReady = Number.parseFloat(postage) > 0;
+        const withPostage = resolved.map((r) => ({
+          ...r,
+          postage: postageReady ? ("ready" as const) : ("required" as const),
+        }));
+
+        setResolvedRecipients(withPostage);
+      } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") {
+          // Request was intentionally aborted — don't update state
+          return;
+        }
+        console.warn("Recipient resolution failed:", err);
+      }
     }, 300);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
   }, [to, blockedRecipients, postage, resolutionContext, resolvedRecipients.length]);
 
   useEffect(() => {
@@ -208,7 +315,7 @@ export function Compose({
         if (emojiOpen) {
           setEmojiOpen(false);
         } else {
-          onClose();
+          close();
         }
       }
       // Tab to insert AI suggestion
@@ -219,7 +326,7 @@ export function Compose({
     };
     if (open) globalThis.addEventListener("keydown", handler);
     return () => globalThis.removeEventListener("keydown", handler);
-  }, [open, onClose, emojiOpen, insertAtCursor]);
+  }, [open, emojiOpen, insertAtCursor, close]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>, type: "file" | "image") => {
     const files = e.target.files;
@@ -239,7 +346,23 @@ export function Compose({
     setAttachments(attachments.filter((_, i) => i !== index));
   };
 
+  const handleSaveDraft = () => {
+    if (pipelineRef.current) {
+      patchEntry(pipelineRef.current.messageId, {
+        subject: subject.trim(),
+        recipients: parseRecipients(to),
+        sender: senderAddress,
+      });
+    }
+    onShowToast?.("Draft saved");
+    setSendStages([]);
+    setSendError(null);
+    setFailureDetails(null);
+  };
+
   const handleSend = async (scheduled = false) => {
+    if (isSending || pipelineRef.current?.isRunning()) return;
+
     const isValid = validateSendRequest({
       resolvedRecipients,
       quoteState,
@@ -250,25 +373,78 @@ export function Compose({
     });
     if (!isValid) return;
 
+    if (!claimOnce(sendLock.current, "compose-send")) return;
+
+    if (typeof navigator !== "undefined" && navigator.onLine === false) {
+      saveUnsentDraft({ to, subject, body, postage });
+      setSendError("You are offline. The draft is saved on this device.");
+      onShowToast?.("Offline — unsent draft kept");
+      releaseOnce(sendLock.current, "compose-send");
+      return;
+    }
+
     setIsSending(true);
 
     // Run the staged send pipeline (immediate send only).
     setSendError(null);
+    setFailureDetails(null);
 
     if (!scheduled) {
+      const resolvedAccounts = resolvedRecipients
+        .filter((recipient) => recipient.state === "verified" || recipient.state === "unknown")
+        .map((recipient) => ({
+          address: recipient.address,
+          account: recipient.resolvedAccount ?? recipient.address,
+        }));
+      const resolvedSender = (await resolveSenderAddress()) ?? senderAddress;
       const pipeline =
         pipelineRef.current ??
         new SendPipeline(
-          { sender: "me", to: to.trim(), subject: subject.trim(), body },
+          {
+            sender: resolvedSender,
+            to: to.trim(),
+            subject: subject.trim(),
+            body,
+            recipients: resolvedAccounts.length > 0 ? resolvedAccounts : undefined,
+            postage,
+            postageQuote: quoteState.status === "quoted" ? quoteState.quote : undefined,
+          },
           setSendStages,
         );
       pipelineRef.current = pipeline;
+      setSupportId(pipeline.supportId);
       setSendStages(pipeline.getStages());
 
-      const outcome = await pipeline.run();
+      let outcome: Awaited<ReturnType<SendPipeline["run"]>>;
+      try {
+        outcome = await pipeline.run();
+      } catch (error) {
+        setIsSending(false);
+        saveUnsentDraft({ to, subject, body, postage });
+        setSendError(classifyAppFailure(error).message);
+        onShowToast?.("Send failed — unsent draft kept");
+        releaseOnce(sendLock.current, "compose-send");
+        return;
+      }
 
       if (!outcome.ok) {
         setIsSending(false);
+        saveUnsentDraft({ to, subject, body, postage });
+        const failure = classifyAppFailure(new Error(outcome.message), {
+          online: typeof navigator === "undefined" ? true : navigator.onLine,
+        });
+        setCanRetry(outcome.canRetry);
+        setIsCommitted(outcome.isCommitted);
+        setFailureDetails({
+          stage: outcome.stage,
+          code: outcome.code,
+          message: outcome.message,
+          supportId: outcome.supportId,
+          timestamp: outcome.timestamp,
+          canRetry: outcome.canRetry,
+          isCommitted: outcome.isCommitted,
+        });
+
         if (outcome.reason === "wallet_rejected") {
           setSendError("Signature declined — your draft is safe. Retry when ready.");
           onShowToast?.("Signature declined — draft kept");
@@ -276,15 +452,20 @@ export function Compose({
           setSendError("No Stellar wallet detected. Unlock Freighter, then retry.");
           onShowToast?.("Wallet unavailable");
         } else {
-          setSendError(outcome.message);
-          onShowToast?.("Send failed — you can retry");
+          setSendError(failure.message);
+          onShowToast?.("Send failed — unsent draft kept");
         }
+        releaseOnce(sendLock.current, "compose-send");
         return;
       }
 
       pipelineRef.current = null;
       setSendStages([]);
+      setFailureDetails(null);
     }
+
+    draftAutosave.cancelAutosave();
+    await draftAutosave.discardDraft();
 
     onSubmit?.({
       to: to.trim(),
@@ -298,6 +479,7 @@ export function Compose({
       mode: scheduled ? "schedule" : mode,
     });
     setIsSending(false);
+    releaseOnce(sendLock.current, "compose-send");
     onClose();
     onShowToast?.(getSuccessToastMessage(scheduled, isTrustedSender(quoteState), postage));
   };
@@ -315,10 +497,15 @@ export function Compose({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25 }}
-            onClick={onClose}
+            onClick={close}
+            aria-hidden="true"
             className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
           />
           <motion.div
+            ref={composerRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label={getHeaderTitle(mode)}
             initial={{ opacity: 0, y: 24, scale: 0.96, filter: "blur(8px)" }}
             animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
             exit={{ opacity: 0, y: 24, scale: 0.97, filter: "blur(6px)" }}
@@ -326,18 +513,43 @@ export function Compose({
             className="glass-strong fixed bottom-6 right-6 z-50 w-[min(640px,calc(100vw-2rem))] overflow-hidden rounded-2xl"
           >
             <div className="flex items-center justify-between border-b border-white/5 px-4 py-3">
-              <div className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                {getHeaderTitle(mode)}
+              <div className="flex items-center gap-3">
+                <div className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                  {getHeaderTitle(mode)}
+                </div>
+                <DraftStatusBadge
+                  status={draftAutosave.saveStatus}
+                  version={draftAutosave.version}
+                  lastSavedAt={draftAutosave.lastSavedAt}
+                />
               </div>
               <button
-                onClick={onClose}
+                type="button"
+                onClick={close}
+                aria-label="Close compose"
                 className="rounded-lg p-1.5 text-muted-foreground transition hover:bg-white/6 hover:text-foreground"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
+
+            {draftAutosave.conflictDraft && draftAutosave.saveStatus === "conflict" && (
+              <DraftConflictBanner
+                conflictDraft={draftAutosave.conflictDraft}
+                onOverwrite={() => void draftAutosave.resolveConflictOverwrite()}
+                onLoadServer={draftAutosave.resolveConflictLoadServer}
+                onForkNew={() => void draftAutosave.resolveConflictForkNew()}
+              />
+            )}
             <div className="space-y-0 px-4">
-              <Field label="To" placeholder="recipients@…" value={to} onChange={setTo} />
+              <Field
+                innerRef={toFieldRef}
+                id="compose-to"
+                label="To"
+                placeholder="recipients@…"
+                value={to}
+                onChange={setTo}
+              />
               <RecipientReadinessChips recipients={resolvedRecipients} />
               <RecipientPolicyBanner quoteState={quoteState} className="mt-1.5" />
               <DeliveryEstimator
@@ -352,7 +564,13 @@ export function Compose({
                   el?.focus();
                 }}
               />
-              <Field label="Subject" placeholder="Subject" value={subject} onChange={setSubject} />
+              <Field
+                id="compose-subject"
+                label="Subject"
+                placeholder="Subject"
+                value={subject}
+                onChange={setSubject}
+              />
             </div>
             <div className="px-4 pb-2">
               <textarea
@@ -361,6 +579,7 @@ export function Compose({
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
                 placeholder="Write your message…"
+                aria-label="Message"
                 className="glow-ring w-full resize-none rounded-lg border border-transparent bg-transparent px-1 py-2 text-sm placeholder:text-muted-foreground focus:border-white/10"
               />
 
@@ -368,7 +587,12 @@ export function Compose({
                 <SendProgress
                   stages={sendStages}
                   error={sendError}
+                  failureDetails={failureDetails}
+                  supportId={supportId}
+                  canRetry={canRetry}
+                  isCommitted={isCommitted}
                   onRetry={() => void handleSend(false)}
+                  onSaveDraft={handleSaveDraft}
                 />
               )}
 
@@ -388,7 +612,9 @@ export function Compose({
                       <span className="text-xs text-foreground">{att.name}</span>
                       <span className="text-[10px] text-muted-foreground">{att.size}</span>
                       <button
+                        type="button"
                         onClick={() => removeAttachment(i)}
+                        aria-label={`Remove attachment ${att.name}`}
                         className="ml-1 rounded p-0.5 text-muted-foreground transition hover:bg-white/8 hover:text-foreground"
                       >
                         <X className="h-3 w-3" />
@@ -410,6 +636,7 @@ export function Compose({
                   AI suggests: &quot;{aiSuggestion}&quot;
                 </span>
                 <button
+                  type="button"
                   onClick={() => insertAtCursor(aiSuggestion)}
                   className="shrink-0 rounded-md border border-white/10 bg-white/6 px-2 py-0.5 text-[10px] text-foreground/90 transition hover:bg-white/10"
                 >
@@ -432,31 +659,34 @@ export function Compose({
                   detail="On-chain proof"
                   onClick={() => setReceipt((value) => !value)}
                 />
-                <label className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.035] px-3 py-2">
-                  <Coins className="h-4 w-4 text-muted-foreground" />
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-[10px] uppercase tracking-wider text-muted-foreground">
-                      Postage
+                <label className="flex items-center justify-between rounded-lg border border-white/10 bg-white/[0.035] px-3 py-2">
+                  <div className="flex items-center gap-2">
+                    <Coins className="h-4 w-4 text-muted-foreground" />
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[10px] uppercase tracking-wider text-muted-foreground">
+                        Postage
+                      </span>
+                      <span className="flex items-center gap-1 text-xs text-foreground">
+                        <input
+                          value={postage}
+                          onChange={(event) => {
+                            postageManuallySet.current = true;
+                            setPostage(event.target.value);
+                          }}
+                          inputMode="decimal"
+                          className="w-16 rounded-sm bg-transparent font-mono outline-none focus-visible:ring-2 focus-visible:ring-white/20"
+                          aria-label="Postage amount"
+                        />
+                        XLM
+                        {isTrustedSender(quoteState) && (
+                          <span className="ml-1 text-[9px] text-emerald-400 font-medium uppercase tracking-wide">
+                            free
+                          </span>
+                        )}
+                      </span>
                     </span>
-                    <span className="flex items-center gap-1 text-xs text-foreground">
-                      <input
-                        value={postage}
-                        onChange={(event) => {
-                          postageManuallySet.current = true;
-                          setPostage(event.target.value);
-                        }}
-                        inputMode="decimal"
-                        className="w-16 rounded-sm bg-transparent font-mono outline-none focus-visible:ring-2 focus-visible:ring-white/20"
-                        aria-label="Postage amount"
-                      />
-                      XLM
-                      {isTrustedSender(quoteState) && (
-                        <span className="ml-1 text-[9px] text-emerald-400 font-medium uppercase tracking-wide">
-                          free
-                        </span>
-                      )}
-                    </span>
-                  </span>
+                  </div>
+                  <PostageBalanceBadge />
                 </label>
               </div>
             </div>
@@ -482,6 +712,7 @@ export function Compose({
               <motion.button
                 whileTap={{ scale: 0.9 }}
                 onClick={() => fileInputRef.current?.click()}
+                aria-label="Attach files"
                 className="rounded-lg p-2 text-muted-foreground transition hover:bg-white/6 hover:text-foreground"
               >
                 <Paperclip className="h-4 w-4" />
@@ -491,6 +722,7 @@ export function Compose({
               <motion.button
                 whileTap={{ scale: 0.9 }}
                 onClick={() => imageInputRef.current?.click()}
+                aria-label="Attach image"
                 className="rounded-lg p-2 text-muted-foreground transition hover:bg-white/6 hover:text-foreground"
               >
                 <ImageIcon className="h-4 w-4" />
@@ -501,6 +733,9 @@ export function Compose({
                 <motion.button
                   whileTap={{ scale: 0.9 }}
                   onClick={() => setEmojiOpen(!emojiOpen)}
+                  aria-label="Insert emoji"
+                  aria-expanded={emojiOpen}
+                  aria-haspopup="dialog"
                   className={cn(
                     "rounded-lg p-2 text-muted-foreground transition hover:bg-white/6 hover:text-foreground",
                     emojiOpen && "bg-white/6 text-foreground",
@@ -519,8 +754,26 @@ export function Compose({
               <motion.button
                 whileTap={{ scale: 0.97 }}
                 onClick={() => handleSend(true)}
-                disabled={isSending}
-                className="ml-auto inline-flex items-center gap-2 rounded-lg border border-white/10 px-3 py-1.5 text-xs text-muted-foreground transition hover:bg-white/6 hover:text-foreground"
+                disabled={
+                  isSending ||
+                  isPolicyBlocking(quoteState) ||
+                  resolvedRecipients.length === 0 ||
+                  resolvedRecipients.some(
+                    (recipient) =>
+                      recipient.state === "blocked" ||
+                      recipient.state === "invalid" ||
+                      recipient.state === "resolving" ||
+                      Boolean(recipient.expiresAt && new Date() > new Date(recipient.expiresAt)) ||
+                      recipient.keyStatus === "revoked" ||
+                      recipient.keyStatus === "retired",
+                  ) ||
+                  Boolean(
+                    quoteState.status === "quoted" &&
+                    quoteState.quote.expiresAt &&
+                    new Date() > new Date(quoteState.quote.expiresAt),
+                  )
+                }
+                className="ml-auto inline-flex items-center gap-2 rounded-lg border border-white/10 px-3 py-1.5 text-xs text-muted-foreground transition hover:bg-white/6 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <CalendarClock className="h-3.5 w-3.5" />
                 Schedule
@@ -528,14 +781,27 @@ export function Compose({
               {(() => {
                 const policyBlocked = isPolicyBlocking(quoteState);
                 const recipientBlocked = resolvedRecipients.some(
-                  (r) => r.state === "blocked" || r.state === "invalid",
+                  (r) =>
+                    r.state === "blocked" ||
+                    r.state === "invalid" ||
+                    r.keyStatus === "revoked" ||
+                    r.keyStatus === "retired",
                 );
                 const recipientResolving = resolvedRecipients.some((r) => r.state === "resolving");
                 const isBlocked = policyBlocked || recipientBlocked;
                 const trusted = isTrustedSender(quoteState);
+                const isStale: boolean =
+                  resolvedRecipients.some(
+                    (r) => r.expiresAt && new Date() > new Date(r.expiresAt),
+                  ) ||
+                  Boolean(
+                    quoteState.status === "quoted" &&
+                    quoteState.quote.expiresAt &&
+                    new Date() > new Date(quoteState.quote.expiresAt),
+                  );
 
                 // Determine send CTA disabled state
-                const isSendDisabled = isSending || isBlocked || recipientResolving;
+                const isSendDisabled = isSending || isBlocked || recipientResolving || isStale;
 
                 // Determine button label and style
                 let sendLabel: string;
@@ -548,6 +814,10 @@ export function Compose({
                   sendLabel = "Blocked";
                   sendButtonClass =
                     "inline-flex items-center gap-2 rounded-lg border border-red-300/20 bg-red-300/[0.08] px-3 py-1.5 text-xs font-medium text-red-200 opacity-70 cursor-not-allowed";
+                } else if (isStale) {
+                  sendLabel = "Stale";
+                  sendButtonClass =
+                    "inline-flex items-center gap-2 rounded-lg border border-yellow-300/20 bg-yellow-300/[0.08] px-3 py-1.5 text-xs font-medium text-yellow-200 opacity-70 cursor-not-allowed";
                 } else if (trusted) {
                   sendLabel = "Send free";
                   sendButtonClass =
@@ -562,7 +832,7 @@ export function Compose({
                     "inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.08] px-3 py-1.5 text-xs font-medium text-foreground transition hover:bg-white/[0.14]";
                 }
 
-                const disabledReason = getDisabledReason(isBlocked, recipientResolving);
+                const disabledReason = getDisabledReason(isBlocked, recipientResolving, isStale);
 
                 return (
                   <motion.button
@@ -621,7 +891,7 @@ function RecipientReadinessChips({ recipients }: Readonly<{ recipients: Recipien
   if (!recipients.length) return null;
 
   return (
-    <div className="flex flex-wrap gap-1.5 border-b border-white/5 py-2 pl-[76px]">
+    <div className="flex flex-wrap gap-1.5 border-b border-white/5 py-2 pl-19">
       {recipients.map((recipient) => (
         <div
           key={recipient.address}
@@ -646,8 +916,52 @@ function RecipientReadinessChips({ recipients }: Readonly<{ recipients: Recipien
             </span>
           )}
 
-          {/* Show encryption key availability */}
-          {recipient.encryptionKey && (
+          {/* Cache provenance badge */}
+          {recipient.provenance && recipient.cached && (
+            <span className="shrink-0 rounded-sm bg-white/8 px-1 py-0.5 text-[8px] uppercase tracking-wider opacity-60">
+              cached
+            </span>
+          )}
+          {recipient.provenance === "stellar_federation" && (
+            <span className="shrink-0 rounded-sm bg-blue-400/15 px-1 py-0.5 text-[8px] uppercase tracking-wider text-blue-300">
+              federation
+            </span>
+          )}
+
+          {/* Key status indicators */}
+          {recipient.keyStatus === "active" && (
+            <span
+              className="shrink-0 inline-block w-2 h-2 rounded-full bg-emerald-400 opacity-70"
+              title="Encryption key active"
+            />
+          )}
+          {recipient.keyStatus === "revoked" && (
+            <span
+              className="shrink-0 rounded-sm bg-red-400/15 px-1 py-0.5 text-[8px] uppercase tracking-wider text-red-300"
+              title="Key revoked"
+            >
+              key revoked
+            </span>
+          )}
+          {recipient.keyStatus === "retired" && (
+            <span
+              className="shrink-0 rounded-sm bg-amber-400/15 px-1 py-0.5 text-[8px] uppercase tracking-wider text-amber-300"
+              title="Key retired"
+            >
+              key retired
+            </span>
+          )}
+          {recipient.keyStatus === "unavailable" && (
+            <span
+              className="shrink-0 rounded-sm bg-zinc-400/15 px-1 py-0.5 text-[8px] uppercase tracking-wider text-zinc-400"
+              title="Key directory unavailable"
+            >
+              key pending
+            </span>
+          )}
+
+          {/* Fallback: show encryption key dot for legacy (no keyStatus) */}
+          {!recipient.keyStatus && recipient.encryptionKey && (
             <span className="shrink-0 inline-block w-2 h-2 rounded-full bg-current opacity-50" />
           )}
         </div>
@@ -691,22 +1005,31 @@ function ProtocolToggle({
 }
 
 function Field({
+  id,
   label,
   placeholder,
   value,
   onChange,
+  innerRef,
 }: Readonly<{
+  id: string;
   label: string;
   placeholder: string;
   value: string;
   onChange: (v: string) => void;
+  innerRef?: React.Ref<HTMLInputElement>;
 }>) {
   return (
     <div className="flex items-center gap-3 border-b border-white/5 py-2">
-      <span className="w-16 shrink-0 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+      <label
+        htmlFor={id}
+        className="w-16 shrink-0 text-[11px] uppercase tracking-[0.18em] text-muted-foreground"
+      >
         {label}
-      </span>
+      </label>
       <input
+        id={id}
+        ref={innerRef}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
@@ -743,6 +1066,40 @@ function validateSendRequest({
     onShowToast?.("Please add at least one recipient");
     return false;
   }
+
+  // Check for stale resolution
+  const now = new Date();
+  if (
+    resolvedRecipients.some(
+      (recipient) => recipient.expiresAt && now > new Date(recipient.expiresAt),
+    )
+  ) {
+    onShowToast?.("Recipient resolution is stale — re-resolving…");
+    return false;
+  }
+
+  // Check if policy quote is expired
+  if (
+    quoteState.status === "quoted" &&
+    quoteState.quote.expiresAt &&
+    now > new Date(quoteState.quote.expiresAt)
+  ) {
+    onShowToast?.("Policy quote is expired — re-quoting…");
+    return false;
+  }
+
+  // Check for key status
+  if (
+    resolvedRecipients.some(
+      (recipient) =>
+        recipient.state === "verified" &&
+        (recipient.keyStatus === "revoked" || recipient.keyStatus === "retired"),
+    )
+  ) {
+    onShowToast?.("Recipient encryption key has been revoked");
+    return false;
+  }
+
   if (resolvedRecipients.some((r) => r.state === "resolving" || r.state === "invalid")) {
     onShowToast?.("All recipients must be verified before sending");
     return false;
@@ -757,16 +1114,13 @@ function validateSendRequest({
   }
   if (!isTrustedSender(quoteState)) {
     const currentQuote = quoteState.status === "quoted" ? quoteState.quote : null;
-    if (currentQuote) {
+    if (currentQuote && currentQuote.amount !== "0") {
       const postageStroops = BigInt(Math.round(Number(postage) * 10_000_000));
       const minimumStroops = BigInt(currentQuote.amount);
       if (postageStroops < minimumStroops) {
         onShowToast?.("Add postage before sending");
         return false;
       }
-    } else if (resolvedRecipients.some((r) => r.postage === "required")) {
-      onShowToast?.("Add postage before sending");
-      return false;
     }
   }
   if (!subject.trim()) {
@@ -786,9 +1140,10 @@ function getHeaderTitle(mode: string) {
   return mode.replace("-", " ");
 }
 
-function getDisabledReason(isBlocked: boolean, recipientResolving: boolean) {
-  if (isBlocked) return "Recipient has blocked this sender";
+function getDisabledReason(isBlocked: boolean, recipientResolving: boolean, isStale: boolean) {
+  if (isBlocked) return "Recipient has blocked this sender or key is revoked";
   if (recipientResolving) return "Waiting for recipient verification";
+  if (isStale) return "Recipient resolution or policy quote is stale";
   return undefined;
 }
 

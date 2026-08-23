@@ -79,7 +79,10 @@ describe("GrammarCleanerLoading", () => {
 });
 
 describe("GrammarCleanerError", () => {
-  const defaultProps = { code: "empty-body", message: "Cannot clean an empty text." };
+  const defaultProps = {
+    code: "empty-body",
+    message: "Cannot clean an empty text.",
+  };
 
   it("renders error heading and message", () => {
     const el = GrammarCleanerError(defaultProps);

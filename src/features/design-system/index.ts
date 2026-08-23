@@ -4,6 +4,7 @@ export { EmptyState } from "./components/empty-state";
 export { Surface } from "./components/surface";
 export { FeedbackViewport } from "./feedback/feedback-viewport";
 export { useFeedback } from "./feedback/use-feedback";
+export { DegradedStateBanner } from "./feedback/DegradedStateBanner";
 
 export type { ActionButtonProps } from "./components/action-button";
 export type { EmptyStateProps } from "./components/empty-state";

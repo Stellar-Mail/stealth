@@ -1,3 +1,4 @@
+import { commitContactImport } from "../api";
 import type {
   BulkWriteProgress,
   BulkWriteStatus,
@@ -22,7 +23,9 @@ export type PolicyApi = {
  * Memory-backed policy API for demo/development.
  * Stores rules in a Map and simulates network latency.
  */
-export function createMemoryPolicyApi(): PolicyApi & { dump(): Record<string, "allow" | "block"> } {
+export function createMemoryPolicyApi(): PolicyApi & {
+  dump(): Record<string, "allow" | "block">;
+} {
   const rules = new Map<string, "allow" | "block">();
   return {
     async setSenderRule(owner: string, sender: string, rule: "allow" | "block") {
@@ -35,6 +38,31 @@ export function createMemoryPolicyApi(): PolicyApi & { dump(): Record<string, "a
     },
     dump() {
       return Object.fromEntries(rules);
+    },
+  };
+}
+
+/**
+ * Live policy API backed by the BETA-066 contacts import/commit endpoint.
+ *
+ * Each rule write commits a single contact row through
+ * `POST /api/v1/contacts/import/commit` with `applyTrust: true`, so the
+ * resulting contact row is stored and the allow/block sender rule is applied
+ * atomically. Unlike the memory API this persists to the actor's mailbox.
+ */
+export function createLivePolicyApi(owner: string): PolicyApi {
+  return {
+    async setSenderRule(_owner: string, sender: string, rule: "allow" | "block") {
+      await commitContactImport(owner, {
+        rows: [{ name: sender, address: sender, trust: rule, source: "csv" }],
+        applyTrust: true,
+      });
+    },
+    async removeSenderRule(_owner: string, sender: string) {
+      await commitContactImport(owner, {
+        rows: [{ name: sender, address: sender, trust: "default", source: "csv" }],
+        applyTrust: false,
+      });
     },
   };
 }
@@ -81,7 +109,11 @@ export async function runBatch(
 ): Promise<BulkWriteProgress> {
   const pending = progress.jobs.filter((j) => j.status === "pending");
   if (pending.length === 0) {
-    return { ...progress, status: "completed", completedAt: new Date().toISOString() };
+    return {
+      ...progress,
+      status: "completed",
+      completedAt: new Date().toISOString(),
+    };
   }
 
   const batch = pending.slice(0, BATCH_SIZE);

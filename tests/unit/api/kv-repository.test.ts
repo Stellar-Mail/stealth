@@ -177,7 +177,10 @@ describe("HybridApiRepository - KV Operations", () => {
       receipt,
     });
     await expect(
-      repo.createReceiptIfAbsent({ ...receipt, deliveredAt: "2026-06-14T12:05:00.000Z" }),
+      repo.createReceiptIfAbsent({
+        ...receipt,
+        deliveredAt: "2026-06-14T12:05:00.000Z",
+      }),
     ).resolves.toEqual({ created: false, receipt });
 
     const readReceipt = { ...receipt, readAt: "2026-06-14T12:30:00.000Z" };
@@ -219,9 +222,14 @@ describe("HybridApiRepository - KV Operations", () => {
 
       const result = await repo.transitionPostage(messageId, "pending", "settled");
 
-      expect(result).toMatchObject({ outcome: "applied", postage: { status: "settled" } });
+      expect(result).toMatchObject({
+        outcome: "applied",
+        postage: { status: "settled" },
+      });
       // KV read path reflects the coordinator's authoritative outcome.
-      await expect(repo.getPostage(messageId)).resolves.toMatchObject({ status: "settled" });
+      await expect(repo.getPostage(messageId)).resolves.toMatchObject({
+        status: "settled",
+      });
     });
 
     it("returns not-found when there is no coordinator record", async () => {
@@ -250,7 +258,9 @@ describe("HybridApiRepository - KV Operations", () => {
       expect(outcomes).toEqual(["applied", "conflict"]);
 
       // Only one settlement side effect occurred; state is deterministic.
-      await expect(repo.getPostage(messageId)).resolves.toMatchObject({ status: "settled" });
+      await expect(repo.getPostage(messageId)).resolves.toMatchObject({
+        status: "settled",
+      });
     });
   });
 });

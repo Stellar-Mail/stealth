@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 
+import { checkPasswordResetAbuse } from "@/server/api/abuse-service";
 import { getApiContext } from "@/server/api/context";
 import { emailSchema } from "@/server/api/domain";
 import { ApiError } from "@/server/api/errors";
@@ -16,17 +17,6 @@ const resendSchema = z.object({
   email: emailSchema,
 });
 
-/**
- * POST /api/v1/auth/resend-verification
- *
- * Re-sends the verification message for a pending account.
- *
- * Generic-response contract (BETA-005): unknown emails and accounts that are
- * not pending verification receive the exact same `{ status: "sent" }`
- * response as a successful resend, so the endpoint cannot be used to probe
- * which addresses have accounts. The only observable divergence is the
- * resend cooldown (429), which protects against spam and token churn.
- */
 export const Route = createFileRoute("/api/v1/auth/resend-verification")({
   server: {
     handlers: {
@@ -36,6 +26,21 @@ export const Route = createFileRoute("/api/v1/auth/resend-verification")({
           const input = await parseJsonBody(request, resendSchema, {
             route: "POST /auth/resend-verification",
           });
+
+          const ip =
+            request.headers.get("cf-connecting-ip") ??
+            request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+            "unknown";
+
+          const abuseCheck = await checkPasswordResetAbuse(apiContext.repository, input.email, ip);
+          if (!abuseCheck.allowed) {
+            throw new ApiError(
+              429,
+              "too_many_requests",
+              "Verification resend rate limit exceeded",
+              { retryAfterSeconds: abuseCheck.retryAfterSeconds ?? 3600 },
+            );
+          }
 
           const delivery = await getVerificationDeliveryConfig();
           const adapter = await getVerificationNotificationAdapter();

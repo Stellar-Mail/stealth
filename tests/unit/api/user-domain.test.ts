@@ -132,7 +132,16 @@ describe("BETA-002: User Account, Profile, and Credential Domain Schemas & Proje
         username: "alice_privacy",
         displayName: "Alice P.",
         avatarUrl: "https://stealth.mail/avatar.jpg",
+        avatarMetadata: null,
         bio: "Privacy is a fundamental human right.",
+        locale: "en",
+        timezone: "UTC",
+        addressDisplay: "truncated",
+        notifications: {
+          email: true,
+          desktop: true,
+          sound: false,
+        },
         createdAt: "2026-01-01T00:00:00.000Z",
         updatedAt: "2026-01-01T00:00:00.000Z",
       });

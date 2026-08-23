@@ -1,32 +1,65 @@
 import type {
+  Contact,
   Credential,
+  DeadLetter,
+  DeadLetterStatus,
+  DurableJob,
+  DurableJobType,
   ExternalWallet,
   ExternalWalletChallenge,
   IdempotencyRecord,
+  JobStatus,
   KeyDirectoryRecord,
+  LifecycleAnchor,
   MailboxPolicy,
+  MessageDeliveryStatusRecord,
   PolicyWriteIntent,
   Postage,
   PostageStatus,
   Profile,
+  ProvisioningRecord,
   PublishedKey,
   Receipt,
+  ReceiptCheckpoint,
+  RecoveryCodeSet,
   RetiredSession,
   SenderRule,
+  SenderRuleRecord,
   Session,
   StoredEnvelope,
+  UnknownSenderDecision,
+  UnknownSenderRequest,
   User,
+  UsernameReservation,
   VerificationPurpose,
   VerificationToken,
+  ManagedWalletRecord,
+  FundingOperation,
+  Wallet,
+  DraftRecord,
+  OnboardingDraftRecord,
+  AccountDeletionRequest,
+  AccountExport,
 } from "./domain";
+import { toPublicProfile, toPublicUser } from "./domain";
 import type {
   ApiRepository,
+  ContactQueryOptions,
+  DraftQueryOptions,
+  SearchMailboxQueryOptions,
   ConsumeVerificationTokenResult,
+  CreateManagedWalletResult,
   InsertEnvelopeResult,
   IssueVerificationTokenResult,
   PostageTransitionResult,
   RecordVerificationAttemptResult,
+  UpdateContactResult,
+  UpdateDraftResult,
+  UpdateProvisioningResult,
+  UpdateRecoveryCodeSetResult,
   UpdateUserResult,
+  UsernameReservationResult,
+  WalletCreationResult,
 } from "./repository";
 import { ApiError } from "./errors";
 
@@ -41,9 +74,14 @@ function activeTokenKey(userId: string, purpose: string) {
 export class MemoryApiRepository implements ApiRepository {
   private readonly policies = new Map<string, MailboxPolicy>();
   private readonly policyWriteIntents = new Map<string, PolicyWriteIntent>();
+  private readonly lifecycleAnchors = new Map<string, LifecycleAnchor>();
   private readonly postage = new Map<string, Postage>();
   private readonly receipts = new Map<string, Receipt>();
+  private readonly deliveryStatuses = new Map<string, MessageDeliveryStatusRecord>();
+
   private readonly senderRules = new Map<string, SenderRule>();
+  // BETA-037 (Issue #1944): versioned sender rule records keyed by `${owner}:${sender}`
+  private readonly senderRuleRecords = new Map<string, SenderRuleRecord>();
   private readonly counters = new Map<string, number[]>();
   private readonly idempotency = new Map<string, IdempotencyRecord>();
   private readonly externalWallets = new Map<string, ExternalWallet[]>();
@@ -52,6 +90,20 @@ export class MemoryApiRepository implements ApiRepository {
   // Issue #1936: envelope store and per-key insert locks.
   private readonly envelopes = new Map<string, StoredEnvelope>();
   private readonly envelopeLocks = new Map<string, Promise<void>>();
+  private readonly senderRequests = new Map<string, UnknownSenderRequest>();
+  private readonly senderRequestLocks = new Map<string, Promise<void>>();
+  // Issue #1973: owner-scoped contact store keyed by `${owner}:${contactId}`.
+  private readonly contacts = new Map<string, Contact>();
+  // Issue #1965: owner-scoped draft store keyed by `${owner}:${draftId}`.
+  private readonly drafts = new Map<string, DraftRecord>();
+  // Issue #1952: durable jobs, DLQ, and receipt checkpoints
+  private readonly jobs = new Map<string, DurableJob>();
+  private readonly jobsByIdempotencyKey = new Map<string, string>();
+  private readonly deadLetters = new Map<string, DeadLetter>();
+  private readonly receiptCheckpoints = new Map<string, ReceiptCheckpoint>();
+  private readonly jobLocks = new Map<string, Promise<void>>();
+  // Issue #1954: send operation state machine store
+  private readonly sendOperations = new Map<string, import("./domain").SendOperationState>();
 
   // BETA-002: User Account, Profile, Credential storage & unique index maps
   private readonly usersById = new Map<string, User>();
@@ -60,6 +112,36 @@ export class MemoryApiRepository implements ApiRepository {
   private readonly usersByAddress = new Map<string, string>();
   private readonly profiles = new Map<string, Profile>();
   private readonly credentials = new Map<string, Credential>();
+
+  // BETA-014: Account-provisioning storage
+  private readonly provisioning = new Map<string, ProvisioningRecord>();
+  private readonly usernameReservations = new Map<string, UsernameReservation>();
+  private readonly wallets = new Map<string, Wallet>();
+  // BETA-013: Durable server-backed onboarding drafts (one record per user)
+  private readonly onboardingDrafts = new Map<string, OnboardingDraftRecord>();
+  private readonly accountDeletionRequests = new Map<string, AccountDeletionRequest>();
+  private readonly keyLocks = new Map<string, Promise<void>>();
+
+  private async withKeyLock<T>(lockKey: string, action: () => Promise<T>): Promise<T> {
+    const previous = this.keyLocks.get(lockKey) ?? Promise.resolve();
+    let release!: () => void;
+    const current = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const queued = previous.then(() => current);
+    this.keyLocks.set(lockKey, queued);
+
+    await previous;
+    try {
+      return await action();
+    } finally {
+      release();
+      if (this.keyLocks.get(lockKey) === queued) {
+        this.keyLocks.delete(lockKey);
+      }
+    }
+  }
+  // BETA-006: Session storage
   private readonly sessions = new Map<string, Session>();
   private readonly retiredSessions = new Map<string, RetiredSession>();
 
@@ -93,6 +175,12 @@ export class MemoryApiRepository implements ApiRepository {
   private readonly keyDirectories = new Map<string, KeyDirectoryRecord>();
   private readonly publishedKeys = new Map<string, PublishedKey>(); // key: `${owner}:${keyId}`
   private readonly keyDirectoryLocks = new Map<string, Promise<void>>();
+  private readonly managedWallets = new Map<string, ManagedWalletRecord>();
+  private readonly fundingOperations = new Map<string, FundingOperation>();
+
+  // Issue #1917 (BETA-010): Recovery code sets + per-user CAS locks
+  private readonly recoveryCodeSets = new Map<string, RecoveryCodeSet>();
+  private readonly recoveryCodeSetLocks = new Map<string, Promise<void>>();
 
   private async withReceiptLock<T>(messageId: string, action: () => Promise<T>): Promise<T> {
     const previous = this.receiptLocks.get(messageId) ?? Promise.resolve();
@@ -134,6 +222,44 @@ export class MemoryApiRepository implements ApiRepository {
     }
   }
 
+  private async withSenderRequestLock<T>(requestId: string, action: () => Promise<T>): Promise<T> {
+    const previous = this.senderRequestLocks.get(requestId) ?? Promise.resolve();
+    let release!: () => void;
+    const current = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const queued = previous.then(() => current);
+    this.senderRequestLocks.set(requestId, queued);
+    await previous;
+    try {
+      return await action();
+    } finally {
+      release();
+      if (this.senderRequestLocks.get(requestId) === queued)
+        this.senderRequestLocks.delete(requestId);
+    }
+  }
+
+  private async withRecoveryCodeSetLock<T>(userId: string, action: () => Promise<T>): Promise<T> {
+    const previous = this.recoveryCodeSetLocks.get(userId) ?? Promise.resolve();
+    let release!: () => void;
+    const current = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const queued = previous.then(() => current);
+    this.recoveryCodeSetLocks.set(userId, queued);
+
+    await previous;
+    try {
+      return await action();
+    } finally {
+      release();
+      if (this.recoveryCodeSetLocks.get(userId) === queued) {
+        this.recoveryCodeSetLocks.delete(userId);
+      }
+    }
+  }
+
   async getPolicy(owner: string) {
     return structuredClone(this.policies.get(owner) ?? null);
   }
@@ -152,6 +278,15 @@ export class MemoryApiRepository implements ApiRepository {
     return structuredClone(intent);
   }
 
+  async getLifecycleAnchor(messageId: string) {
+    return structuredClone(this.lifecycleAnchors.get(messageId) ?? null);
+  }
+
+  async setLifecycleAnchor(anchor: LifecycleAnchor) {
+    this.lifecycleAnchors.set(anchor.messageId, structuredClone(anchor));
+    return structuredClone(anchor);
+  }
+
   async getSenderRule(owner: string, sender: string) {
     return this.senderRules.get(key(owner, sender)) ?? "default";
   }
@@ -161,6 +296,42 @@ export class MemoryApiRepository implements ApiRepository {
     if (rule === "default") this.senderRules.delete(ruleKey);
     else this.senderRules.set(ruleKey, rule);
     return rule;
+  }
+
+  // BETA-037 (Issue #1944): versioned sender rule records
+  async getSenderRuleRecord(owner: string, sender: string): Promise<SenderRuleRecord | null> {
+    return structuredClone(this.senderRuleRecords.get(key(owner, sender)) ?? null);
+  }
+
+  async setSenderRuleRecord(record: SenderRuleRecord): Promise<SenderRuleRecord> {
+    this.senderRuleRecords.set(key(record.owner, record.sender), structuredClone(record));
+    return structuredClone(record);
+  }
+
+  async deleteSenderRuleRecord(owner: string, sender: string): Promise<boolean> {
+    return this.senderRuleRecords.delete(key(owner, sender));
+  }
+
+  async listSenderRuleRecords(
+    owner: string,
+    options?: { limit?: number; after?: string },
+  ): Promise<{ records: SenderRuleRecord[]; nextCursor?: string }> {
+    const limit = options?.limit ?? 50;
+    const after = options?.after;
+    let records: SenderRuleRecord[] = [];
+    const ownerPrefix = `${owner}:`;
+    for (const [k, v] of this.senderRuleRecords) {
+      if (k.startsWith(ownerPrefix)) {
+        records.push(structuredClone(v));
+      }
+    }
+    records.sort((a, b) => a.sender.localeCompare(b.sender));
+    if (after) {
+      const idx = records.findIndex((r) => r.sender === after);
+      if (idx >= 0) records = records.slice(idx + 1);
+    }
+    const nextCursor = records.length > limit ? records[limit - 1].sender : undefined;
+    return { records: records.slice(0, limit), nextCursor };
   }
 
   async getPostage(messageId: string) {
@@ -208,6 +379,15 @@ export class MemoryApiRepository implements ApiRepository {
   async setReceipt(receipt: Receipt) {
     this.receipts.set(receipt.messageId, structuredClone(receipt));
     return structuredClone(receipt);
+  }
+
+  async getMessageDeliveryStatus(messageId: string) {
+    return structuredClone(this.deliveryStatuses.get(messageId) ?? null);
+  }
+
+  async setMessageDeliveryStatus(record: MessageDeliveryStatusRecord) {
+    this.deliveryStatuses.set(record.messageId, structuredClone(record));
+    return structuredClone(record);
   }
 
   async createReceiptIfAbsent(receipt: Receipt) {
@@ -365,11 +545,257 @@ export class MemoryApiRepository implements ApiRepository {
     return structuredClone(this.credentials.get(userId) ?? null);
   }
 
+  async getAccountDeletionRequest(userId: string): Promise<AccountDeletionRequest | null> {
+    return structuredClone(this.accountDeletionRequests.get(userId) ?? null);
+  }
+
+  async setAccountDeletionRequest(
+    request: AccountDeletionRequest,
+  ): Promise<AccountDeletionRequest> {
+    this.accountDeletionRequests.set(request.userId, structuredClone(request));
+    return structuredClone(request);
+  }
+
+  async exportAccount(userId: string, address: string, now = new Date()): Promise<AccountExport> {
+    const user = this.usersById.get(userId);
+    if (!user || user.address.toUpperCase() !== address.toUpperCase()) {
+      throw new ApiError(404, "not_found", "Account data not found");
+    }
+    const mailbox = [...this.envelopes.values()]
+      .filter((envelope) => envelope.recipientId.toUpperCase() === address.toUpperCase())
+      .map((envelope) => structuredClone(envelope));
+    const contacts = [...this.contacts.values()]
+      .filter((contact) => contact.owner.toUpperCase() === address.toUpperCase())
+      .map((contact) => structuredClone(contact));
+    const senderRequests = [...this.senderRequests.values()]
+      .filter((request) => request.recipient.toUpperCase() === address.toUpperCase())
+      .map((request) => structuredClone(request));
+    const publicKeys = [...this.publishedKeys.values()]
+      .filter((key) => key.owner.toUpperCase() === address.toUpperCase())
+      .map((key) => structuredClone(key));
+
+    return {
+      format: "stealth-account-export-v1",
+      generatedAt: now.toISOString(),
+      account: toPublicUser(user),
+      profile: this.profiles.has(userId) ? toPublicProfile(this.profiles.get(userId)!) : null,
+      contacts,
+      mailbox,
+      senderRequests,
+      publicKeys,
+      ciphertextReferences: mailbox.map((envelope) => ({
+        messageId: envelope.messageId,
+        objectKey: envelope.objectRef ?? null,
+        contentCommitment: envelope.contentCommitment ?? null,
+        deletedAt: envelope.deletedAt ?? null,
+      })),
+      onChainLimitations: [
+        "Stellar testnet transactions, account history, contract events, and published lifecycle commitments are immutable and are not erased.",
+        "This export contains ciphertext and references only; Stealth never exports plaintext message content or credentials.",
+      ],
+    };
+  }
+
+  async deleteAccountData(userId: string, address: string, now = new Date()) {
+    const user = this.usersById.get(userId);
+    if (!user || user.address.toUpperCase() !== address.toUpperCase()) {
+      throw new ApiError(404, "not_found", "Account data not found");
+    }
+    const normalizedAddress = address.toUpperCase();
+    await this.deleteUserSessions(userId);
+    this.profiles.delete(userId);
+    this.credentials.delete(userId);
+    this.onboardingDrafts.delete(userId);
+    this.provisioning.delete(userId);
+    this.wallets.delete(userId);
+    this.managedWallets.delete(userId);
+    this.externalWallets.delete(normalizedAddress);
+    this.keyDirectories.delete(normalizedAddress);
+    for (const key of [...this.publishedKeys.keys()]) {
+      if (key.startsWith(`${normalizedAddress}:`)) this.publishedKeys.delete(key);
+    }
+    for (const [contactKey, contact] of this.contacts.entries()) {
+      if (contact.owner.toUpperCase() === normalizedAddress) this.contacts.delete(contactKey);
+    }
+    for (const envelope of this.envelopes.values()) {
+      if (envelope.recipientId.toUpperCase() === normalizedAddress) {
+        envelope.deletedAt = now.toISOString();
+        this.envelopes.set(envelope.messageId, envelope);
+      }
+    }
+
+    this.usersByEmail.delete(user.email.toLowerCase());
+    this.usersByUsername.delete(user.username.toLowerCase());
+    const tombstoneUser = {
+      ...user,
+      email: `deleted-${userId}@invalid.example`,
+      username: `deleted-${userId}`.slice(0, 30),
+      status: "deactivated" as const,
+      updatedAt: now.toISOString(),
+      version: user.version + 1,
+    };
+    this.usersById.set(userId, tombstoneUser);
+    this.usersByEmail.set(tombstoneUser.email, userId);
+    this.usersByAddress.set(normalizedAddress, userId);
+
+    return {
+      deleted: [
+        "profile",
+        "credential",
+        "sessions",
+        "contacts",
+        "mailbox ciphertext access",
+        "published keys",
+      ],
+      retained: [
+        "testnet account and transaction history",
+        "on-chain contract events and lifecycle commitments",
+        "postage and receipt references required for chain reconciliation",
+      ],
+    };
+  }
+
   async setCredential(credential: Credential): Promise<Credential> {
     this.credentials.set(credential.userId, structuredClone(credential));
     return structuredClone(credential);
   }
 
+  // BETA-014: Transactional account-provisioning implementation
+  async getProvisioningRecord(userId: string): Promise<ProvisioningRecord | null> {
+    return structuredClone(this.provisioning.get(userId) ?? null);
+  }
+
+  async createProvisioningRecord(
+    record: ProvisioningRecord,
+  ): Promise<{ created: boolean; record: ProvisioningRecord }> {
+    return this.withKeyLock(`provisioning:${record.userId}`, async () => {
+      const existing = this.provisioning.get(record.userId);
+      if (existing) {
+        return { created: false, record: structuredClone(existing) };
+      }
+      this.provisioning.set(record.userId, structuredClone(record));
+      return { created: true, record: structuredClone(record) };
+    });
+  }
+
+  async setProvisioningRecord(
+    record: ProvisioningRecord,
+    expectedVersion: number,
+  ): Promise<UpdateProvisioningResult> {
+    return this.withKeyLock(`provisioning:${record.userId}`, async () => {
+      const current = this.provisioning.get(record.userId);
+      if (!current) {
+        return { updated: false, current: null };
+      }
+      if (current.version !== expectedVersion) {
+        return { updated: false, current: structuredClone(current) };
+      }
+      const next: ProvisioningRecord = {
+        ...record,
+        version: expectedVersion + 1,
+        updatedAt: new Date().toISOString(),
+      };
+      this.provisioning.set(record.userId, structuredClone(next));
+      return { updated: true, record: structuredClone(next) };
+    });
+  }
+
+  // BETA-013: Durable server-backed onboarding drafts.
+  // Keyed by userId so duplicate saves can never create duplicates and every
+  // device resumes from the same authoritative record.
+  async getOnboardingDraft(userId: string): Promise<OnboardingDraftRecord | null> {
+    return structuredClone(this.onboardingDrafts.get(userId) ?? null);
+  }
+
+  async saveOnboardingDraft(record: OnboardingDraftRecord): Promise<OnboardingDraftRecord> {
+    return this.withKeyLock(`onboarding:${record.userId}`, async () => {
+      this.onboardingDrafts.set(record.userId, structuredClone(record));
+      return structuredClone(record);
+    });
+  }
+
+  async getUsernameReservation(username: string): Promise<UsernameReservation | null> {
+    const norm = username.toLowerCase().trim();
+    return structuredClone(this.usernameReservations.get(norm) ?? null);
+  }
+
+  async reserveUsername(
+    username: string,
+    userId: string,
+    leaseMs: number,
+  ): Promise<UsernameReservationResult> {
+    const norm = username.toLowerCase().trim();
+    return this.withKeyLock(`username-reservation:${norm}`, async () => {
+      const boundUser = this.usersByUsername.get(norm);
+      if (boundUser && boundUser !== userId) {
+        return { outcome: "unavailable" };
+      }
+
+      const existing = this.usernameReservations.get(norm);
+      const now = Date.now();
+
+      if (existing) {
+        if (existing.userId === userId && now < new Date(existing.expiresAt).getTime()) {
+          return { outcome: "already-reserved", reservation: structuredClone(existing) };
+        }
+        if (existing.userId !== userId && now < new Date(existing.expiresAt).getTime()) {
+          return { outcome: "unavailable" };
+        }
+      }
+
+      const reservation: UsernameReservation = {
+        username: norm,
+        userId,
+        reservedAt: new Date(now).toISOString(),
+        expiresAt: new Date(now + leaseMs).toISOString(),
+      };
+      this.usernameReservations.set(norm, structuredClone(reservation));
+      return { outcome: "reserved", reservation: structuredClone(reservation) };
+    });
+  }
+
+  async releaseUsernameReservation(username: string, userId: string): Promise<boolean> {
+    const norm = username.toLowerCase().trim();
+    return this.withKeyLock(`username-reservation:${norm}`, async () => {
+      const existing = this.usernameReservations.get(norm);
+      if (!existing) return false;
+      if (existing.userId !== userId) return false;
+      this.usernameReservations.delete(norm);
+      return true;
+    });
+  }
+
+  async getWallet(userId: string): Promise<Wallet | null> {
+    return structuredClone(this.wallets.get(userId) ?? null);
+  }
+
+  async createWallet(wallet: Wallet): Promise<WalletCreationResult> {
+    return this.withKeyLock(`wallet:${wallet.userId}`, async () => {
+      const existing = this.wallets.get(wallet.userId);
+      if (existing) {
+        return { outcome: "already-exists", wallet: structuredClone(existing) };
+      }
+      this.wallets.set(wallet.userId, structuredClone(wallet));
+      return { outcome: "created", wallet: structuredClone(wallet) };
+    });
+  }
+
+  async initializePolicyIfAbsent(
+    owner: string,
+    policy: MailboxPolicy,
+  ): Promise<{ created: boolean; policy: MailboxPolicy }> {
+    const normOwner = owner.toUpperCase().trim();
+    return this.withKeyLock(`policy-init:${normOwner}`, async () => {
+      const existing = this.policies.get(normOwner);
+      if (existing) {
+        return { created: false, policy: structuredClone(existing) };
+      }
+      this.policies.set(normOwner, structuredClone(policy));
+      return { created: true, policy: structuredClone(policy) };
+    });
+  }
+
+  // BETA-006: Session CRUD Methods
   async getSession(sessionId: string): Promise<Session | null> {
     return structuredClone(this.sessions.get(sessionId) ?? null);
   }
@@ -391,6 +817,24 @@ export class MemoryApiRepository implements ApiRepository {
   async deleteUserSessions(userId: string): Promise<void> {
     for (const [sessionId, session] of this.sessions.entries()) {
       if (session.userId === userId) {
+        this.sessions.delete(sessionId);
+      }
+    }
+  }
+
+  async listUserSessions(userId: string): Promise<Session[]> {
+    const list: Session[] = [];
+    for (const session of this.sessions.values()) {
+      if (session.userId === userId) {
+        list.push(structuredClone(session));
+      }
+    }
+    return list;
+  }
+
+  async deleteOtherUserSessions(userId: string, currentSessionId: string): Promise<void> {
+    for (const [sessionId, session] of this.sessions.entries()) {
+      if (session.userId === userId && sessionId !== currentSessionId) {
         this.sessions.delete(sessionId);
       }
     }
@@ -478,7 +922,10 @@ export class MemoryApiRepository implements ApiRepository {
         return { outcome: "replaced", token: structuredClone(current) };
       }
       if (current.attemptCount >= current.maxAttempts) {
-        return { outcome: "brute-force-blocked", token: structuredClone(current) };
+        return {
+          outcome: "brute-force-blocked",
+          token: structuredClone(current),
+        };
       }
       if (Date.parse(current.expiresAt) <= now.getTime()) {
         return { outcome: "expired", token: structuredClone(current) };
@@ -510,6 +957,62 @@ export class MemoryApiRepository implements ApiRepository {
       };
       this.verificationTokens.set(tokenHash, updated);
       return { recorded: true, token: structuredClone(updated) };
+    });
+  }
+
+  // Issue #1917 (BETA-010): Recovery code set CAS storage
+  async getRecoveryCodeSet(userId: string): Promise<RecoveryCodeSet | null> {
+    return structuredClone(this.recoveryCodeSets.get(userId) ?? null);
+  }
+
+  async setRecoveryCodeSet(
+    set: RecoveryCodeSet,
+    expectedVersion: number,
+  ): Promise<UpdateRecoveryCodeSetResult> {
+    return this.withRecoveryCodeSetLock(set.userId, async () => {
+      const current = this.recoveryCodeSets.get(set.userId);
+
+      if (expectedVersion === 0) {
+        // Create-only reservation. If a concurrent generation won first, the
+        // caller reconciles against `current`.
+        if (current) {
+          return { updated: false, current: structuredClone(current) };
+        }
+        this.recoveryCodeSets.set(set.userId, structuredClone(set));
+        return { updated: true, set: structuredClone(set) };
+      }
+
+      if (!current || current.version !== expectedVersion) {
+        return { updated: false, current: current ? structuredClone(current) : null };
+      }
+
+      const next: RecoveryCodeSet = {
+        ...set,
+        version: expectedVersion + 1,
+      };
+      this.recoveryCodeSets.set(set.userId, structuredClone(next));
+      return { updated: true, set: structuredClone(next) };
+    });
+  }
+
+  async invalidateActiveVerificationToken(
+    userId: string,
+    purpose: VerificationPurpose,
+    now: Date,
+  ): Promise<void> {
+    return this.withVerificationLock(activeTokenKey(userId, purpose), async () => {
+      const activeHash = this.activeVerificationTokens.get(activeTokenKey(userId, purpose));
+      if (activeHash) {
+        const current = this.verificationTokens.get(activeHash);
+        if (current && current.consumedAt === null && current.replacedAt === null) {
+          const invalidated: VerificationToken = {
+            ...current,
+            replacedAt: now.toISOString(),
+          };
+          this.verificationTokens.set(activeHash, invalidated);
+        }
+        this.activeVerificationTokens.delete(activeTokenKey(userId, purpose));
+      }
     });
   }
 
@@ -683,6 +1186,264 @@ export class MemoryApiRepository implements ApiRepository {
     });
   }
 
+  async getSenderRequest(requestId: string): Promise<UnknownSenderRequest | null> {
+    return structuredClone(this.senderRequests.get(requestId) ?? null);
+  }
+  async listSenderRequests(recipient: string, status?: "pending"): Promise<UnknownSenderRequest[]> {
+    return [...this.senderRequests.values()]
+      .filter((r) => r.recipient === recipient && (!status || r.status === status))
+      .map((r) => structuredClone(r));
+  }
+  async createSenderRequestIfAbsent(request: UnknownSenderRequest) {
+    return this.withEnvelopeLock(`request:${request.requestId}`, async () => {
+      const existing = this.senderRequests.get(request.requestId);
+      if (existing) return { created: false, request: structuredClone(existing) };
+      this.senderRequests.set(request.requestId, structuredClone(request));
+      return { created: true, request: structuredClone(request) };
+    });
+  }
+  async transitionSenderRequest(
+    requestId: string,
+    recipient: string,
+    decision: UnknownSenderDecision,
+    now = new Date(),
+  ) {
+    return this.withEnvelopeLock(`request:${requestId}`, async () => {
+      const current = this.senderRequests.get(requestId);
+      if (!current || current.recipient !== recipient) return { outcome: "not_found" as const };
+      if (
+        current.status !== "pending" ||
+        (new Date(current.expiresAt) <= now && decision !== "expire")
+      )
+        return { outcome: "conflict" as const, request: structuredClone(current) };
+      const status =
+        decision === "approve_once" || decision === "always_allow"
+          ? "approved"
+          : decision === "block"
+            ? "blocked"
+            : decision === "expire"
+              ? "expired"
+              : "rejected";
+      const request = {
+        ...current,
+        status,
+        decision,
+        decidedAt: now.toISOString(),
+      } as UnknownSenderRequest;
+      if (decision === "always_allow")
+        this.senderRules.set(key(recipient, current.sender), "allow");
+      if (decision === "block") this.senderRules.set(key(recipient, current.sender), "block");
+      this.senderRequests.set(requestId, request);
+      return { outcome: "applied" as const, request: structuredClone(request) };
+    });
+  }
+
+  async listRecipientEnvelopes(
+    recipient: string,
+    options: import("./repository").MailboxQueryOptions = {},
+  ): Promise<import("./repository").Page<StoredEnvelope>> {
+    const { paginate, PAGINATED_QUERY_ORDERINGS } = await import("./repository");
+    const normRecipient = recipient.toUpperCase().trim();
+    const statusFilter = options.status ?? "all";
+    const includeTombstones = options.includeTombstones ?? false;
+    const limit = options.limit ?? 25;
+
+    const filtered: StoredEnvelope[] = [];
+    for (const env of this.envelopes.values()) {
+      if (env.recipientId.toUpperCase().trim() !== normRecipient) {
+        continue;
+      }
+      const isDeleted = Boolean(env.deletedAt);
+      if (isDeleted && !includeTombstones) {
+        continue;
+      }
+      const itemStatus = env.status ?? "pending";
+      if (statusFilter !== "all" && itemStatus !== statusFilter) {
+        continue;
+      }
+      filtered.push(structuredClone(env));
+    }
+
+    const spec = PAGINATED_QUERY_ORDERINGS.listEnvelopes;
+    return paginate(filtered, spec, { limit, after: options.after });
+  }
+
+  async tombstoneEnvelope(messageId: string, recipient: string): Promise<StoredEnvelope> {
+    return this.withEnvelopeLock(messageId, async () => {
+      const existing = this.envelopes.get(messageId);
+      if (!existing) {
+        throw new ApiError(404, "not_found", `No envelope found for message ${messageId}`);
+      }
+      if (existing.recipientId.toUpperCase().trim() !== recipient.toUpperCase().trim()) {
+        throw new ApiError(
+          403,
+          "forbidden",
+          "Cannot delete an envelope belonging to another recipient",
+        );
+      }
+      const tombstoned: StoredEnvelope = {
+        ...existing,
+        deletedAt: new Date().toISOString(),
+      };
+      this.envelopes.set(messageId, tombstoned);
+      return structuredClone(tombstoned);
+    });
+  }
+
+  async updateEnvelopeStatus(
+    messageId: string,
+    status: import("./domain").MailboxItemStatus,
+  ): Promise<StoredEnvelope> {
+    return this.withEnvelopeLock(messageId, async () => {
+      const existing = this.envelopes.get(messageId);
+      if (!existing) {
+        throw new ApiError(404, "not_found", `No envelope found for message ${messageId}`);
+      }
+      const updated: StoredEnvelope = {
+        ...existing,
+        status,
+      };
+      this.envelopes.set(messageId, updated);
+      return structuredClone(updated);
+    });
+  }
+
+  async patchMailboxFlags(
+    messageId: string,
+    recipient: string,
+    patch: import("./domain").MailboxFlagsPatch,
+  ): Promise<StoredEnvelope> {
+    const { applyMailboxFlags } = await import("./mailbox-live");
+    return this.withEnvelopeLock(messageId, async () => {
+      const existing = this.envelopes.get(messageId);
+      if (!existing) {
+        throw new ApiError(404, "not_found", `No envelope found for message ${messageId}`);
+      }
+      if (existing.recipientId.toUpperCase().trim() !== recipient.toUpperCase().trim()) {
+        throw new ApiError(
+          403,
+          "forbidden",
+          "Cannot update an envelope belonging to another recipient",
+        );
+      }
+      if (existing.deletedAt && patch.folder && patch.folder !== "trash") {
+        throw new ApiError(409, "conflict", "Cannot move a deleted message");
+      }
+      const updated = applyMailboxFlags(existing, patch, new Date().toISOString());
+      this.envelopes.set(messageId, updated);
+      return structuredClone(updated);
+    });
+  }
+
+  async searchMailbox(
+    actor: string,
+    options: SearchMailboxQueryOptions = {},
+  ): Promise<import("./repository").Page<StoredEnvelope>> {
+    const { paginate, PAGINATED_QUERY_ORDERINGS } = await import("./repository");
+    const { readMailboxFlags } = await import("./mailbox-live");
+    const normActor = actor.toUpperCase().trim();
+    const limit = options.limit ?? 25;
+    const folderFilter = options.folder;
+    const includeDeleted = options.includeDeleted ?? folderFilter === "trash";
+    const query = options.query?.trim().toLowerCase();
+
+    const filtered: StoredEnvelope[] = [];
+    for (const env of this.envelopes.values()) {
+      const isRecipient = env.recipientId.toUpperCase().trim() === normActor;
+      const isSender = env.senderId.toUpperCase().trim() === normActor;
+      if (!isRecipient && !isSender) {
+        continue;
+      }
+
+      const isDeleted = Boolean(env.deletedAt);
+      if (isDeleted && !includeDeleted) {
+        continue;
+      }
+
+      const flags = readMailboxFlags(env);
+      if (folderFilter && folderFilter !== "all" && flags.folder !== folderFilter) {
+        continue;
+      }
+
+      if (options.unread !== undefined && flags.unread !== options.unread) {
+        continue;
+      }
+
+      if (options.starred !== undefined && flags.starred !== options.starred) {
+        continue;
+      }
+
+      if (options.hasAttachments !== undefined) {
+        const metadata =
+          env.metadata && typeof env.metadata === "object"
+            ? (env.metadata as Record<string, unknown>)
+            : {};
+        const attachments = Array.isArray(metadata.attachments) ? metadata.attachments : [];
+        const has = attachments.length > 0;
+        if (has !== options.hasAttachments) {
+          continue;
+        }
+      }
+
+      if (options.sender) {
+        const normSender = options.sender.toLowerCase().trim();
+        const headers = (env.protectedHeaders ?? {}) as Record<string, unknown>;
+        const senderMatch =
+          env.senderId.toLowerCase().includes(normSender) ||
+          (typeof headers.from === "string" && headers.from.toLowerCase().includes(normSender));
+        if (!senderMatch) {
+          continue;
+        }
+      }
+
+      if (options.recipient) {
+        const normRecipient = options.recipient.toLowerCase().trim();
+        const headers = (env.protectedHeaders ?? {}) as Record<string, unknown>;
+        const recipientMatch =
+          env.recipientId.toLowerCase().includes(normRecipient) ||
+          (typeof headers.to === "string" && headers.to.toLowerCase().includes(normRecipient));
+        if (!recipientMatch) {
+          continue;
+        }
+      }
+
+      if (options.afterDate && env.createdAt < options.afterDate) {
+        continue;
+      }
+
+      if (options.beforeDate && env.createdAt > options.beforeDate) {
+        continue;
+      }
+
+      if (query) {
+        const headers = (env.protectedHeaders ?? {}) as Record<string, unknown>;
+        const metadata = (env.metadata ?? {}) as Record<string, unknown>;
+        const mailboxMeta = (metadata.mailbox ?? {}) as Record<string, unknown>;
+        const labels = Array.isArray(mailboxMeta.labels) ? mailboxMeta.labels.join(" ") : "";
+        const haystack = [
+          env.senderId,
+          env.recipientId,
+          env.messageId,
+          typeof headers.subject === "string" ? headers.subject : "",
+          typeof headers.from === "string" ? headers.from : "",
+          typeof headers.to === "string" ? headers.to : "",
+          labels,
+        ]
+          .join(" ")
+          .toLowerCase();
+
+        if (!haystack.includes(query)) {
+          continue;
+        }
+      }
+
+      filtered.push(structuredClone(env));
+    }
+
+    const spec = PAGINATED_QUERY_ORDERINGS.searchMailbox;
+    return paginate(filtered, spec, { limit, after: options.after });
+  }
+
   async getKeyDirectory(owner: string): Promise<KeyDirectoryRecord | null> {
     const dir = this.keyDirectories.get(owner.toUpperCase());
     return dir ? structuredClone(dir) : null;
@@ -705,12 +1466,325 @@ export class MemoryApiRepository implements ApiRepository {
     return structuredClone(stored);
   }
 
+  async getManagedWallet(userId: string): Promise<ManagedWalletRecord | null> {
+    return structuredClone(this.managedWallets.get(userId) ?? null);
+  }
+
+  async setManagedWallet(wallet: ManagedWalletRecord): Promise<ManagedWalletRecord> {
+    const stored = structuredClone(wallet);
+    this.managedWallets.set(wallet.userId, stored);
+    return structuredClone(stored);
+  }
+
+  async createManagedWalletIfAbsent(
+    wallet: ManagedWalletRecord,
+  ): Promise<CreateManagedWalletResult> {
+    const existing = this.managedWallets.get(wallet.userId);
+    if (existing) {
+      return { outcome: "existing", wallet: structuredClone(existing) };
+    }
+    const stored = structuredClone(wallet);
+    this.managedWallets.set(wallet.userId, stored);
+    return { outcome: "created", wallet: structuredClone(stored) };
+  }
+
+  async getFundingOperation(operationId: string): Promise<FundingOperation | null> {
+    return structuredClone(this.fundingOperations.get(operationId) ?? null);
+  }
+
+  async setFundingOperation(operation: FundingOperation): Promise<FundingOperation> {
+    const stored = structuredClone(operation);
+    this.fundingOperations.set(operation.operationId, stored);
+    return structuredClone(stored);
+  }
+
+  async createFundingOperationIfAbsent(
+    operation: FundingOperation,
+  ): Promise<{ created: boolean; operation: FundingOperation }> {
+    const existing = this.fundingOperations.get(operation.operationId);
+    if (existing) {
+      return { created: false, operation: structuredClone(existing) };
+    }
+    const stored = structuredClone(operation);
+    this.fundingOperations.set(operation.operationId, stored);
+    return { created: true, operation: structuredClone(stored) };
+  }
+
+  async listFundingOperations(filter?: {
+    status?: FundingOperation["status"];
+    limit?: number;
+  }): Promise<FundingOperation[]> {
+    const limit = filter?.limit ?? 50;
+    const matches: FundingOperation[] = [];
+    for (const operation of this.fundingOperations.values()) {
+      if (filter?.status && operation.status !== filter.status) continue;
+      matches.push(structuredClone(operation));
+    }
+    matches.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+    return matches.slice(0, limit);
+  }
+
+  async listContacts(
+    owner: string,
+    options: ContactQueryOptions = {},
+  ): Promise<import("./repository").Page<Contact>> {
+    const { paginate, PAGINATED_QUERY_ORDERINGS } = await import("./repository");
+    const normOwner = owner.toUpperCase().trim();
+    const limit = options.limit ?? 25;
+    const query = options.query?.trim().toLowerCase();
+
+    const filtered: Contact[] = [];
+    for (const contact of this.contacts.values()) {
+      if (contact.owner.toUpperCase().trim() !== normOwner) {
+        continue;
+      }
+      if (query) {
+        const haystack =
+          `${contact.name} ${contact.address} ${contact.canonicalAddress ?? ""}`.toLowerCase();
+        if (!haystack.includes(query)) {
+          continue;
+        }
+      }
+      filtered.push(structuredClone(contact));
+    }
+
+    const spec = PAGINATED_QUERY_ORDERINGS.listContacts;
+    return paginate(filtered, spec, { limit, after: options.after });
+  }
+
+  async getContact(owner: string, contactId: string): Promise<Contact | null> {
+    const contact = this.contacts.get(this.contactKey(owner, contactId));
+    return contact ? structuredClone(contact) : null;
+  }
+
+  async createContact(contact: Contact): Promise<Contact> {
+    const key = this.contactKey(contact.owner, contact.contactId);
+    if (this.contacts.has(key)) {
+      throw new ApiError(409, "conflict", `A contact already exists for ${contact.contactId}`);
+    }
+    const stored = structuredClone(contact);
+    this.contacts.set(key, stored);
+    return structuredClone(stored);
+  }
+
+  async updateContact(contact: Contact, expectedVersion: number): Promise<UpdateContactResult> {
+    const key = this.contactKey(contact.owner, contact.contactId);
+    const existing = this.contacts.get(key);
+    if (!existing) {
+      return { updated: false, current: null };
+    }
+    if (existing.version !== expectedVersion) {
+      return { updated: false, current: structuredClone(existing) };
+    }
+    const updated = { ...contact, version: expectedVersion + 1 };
+    this.contacts.set(key, updated);
+    return { updated: true, contact: structuredClone(updated) };
+  }
+
+  async deleteContact(owner: string, contactId: string): Promise<void> {
+    const key = this.contactKey(owner, contactId);
+    if (!this.contacts.has(key)) {
+      throw new ApiError(404, "not_found", `No contact found for ${contactId}`);
+    }
+    this.contacts.delete(key);
+  }
+
+  private contactKey(owner: string, contactId: string): string {
+    return `${owner.toUpperCase().trim()}:${contactId}`;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Issue #1965 (BETA-058) — Live drafts CRUD
+  // ---------------------------------------------------------------------------
+
+  async listDrafts(
+    owner: string,
+    options: DraftQueryOptions = {},
+  ): Promise<import("./repository").Page<DraftRecord>> {
+    const normOwner = owner.toUpperCase().trim();
+    const limit = options.limit ?? 25;
+    const { paginate, PAGINATED_QUERY_ORDERINGS } = await import("./repository");
+
+    const matched: DraftRecord[] = [];
+    for (const draft of this.drafts.values()) {
+      if (draft.owner.toUpperCase().trim() === normOwner) {
+        matched.push(structuredClone(draft));
+      }
+    }
+
+    const spec = PAGINATED_QUERY_ORDERINGS.listDrafts;
+    return paginate(matched, spec, { limit, after: options.after });
+  }
+
+  async getDraft(owner: string, draftId: string): Promise<DraftRecord | null> {
+    const draft = this.drafts.get(this.draftKey(owner, draftId));
+    return draft ? structuredClone(draft) : null;
+  }
+
+  async createDraft(draft: DraftRecord): Promise<DraftRecord> {
+    const key = this.draftKey(draft.owner, draft.draftId);
+    if (this.drafts.has(key)) {
+      throw new ApiError(409, "conflict", `A draft already exists for ${draft.draftId}`);
+    }
+    const stored = structuredClone(draft);
+    this.drafts.set(key, stored);
+    return structuredClone(stored);
+  }
+
+  async updateDraft(draft: DraftRecord, expectedVersion: number): Promise<UpdateDraftResult> {
+    const key = this.draftKey(draft.owner, draft.draftId);
+    const existing = this.drafts.get(key);
+    if (!existing) {
+      return { updated: false, current: null };
+    }
+    if (existing.version !== expectedVersion) {
+      return { updated: false, current: structuredClone(existing) };
+    }
+    const updated = { ...draft, version: expectedVersion + 1 };
+    this.drafts.set(key, updated);
+    return { updated: true, draft: structuredClone(updated) };
+  }
+
+  async deleteDraft(owner: string, draftId: string): Promise<void> {
+    const key = this.draftKey(owner, draftId);
+    if (!this.drafts.has(key)) {
+      throw new ApiError(404, "not_found", `No draft found for ${draftId}`);
+    }
+    this.drafts.delete(key);
+  }
+
+  private draftKey(owner: string, draftId: string): string {
+    return `${owner.toUpperCase().trim()}:${draftId}`;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Issue #1952 (BETA-045) — Durable jobs, retries, DLQ, and receipt indexing
+  // ---------------------------------------------------------------------------
+
+  async enqueueJob(job: DurableJob): Promise<{ enqueued: boolean; job: DurableJob }> {
+    const existingId = this.jobsByIdempotencyKey.get(job.idempotencyKey);
+    if (existingId) {
+      const existing = this.jobs.get(existingId);
+      if (existing) {
+        return { enqueued: false, job: structuredClone(existing) };
+      }
+    }
+
+    const stored = structuredClone(job);
+    this.jobs.set(stored.jobId, stored);
+    this.jobsByIdempotencyKey.set(stored.idempotencyKey, stored.jobId);
+    return { enqueued: true, job: structuredClone(stored) };
+  }
+
+  async getJob(jobId: string): Promise<DurableJob | null> {
+    const job = this.jobs.get(jobId);
+    return job ? structuredClone(job) : null;
+  }
+
+  async getJobByIdempotencyKey(key: string): Promise<DurableJob | null> {
+    const jobId = this.jobsByIdempotencyKey.get(key);
+    if (!jobId) return null;
+    return this.getJob(jobId);
+  }
+
+  async updateJob(job: DurableJob): Promise<DurableJob> {
+    const stored = structuredClone(job);
+    this.jobs.set(stored.jobId, stored);
+    this.jobsByIdempotencyKey.set(stored.idempotencyKey, stored.jobId);
+    return structuredClone(stored);
+  }
+
+  async claimNextPendingJob(
+    types?: DurableJobType[],
+    now = new Date(),
+  ): Promise<DurableJob | null> {
+    const nowTime = now.getTime();
+    for (const job of this.jobs.values()) {
+      if (job.status === "pending" && new Date(job.nextRunAt).getTime() <= nowTime) {
+        if (!types || types.includes(job.type)) {
+          const claimed: DurableJob = {
+            ...job,
+            status: "running",
+            updatedAt: now.toISOString(),
+          };
+          this.jobs.set(claimed.jobId, claimed);
+          return structuredClone(claimed);
+        }
+      }
+    }
+    return null;
+  }
+
+  async listJobs(filter?: {
+    type?: DurableJobType;
+    status?: JobStatus;
+    limit?: number;
+  }): Promise<DurableJob[]> {
+    const limit = filter?.limit ?? 50;
+    const matches: DurableJob[] = [];
+    for (const job of this.jobs.values()) {
+      if (filter?.type && job.type !== filter.type) continue;
+      if (filter?.status && job.status !== filter.status) continue;
+      matches.push(structuredClone(job));
+    }
+    matches.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return matches.slice(0, limit);
+  }
+
+  async createDeadLetter(deadLetter: DeadLetter): Promise<DeadLetter> {
+    const stored = structuredClone(deadLetter);
+    this.deadLetters.set(stored.deadLetterId, stored);
+    return structuredClone(stored);
+  }
+
+  async getDeadLetter(deadLetterId: string): Promise<DeadLetter | null> {
+    const dl = this.deadLetters.get(deadLetterId);
+    return dl ? structuredClone(dl) : null;
+  }
+
+  async listDeadLetters(filter?: {
+    jobType?: DurableJobType;
+    status?: DeadLetterStatus;
+    limit?: number;
+  }): Promise<DeadLetter[]> {
+    const limit = filter?.limit ?? 50;
+    const matches: DeadLetter[] = [];
+    for (const dl of this.deadLetters.values()) {
+      if (filter?.jobType && dl.jobType !== filter.jobType) continue;
+      if (filter?.status && dl.status !== filter.status) continue;
+      matches.push(structuredClone(dl));
+    }
+    matches.sort(
+      (a, b) => new Date(b.deadLetteredAt).getTime() - new Date(a.deadLetteredAt).getTime(),
+    );
+    return matches.slice(0, limit);
+  }
+
+  async updateDeadLetter(deadLetter: DeadLetter): Promise<DeadLetter> {
+    const stored = structuredClone(deadLetter);
+    this.deadLetters.set(stored.deadLetterId, stored);
+    return structuredClone(stored);
+  }
+
+  async getReceiptCheckpoint(streamId: string): Promise<ReceiptCheckpoint | null> {
+    const cp = this.receiptCheckpoints.get(streamId);
+    return cp ? structuredClone(cp) : null;
+  }
+
+  async setReceiptCheckpoint(checkpoint: ReceiptCheckpoint): Promise<ReceiptCheckpoint> {
+    const stored = structuredClone(checkpoint);
+    this.receiptCheckpoints.set(checkpoint.streamId, stored);
+    return structuredClone(stored);
+  }
+
   reset() {
     this.policies.clear();
     this.policyWriteIntents.clear();
     this.postage.clear();
     this.receipts.clear();
+    this.deliveryStatuses.clear();
     this.senderRules.clear();
+    this.senderRuleRecords.clear();
     this.counters.clear();
     this.idempotency.clear();
     this.externalWallets.clear();
@@ -718,12 +1792,19 @@ export class MemoryApiRepository implements ApiRepository {
     this.receiptLocks.clear();
     this.envelopes.clear();
     this.envelopeLocks.clear();
+    this.senderRequests.clear();
+    this.senderRequestLocks.clear();
     this.usersById.clear();
     this.usersByEmail.clear();
     this.usersByUsername.clear();
     this.usersByAddress.clear();
     this.profiles.clear();
     this.credentials.clear();
+    this.provisioning.clear();
+    this.usernameReservations.clear();
+    this.wallets.clear();
+    this.onboardingDrafts.clear();
+    this.keyLocks.clear();
     this.sessions.clear();
     this.retiredSessions.clear();
     this.verificationTokens.clear();
@@ -732,5 +1813,43 @@ export class MemoryApiRepository implements ApiRepository {
     this.keyDirectories.clear();
     this.publishedKeys.clear();
     this.keyDirectoryLocks.clear();
+    this.managedWallets.clear();
+    this.fundingOperations.clear();
+    this.contacts.clear();
+    this.drafts.clear();
+    this.jobs.clear();
+    this.jobsByIdempotencyKey.clear();
+    this.deadLetters.clear();
+    this.receiptCheckpoints.clear();
+    this.jobLocks.clear();
+    this.sendOperations.clear();
+    this.recoveryCodeSets.clear();
+    this.recoveryCodeSetLocks.clear();
+  }
+
+  async getSendOperation(messageId: string): Promise<import("./domain").SendOperationState | null> {
+    return structuredClone(this.sendOperations.get(messageId) ?? null);
+  }
+
+  async setSendOperation(
+    state: import("./domain").SendOperationState,
+  ): Promise<import("./domain").SendOperationState> {
+    const stored = structuredClone(state);
+    this.sendOperations.set(state.messageId, stored);
+    return structuredClone(stored);
+  }
+
+  async createSendOperationIfAbsent(
+    state: import("./domain").SendOperationState,
+  ): Promise<{ created: boolean; state: import("./domain").SendOperationState }> {
+    return this.withKeyLock(`send-op:${state.messageId}`, async () => {
+      const existing = this.sendOperations.get(state.messageId);
+      if (existing) {
+        return { created: false, state: structuredClone(existing) };
+      }
+      const stored = structuredClone(state);
+      this.sendOperations.set(state.messageId, stored);
+      return { created: true, state: structuredClone(stored) };
+    });
   }
 }

@@ -239,7 +239,11 @@ export function validateField(
   switch (field) {
     case "subject": {
       if (typeof value !== "string") {
-        return { field, message: "Subject must be a string.", code: "invalid-type" };
+        return {
+          field,
+          message: "Subject must be a string.",
+          code: "invalid-type",
+        };
       }
       if (!opts.allowEmptySubject && value.trim().length === 0) {
         return { field, message: "Subject is required.", code: "required" };
@@ -256,7 +260,11 @@ export function validateField(
 
     case "bodyText": {
       if (typeof value !== "string") {
-        return { field, message: "Body text must be a string.", code: "invalid-type" };
+        return {
+          field,
+          message: "Body text must be a string.",
+          code: "invalid-type",
+        };
       }
       if (value.trim().length === 0) {
         return { field, message: "Body text cannot be empty.", code: "empty" };
@@ -273,7 +281,11 @@ export function validateField(
 
     case "tone": {
       if (typeof value !== "string") {
-        return { field, message: "Tone must be a string.", code: "invalid-type" };
+        return {
+          field,
+          message: "Tone must be a string.",
+          code: "invalid-type",
+        };
       }
       if (!SUPPORTED_TONES.includes(value as ToneId)) {
         return {
@@ -288,10 +300,18 @@ export function validateField(
     case "maxWords": {
       if (value === undefined || value === null) return null;
       if (!Number.isInteger(value)) {
-        return { field, message: "maxWords must be an integer.", code: "invalid-type" };
+        return {
+          field,
+          message: "maxWords must be an integer.",
+          code: "invalid-type",
+        };
       }
       if ((value as number) < 1) {
-        return { field, message: "maxWords must be a positive integer.", code: "out-of-range" };
+        return {
+          field,
+          message: "maxWords must be a positive integer.",
+          code: "out-of-range",
+        };
       }
       if ((value as number) > opts.maxWordsLimit!) {
         return {
@@ -304,7 +324,11 @@ export function validateField(
     }
 
     default:
-      return { field, message: `Unknown field: ${field}.`, code: "unknown-field" };
+      return {
+        field,
+        message: `Unknown field: ${field}.`,
+        code: "unknown-field",
+      };
   }
 }
 

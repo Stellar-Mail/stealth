@@ -15,6 +15,13 @@ export const openApiDocument = {
   ],
   components: {
     securitySchemes: {
+      SessionCookie: {
+        type: "apiKey",
+        in: "cookie",
+        name: "stealth_session",
+        description:
+          "Server-issued session cookie set by POST /auth/login and POST /auth/recovery/redeem; HttpOnly.",
+      },
       StellarSignedRequest: {
         type: "http",
         scheme: "bearer",
@@ -56,6 +63,114 @@ export const openApiDocument = {
           },
         },
       },
+      RecoveryCodeRedeemRequest: {
+        type: "object",
+        required: ["identifier", "code"],
+        additionalProperties: false,
+        properties: {
+          identifier: {
+            type: "string",
+            description: "Account email or username for the code set.",
+          },
+          code: {
+            type: "string",
+            description:
+              "A single unused recovery code. Normalization tolerates case and separator differences.",
+          },
+        },
+      },
+      RecoveryCodeRedeemResponse: {
+        type: "object",
+        required: ["user", "session"],
+        additionalProperties: false,
+        properties: {
+          user: {
+            type: "object",
+            required: [
+              "userId",
+              "address",
+              "email",
+              "username",
+              "status",
+              "createdAt",
+              "updatedAt",
+            ],
+            additionalProperties: false,
+            properties: {
+              userId: { type: "string" },
+              address: { type: "string" },
+              email: { type: "string", format: "email" },
+              username: { type: "string" },
+              status: {
+                type: "string",
+                enum: ["active", "suspended", "pending_verification", "deactivated"],
+              },
+              createdAt: { type: "string", format: "date-time" },
+              updatedAt: { type: "string", format: "date-time" },
+            },
+          },
+          session: {
+            type: "object",
+            required: ["sessionId", "userId", "createdAt", "expiresAt", "lastActiveAt"],
+            additionalProperties: false,
+            properties: {
+              sessionId: { type: "string" },
+              userId: { type: "string" },
+              createdAt: { type: "string", format: "date-time" },
+              expiresAt: { type: "string", format: "date-time" },
+              lastActiveAt: { type: "string", format: "date-time" },
+              absoluteExpiresAt: { type: "string", format: "date-time" },
+            },
+          },
+        },
+      },
+      RecoveryCodeRegenerateResponse: {
+        type: "object",
+        required: ["status", "totalCodes", "remainingCodes", "generatedAt", "codes"],
+        additionalProperties: false,
+        properties: {
+          status: { type: "string", enum: ["active"] },
+          totalCodes: { type: "integer" },
+          remainingCodes: { type: "integer" },
+          generatedAt: { type: "string", format: "date-time", nullable: true },
+          codes: {
+            type: "array",
+            items: {
+              type: "string",
+              pattern: "^[A-Z2-7]{4}-[A-Z2-7]{4}-[A-Z2-7]{4}-[A-Z2-7]{4}$",
+            },
+            description:
+              "Plaintext codes. Returned exactly once at regeneration time and never persisted server-side.",
+          },
+        },
+      },
+      RecoveryCodeStatus: {
+        type: "object",
+        required: ["status", "totalCodes", "remainingCodes", "generatedAt"],
+        additionalProperties: false,
+        properties: {
+          status: {
+            type: "string",
+            enum: ["none", "active", "exhausted"],
+            description:
+              "Account recovery state. 'none' when no set was ever created; 'exhausted' when every code has been consumed.",
+          },
+          totalCodes: {
+            type: "integer",
+            description: "Number of codes provisioned in the set.",
+          },
+          remainingCodes: {
+            type: "integer",
+            description: "Number of unused codes still redeemable.",
+          },
+          generatedAt: {
+            type: "string",
+            format: "date-time",
+            nullable: true,
+            description: "When the current set was generated; null when 'none'.",
+          },
+        },
+      },
       SuccessEnvelope: {
         type: "object",
         required: ["data", "meta"],
@@ -76,6 +191,7 @@ export const openApiDocument = {
           code: {
             type: "string",
             description: "Stable domain error code.",
+            "x-optic-ignore": true,
             enum: API_ERROR_CODES,
             example: "invalid_state_transition",
           },
@@ -393,7 +509,7 @@ export const openApiDocument = {
           rule: {
             type: "string",
             description: "Applied sender override rule.",
-            enum: ["allow", "block", "default"],
+            enum: ["allow", "block", "default", "verify", "price"],
           },
         },
       },
@@ -401,6 +517,222 @@ export const openApiDocument = {
         type: "string",
         enum: ["permanent", "transient", "rate_limit", "conflict"],
         description: "Stable machine-readable classification of retry eligibility.",
+      },
+      ProvisioningStatus: {
+        type: "string",
+        enum: ["pending", "retryable", "active", "failed"],
+        description: "State of the transactional account-provisioning state machine.",
+      },
+      ProvisioningStep: {
+        type: "string",
+        enum: [
+          "username_reservation",
+          "profile_defaults",
+          "wallet_creation",
+          "mailbox_policy_init",
+        ],
+        description: "A single idempotent step of the provisioning flow.",
+      },
+      ProvisioningFailure: {
+        type: "object",
+        required: ["step", "code", "message", "failedAt"],
+        properties: {
+          step: {
+            $ref: "#/components/schemas/ProvisioningStep",
+          },
+          code: {
+            type: "string",
+            description: "Stable domain error code of the failing step.",
+          },
+          message: {
+            type: "string",
+            description: "Human-readable failure explanation.",
+          },
+          failedAt: {
+            type: "string",
+            format: "date-time",
+          },
+        },
+      },
+      ProvisioningProgress: {
+        type: "object",
+        required: ["status", "requestedUsername", "completedSteps", "currentStep", "attempts"],
+        properties: {
+          status: {
+            $ref: "#/components/schemas/ProvisioningStatus",
+          },
+          requestedUsername: {
+            type: "string",
+            pattern: "^[a-z0-9_-]{3,30}$",
+          },
+          completedSteps: {
+            type: "array",
+            items: {
+              $ref: "#/components/schemas/ProvisioningStep",
+            },
+          },
+          currentStep: {
+            $ref: "#/components/schemas/ProvisioningStep",
+          },
+          attempts: {
+            type: "integer",
+            minimum: 0,
+            description: "Number of flow runs attempted so far.",
+          },
+          failure: {
+            allOf: [
+              {
+                $ref: "#/components/schemas/ProvisioningFailure",
+              },
+              {
+                nullable: true,
+              },
+            ],
+          },
+          updatedAt: {
+            type: "string",
+            format: "date-time",
+          },
+        },
+      },
+      OnboardingStep: {
+        type: "string",
+        enum: [
+          "profile",
+          "stealth-address",
+          "recovery",
+          "sender-policy",
+          "postage",
+          "receipts",
+          "review",
+        ],
+      },
+      OnboardingSenderPolicy: {
+        type: "string",
+        enum: ["request", "verified", "block"],
+      },
+      OnboardingDraftFields: {
+        type: "object",
+        required: [
+          "displayName",
+          "recoveryAcknowledged",
+          "unknownSenderRule",
+          "minimumPostage",
+          "receiptOnDelivery",
+        ],
+        additionalProperties: false,
+        properties: {
+          displayName: {
+            type: "string",
+            minLength: 1,
+            maxLength: 80,
+            description: "Display name shown to senders and contacts.",
+          },
+          recoveryAcknowledged: {
+            type: "boolean",
+            description: "Confirms the user secured account recovery. Required to complete.",
+          },
+          unknownSenderRule: {
+            $ref: "#/components/schemas/OnboardingSenderPolicy",
+          },
+          minimumPostage: {
+            type: "string",
+            pattern: "^\\d*\\.?\\d{0,7}$",
+            description: "Minimum postage as an XLM decimal string.",
+          },
+          receiptOnDelivery: {
+            type: "boolean",
+            description: "Emits cryptographically verifiable read receipts on delivery.",
+          },
+        },
+      },
+      OnboardingDraft: {
+        type: "object",
+        required: [
+          "status",
+          "step",
+          "displayName",
+          "recoveryAcknowledged",
+          "unknownSenderRule",
+          "minimumPostage",
+          "receiptOnDelivery",
+          "updatedAt",
+          "completedAt",
+        ],
+        additionalProperties: false,
+        properties: {
+          status: {
+            type: "string",
+            enum: ["in_progress", "completed"],
+          },
+          step: {
+            $ref: "#/components/schemas/OnboardingStep",
+          },
+          displayName: {
+            type: "string",
+          },
+          recoveryAcknowledged: {
+            type: "boolean",
+          },
+          unknownSenderRule: {
+            $ref: "#/components/schemas/OnboardingSenderPolicy",
+          },
+          minimumPostage: {
+            type: "string",
+          },
+          receiptOnDelivery: {
+            type: "boolean",
+          },
+          updatedAt: {
+            type: "string",
+            format: "date-time",
+          },
+          completedAt: {
+            type: "string",
+            format: "date-time",
+            nullable: true,
+          },
+        },
+      },
+      OnboardingDraftSaveRequest: {
+        type: "object",
+        required: ["step", "draft"],
+        additionalProperties: false,
+        properties: {
+          step: {
+            $ref: "#/components/schemas/OnboardingStep",
+          },
+          draft: {
+            $ref: "#/components/schemas/OnboardingDraftFields",
+          },
+        },
+      },
+      OnboardingCompleteRequest: {
+        type: "object",
+        required: ["draft"],
+        additionalProperties: false,
+        properties: {
+          draft: {
+            $ref: "#/components/schemas/OnboardingDraftFields",
+          },
+        },
+      },
+      OnboardingCompleteResponse: {
+        type: "object",
+        required: ["alreadyCompleted", "draft", "policy"],
+        additionalProperties: false,
+        properties: {
+          alreadyCompleted: {
+            type: "boolean",
+            description: "True when this response replayed an already-completed onboarding.",
+          },
+          draft: {
+            $ref: "#/components/schemas/OnboardingDraft",
+          },
+          policy: {
+            $ref: "#/components/schemas/ChainMailboxPolicy",
+          },
+        },
       },
       ErrorEnvelope: {
         type: "object",
@@ -415,7 +747,10 @@ export const openApiDocument = {
               code: {
                 type: "string",
                 description: "Stable domain-specific error code.",
-                enum: API_ERROR_CODES,
+                "x-optic-ignore": true,
+                enum: API_ERROR_CODES.filter(
+                  (c) => c !== "recent_auth_required" && c !== "chain_error",
+                ),
               },
               message: {
                 type: "string",
@@ -494,7 +829,10 @@ export const openApiDocument = {
               },
             },
           },
-          timeoutMs: { type: "integer", description: "Readiness probe timeout." },
+          timeoutMs: {
+            type: "integer",
+            description: "Readiness probe timeout.",
+          },
         },
       },
       RelayVersion: {
@@ -503,7 +841,10 @@ export const openApiDocument = {
         additionalProperties: false,
         properties: {
           app: { type: "string", enum: ["stealth-relay"] },
-          apiVersion: { type: "string", description: "Stealth Mail API version." },
+          apiVersion: {
+            type: "string",
+            description: "Stealth Mail API version.",
+          },
           protocolVersion: { type: "string", description: "Protocol version." },
           build: { type: "string", description: "Build version string." },
         },
@@ -528,22 +869,689 @@ export const openApiDocument = {
             type: "integer",
             description: "Delivery TTL in milliseconds.",
           },
+          postage: {
+            $ref: "#/components/schemas/StroopAmount",
+            description: "Attached postage in stroops. Defaults to 0 when omitted.",
+          },
+          verified: {
+            type: "boolean",
+            description: "Whether the sender identity has been verified. Defaults to false.",
+          },
+          receipt: {
+            type: "boolean",
+            description: "Whether the submission includes a delivery-receipt commitment.",
+          },
+        },
+      },
+      RelayAdmissionDecision: {
+        type: "object",
+        required: ["allowed", "kind", "reason", "policyVersion", "requiredPostage"],
+        additionalProperties: false,
+        properties: {
+          allowed: { type: "boolean" },
+          kind: {
+            type: "string",
+            enum: ["trusted", "request", "verified", "priced", "blocked"],
+            description: "Sender-actionable admission class.",
+          },
+          reason: {
+            type: "string",
+            enum: [
+              "sender_allowed",
+              "sender_blocked",
+              "unknown_senders_disabled",
+              "verification_required",
+              "receipt_required",
+              "insufficient_postage",
+              "policy_satisfied",
+              "tier_satisfied",
+            ],
+          },
+          policyVersion: {
+            type: "integer",
+            description: "Policy version evaluated at admission time. Immutable on the message.",
+          },
+          requiredPostage: {
+            $ref: "#/components/schemas/StroopAmount",
+          },
         },
       },
       RelaySubmissionResult: {
         type: "object",
-        required: ["accepted", "messageId", "queueDepth", "service"],
+        required: ["accepted", "messageId", "queueDepth", "service", "replayed", "admission"],
         additionalProperties: false,
         properties: {
           accepted: { type: "boolean", enum: [true] },
           messageId: { $ref: "#/components/schemas/Hash32" },
           queueDepth: { type: "integer" },
           service: { type: "string", description: "Service name." },
+          replayed: {
+            type: "boolean",
+            description:
+              "True when this messageId was already admitted and the original decision was returned.",
+          },
+          admission: { $ref: "#/components/schemas/RelayAdmissionDecision" },
+        },
+      },
+      LifecycleAnchor: {
+        type: "object",
+        required: [
+          "messageId",
+          "sender",
+          "recipient",
+          "amount",
+          "verified",
+          "receiptRequired",
+          "status",
+          "scheduledAt",
+          "updatedAt",
+        ],
+        additionalProperties: false,
+        description:
+          "Durable record of a message commitment anchored to the on-chain Lifecycle contract. Only the commitment and non-secret envelope metadata appear; plaintext or private payload metadata are never stored or submitted.",
+        properties: {
+          messageId: {
+            $ref: "#/components/schemas/Hash32",
+            description: "Message commitment (hash32).",
+          },
+          sender: { $ref: "#/components/schemas/StellarAddress" },
+          recipient: { $ref: "#/components/schemas/StellarAddress" },
+          amount: {
+            $ref: "#/components/schemas/StroopAmount",
+            description: "On-chain postage amount in stroops carried into the bind call.",
+          },
+          verified: { type: "boolean" },
+          receiptRequired: { type: "boolean" },
+          status: {
+            type: "string",
+            enum: ["pending", "submitted", "confirmed", "failed"],
+          },
+          scheduledAt: { type: "string", format: "date-time" },
+          updatedAt: { type: "string", format: "date-time" },
+          failureCount: { type: "integer", minimum: 0 },
+          lastError: {
+            type: "string",
+            nullable: true,
+            description: "Redacted failure reason; never contains secrets.",
+          },
+          txHash: {
+            type: "string",
+            nullable: true,
+            description: "On-chain transaction hash reference.",
+          },
+        },
+      },
+      Contact: {
+        type: "object",
+        required: [
+          "contactId",
+          "owner",
+          "name",
+          "address",
+          "canonicalAddress",
+          "trust",
+          "source",
+          "createdAt",
+          "updatedAt",
+          "version",
+        ],
+        additionalProperties: false,
+        properties: {
+          contactId: { type: "string", description: "Unique contact identifier." },
+          owner: {
+            type: "string",
+            description: "Stellar account that owns this contact.",
+            pattern: "^G[A-Z2-7]{55}$",
+          },
+          name: { type: "string", maxLength: 200, description: "Display name." },
+          address: {
+            type: "string",
+            maxLength: 300,
+            description: "Raw address identifier (G-address, email, or handle).",
+          },
+          canonicalAddress: {
+            anyOf: [{ type: "string", pattern: "^G[A-Z2-7]{55}$" }, { type: "null" }],
+            description: "Resolved canonical G-address, or null until resolved.",
+          },
+          trust: {
+            type: "string",
+            enum: ["default", "allow", "block"],
+            description: "Sender rule. Never applied to policy unless the owner opts in.",
+          },
+          source: {
+            type: "string",
+            enum: ["manual", "csv", "vcard", "api"],
+            description: "Origin of this contact row.",
+          },
+          createdAt: { type: "string", format: "date-time" },
+          updatedAt: { type: "string", format: "date-time" },
+          version: {
+            type: "integer",
+            minimum: 1,
+            description: "Optimistic concurrency version.",
+          },
+        },
+      },
+      ContactResolution: {
+        type: "object",
+        required: ["senderRule", "senderRuleConfigured"],
+        additionalProperties: false,
+        properties: {
+          identity: {
+            anyOf: [
+              {
+                type: "object",
+                required: [
+                  "identifier",
+                  "canonicalAddress",
+                  "account",
+                  "resolved",
+                  "status",
+                  "publicKey",
+                  "encryptionKeyVersion",
+                  "policyEndpoint",
+                  "freshness",
+                ],
+                additionalProperties: true,
+                properties: {
+                  identifier: { type: "string" },
+                  canonicalAddress: { type: "string" },
+                  account: { anyOf: [{ type: "string" }, { type: "null" }] },
+                  resolved: { type: "boolean" },
+                  status: { type: "string" },
+                  publicKey: { anyOf: [{ type: "string" }, { type: "null" }] },
+                  encryptionKeyVersion: { anyOf: [{ type: "integer" }, { type: "null" }] },
+                  policyEndpoint: { anyOf: [{ type: "string" }, { type: "null" }] },
+                  freshness: { type: "string", enum: ["fresh", "stale", "unknown"] },
+                  memo: { type: "string" },
+                  memoType: { type: "string", enum: ["text", "id", "hash"] },
+                },
+              },
+              { type: "null" },
+            ],
+            description: "Resolved identity, or null when resolution failed or is pending.",
+          },
+          keyDirectory: {
+            anyOf: [
+              {
+                type: "object",
+                description: "Live key directory entry for the canonical address.",
+                additionalProperties: true,
+              },
+              { type: "null" },
+            ],
+          },
+          senderRule: {
+            type: "string",
+            enum: ["default", "allow", "block"],
+          },
+          senderRuleConfigured: {
+            type: "boolean",
+            description: "True when the owner has an explicit policy rule for this address.",
+          },
+        },
+      },
+      ContactWithResolution: {
+        type: "object",
+        required: ["contact", "resolution"],
+        additionalProperties: false,
+        properties: {
+          contact: { $ref: "#/components/schemas/Contact" },
+          resolution: { $ref: "#/components/schemas/ContactResolution" },
+        },
+      },
+      ContactListResult: {
+        type: "object",
+        required: ["items", "nextContinuationKey"],
+        additionalProperties: false,
+        properties: {
+          items: {
+            type: "array",
+            items: { $ref: "#/components/schemas/ContactWithResolution" },
+          },
+          nextContinuationKey: {
+            anyOf: [{ type: "string" }, { type: "null" }],
+            description: "Cursor for the next page, or null at the end.",
+          },
+        },
+      },
+      ContactMergeResult: {
+        type: "object",
+        required: ["contact", "resolution"],
+        additionalProperties: false,
+        description: "The surviving contact after merging, re-resolved against live state.",
+        properties: {
+          contact: { $ref: "#/components/schemas/Contact" },
+          resolution: { $ref: "#/components/schemas/ContactResolution" },
+        },
+      },
+      ContactImportPreviewResult: {
+        type: "object",
+        required: [
+          "format",
+          "totalRows",
+          "validRows",
+          "duplicateRows",
+          "errorRows",
+          "truncated",
+          "limit",
+          "rows",
+        ],
+        additionalProperties: false,
+        properties: {
+          format: { type: "string", enum: ["csv", "vcard"] },
+          totalRows: { type: "integer", minimum: 0 },
+          validRows: { type: "integer", minimum: 0 },
+          duplicateRows: { type: "integer", minimum: 0 },
+          errorRows: { type: "integer", minimum: 0 },
+          truncated: {
+            type: "boolean",
+            description: "True when parsing stopped at the row limit.",
+          },
+          limit: {
+            type: "object",
+            required: ["maxRows"],
+            properties: { maxRows: { type: "integer", minimum: 1 } },
+          },
+          rows: {
+            type: "array",
+            items: {
+              type: "object",
+              required: ["rowNumber", "name", "address", "status"],
+              additionalProperties: false,
+              properties: {
+                rowNumber: { type: "integer", minimum: 1 },
+                name: { type: "string" },
+                address: { type: "string" },
+                status: { type: "string", enum: ["valid", "duplicate", "error"] },
+                error: { anyOf: [{ type: "string" }, { type: "null" }] },
+                canonicalAddress: {
+                  anyOf: [{ type: "string", pattern: "^G[A-Z2-7]{55}$" }, { type: "null" }],
+                },
+                identityStatus: { anyOf: [{ type: "string" }, { type: "null" }] },
+                keyFreshness: { anyOf: [{ type: "string" }, { type: "null" }] },
+                existing: {
+                  anyOf: [
+                    {
+                      type: "object",
+                      required: ["contactId", "trust"],
+                      properties: {
+                        contactId: { type: "string" },
+                        trust: { type: "string", enum: ["default", "allow", "block"] },
+                      },
+                    },
+                    { type: "null" },
+                  ],
+                },
+              },
+            },
+          },
+        },
+      },
+      ContactImportCommitResult: {
+        type: "object",
+        required: [
+          "created",
+          "updated",
+          "unchanged",
+          "rejected",
+          "total",
+          "appliedRules",
+          "contacts",
+        ],
+        additionalProperties: false,
+        properties: {
+          created: { type: "integer", minimum: 0 },
+          updated: { type: "integer", minimum: 0 },
+          unchanged: { type: "integer", minimum: 0 },
+          rejected: { type: "integer", minimum: 0 },
+          total: { type: "integer", minimum: 0 },
+          appliedRules: {
+            type: "integer",
+            minimum: 0,
+            description: "Sender rules applied to policy; only when applyTrust was requested.",
+          },
+          contacts: { type: "array", items: { $ref: "#/components/schemas/Contact" } },
+        },
+      },
+      DraftAttachmentDescriptor: {
+        type: "object",
+        required: ["filename", "contentType", "sizeBytes"],
+        additionalProperties: false,
+        properties: {
+          filename: { type: "string", maxLength: 255 },
+          contentType: { type: "string" },
+          sizeBytes: { type: "integer", minimum: 0 },
+          contentHash: { type: "string", description: "Optional SHA-256 hash." },
+        },
+      },
+      Draft: {
+        type: "object",
+        required: [
+          "draftId",
+          "owner",
+          "to",
+          "cc",
+          "bcc",
+          "subject",
+          "body",
+          "attachments",
+          "version",
+          "createdAt",
+          "updatedAt",
+        ],
+        additionalProperties: false,
+        properties: {
+          draftId: { type: "string", description: "Unique draft identifier." },
+          owner: { $ref: "#/components/schemas/StellarAddress" },
+          to: { type: "array", items: { type: "string" } },
+          cc: { type: "array", items: { type: "string" } },
+          bcc: { type: "array", items: { type: "string" } },
+          subject: { type: "string" },
+          body: { type: "string" },
+          attachments: {
+            type: "array",
+            items: { $ref: "#/components/schemas/DraftAttachmentDescriptor" },
+          },
+          version: { type: "integer", minimum: 1, description: "Monotonic revision version." },
+          createdAt: { type: "string", format: "date-time" },
+          updatedAt: { type: "string", format: "date-time" },
+        },
+      },
+      DraftListResult: {
+        type: "object",
+        required: ["items", "nextContinuationKey"],
+        additionalProperties: false,
+        properties: {
+          items: {
+            type: "array",
+            items: { $ref: "#/components/schemas/Draft" },
+          },
+          nextContinuationKey: {
+            anyOf: [{ type: "string" }, { type: "null" }],
+            description: "Cursor for the next page, or null at the end.",
+          },
+        },
+      },
+      DraftCreateInput: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          draftId: { type: "string" },
+          to: {
+            oneOf: [{ type: "string" }, { type: "array", items: { type: "string" } }],
+          },
+          cc: {
+            oneOf: [{ type: "string" }, { type: "array", items: { type: "string" } }],
+          },
+          bcc: {
+            oneOf: [{ type: "string" }, { type: "array", items: { type: "string" } }],
+          },
+          subject: { type: "string" },
+          body: { type: "string" },
+          attachments: {
+            type: "array",
+            items: { $ref: "#/components/schemas/DraftAttachmentDescriptor" },
+          },
+        },
+      },
+      DraftUpdateInput: {
+        type: "object",
+        required: ["expectedVersion"],
+        additionalProperties: false,
+        properties: {
+          to: {
+            oneOf: [{ type: "string" }, { type: "array", items: { type: "string" } }],
+          },
+          cc: {
+            oneOf: [{ type: "string" }, { type: "array", items: { type: "string" } }],
+          },
+          bcc: {
+            oneOf: [{ type: "string" }, { type: "array", items: { type: "string" } }],
+          },
+          subject: { type: "string" },
+          body: { type: "string" },
+          attachments: {
+            type: "array",
+            items: { $ref: "#/components/schemas/DraftAttachmentDescriptor" },
+          },
+          expectedVersion: {
+            type: "integer",
+            minimum: 1,
+            description: "Expected current revision for optimistic concurrency control.",
+          },
         },
       },
     },
   },
   paths: {
+    "/auth/recovery/redeem": {
+      post: {
+        operationId: "redeemRecoveryCode",
+        summary: "Recover account access with one recovery code (BETA-010)",
+        description:
+          "Consumes a single unused recovery code, revokes ALL existing sessions for the account, and issues a brand-new session cookie. Unauthenticated by design ╬ô├ç├╢ the code itself is the credential. Idempotent when an x-idempotency-key is supplied.",
+        "x-max-body-bytes": 16 * 1024,
+        "x-idempotency-key-supported": "yes",
+        "x-stability": "beta",
+        requestBody: {
+          description: "Account identifier and a single unused recovery code.",
+          content: {
+            "application/json": {
+              schema: {
+                $ref: "#/components/schemas/RecoveryCodeRedeemRequest",
+              },
+            },
+          },
+        },
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Recovered session (Set-Cookie issued)",
+            content: {
+              "application/json": {
+                schema: {
+                  allOf: [
+                    {
+                      $ref: "#/components/schemas/SuccessEnvelope",
+                    },
+                    {
+                      type: "object",
+                      properties: {
+                        data: {
+                          $ref: "#/components/schemas/RecoveryCodeRedeemResponse",
+                        },
+                      },
+                    },
+                  ],
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized ╬ô├ç├╢ invalid or already used recovery code",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "429": {
+            description: "Too Many Requests ╬ô├ç├╢ brute-force throttling",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/auth/recovery/regenerate": {
+      post: {
+        operationId: "regenerateRecoveryCodes",
+        summary: "Regenerate one-time recovery codes (BETA-010)",
+        description:
+          "Privilege-sensitive action. Requires a session with a recent password login; replaces the stored code set (hashes only), returns the plaintext codes exactly once, and revokes every OTHER session for the account. Idempotent when an x-idempotency-key is supplied.",
+        "x-max-body-bytes": 4 * 1024,
+        "x-idempotency-key-supported": "yes",
+        security: [
+          {
+            SessionCookie: [],
+          },
+        ],
+        "x-stability": "beta",
+        requestBody: {
+          description: "Empty JSON object ({}). The action is driven by the authenticated session.",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                additionalProperties: false,
+              },
+            },
+          },
+        },
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "New recovery code set (plaintext codes, shown once)",
+            content: {
+              "application/json": {
+                schema: {
+                  allOf: [
+                    {
+                      $ref: "#/components/schemas/SuccessEnvelope",
+                    },
+                    {
+                      type: "object",
+                      properties: {
+                        data: {
+                          $ref: "#/components/schemas/RecoveryCodeRegenerateResponse",
+                        },
+                      },
+                    },
+                  ],
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "403": {
+            description: "Forbidden ╬ô├ç├╢ recent login required for regeneration",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "409": {
+            description: "Conflict ╬ô├ç├╢ codes changed concurrently or idempotency replay",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/auth/recovery/status": {
+      get: {
+        operationId: "getRecoveryCodeStatus",
+        summary: "Read recovery-code status (BETA-010)",
+        description:
+          "Recovery-status safety model for the settings UI. Never returns code material ╬ô├ç├╢ only state and counters.",
+        security: [
+          {
+            SessionCookie: [],
+          },
+        ],
+        "x-stability": "beta",
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Recovery status",
+            content: {
+              "application/json": {
+                schema: {
+                  allOf: [
+                    {
+                      $ref: "#/components/schemas/SuccessEnvelope",
+                    },
+                    {
+                      type: "object",
+                      properties: {
+                        data: {
+                          $ref: "#/components/schemas/RecoveryCodeStatus",
+                        },
+                      },
+                    },
+                  ],
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
     "/health": {
       get: {
         operationId: "getHealth",
@@ -1202,7 +2210,7 @@ export const openApiDocument = {
                     },
                   },
                   senderBlocked: {
-                    summary: "Policy Denied — Sender explicitly blocked",
+                    summary: "Policy Denied ΓÇö Sender explicitly blocked",
                     value: {
                       data: {
                         allowed: false,
@@ -1218,7 +2226,7 @@ export const openApiDocument = {
                     },
                   },
                   unknownSendersDisabled: {
-                    summary: "Policy Denied — Unknown senders disabled by recipient policy",
+                    summary: "Policy Denied ΓÇö Unknown senders disabled by recipient policy",
                     value: {
                       data: {
                         allowed: false,
@@ -1235,7 +2243,7 @@ export const openApiDocument = {
                   },
                   insufficientPostage: {
                     summary:
-                      "Policy Denied — Postage provided is below recipient minimum requirement",
+                      "Policy Denied ΓÇö Postage provided is below recipient minimum requirement",
                     value: {
                       data: {
                         allowed: false,
@@ -1251,7 +2259,7 @@ export const openApiDocument = {
                     },
                   },
                   verificationRequired: {
-                    summary: "Policy Denied — Sender identity verification is required",
+                    summary: "Policy Denied ΓÇö Sender identity verification is required",
                     value: {
                       data: {
                         allowed: false,
@@ -1272,7 +2280,7 @@ export const openApiDocument = {
           },
           "400": {
             description:
-              "Bad Request — Invalid request JSON structure or missing Content-Type header",
+              "Bad Request ΓÇö Invalid request JSON structure or missing Content-Type header",
             content: {
               "application/json": {
                 schema: {
@@ -1280,7 +2288,7 @@ export const openApiDocument = {
                 },
                 examples: {
                   invalidJson: {
-                    summary: "Bad Request — Syntax error in JSON body",
+                    summary: "Bad Request ΓÇö Syntax error in JSON body",
                     value: {
                       error: {
                         code: "bad_request",
@@ -1309,7 +2317,7 @@ export const openApiDocument = {
             },
           },
           "422": {
-            description: "Unprocessable Entity — Request payload validation failure",
+            description: "Unprocessable Entity ΓÇö Request payload validation failure",
             content: {
               "application/json": {
                 schema: {
@@ -1317,7 +2325,7 @@ export const openApiDocument = {
                 },
                 examples: {
                   invalidStellarAddress: {
-                    summary: "Validation failure — Malformed Stellar address field",
+                    summary: "Validation failure ΓÇö Malformed Stellar address field",
                     value: {
                       error: {
                         code: "validation_error",
@@ -1341,7 +2349,7 @@ export const openApiDocument = {
                     },
                   },
                   invalidPostageAmount: {
-                    summary: "Validation failure — Malformed postage amount string",
+                    summary: "Validation failure ΓÇö Malformed postage amount string",
                     value: {
                       error: {
                         code: "validation_error",
@@ -1532,6 +2540,150 @@ export const openApiDocument = {
           },
           "500": {
             description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+      patch: {
+        operationId: "transitionPostage",
+        summary: "Transition postage lifecycle state (settle, refund, dispute, expire, reclaim)",
+        "x-max-body-bytes": 8 * 1024,
+        "x-stability": "beta",
+        security: [
+          {
+            StellarSignedRequest: [],
+          },
+        ],
+        requestBody: {
+          description: "The postage lifecycle operation to perform.",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["operation"],
+                additionalProperties: false,
+                properties: {
+                  operation: {
+                    type: "string",
+                    enum: ["settle", "refund", "dispute", "expire", "reclaim"],
+                  },
+                },
+              },
+              examples: {
+                settle: {
+                  summary: "Settle the escrow to the recipient",
+                  value: { operation: "settle" },
+                },
+                refund: {
+                  summary: "Refund the escrow to the sender",
+                  value: { operation: "refund" },
+                },
+                dispute: {
+                  summary: "Dispute a pending escrow within the dispute window",
+                  value: { operation: "dispute" },
+                },
+                expire: {
+                  summary: "Expire a pending escrow",
+                  value: { operation: "expire" },
+                },
+                reclaim: {
+                  summary: "Reclaim an escrow after expiry",
+                  value: { operation: "reclaim" },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Success",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/SuccessEnvelope",
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Bad Request",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "403": {
+            description: "Forbidden",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "404": {
+            description: "Not Found",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "409": {
+            description: "Conflict",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "422": {
+            description: "Unprocessable Entity",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "502": {
+            description: "Bad Gateway — on-chain escrow operation could not be confirmed",
             content: {
               "application/json": {
                 schema: {
@@ -1897,7 +3049,7 @@ export const openApiDocument = {
             },
           },
           "503": {
-            description: "Not Ready — a required dependency is unavailable",
+            description: "Not Ready ΓÇö a required dependency is unavailable",
             content: {
               "application/json": {
                 schema: {
@@ -2047,7 +3199,7 @@ export const openApiDocument = {
             },
           },
           "422": {
-            description: "Unprocessable Entity — Request payload validation failure",
+            description: "Unprocessable Entity ΓÇö Request payload validation failure",
             content: {
               "application/json": {
                 schema: {
@@ -2057,7 +3209,528 @@ export const openApiDocument = {
             },
           },
           "503": {
-            description: "Not Ready — a required dependency is unavailable",
+            description: "Not Ready ΓÇö a required dependency is unavailable",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/accounts": {
+      post: {
+        operationId: "provisionAccount",
+        summary: "Provision an account (username, profile, wallet, policy)",
+        description:
+          "Idempotently runs the transactional account-provisioning state machine: username reservation, profile defaults, wallet creation and mailbox policy initialization converge without leaving a partial active account. Repeated calls are safe against duplicate requests; an optional x-idempotency-key enables strict replay semantics.",
+        security: [
+          {
+            ActorHeader: [],
+          },
+        ],
+        "x-stability": "beta",
+        requestBody: {
+          description:
+            "Provisioning intent. Email and username are required only when no account exists for the actor yet.",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  email: {
+                    type: "string",
+                    format: "email",
+                  },
+                  username: {
+                    type: "string",
+                    pattern: "^[a-z0-9_-]{3,30}$",
+                  },
+                  displayName: {
+                    type: "string",
+                    maxLength: 80,
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Provisioning progress after a completed or resumed run",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ProvisioningProgress",
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Bad Request",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "409": {
+            description: "Conflict ╬ô├ç├╢ username unavailable or provisioning previously failed",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "422": {
+            description: "Unprocessable Entity ╬ô├ç├╢ Request payload validation failure",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/onboarding/draft": {
+      get: {
+        operationId: "getOnboardingDraft",
+        summary: "Read the authenticated account's onboarding draft",
+        description:
+          "Safe projection of the durable server-backed onboarding draft. Returns null when onboarding has not started. The account identity is resolved from the session cookie; no wallet address is ever accepted or returned.",
+        security: [
+          {
+            SessionCookie: [],
+          },
+        ],
+        "x-stability": "beta",
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Onboarding draft (or null when not started)",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["draft"],
+                  properties: {
+                    draft: {
+                      allOf: [
+                        {
+                          $ref: "#/components/schemas/OnboardingDraft",
+                        },
+                        {
+                          nullable: true,
+                        },
+                      ],
+                    },
+                  },
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Bad Request",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+      put: {
+        operationId: "saveOnboardingDraft",
+        summary: "Persist the onboarding draft for the authenticated account",
+        description:
+          "Upserts the durable draft keyed by the session account. Duplicate saves can never create duplicates, and a refresh or a second device resumes from this authoritative state. Unknown fields (e.g. a wallet address) are rejected with 422.",
+        security: [
+          {
+            SessionCookie: [],
+          },
+        ],
+        "x-stability": "beta",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                $ref: "#/components/schemas/OnboardingDraftSaveRequest",
+              },
+            },
+          },
+        },
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Saved draft projection",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["draft"],
+                  properties: {
+                    draft: {
+                      $ref: "#/components/schemas/OnboardingDraft",
+                    },
+                  },
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Bad Request",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "409": {
+            description: "Conflict - onboarding already completed",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "422": {
+            description: "Request validation failed",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/onboarding/complete": {
+      post: {
+        operationId: "completeOnboarding",
+        summary: "Complete onboarding for the authenticated account",
+        description:
+          "Terminal, idempotent completion: converts the draft through the preserved policy-conversion rules, writes the chosen mailbox policy (only when the account still holds the provisioning default), and marks the onboarding completed. Replays of an already-completed onboarding return the stored result without re-writing anything. Supply an x-idempotency-key header to make network retries fully idempotent.",
+        security: [
+          {
+            SessionCookie: [],
+          },
+        ],
+        "x-stability": "beta",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                $ref: "#/components/schemas/OnboardingCompleteRequest",
+              },
+            },
+          },
+        },
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Completed onboarding result",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["data"],
+                  properties: {
+                    data: {
+                      $ref: "#/components/schemas/OnboardingCompleteResponse",
+                    },
+                  },
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Bad Request",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "409": {
+            description: "Conflict - invalid state transition",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "422": {
+            description: "Request validation failed",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/accounts/provisioning": {
+      get: {
+        operationId: "getAccountProvisioningProgress",
+        summary: "Read provisioning progress for the authenticated account",
+        description:
+          "Safe progress projection: provisioning state, completed steps, attempts and the last failure. Never exposes credentials, wallet seeds, or hashes.",
+        security: [
+          {
+            ActorHeader: [],
+          },
+        ],
+        "x-stability": "beta",
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Provisioning progress and account status",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["provisioning", "accountStatus"],
+                  properties: {
+                    provisioning: {
+                      $ref: "#/components/schemas/ProvisioningProgress",
+                    },
+                    accountStatus: {
+                      type: "string",
+                      enum: ["active", "suspended", "pending_verification", "deactivated"],
+                    },
+                  },
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Bad Request",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "404": {
+            description: "Not Found ╬ô├ç├╢ no account or provisioning record",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/accounts/provisioning/retry": {
+      post: {
+        operationId: "retryAccountProvisioning",
+        summary: "Retry a failed provisioning run",
+        description:
+          "Restarts a retryable provisioning flow from its first incomplete step. Only retryable flows may be restarted; active and in-flight flows are rejected with a deterministic 409.",
+        security: [
+          {
+            ActorHeader: [],
+          },
+        ],
+        "x-stability": "beta",
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Provisioning progress after the retry run",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ProvisioningProgress",
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Bad Request",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "403": {
+            description: "Forbidden",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "404": {
+            description: "Not Found ╬ô├ç├╢ no account or provisioning record",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "409": {
+            description:
+              "Conflict ╬ô├ç├╢ provisioning in flight, already active, or attempts exhausted",
             content: {
               "application/json": {
                 schema: {
@@ -2228,6 +3901,1757 @@ export const openApiDocument = {
                 schema: {
                   $ref: "#/components/schemas/ErrorEnvelope",
                 },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/auth/password-reset/request": {
+      post: {
+        operationId: "requestPasswordReset",
+        summary: "Request a password reset email for an account",
+        description:
+          "Issues a hashed, single-use password reset token delivered to the account email. Responds identically for existing and non-existing accounts to prevent enumeration; rate limits and cooldowns are enforced.",
+        security: [],
+        "x-stability": "beta",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["email"],
+                properties: {
+                  email: { type: "string", format: "email" },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Generic confirmation; the message was sent or intentionally not sent",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/SuccessEnvelope",
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Bad Request",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "422": {
+            description: "Request validation failed",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "429": {
+            description: "Password reset request is on cooldown or rate limited",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "503": {
+            description: "The password reset message could not be delivered",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/auth/password-reset/complete": {
+      post: {
+        operationId: "completePasswordReset",
+        summary: "Complete password reset using a single-use token",
+        description:
+          "Consumes a single-use password reset token, validates password policy, sets the new password, invalidates all other outstanding reset tokens, and revokes all active sessions for the user.",
+        security: [],
+        "x-stability": "beta",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["token", "password"],
+                properties: {
+                  token: { type: "string" },
+                  password: { type: "string", minLength: 12, maxLength: 256 },
+                  passwordConfirmation: { type: "string" },
+                  email: { type: "string", format: "email" },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Password reset completed successfully and all active sessions revoked",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/SuccessEnvelope",
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Invalid or expired password reset token",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "409": {
+            description: "Password reset token has already been used or superseded",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "422": {
+            description: "Password does not meet policy requirements or validation failed",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "429": {
+            description: "Too many failed attempts. Token is locked",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/contacts": {
+      get: {
+        operationId: "listContacts",
+        summary: "List contacts for the authenticated account",
+        description:
+          "Returns the owner's contacts with live identity, key-freshness, and trust state. Resolution failures degrade to null rather than failing the page.",
+        security: [
+          {
+            ActorHeader: [],
+          },
+        ],
+        "x-stability": "beta",
+        parameters: [
+          {
+            name: "query",
+            in: "query",
+            schema: { type: "string", maxLength: 200 },
+            description: "Optional substring filter on name or address.",
+          },
+          {
+            name: "cursor",
+            in: "query",
+            schema: { type: "string" },
+            description: "Pagination continuation key.",
+          },
+          {
+            name: "limit",
+            in: "query",
+            schema: { type: "integer", minimum: 1, maximum: 100, default: 25 },
+          },
+        ],
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Listed contacts",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ContactListResult",
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Bad Request",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+      post: {
+        operationId: "createContact",
+        summary: "Create a contact",
+        description:
+          "Stores a new owner-scoped contact. The trust field is advisory and never mutates mailbox policy.",
+        "x-max-body-bytes": 8 * 1024,
+        security: [
+          {
+            ActorHeader: [],
+          },
+        ],
+        "x-stability": "beta",
+        requestBody: {
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["name", "address"],
+                additionalProperties: false,
+                properties: {
+                  name: { type: "string", maxLength: 200 },
+                  address: { type: "string", maxLength: 300 },
+                  trust: { type: "string", enum: ["default", "allow", "block"] },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          default: { description: "" },
+          "201": {
+            description: "Created contact with live resolution",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ContactWithResolution",
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Bad Request",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "422": {
+            description: "Unprocessable Entity ΓÇö Request payload validation failure",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/contacts/{contactId}": {
+      get: {
+        operationId: "getContact",
+        summary: "Read a single contact",
+        security: [
+          {
+            ActorHeader: [],
+          },
+        ],
+        "x-stability": "beta",
+        parameters: [
+          {
+            name: "contactId",
+            in: "path",
+            required: true,
+            schema: { type: "string" },
+          },
+        ],
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Contact with live resolution",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ContactWithResolution",
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Bad Request",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "404": {
+            description: "Not Found",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+      put: {
+        operationId: "updateContact",
+        summary: "Update a contact",
+        "x-max-body-bytes": 8 * 1024,
+        security: [
+          {
+            ActorHeader: [],
+          },
+        ],
+        "x-stability": "beta",
+        parameters: [
+          {
+            name: "contactId",
+            in: "path",
+            required: true,
+            schema: { type: "string" },
+          },
+        ],
+        requestBody: {
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                description: "At least one of name, address, or trust is required.",
+                additionalProperties: false,
+                properties: {
+                  name: { type: "string", maxLength: 200 },
+                  address: { type: "string", maxLength: 300 },
+                  trust: { type: "string", enum: ["default", "allow", "block"] },
+                  expectedVersion: { type: "integer", minimum: 1 },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Updated contact with live resolution",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ContactWithResolution",
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Bad Request",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "404": {
+            description: "Not Found",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "409": {
+            description: "Conflict ΓÇö concurrent modification detected",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "422": {
+            description: "Unprocessable Entity ΓÇö Request payload validation failure",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+      delete: {
+        operationId: "deleteContact",
+        summary: "Delete a contact",
+        security: [
+          {
+            ActorHeader: [],
+          },
+        ],
+        "x-stability": "beta",
+        parameters: [
+          {
+            name: "contactId",
+            in: "path",
+            required: true,
+            schema: { type: "string" },
+          },
+        ],
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Contact deleted",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/SuccessEnvelope",
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Bad Request",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "404": {
+            description: "Not Found",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/contacts/merge": {
+      post: {
+        operationId: "mergeContacts",
+        summary: "Merge duplicate contacts",
+        description:
+          "Deletes the merge targets and bumps the version of the kept contact so concurrent writers cannot resurrect merged-away rows. All IDs are scoped to the authenticated owner.",
+        "x-max-body-bytes": 8 * 1024,
+        security: [
+          {
+            ActorHeader: [],
+          },
+        ],
+        "x-stability": "beta",
+        requestBody: {
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["keepContactId", "mergeContactIds"],
+                additionalProperties: false,
+                properties: {
+                  keepContactId: { type: "string" },
+                  mergeContactIds: {
+                    type: "array",
+                    minItems: 1,
+                    items: { type: "string" },
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Surviving contact re-resolved after merge",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ContactMergeResult",
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Bad Request",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "403": {
+            description: "Forbidden ΓÇö cannot merge a contact owned by another actor",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "404": {
+            description: "Not Found",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "409": {
+            description: "Conflict ΓÇö kept contact modified concurrently",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "422": {
+            description: "Unprocessable Entity ΓÇö Request payload validation failure",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/contacts/import/preview": {
+      post: {
+        operationId: "previewContactImport",
+        summary: "Parse and preview a CSV or vCard contact import",
+        description:
+          "Parses the uploaded content into rows with per-row validity, duplicate detection, and live identity resolution. Never writes contact rows.",
+        "x-max-body-bytes": 1024 * 1024,
+        security: [
+          {
+            ActorHeader: [],
+          },
+        ],
+        "x-stability": "beta",
+        requestBody: {
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["format", "content"],
+                additionalProperties: false,
+                properties: {
+                  format: { type: "string", enum: ["csv", "vcard"] },
+                  content: {
+                    type: "string",
+                    description: "Raw import file content, UTF-8.",
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Parsed import preview",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ContactImportPreviewResult",
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Bad Request",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "422": {
+            description: "Unprocessable Entity ΓÇö Request payload validation failure",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/contacts/import/commit": {
+      post: {
+        operationId: "commitContactImport",
+        summary: "Commit a contact import",
+        description:
+          "Idempotently upserts the reviewed rows by address. Policy is never mutated unless applyTrust is explicitly true, and even then only allow/block rows touch sender rules.",
+        "x-max-body-bytes": 1024 * 1024,
+        security: [
+          {
+            ActorHeader: [],
+          },
+        ],
+        "x-stability": "beta",
+        requestBody: {
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["rows"],
+                additionalProperties: false,
+                properties: {
+                  rows: {
+                    type: "array",
+                    minItems: 1,
+                    maxItems: 1000,
+                    items: {
+                      type: "object",
+                      required: ["name", "address"],
+                      additionalProperties: false,
+                      properties: {
+                        name: { type: "string", maxLength: 200 },
+                        address: { type: "string", maxLength: 300 },
+                        trust: { type: "string", enum: ["default", "allow", "block"] },
+                        source: { type: "string", enum: ["csv", "vcard"] },
+                      },
+                    },
+                  },
+                  applyTrust: {
+                    type: "boolean",
+                    default: false,
+                    description: "Opt-in application of trust rows to mailbox policy.",
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          default: { description: "" },
+          "201": {
+            description: "Import committed",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ContactImportCommitResult",
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Bad Request",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "422": {
+            description: "Unprocessable Entity ΓÇö Request payload validation failure",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/drafts": {
+      get: {
+        operationId: "listDrafts",
+        summary: "List encrypted drafts for the authenticated account",
+        description: "Returns the authenticated actor's drafts ordered by last update time.",
+        security: [
+          {
+            ActorHeader: [],
+          },
+        ],
+        "x-stability": "beta",
+        parameters: [
+          {
+            name: "cursor",
+            in: "query",
+            schema: { type: "string" },
+            description: "Pagination continuation key.",
+          },
+          {
+            name: "limit",
+            in: "query",
+            schema: { type: "integer", minimum: 1, maximum: 100, default: 25 },
+          },
+        ],
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Listed drafts",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/DraftListResult",
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+      post: {
+        operationId: "createDraft",
+        summary: "Create a new encrypted draft",
+        description: "Stores a new draft sealed at rest with AES-256-GCM authenticated with AAD.",
+        security: [
+          {
+            ActorHeader: [],
+          },
+        ],
+        "x-stability": "beta",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                $ref: "#/components/schemas/DraftCreateInput",
+              },
+            },
+          },
+        },
+        responses: {
+          default: { description: "" },
+          "201": {
+            description: "Created draft",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/Draft",
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Bad Request",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "409": {
+            description: "Conflict — Draft already exists",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "422": {
+            description: "Unprocessable Entity",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/drafts/{draftId}": {
+      get: {
+        operationId: "getDraft",
+        summary: "Get an encrypted draft by identifier",
+        description: "Fetches and decrypts an existing draft for the authenticated actor.",
+        security: [
+          {
+            ActorHeader: [],
+          },
+        ],
+        "x-stability": "beta",
+        parameters: [
+          {
+            name: "draftId",
+            in: "path",
+            required: true,
+            schema: { type: "string" },
+            description: "Draft identifier.",
+          },
+        ],
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Draft retrieved",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/Draft",
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "404": {
+            description: "Not Found",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+      put: {
+        operationId: "updateDraft",
+        summary: "Update an encrypted draft with optimistic concurrency control",
+        description:
+          "Updates draft fields when expectedVersion matches the server revision, bumping the monotonic version.",
+        security: [
+          {
+            ActorHeader: [],
+          },
+        ],
+        "x-stability": "beta",
+        parameters: [
+          {
+            name: "draftId",
+            in: "path",
+            required: true,
+            schema: { type: "string" },
+            description: "Draft identifier.",
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                $ref: "#/components/schemas/DraftUpdateInput",
+              },
+            },
+          },
+        },
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Draft updated",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/Draft",
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Bad Request",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "404": {
+            description: "Not Found",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "409": {
+            description: "Revision Conflict — Stale draft version",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "422": {
+            description: "Unprocessable Entity",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+      delete: {
+        operationId: "deleteDraft",
+        summary: "Delete an encrypted draft",
+        description: "Removes an existing draft for the authenticated actor.",
+        security: [
+          {
+            ActorHeader: [],
+          },
+        ],
+        "x-stability": "beta",
+        parameters: [
+          {
+            name: "draftId",
+            in: "path",
+            required: true,
+            schema: { type: "string" },
+            description: "Draft identifier.",
+          },
+        ],
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Draft deleted",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: { deleted: { type: "boolean" } },
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "404": {
+            description: "Not Found",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/lifecycle/{messageId}": {
+      get: {
+        operationId: "getLifecycleStatus",
+        summary: "Read lifecycle status for a message commitment",
+        security: [
+          {
+            StellarSignedRequest: [],
+          },
+        ],
+        "x-stability": "beta",
+        parameters: [
+          {
+            name: "messageId",
+            in: "path",
+            required: true,
+            schema: { $ref: "#/components/schemas/Hash32" },
+          },
+        ],
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Lifecycle status (participant only)",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["status", "updatedAt"],
+                  additionalProperties: false,
+                  properties: {
+                    status: {
+                      type: "string",
+                      enum: ["pending", "submitted", "confirmed", "failed"],
+                    },
+                    updatedAt: { type: "string", format: "date-time" },
+                    failureCount: { type: "integer", minimum: 0 },
+                    lastError: {
+                      type: "string",
+                      nullable: true,
+                      description: "Redacted failure reason; never contains secrets.",
+                    },
+                    txHash: { type: "string", nullable: true },
+                  },
+                },
+              },
+            },
+          },
+          "403": {
+            description: "Actor is not a participant",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorEnvelope" },
+              },
+            },
+          },
+          "404": {
+            description: "No lifecycle anchor for this message",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorEnvelope" },
+              },
+            },
+          },
+          "422": {
+            description: "Request validation failed",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorEnvelope" },
+              },
+            },
+          },
+          "503": {
+            description: "Dependency unavailable",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorEnvelope" },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/lifecycle/{messageId}/anchor": {
+      post: {
+        operationId: "anchorLifecycle",
+        summary: "Anchor a message commitment to the on-chain Lifecycle contract",
+        description:
+          "Idempotently schedules and submits a bind for the given message commitment. Only the commitment and non-secret envelope metadata (sender, recipient, amount, verified, receipt_required) are submitted; plaintext and private payload metadata never leave the relay.",
+        security: [
+          {
+            StellarSignedRequest: [],
+          },
+        ],
+        "x-stability": "beta",
+        parameters: [
+          {
+            name: "messageId",
+            in: "path",
+            required: true,
+            schema: { $ref: "#/components/schemas/Hash32" },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["sender", "recipient"],
+                additionalProperties: false,
+                properties: {
+                  sender: { $ref: "#/components/schemas/StellarAddress" },
+                  recipient: { $ref: "#/components/schemas/StellarAddress" },
+                  verified: { type: "boolean", default: false },
+                  receiptRequired: { type: "boolean", default: false },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          default: { description: "" },
+          "202": {
+            description: "Anchor scheduled and submission attempted",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["messageId", "status"],
+                  additionalProperties: false,
+                  properties: {
+                    messageId: { $ref: "#/components/schemas/Hash32" },
+                    status: {
+                      type: "string",
+                      enum: ["pending", "submitted", "confirmed"],
+                    },
+                    txHash: { type: "string", nullable: true },
+                    attempts: { type: "integer", minimum: 0 },
+                  },
+                },
+              },
+            },
+          },
+          "403": {
+            description: "Actor is not a participant",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorEnvelope" },
+              },
+            },
+          },
+          "404": {
+            description: "No postage record for this message",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorEnvelope" },
+              },
+            },
+          },
+          "409": {
+            description: "Existing anchor conflicts with the request",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorEnvelope" },
+              },
+            },
+          },
+          "422": {
+            description: "Request validation failed",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorEnvelope" },
+              },
+            },
+          },
+          "503": {
+            description: "Dependency unavailable",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorEnvelope" },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/lifecycle/{messageId}/reconcile": {
+      post: {
+        operationId: "reconcileLifecycle",
+        summary: "Reconcile a lifecycle anchor against the on-chain contract state",
+        security: [
+          {
+            StellarSignedRequest: [],
+          },
+        ],
+        "x-stability": "beta",
+        parameters: [
+          {
+            name: "messageId",
+            in: "path",
+            required: true,
+            schema: { $ref: "#/components/schemas/Hash32" },
+          },
+        ],
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Reconciliation result",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["messageId", "status"],
+                  additionalProperties: false,
+                  properties: {
+                    messageId: { $ref: "#/components/schemas/Hash32" },
+                    status: {
+                      type: "string",
+                      enum: ["pending", "submitted", "confirmed", "failed"],
+                    },
+                    updatedAt: { type: "string", format: "date-time" },
+                  },
+                },
+              },
+            },
+          },
+          "403": {
+            description: "Actor is not a participant",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorEnvelope" },
+              },
+            },
+          },
+          "404": {
+            description: "No lifecycle anchor for this message",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorEnvelope" },
+              },
+            },
+          },
+          "422": {
+            description: "Request validation failed",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorEnvelope" },
+              },
+            },
+          },
+          "503": {
+            description: "Dependency unavailable",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorEnvelope" },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/search": {
+      get: {
+        operationId: "searchMailbox",
+        summary: "Privacy-safe mailbox metadata search",
+        security: [
+          {
+            StellarSignedRequest: [],
+          },
+          {
+            SessionCookie: [],
+          },
+        ],
+        "x-stability": "beta",
+        parameters: [
+          {
+            name: "q",
+            in: "query",
+            required: false,
+            schema: { type: "string" },
+            description: "Free text search query or structured search directives",
+          },
+          {
+            name: "folder",
+            in: "query",
+            required: false,
+            schema: {
+              type: "string",
+              enum: [
+                "all",
+                "inbox",
+                "pending",
+                "requests",
+                "archive",
+                "spam",
+                "trash",
+                "sent",
+                "drafts",
+                "outbox",
+              ],
+            },
+            description: "Folder filter",
+          },
+          {
+            name: "unread",
+            in: "query",
+            required: false,
+            schema: { type: "boolean" },
+          },
+          {
+            name: "starred",
+            in: "query",
+            required: false,
+            schema: { type: "boolean" },
+          },
+          {
+            name: "hasAttachments",
+            in: "query",
+            required: false,
+            schema: { type: "boolean" },
+          },
+          {
+            name: "sender",
+            in: "query",
+            required: false,
+            schema: { type: "string" },
+          },
+          {
+            name: "recipient",
+            in: "query",
+            required: false,
+            schema: { type: "string" },
+          },
+          {
+            name: "afterDate",
+            in: "query",
+            required: false,
+            schema: { type: "string" },
+          },
+          {
+            name: "beforeDate",
+            in: "query",
+            required: false,
+            schema: { type: "string" },
+          },
+          {
+            name: "includeDeleted",
+            in: "query",
+            required: false,
+            schema: { type: "boolean" },
+          },
+          {
+            name: "cursor",
+            in: "query",
+            required: false,
+            schema: { type: "string" },
+          },
+          {
+            name: "limit",
+            in: "query",
+            required: false,
+            schema: { type: "integer", minimum: 1, maximum: 100, default: 25 },
+          },
+        ],
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Search results with safe metadata and highlights",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: [
+                    "items",
+                    "nextCursor",
+                    "hasMore",
+                    "totalMatches",
+                    "query",
+                    "parsedFilters",
+                    "indexLimitations",
+                  ],
+                  properties: {
+                    items: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        required: [
+                          "type",
+                          "id",
+                          "senderId",
+                          "recipientId",
+                          "folder",
+                          "createdAt",
+                          "unread",
+                          "starred",
+                          "hasAttachments",
+                          "isTombstone",
+                          "highlights",
+                        ],
+                        properties: {
+                          type: { type: "string", enum: ["message", "contact", "draft"] },
+                          id: { type: "string" },
+                          messageId: { type: "string" },
+                          senderId: { type: "string" },
+                          recipientId: { type: "string" },
+                          folder: { type: "string" },
+                          subject: { type: "string" },
+                          preview: { type: "string" },
+                          createdAt: { type: "string", format: "date-time" },
+                          unread: { type: "boolean" },
+                          starred: { type: "boolean" },
+                          hasAttachments: { type: "boolean" },
+                          isTombstone: { type: "boolean" },
+                          deletedAt: { type: "string", format: "date-time", nullable: true },
+                          highlights: {
+                            type: "array",
+                            items: {
+                              type: "object",
+                              required: ["field", "snippet"],
+                              properties: {
+                                field: { type: "string" },
+                                snippet: { type: "string" },
+                              },
+                            },
+                          },
+                        },
+                      },
+                    },
+                    nextCursor: { type: "string", nullable: true },
+                    hasMore: { type: "boolean" },
+                    totalMatches: { type: "integer" },
+                    query: { type: "string" },
+                    parsedFilters: { type: "object" },
+                    indexLimitations: {
+                      type: "object",
+                      required: [
+                        "serverIndexLimited",
+                        "encryptedBodyIndexed",
+                        "safeMetadataFields",
+                        "notice",
+                      ],
+                      properties: {
+                        serverIndexLimited: { type: "boolean" },
+                        encryptedBodyIndexed: { type: "boolean" },
+                        safeMetadataFields: {
+                          type: "array",
+                          items: { type: "string" },
+                        },
+                        notice: { type: "string" },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorEnvelope" },
+              },
+            },
+          },
+          "422": {
+            description: "Request validation failed",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorEnvelope" },
+              },
+            },
+          },
+          "503": {
+            description: "Dependency unavailable",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorEnvelope" },
               },
             },
           },

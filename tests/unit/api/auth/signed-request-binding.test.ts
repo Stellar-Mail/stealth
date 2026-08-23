@@ -111,7 +111,10 @@ describe("signed request cross-operation substitution", () => {
     const signature = signRequest(BASE);
     const otherAudience = {
       ...BASE,
-      headers: { ...BASE.headers, "x-stealth-audience": "stealth-api.staging.test" },
+      headers: {
+        ...BASE.headers,
+        "x-stealth-audience": "stealth-api.staging.test",
+      },
     };
 
     expect(canonicalizeSignedRequest(otherAudience)).not.toBe(canonicalizeSignedRequest(BASE));
@@ -129,7 +132,10 @@ describe("signed request cross-operation substitution", () => {
     };
     const otherTimestamp = {
       ...BASE,
-      headers: { ...BASE.headers, "x-stealth-timestamp": "2026-07-22T12:05:00.000Z" },
+      headers: {
+        ...BASE.headers,
+        "x-stealth-timestamp": "2026-07-22T12:05:00.000Z",
+      },
     };
 
     expect(verifiesAgainst(signature, otherNonce)).toBe(false);
@@ -200,7 +206,9 @@ describe("validateSignedRequestAudience", () => {
 
   it("rejects an empty audience", () => {
     expect(() =>
-      validateSignedRequestAudience("", { activeAudiences: new Set(["stealth-api.example.test"]) }),
+      validateSignedRequestAudience("", {
+        activeAudiences: new Set(["stealth-api.example.test"]),
+      }),
     ).toThrow();
   });
 });

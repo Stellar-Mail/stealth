@@ -60,14 +60,23 @@ export type ParsedIdentifier =
   | { type: "stellar_address"; address: string }
   | { type: "stealth_address"; address: string }
   | { type: "local_handle"; username: string; domain: string }
-  | { type: "federation_address"; username: string; domain: string; raw: string }
+  | {
+      type: "federation_address";
+      username: string;
+      domain: string;
+      raw: string;
+    }
   | { type: "email_address"; username: string; domain: string; raw: string }
   | { type: "invalid"; raw: string; reason: string };
 
 export function parseIdentifier(rawInput: string): ParsedIdentifier {
   const normalized = normalizeIdentifier(rawInput);
   if (!normalized) {
-    return { type: "invalid", raw: rawInput, reason: "Identifier cannot be empty" };
+    return {
+      type: "invalid",
+      raw: rawInput,
+      reason: "Identifier cannot be empty",
+    };
   }
 
   // 1. Stellar Public G-address (56 chars starting with G)
@@ -91,7 +100,11 @@ export function parseIdentifier(rawInput: string): ParsedIdentifier {
       }
       return { type: "federation_address", username, domain, raw: normalized };
     }
-    return { type: "invalid", raw: normalized, reason: "Invalid federation address format" };
+    return {
+      type: "invalid",
+      raw: normalized,
+      reason: "Invalid federation address format",
+    };
   }
 
   // 4. Email address: user@domain.tld
@@ -113,7 +126,11 @@ export function parseIdentifier(rawInput: string): ParsedIdentifier {
     return { type: "local_handle", username: normalized, domain: "stealth.me" };
   }
 
-  return { type: "invalid", raw: normalized, reason: "Unrecognized identifier format" };
+  return {
+    type: "invalid",
+    raw: normalized,
+    reason: "Unrecognized identifier format",
+  };
 }
 
 /**
@@ -193,6 +210,68 @@ export class IdentityResolverService {
         };
       } else if (negCached) {
         this.negativeCache.delete(cacheKey);
+      }
+    }
+
+    // In browser client path
+    if (typeof window !== "undefined") {
+      const timeoutMs = options.timeoutMs ?? 2000;
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+      if (options.signal) {
+        options.signal.addEventListener("abort", () => controller.abort());
+      }
+
+      try {
+        const queryParams = new URLSearchParams({
+          identifier: normalized,
+        });
+        if (options.bypassCache) {
+          queryParams.set("bypassCache", "true");
+        }
+
+        const url = `/api/v1/identity/resolve?${queryParams.toString()}`;
+        const response = await fetch(url, {
+          method: "GET",
+          signal: controller.signal,
+          headers: {
+            Accept: "application/json",
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error ${response.status}`);
+        }
+
+        const body = await response.json();
+        const result = body.data as ResolvedIdentity;
+
+        // Cache according to resolved status
+        if (result.resolved && result.status === "active") {
+          this.setPositiveCache(cacheKey, result);
+          if (result.account) {
+            this.indexAddress(result.account, cacheKey);
+          }
+        } else {
+          this.setNegativeCache(cacheKey, result);
+        }
+
+        return result;
+      } catch (err: any) {
+        const isTimeout = err?.message === "Resolution timeout" || controller.signal.aborted;
+        const errorResult = this.createErrorResult(
+          rawIdentifier,
+          normalized,
+          isTimeout ? "timeout" : "network_error",
+          isTimeout ? "Resolution timed out" : "Identity resolution failed",
+          "negative_cache",
+          this.defaultNegativeTtlMs,
+        );
+        this.setNegativeCache(cacheKey, errorResult);
+        return errorResult;
+      } finally {
+        clearTimeout(timer);
       }
     }
 

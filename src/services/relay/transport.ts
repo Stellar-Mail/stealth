@@ -100,7 +100,9 @@ export function handleRelayHealth(request: Request, service: RelayService) {
 export function handleRelayReadiness(request: Request, service: RelayService) {
   return handleApiRequest(request, async () => {
     const readiness = await service.checkReadiness();
-    return apiSuccess(request, readiness, { status: readiness.ready ? 200 : 503 });
+    return apiSuccess(request, readiness, {
+      status: readiness.ready ? 200 : 503,
+    });
   });
 }
 
@@ -292,5 +294,28 @@ export function handleRelaySubmit(request: Request, service: RelayService) {
       { ...result, service: RELAY_SERVICE_NAME },
       { status: 202, headers: responseHeaders },
     );
+  });
+}
+
+export function handleRelayQueue(request: Request, service: RelayService, recipient: string) {
+  return handleApiRequest(request, async () => {
+    const actorHeader = request.headers.get("x-stealth-address");
+    if (!actorHeader) {
+      throw new ApiError(401, "unauthorized", "Missing x-stealth-address header");
+    }
+    const parsedActor = stellarAddressSchema.safeParse(actorHeader);
+    if (!parsedActor.success) {
+      throw new ApiError(
+        401,
+        "unauthorized",
+        "x-stealth-address must be a valid Stellar G-address",
+      );
+    }
+    if (parsedActor.data !== recipient) {
+      throw new ApiError(403, "forbidden", "Recipient does not match the authenticated actor");
+    }
+
+    const items = await service.getRecipientQueue(recipient);
+    return apiSuccess(request, { items }, { status: 200 });
   });
 }

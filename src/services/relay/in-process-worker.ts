@@ -10,20 +10,24 @@ import type { RelayWorker, RelayWorkerStatus } from "./worker";
 
 export interface InProcessRelayWorkerOptions {
   pollIntervalMs?: number;
+  maxRetries?: number;
   onMessage?: (envelope: RelayEnvelope) => Promise<void>;
 }
 
 export class InProcessRelayWorker implements RelayWorker {
   private readonly pollIntervalMs: number;
+  private readonly maxRetries: number;
   private readonly onMessage: (envelope: RelayEnvelope) => Promise<void>;
   private status: RelayWorkerStatus = "stopped";
   private timer: ReturnType<typeof setTimeout> | undefined;
+  private readonly attempts = new Map<string, number>();
 
   constructor(
     private readonly persistence: RelayPersistence,
     options: InProcessRelayWorkerOptions = {},
   ) {
     this.pollIntervalMs = options.pollIntervalMs ?? 1_000;
+    this.maxRetries = options.maxRetries ?? 5;
     this.onMessage = options.onMessage ?? (async () => {});
   }
 
@@ -55,10 +59,29 @@ export class InProcessRelayWorker implements RelayWorker {
   private async drain(): Promise<void> {
     const envelope = await this.persistence.dequeue();
     if (!envelope) return;
+
+    const currentAttempts = (this.attempts.get(envelope.messageId) ?? 0) + 1;
+    this.attempts.set(envelope.messageId, currentAttempts);
+
     try {
       await this.onMessage(envelope);
-    } catch {
-      await this.persistence.recordRetry();
+      this.attempts.delete(envelope.messageId);
+    } catch (error) {
+      const isPoisonOrPermanent =
+        error instanceof Error &&
+        (error.message.includes("poison") ||
+          error.message.includes("invalid") ||
+          error.message.includes("rejected") ||
+          error.message.includes("expired"));
+
+      if (isPoisonOrPermanent || currentAttempts >= this.maxRetries) {
+        this.attempts.delete(envelope.messageId);
+        await this.persistence.recordDeadLetter();
+      } else {
+        await this.persistence.recordRetry();
+        // Re-enqueue for next cycle
+        await this.persistence.enqueue(envelope);
+      }
     }
   }
 }

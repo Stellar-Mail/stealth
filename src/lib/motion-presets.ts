@@ -13,9 +13,25 @@
  *   <motion.div {...motionPresets.entrance.slideUp()} />
  */
 
-// Check if user prefers reduced motion
-const prefersReducedMotion =
-  typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+/**
+ * Queries the current OS-level reduced-motion preference.
+ *
+ * Evaluated lazily on every call (never captured at module load), so a user
+ * who changes the OS preference mid-session gets the new value the next time
+ * an animation is built. In non-browser (SSR/test) environments it reports
+ * "full" motion, matching the browser default.
+ */
+export function queryPrefersReducedMotion(): boolean {
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+    return false;
+  }
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+// Kept for backwards compatibility; prefer `queryPrefersReducedMotion()`.
+// Evaluate at use-time rather than load-time so preference changes are picked
+// up and tests can assert both branches.
+export const prefersReducedMotion = queryPrefersReducedMotion;
 
 // Base animation configuration
 const baseConfig = {
@@ -33,7 +49,7 @@ const reducedConfig = {
   springDamping: 999,
 } as const;
 
-const getConfig = () => (prefersReducedMotion ? reducedConfig : baseConfig);
+const getConfig = () => (queryPrefersReducedMotion() ? reducedConfig : baseConfig);
 
 export type AnimationPreset = {
   initial: Record<string, any>;
@@ -246,6 +262,7 @@ export const promote = {
    * Good for buttons, cards, interactive elements
    */
   scale: (scale: number = 1.02): AnimationPreset => {
+    const config = getConfig();
     return {
       initial: { scale: 1 },
       animate: { scale: 1 },
@@ -253,9 +270,9 @@ export const promote = {
       whileTap: { scale: scale * 0.98 },
       transition: {
         type: "spring",
-        stiffness: 400,
-        damping: 17,
-        duration: 0.2,
+        stiffness: config.springStiffness,
+        damping: config.springDamping,
+        duration: config.duration,
       },
     };
   },
@@ -265,19 +282,23 @@ export const promote = {
    * Good for cards, elevated elements
    */
   lift: (): AnimationPreset => {
+    const config = getConfig();
+    const reduced = queryPrefersReducedMotion();
     return {
       initial: { y: 0, boxShadow: "0px 1px 3px rgba(0, 0, 0, 0.1)" },
       animate: { y: 0 },
-      whileHover: {
-        y: -4,
-        boxShadow: "0px 8px 24px rgba(0, 0, 0, 0.15)",
-      },
-      whileTap: { y: -2 },
+      whileHover: reduced
+        ? undefined
+        : {
+            y: -4,
+            boxShadow: "0px 8px 24px rgba(0, 0, 0, 0.15)",
+          },
+      whileTap: reduced ? undefined : { y: -2 },
       transition: {
         type: "spring",
-        stiffness: 400,
-        damping: 17,
-        duration: 0.2,
+        stiffness: config.springStiffness,
+        damping: config.springDamping,
+        duration: config.duration,
       },
     };
   },
@@ -287,12 +308,13 @@ export const promote = {
    * Good for focus states, highlighting active items
    */
   glow: (): AnimationPreset => {
+    const config = getConfig();
     return {
       initial: { opacity: 1 },
       animate: { opacity: 1 },
-      whileHover: { opacity: 1.1 },
+      whileHover: queryPrefersReducedMotion() ? undefined : { opacity: 1.1 },
       transition: {
-        duration: 0.2,
+        duration: config.duration,
       },
     };
   },
@@ -605,7 +627,7 @@ export const easings = {
  * Helper function to check if user prefers reduced motion
  */
 export function getMotionPreference(): "full" | "reduced" {
-  return prefersReducedMotion ? "reduced" : "full";
+  return queryPrefersReducedMotion() ? "reduced" : "full";
 }
 
 /**

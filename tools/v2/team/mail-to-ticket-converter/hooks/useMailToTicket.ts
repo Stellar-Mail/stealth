@@ -60,7 +60,10 @@ function reducer(state: MailToTicketState, action: Action): MailToTicketState {
           action.data.length === 0 ? { status: "empty" } : { status: "success", data: action.data },
       };
     case "LOAD_TICKETS_ERROR":
-      return { ...state, tickets: { status: "error", message: action.message } };
+      return {
+        ...state,
+        tickets: { status: "error", message: action.message },
+      };
     case "LOAD_MEMBERS_START":
       return { ...state, teamMembers: { status: "loading" } };
     case "LOAD_MEMBERS_SUCCESS":
@@ -70,13 +73,19 @@ function reducer(state: MailToTicketState, action: Action): MailToTicketState {
           action.data.length === 0 ? { status: "empty" } : { status: "success", data: action.data },
       };
     case "LOAD_MEMBERS_ERROR":
-      return { ...state, teamMembers: { status: "error", message: action.message } };
+      return {
+        ...state,
+        teamMembers: { status: "error", message: action.message },
+      };
     case "LOAD_METRICS_START":
       return { ...state, metrics: { status: "loading" } };
     case "LOAD_METRICS_SUCCESS":
       return { ...state, metrics: { status: "success", data: action.data } };
     case "LOAD_METRICS_ERROR":
-      return { ...state, metrics: { status: "error", message: action.message } };
+      return {
+        ...state,
+        metrics: { status: "error", message: action.message },
+      };
     default:
       return state;
   }

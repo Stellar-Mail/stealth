@@ -44,7 +44,10 @@ describe("generateDemoMessages", () => {
 
   it("should produce different results for different seeds", () => {
     const messages1 = generateDemoMessages(options);
-    const messages2 = generateDemoMessages({ ...options, seed: "different-seed" });
+    const messages2 = generateDemoMessages({
+      ...options,
+      seed: "different-seed",
+    });
     expect(messages1).not.toEqual(messages2);
   });
 

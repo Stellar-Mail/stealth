@@ -151,7 +151,12 @@ export function safeAnalyzeSentiment(input: unknown, options?: unknown): SafeSen
       status: "error",
       code: "invalid-input",
       message: "Input must include a non-empty messageId and string subject and body.",
-      issues: [{ code: "invalid-input", message: "Input failed structural validation." }],
+      issues: [
+        {
+          code: "invalid-input",
+          message: "Input failed structural validation.",
+        },
+      ],
     };
   }
   if (!validateOptions(options)) {
@@ -159,7 +164,12 @@ export function safeAnalyzeSentiment(input: unknown, options?: unknown): SafeSen
       status: "error",
       code: "invalid-options",
       message: `Options must use a boolean includeSignals and a maxSignals between 1 and ${MAX_SIGNALS_LIMIT}.`,
-      issues: [{ code: "invalid-options", message: "Options failed structural validation." }],
+      issues: [
+        {
+          code: "invalid-options",
+          message: "Options failed structural validation.",
+        },
+      ],
     };
   }
   if (!isSupportedLanguage(input.language)) {
