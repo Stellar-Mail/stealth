@@ -17,11 +17,21 @@ const SECRET = () => {
   return secret;
 };
 
-interface CursorPayload {
+export interface CursorPayload {
   v: number;
   key: string;
   actor: string;
   scope: string;
+  iat?: number;
+}
+
+export interface EncodeCursorOptions {
+  issuedAt?: number;
+}
+
+export interface DecodeCursorOptions {
+  maxAgeMs?: number;
+  now?: number;
 }
 
 function sign(payload: string): string {
@@ -44,12 +54,18 @@ function base64UrlDecode(value: string): string {
  * Encode a continuation position into a signed, opaque cursor bound to the
  * actor and query scope.
  */
-export function encodeCursor(actor: string, continuationKey: string, scope: string): string {
+export function encodeCursor(
+  actor: string,
+  continuationKey: string,
+  scope: string,
+  options?: EncodeCursorOptions,
+): string {
   const payload: CursorPayload = {
     v: CURSOR_VERSION,
     key: continuationKey,
     actor,
     scope,
+    iat: options?.issuedAt ?? Date.now(),
   };
   const raw = JSON.stringify(payload);
   const encoded = base64UrlEncode(raw);
@@ -60,13 +76,14 @@ export function encodeCursor(actor: string, continuationKey: string, scope: stri
 
 /**
  * Decode and verify a cursor. Throws on missing secret, malformed structure,
- * version mismatch, signature failure, or actor/scope binding mismatch.
+ * version mismatch, signature failure, actor/scope binding mismatch, or expired TTL.
  */
 export function decodeCursor(
   cursor: string,
   actor: string,
   scope: string,
-): { continuationKey: string } {
+  options?: DecodeCursorOptions,
+): { continuationKey: string; issuedAt?: number } {
   const secret = SECRET();
   if (!secret) {
     throw new ApiError(500, "internal_error", "Cursor signing secret is not configured");
@@ -104,5 +121,20 @@ export function decodeCursor(
     throw new ApiError(400, "bad_request", "Pagination cursor scope does not match this query");
   }
 
-  return { continuationKey: payload.key };
+  if (options?.maxAgeMs !== undefined) {
+    const now = options.now ?? Date.now();
+    if (payload.iat !== undefined) {
+      if (now - payload.iat > options.maxAgeMs || payload.iat > now + 60_000) {
+        throw new ApiError(410, "cursor_expired", "Pagination cursor has expired");
+      }
+    } else {
+      // Legacy cursor without iat: if continuationKey is an ISO timestamp, check that
+      const parsedTime = Date.parse(payload.key);
+      if (!Number.isNaN(parsedTime) && now - parsedTime > options.maxAgeMs) {
+        throw new ApiError(410, "cursor_expired", "Pagination cursor has expired");
+      }
+    }
+  }
+
+  return { continuationKey: payload.key, issuedAt: payload.iat };
 }
