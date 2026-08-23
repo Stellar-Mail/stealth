@@ -4,6 +4,7 @@ import {
   BadgeCheck,
   Ban,
   Cable,
+  Check,
   CircleDollarSign,
   CircleHelp,
   Lock,
@@ -108,7 +109,7 @@ export const TrustBadge = memo(function TrustBadge({
     const check = (
       <span
         className={cn(
-          "inline-flex h-[18px] w-[18px] items-center justify-center rounded-full border border-zinc-200/45 text-zinc-50",
+          "relative inline-flex h-[18px] w-[18px] items-center justify-center overflow-hidden rounded-full border border-zinc-200/45 text-zinc-50",
           className,
         )}
         style={{
@@ -119,7 +120,12 @@ export const TrustBadge = memo(function TrustBadge({
         }}
         aria-label={meta.label}
       >
-        <Icon className={size === "sm" ? "h-3.5 w-3.5" : "h-4 w-4"} aria-hidden />
+        <span className="absolute left-[3px] top-[2px] h-1.5 w-2.5 rounded-full bg-white/35 blur-[1px]" />
+        <Check
+          className={size === "sm" ? "relative h-3.5 w-3.5" : "relative h-4 w-4"}
+          strokeWidth={3}
+          aria-hidden
+        />
       </span>
     );
 
