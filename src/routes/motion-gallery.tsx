@@ -258,7 +258,7 @@ function AnimationPreview({
   );
 }
 
-export function MotionGalleryRoute() {
+function MotionGalleryRoute() {
   const [expandedCategory, setExpandedCategory] = useState<number>(0);
   const [expandedPreset, setExpandedPreset] = useState<AnimationDemo | null>({
     categoryIndex: 0,

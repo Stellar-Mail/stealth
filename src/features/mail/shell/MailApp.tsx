@@ -200,23 +200,17 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
       >
         <a
           href="#main-content"
-          className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[300] focus:rounded-lg focus:border focus:border-white/10 focus:bg-black/90 focus:px-4 focus:py-2 focus:text-sm focus:text-foreground"
+          className="sr-only absolute left-4 top-4 z-[100] rounded-md bg-foreground px-3 py-2 text-sm font-semibold text-background focus:not-sr-only focus:outline-none focus:ring-2 focus:ring-emerald-400"
         >
           Skip to mailbox
         </a>
         <AmbientBackground />
-        {isDemoMode && (
-          <div className="absolute top-0 inset-x-0 z-50 bg-primary/20 backdrop-blur-md border-b border-primary/30 py-1 text-center text-xs font-medium text-primary shadow-sm pointer-events-none">
-            Demo Mode: Showing placeholder data.
-          </div>
-        )}
-
-        <div className="flex h-full w-full">
+        <main id="main-content" tabIndex={-1} className="flex h-full w-full">
           {!isMobile ? (
             <div
               className={cn(
                 "shrink-0 transition-[width] duration-200 ease-out",
-                layout.sidebarCollapsed ? "w-[64px]" : "w-[240px]",
+                layout.sidebarCollapsed ? "w-[76px]" : "w-[264px]",
               )}
             >
               <Sidebar
@@ -228,7 +222,6 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
                 onCompose={() => overlays.openCompose()}
                 customFolder={navigation.customFolder}
                 onSelectCustomFolder={navigation.setCustomFolder}
-                onOpenSenderJourney={() => overlays.setShowSenderJourney(true)}
               />
             </div>
           ) : (
@@ -245,11 +238,7 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
           )}
 
           <div className="flex min-w-0 flex-1">
-            <main
-              id="main-content"
-              tabIndex={-1}
-              className="flex h-full flex-col min-w-0 pb-[72px] focus:outline-none md:pb-0"
-            >
+            <div className="flex h-full flex-col min-w-0 pb-[72px] md:pb-0">
               <Topbar
                 onOpenPalette={() => overlays.setPaletteOpen(true)}
                 onOpenSettings={() => overlays.openSettings(preferences)}
@@ -332,18 +321,11 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
                       <EmailList
                         emails={source.emails}
                         selectedId={navigation.selectedId}
-                        selectedIds={navigation.selectedIds}
                         onSelect={navigation.setSelectedId}
-                        onSelectionChange={navigation.setSelectedIds}
-                        onBulkAction={bulk.handleBulkActionRequest}
-                        bulkProgress={bulk.bulkProgress}
-                        bulkFailures={bulk.bulkFailures}
-                        onConvertSender={openSenderConversion}
                         folder={navigation.folder}
                         filters={navigation.filters}
                         customFolder={navigation.customFolder}
-                        compact={layout.compactMode || preferences.compactMode}
-                        showAvatars={preferences.showAvatars}
+                        showAvatars
                         useMobile={isMobile}
                         onArchive={actions.handleArchive}
                         onStar={actions.handleStar}
@@ -407,9 +389,9 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
                   </div>
                 )}
               </div>
-            </main>
+            </div>
           </div>
-        </div>
+        </main>
 
         <MailOverlayStack
           overlays={overlays}

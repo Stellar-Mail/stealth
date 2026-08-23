@@ -5,7 +5,7 @@ const SECURITY_HEADERS = {
   "Permissions-Policy": "camera=(), geolocation=(), microphone=(), payment=()",
   "Cross-Origin-Opener-Policy": "same-origin-allow-popups",
   "Content-Security-Policy":
-    "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://app.stealth.mail https://*.stealth.mail https://horizon.stellar.org https://soroban.stellar.org https://*.stellar.org;",
+    "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://api.dicebear.com; font-src 'self' data:; connect-src 'self' https://app.stealth.mail https://*.stealth.mail https://horizon.stellar.org https://soroban.stellar.org https://*.stellar.org;",
 } as const;
 
 function isProduction(): boolean {

@@ -209,23 +209,23 @@ describe("resolveRouteGuard — five required states", () => {
       expect(decision).toEqual({ kind: "redirect", to: SIGN_IN_ROUTE, search: { next: "/" } });
     });
 
-    it("redirects anonymous visitors away from the root even with the demo flag in dev", () => {
-      // Demo data is never the default entrypoint: `/` must not render
-      // MailApp (or seeded mail) for an anonymous visitor under any flag.
+    it("renders the development inbox at the root for anonymous visitors", () => {
+      // Local development has no backend bindings, so the root entrypoint
+      // intentionally renders the demo shell instead of redirecting to auth.
       const decision = resolveRouteGuard({
         state: "anonymous",
         pathname: "/",
         isDev: true,
-        demoFlag: true,
+        demoFlag: false,
       });
-      expect(decision).toEqual({ kind: "redirect", to: SIGN_IN_ROUTE, search: { next: "/" } });
+      expect(decision).toEqual({ kind: "render" });
     });
   });
 
-  describe("demo mode is isolated behind a dev flag and its own route", () => {
-    it("allows demo only on /demo with the dev flag set", () => {
+  describe("development inbox bypass", () => {
+    it("allows the demo route in development without a separate storage flag", () => {
       expect(
-        resolveRouteGuard({ state: "anonymous", pathname: "/demo", isDev: true, demoFlag: true }),
+        resolveRouteGuard({ state: "anonymous", pathname: "/demo", isDev: true, demoFlag: false }),
       ).toEqual({ kind: "render" });
     });
 
@@ -235,15 +235,29 @@ describe("resolveRouteGuard — five required states", () => {
       ).toEqual({ kind: "redirect", to: SIGN_IN_ROUTE, search: { next: "/demo" } });
     });
 
-    it("denies /demo in dev without the explicit flag", () => {
+    it("renders other protected routes in development without the explicit flag", () => {
       expect(
-        resolveRouteGuard({ state: "anonymous", pathname: "/demo", isDev: true, demoFlag: false }),
-      ).toEqual({ kind: "redirect", to: SIGN_IN_ROUTE, search: { next: "/demo" } });
+        resolveRouteGuard({ state: "anonymous", pathname: "/inbox", isDev: true, demoFlag: false }),
+      ).toEqual({ kind: "render" });
     });
 
-    it("never treats any other path as demo", () => {
+    it("keeps mocked browser-test bootstrap states observable", () => {
+      expect(
+        resolveRouteGuard({
+          state: "anonymous",
+          pathname: "/inbox",
+          isDev: true,
+          isE2E: true,
+        }),
+      ).toEqual({ kind: "redirect", to: SIGN_IN_ROUTE, search: { next: "/inbox" } });
+    });
+
+    it("keeps the same route protected in production", () => {
       expect(
         resolveRouteGuard({ state: "anonymous", pathname: "/inbox", isDev: true, demoFlag: true }),
+      ).toEqual({ kind: "render" });
+      expect(
+        resolveRouteGuard({ state: "anonymous", pathname: "/inbox", isDev: false, demoFlag: true }),
       ).toEqual({ kind: "redirect", to: SIGN_IN_ROUTE, search: { next: "/inbox" } });
     });
   });

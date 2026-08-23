@@ -21,10 +21,10 @@ test.describe("search and filter", () => {
     const searchInput = page.getByPlaceholder("Search messages, contacts, drafts", {
       exact: false,
     });
-    await searchInput.fill("Architecture");
+    await searchInput.fill("TOKEN2049");
 
     await expect(page.getByText("Privacy-Safe Index:")).toBeVisible();
-    await expect(page.getByRole("option", { name: /Architecture/i })).toBeVisible();
+    await expect(page.getByRole("option", { name: /TOKEN2049/i })).toBeVisible();
   });
 
   test("keyboard shortcut Ctrl+K opens the command palette", async ({ page }) => {
