@@ -18,10 +18,7 @@ import {
   submitSenderRuleWrite,
   scheduleSenderRuleWrite,
 } from "./policy-service";
-import {
-  getSenderRuleRecord,
-  transitionSenderRuleChainStatus,
-} from "./sender-rule-service";
+import { getSenderRuleRecord, transitionSenderRuleChainStatus } from "./sender-rule-service";
 
 export interface PolicySyncResult {
   owner: string;

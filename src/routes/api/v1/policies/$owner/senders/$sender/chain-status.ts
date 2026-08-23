@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 
+import { parseDelegationHeader, requireActorMatches } from "@/server/api/actor";
 import { getApiContext } from "@/server/api/context";
 import { senderRuleChainStatusSchema, stellarAddressSchema } from "@/server/api/domain";
 import { transitionSenderRuleChainStatus } from "@/server/api/sender-rule-service";
@@ -29,6 +30,15 @@ export const Route = createFileRoute("/api/v1/policies/$owner/senders/$sender/ch
           const context = await getApiContext(request);
           const owner = stellarAddressSchema.parse(params.owner);
           const sender = stellarAddressSchema.parse(params.sender);
+          requireActorMatches(
+            context,
+            owner,
+            parseDelegationHeader(
+              request,
+              "policy:senders:update",
+              `mailbox:${owner}:senders:${sender}`,
+            ),
+          );
 
           const body = await parseJsonBody(request, transitionBodySchema, {
             route: "POST /policies/{owner}/senders/{sender}/chain-status",

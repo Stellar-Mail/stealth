@@ -8,6 +8,7 @@ import type {
 import type { ApiRepository } from "./repository";
 import { ApiError } from "./errors";
 import { recordAuditEvent } from "./audit";
+import { scheduleSenderRuleWrite } from "./policy-service";
 
 // ---------------------------------------------------------------------------
 // BETA-037 (Issue #1944) — Live, versioned sender rules
@@ -305,7 +306,22 @@ export async function retrySenderRuleWrite(
     return record; // already in-flight, no-op
   }
 
-  return transitionSenderRuleChainStatus(repository, owner, sender, "pending", {}, now);
+  const reset = await transitionSenderRuleChainStatus(
+    repository,
+    owner,
+    sender,
+    "pending",
+    {},
+    now,
+  );
+
+  if (record.rule !== "verify") {
+    await scheduleSenderRuleWrite(repository, owner, sender, record.rule, {
+      minimumPostage: record.rule === "price" ? record.pricePayload?.minimumPostage : null,
+    });
+  }
+
+  return reset;
 }
 
 // ---------------------------------------------------------------------------

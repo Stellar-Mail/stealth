@@ -4,7 +4,10 @@ import { parseDelegationHeader, requireActorMatches } from "@/server/api/actor";
 import { getApiContext } from "@/server/api/context";
 import { senderRuleWriteSchema, stellarAddressSchema } from "@/server/api/domain";
 import { getSenderRule, setSenderRule } from "@/server/api/policy-service";
-import { syncVersionedSenderRuleRecord } from "@/server/api/policy-sync-service";
+import {
+  syncSenderRuleWrite,
+  syncVersionedSenderRuleRecord,
+} from "@/server/api/policy-sync-service";
 import {
   createOrUpdateSenderRule,
   deleteSenderRule,
@@ -21,6 +24,15 @@ export const Route = createFileRoute("/api/v1/policies/$owner/senders/$sender")(
           const context = await getApiContext(request);
           const owner = stellarAddressSchema.parse(params.owner);
           const sender = stellarAddressSchema.parse(params.sender);
+          requireActorMatches(
+            context,
+            owner,
+            parseDelegationHeader(
+              request,
+              "policy:senders:read",
+              `mailbox:${owner}:senders:${sender}`,
+            ),
+          );
 
           // Return versioned record if available, fall back to legacy
           const record = await getSenderRuleRecord(context.repository, owner, sender);
@@ -107,8 +119,14 @@ export const Route = createFileRoute("/api/v1/policies/$owner/senders/$sender")(
           // Delete versioned record + legacy rule
           const { deleted } = await deleteSenderRule(context.repository, owner, sender);
 
-          // Also clear the legacy sender rule
+          // Also clear the legacy sender rule and submit the default override on-chain.
           await setSenderRule(context.repository, owner, sender, "default");
+          await syncSenderRuleWrite(
+            context.repository,
+            owner,
+            sender,
+            context.requestId ?? "policy-sync",
+          );
 
           return apiSuccess(request, { owner, sender, deleted });
         }),

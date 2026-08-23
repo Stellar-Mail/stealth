@@ -135,8 +135,23 @@ export class HybridApiRepository implements ApiRepository {
     owner: string,
     options?: { limit?: number; after?: string },
   ): Promise<{ records: SenderRuleRecord[]; nextCursor?: string }> {
-    // BETA-037: Delegate to the DO coordinator for consistent listing.
-    return this.getStub().listSenderRuleRecords(owner, options);
+    const limit = options?.limit ?? 50;
+    const prefix = `${this.key("sender-rule-record", owner)}:`;
+    const listed = await this.kv.list({ prefix });
+    const records: SenderRuleRecord[] = [];
+    for (const entry of listed.keys) {
+      const record = (await this.kv.get(entry.name, "json")) as SenderRuleRecord | null;
+      if (record?.owner === owner) records.push(record);
+    }
+    records.sort((left, right) => left.sender.localeCompare(right.sender));
+    let startIndex = 0;
+    if (options?.after) {
+      startIndex = records.findIndex((record) => record.sender === options.after) + 1;
+    }
+    const page = records.slice(startIndex, startIndex + limit);
+    const nextCursor =
+      startIndex + limit < records.length ? page[page.length - 1]?.sender : undefined;
+    return { records: page, nextCursor };
   }
 
   async compareAndSetSenderRule(
@@ -144,28 +159,56 @@ export class HybridApiRepository implements ApiRepository {
     sender: string,
     rule: SenderRule,
     expectedVersion?: number,
-    now?: Date,
+    now = new Date(),
   ): Promise<import("./repository").CompareSetSenderRuleResult> {
-    const result = await this.getStub().compareAndSetSenderRule(
+    const current = await this.getSenderRuleRecord(owner, sender);
+    const iso = now.toISOString();
+
+    if (expectedVersion !== undefined) {
+      const actualVersion = current?.version ?? 0;
+      if (actualVersion !== expectedVersion) {
+        return { outcome: "conflict", current };
+      }
+    }
+
+    if (rule === "default") {
+      await this.deleteSenderRuleRecord(owner, sender);
+      await this.kv.delete(this.key("sender-rule", owner, sender));
+      const nextVersion = (current?.version ?? 0) + 1;
+      const record: SenderRuleRecord = current
+        ? { ...current, version: nextVersion, updatedAt: iso }
+        : {
+            owner,
+            sender,
+            rule: "allow",
+            version: nextVersion,
+            chainStatus: "pending",
+            scheduledAt: iso,
+            updatedAt: iso,
+            confirmedAt: null,
+            failureCount: 0,
+            lastError: null,
+            txHash: null,
+          };
+      return { outcome: "applied", record };
+    }
+
+    const record: SenderRuleRecord = {
       owner,
       sender,
       rule,
-      expectedVersion,
-      now,
-    );
-    if (result.outcome === "applied") {
-      await this.kv.put(
-        this.key("sender-rule-record", owner, sender),
-        JSON.stringify(result.record),
-      );
-      const ruleKey = this.key("sender-rule", owner, sender);
-      if (rule === "default") {
-        await this.kv.delete(ruleKey);
-      } else {
-        await this.kv.put(ruleKey, rule);
-      }
-    }
-    return result;
+      version: (current?.version ?? 0) + 1,
+      chainStatus: "pending",
+      scheduledAt: iso,
+      updatedAt: iso,
+      confirmedAt: null,
+      failureCount: 0,
+      lastError: null,
+      txHash: null,
+    };
+    await this.setSenderRuleRecord(record);
+    await this.kv.put(this.key("sender-rule", owner, sender), rule);
+    return { outcome: "applied", record };
   }
 
   async getSenderRuleWriteIntent(
@@ -183,14 +226,22 @@ export class HybridApiRepository implements ApiRepository {
       this.key("sender-rule-write", intent.owner, intent.sender),
       JSON.stringify(intent),
     );
-    await this.getStub().setSenderRuleWriteIntent(intent);
     return intent;
   }
 
   async listSenderRuleWriteIntents(
     owner: string,
   ): Promise<import("./domain").SenderRuleWriteIntent[]> {
-    return this.getStub().listSenderRuleWriteIntents(owner);
+    const prefix = `${this.key("sender-rule-write", owner)}:`;
+    const listed = await this.kv.list({ prefix });
+    const intents: import("./domain").SenderRuleWriteIntent[] = [];
+    for (const entry of listed.keys) {
+      const intent = (await this.kv.get(entry.name, "json")) as
+        | import("./domain").SenderRuleWriteIntent
+        | null;
+      if (intent?.owner === owner) intents.push(intent);
+    }
+    return intents.sort((left, right) => left.sender.localeCompare(right.sender));
   }
 
   async getPostage(messageId: string): Promise<Postage | null> {

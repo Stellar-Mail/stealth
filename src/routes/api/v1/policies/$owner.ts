@@ -4,7 +4,11 @@ import { z } from "zod";
 import { parseDelegationHeader, requireActorMatches } from "@/server/api/actor";
 import { mailboxPolicyWriteSchema, stellarAddressSchema } from "@/server/api/domain";
 import { getApiContext } from "@/server/api/context";
-import { getMailboxPolicy, setMailboxPolicy, deriveMailboxSyncStatus } from "@/server/api/policy-service";
+import {
+  getMailboxPolicy,
+  setMailboxPolicy,
+  deriveMailboxSyncStatus,
+} from "@/server/api/policy-service";
 import { syncMailboxPolicyWrite } from "@/server/api/policy-sync-service";
 import { parseJsonBody } from "@/server/api/request";
 import { apiSuccess, handleApiRequest } from "@/server/api/response";

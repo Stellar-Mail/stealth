@@ -10,7 +10,9 @@ import {
 import {
   syncAllPendingPolicyWrites,
   syncSenderRuleWrite,
+  syncVersionedSenderRuleRecord,
 } from "../../../src/server/api/policy-sync-service";
+import { createOrUpdateSenderRule } from "../../../src/server/api/sender-rule-service";
 import {
   InMemoryPolicyChainClient,
   setPolicyChainClient,
@@ -116,5 +118,28 @@ describe("BETA-037 sender rule persistence and chain sync", () => {
       syncSenderRuleWrite(repository, owner, sender, "price-req", { chainClient }),
     ).resolves.toMatchObject({ status: "synced" });
     expect(await chainClient.readSenderTier(owner, sender)).toBe("1000000");
+  });
+
+  it("wires versioned sender-rule CRUD through chain sync", async () => {
+    const created = await createOrUpdateSenderRule(repository, owner, sender, {
+      rule: "block",
+    });
+    const synced = await syncVersionedSenderRuleRecord(repository, created.rule, "api-put", {
+      chainClient,
+    });
+    expect(synced.chainStatus).toBe("confirmed");
+    expect(synced.txHash).toBeTruthy();
+    expect(await chainClient.readSenderRule(owner, sender)).toBe("block");
+  });
+
+  it("marks verify sender rules confirmed without a chain write", async () => {
+    const created = await createOrUpdateSenderRule(repository, owner, sender, {
+      rule: "verify",
+    });
+    const synced = await syncVersionedSenderRuleRecord(repository, created.rule, "verify-put", {
+      chainClient,
+    });
+    expect(synced.chainStatus).toBe("confirmed");
+    expect(chainClient.submitCalls).toBe(0);
   });
 });
