@@ -383,6 +383,8 @@ export const senderRuleWriteIntentSchema = z.object({
   owner: stellarAddressSchema,
   sender: stellarAddressSchema,
   rule: senderRuleSchema,
+  /** Required when `rule` is `price`; submitted via `set_sender_tier`. */
+  minimumPostage: stroopAmountSchema.nullable().default(null),
   offchainVersion: z.number().int().nonnegative(),
   status: policyWriteStatusSchema,
   scheduledAt: z.string().datetime(),

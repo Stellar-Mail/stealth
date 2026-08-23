@@ -4,13 +4,11 @@ import { parseDelegationHeader, requireActorMatches } from "@/server/api/actor";
 import { getApiContext } from "@/server/api/context";
 import { senderRuleWriteSchema, stellarAddressSchema } from "@/server/api/domain";
 import { getSenderRule, setSenderRule } from "@/server/api/policy-service";
+import { syncVersionedSenderRuleRecord } from "@/server/api/policy-sync-service";
 import {
   createOrUpdateSenderRule,
   deleteSenderRule,
   getSenderRuleRecord,
-  transitionSenderRuleChainStatus,
-  retrySenderRuleWrite,
-  evaluateSenderRuleForAdmission,
 } from "@/server/api/sender-rule-service";
 import { parseJsonBody } from "@/server/api/request";
 import { apiSuccess, handleApiRequest } from "@/server/api/response";
@@ -70,15 +68,23 @@ export const Route = createFileRoute("/api/v1/policies/$owner/senders/$sender")(
             idempotencyKey: body.idempotencyKey,
           });
 
+          const synced = await syncVersionedSenderRuleRecord(
+            context.repository,
+            result.rule,
+            context.requestId ?? "policy-sync",
+          );
+
           return apiSuccess(request, {
             owner: result.owner,
             sender: result.sender,
-            rule: result.rule.rule,
-            pricePayload: result.rule.pricePayload,
-            version: result.rule.version,
-            chainStatus: result.rule.chainStatus,
-            scheduledAt: result.rule.scheduledAt,
-            updatedAt: result.rule.updatedAt,
+            rule: synced.rule,
+            pricePayload: synced.pricePayload,
+            version: synced.version,
+            chainStatus: synced.chainStatus,
+            scheduledAt: synced.scheduledAt,
+            updatedAt: synced.updatedAt,
+            confirmedAt: synced.confirmedAt,
+            txHash: synced.txHash,
             created: result.created,
           });
         }),

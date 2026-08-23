@@ -107,4 +107,14 @@ describe("BETA-037 sender rule persistence and chain sync", () => {
       true,
     );
   });
+
+  it("syncs price sender rules via set_sender_tier", async () => {
+    await scheduleSenderRuleWrite(repository, owner, sender, "price", {
+      minimumPostage: "1000000",
+    });
+    await expect(
+      syncSenderRuleWrite(repository, owner, sender, "price-req", { chainClient }),
+    ).resolves.toMatchObject({ status: "synced" });
+    expect(await chainClient.readSenderTier(owner, sender)).toBe("1000000");
+  });
 });

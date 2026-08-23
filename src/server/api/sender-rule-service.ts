@@ -227,7 +227,7 @@ export async function getSenderRuleRecord(
  *   drift     → pending   (re-sync scheduled)
  */
 const ALLOWED_CHAIN_TRANSITIONS: Record<SenderRuleChainStatus, Set<SenderRuleChainStatus>> = {
-  pending: new Set(["submitted", "failed"]),
+  pending: new Set(["submitted", "confirmed", "failed"]),
   submitted: new Set(["confirmed", "failed"]),
   confirmed: new Set(["drift"]),
   failed: new Set(["pending"]),

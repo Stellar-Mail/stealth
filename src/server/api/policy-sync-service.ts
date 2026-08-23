@@ -6,6 +6,7 @@ import {
 } from "../../services/stellar/policy-chain-client";
 import { recordAuditEvent } from "./audit";
 import type { ApiRepository } from "./repository";
+import type { SenderRuleRecord } from "./domain";
 import {
   confirmPolicyWrite,
   failPolicyWrite,
@@ -15,7 +16,12 @@ import {
   failSenderRuleWrite,
   getSenderRuleWriteIntent,
   submitSenderRuleWrite,
+  scheduleSenderRuleWrite,
 } from "./policy-service";
+import {
+  getSenderRuleRecord,
+  transitionSenderRuleChainStatus,
+} from "./sender-rule-service";
 
 export interface PolicySyncResult {
   owner: string;
@@ -31,11 +37,12 @@ export interface PolicySyncDependencies {
 }
 
 function resolveChainClient(deps: PolicySyncDependencies = {}): PolicyChainClient {
-  return (
-    deps.chainClient ??
-    createPolicyChainClient(loadRuntimeConfig()) ??
-    new InMemoryPolicyChainClient()
-  );
+  if (deps.chainClient) return deps.chainClient;
+  try {
+    return createPolicyChainClient(loadRuntimeConfig()) ?? new InMemoryPolicyChainClient();
+  } catch {
+    return new InMemoryPolicyChainClient();
+  }
 }
 
 export async function syncMailboxPolicyWrite(
@@ -100,13 +107,27 @@ export async function syncSenderRuleWrite(
 
   try {
     await submitSenderRuleWrite(repository, owner, sender);
-    const { txHash } = await chainClient.submitSenderRuleWrite(
-      owner,
-      sender,
-      intent.rule,
-      owner,
-      requestId,
-    );
+    let txHash: string;
+    if (intent.rule === "price") {
+      if (!intent.minimumPostage) {
+        throw new Error("price sender rule is missing minimumPostage");
+      }
+      ({ txHash } = await chainClient.submitSenderTierWrite(
+        owner,
+        sender,
+        intent.minimumPostage,
+        owner,
+        requestId,
+      ));
+    } else {
+      ({ txHash } = await chainClient.submitSenderRuleWrite(
+        owner,
+        sender,
+        intent.rule,
+        owner,
+        requestId,
+      ));
+    }
     await confirmSenderRuleWrite(repository, owner, sender, txHash);
     recordAuditEvent({
       actor: owner,
@@ -148,4 +169,39 @@ export async function syncAllPendingPolicyWrites(
     }
   }
   return results;
+}
+
+/**
+ * Schedules and synchronizes a versioned sender rule record created by the HTTP API.
+ * Verify rules are off-chain only; price rules use `set_sender_tier`.
+ */
+export async function syncVersionedSenderRuleRecord(
+  repository: ApiRepository,
+  record: SenderRuleRecord,
+  requestId = "policy-sync",
+  deps: PolicySyncDependencies = {},
+): Promise<SenderRuleRecord> {
+  const { owner, sender } = record;
+
+  if (record.rule === "verify") {
+    return transitionSenderRuleChainStatus(repository, owner, sender, "confirmed");
+  }
+
+  await scheduleSenderRuleWrite(repository, owner, sender, record.rule, {
+    minimumPostage: record.rule === "price" ? record.pricePayload?.minimumPostage : null,
+  });
+
+  const result = await syncSenderRuleWrite(repository, owner, sender, requestId, deps);
+  if (result.status === "synced") {
+    return transitionSenderRuleChainStatus(repository, owner, sender, "confirmed", {
+      txHash: result.txHash,
+    });
+  }
+  if (result.status === "failed") {
+    return transitionSenderRuleChainStatus(repository, owner, sender, "failed", {
+      lastError: result.error ?? "sender rule sync failed",
+    });
+  }
+
+  return (await getSenderRuleRecord(repository, owner, sender)) ?? record;
 }

@@ -207,7 +207,7 @@ function deriveSenderSyncStatus(
   return "pending";
 }
 
-async function deriveMailboxSyncStatus(
+export async function deriveMailboxSyncStatus(
   repository: ApiRepository,
   owner: string,
 ): Promise<PolicySyncStatus> {
@@ -675,12 +675,28 @@ export async function scheduleSenderRuleWrite(
   owner: string,
   sender: string,
   rule: SenderRule,
+  options: { minimumPostage?: string | null } = {},
   now = new Date(),
 ): Promise<SenderRuleWriteIntent> {
   const iso = now.toISOString();
   const existing = await repository.getSenderRuleWriteIntent(owner, sender);
+  const minimumPostage =
+    rule === "price" ? (options.minimumPostage ?? existing?.minimumPostage ?? null) : null;
 
-  if (existing && existing.rule === rule) {
+  if (rule === "price" && !minimumPostage) {
+    throw new ApiError(
+      422,
+      "validation_error",
+      "minimumPostage is required to schedule a price sender rule chain write",
+    );
+  }
+
+  const unchanged =
+    existing &&
+    existing.rule === rule &&
+    (rule !== "price" || existing.minimumPostage === minimumPostage);
+
+  if (unchanged) {
     if (existing.status === "failed") {
       return repository.setSenderRuleWriteIntent({
         ...existing,
@@ -697,6 +713,7 @@ export async function scheduleSenderRuleWrite(
     owner,
     sender,
     rule,
+    minimumPostage,
     offchainVersion,
     status: "pending",
     scheduledAt: iso,

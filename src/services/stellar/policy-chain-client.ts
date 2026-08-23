@@ -42,6 +42,13 @@ export interface PolicyChainClient {
     actorAddress: string,
     requestId?: string,
   ): Promise<PolicyChainSubmitResult>;
+  submitSenderTierWrite(
+    owner: string,
+    sender: string,
+    minimumPostage: string,
+    actorAddress: string,
+    requestId?: string,
+  ): Promise<PolicyChainSubmitResult>;
 }
 
 export function contractPolicyToApi(policy: ContractMailboxPolicy): MailboxPolicy {
@@ -76,6 +83,11 @@ function toContractSenderRule(rule: SenderRule): ContractSenderRule {
       return ContractSenderRule.Allow;
     case "block":
       return ContractSenderRule.Block;
+    case "default":
+      return ContractSenderRule.Default;
+    case "verify":
+    case "price":
+      throw new Error(`Sender rule '${rule}' must not be submitted via set_sender_rule`);
     default:
       return ContractSenderRule.Default;
   }
@@ -218,6 +230,39 @@ export class SorobanPolicyChainClient implements PolicyChainClient {
     return this.submitSignedXdr(signedXdr);
   }
 
+  async submitSenderTierWrite(
+    owner: string,
+    sender: string,
+    minimumPostage: string,
+    actorAddress: string,
+    requestId?: string,
+  ): Promise<PolicyChainSubmitResult> {
+    const client = this.policiesClient(this.operatorKeypair.publicKey());
+    const assembled = await (
+      client as contract.Client & {
+        set_sender_tier: (args: {
+          owner: string;
+          sender: string;
+          minimum_postage: bigint;
+        }) => Promise<contract.AssembledTransaction<unknown>>;
+      }
+    ).set_sender_tier({
+      owner,
+      sender,
+      minimum_postage: BigInt(minimumPostage),
+    });
+
+    const unsignedXdr = assembled.built!.toEnvelope().toXDR("base64");
+    const signedXdr = await this.wallet.signTransaction(
+      { type: "policy", ownerAddress: owner },
+      actorAddress,
+      unsignedXdr,
+      requestId,
+    );
+
+    return this.submitSignedXdr(signedXdr);
+  }
+
   private async submitSignedXdr(signedXdr: string): Promise<PolicyChainSubmitResult> {
     const tx = new Transaction(signedXdr, this.config.network.networkPassphrase);
     const response = await this.rpc.sendTransaction(tx);
@@ -320,10 +365,28 @@ export class InMemoryPolicyChainClient implements PolicyChainClient {
       this.failNextSubmit = false;
       throw new Error("simulated chain failure");
     }
+    if (rule === "verify" || rule === "price") {
+      throw new Error(`Sender rule '${rule}' must not be submitted via set_sender_rule`);
+    }
     const key = `${owner}:${sender}`;
     if (rule === "default") this.rules.delete(key);
     else this.rules.set(key, rule);
     return { txHash: `mem-sender-${sender.slice(0, 8)}` };
+  }
+
+  async submitSenderTierWrite(
+    owner: string,
+    sender: string,
+    minimumPostage: string,
+  ): Promise<PolicyChainSubmitResult> {
+    this.submitCalls += 1;
+    if (this.failNextSubmit) {
+      this.failNextSubmit = false;
+      throw new Error("simulated chain failure");
+    }
+    const key = `${owner}:${sender}`;
+    this.tiers.set(key, minimumPostage);
+    return { txHash: `mem-tier-${sender.slice(0, 8)}` };
   }
 }
 
