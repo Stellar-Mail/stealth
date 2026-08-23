@@ -8,6 +8,9 @@ describe("server security headers", () => {
 
     expect(response.status).toBe(404);
     expect(response.headers.get("Content-Security-Policy")).toContain("frame-ancestors 'none'");
+    expect(response.headers.get("Content-Security-Policy")).toContain(
+      "img-src 'self' data: blob: https://api.dicebear.com",
+    );
     expect(response.headers.get("X-Frame-Options")).toBe("DENY");
     expect(response.headers.get("X-Content-Type-Options")).toBe("nosniff");
     expect(response.headers.get("Referrer-Policy")).toBe("strict-origin-when-cross-origin");
