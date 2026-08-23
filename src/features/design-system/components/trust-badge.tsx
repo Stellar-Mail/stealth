@@ -108,12 +108,12 @@ export const TrustBadge = memo(function TrustBadge({
     const check = (
       <span
         className={cn(
-          "inline-flex items-center justify-center text-zinc-200 drop-shadow-[0_1px_1px_rgba(0,0,0,0.85)]",
+          "inline-flex h-[18px] w-[18px] items-center justify-center rounded-full border border-zinc-300/35 bg-gradient-to-b from-zinc-500/70 to-zinc-800/90 text-zinc-100 shadow-[0_3px_8px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.2)]",
           className,
         )}
         aria-label={meta.label}
       >
-        <Icon className={size === "sm" ? "h-4 w-4" : "h-[18px] w-[18px]"} aria-hidden />
+        <Icon className={size === "sm" ? "h-3.5 w-3.5" : "h-4 w-4"} aria-hidden />
       </span>
     );
 
