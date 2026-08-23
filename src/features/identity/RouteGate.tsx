@@ -23,6 +23,7 @@ export function RouteGate({ children }: { children: ReactNode }) {
     pathname: location.pathname,
     search: location.searchStr.includes("?") ? location.searchStr.slice(1) : location.searchStr,
     isDev: import.meta.env.DEV,
+    isE2E: import.meta.env.VITE_E2E === "true",
     demoFlag:
       typeof window !== "undefined"
         ? window.localStorage?.getItem("STEALTH_DEMO_BYPASS_FETCH") === "true"

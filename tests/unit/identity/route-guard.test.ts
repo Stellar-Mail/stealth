@@ -241,6 +241,17 @@ describe("resolveRouteGuard — five required states", () => {
       ).toEqual({ kind: "render" });
     });
 
+    it("keeps mocked browser-test bootstrap states observable", () => {
+      expect(
+        resolveRouteGuard({
+          state: "anonymous",
+          pathname: "/inbox",
+          isDev: true,
+          isE2E: true,
+        }),
+      ).toEqual({ kind: "redirect", to: SIGN_IN_ROUTE, search: { next: "/inbox" } });
+    });
+
     it("keeps the same route protected in production", () => {
       expect(
         resolveRouteGuard({ state: "anonymous", pathname: "/inbox", isDev: true, demoFlag: true }),

@@ -73,6 +73,8 @@ export interface RouteGuardInput {
   isDev?: boolean;
   /** Explicit development-only demo flag (`STEALTH_DEMO_BYPASS_FETCH`). */
   demoFlag?: boolean;
+  /** Browser-test server mode; keeps mocked bootstrap branches observable. */
+  isE2E?: boolean;
 }
 
 /**
@@ -85,6 +87,7 @@ export function resolveRouteGuard(input: RouteGuardInput): GuardDecision {
   const search = input.search ?? "";
   const isDev = input.isDev ?? false;
   const demoFlag = input.demoFlag ?? false;
+  const isE2E = input.isE2E ?? false;
 
   switch (state) {
     case "loading":
@@ -95,7 +98,7 @@ export function resolveRouteGuard(input: RouteGuardInput): GuardDecision {
       // Development bypass: in dev builds the backend bindings are absent, so
       // bootstrap always resolves anonymous. Render the app shell instead of
       // bouncing to sign-in — the auth routes stay reachable by URL for testing.
-      if (isDev) return { kind: "render" };
+      if (isDev && !isE2E) return { kind: "render" };
       // Demo mode is reachable only on its isolated route, only in dev,
       // only when the explicit demo flag is present.
       if (isDev && demoFlag && pathname === DEMO_ROUTE) return { kind: "render" };
@@ -107,7 +110,7 @@ export function resolveRouteGuard(input: RouteGuardInput): GuardDecision {
 
     case "onboarding":
     case "verified": {
-      if (isDev) return { kind: "render" };
+      if (isDev && !isE2E) return { kind: "render" };
       if (pathname === ONBOARDING_ROUTE || pathname === "/auth/verify") {
         return { kind: "render" };
       }
@@ -118,7 +121,7 @@ export function resolveRouteGuard(input: RouteGuardInput): GuardDecision {
       return { kind: "state-view", view: "suspended" };
 
     case "outage":
-      if (isDev) return { kind: "render" };
+      if (isDev && !isE2E) return { kind: "render" };
       return { kind: "state-view", view: "outage" };
 
     case "active": {
