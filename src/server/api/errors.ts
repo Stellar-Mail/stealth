@@ -220,6 +220,12 @@ export class ApiError extends Error {
     } else if (code === "internal_error" || code === "data_integrity_error") {
       this.retryClassification = "transient";
       this.retryable = true;
+    } else if (code === "dependency_unavailable") {
+      // Registered as transient in the registry; align the constructed
+      // classification so callers (e.g. provisioning compensation policy)
+      // treat an unavailable dependency as recoverable.
+      this.retryClassification = "transient";
+      this.retryable = true;
     } else {
       this.retryClassification = "permanent";
       this.retryable = false;

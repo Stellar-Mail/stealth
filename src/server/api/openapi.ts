@@ -1,4 +1,8 @@
-﻿import { API_ERROR_CODES, API_ERROR_REGISTRY } from "./errors";
+import { API_ERROR_CODES, API_ERROR_REGISTRY } from "./errors";
+
+const OPENAPI_ERROR_CODES = API_ERROR_CODES.filter(
+  (c) => c !== "recent_auth_required" && c !== "chain_error" && c !== "cursor_expired",
+);
 
 export const openApiDocument = {
   openapi: "3.1.0",
@@ -192,7 +196,7 @@ export const openApiDocument = {
             type: "string",
             description: "Stable domain error code.",
             "x-optic-ignore": true,
-            enum: API_ERROR_CODES,
+            enum: OPENAPI_ERROR_CODES,
             example: "invalid_state_transition",
           },
           message: {
@@ -509,7 +513,7 @@ export const openApiDocument = {
           rule: {
             type: "string",
             description: "Applied sender override rule.",
-            enum: ["allow", "block", "default"],
+            enum: ["allow", "block", "default", "verify", "price"],
           },
         },
       },
@@ -748,7 +752,7 @@ export const openApiDocument = {
                 type: "string",
                 description: "Stable domain-specific error code.",
                 "x-optic-ignore": true,
-                enum: API_ERROR_CODES.filter((c) => c !== "recent_auth_required"),
+                enum: OPENAPI_ERROR_CODES,
               },
               message: {
                 type: "string",
@@ -868,8 +872,8 @@ export const openApiDocument = {
             description: "Delivery TTL in milliseconds.",
           },
           postage: {
-            allOf: [{ $ref: "#/components/schemas/StroopAmount" }],
-            description: "Attached postage in stroops. Defaults to 0.",
+            $ref: "#/components/schemas/StroopAmount",
+            description: "Attached postage in stroops. Defaults to 0 when omitted.",
           },
           verified: {
             type: "boolean",
@@ -877,30 +881,20 @@ export const openApiDocument = {
           },
           receipt: {
             type: "boolean",
-            description:
-              "Whether the sender attached a delivery-receipt commitment. Defaults to false.",
+            description: "Whether the submission includes a delivery-receipt commitment.",
           },
         },
       },
       RelayAdmissionDecision: {
         type: "object",
-        required: [
-          "allowed",
-          "disposition",
-          "reason",
-          "policyVersion",
-          "requiredPostage",
-          "rule",
-          "source",
-          "evaluatedAt",
-        ],
+        required: ["allowed", "kind", "reason", "policyVersion", "requiredPostage"],
         additionalProperties: false,
         properties: {
           allowed: { type: "boolean" },
-          disposition: {
+          kind: {
             type: "string",
             enum: ["trusted", "request", "verified", "priced", "blocked"],
-            description: "Sender-facing admission class enforced at the relay.",
+            description: "Sender-actionable admission class.",
           },
           reason: {
             type: "string",
@@ -915,27 +909,18 @@ export const openApiDocument = {
               "tier_satisfied",
             ],
           },
-          rule: { type: "string", enum: ["allow", "block", "default"] },
           policyVersion: {
             type: "integer",
-            minimum: 0,
-            description: "Policy version evaluated at admission time. Immutable after persist.",
+            description: "Policy version evaluated at admission time. Immutable on the message.",
           },
-          requiredPostage: { $ref: "#/components/schemas/StroopAmount" },
-          source: {
-            type: "string",
-            enum: ["chain", "offchain", "stale_chain_fallback"],
-          },
-          evaluatedAt: { type: "string", format: "date-time" },
-          message: {
-            type: "string",
-            description: "Human-readable but non-authoritative explanation of the decision.",
+          requiredPostage: {
+            $ref: "#/components/schemas/StroopAmount",
           },
         },
       },
       RelaySubmissionResult: {
         type: "object",
-        required: ["accepted", "messageId", "queueDepth", "service"],
+        required: ["accepted", "messageId", "queueDepth", "service", "replayed", "admission"],
         additionalProperties: false,
         properties: {
           accepted: { type: "boolean", enum: [true] },
@@ -944,78 +929,10 @@ export const openApiDocument = {
           service: { type: "string", description: "Service name." },
           replayed: {
             type: "boolean",
-            description: "True when this response is the original recorded admission.",
+            description:
+              "True when this messageId was already admitted and the original decision was returned.",
           },
           admission: { $ref: "#/components/schemas/RelayAdmissionDecision" },
-        },
-      },
-      MailboxSyncRequest: {
-        type: "object",
-        required: ["deviceId"],
-        additionalProperties: false,
-        properties: {
-          deviceId: {
-            type: "string",
-            minLength: 1,
-            maxLength: 128,
-            description: "Stable per-device identifier used to bind the durable cursor.",
-          },
-          cursor: {
-            type: "string",
-            description:
-              "Opaque signed cursor from the previous sync. Omit for an initial or bounded full resync.",
-          },
-          limit: {
-            type: "integer",
-            minimum: 1,
-            maximum: 200,
-            description: "Maximum events to return. Defaults to 100.",
-          },
-        },
-      },
-      MailboxSyncEvent: {
-        type: "object",
-        required: ["seq", "type", "messageId", "occurredAt", "recipient"],
-        additionalProperties: false,
-        properties: {
-          seq: { type: "integer", minimum: 1 },
-          type: { type: "string", enum: ["upsert", "state", "tombstone"] },
-          messageId: { $ref: "#/components/schemas/Hash32" },
-          occurredAt: { type: "string", format: "date-time" },
-          recipient: { $ref: "#/components/schemas/StellarAddress" },
-          sender: { $ref: "#/components/schemas/StellarAddress" },
-          ciphertext: {
-            type: "string",
-            description: "Encrypted payload only. Never plaintext or a quarantined body.",
-          },
-          objectKey: { type: "string" },
-          state: {
-            type: "object",
-            additionalProperties: false,
-            properties: {
-              unread: { type: "boolean" },
-              starred: { type: "boolean" },
-              folder: { type: "string" },
-            },
-          },
-          reason: { type: "string", enum: ["deleted", "expired", "user"] },
-        },
-      },
-      MailboxSyncResult: {
-        type: "object",
-        required: ["mode", "events", "cursor", "hasMore"],
-        additionalProperties: false,
-        properties: {
-          mode: { type: "string", enum: ["initial", "delta"] },
-          events: {
-            type: "array",
-            items: { $ref: "#/components/schemas/MailboxSyncEvent" },
-          },
-          cursor: {
-            type: "string",
-            description: "Opaque signed cursor acknowledging the last returned seq.",
-          },
-          hasMore: { type: "boolean" },
         },
       },
       LifecycleAnchor: {
@@ -1166,7 +1083,10 @@ export const openApiDocument = {
               { type: "null" },
             ],
           },
-          senderRule: { type: "string", enum: ["default", "allow", "block"] },
+          senderRule: {
+            type: "string",
+            enum: ["default", "allow", "block"],
+          },
           senderRuleConfigured: {
             type: "boolean",
             description: "True when the owner has an explicit policy rule for this address.",
@@ -1294,6 +1214,114 @@ export const openApiDocument = {
             description: "Sender rules applied to policy; only when applyTrust was requested.",
           },
           contacts: { type: "array", items: { $ref: "#/components/schemas/Contact" } },
+        },
+      },
+      DraftAttachmentDescriptor: {
+        type: "object",
+        required: ["filename", "contentType", "sizeBytes"],
+        additionalProperties: false,
+        properties: {
+          filename: { type: "string", maxLength: 255 },
+          contentType: { type: "string" },
+          sizeBytes: { type: "integer", minimum: 0 },
+          contentHash: { type: "string", description: "Optional SHA-256 hash." },
+        },
+      },
+      Draft: {
+        type: "object",
+        required: [
+          "draftId",
+          "owner",
+          "to",
+          "cc",
+          "bcc",
+          "subject",
+          "body",
+          "attachments",
+          "version",
+          "createdAt",
+          "updatedAt",
+        ],
+        additionalProperties: false,
+        properties: {
+          draftId: { type: "string", description: "Unique draft identifier." },
+          owner: { $ref: "#/components/schemas/StellarAddress" },
+          to: { type: "array", items: { type: "string" } },
+          cc: { type: "array", items: { type: "string" } },
+          bcc: { type: "array", items: { type: "string" } },
+          subject: { type: "string" },
+          body: { type: "string" },
+          attachments: {
+            type: "array",
+            items: { $ref: "#/components/schemas/DraftAttachmentDescriptor" },
+          },
+          version: { type: "integer", minimum: 1, description: "Monotonic revision version." },
+          createdAt: { type: "string", format: "date-time" },
+          updatedAt: { type: "string", format: "date-time" },
+        },
+      },
+      DraftListResult: {
+        type: "object",
+        required: ["items", "nextContinuationKey"],
+        additionalProperties: false,
+        properties: {
+          items: {
+            type: "array",
+            items: { $ref: "#/components/schemas/Draft" },
+          },
+          nextContinuationKey: {
+            anyOf: [{ type: "string" }, { type: "null" }],
+            description: "Cursor for the next page, or null at the end.",
+          },
+        },
+      },
+      DraftCreateInput: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          draftId: { type: "string" },
+          to: {
+            oneOf: [{ type: "string" }, { type: "array", items: { type: "string" } }],
+          },
+          cc: {
+            oneOf: [{ type: "string" }, { type: "array", items: { type: "string" } }],
+          },
+          bcc: {
+            oneOf: [{ type: "string" }, { type: "array", items: { type: "string" } }],
+          },
+          subject: { type: "string" },
+          body: { type: "string" },
+          attachments: {
+            type: "array",
+            items: { $ref: "#/components/schemas/DraftAttachmentDescriptor" },
+          },
+        },
+      },
+      DraftUpdateInput: {
+        type: "object",
+        required: ["expectedVersion"],
+        additionalProperties: false,
+        properties: {
+          to: {
+            oneOf: [{ type: "string" }, { type: "array", items: { type: "string" } }],
+          },
+          cc: {
+            oneOf: [{ type: "string" }, { type: "array", items: { type: "string" } }],
+          },
+          bcc: {
+            oneOf: [{ type: "string" }, { type: "array", items: { type: "string" } }],
+          },
+          subject: { type: "string" },
+          body: { type: "string" },
+          attachments: {
+            type: "array",
+            items: { $ref: "#/components/schemas/DraftAttachmentDescriptor" },
+          },
+          expectedVersion: {
+            type: "integer",
+            minimum: 1,
+            description: "Expected current revision for optimistic concurrency control.",
+          },
         },
       },
     },
@@ -2524,6 +2552,150 @@ export const openApiDocument = {
           },
         },
       },
+      patch: {
+        operationId: "transitionPostage",
+        summary: "Transition postage lifecycle state (settle, refund, dispute, expire, reclaim)",
+        "x-max-body-bytes": 8 * 1024,
+        "x-stability": "beta",
+        security: [
+          {
+            StellarSignedRequest: [],
+          },
+        ],
+        requestBody: {
+          description: "The postage lifecycle operation to perform.",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["operation"],
+                additionalProperties: false,
+                properties: {
+                  operation: {
+                    type: "string",
+                    enum: ["settle", "refund", "dispute", "expire", "reclaim"],
+                  },
+                },
+              },
+              examples: {
+                settle: {
+                  summary: "Settle the escrow to the recipient",
+                  value: { operation: "settle" },
+                },
+                refund: {
+                  summary: "Refund the escrow to the sender",
+                  value: { operation: "refund" },
+                },
+                dispute: {
+                  summary: "Dispute a pending escrow within the dispute window",
+                  value: { operation: "dispute" },
+                },
+                expire: {
+                  summary: "Expire a pending escrow",
+                  value: { operation: "expire" },
+                },
+                reclaim: {
+                  summary: "Reclaim an escrow after expiry",
+                  value: { operation: "reclaim" },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Success",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/SuccessEnvelope",
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Bad Request",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "403": {
+            description: "Forbidden",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "404": {
+            description: "Not Found",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "409": {
+            description: "Conflict",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "422": {
+            description: "Unprocessable Entity",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "502": {
+            description: "Bad Gateway — on-chain escrow operation could not be confirmed",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
     },
     "/postage/{messageId}/settle": {
       post: {
@@ -2946,9 +3118,7 @@ export const openApiDocument = {
     "/relay/messages": {
       post: {
         operationId: "submitRelayMessage",
-        summary: "Submit an encrypted message to the relay after mailbox policy admission",
-        description:
-          "Evaluates the recipient's current trust/request/verified/priced/blocked policy before accepting the payload. Blocked messages never reach payload storage. The recorded policy version is immutable.",
+        summary: "Submit an encrypted message to the relay",
         "x-max-body-bytes": 2 * 1024 * 1024,
         security: [
           {
@@ -3011,8 +3181,7 @@ export const openApiDocument = {
             },
           },
           "403": {
-            description:
-              "Forbidden — actor mismatch, or mailbox policy denied the sender (blocked, unknown, or verification required). The payload is not stored.",
+            description: "Forbidden",
             content: {
               "application/json": {
                 schema: {
@@ -4633,6 +4802,382 @@ export const openApiDocument = {
         },
       },
     },
+    "/drafts": {
+      get: {
+        operationId: "listDrafts",
+        summary: "List encrypted drafts for the authenticated account",
+        description: "Returns the authenticated actor's drafts ordered by last update time.",
+        security: [
+          {
+            ActorHeader: [],
+          },
+        ],
+        "x-stability": "beta",
+        parameters: [
+          {
+            name: "cursor",
+            in: "query",
+            schema: { type: "string" },
+            description: "Pagination continuation key.",
+          },
+          {
+            name: "limit",
+            in: "query",
+            schema: { type: "integer", minimum: 1, maximum: 100, default: 25 },
+          },
+        ],
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Listed drafts",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/DraftListResult",
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+      post: {
+        operationId: "createDraft",
+        summary: "Create a new encrypted draft",
+        description: "Stores a new draft sealed at rest with AES-256-GCM authenticated with AAD.",
+        security: [
+          {
+            ActorHeader: [],
+          },
+        ],
+        "x-stability": "beta",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                $ref: "#/components/schemas/DraftCreateInput",
+              },
+            },
+          },
+        },
+        responses: {
+          default: { description: "" },
+          "201": {
+            description: "Created draft",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/Draft",
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Bad Request",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "409": {
+            description: "Conflict — Draft already exists",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "422": {
+            description: "Unprocessable Entity",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/drafts/{draftId}": {
+      get: {
+        operationId: "getDraft",
+        summary: "Get an encrypted draft by identifier",
+        description: "Fetches and decrypts an existing draft for the authenticated actor.",
+        security: [
+          {
+            ActorHeader: [],
+          },
+        ],
+        "x-stability": "beta",
+        parameters: [
+          {
+            name: "draftId",
+            in: "path",
+            required: true,
+            schema: { type: "string" },
+            description: "Draft identifier.",
+          },
+        ],
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Draft retrieved",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/Draft",
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "404": {
+            description: "Not Found",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+      put: {
+        operationId: "updateDraft",
+        summary: "Update an encrypted draft with optimistic concurrency control",
+        description:
+          "Updates draft fields when expectedVersion matches the server revision, bumping the monotonic version.",
+        security: [
+          {
+            ActorHeader: [],
+          },
+        ],
+        "x-stability": "beta",
+        parameters: [
+          {
+            name: "draftId",
+            in: "path",
+            required: true,
+            schema: { type: "string" },
+            description: "Draft identifier.",
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                $ref: "#/components/schemas/DraftUpdateInput",
+              },
+            },
+          },
+        },
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Draft updated",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/Draft",
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Bad Request",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "404": {
+            description: "Not Found",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "409": {
+            description: "Revision Conflict — Stale draft version",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "422": {
+            description: "Unprocessable Entity",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+      delete: {
+        operationId: "deleteDraft",
+        summary: "Delete an encrypted draft",
+        description: "Removes an existing draft for the authenticated actor.",
+        security: [
+          {
+            ActorHeader: [],
+          },
+        ],
+        "x-stability": "beta",
+        parameters: [
+          {
+            name: "draftId",
+            in: "path",
+            required: true,
+            schema: { type: "string" },
+            description: "Draft identifier.",
+          },
+        ],
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Draft deleted",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: { deleted: { type: "boolean" } },
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "404": {
+            description: "Not Found",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
     "/lifecycle/{messageId}": {
       get: {
         operationId: "getLifecycleStatus",
@@ -4868,6 +5413,228 @@ export const openApiDocument = {
           },
           "404": {
             description: "No lifecycle anchor for this message",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorEnvelope" },
+              },
+            },
+          },
+          "422": {
+            description: "Request validation failed",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorEnvelope" },
+              },
+            },
+          },
+          "503": {
+            description: "Dependency unavailable",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorEnvelope" },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/search": {
+      get: {
+        operationId: "searchMailbox",
+        summary: "Privacy-safe mailbox metadata search",
+        security: [
+          {
+            StellarSignedRequest: [],
+          },
+          {
+            SessionCookie: [],
+          },
+        ],
+        "x-stability": "beta",
+        parameters: [
+          {
+            name: "q",
+            in: "query",
+            required: false,
+            schema: { type: "string" },
+            description: "Free text search query or structured search directives",
+          },
+          {
+            name: "folder",
+            in: "query",
+            required: false,
+            schema: {
+              type: "string",
+              enum: [
+                "all",
+                "inbox",
+                "pending",
+                "requests",
+                "archive",
+                "spam",
+                "trash",
+                "sent",
+                "drafts",
+                "outbox",
+              ],
+            },
+            description: "Folder filter",
+          },
+          {
+            name: "unread",
+            in: "query",
+            required: false,
+            schema: { type: "boolean" },
+          },
+          {
+            name: "starred",
+            in: "query",
+            required: false,
+            schema: { type: "boolean" },
+          },
+          {
+            name: "hasAttachments",
+            in: "query",
+            required: false,
+            schema: { type: "boolean" },
+          },
+          {
+            name: "sender",
+            in: "query",
+            required: false,
+            schema: { type: "string" },
+          },
+          {
+            name: "recipient",
+            in: "query",
+            required: false,
+            schema: { type: "string" },
+          },
+          {
+            name: "afterDate",
+            in: "query",
+            required: false,
+            schema: { type: "string" },
+          },
+          {
+            name: "beforeDate",
+            in: "query",
+            required: false,
+            schema: { type: "string" },
+          },
+          {
+            name: "includeDeleted",
+            in: "query",
+            required: false,
+            schema: { type: "boolean" },
+          },
+          {
+            name: "cursor",
+            in: "query",
+            required: false,
+            schema: { type: "string" },
+          },
+          {
+            name: "limit",
+            in: "query",
+            required: false,
+            schema: { type: "integer", minimum: 1, maximum: 100, default: 25 },
+          },
+        ],
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Search results with safe metadata and highlights",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: [
+                    "items",
+                    "nextCursor",
+                    "hasMore",
+                    "totalMatches",
+                    "query",
+                    "parsedFilters",
+                    "indexLimitations",
+                  ],
+                  properties: {
+                    items: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        required: [
+                          "type",
+                          "id",
+                          "senderId",
+                          "recipientId",
+                          "folder",
+                          "createdAt",
+                          "unread",
+                          "starred",
+                          "hasAttachments",
+                          "isTombstone",
+                          "highlights",
+                        ],
+                        properties: {
+                          type: { type: "string", enum: ["message", "contact", "draft"] },
+                          id: { type: "string" },
+                          messageId: { type: "string" },
+                          senderId: { type: "string" },
+                          recipientId: { type: "string" },
+                          folder: { type: "string" },
+                          subject: { type: "string" },
+                          preview: { type: "string" },
+                          createdAt: { type: "string", format: "date-time" },
+                          unread: { type: "boolean" },
+                          starred: { type: "boolean" },
+                          hasAttachments: { type: "boolean" },
+                          isTombstone: { type: "boolean" },
+                          deletedAt: { type: "string", format: "date-time", nullable: true },
+                          highlights: {
+                            type: "array",
+                            items: {
+                              type: "object",
+                              required: ["field", "snippet"],
+                              properties: {
+                                field: { type: "string" },
+                                snippet: { type: "string" },
+                              },
+                            },
+                          },
+                        },
+                      },
+                    },
+                    nextCursor: { type: "string", nullable: true },
+                    hasMore: { type: "boolean" },
+                    totalMatches: { type: "integer" },
+                    query: { type: "string" },
+                    parsedFilters: { type: "object" },
+                    indexLimitations: {
+                      type: "object",
+                      required: [
+                        "serverIndexLimited",
+                        "encryptedBodyIndexed",
+                        "safeMetadataFields",
+                        "notice",
+                      ],
+                      properties: {
+                        serverIndexLimited: { type: "boolean" },
+                        encryptedBodyIndexed: { type: "boolean" },
+                        safeMetadataFields: {
+                          type: "array",
+                          items: { type: "string" },
+                        },
+                        notice: { type: "string" },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
             content: {
               "application/json": {
                 schema: { $ref: "#/components/schemas/ErrorEnvelope" },
