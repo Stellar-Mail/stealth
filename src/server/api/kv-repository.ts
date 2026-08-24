@@ -54,6 +54,7 @@ import type {
   OnboardingDraftRecord,
   AccountDeletionRequest,
   AccountExport,
+  Invite,
 } from "./domain";
 import { ApiError } from "./errors";
 
@@ -1060,6 +1061,27 @@ export class HybridApiRepository implements ApiRepository {
 
   async setReceiptCheckpoint(checkpoint: ReceiptCheckpoint): Promise<ReceiptCheckpoint> {
     return this.getStub().setReceiptCheckpoint(checkpoint);
+  }
+
+  async getInvite(code: string): Promise<Invite | null> {
+    const invite = await this.kv.get(this.key("invite", code.toUpperCase()), "json");
+    return (invite as Invite) ?? null;
+  }
+
+  async setInvite(invite: Invite): Promise<Invite> {
+    await this.kv.put(this.key("invite", invite.code.toUpperCase()), JSON.stringify(invite));
+    return invite;
+  }
+
+  async listInvites(): Promise<Invite[]> {
+    const prefix = "invite:";
+    const listed = await this.kv.list({ prefix });
+    const invites: Invite[] = [];
+    for (const entry of listed.keys) {
+      const invite = (await this.kv.get(entry.name, "json")) as Invite | null;
+      if (invite) invites.push(invite);
+    }
+    return invites;
   }
 
   async getSendOperation(messageId: string): Promise<import("./domain").SendOperationState | null> {

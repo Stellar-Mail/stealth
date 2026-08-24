@@ -317,3 +317,92 @@ Change from sync `getApiContext()` to async `await getApiContext()` at the 14 ca
 | `src/routes/api/v1/**` (11 files)            | Modify — Change `getApiContext()` to `await getApiContext()`                                    |
 | `tests/unit/api/kv-repository.test.ts`       | **New** — Unit tests for KV adapter                                                             |
 | `tests/unit/api/stealth-coordinator.test.ts` | **New** — Unit tests for Durable Object                                                         |
+
+---
+
+# Implementation Plan — Issue #2001 (BETA-094)
+
+## Minimal Beta Operations Console with Strict Administrator RBAC
+
+Provide beta administrators a minimal operations console to manage invites, account states, failed provisioning, and dead letters without direct database access, message content, or wallet keys.
+
+## User Review Required
+
+We will enforce a `reason` parameter on all mutation routes and check session ages for administrator sessions (stale sessions older than 15 minutes require re-authentication).
+
+## Proposed Changes
+
+### [Domain & Database Model]
+
+#### [MODIFY] [domain.ts](file:///home/zapha/Grantfox/stealth/src/server/api/domain.ts)
+
+- Add `inviteSchema` and `Invite` type.
+
+#### [MODIFY] [context.ts](file:///home/zapha/Grantfox/stealth/src/server/api/context.ts)
+
+- Import `inviteSchema` and register it with `registerRecordSchema("invite", 1, inviteSchema)`.
+
+#### [MODIFY] [repository.ts](file:///home/zapha/Grantfox/stealth/src/server/api/repository.ts)
+
+- Add `getInvite`, `setInvite`, `listInvites` to the `ApiRepository` interface.
+- Implement these methods in `ValidatedApiRepository` and `RetryableApiRepository`.
+- Add `getInvite`, `setInvite`, `listInvites` to `RETRY_SAFE_OPERATIONS`.
+
+#### [MODIFY] [memory-repository.ts](file:///home/zapha/Grantfox/stealth/src/server/api/memory-repository.ts)
+
+- Implement `getInvite`, `setInvite`, and `listInvites` using an in-memory Map.
+
+#### [MODIFY] [kv-repository.ts](file:///home/zapha/Grantfox/stealth/src/server/api/kv-repository.ts)
+
+- Implement `getInvite`, `setInvite`, and `listInvites` using Cloudflare KV.
+
+### [Authorization & Auditing]
+
+#### [NEW] [admin.ts](file:///home/zapha/Grantfox/stealth/src/server/api/authorization/admin.ts)
+
+- Implement `requireAdminRole` guard (checking `STEALTH_ADMIN_ADDRESSES` and verifying session cookie freshness).
+- Implement `recordAdminMutationAudit` and `maskUserData` to filter sensitive user details (emails/secrets) before logging.
+
+#### [MODIFY] [index.ts](file:///home/zapha/Grantfox/stealth/src/server/api/authorization/index.ts)
+
+- Export admin authorization helpers.
+
+### [API Routes]
+
+#### [NEW] [index.ts](file:///home/zapha/Grantfox/stealth/src/routes/api/v1/admin/invites/index.ts)
+
+- GET list, POST create invite.
+
+#### [NEW] [revoke.ts](file:///home/zapha/Grantfox/stealth/src/routes/api/v1/admin/invites/revoke.ts)
+
+- POST revoke invite.
+
+#### [NEW] [lookup.ts](file:///home/zapha/Grantfox/stealth/src/routes/api/v1/admin/users/lookup.ts)
+
+- GET user lookup (by id, email, address, or username) with email masking.
+
+#### [NEW] [suspend.ts](file:///home/zapha/Grantfox/stealth/src/routes/api/v1/admin/users/$userId/suspend.ts)
+
+- POST suspend user with compare-and-swap update logic.
+
+#### [NEW] [reactivate.ts](file:///home/zapha/Grantfox/stealth/src/routes/api/v1/admin/users/$userId/reactivate.ts)
+
+- POST reactivate user.
+
+#### [NEW] [retry.ts](file:///home/zapha/Grantfox/stealth/src/routes/api/v1/admin/users/$userId/provision/retry.ts)
+
+- POST retry account provisioning.
+
+#### [NEW] [health.ts](file:///home/zapha/Grantfox/stealth/src/routes/api/v1/admin/health.ts)
+
+- GET administrator service-health readiness view.
+
+#### [MODIFY] [dlq, jobs, funding routes](file:///home/zapha/Grantfox/stealth/src/routes/api/v1/admin/)
+
+- Update existing routes to require admin RBAC guard, reason body field for mutations, and log mutation audits.
+
+## Verification Plan
+
+### Automated Tests
+
+- Run `vitest run tests/unit/api/admin-routes.test.ts` to verify the console, role RBAC, recent session limits, and CAS state mutations.

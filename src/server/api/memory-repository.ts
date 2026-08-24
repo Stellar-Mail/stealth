@@ -41,6 +41,7 @@ import type {
   OnboardingDraftRecord,
   AccountDeletionRequest,
   AccountExport,
+  Invite,
 } from "./domain";
 import { toPublicProfile, toPublicUser } from "./domain";
 import type {
@@ -76,6 +77,7 @@ function activeTokenKey(userId: string, purpose: string) {
 
 export class MemoryApiRepository implements ApiRepository {
   private readonly policies = new Map<string, MailboxPolicy>();
+  private readonly invites = new Map<string, Invite>();
   private readonly policyWriteIntents = new Map<string, PolicyWriteIntent>();
   private readonly lifecycleAnchors = new Map<string, LifecycleAnchor>();
   private readonly postage = new Map<string, Postage>();
@@ -1947,6 +1949,20 @@ export class MemoryApiRepository implements ApiRepository {
     this.sendOperations.clear();
     this.recoveryCodeSets.clear();
     this.recoveryCodeSetLocks.clear();
+  }
+
+  async getInvite(code: string): Promise<Invite | null> {
+    return structuredClone(this.invites.get(code.toUpperCase()) ?? null);
+  }
+
+  async setInvite(invite: Invite): Promise<Invite> {
+    const stored = structuredClone(invite);
+    this.invites.set(invite.code.toUpperCase(), stored);
+    return structuredClone(stored);
+  }
+
+  async listInvites(): Promise<Invite[]> {
+    return Array.from(this.invites.values()).map((r) => structuredClone(r));
   }
 
   async getSendOperation(messageId: string): Promise<import("./domain").SendOperationState | null> {

@@ -1851,3 +1851,14 @@ export const searchResponseSchema = z.object({
   indexLimitations: searchIndexLimitationsSchema,
 });
 export type SearchResponse = z.infer<typeof searchResponseSchema>;
+
+export const inviteSchema = z.object({
+  code: z.string().min(1),
+  status: z.enum(["active", "revoked"]),
+  createdAt: z.string().datetime(),
+  createdBy: z.string(),
+  revokedAt: z.string().datetime().nullable(),
+  revokedBy: z.string().nullable(),
+  reason: z.string().optional(),
+});
+export type Invite = z.infer<typeof inviteSchema>;

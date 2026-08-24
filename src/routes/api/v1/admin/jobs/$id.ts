@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { getApiContext } from "@/server/api/context";
 import { ApiError } from "@/server/api/errors";
 import { apiSuccess, handleApiRequest } from "@/server/api/response";
+import { requireAdminRole } from "@/server/api/authorization/admin";
 
 export const Route = createFileRoute("/api/v1/admin/jobs/$id")({
   server: {
@@ -9,6 +10,8 @@ export const Route = createFileRoute("/api/v1/admin/jobs/$id")({
       GET: ({ request, params }) =>
         handleApiRequest(request, async () => {
           const context = await getApiContext(request);
+          await requireAdminRole(context, request);
+
           const job = await context.repository.getJob(params.id);
           if (!job) {
             throw new ApiError(404, "not_found", `Job ${params.id} was not found`);
