@@ -5,6 +5,7 @@ import { ApiError } from "../errors";
 import { recordAuditEvent } from "../audit";
 import { maskEmail } from "@/features/identity/registration";
 
+// Maximum allowed age for an active admin session before requiring fresh authentication
 export const ADMIN_SESSION_MAX_AGE_SECONDS = 15 * 60; // 15 minutes for "recent authentication"
 
 export function getAdminAddresses(): string[] {
