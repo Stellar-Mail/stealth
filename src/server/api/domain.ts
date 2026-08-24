@@ -1209,7 +1209,7 @@ export const storedEnvelopeProtectedHeadersSchema = z
   })
   .catchall(z.unknown());
 
-export const mailboxItemStatusSchema = z.enum(["pending", "delivered"]);
+export const mailboxItemStatusSchema = z.enum(["pending", "delivered", "quarantined"]);
 export type MailboxItemStatus = z.infer<typeof mailboxItemStatusSchema>;
 
 export const storedEnvelopeSchema = z.object({

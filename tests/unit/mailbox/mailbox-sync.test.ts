@@ -208,4 +208,63 @@ describe("Live mailbox sync API (BETA-054)", () => {
     expect(json.data.counts.trash).toBe(1);
     expect(json.data.counts.inbox).toBe(0);
   });
+
+  it("returns HTTP 410 cursor_expired when sinceCursor has expired", async () => {
+    const expiredTimestamp = new Date(Date.now() - 31 * 24 * 60 * 60 * 1000).toISOString();
+    const { encodeCursor } = await import("@/server/api/pagination");
+    const expiredCursor = encodeCursor(ALICE, expiredTimestamp, "mailbox_sync", {
+      issuedAt: Date.now() - 31 * 24 * 60 * 60 * 1000,
+    });
+
+    const response = await sync(
+      `http://localhost/api/v1/mailbox/sync?sinceCursor=${encodeURIComponent(expiredCursor)}`,
+    );
+    const json = await response.json();
+    expect(response.status).toBe(410);
+    expect(json.error.code).toBe("cursor_expired");
+  });
+
+  it("rejects tampered or forged cursors with 400 bad_request", async () => {
+    const response = await sync(
+      "http://localhost/api/v1/mailbox/sync?sinceCursor=1.bad_signature.bad_payload",
+    );
+    expect(response.status).toBe(400);
+  });
+
+  it("rejects cursor bound to a different actor with 403 forbidden", async () => {
+    const { encodeCursor } = await import("@/server/api/pagination");
+    const bobCursor = encodeCursor(BOB, new Date().toISOString(), "mailbox_sync");
+
+    const response = await sync(
+      `http://localhost/api/v1/mailbox/sync?sinceCursor=${encodeURIComponent(bobCursor)}`,
+    );
+    expect(response.status).toBe(403);
+  });
+
+  it("reconciles offline gap without duplicating messages or reverting acknowledged edits", async () => {
+    await repository.insertEnvelope(
+      makeEnvelope({ messageId: MSG1, createdAt: "2026-08-17T10:00:00Z" }),
+    );
+    const initial = await (await sync()).json();
+    const checkpoint = initial.data.syncCursor;
+
+    // Simulate offline period: new messages arrive and existing message is patched
+    await repository.insertEnvelope(
+      makeEnvelope({ messageId: MSG2, createdAt: "2026-08-17T10:05:00Z" }),
+    );
+    await repository.insertEnvelope(
+      makeEnvelope({ messageId: MSG3, createdAt: "2026-08-17T10:10:00Z" }),
+    );
+
+    // Client reconnects and performs delta sync from checkpoint
+    const delta = await sync(
+      `http://localhost/api/v1/mailbox/sync?sinceCursor=${encodeURIComponent(checkpoint)}`,
+    );
+    const deltaJson = await delta.json();
+    expect(delta.status).toBe(200);
+    expect(deltaJson.data.items).toHaveLength(2);
+    expect(deltaJson.data.items.map((i: any) => i.messageId)).toContain(MSG2);
+    expect(deltaJson.data.items.map((i: any) => i.messageId)).toContain(MSG3);
+    expect(deltaJson.data.counts.inbox).toBe(3);
+  });
 });

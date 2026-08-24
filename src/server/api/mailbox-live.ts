@@ -14,6 +14,7 @@ import { paginate, PAGINATED_QUERY_ORDERINGS, type ApiRepository } from "./repos
 
 export const MAILBOX_SYNC_SCOPE = "mailbox_sync";
 export const MAILBOX_SYNC_PAGE_SCOPE = "mailbox_sync_page";
+export const MAILBOX_CURSOR_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const LIST_WALK_PAGE_SIZE = 100;
 const LIST_WALK_MAX_PAGES = 40;
 
@@ -270,9 +271,15 @@ export async function listAllRecipientEnvelopes(
 export async function buildMailboxSync(
   repository: Pick<ApiRepository, "listRecipientEnvelopes">,
   actor: string,
-  query: { sinceCursor?: string; cursor?: string; limit?: number },
+  query: {
+    sinceCursor?: string;
+    cursor?: string;
+    limit?: number;
+    cursorMaxAgeMs?: number;
+  },
 ): Promise<MailboxSyncPayload> {
   const limit = query.limit ?? 50;
+  const maxAgeMs = query.cursorMaxAgeMs ?? MAILBOX_CURSOR_TTL_MS;
   const all = await listAllRecipientEnvelopes(repository, actor, true);
   const counts = countMailbox(all);
   const syncCursor = encodeCursor(
@@ -282,14 +289,14 @@ export async function buildMailboxSync(
   );
 
   const since = query.sinceCursor
-    ? decodeCursor(query.sinceCursor, actor, MAILBOX_SYNC_SCOPE).continuationKey
+    ? decodeCursor(query.sinceCursor, actor, MAILBOX_SYNC_SCOPE, { maxAgeMs }).continuationKey
     : null;
   const filtered = since
     ? all.filter((envelope) => mailboxChangedSince(envelope, since))
     : all.filter((envelope) => !envelope.deletedAt);
 
   const after = query.cursor
-    ? decodeCursor(query.cursor, actor, MAILBOX_SYNC_PAGE_SCOPE).continuationKey
+    ? decodeCursor(query.cursor, actor, MAILBOX_SYNC_PAGE_SCOPE, { maxAgeMs }).continuationKey
     : undefined;
   const page = paginate(filtered, PAGINATED_QUERY_ORDERINGS.listEnvelopes, {
     limit,
@@ -297,7 +304,9 @@ export async function buildMailboxSync(
   });
   const items = page.items.map(envelopeToMailboxDescriptor);
   const deletedIds = query.sinceCursor
-    ? items.filter((item) => item.isTombstone).map((item) => item.messageId)
+    ? filtered
+        .filter((envelope) => Boolean(envelope.deletedAt))
+        .map((envelope) => envelope.messageId)
     : [];
 
   return {

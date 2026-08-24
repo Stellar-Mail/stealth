@@ -8,7 +8,7 @@ export const openApiDocument = {
   openapi: "3.1.0",
   info: {
     title: "Stealth Mail API",
-    version: "1.0.0",
+    version: "2.0.0",
     description:
       "Development API for mailbox policy, Stellar postage proofs, and delivery receipts.",
   },

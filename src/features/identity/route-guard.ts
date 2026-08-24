@@ -77,6 +77,8 @@ export interface RouteGuardInput {
   search?: string;
   /** Statically false in production builds; explicit demo gate. */
   isDev?: boolean;
+  /** True when running under end-to-end automation (VITE_E2E or a WebDriver session). */
+  isE2E?: boolean;
   /** Explicit development-only demo flag (`STEALTH_DEMO_BYPASS_FETCH`). */
   demoFlag?: boolean;
 }

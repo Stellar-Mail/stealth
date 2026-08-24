@@ -31,6 +31,7 @@ import {
   MAILBOX_RENDER_CAP,
   MAILBOX_SYNC_CHANNEL,
   capMailboxWindow,
+  clearSyncCheckpoint,
   mergeMailboxDescriptors,
   readSyncCursor,
   writeSyncCursor,
@@ -112,15 +113,32 @@ export function useMailboxSync({
 
   const deltaQuery = useQuery({
     queryKey: queryKeys.mailbox.delta(actor),
-    queryFn: ({ signal }) => {
+    queryFn: async ({ signal }) => {
       const since = readSyncCursor(actor);
       if (!since) return null;
-      return api.mailbox.sync({ sinceCursor: since, limit: 100 }, signal);
+      try {
+        return await api.mailbox.sync({ sinceCursor: since, limit: 100 }, signal);
+      } catch (error: unknown) {
+        const status = (error as { status?: number })?.status;
+        const code =
+          (error as { code?: string; error?: { code?: string } })?.code ??
+          (error as { error?: { code?: string } })?.error?.code;
+        if (status === 410 || code === "cursor_expired") {
+          clearSyncCheckpoint(actor);
+          void queryClient.invalidateQueries({ queryKey: syncKey });
+          return null;
+        }
+        throw error;
+      }
     },
     enabled: liveEnabled && Boolean(sinceCursor),
     refetchInterval: paused ? false : MAILBOX_DELTA_INTERVAL_MS,
     refetchOnWindowFocus: !paused,
     refetchOnReconnect: false,
+    retry: (failureCount, error: any) => {
+      if (error?.status === 410 || error?.code === "cursor_expired") return false;
+      return failureCount < 2;
+    },
   });
 
   const countsQuery = useQuery({

@@ -64,26 +64,134 @@ export function capMailboxWindow(
   return items.length <= cap ? items : items.slice(0, cap);
 }
 
+export interface SyncCheckpoint {
+  cursor: string;
+  updatedAt: string;
+  actor: string;
+  deviceId: string;
+  schemaVersion: number;
+}
+
+const DEVICE_ID_STORAGE_KEY = "stealth.device_id";
+const inMemoryFallbackStore = new Map<string, string>();
+
+function getStorageItem(key: string): string | null {
+  if (typeof localStorage !== "undefined") {
+    try {
+      const val = localStorage.getItem(key);
+      if (val !== null) return val;
+    } catch {
+      // Fallback
+    }
+  }
+  return inMemoryFallbackStore.get(key) ?? null;
+}
+
+function setStorageItem(key: string, value: string): void {
+  if (typeof localStorage !== "undefined") {
+    try {
+      localStorage.setItem(key, value);
+    } catch {
+      // Fallback
+    }
+  }
+  inMemoryFallbackStore.set(key, value);
+}
+
+function removeStorageItem(key: string): void {
+  if (typeof localStorage !== "undefined") {
+    try {
+      localStorage.removeItem(key);
+    } catch {
+      // Fallback
+    }
+  }
+  inMemoryFallbackStore.delete(key);
+}
+
+export function getDeviceId(): string {
+  let deviceId = getStorageItem(DEVICE_ID_STORAGE_KEY);
+  if (!deviceId) {
+    deviceId = `dev_${Math.random().toString(36).slice(2, 11)}_${Date.now().toString(36)}`;
+    setStorageItem(DEVICE_ID_STORAGE_KEY, deviceId);
+  }
+  return deviceId;
+}
+
+export function syncCheckpointStorageKey(actor: string, deviceId?: string): string {
+  const dev = deviceId ?? getDeviceId();
+  return `stealth.mailbox.checkpoint.${actor}.${dev}`;
+}
+
 export function syncCursorStorageKey(actor: string): string {
   return `stealth.mailbox.syncCursor.${actor}`;
 }
 
-export function readSyncCursor(actor: string): string | null {
-  if (typeof localStorage === "undefined") return null;
+export function readSyncCheckpoint(actor: string, deviceId?: string): SyncCheckpoint | null {
   try {
-    return localStorage.getItem(syncCursorStorageKey(actor));
+    const key = syncCheckpointStorageKey(actor, deviceId);
+    const raw = getStorageItem(key);
+    if (raw) {
+      const parsed = JSON.parse(raw) as SyncCheckpoint;
+      if (parsed && typeof parsed.cursor === "string") return parsed;
+    }
+    // Fallback to legacy single-cursor key
+    const legacy = getStorageItem(syncCursorStorageKey(actor));
+    if (legacy) {
+      return {
+        cursor: legacy,
+        updatedAt: new Date().toISOString(),
+        actor,
+        deviceId: deviceId ?? getDeviceId(),
+        schemaVersion: 1,
+      };
+    }
+    return null;
   } catch {
     return null;
   }
 }
 
-export function writeSyncCursor(actor: string, cursor: string): void {
-  if (typeof localStorage === "undefined") return;
+export function writeSyncCheckpoint(
+  actor: string,
+  cursor: string | SyncCheckpoint,
+  deviceId?: string,
+): void {
   try {
-    localStorage.setItem(syncCursorStorageKey(actor), cursor);
+    const checkpoint: SyncCheckpoint =
+      typeof cursor === "string"
+        ? {
+            cursor,
+            updatedAt: new Date().toISOString(),
+            actor,
+            deviceId: deviceId ?? getDeviceId(),
+            schemaVersion: 1,
+          }
+        : cursor;
+    const key = syncCheckpointStorageKey(actor, deviceId ?? checkpoint.deviceId);
+    setStorageItem(key, JSON.stringify(checkpoint));
+    setStorageItem(syncCursorStorageKey(actor), checkpoint.cursor);
   } catch {
     // Ignore quota / private-mode failures; the next full sync still works.
   }
+}
+
+export function clearSyncCheckpoint(actor: string, deviceId?: string): void {
+  try {
+    const key = syncCheckpointStorageKey(actor, deviceId);
+    removeStorageItem(key);
+    removeStorageItem(syncCursorStorageKey(actor));
+  } catch {
+    // Ignore storage failures
+  }
+}
+
+export function readSyncCursor(actor: string): string | null {
+  return readSyncCheckpoint(actor)?.cursor ?? null;
+}
+
+export function writeSyncCursor(actor: string, cursor: string): void {
+  writeSyncCheckpoint(actor, cursor);
 }
 
 export function claimMailboxMutation(pending: Set<string>, key: string): boolean {

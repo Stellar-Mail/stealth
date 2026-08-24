@@ -238,7 +238,7 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
           )}
 
           <div className="flex min-w-0 flex-1">
-            <div className="flex h-full flex-col min-w-0 pb-[72px] md:pb-0">
+            <div className="flex h-full flex-col min-w-0 pb-[72px] md:pb-0 focus:outline-none flex-1">
               <Topbar
                 onOpenPalette={() => overlays.setPaletteOpen(true)}
                 onOpenSettings={() => overlays.openSettings(preferences)}
@@ -268,9 +268,14 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
                 onMarkAllNotificationsRead={notificationCenter.markAllRead}
                 actor={source.actor}
                 emails={source.emails}
-                onSelectEmail={(emailId) => {
-                  const email = source.emails.find((item) => item.id === emailId);
-                  if (email) navigation.openMessage(email);
+                onSelectEmail={(id, folder) => {
+                  if (folder) navigation.setFolder(folder as any);
+                  const email = source.emails.find((item) => item.id === id);
+                  if (email) {
+                    navigation.openMessage(email);
+                  } else {
+                    navigation.setSelectedId(id);
+                  }
                 }}
               />
               {source.connectivity.paused &&
