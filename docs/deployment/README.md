@@ -7,6 +7,7 @@ Deployment runbooks, environment setup, Cloudflare notes, network configuration,
 - [Service-Level Objectives & SLIs](SLO.md) - Service-level indicators, targets, formulas, traffic exclusions, and alerting guidance.
 - [Schema Migrations](MIGRATIONS.md) - Migration order and rollback guidance for durable storage.
 - [R2 Encrypted Object Storage](R2.md) - R2 bucket setup, deterministic object naming, integrity checks, and orphan cleanup.
+- [Self-hosted SMTP verification delivery (BETA-091)](smtp-email-setup.md) - Administrator SMTP, STARTTLS, DKIM/SPF/DMARC checks, queues, bounce handling, and redacted observability.
 
 ## Beta Runtime Configuration Contract (BETA-001)
 

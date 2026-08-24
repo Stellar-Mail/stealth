@@ -1,0 +1,20 @@
+# Docker Compose — local SMTP catcher for BETA-091 staging
+
+# Usage:
+#   docker compose -f infra/docker-compose.smtp.yml up -d
+# Point Stealth at Mailpit SMTP (1025) and open http://127.0.0.1:8025
+
+services:
+  mailpit:
+    image: axllent/mailpit:v1.21
+    ports:
+      - "1025:1025" # SMTP
+      - "8025:8025" # Web UI
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: "1"
+      MP_SMTP_AUTH_ALLOW_INSECURE: "1"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8025/api/v1/info"]
+      interval: 10s
+      timeout: 5s
+      retries: 5

@@ -59,5 +59,23 @@ export function setVerificationAdapterForTesting(adapter: NotificationAdapter | 
 export async function getVerificationNotificationAdapter(): Promise<NotificationAdapter> {
   if (adapterOverride) return adapterOverride;
   const delivery = await getVerificationDeliveryConfig();
+  // SMTP path includes BETA-091 orchestration (queue/retry/status/fallback).
   return createNotificationAdapter(delivery.notifications, delivery.profile);
+}
+
+/**
+ * BETA-091: Operator health snapshot for verification delivery.
+ * Never includes credentials, tokens, or full recipient addresses.
+ */
+export async function getVerificationDeliveryHealth() {
+  const { buildNotificationHealthReport } = await import("@/services/notifications/health");
+  const { defaultVerificationMailQueue } = await import("@/services/notifications/queue");
+  const delivery = await getVerificationDeliveryConfig();
+  const queue = defaultVerificationMailQueue;
+  return buildNotificationHealthReport({
+    config: delivery.notifications,
+    queueLagMs: queue.queueLagMs(),
+    recentSendRate: queue.recentSendRate(),
+    deadLetterCount: queue.deadLetterList(1_000).length,
+  });
 }

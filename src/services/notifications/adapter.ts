@@ -36,6 +36,12 @@ export interface DeliveryReceipt {
   providerRef?: string;
   /** Non-secret correlation reference; never the plaintext token. */
   safeTargetReference: string;
+  /** BETA-091: lifecycle state distinct from provider acceptance. */
+  deliveryState?: string;
+  /** BETA-091: idempotency / correlation key for the outbound message. */
+  messageId?: string;
+  /** BETA-091: sanitized failure/success class — never token contents. */
+  reasonClass?: string;
 }
 
 export interface NotificationAdapter {
