@@ -42,7 +42,12 @@ test.describe("Workflow 3 — Accessibility Audits", () => {
     await openDemoMailbox(page);
 
     await page.getByRole("button", { name: "Settings" }).click();
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible();
     await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
+    // Wait for the open animation to finish so axe does not sample translucent frames.
+    await expect(dialog).toHaveCSS("opacity", "1");
+    await expect(page.getByRole("button", { name: "Save changes" })).toBeVisible();
 
     await expectNoSeriousViolations(page);
   });

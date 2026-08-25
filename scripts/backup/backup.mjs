@@ -40,7 +40,7 @@ if (!COMMANDS.includes(command ?? "")) {
 
 const options = {
   stores: undefined,
-  key: undefined,
+  key: process.env.STEALTH_BACKUP_KEY,
   out: undefined,
   source: undefined,
   wipeFirst: false,

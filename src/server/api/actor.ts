@@ -1,7 +1,11 @@
-import { stellarAddressSchema } from "./domain";
 import { ApiError } from "./errors";
 import { assertActorAuthorized, type DelegatedAuthorization } from "./auth/delegation";
-import { extractPrincipal, type ApiContext, type ApiPrincipal } from "./context";
+import {
+  hasSignedRequestMaterial,
+  isHeaderOnlyAuthAllowed,
+  isMutatingMethod,
+} from "./auth/signed-request-verify";
+import { extractPrincipalSync, type ApiContext, type ApiPrincipal } from "./context";
 import { recordAuditEvent } from "./audit";
 
 export const ACTOR_HEADER = "x-stealth-address";
@@ -19,7 +23,20 @@ export function requirePrincipal(requestOrContext: Request | ApiContext): ApiPri
     return requestOrContext.principal;
   }
 
-  const principal = extractPrincipal(requestOrContext as Request);
+  // Request path: prefer getApiContext so STEALTH-AUTH-V1 can run asynchronously.
+  // Sync fallback only accepts the explicit non-production header-only transport.
+  const request = requestOrContext as Request;
+  if (
+    hasSignedRequestMaterial(request) ||
+    (isMutatingMethod(request.method) && !isHeaderOnlyAuthAllowed())
+  ) {
+    throw new ApiError(
+      401,
+      "unauthorized",
+      "Signed authentication must be resolved via getApiContext before requirePrincipal",
+    );
+  }
+  const principal = extractPrincipalSync(request);
   if (!principal) {
     throw new ApiError(401, "unauthorized", `Missing ${ACTOR_HEADER} header`);
   }

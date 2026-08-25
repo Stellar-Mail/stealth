@@ -73,7 +73,11 @@ const indexRoute = createRoute({
   component: () => <div>Protected App Page</div>,
 });
 
-const routeTree = rootRoute.addChildren([signInRoute, onboardingRoute, indexRoute]);
+const routeTree = (
+  rootRoute as unknown as {
+    addChildren: (children: unknown[]) => typeof rootRoute;
+  }
+).addChildren([signInRoute, onboardingRoute, indexRoute]);
 
 function makeRouter(initialUrl: string) {
   return createRouter({
@@ -96,7 +100,7 @@ describe("RouteGate — component-level navigation coverage", () => {
     const router = await renderAt("/");
 
     await vi.waitFor(() => expect(router.state.location.pathname).toBe(SIGN_IN_ROUTE));
-    expect(router.state.location.search.next).toBe("/");
+    expect((router.state.location.search as { next?: string }).next).toBe("/");
     expect(await screen.findByText("Sign In Page")).toBeTruthy();
   });
 
@@ -106,7 +110,7 @@ describe("RouteGate — component-level navigation coverage", () => {
     const router = await renderAt("/auth/sign-in");
 
     await vi.waitFor(() => expect(router.state.location.pathname).toBe(SIGN_IN_ROUTE));
-    expect(router.state.location.search.next).toBeUndefined();
+    expect((router.state.location.search as { next?: string }).next).toBeUndefined();
     expect(await screen.findByText("Sign In Page")).toBeTruthy();
   });
 

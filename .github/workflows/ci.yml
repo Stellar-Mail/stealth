@@ -6,9 +6,17 @@ on:
   pull_request:
     branches: [main, develop]
 
+# BETA-088 — pinned tool versions (see scripts/ci/tool-versions.json)
+env:
+  BUN_VERSION: "1.3.14"
+  NODE_VERSION: "24"
+  OPTIC_VERSION: "1.0.9"
+  FORK_PR: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
+
 permissions:
   contents: read
   actions: read
+  pull-requests: read
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -69,12 +77,25 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
-          bun-version: 1.3.14
+          bun-version: ${{ env.BUN_VERSION }}
 
-      - name: Install dependencies
+      - name: Record tool versions
+        run: |
+          echo "### Tool Versions" >> $GITHUB_STEP_SUMMARY
+          echo "| Tool | Version |" >> $GITHUB_STEP_SUMMARY
+          echo "| --- | --- |" >> $GITHUB_STEP_SUMMARY
+          echo "| Bun | $(bun --version) |" >> $GITHUB_STEP_SUMMARY
+          echo "| Node | $(node --version) |" >> $GITHUB_STEP_SUMMARY
+
+      - name: Install dependencies (frozen lockfile)
         run: bun install --frozen-lockfile
 
       - name: Format Check
@@ -83,8 +104,8 @@ jobs:
       - name: Lint
         run: bun run lint
 
-      - name: Generate Route Tree
-        run: bun scripts/generate-route-tree.ts
+      - name: Build reproducibility & drift
+        run: node scripts/ci/verify-drift.mjs
 
       - name: Typecheck
         run: bun x tsc --noEmit
@@ -94,14 +115,6 @@ jobs:
 
       - name: OpenAPI Compatibility
         run: |
-          # Install Optic into a dedicated env with AJV overrides.
-          # @useoptic/optic@1.0.9 bundles @stoplight/spectral-core whose
-          # nested AJV generates broken function code (SyntaxError: ':').
-          # Forcing ajv>=8.17.1 via npm overrides dedups the nested copy
-          # so spectral-core uses the patched version instead.
-          # Note: no setup-node step — runner's default Node 24 is used
-          # so that subsequent steps (vitest / @cloudflare/vite-plugin)
-          # still have access to node:module.registerHooks (Node >=23.5).
           mkdir -p /tmp/optic-env
           cd /tmp/optic-env
           cat > package.json << 'EOF'
@@ -114,11 +127,14 @@ jobs:
             }
           }
           EOF
-          npm install --save-exact @useoptic/optic@1.0.9 --prefer-online
+          npm install --save-exact "@useoptic/optic@${{ env.OPTIC_VERSION }}" --prefer-online
           cd "$GITHUB_WORKSPACE"
           /tmp/optic-env/node_modules/.bin/optic diff openapi.json --base origin/main --check
         env:
           OPTIC_TOKEN: ${{ secrets.OPTIC_TOKEN }}
+
+      - name: Config Guard
+        run: bun run config:check
 
       - name: Unit Tests
         run: bun run test
@@ -126,12 +142,44 @@ jobs:
       - name: Build Client
         run: bun run build
 
+      - name: Write gate result (pass)
+        if: success()
+        run: |
+          node scripts/ci/write-gate-result.mjs \
+            --gate-id client-checks \
+            --name "Client Checks" \
+            --owner platform/client \
+            --dependency BETA-088 \
+            --status pass
+
+      - name: Write gate result (fail)
+        if: failure()
+        run: |
+          node scripts/ci/write-gate-result.mjs \
+            --gate-id client-checks \
+            --name "Client Checks" \
+            --owner platform/client \
+            --dependency BETA-088 \
+            --status fail
+
       - name: Upload Client Artifacts
+        if: success()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: client-dist
           path: dist/
           retention-days: 1
+
+      - name: Upload gate results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: gate-client-checks
+          path: |
+            gate-result-client-checks.json
+            gate-result-build-reproducibility.json
+          retention-days: 7
+          if-no-files-found: ignore
 
   contract-checks:
     name: Contract Checks
@@ -139,7 +187,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - name: Install Rust
+      - name: Install Rust (pinned via rust-toolchain.toml)
         uses: dtolnay/rust-toolchain@4360b52568e2003a75bf9bc1d59f33a8e3fc893c # stable
         with:
           targets: wasm32v1-none
@@ -159,30 +207,390 @@ jobs:
           cd contracts/soroban
           cargo build --target wasm32v1-none --release
 
-      - name: Wasm Size
+      - name: Wasm Size Budget
         run: |
           echo "### Wasm Binary Sizes" >> $GITHUB_STEP_SUMMARY
-          echo "| Contract | Size |" >> $GITHUB_STEP_SUMMARY
-          echo "| :--- | :--- |" >> $GITHUB_STEP_SUMMARY
+          echo "| Contract | Size | Budget |" >> $GITHUB_STEP_SUMMARY
+          echo "| :--- | :--- | :--- |" >> $GITHUB_STEP_SUMMARY
           TARGET_DIR="contracts/soroban/target/wasm32v1-none/release"
-          if [ -d "$TARGET_DIR" ]; then
-            for wasm in $TARGET_DIR/*.wasm; do
-              if [ -f "$wasm" ]; then
-                size=$(ls -lh "$wasm" | awk '{print $5}')
-                name=$(basename "$wasm")
-                echo "| $name | $size |" >> $GITHUB_STEP_SUMMARY
-              fi
-            done
-          else
-            echo "Target directory $TARGET_DIR not found." >> $GITHUB_STEP_SUMMARY
-          fi
+          OVER=0
+          for wasm in $TARGET_DIR/stealth_*.wasm; do
+            if [ -f "$wasm" ]; then
+              bytes=$(stat -c%s "$wasm")
+              kb=$((bytes / 1024))
+              name=$(basename "$wasm")
+              status="ok"
+              if [ "$kb" -gt 140 ]; then status="OVER"; OVER=1; fi
+              echo "| $name | ${kb} KB | 140 KB ($status) |" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+          if [ "$OVER" -eq 1 ]; then exit 1; fi
+
+      - name: Write gate result (pass)
+        if: success()
+        run: |
+          node scripts/ci/write-gate-result.mjs \
+            --gate-id contract-checks \
+            --name "Contract Checks" \
+            --owner platform/contracts \
+            --dependency BETA-086 \
+            --status pass
+
+      - name: Write gate result (fail)
+        if: failure()
+        run: |
+          node scripts/ci/write-gate-result.mjs \
+            --gate-id contract-checks \
+            --name "Contract Checks" \
+            --owner platform/contracts \
+            --dependency BETA-086 \
+            --status fail
 
       - name: Upload Contract Artifacts
+        if: success()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: contract-wasm
           path: contracts/soroban/target/wasm32v1-none/release/*.wasm
           retention-days: 1
+
+      - name: Upload gate result
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: gate-contract-checks
+          path: gate-result-contract-checks.json
+          retention-days: 7
+          if-no-files-found: ignore
+
+  contract-registry:
+    name: Contract Registry
+    needs: [contract-checks]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Download contract wasm
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: contract-wasm
+          path: contracts/soroban/target/wasm32v1-none/release
+
+      - name: Verify wasm hashes against manifest
+        run: node scripts/ci/verify-wasm-hashes.mjs
+
+      - name: Upload gate result
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: gate-contract-registry
+          path: gate-result-contract-registry.json
+          retention-days: 7
+          if-no-files-found: ignore
+
+  beta-migrations:
+    name: Migration Gates
+    needs: [client-checks]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Migration integrity check
+        run: npm run migrations:integrity-check
+
+      - name: Migration forward & rollback rehearsal
+        run: |
+          npm run migrations:forward -- --approval approved
+          npm run migrations:rollback -- --target-version 1 --approval approved
+
+      - name: Migration unit tests
+        run: bun x vitest run tests/unit/migrations
+
+      - name: Write gate result (pass)
+        if: success()
+        run: |
+          node scripts/ci/write-gate-result.mjs \
+            --gate-id beta-migrations \
+            --name "Migration Gates" \
+            --owner platform/storage \
+            --dependency BETA-082 \
+            --status pass
+
+      - name: Write gate result (fail)
+        if: failure()
+        run: |
+          node scripts/ci/write-gate-result.mjs \
+            --gate-id beta-migrations \
+            --name "Migration Gates" \
+            --owner platform/storage \
+            --dependency BETA-082 \
+            --status fail
+
+      - name: Upload gate result
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: gate-beta-migrations
+          path: gate-result-beta-migrations.json
+          retention-days: 7
+          if-no-files-found: ignore
+
+  beta-backup:
+    name: Backup & Restore Gates
+    needs: [client-checks]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Backup restore rehearsal
+        env:
+          STEALTH_BACKUP_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+        run: npm run backup:rehearsal
+
+      - name: Write gate result (pass)
+        if: success()
+        run: |
+          node scripts/ci/write-gate-result.mjs \
+            --gate-id beta-backup \
+            --name "Backup & Restore Gates" \
+            --owner platform/storage \
+            --dependency BETA-081 \
+            --status pass
+
+      - name: Write gate result (fail)
+        if: failure()
+        run: |
+          node scripts/ci/write-gate-result.mjs \
+            --gate-id beta-backup \
+            --name "Backup & Restore Gates" \
+            --owner platform/storage \
+            --dependency BETA-081 \
+            --status fail
+
+      - name: Upload gate result
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: gate-beta-backup
+          path: gate-result-beta-backup.json
+          retention-days: 7
+          if-no-files-found: ignore
+
+  beta-auth:
+    name: Auth & Abuse Gates
+    needs: [client-checks]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Auth & registration abuse tests
+        run: bun x vitest run tests/unit/api/auth
+
+      - name: Write gate result (pass)
+        if: success()
+        run: |
+          node scripts/ci/write-gate-result.mjs \
+            --gate-id beta-auth \
+            --name "Auth & Abuse Gates" \
+            --owner security/platform \
+            --dependency BETA-079 \
+            --status pass
+
+      - name: Write gate result (fail)
+        if: failure()
+        run: |
+          node scripts/ci/write-gate-result.mjs \
+            --gate-id beta-auth \
+            --name "Auth & Abuse Gates" \
+            --owner security/platform \
+            --dependency BETA-079 \
+            --status fail
+
+      - name: Upload gate result
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: gate-beta-auth
+          path: gate-result-beta-auth.json
+          retention-days: 7
+          if-no-files-found: ignore
+
+  beta-security:
+    name: Security & Crypto Gates
+    needs: [client-checks]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Crypto & managed-wallet misuse tests
+        id: crypto
+        run: |
+          bun x vitest run tests/unit/crypto
+          bun x vitest run tests/unit/stellar/managed-wallet.test.ts
+
+      - name: Run security regression evidence
+        id: security_regression
+        run: bun run security:regression
+        continue-on-error: true
+
+      - name: Write gate result
+        if: always()
+        run: |
+          node scripts/ci/write-beta-security-gate.mjs \
+            --crypto "${{ steps.crypto.outcome }}" \
+            --evidence gate-result-beta-084-security.json
+
+      - name: Upload gate result
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: gate-beta-security
+          path: gate-result-beta-security.json
+          retention-days: 7
+          if-no-files-found: ignore
+
+  beta-live-data:
+    name: Live-Data No-Mock (Local Fake)
+    needs: [client-checks]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Workflow 2 local-fake journey
+        run: bun x vitest run tests/e2e/live-beta/workflow2.test.ts -t "local fake"
+
+      - name: Write gate result (pass)
+        if: success()
+        run: |
+          node scripts/ci/write-gate-result.mjs \
+            --gate-id beta-live-data \
+            --name "Live-Data No-Mock (Local Fake)" \
+            --owner protocol/relay \
+            --dependency BETA-050 \
+            --status pass
+
+      - name: Write gate result (fail)
+        if: failure()
+        run: |
+          node scripts/ci/write-gate-result.mjs \
+            --gate-id beta-live-data \
+            --name "Live-Data No-Mock (Local Fake)" \
+            --owner protocol/relay \
+            --dependency BETA-050 \
+            --status fail
+
+      - name: Upload gate result
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: gate-beta-live-data
+          path: gate-result-beta-live-data.json
+          retention-days: 7
+          if-no-files-found: ignore
+
+  beta-performance:
+    name: Performance Budget
+    needs: [client-checks]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Start dev server
+        run: bun run dev &
+
+      - name: Wait for dev server
+        run: npx --yes wait-on@8.0.1 http://127.0.0.1:5173 --timeout 120000
+
+      - name: Load & performance scenarios
+        run: npm run test:load
+        env:
+          API_URL: http://127.0.0.1:5173
+          LOAD_BUDGET_MAX_FAILURE_RATE: "0.10"
+          LOAD_BUDGET_MAX_P90_MS: "1200"
+          LOAD_BUDGET_MAX_P99_MS: "2500"
+          LOAD_BUDGET_MIN_RATE_LIMIT_HITS: "1"
+
+      - name: Write gate result (pass)
+        if: success()
+        run: |
+          node scripts/ci/write-gate-result.mjs \
+            --gate-id beta-performance \
+            --name "Performance Budget" \
+            --owner platform/performance \
+            --dependency BETA-083 \
+            --status pass
+
+      - name: Write gate result (fail)
+        if: failure()
+        run: |
+          node scripts/ci/write-gate-result.mjs \
+            --gate-id beta-performance \
+            --name "Performance Budget" \
+            --owner platform/performance \
+            --dependency BETA-083 \
+            --status fail
+
+      - name: Upload gate result
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: gate-beta-performance
+          path: gate-result-beta-performance.json
+          retention-days: 7
+          if-no-files-found: ignore
 
   e2e:
     name: E2E Tests
@@ -191,21 +599,49 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
-          bun-version: 1.3.14
+          bun-version: ${{ env.BUN_VERSION }}
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Verify Playwright matches lockfile pin
+        run: node scripts/ci/verify-playwright-version.mjs
+
       - name: Install Playwright browsers
-        run: bun x playwright install chromium
+        run: ./node_modules/.bin/playwright install chromium --with-deps
 
       - name: Run E2E tests
         run: bun run test:e2e
         env:
           CI: true
+
+      - name: Write gate result (pass)
+        if: success()
+        run: |
+          node scripts/ci/write-gate-result.mjs \
+            --gate-id e2e \
+            --name "E2E & Browser Gates" \
+            --owner platform/client \
+            --dependency BETA-087 \
+            --status pass
+
+      - name: Write gate result (fail)
+        if: failure()
+        run: |
+          node scripts/ci/write-gate-result.mjs \
+            --gate-id e2e \
+            --name "E2E & Browser Gates" \
+            --owner platform/client \
+            --dependency BETA-087 \
+            --status fail
 
       - name: Upload Playwright report
         if: always()
@@ -214,14 +650,16 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 7
+          if-no-files-found: ignore
 
-      - name: Upload Playwright traces
-        if: failure()
+      - name: Upload gate result
+        if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: playwright-traces
-          path: test-results/
+          name: gate-e2e
+          path: gate-result-e2e.json
           retention-days: 7
+          if-no-files-found: ignore
 
   visual-e2e:
     name: Visual & Cross-Browser E2E
@@ -233,18 +671,41 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
-          bun-version: 1.3.14
+          bun-version: ${{ env.BUN_VERSION }}
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Verify Playwright matches lockfile pin
+        run: node scripts/ci/verify-playwright-version.mjs
+
       - name: Install Playwright browsers
-        run: bun x playwright install --with-deps chromium firefox webkit
+        run: ./node_modules/.bin/playwright install --with-deps chromium firefox webkit
 
       - name: Run visual & cross-browser regression tests
         run: bun run test:visual
         env:
           CI: true
+
+      - name: Write gate result (pass)
+        if: success()
+        run: |
+          node scripts/ci/write-gate-result.mjs \
+            --gate-id visual-e2e \
+            --name "Visual & Cross-Browser E2E" \
+            --owner platform/client \
+            --dependency BETA-087 \
+            --status pass
+
+      - name: Write gate result (fail)
+        if: failure()
+        run: |
+          node scripts/ci/write-gate-result.mjs \
+            --gate-id visual-e2e \
+            --name "Visual & Cross-Browser E2E" \
+            --owner platform/client \
+            --dependency BETA-087 \
+            --status fail
 
       - name: Upload Playwright report
         if: always()
@@ -253,14 +714,16 @@ jobs:
           name: visual-playwright-report
           path: playwright-report/
           retention-days: 7
+          if-no-files-found: ignore
 
-      - name: Upload Playwright traces & diffs
-        if: failure()
+      - name: Upload gate result
+        if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: visual-playwright-traces
-          path: test-results/
+          name: gate-visual-e2e
+          path: gate-result-visual-e2e.json
           retention-days: 7
+          if-no-files-found: ignore
 
   security:
     name: Security & Dependency Review
@@ -271,13 +734,20 @@ jobs:
           fetch-depth: 0
 
       - name: Dependency Review
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && env.FORK_PR != 'true'
         uses: actions/dependency-review-action@05fe4576374b728f0c523d6a13d64c25081e0803 # v4.8.3
+        id: depreview
         with:
           retry-on-snapshot-warnings: true
           fail-on-severity: moderate
 
+      - name: Skip dependency review on fork PR
+        if: github.event_name == 'pull_request' && env.FORK_PR == 'true'
+        run: echo "Skipping dependency review on fork PR (no privileged token scope)."
+
       - name: Install Gitleaks
+        if: env.FORK_PR != 'true'
+        id: gitleaks_install
         run: |
           curl --fail --silent --show-error --location \
             https://github.com/gitleaks/gitleaks/releases/download/v8.28.0/gitleaks_8.28.0_linux_x64.tar.gz \
@@ -286,7 +756,27 @@ jobs:
           tar --extract --gzip --file /tmp/gitleaks.tar.gz --directory /tmp gitleaks
 
       - name: Scan Git history for secrets
+        if: env.FORK_PR != 'true'
+        id: gitleaks_scan
         run: /tmp/gitleaks git . --redact --verbose
+
+      - name: Write gate result
+        if: always()
+        run: |
+          node scripts/ci/write-security-gate.mjs \
+            --fork "${{ env.FORK_PR }}" \
+            --dep-review "${{ steps.depreview.outcome }}" \
+            --gitleaks-install "${{ steps.gitleaks_install.outcome }}" \
+            --gitleaks-scan "${{ steps.gitleaks_scan.outcome }}"
+
+      - name: Upload gate result
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: gate-security
+          path: gate-result-security.json
+          retention-days: 7
+          if-no-files-found: ignore
 
   provenance:
     name: Provenance & Hashes
@@ -295,27 +785,133 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - name: Download all artifacts
+      - name: Download client artifacts
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          path: ./artifacts
+          name: client-dist
+          path: artifacts/client-dist
 
-      - name: Generate SHA-256 Hashes
+      - name: Download contract artifacts
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: contract-wasm
+          path: artifacts/contract-wasm
+
+      - name: Collect artifact hashes
+        run: node scripts/ci/collect-artifact-hashes.mjs
+
+      - name: Scan artifacts for secrets
+        run: node scripts/ci/scan-artifacts-for-secrets.mjs --dir artifacts
+
+      - name: Write provenance gate result (pass)
+        if: success()
         run: |
-          echo "### Release Artifact Hashes" >> $GITHUB_STEP_SUMMARY
-          echo "| Artifact | SHA-256 Hash |" >> $GITHUB_STEP_SUMMARY
-          echo "| :--- | :--- |" >> $GITHUB_STEP_SUMMARY
+          node scripts/ci/write-gate-result.mjs \
+            --gate-id provenance \
+            --name "Provenance & Hashes" \
+            --owner platform/release \
+            --dependency BETA-088 \
+            --status pass
 
-          # Collect and hash important artifacts
-          find . -name "*.wasm" -o -name "index.html" -o -name "*.js" -o -name "*.css" | grep -v "node_modules" | while read file; do
-            hash=$(sha256sum "$file" | awk '{print $1}')
-            name=$(basename "$file")
-            echo "| $name | $hash |" >> $GITHUB_STEP_SUMMARY
-            echo "$hash  $file" >> SHA256SUMS
-          done
+      - name: Write provenance gate result (fail)
+        if: failure()
+        run: |
+          node scripts/ci/write-gate-result.mjs \
+            --gate-id provenance \
+            --name "Provenance & Hashes" \
+            --owner platform/release \
+            --dependency BETA-088 \
+            --status fail
 
-      - name: Upload Hashes
+      - name: Upload hash artifacts
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: release-hashes
-          path: SHA256SUMS
+          path: |
+            SHA256SUMS
+            artifact-hashes.json
+          retention-days: 30
+
+      - name: Upload gate results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: gate-provenance
+          path: |
+            gate-result-provenance.json
+            gate-result-artifact-secrets.json
+          retention-days: 7
+          if-no-files-found: ignore
+
+  release-gate-summary:
+    name: Beta Release Gate Summary
+    needs:
+      - client-checks
+      - contract-checks
+      - contract-registry
+      - beta-migrations
+      - beta-backup
+      - beta-auth
+      - beta-security
+      - beta-live-data
+      - beta-performance
+      - e2e
+      - visual-e2e
+      - security
+      - provenance
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Download all gate results
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          path: gate-artifacts
+          pattern: gate-*
+          merge-multiple: true
+
+      - name: Download release hashes
+        if: needs.provenance.result == 'success'
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: release-hashes
+          path: gate-artifacts
+        continue-on-error: true
+
+      - name: Collect gate result files
+        run: |
+          mkdir -p summary-input
+          find gate-artifacts -name 'gate-result-*.json' -exec cp {} summary-input/ \; || true
+          echo "Gate result files copied:"
+          ls -la summary-input || true
+          if [ -f gate-artifacts/artifact-hashes.json ]; then
+            cp gate-artifacts/artifact-hashes.json summary-input/
+          else
+            echo '{"issue":"BETA-088","note":"release-hashes artifact missing because provenance did not run","artifacts":[]}' > summary-input/artifact-hashes.json
+            echo "Warning: release-hashes artifact missing; placeholder written for the summary." >&2
+          fi
+
+      - name: Generate release gate summary
+        run: node scripts/ci/release-gate-summary.mjs --input-dir summary-input --commit "${{ github.sha }}"
+        continue-on-error: true
+
+      - name: Upload release gate summary
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-gate-summary
+          path: |
+            summary-input/release-gate-summary.json
+            summary-input/release-gate-summary.md
+          retention-days: 90
+
+      - name: Fail if not releasable
+        run: |
+          VERDICT=$(node -e "console.log(JSON.parse(require('fs').readFileSync('summary-input/release-gate-summary.json','utf8')).verdict)")
+          RELEASABLE=$(node -e "console.log(JSON.parse(require('fs').readFileSync('summary-input/release-gate-summary.json','utf8')).releasable)")
+          echo "Release gate verdict: $VERDICT releasable=$RELEASABLE"
+          if [ "$VERDICT" = "fail" ] || [ "$VERDICT" = "blocked" ]; then
+            echo "Beta release not passing — see release-gate-summary artifact for ownership."
+            exit 1
+          fi

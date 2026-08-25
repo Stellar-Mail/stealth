@@ -28,6 +28,13 @@ test-results/
 .playwright-e2e-server.pid
 beta-open-issues-audit.json
 
+# CI gate artifacts (generated locally or in Actions)
+gate-result-*.json
+release-gate-summary.json
+release-gate-summary.md
+SHA256SUMS
+artifact-hashes.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

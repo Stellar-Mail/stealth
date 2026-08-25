@@ -1,0 +1,9 @@
+{
+  "issue": "BETA-083",
+  "sloDoc": "docs/deployment/SLO.md",
+  "note": "CI load tests run against a local Vite server, so latency ceilings are CI allowances rather than the 30-day 250ms SLO. Error-rate, network-error, and rate-limit controls are still hard fails.",
+  "maxFailureRate": 0.1,
+  "maxP90Ms": 1200,
+  "maxP99Ms": 2500,
+  "minRateLimitHits": 1
+}

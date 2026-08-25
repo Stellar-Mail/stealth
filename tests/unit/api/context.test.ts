@@ -9,8 +9,8 @@ import {
 import {
   createApiContext,
   extractPrincipal,
+  extractPrincipalSync,
   getApiContext,
-  type ApiPrincipal,
 } from "../../../src/server/api/context";
 import { MemoryApiRepository } from "../../../src/server/api/memory-repository";
 
@@ -18,12 +18,12 @@ const validAddress = `G${"A".repeat(55)}`;
 const attackerAddress = `G${"B".repeat(55)}`;
 
 describe("ApiPrincipal & ApiContext identity model", () => {
-  it("extracts a valid ApiPrincipal from request headers", () => {
+  it("extracts a valid ApiPrincipal from request headers (header-only)", async () => {
     const request = new Request("https://stealth.test/api", {
       headers: { [ACTOR_HEADER]: validAddress },
     });
 
-    const principal = extractPrincipal(request);
+    const principal = await extractPrincipal(request);
     expect(principal).not.toBeNull();
     expect(principal?.address).toBe(validAddress);
     expect(principal?.authMethod).toBe("header");
@@ -31,7 +31,7 @@ describe("ApiPrincipal & ApiContext identity model", () => {
     expect(principal?.metadata).toEqual({});
   });
 
-  it("extracts delegation metadata when delegation header is present", () => {
+  it("extracts delegation metadata when delegation header is present", async () => {
     const request = new Request("https://stealth.test/api", {
       headers: {
         [ACTOR_HEADER]: validAddress,
@@ -39,10 +39,17 @@ describe("ApiPrincipal & ApiContext identity model", () => {
       },
     });
 
-    const principal = extractPrincipal(request);
+    const principal = await extractPrincipal(request);
     expect(principal).not.toBeNull();
     expect(principal?.authMethod).toBe("delegation");
     expect(principal?.metadata.delegation).toBe(JSON.stringify({ action: "policy:read" }));
+  });
+
+  it("keeps a sync header-only helper for legacy callers", () => {
+    const request = new Request("https://stealth.test/api", {
+      headers: { [ACTOR_HEADER]: validAddress },
+    });
+    expect(extractPrincipalSync(request)?.address).toBe(validAddress);
   });
 
   it("distinguishes explicit anonymous from authenticated context", async () => {

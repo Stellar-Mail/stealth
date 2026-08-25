@@ -5,6 +5,58 @@ contracts, the client, and the API through testnet and production environments. 
 release reviewer must be able to make a defensible decision from the evidence linked
 here. Promotion is blocked when any critical gate is unmet.
 
+**BETA-088 (#1995):** Every push/PR to `main` or `develop` runs the unified CI release
+gate pipeline (`.github/workflows/ci.yml`). The final **Beta Release Gate Summary**
+job aggregates gate results, artifact hashes, tool versions, and failure ownership.
+Main is not releasable while the summary verdict is `fail` or `blocked`.
+
+## CI Gate Matrix (automated)
+
+| Gate ID                 | CI Job                       | Owner                  | Dependency         | Command / evidence                                                        |
+| ----------------------- | ---------------------------- | ---------------------- | ------------------ | ------------------------------------------------------------------------- |
+| `client-checks`         | Client Checks                | `platform/client`      | BETA-088           | `bun install --frozen-lockfile`, lint, tsc, build                         |
+| `build-reproducibility` | Client Checks                | `platform/client`      | BETA-088           | `npm run ci:verify-drift`                                                 |
+| `contract-checks`       | Contract Checks              | `platform/contracts`   | BETA-086           | `cargo test --workspace`, release wasm build                              |
+| `contract-registry`     | Contract Registry            | `platform/contracts`   | BETA-086           | `npm run ci:verify-wasm-hashes`                                           |
+| `beta-migrations`       | Migration Gates              | `platform/storage`     | BETA-082           | `npm run migrations:integrity-check`, forward/rollback                    |
+| `beta-backup`           | Backup & Restore Gates       | `platform/storage`     | BETA-081           | `npm run backup:rehearsal`                                                |
+| `beta-auth`             | Auth & Abuse Gates           | `security/platform`    | BETA-079           | `npm run test:beta:auth`                                                  |
+| `beta-security`         | Security & Crypto Gates      | `security/platform`    | BETA-084, BETA-085 | crypto + managed-wallet + STEALTH-AUTH-V1 signed-request on mutating HTTP |
+| `beta-live-data`        | Live-Data No-Mock            | `protocol/relay`       | BETA-050           | `npm run test:beta:live-data`                                             |
+| `beta-performance`      | Performance Budget           | `platform/performance` | BETA-083           | `npm run test:load`                                                       |
+| `e2e`                   | E2E & Browser Gates          | `platform/client`      | BETA-087           | Playwright chromium (pinned)                                              |
+| `visual-e2e`            | Visual & Cross-Browser       | `platform/client`      | BETA-087           | `npm run test:visual` (committed Linux baselines)                         |
+| `security`              | Security & Dependency Review | `security/platform`    | BETA-088           | dependency-review (skipped on fork PRs), Gitleaks                         |
+| `provenance`            | Provenance & Hashes          | `platform/release`     | BETA-088           | `npm run ci:collect-hashes`, `npm run ci:scan-artifacts`                  |
+| `beta-soroban-live`     | Soroban Live Integration     | `platform/contracts`   | BETA-086           | Manual: `.github/workflows/beta-live-testnet.yml`                         |
+
+Pinned versions: `scripts/ci/tool-versions.json`, `.node-version`, `rust-toolchain.toml`.
+
+If **Build reproducibility & drift** fails, regenerate and commit the drifted files:
+
+```bash
+bun scripts/generate-route-tree.ts
+bun run generate:openapi
+node scripts/generate-contract-bindings.mjs
+git diff --name-only
+```
+
+Do not commit `gate-result-*.json` (local CI artifacts). The OpenAPI generator must write a trailing newline so the file matches Prettier.
+
+### Release-gate semantics
+
+| Verdict   | Meaning                                                                                       | Releasable |
+| --------- | --------------------------------------------------------------------------------------------- | ---------- |
+| `pass`    | Every required gate artifact exists and genuinely passed                                      | yes        |
+| `blocked` | A required gate is explicitly blocked by a named unresolved dependency                        | no         |
+| `fail`    | A required gate failed, or a required gate result is missing (`missing required gate result`) | no         |
+| `skipped` | Only allowed for privileged `security` scans on fork PRs; never makes `releasable: true`      | no         |
+
+Missing required artifacts are injected as `fail` with reason `missing required gate result`. They are never treated as pass.
+
+Fork PRs skip privileged security scans. Live testnet gates require `workflow_dispatch`
+with the protected `testnet` GitHub Environment.
+
 ## Release Record
 
 Record these values before beginning a deployment:
@@ -25,6 +77,7 @@ Record these values before beginning a deployment:
 
 ### Code and API contract
 
+- [ ] CI **Beta Release Gate Summary** verdict is `pass` for the exact source commit.
 - [ ] CI passes lint, formatting, type checking, unit tests, integration tests, and
       contract tests for the exact source commit.
 - [ ] The generated OpenAPI document is reviewed and its compatibility diff is

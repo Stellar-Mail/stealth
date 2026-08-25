@@ -6,15 +6,16 @@ This document defines the secrets inventory for the Stealth Beta release, outlin
 
 Secrets are scoped to specific runtime identities via the `STEALTH_ROLE` environment variable to ensure jobs receive only their required capabilities.
 
-| Variable Name             | Description                                                                          | Role Scope                   |
-| ------------------------- | ------------------------------------------------------------------------------------ | ---------------------------- |
-| `STEALTH_CURSOR_SECRET`   | Used to sign/verify cursor tokens for pagination and session states.                 | `web`, `all`                 |
-| `STEALTH_RELAY_API_KEY`   | Authenticates connections from the Web application to the SMTP Relay service.        | `relay`, `all`               |
-| `STEALTH_STORAGE_SECRET`  | API Secret or Access Token to interact with external/bound Object Storage or DBs.    | `indexer`, `all`             |
-| `STEALTH_SMTP_PASSWORD`   | Credentials to authenticate the system against the outbound SMTP provider.           | `web`, `all`                 |
-| `STEALTH_RPC_API_KEY`     | Token for making authenticated calls against the Soroban RPC.                        | `operator`, `indexer`, `all` |
-| `STEALTH_OPERATOR_SECRET` | Custody secret key for the operator wallet to broadcast signed network transactions. | `operator`, `all`            |
-| `STEALTH_BACKUP_KEY`      | Base64-encoded 32-byte key sealing encrypted backups (AES-256-GCM, BETA-081).        | `operator`, `all`            |
+| Variable Name             | Description                                                                           | Role Scope                   |
+| ------------------------- | ------------------------------------------------------------------------------------- | ---------------------------- |
+| `STEALTH_CURSOR_SECRET`   | Used to sign/verify cursor tokens for pagination and session states.                  | `web`, `all`                 |
+| `STEALTH_RELAY_API_KEY`   | Authenticates connections from the Web application to the SMTP Relay service.         | `relay`, `all`               |
+| `STEALTH_STORAGE_SECRET`  | API Secret or Access Token to interact with external/bound Object Storage or DBs.     | `indexer`, `all`             |
+| `STEALTH_SMTP_PASSWORD`   | Credentials to authenticate the system against the outbound SMTP provider.            | `web`, `all`                 |
+| `STEALTH_RPC_API_KEY`     | Token for making authenticated calls against the Soroban RPC.                         | `operator`, `indexer`, `all` |
+| `STEALTH_OPERATOR_SECRET` | Custody secret key for the operator wallet to broadcast signed network transactions.  | `operator`, `all`            |
+| `STEALTH_BACKUP_KEY`      | Base64-encoded 32-byte key sealing encrypted backups (AES-256-GCM, BETA-081).         | `operator`, `all`            |
+| `STEALTH_ADMIN_ADDRESSES` | Comma-separated Stellar G-addresses allowed to call `/api/v1/admin/*` (not a secret). | `operator`, `all`            |
 
 ## Environment Ownership
 

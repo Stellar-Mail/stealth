@@ -6,3 +6,4 @@ export * from "./delegation";
 export * from "./envelope";
 export * from "./nonce-service";
 export * from "./signed-request";
+export * from "./signed-request-verify";
