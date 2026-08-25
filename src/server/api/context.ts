@@ -333,9 +333,11 @@ export async function getObjectStore(): Promise<
 }
 
 /**
- * Extract verified principal from incoming request headers.
+ * Development / legacy identity from `x-stealth-address` alone.
+ * Not proof of key possession — only used when {@link isHeaderOnlyAuthAllowed}
+ * or for safe (non-mutating) methods without signed-request material.
  */
-export function extractPrincipal(request: Request): ApiPrincipal | null {
+export function extractHeaderOnlyPrincipal(request: Request): ApiPrincipal | null {
   const value = request.headers.get("x-stealth-address");
   if (!value) return null;
 
@@ -357,6 +359,45 @@ export function extractPrincipal(request: Request): ApiPrincipal | null {
     authenticatedAt: new Date(),
     metadata,
   };
+}
+
+/**
+ * Resolve the request principal.
+ *
+ * Mutating methods require STEALTH-AUTH-V1 unless the explicit non-production
+ * header-only escape hatch is enabled. Signed material always forces full
+ * verification. Safe methods may still use the development header transport.
+ */
+export async function extractPrincipal(request: Request): Promise<ApiPrincipal | null> {
+  const {
+    authenticateSignedRequest,
+    hasSignedRequestMaterial,
+    isHeaderOnlyAuthAllowed,
+    isMutatingMethod,
+  } = await import("./auth/signed-request-verify");
+
+  const hasAddress = Boolean(request.headers.get("x-stealth-address")?.trim());
+  if (!hasAddress && !hasSignedRequestMaterial(request)) {
+    return null;
+  }
+
+  const mutating = isMutatingMethod(request.method);
+  const signedMaterial = hasSignedRequestMaterial(request);
+  const headerOnly = isHeaderOnlyAuthAllowed();
+
+  if (signedMaterial || (mutating && !headerOnly)) {
+    if (!hasAddress && !signedMaterial) {
+      throw new ApiError(401, "unauthorized", "Missing x-stealth-address header");
+    }
+    return authenticateSignedRequest(request);
+  }
+
+  return extractHeaderOnlyPrincipal(request);
+}
+
+/** @deprecated Prefer {@link extractPrincipal}; sync header-only helper for tests. */
+export function extractPrincipalSync(request: Request): ApiPrincipal | null {
+  return extractHeaderOnlyPrincipal(request);
 }
 
 /**
@@ -542,7 +583,7 @@ export async function getApiContext(request?: Request): Promise<ApiContext> {
     globalApi.__stealthApiRepository = repo;
   }
 
-  const principal = request ? extractPrincipal(request) : null;
+  const principal = request ? await extractPrincipal(request) : null;
   const requestId = request ? request.headers.get("x-request-id")?.trim() || undefined : undefined;
 
   let traceContext: TraceContext;

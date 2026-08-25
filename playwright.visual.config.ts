@@ -78,6 +78,9 @@ export default defineConfig({
   ],
   webServer: {
     command: "npm run dev",
+    env: {
+      STEALTH_AUTH_ALLOW_HEADER_ONLY: "1",
+    },
     url: BASE_URL,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

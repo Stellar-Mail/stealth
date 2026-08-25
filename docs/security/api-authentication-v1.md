@@ -1,10 +1,11 @@
 # Signed API authentication protocol v1
 
 Status: interoperability specification. The canonicalization and time-window rules are implemented
-in `src/server/api/auth/signed-request.ts` and locked to the public vectors in
-`test-fixtures/auth/signed-request-v1.json`. The API's current `x-stealth-address` middleware is a
-development identity transport, not proof of identity; public deployment must wire the verification
-sequence below before trusting that header.
+in `src/server/api/auth/signed-request.ts`. Mutating HTTP API routes resolve principals through
+`authenticateSignedRequest()` in `src/server/api/auth/signed-request-verify.ts` (wired from
+`extractPrincipal` / `getApiContext`). A non-production escape hatch
+(`STEALTH_AUTH_ALLOW_HEADER_ONLY=1`, disabled when `STEALTH_AUTH_REQUIRE_SIGNED=1` or
+`import.meta.env.PROD`) may accept bare `x-stealth-address` for local tests only.
 
 ## Protocol identifier and cryptography
 

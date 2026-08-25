@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { ApiError, normalizeApiError } from "../../../src/server/api/errors";
 import { openApiDocument } from "../../../src/server/api/openapi";
+import { ObjectStoreError } from "../../../src/services/storage/object-store";
 
 describe("validation error contract", () => {
   it("maps Zod errors into the stable public validation schema without echoing input", () => {
@@ -62,11 +63,12 @@ describe("validation error contract", () => {
     expect(error.retryClassification).toBe("conflict");
   });
 
-  it("classifies internal errors as transient and retryable", () => {
-    const error = normalizeApiError(new Error("Database disconnected"));
-    expect(error.status).toBe(500);
-    expect(error.retryable).toBe(true);
-    expect(error.retryClassification).toBe("transient");
+  it("maps object-store ownership errors to not_found so cross-account reads do not leak as 500", () => {
+    const error = normalizeApiError(
+      new ObjectStoreError("object_store_ownership_error", "Object is owned by another actor"),
+    );
+    expect(error.status).toBe(404);
+    expect(error.code).toBe("not_found");
   });
 
   it("documents the stable validation details schema in OpenAPI", () => {

@@ -39,6 +39,7 @@ import {
 import { RelayService, type RelayServiceConfig } from "../../../src/services/relay/relay-service";
 import { MemoryRelayPersistence } from "../../../src/services/relay/memory-persistence";
 import { InProcessRelayWorker } from "../../../src/services/relay/in-process-worker";
+import type { RelayAdmissionEvaluator } from "../../../src/services/relay/policy-admission";
 import {
   submitToRelay,
   generateRequestNonce,
@@ -104,7 +105,22 @@ function makeLocalRelay(): {
       networkPassphrase: TESTNET_PASSPHRASE,
     },
   };
-  return { persistence, service: new RelayService(persistence, worker, config) };
+  const evaluator: RelayAdmissionEvaluator = {
+    evaluate: async () => ({
+      policyVersion: 1,
+      allowed: true,
+      kind: "request",
+      reason: "policy_satisfied",
+      rule: "default",
+      requiredPostage: "0",
+      source: "offchain_fallback",
+      evaluatedAt: new Date().toISOString(),
+    }),
+  };
+  return {
+    persistence,
+    service: new RelayService(persistence, worker, config, { evaluator }),
+  };
 }
 
 // ---------------------------------------------------------------------------

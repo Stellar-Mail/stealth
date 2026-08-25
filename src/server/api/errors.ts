@@ -1,5 +1,7 @@
 import { ZodError, type ZodIssue } from "zod";
 
+import { ObjectStoreError } from "@/services/storage/object-store";
+
 export interface ApiErrorDefinition {
   readonly status: number;
   readonly message: string;
@@ -307,6 +309,10 @@ export function normalizeApiError(error: unknown): ApiError {
       "Request validation failed",
       normalizeValidationError(error),
     );
+  }
+
+  if (error instanceof ObjectStoreError && error.code === "object_store_ownership_error") {
+    return new ApiError(404, "not_found", "The requested resource was not found");
   }
 
   return new ApiError(500, "internal_error", "An unexpected server error occurred");

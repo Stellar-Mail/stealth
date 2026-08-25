@@ -1,0 +1,59 @@
+{
+  "issue": "BETA-084",
+  "runAt": "2026-08-25T14:27:32.433Z",
+  "mode": "local-fake",
+  "network": "local",
+  "toolVersions": {
+    "vitest": "4.x",
+    "node": "v24.16.0"
+  },
+  "steps": [
+    {
+      "step": "cross-account-policy-mutation",
+      "status": "pass",
+      "controlOwner": "api-authorization",
+      "detail": {
+        "status": 403,
+        "alice": "GAAAAAAA…",
+        "bob": "GBBBBBBB…"
+      }
+    },
+    {
+      "step": "relay-queue-isolation",
+      "status": "pass",
+      "controlOwner": "api-authorization",
+      "detail": {
+        "bobQueueSize": 1,
+        "carolQueueSize": 0
+      }
+    },
+    {
+      "step": "mailbox-queue-scoping",
+      "status": "pass",
+      "controlOwner": "api-authorization",
+      "detail": {
+        "itemCount": 0
+      }
+    },
+    {
+      "step": "admin-route-auth",
+      "status": "pass",
+      "controlOwner": "admin-platform",
+      "detail": {
+        "command": "npx vitest run tests/unit/api/security/admin-routes.security.test.ts",
+        "note": "requireAdmin allowlist denies unauthenticated and non-admin actors"
+      }
+    },
+    {
+      "step": "forged-actor-headers",
+      "status": "pass",
+      "controlOwner": "signed-request",
+      "detail": {
+        "trackingIssue": "STEALTH-AUTH-V1 HTTP API enforcement",
+        "relatedClosedIssue": "#1555",
+        "command": "npx vitest run tests/unit/api/security.regression.test.ts",
+        "note": "Mutating routes require STEALTH-AUTH-V1; forged/header-only actors are rejected when STEALTH_AUTH_REQUIRE_SIGNED=1"
+      }
+    }
+  ]
+}

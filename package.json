@@ -3,14 +3,22 @@
   "private": true,
   "sideEffects": false,
   "type": "module",
+  "packageManager": "bun@1.3.14",
+  "engines": {
+    "node": ">=24.0.0",
+    "bun": "1.3.14"
+  },
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
-    "test": "vitest run tests/unit tests/e2e/security",
-    "test:watch": "vitest tests/unit tests/e2e/security",
+    "test": "vitest run tests/unit",
+    "test:security": "vitest run tests/unit/api/security tests/unit/api/security.regression.test.ts tests/unit/api/policy-routes.security.test.ts tests/unit/api/receipt-routes.security.test.ts tests/unit/api/contact-routes.test.ts",
+    "test:security:live": "vitest run tests/e2e/live-beta/security-isolation.test.ts",
+    "security:regression": "node scripts/security/run-regression.mjs",
+    "test:watch": "vitest tests/unit",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:visual": "playwright test --config playwright.visual.config.ts",
@@ -34,7 +42,17 @@
     "backup:verify": "node scripts/backup/backup.mjs verify",
     "backup:restore": "node scripts/backup/backup.mjs restore",
     "backup:list": "node scripts/backup/backup.mjs list",
-    "backup:rehearsal": "node scripts/backup/backup.mjs rehearsal"
+    "backup:rehearsal": "node scripts/backup/backup.mjs rehearsal",
+    "ci:verify-drift": "node scripts/ci/verify-drift.mjs",
+    "ci:verify-versions": "node scripts/ci/verify-pinned-versions.mjs",
+    "ci:verify-wasm-hashes": "node scripts/ci/verify-wasm-hashes.mjs",
+    "ci:collect-hashes": "node scripts/ci/collect-artifact-hashes.mjs",
+    "ci:scan-artifacts": "node scripts/ci/scan-artifacts-for-secrets.mjs",
+    "ci:release-gate-summary": "node scripts/ci/release-gate-summary.mjs",
+    "test:beta:auth": "vitest run tests/unit/api/auth",
+    "test:beta:security": "vitest run tests/unit/crypto tests/unit/stellar/managed-wallet.test.ts tests/unit/api/security.regression.test.ts",
+    "test:beta:migrations": "vitest run tests/unit/migrations",
+    "test:beta:live-data": "vitest run tests/e2e/live-beta/workflow2.test.ts -t \"local fake\""
   },
   "overrides": {
     "ws": "8.21.0",

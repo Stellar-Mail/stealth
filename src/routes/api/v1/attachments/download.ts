@@ -4,7 +4,7 @@ import { getApiContext } from "@/server/api/context";
 import { apiSuccess, handleApiRequest } from "@/server/api/response";
 import { ApiError } from "@/server/api/errors";
 import { getObjectStore } from "@/server/api/context";
-import { attachmentChunkKey } from "@/services/storage/object-store";
+import { attachmentChunkKey, ObjectStoreError } from "@/services/storage/object-store";
 import { normalizeSearchParams } from "@/server/api/request";
 import { z } from "zod";
 import { hash32Schema } from "@/server/api/domain";
@@ -36,9 +36,20 @@ export const Route = createFileRoute("/api/v1/attachments/download")({
           const contentCommitment = `v1:sha256:hex:${parsed.content_hash}`;
           const key = attachmentChunkKey(parsed.message_id, contentCommitment, parsed.chunk_index);
 
-          const stored = await objectStore.get(key, {
-            ownerAddress: ctx.principal.address,
-          });
+          let stored;
+          try {
+            stored = await objectStore.get(key, {
+              ownerAddress: ctx.principal.address,
+            });
+          } catch (error) {
+            if (
+              error instanceof ObjectStoreError &&
+              error.code === "object_store_ownership_error"
+            ) {
+              throw new ApiError(404, "not_found", "Attachment chunk not found");
+            }
+            throw error;
+          }
 
           if (!stored) {
             throw new ApiError(404, "not_found", "Attachment chunk not found");

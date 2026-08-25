@@ -14,7 +14,7 @@
  *   - Admin route privilege escalation (DLQ, jobs)
  *   - Canonicalization (uppercase / padding bypass attempts)
  *   - Stale / expired delegation (still → 403)
- *   - Replay via forged signature headers (currently marked it.fails pending full HMAC enforcement)
+ *   - STEALTH-AUTH-V1 signed-request enforcement (forged actor, replay, binding)
  *
  * All tests use MemoryApiRepository and in-process route handlers.
  * No network, no credentials.
@@ -23,9 +23,12 @@
  *   - Route-level enforcement → src/server/api/actor.ts: requireActorMatches, authorizeResourceOwner
  *   - Intent-level enforcement → src/server/api/authorization/intents.ts: validateIntent
  *   - Canonicalization utility → src/server/api/authorization/canonicalization.ts
+ *   - Signed-request HTTP auth → src/server/api/auth/signed-request-verify.ts
  */
 
-import { describe, expect, it, beforeEach } from "vitest";
+import { randomBytes } from "node:crypto";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { Keypair } from "@stellar/stellar-sdk";
 
 // Route handlers
 import { Route as PolicyRoute } from "../../../src/routes/api/v1/policies/$owner";
@@ -54,6 +57,11 @@ import {
   normalizeActorAddress,
   isSameCanonicalAddress,
 } from "../../../src/server/api/authorization/canonicalization";
+import {
+  buildSignedRequestHeaders,
+  resetSignedRequestNonceStore,
+  SIGNATURE_HEADER,
+} from "../../../src/server/api/auth/signed-request-verify";
 
 // ---------------------------------------------------------------------------
 // Actors
@@ -627,76 +635,199 @@ describe("API Security Regressions — BETA-084 (#1991)", () => {
   });
 
   // -------------------------------------------------------------------------
-  // 11. Replay / Signature Forwarding Vectors (documented future state)
+  // 11. STEALTH-AUTH-V1 signed-request enforcement (control: signed-request-verify.ts)
   // -------------------------------------------------------------------------
 
-  describe("11. Replay / Signature Forwarding — documented future enforcement", () => {
-    /**
-     * The current model trusts the x-stealth-address header without HMAC signature verification.
-     * These tests are marked it.fails to document the expected future behavior once
-     * signed-request enforcement (#1555 and related) is fully implemented.
-     *
-     * They prove: the route currently returns 200 (i.e., trusts the header), and
-     * when the signing layer is enforced, these should be changed to non-failing expectations.
-     */
-    it.fails(
-      "replayed identical signature headers are rejected by the signing layer (future enforcement)",
-      async () => {
-        const validHeaders = {
-          [ACTOR_HEADER]: owner,
-          "x-stealth-nonce": "nonce-replay-001",
-          "x-stealth-timestamp": new Date().toISOString(),
-          "x-stealth-signature": "sig-replay-001",
-        };
+  describe("11. STEALTH-AUTH-V1 signed-request enforcement", () => {
+    const signer = Keypair.random();
+    const otherSigner = Keypair.random();
+    const signedOwner = signer.publicKey();
+    const policyBody = {
+      allowUnknown: true,
+      minimumPostage: "500",
+      requireVerified: false,
+    };
+    const previousRequireSigned = process.env.STEALTH_AUTH_REQUIRE_SIGNED;
 
-        const body = { allowUnknown: true, minimumPostage: "500", requireVerified: false };
+    beforeAll(() => {
+      process.env.STEALTH_AUTH_REQUIRE_SIGNED = "1";
+    });
 
-        const firstReq = req(`/api/v1/policies/${owner}`, "PUT", owner, body, {
-          "x-stealth-nonce": validHeaders["x-stealth-nonce"],
-          "x-stealth-timestamp": validHeaders["x-stealth-timestamp"],
-          "x-stealth-signature": validHeaders["x-stealth-signature"],
-        });
+    afterAll(() => {
+      if (previousRequireSigned === undefined) {
+        delete process.env.STEALTH_AUTH_REQUIRE_SIGNED;
+      } else {
+        process.env.STEALTH_AUTH_REQUIRE_SIGNED = previousRequireSigned;
+      }
+    });
 
-        const firstResp = await updatePolicyHandler({
-          request: firstReq,
-          params: { owner },
-        });
-        expect(firstResp.status).toBe(200);
+    beforeEach(() => {
+      resetSignedRequestNonceStore();
+    });
 
-        // Replay the exact same request — should be rejected once replay detection is enforced
-        const replayReq = req(`/api/v1/policies/${owner}`, "PUT", owner, body, {
-          "x-stealth-nonce": validHeaders["x-stealth-nonce"],
-          "x-stealth-timestamp": validHeaders["x-stealth-timestamp"],
-          "x-stealth-signature": validHeaders["x-stealth-signature"],
-        });
-        const replayResp = await updatePolicyHandler({
-          request: replayReq,
-          params: { owner },
-        });
-        // This should be non-200 once full replay detection is implemented
-        expect(replayResp.status).not.toBe(200);
-      },
-    );
+    function signedPolicyPut(actorKeypair: Keypair, overrides: Record<string, string> = {}) {
+      const url = `https://stealth.test/api/v1/policies/${signedOwner}`;
+      const body = JSON.stringify(policyBody);
+      const signed = buildSignedRequestHeaders({
+        keypair: actorKeypair,
+        method: "PUT",
+        url,
+        body,
+        audience: "stealth.test",
+      });
+      return new Request(url, {
+        method: "PUT",
+        headers: {
+          "content-type": "application/json",
+          ...signed,
+          ...overrides,
+        },
+        body,
+      });
+    }
 
-    it.fails(
-      "a signature obtained for one route cannot be reused on a different route (future enforcement)",
-      async () => {
-        const body = { allowUnknown: true, minimumPostage: "500", requireVerified: false };
-        // Signature was issued for a different body/route
-        const crossRouteSig = "sig-for-different-route";
-        const crossRouteReq = req(`/api/v1/policies/${owner}`, "PUT", owner, body, {
-          "x-stealth-nonce": "nonce-cross-001",
-          "x-stealth-timestamp": new Date().toISOString(),
-          "x-stealth-signature": crossRouteSig,
-        });
-        const response = await updatePolicyHandler({
-          request: crossRouteReq,
-          params: { owner },
-        });
-        // Once request signing is enforced, a mismatched signature must be rejected
-        expect(response.status).not.toBe(200);
-      },
-    );
+    it("rejects forged actor headers without a signature", async () => {
+      const response = await updatePolicyHandler({
+        request: new Request(`https://stealth.test/api/v1/policies/${signedOwner}`, {
+          method: "PUT",
+          headers: {
+            "content-type": "application/json",
+            [ACTOR_HEADER]: signedOwner,
+          },
+          body: JSON.stringify(policyBody),
+        }),
+        params: { owner: signedOwner },
+      });
+      expect(response.status).toBe(401);
+    });
+
+    it("rejects replayed signatures", async () => {
+      const url = `https://stealth.test/api/v1/policies/${signedOwner}`;
+      const body = JSON.stringify(policyBody);
+      const nonce = randomBytes(32).toString("hex");
+      const signed = buildSignedRequestHeaders({
+        keypair: signer,
+        method: "PUT",
+        url,
+        body,
+        audience: "stealth.test",
+        nonce,
+      });
+
+      const firstResponse = await updatePolicyHandler({
+        request: new Request(url, {
+          method: "PUT",
+          headers: { "content-type": "application/json", ...signed },
+          body,
+        }),
+        params: { owner: signedOwner },
+      });
+      expect(firstResponse.status).toBe(200);
+
+      const secondResponse = await updatePolicyHandler({
+        request: new Request(url, {
+          method: "PUT",
+          headers: { "content-type": "application/json", ...signed },
+          body,
+        }),
+        params: { owner: signedOwner },
+      });
+      expect(secondResponse.status).toBe(409);
+    });
+
+    it("rejects signatures that do not bind the request body", async () => {
+      const url = `https://stealth.test/api/v1/policies/${signedOwner}`;
+      const body = JSON.stringify(policyBody);
+      const signedForOtherBody = buildSignedRequestHeaders({
+        keypair: signer,
+        method: "PUT",
+        url,
+        body: JSON.stringify({ ...policyBody, minimumPostage: "999" }),
+        audience: "stealth.test",
+      });
+
+      const response = await updatePolicyHandler({
+        request: new Request(url, {
+          method: "PUT",
+          headers: { "content-type": "application/json", ...signedForOtherBody },
+          body,
+        }),
+        params: { owner: signedOwner },
+      });
+      expect(response.status).toBe(401);
+    });
+
+    it("rejects a valid signature paired with a different actor address", async () => {
+      const response = await updatePolicyHandler({
+        request: signedPolicyPut(signer, {
+          [ACTOR_HEADER]: otherSigner.publicKey(),
+        }),
+        params: { owner: signedOwner },
+      });
+      expect(response.status).toBe(401);
+    });
+
+    it("rejects expired timestamps", async () => {
+      const url = `https://stealth.test/api/v1/policies/${signedOwner}`;
+      const body = JSON.stringify(policyBody);
+      const signed = buildSignedRequestHeaders({
+        keypair: signer,
+        method: "PUT",
+        url,
+        body,
+        audience: "stealth.test",
+        timestamp: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
+      });
+
+      const response = await updatePolicyHandler({
+        request: new Request(url, {
+          method: "PUT",
+          headers: { "content-type": "application/json", ...signed },
+          body,
+        }),
+        params: { owner: signedOwner },
+      });
+      expect(response.status).toBe(422);
+    });
+
+    it("rejects missing signatures when signed material is partial", async () => {
+      const url = `https://stealth.test/api/v1/policies/${signedOwner}`;
+      const body = JSON.stringify(policyBody);
+      const signed = buildSignedRequestHeaders({
+        keypair: signer,
+        method: "PUT",
+        url,
+        body,
+        audience: "stealth.test",
+      });
+      delete (signed as Record<string, string | undefined>)[SIGNATURE_HEADER];
+
+      const response = await updatePolicyHandler({
+        request: new Request(url, {
+          method: "PUT",
+          headers: { "content-type": "application/json", ...signed },
+          body,
+        }),
+        params: { owner: signedOwner },
+      });
+      expect(response.status).toBe(401);
+    });
+
+    it("accepts a correctly signed mutating request from the owner", async () => {
+      const response = await updatePolicyHandler({
+        request: signedPolicyPut(signer),
+        params: { owner: signedOwner },
+      });
+      expect(response.status).toBe(200);
+    });
+
+    it("rejects a correctly signed request from a non-owner", async () => {
+      const response = await updatePolicyHandler({
+        request: signedPolicyPut(otherSigner),
+        params: { owner: signedOwner },
+      });
+      expect(response.status).toBe(403);
+    });
   });
 
   // -------------------------------------------------------------------------

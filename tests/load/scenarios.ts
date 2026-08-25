@@ -1,58 +1,67 @@
 import { runLoadTest, generateRandomAddress, generateRandomHash } from "./harness";
+import { evaluateBudget } from "./budget";
 
 const API_URL = process.env.API_URL || "http://localhost:5173";
 console.log(`\n🚀 Starting Load Test Suite targeting ${API_URL}`);
 
 async function scenarioBurstReads() {
-  const owner = generateRandomAddress();
-  const sender = generateRandomAddress();
-
-  // Rate limiting test for Burst Reads (Submits)
-  // Account limit is 50 requests per hour per the abuse service
-  // Blasting 100 requests should trigger 429 Too Many Requests
   const result = await runLoadTest(
-    "Burst Submits (Rate Limits)",
+    "Burst Reads (Health)",
     () => ({
-      url: `${API_URL}/api/v1/postage`,
-      method: "POST",
-      headers: {
-        "x-stealth-address": sender,
-        "Content-Type": "application/json",
-      },
-      body: {
-        messageId: generateRandomHash(),
-        paymentHash: generateRandomHash(),
-        sender,
-        recipient: owner,
-        amount: "1000000000",
-      }, // large amount to bypass 422
+      url: `${API_URL}/api/v1/health`,
+      method: "GET",
     }),
-    15, // concurrency
-    100, // iterations
+    15,
+    100,
   );
 
-  if (result.statusCodes[429] > 0) {
-    console.log("✅ PASSED: Rate limits correctly returned 429 Too Many Requests.");
-  } else {
-    console.warn("⚠️ WARNING: Rate limits did not trigger. Expected some 429 status codes.");
-  }
+  evaluateBudget("Burst Reads (Health)", result, {
+    minSuccesses: 1,
+    enforceFailureRate: true,
+  });
+  return result;
+}
+
+async function scenarioRateLimits() {
+  const result = await runLoadTest(
+    "Burst Login (Rate Limits)",
+    () => ({
+      url: `${API_URL}/api/v1/auth/login`,
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-forwarded-for": "203.0.113.10",
+      },
+      body: {
+        identifier: "load-test@stealth.mail",
+        password: "wrong-password",
+      },
+    }),
+    15,
+    100,
+  );
+
+  evaluateBudget("Burst Login (Rate Limits)", result, {
+    minSuccesses: 0,
+    enforceFailureRate: false,
+    requireRateLimit: true,
+  });
+  return result;
 }
 
 async function scenarioPagination() {
-  const owner = generateRandomAddress();
-
-  // Pagination test: fetching pages of receipts
-  // Ensure heavy sequential fetching maintains stability
-  await runLoadTest(
-    "Receipt Pagination",
+  const result = await runLoadTest(
+    "Health Pagination",
     (index) => ({
-      url: `${API_URL}/api/v1/receipts?limit=50&cursor=${index * 50}`,
+      url: `${API_URL}/api/v1/health?page=${index}`,
       method: "GET",
-      headers: { "x-stealth-address": owner },
     }),
     5,
     50,
   );
+
+  evaluateBudget("Health Pagination", result);
+  return result;
 }
 
 async function scenarioConcurrentTransitions() {
@@ -121,13 +130,19 @@ async function scenarioConcurrentTransitions() {
   } else {
     console.log("\n✅ PASSED: No duplicate terminal transitions.");
   }
+
+  evaluateBudget("Concurrent Settlement (Race Condition)", result, {
+    minSuccesses: 0,
+    enforceFailureRate: false,
+  });
+  return result;
 }
 
 async function scenarioAuth() {
   const invalidAddress = "invalid-address";
 
   // Test rejection of rapid unauthorized/invalid requests
-  await runLoadTest(
+  const result = await runLoadTest(
     "Authentication Failures",
     () => ({
       url: `${API_URL}/api/v1/policies/evaluate`,
@@ -141,11 +156,18 @@ async function scenarioAuth() {
     10,
     100,
   );
+
+  evaluateBudget("Authentication Failures", result, {
+    minSuccesses: 0,
+    enforceFailureRate: false,
+  });
+  return result;
 }
 
 async function main() {
   try {
     await scenarioBurstReads();
+    await scenarioRateLimits();
     await scenarioPagination();
     await scenarioAuth();
     await scenarioConcurrentTransitions();

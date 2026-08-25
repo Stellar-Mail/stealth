@@ -35,7 +35,11 @@ export default defineConfig({
     command: "npm run dev",
     // Preserve the normal development demo inbox while making browser tests
     // exercise their mocked bootstrap states through the route guard.
-    env: { VITE_E2E: "true" },
+    env: {
+      VITE_E2E: "true",
+      // Dev-server-only identity transport for browser E2E; production builds ignore this.
+      STEALTH_AUTH_ALLOW_HEADER_ONLY: "1",
+    },
     url: BASE_URL,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

@@ -1,0 +1,15 @@
+{
+  "bun": "1.3.14",
+  "node": "24",
+  "rust": "stable",
+  "playwright": "1.61.1",
+  "optic": "1.0.9",
+  "miniflare": "3.20241218.0",
+  "sorobanSdk": "26",
+  "generators": {
+    "routeTree": "scripts/generate-route-tree.ts",
+    "openapi": "scripts/generate-openapi.ts",
+    "contractBindings": "scripts/generate-contract-bindings.mjs",
+    "wranglerConfig": "scripts/generate-wrangler-config.ts"
+  }
+}

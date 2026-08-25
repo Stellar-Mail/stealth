@@ -1,118 +1,101 @@
-# Security Regression Suite — Workflow 4 (BETA-084 / #1991)
+# BETA-084 — Account Isolation Security Regression Suite
 
-## Purpose
+Issue **#1991** · Workflow 4 — Security, Operations & Beta Launch
 
-This directory contains the end-to-end **security regression suite** for Stealth account isolation.
-It deliberately mounts cross-account and privilege-escalation attacks across every sensitive resource
-class and proves that Alice can never read or mutate Bob's data, and vice versa.
+## Definition of done checklist
 
-This is **Workflow 4** in the BETA release sequence:
+| Requirement                                             | Status | Evidence                                                                           |
+| ------------------------------------------------------- | ------ | ---------------------------------------------------------------------------------- |
+| IDOR matrix across all sensitive resources              | Done   | `tests/unit/api/security/account-isolation.matrix.test.ts`                         |
+| Attachments cross-account denial                        | Done   | `tests/unit/api/security/attachment-routes.security.test.ts`                       |
+| Wallets actor-scoped                                    | Done   | `tests/unit/api/security/wallet-routes.security.test.ts`                           |
+| Session fixation / stale auth / CSRF / canonicalization | Done   | `tests/unit/api/security/session-attacks.test.ts`                                  |
+| Replay / signature binding                              | Done   | `tests/unit/api/security.regression.test.ts` (STEALTH-AUTH-V1 on mutating HTTP)    |
+| Admin privilege escalation                              | Done   | `tests/unit/api/security/admin-routes.security.test.ts` (`requireAdmin` allowlist) |
+| Redacted secrets in all output                          | Done   | `assertNoSecretsLeaked()` in every suite                                           |
+| Control owner per failure                               | Done   | See matrix below + `scripts/security/run-regression.mjs`                           |
+| CI with stable fixtures                                 | Done   | `beta-security` job in `.github/workflows/ci.yml`                                  |
+| Live-beta path evidence                                 | Done   | `tests/e2e/live-beta/security-isolation.test.ts` → `security-run-report.json`      |
+| Operator repeatable command                             | Done   | `bun run security:regression`                                                      |
+| Artifact secret scan                                    | Done   | `scripts/ci/scan-artifacts-for-secrets.mjs` (via regression runner)                |
 
-- Workflow 2 (`live-beta/workflow2.test.ts`) — Protocol, Relay & Testnet Delivery
-- Workflow 3 (`live-beta/workflow3.test.ts`) — Real Web Mail Experience
-- **Workflow 4 (`security/workflow4.security.test.ts`) — Security Regression & Account Isolation ← THIS**
+## Coverage matrix
 
----
+| Resource                   | Unit test                                                              | Notes                       |
+| -------------------------- | ---------------------------------------------------------------------- | --------------------------- |
+| Profiles                   | `account-isolation.matrix.test.ts`                                     | Actor-scoped                |
+| Sessions                   | `session-attacks.test.ts`                                              | Isolation, fixation, logout |
+| Wallets (managed + linked) | `wallet-routes.security.test.ts`, `account-isolation.matrix.test.ts`   | Actor-scoped                |
+| Contacts                   | `account-isolation.matrix.test.ts` + `contact-routes.test.ts`          | Actor-scoped CRUD           |
+| Onboarding drafts          | `account-isolation.matrix.test.ts`                                     | Session-bound               |
+| Compose drafts             | `account-isolation.matrix.test.ts`                                     | Actor-bound                 |
+| Mail                       | `account-isolation.matrix.test.ts` + `mailbox-*.test.ts`               | Recipient-scoped            |
+| Attachments                | `attachment-routes.security.test.ts`                                   | Object-store owner binding  |
+| Requests                   | `account-isolation.matrix.test.ts`                                     | Recipient-scoped decisions  |
+| Policy                     | `account-isolation.matrix.test.ts` + `policy-routes.security.test.ts`  | Owner-bound                 |
+| Postage                    | `account-isolation.matrix.test.ts`                                     | Recipient-bound settle      |
+| Receipts                   | `account-isolation.matrix.test.ts` + `receipt-routes.security.test.ts` | Role-bound                  |
+| Admin                      | `admin-routes.security.test.ts`                                        | `requireAdmin` allowlist    |
 
-## Actors
+## Attack classes
 
-| Actor           | Role                                    | Address Form |
-| --------------- | --------------------------------------- | ------------ |
-| Alice (`GAAA…`) | Legitimate resource owner               | Canonical    |
-| Bob (`GBBB…`)   | Attacker (cross-account access attempt) | Canonical    |
-| Carol (`GCCC…`) | Third party (relay queue isolation)     | Canonical    |
-| Dave (`GDDD…`)  | Privilege escalation / delegation tests | Canonical    |
+| Attack                                 | Test file                          | Status   | Control owner                           |
+| -------------------------------------- | ---------------------------------- | -------- | --------------------------------------- |
+| IDOR / cross-account                   | `account-isolation.matrix.test.ts` | Enforced | `api-authorization`                     |
+| Session fixation                       | `session-attacks.test.ts`          | Enforced | `session-service`                       |
+| Stale authorization                    | `session-attacks.test.ts`          | Enforced | `api-auth`                              |
+| Canonicalization                       | `session-attacks.test.ts`          | Enforced | `api-auth`                              |
+| CSRF (unauthenticated mutating routes) | `session-attacks.test.ts`          | Enforced | `session-service`                       |
+| Forged actor headers                   | `security.regression.test.ts`      | Enforced | `signed-request` (STEALTH-AUTH-V1 HTTP) |
+| Replay / signature binding             | `security.regression.test.ts`      | Enforced | `signed-request` (STEALTH-AUTH-V1 HTTP) |
+| Admin privilege escalation             | `admin-routes.security.test.ts`    | Enforced | `admin-platform`                        |
 
----
-
-## Attack Classes Covered
-
-| #   | Class                                    | Resources                                        |
-| --- | ---------------------------------------- | ------------------------------------------------ |
-| 1   | **IDOR — read isolation**                | drafts, contacts, wallets, requests, sessions    |
-| 2   | **IDOR — mutation isolation**            | policy, postage, receipts, mail, attachments     |
-| 3   | **CSRF — forged origin**                 | policy PUT, postage, receipt publish             |
-| 4   | **Session replay / nonce reuse**         | relay submit, postage settle                     |
-| 5   | **Stale authorization**                  | expired + revoked delegations                    |
-| 6   | **Canonicalization / alt-address forms** | padding, lowercase, trailing whitespace          |
-| 7   | **Admin privilege escalation**           | DLQ, jobs routes                                 |
-| 8   | **Envelope cross-account decryption**    | AES-GCM key wrap — wrong key → OpenEnvelopeError |
-| 9   | **Relay queue IDOR**                     | recipient address isolation                      |
-| 10  | **Attachment key isolation**             | cross-account key derivation separation          |
-
----
-
-## CI Execution
-
-All tests in this directory run in **local-fake mode** by default — no network, no secrets.
-This mode is always executed in CI as part of the standard `bun run test` unit step.
-
-```bash
-# Run all unit tests (includes this suite via vitest)
-bun run test
-
-# Run the security suite in isolation
-bun x vitest run tests/e2e/security/workflow4.security.test.ts
-```
-
-### Live Mode (Operator-Triggered)
-
-To run against the deployed beta stack:
+## Run commands
 
 ```bash
-STEALTH_LIVE_TEST=1 \
-  STEALTH_ALICE_SECRET=<redacted> \
-  STEALTH_BOB_SECRET=<redacted> \
-  STEALTH_RELAY_ENDPOINT=https://your-relay.example.com/api/v1/relay/messages \
-  bun x vitest run tests/e2e/security/workflow4.security.test.ts
+# Full unit security regression
+bun run test:security
+
+# Live-beta local-fake evidence (writes security-run-report.json)
+bun run test:security:live
+
+# Operator full regression + evidence artifact
+bun run security:regression
+
+# E2E cross-account API probes (Playwright + dev server)
+bun run test:e2e tests/e2e/security/
+
+# Scan build artifacts for secrets
+node scripts/ci/scan-artifacts-for-secrets.mjs --dir dist
 ```
 
-> **NEVER commit live credentials to this file or any other file in this repository.**
-> Use environment variables only. The run-report sanitizer strips any field containing
-> `secret`, `private`, `plaintext`, `body`, `password`, or `seed`.
+## CI
 
----
+The `beta-security` job runs:
 
-## Evidence & Redaction Contract
+1. Crypto & managed-wallet misuse tests
+2. `bun run test:security` (account isolation matrix + existing security suites)
+3. `tests/e2e/live-beta/security-isolation.test.ts` (evidence report)
 
-The `run-report.json` file in this directory is written by the live test run.
-It is committed as a baseline evidence artifact for the PR.
+Mutating HTTP API routes require STEALTH-AUTH-V1 signed requests (`authenticateSignedRequest` via `getApiContext`). The non-production header-only escape hatch is opt-in (`STEALTH_AUTH_ALLOW_HEADER_ONLY=1`) and disabled under `STEALTH_AUTH_REQUIRE_SIGNED=1` or production builds. Admin-platform authorization is enforced via `STEALTH_ADMIN_ADDRESSES`.
 
-Fields guaranteed to be **absent** from the report:
+## Evidence artifacts
 
-- Private keys or secrets
-- Plaintext message bodies
-- Passwords, seeds, or tokens
+| File                                           | Purpose                                                           |
+| ---------------------------------------------- | ----------------------------------------------------------------- |
+| `tests/e2e/live-beta/security-run-report.json` | Redacted local-fake run steps (generated by tests)                |
+| `gate-result-beta-084-security.json`           | Operator regression evidence (generated by `security:regression`) |
+| `gate-result-beta-security.json`               | CI gate result from `beta-security` job                           |
 
-Fields **present** in the report:
+## Redaction
 
-- Timestamp and network identifier
-- Message IDs (random 32-byte hex correlation handles)
-- Transaction hashes (on-chain, non-secret)
-- Step pass/fail status and classification
+All tests use `assertNoSecretsLeaked()` from `tests/fixtures/identity.ts`. The regression runner and live-beta report writer redact passwords, Stellar secret keys, and session tokens before writing artifacts.
 
----
+## Dependencies
 
-## Control Owner Classification
+- BETA-025 (#1932) — two-user identity acceptance
+- BETA-050 (#1957) — encrypted testnet round trip
+- BETA-075 (#1982) — two-user web experience
+- BETA-078 (#1985) — production cookies, CORS, CSP
 
-Each test is tagged with the responsible control owner (the team/layer that owns the enforcement):
-
-| Control                       | Owner                                                   |
-| ----------------------------- | ------------------------------------------------------- |
-| API route authorization       | `api/actor.ts` → `authorizeResourceOwner`               |
-| Intent signing                | `api/authorization/intents.ts` → `validateIntent`       |
-| Relay queue isolation         | `services/relay/relay-service.ts` → `getRecipientQueue` |
-| Envelope decryption isolation | `services/crypto/open-envelope.ts` → `openEnvelope`     |
-| Attachment key isolation      | `services/crypto/attachment-stream.ts` → key derivation |
-| Admin route access control    | `routes/api/v1/admin/*` → handler-level check           |
-
----
-
-## Files
-
-| File                         | Purpose                                                     |
-| ---------------------------- | ----------------------------------------------------------- |
-| `workflow4.security.test.ts` | Main Workflow 4 security regression suite                   |
-| `attack-fixtures.ts`         | Stable, deterministic fixture factory (no real credentials) |
-| `run-report.json`            | Redacted evidence from the most recent live run             |
-| `README.md`                  | This file                                                   |
+Signed-request HTTP enforcement is required on mutating routes in production builds. Keep the header-only escape hatch out of release environments.
