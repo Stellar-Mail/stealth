@@ -312,10 +312,28 @@ export function TopbarSearch({
                   style={{
                     position: "fixed",
                     top: dropdownRect ? dropdownRect.bottom + 6 : 60,
-                    left: dropdownRect ? Math.max(8, dropdownRect.left) : 12,
+                    left: dropdownRect
+                      ? Math.max(
+                          8,
+                          Math.min(
+                            dropdownRect.left,
+                            typeof window !== "undefined"
+                              ? window.innerWidth -
+                                  Math.min(
+                                    window.innerWidth - 16,
+                                    Math.max(280, dropdownRect.width + 80),
+                                  ) -
+                                  8
+                              : 8,
+                          ),
+                        )
+                      : 8,
                     width: dropdownRect
-                      ? Math.min(window.innerWidth - 16, Math.max(320, dropdownRect.width + 80))
-                      : 420,
+                      ? Math.min(
+                          typeof window !== "undefined" ? window.innerWidth - 16 : 420,
+                          Math.max(280, dropdownRect.width + 80),
+                        )
+                      : Math.min(typeof window !== "undefined" ? window.innerWidth - 16 : 420, 420),
                     maxHeight: "calc(100vh - 80px)",
                     zIndex: 110,
                   }}

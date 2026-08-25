@@ -360,7 +360,7 @@ export function EmailList({
               role="dialog"
               aria-modal="true"
               aria-label="Move to folder"
-              className="w-56 rounded-xl border border-white/12 bg-[oklch(0.15_0.005_270)] shadow-2xl overflow-hidden"
+              className="w-[min(224px,calc(100vw-2rem))] rounded-xl border border-white/12 bg-[oklch(0.15_0.005_270)] shadow-2xl overflow-hidden"
             >
               <div className="flex items-center gap-2 px-3 py-2.5 border-b border-white/10">
                 <FolderInput className="h-3.5 w-3.5 text-muted-foreground" />

@@ -577,6 +577,7 @@ function IconBtn({
   active,
   hint,
   buttonRef,
+  className,
   ...rest
 }: {
   children: React.ReactNode;
@@ -585,6 +586,7 @@ function IconBtn({
   active?: boolean;
   hint?: string;
   buttonRef?: React.Ref<HTMLButtonElement>;
+  className?: string;
   "aria-expanded"?: boolean;
   "aria-haspopup"?: "dialog" | "menu" | undefined;
 }) {
@@ -597,8 +599,9 @@ function IconBtn({
       {...rest}
       className={cn(
         "glow-ring rounded-[6px] p-2 text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground",
-        "inline-flex items-center gap-1.5",
+        "inline-flex items-center justify-center gap-1.5 min-h-[36px] min-w-[36px]",
         active && "bg-white/[0.06] text-foreground",
+        className,
       )}
     >
       {children}

@@ -38,9 +38,14 @@ export function NotificationsPanel({
 
   if (typeof document === "undefined") return null;
 
-  const panelWidth = 360;
+  const panelWidth = typeof window !== "undefined" ? Math.min(360, window.innerWidth - 16) : 360;
   const top = anchorRect ? anchorRect.bottom + 8 : 64;
-  const right = anchorRect ? Math.max(8, window.innerWidth - anchorRect.right) : 12;
+  const right = anchorRect
+    ? Math.max(
+        8,
+        Math.min(window.innerWidth - panelWidth - 8, window.innerWidth - anchorRect.right),
+      )
+    : 8;
 
   return createPortal(
     <AnimatePresence>
@@ -67,6 +72,7 @@ export function NotificationsPanel({
               top,
               right,
               width: panelWidth,
+              maxWidth: "calc(100vw - 16px)",
               zIndex: 110,
             }}
             className="glass-modal overflow-hidden rounded-2xl"

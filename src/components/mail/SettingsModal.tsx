@@ -161,6 +161,7 @@ export function SettingsModal({
           />
           <motion.div
             ref={panelRef}
+            id="settings-dialog"
             role="dialog"
             aria-modal="true"
             aria-labelledby="settings-title"
@@ -208,7 +209,6 @@ export function SettingsModal({
                   {tabs.map((tab) => {
                     const Icon = tab.icon;
                     const isActive = activeTab === tab.id;
-                    const hasUnread = false; // Stubbed to prevent TS error, since it's not present in this scope.
                     return (
                       <button
                         key={tab.id}
