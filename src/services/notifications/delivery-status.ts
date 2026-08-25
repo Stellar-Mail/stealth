@@ -92,6 +92,11 @@ export function isTerminalDeliveryState(state: DeliveryState): boolean {
   return TERMINAL_STATES.has(state);
 }
 
+/** States that may still need a send callback for backoff retries. */
+export function shouldRetainSendCallback(state: DeliveryState): boolean {
+  return state === "queued" || state === "deferred" || state === "soft_bounce";
+}
+
 export function canTransitionDeliveryState(from: DeliveryState, to: DeliveryState): boolean {
   if (from === to) return true;
   return ALLOWED_TRANSITIONS[from]?.has(to) ?? false;

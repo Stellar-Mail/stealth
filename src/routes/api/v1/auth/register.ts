@@ -36,6 +36,7 @@ export const Route = createFileRoute("/api/v1/auth/register")({
             fingerprint,
             {
               appUrl: delivery.appUrl,
+              verificationPolicy: delivery.notifications.verification,
               deliver: (message) => adapter.deliverVerificationEmail(message),
             },
           );

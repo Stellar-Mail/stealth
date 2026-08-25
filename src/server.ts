@@ -4,6 +4,7 @@ import { handleApiRequest } from "./server/api/response";
 import { getApiContext, getObjectStore } from "./server/api/context";
 import { enforceRetention } from "./server/api/retention-service";
 import { applySecurityHeaders } from "./server/security/headers";
+import { processVerificationMailQueue } from "./services/notifications/worker";
 
 export { StealthCoordinator } from "./server/api/stealth-coordinator";
 
@@ -25,5 +26,7 @@ export default {
       await getObjectStore(),
       new Date(controller.scheduledTime),
     );
+    // BETA-091: drain deferred verification-mail retries (backoff / bounce path).
+    await processVerificationMailQueue();
   },
 };

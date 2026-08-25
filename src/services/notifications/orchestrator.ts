@@ -36,8 +36,9 @@ function buildBaseAdapter(
 /**
  * BETA-091: Orchestrates adapter delivery with queue, retry, and redacted status.
  *
- * The plaintext token exists only inside `message` for the duration of the
- * SMTP DATA / sink capture call. Queue records store messageId + hashes only.
+ * The plaintext token exists only inside `message` for the duration of active
+ * delivery/retry attempts. On terminal outcomes the queue purges the send
+ * callback so secrets do not linger in the process-wide map.
  */
 
 export interface OrchestratedDeliveryReceipt extends DeliveryReceipt {
@@ -61,32 +62,36 @@ export class OrchestratedNotificationAdapter implements NotificationAdapter {
   ): Promise<OrchestratedDeliveryReceipt> {
     const purpose = message.purpose === "password_reset" ? "password_reset" : "email_verification";
 
+    // Local send closure — retained by the queue only while the message remains
+    // retryable. Terminal success/DLQ purges it (see VerificationMailQueue).
+    const send = async () => {
+      try {
+        const receipt = await this.inner.deliverVerificationEmail(message);
+        return {
+          accepted: receipt.accepted,
+          providerRef: receipt.providerRef,
+        };
+      } catch (error) {
+        if (error instanceof SmtpError) {
+          return {
+            accepted: false,
+            smtpCode: error.replyCode,
+            error,
+          };
+        }
+        return { accepted: false, error };
+      }
+    };
+
     const record = this.queue.enqueue(
       {
         purpose,
         recipientEmail: message.to,
       },
-      async () => {
-        try {
-          const receipt = await this.inner.deliverVerificationEmail(message);
-          return {
-            accepted: receipt.accepted,
-            providerRef: receipt.providerRef,
-          };
-        } catch (error) {
-          if (error instanceof SmtpError) {
-            return {
-              accepted: false,
-              smtpCode: error.replyCode,
-              error,
-            };
-          }
-          return { accepted: false, error };
-        }
-      },
+      send,
     );
 
-    const processed = await this.queue.attempt(record.messageId);
+    const processed = await this.queue.attempt(record.messageId, send);
     const accepted =
       processed.state === "sent" ||
       processed.state === "accepted" ||

@@ -13,6 +13,7 @@ export * from "./redaction";
 export * from "./queue";
 export * from "./health";
 export * from "./orchestrator";
+export * from "./worker";
 
 /**
  * BETA-005 / BETA-091: Creates the notification adapter selected by runtime config.

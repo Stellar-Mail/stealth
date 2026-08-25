@@ -10,7 +10,11 @@ import { prepareManagedWalletSecret } from "@/services/stellar/account-provision
 import { createFundingAdapter } from "@/services/stellar/funding-adapter";
 import { checkIpLimit } from "../abuse-service";
 import type { DeliveryReceipt, VerificationEmailMessage } from "@/services/notifications";
-import { buildVerificationUrl, issueEmailVerificationToken } from "../verification-service";
+import {
+  buildVerificationUrl,
+  issueEmailVerificationToken,
+  type VerificationPolicy,
+} from "../verification-service";
 import { recordAuditEvent } from "../audit";
 
 const SIGNUP_RATE_LIMIT_WINDOW_SECONDS = 60 * 60;
@@ -26,6 +30,7 @@ export async function registerWithPassword(
   options?: {
     deliver?: RegistrationDelivery;
     appUrl?: string;
+    verificationPolicy?: VerificationPolicy;
   },
 ): Promise<RegistrationResponse> {
   const ipCheck = await checkIpLimit(
@@ -109,7 +114,11 @@ export async function registerWithPassword(
   // the account remains pending_verification and the user can resend.
   if (options?.deliver && options.appUrl) {
     try {
-      const issued = await issueEmailVerificationToken(apiContext, userId);
+      const issued = await issueEmailVerificationToken(
+        apiContext,
+        userId,
+        options.verificationPolicy,
+      );
       const verificationUrl = buildVerificationUrl(
         options.appUrl,
         user.email,

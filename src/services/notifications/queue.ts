@@ -6,15 +6,17 @@ import {
   type DeliveryReasonClass,
   type DeliveryState,
   isTerminalDeliveryState,
+  shouldRetainSendCallback,
 } from "./delivery-status";
 import { recipientDomain, redactNotificationText } from "./redaction";
 
 /**
  * BETA-091: In-process verification-mail queue with exponential backoff and DLQ.
  *
- * Payloads never store plaintext tokens or full verification URLs. Retries
- * re-invoke a caller-supplied send function that re-issues or reuses delivery
- * at the application layer. Idempotency is keyed by `messageId`.
+ * Payloads never store plaintext tokens or full verification URLs. Send callbacks
+ * are retained only while a message is still retryable; terminal outcomes purge
+ * them immediately so secrets cannot linger for the isolate lifetime.
+ * Idempotency is keyed by `messageId`.
  */
 
 export interface DeliveryRecord {
@@ -87,6 +89,7 @@ function calculateBackoff(attempt: number, baseMs: number, maxMs: number): numbe
 export class VerificationMailQueue {
   private readonly records = new Map<string, DeliveryRecord>();
   private readonly deadLetters: DeliveryRecord[] = [];
+  /** Retained only while the message is still retryable — never after terminal. */
   private readonly sendFns = new Map<string, QueuedSendFn>();
   private readonly baseBackoffMs: number;
   private readonly maxBackoffMs: number;
@@ -103,12 +106,14 @@ export class VerificationMailQueue {
   }
 
   /** Idempotent enqueue: same messageId returns the existing record. */
-  enqueue(input: EnqueueDeliveryInput, send: QueuedSendFn): DeliveryRecord {
+  enqueue(input: EnqueueDeliveryInput, send?: QueuedSendFn): DeliveryRecord {
     const messageId = input.messageId ?? `vm_${randomUUID().replace(/-/g, "")}`;
     const existing = this.records.get(messageId);
     if (existing) {
-      this.sendFns.set(messageId, send);
-      return existing;
+      if (send && shouldRetainSendCallback(existing.state)) {
+        this.sendFns.set(messageId, send);
+      }
+      return { ...existing };
     }
 
     const createdAt = this.now().toISOString();
@@ -126,8 +131,13 @@ export class VerificationMailQueue {
       updatedAt: createdAt,
     };
     this.records.set(messageId, record);
-    this.sendFns.set(messageId, send);
+    if (send) this.sendFns.set(messageId, send);
     return { ...record };
+  }
+
+  /** True when a retry callback is still held (never for terminal messages). */
+  hasRetryCallback(messageId: string): boolean {
+    return this.sendFns.has(messageId);
   }
 
   get(messageId: string): DeliveryRecord | undefined {
@@ -164,7 +174,8 @@ export class VerificationMailQueue {
 
   /**
    * Process due jobs once. Retries are idempotent on messageId: a second claim
-   * while already terminal is a no-op.
+   * while already terminal is a no-op. Entries without a retry callback are
+   * dead-lettered as poison (plaintext was purged; operator/user must resend).
    */
   async processDue(limit = 10): Promise<DeliveryRecord[]> {
     const nowMs = this.now().getTime();
@@ -182,18 +193,22 @@ export class VerificationMailQueue {
     return processed;
   }
 
-  async attempt(messageId: string): Promise<DeliveryRecord> {
+  async attempt(messageId: string, sendOverride?: QueuedSendFn): Promise<DeliveryRecord> {
     const record = this.records.get(messageId);
     if (!record) {
       throw new Error(`Unknown verification-mail messageId`);
     }
     if (isTerminalDeliveryState(record.state) && record.state !== "failed") {
+      this.purgeSendCallback(messageId);
       return { ...record };
     }
 
-    const send = this.sendFns.get(messageId);
+    const send = sendOverride ?? this.sendFns.get(messageId);
+    if (sendOverride && shouldRetainSendCallback(record.state)) {
+      this.sendFns.set(messageId, sendOverride);
+    }
     if (!send) {
-      return this.transition(messageId, "failed", "poison_payload", "missing_send_fn");
+      return this.deadLetter(messageId, "failed", "poison_payload", "missing_send_fn");
     }
 
     record.attempts += 1;
@@ -260,6 +275,9 @@ export class VerificationMailQueue {
     if (nextState === "hard_bounce" || nextState === "rejected" || nextState === "complaint") {
       return this.deadLetter(event.messageId, nextState, reasonClass);
     }
+    if (!shouldRetainSendCallback(nextState)) {
+      this.purgeSendCallback(event.messageId);
+    }
     return updated;
   }
 
@@ -269,6 +287,10 @@ export class VerificationMailQueue {
     this.sendFns.clear();
     this.rateWindowCount = 0;
     this.rateWindowStartMs = 0;
+  }
+
+  private purgeSendCallback(messageId: string): void {
+    this.sendFns.delete(messageId);
   }
 
   private handleFailure(record: DeliveryRecord, error: unknown): DeliveryRecord {
@@ -302,6 +324,7 @@ export class VerificationMailQueue {
     record.lastErrorClass = lastErrorClass?.slice(0, 120);
     record.nextAttemptAt = new Date(this.now().getTime() + delay).toISOString();
     record.updatedAt = this.now().toISOString();
+    // Retryable only: send callback may remain until success, DLQ, or poison purge.
     return { ...record };
   }
 
@@ -317,6 +340,7 @@ export class VerificationMailQueue {
     record.lastErrorClass = lastErrorClass?.slice(0, 120);
     record.deadLetteredAt = this.now().toISOString();
     record.updatedAt = record.deadLetteredAt;
+    this.purgeSendCallback(messageId);
     this.deadLetters.push({ ...record });
     return { ...record };
   }
@@ -337,6 +361,9 @@ export class VerificationMailQueue {
     if (lastErrorClass) record.lastErrorClass = lastErrorClass.slice(0, 120);
     if (providerEventId) record.providerEventId = providerEventId;
     record.updatedAt = this.now().toISOString();
+    if (!shouldRetainSendCallback(state)) {
+      this.purgeSendCallback(messageId);
+    }
     return { ...record };
   }
 

@@ -91,9 +91,10 @@ describe("BETA-091: verification mail queue", () => {
     expect(JSON.stringify(first)).not.toContain("alice");
     expect(secondEnqueue.messageId).toBe(messageId);
     expect(calls).toBe(1);
+    expect(queue.hasRetryCallback(messageId)).toBe(false);
   });
 
-  it("retries soft failures then dead-letters hard bounces", async () => {
+  it("retries soft failures via processDue then dead-letters hard bounces", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-08-24T00:00:00.000Z"));
     const queue = new VerificationMailQueue({
@@ -119,11 +120,16 @@ describe("BETA-091: verification mail queue", () => {
 
     const deferred = await queue.attempt("vm_bounce_1");
     expect(deferred.state).toBe("deferred");
+    expect(queue.hasRetryCallback("vm_bounce_1")).toBe(true);
 
     vi.advanceTimersByTime(50);
-    const terminal = await queue.attempt("vm_bounce_1");
-    expect(terminal.state).toBe("hard_bounce");
+    const { processVerificationMailQueue } =
+      await import("../../../src/services/notifications/worker");
+    const drained = await processVerificationMailQueue({ queue, batchSize: 5 });
+    expect(drained.processed).toBe(1);
+    expect(drained.records[0]?.state).toBe("hard_bounce");
     expect(queue.deadLetterList().some((row) => row.messageId === "vm_bounce_1")).toBe(true);
+    expect(queue.hasRetryCallback("vm_bounce_1")).toBe(false);
   });
 
   it("applies provider bounce events without retaining raw token text", async () => {
@@ -139,6 +145,7 @@ describe("BETA-091: verification mail queue", () => {
       async () => ({ accepted: true }),
     );
     await queue.attempt("vm_evt_1");
+    expect(queue.hasRetryCallback("vm_evt_1")).toBe(false);
 
     const updated = queue.applyProviderEvent({
       messageId: "vm_evt_1",
@@ -148,6 +155,7 @@ describe("BETA-091: verification mail queue", () => {
 
     expect(updated?.state).toBe("hard_bounce");
     expect(JSON.stringify(updated)).not.toContain("tok_bounce_fixture");
+    expect(queue.hasRetryCallback("vm_evt_1")).toBe(false);
   });
 });
 

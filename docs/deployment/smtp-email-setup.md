@@ -71,6 +71,23 @@ Runtime behavior (see `src/services/notifications/`):
 
 Provider DSN / bounce webhooks should call into `VerificationMailQueue.applyProviderEvent` with the outbound `messageId`.
 
+Authenticated ingestion endpoint (operator secret):
+
+```http
+POST /api/v1/notifications/delivery-events
+Authorization: Bearer <STEALTH_OPERATOR_SECRET>
+Content-Type: application/json
+
+{
+  "messageId": "vm_…",
+  "eventType": "hard_bounce",
+  "providerEventId": "dsn-1",
+  "reason": "550 mailbox unavailable"
+}
+```
+
+Deferred SMTP retries are drained by the Workers `scheduled` handler via `processVerificationMailQueue` (not only on the next request). Send callbacks that close over plaintext verification URLs are purged as soon as a message reaches a terminal state (sent, delivered, hard bounce, DLQ, etc.).
+
 ## Development capture and beta invite fallback
 
 - Non-production profiles may use `STEALTH_NOTIFICATION_TRANSPORT=sink` to capture messages in memory (hard-refused in production).
