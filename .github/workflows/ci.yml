@@ -98,6 +98,9 @@ jobs:
       - name: Install dependencies (frozen lockfile)
         run: bun install --frozen-lockfile
 
+      - name: Verify pinned version consistency
+        run: node scripts/ci/verify-pinned-versions.mjs --write-gate
+
       - name: Format Check
         run: bun run format:check
 
@@ -178,6 +181,7 @@ jobs:
           path: |
             gate-result-client-checks.json
             gate-result-build-reproducibility.json
+            gate-result-pinned-versions.json
           retention-days: 7
           if-no-files-found: ignore
 

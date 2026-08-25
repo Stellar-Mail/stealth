@@ -16,6 +16,7 @@ Main is not releasable while the summary verdict is `fail` or `blocked`.
 | ----------------------- | ---------------------------- | ---------------------- | ------------------ | ------------------------------------------------------------------------- |
 | `client-checks`         | Client Checks                | `platform/client`      | BETA-088           | `bun install --frozen-lockfile`, lint, tsc, build                         |
 | `build-reproducibility` | Client Checks                | `platform/client`      | BETA-088           | `npm run ci:verify-drift`                                                 |
+| `pinned-versions`       | Client Checks                | `platform/release`     | BETA-088           | `npm run ci:verify-versions`                                              |
 | `contract-checks`       | Contract Checks              | `platform/contracts`   | BETA-086           | `cargo test --workspace`, release wasm build                              |
 | `contract-registry`     | Contract Registry            | `platform/contracts`   | BETA-086           | `npm run ci:verify-wasm-hashes`                                           |
 | `beta-migrations`       | Migration Gates              | `platform/storage`     | BETA-082           | `npm run migrations:integrity-check`, forward/rollback                    |

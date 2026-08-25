@@ -44,6 +44,7 @@
     "backup:list": "node scripts/backup/backup.mjs list",
     "backup:rehearsal": "node scripts/backup/backup.mjs rehearsal",
     "ci:verify-drift": "node scripts/ci/verify-drift.mjs",
+    "ci:verify-versions": "node scripts/ci/verify-pinned-versions.mjs",
     "ci:verify-wasm-hashes": "node scripts/ci/verify-wasm-hashes.mjs",
     "ci:collect-hashes": "node scripts/ci/collect-artifact-hashes.mjs",
     "ci:scan-artifacts": "node scripts/ci/scan-artifacts-for-secrets.mjs",
