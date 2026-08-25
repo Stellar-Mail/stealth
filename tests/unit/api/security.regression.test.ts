@@ -1,7 +1,36 @@
+/**
+ * API Security Regressions — Expanded Suite (BETA-084 / #1991)
+ *
+ * This file replaces and greatly expands the original security.regression.test.ts
+ * (which covered only policy IDOR in 102 lines). It now covers every sensitive
+ * resource class required by BETA-084:
+ *
+ *   - Policy IDOR (read + mutation)
+ *   - Wallet IDOR (read + mutation of external wallets)
+ *   - Contact IDOR (read isolation)
+ *   - Draft IDOR (read + mutation)
+ *   - Sender Request IDOR (approve/deny decision isolation)
+ *   - Receipt IDOR (delivery + read publisher roles)
+ *   - Admin route privilege escalation (DLQ, jobs)
+ *   - Canonicalization (uppercase / padding bypass attempts)
+ *   - Stale / expired delegation (still → 403)
+ *   - STEALTH-AUTH-V1 signed-request enforcement (forged actor, replay, binding)
+ *
+ * All tests use MemoryApiRepository and in-process route handlers.
+ * No network, no credentials.
+ *
+ * Control owners:
+ *   - Route-level enforcement → src/server/api/actor.ts: requireActorMatches, authorizeResourceOwner
+ *   - Intent-level enforcement → src/server/api/authorization/intents.ts: validateIntent
+ *   - Canonicalization utility → src/server/api/authorization/canonicalization.ts
+ *   - Signed-request HTTP auth → src/server/api/auth/signed-request-verify.ts
+ */
+
 import { randomBytes } from "node:crypto";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { Keypair } from "@stellar/stellar-sdk";
 
+// Route handlers
 import { Route as PolicyRoute } from "../../../src/routes/api/v1/policies/$owner";
 import { Route as SenderRuleRoute } from "../../../src/routes/api/v1/policies/$owner/senders/$sender";
 import { Route as DraftsIndexRoute } from "../../../src/routes/api/v1/drafts/index";
@@ -20,12 +49,35 @@ import { Route as PostageRoute } from "../../../src/routes/api/v1/postage/index"
 import { ACTOR_HEADER, DELEGATION_HEADER } from "../../../src/server/api/actor";
 import type { MailboxDelegation } from "../../../src/server/api/auth/delegation";
 import { getApiContext } from "../../../src/server/api/context";
-import { MemoryApiRepository } from "../../../src/server/api/memory-repository";
+import type { MemoryApiRepository } from "../../../src/server/api/memory-repository";
+import { createDeliveryReceipt } from "../../../src/server/api/receipt-service";
+import { createSenderRequest } from "../../../src/server/api/sender-request-service";
+import { getMailboxPolicy } from "../../../src/server/api/policy-service";
+import {
+  normalizeActorAddress,
+  isSameCanonicalAddress,
+} from "../../../src/server/api/authorization/canonicalization";
 import {
   buildSignedRequestHeaders,
   resetSignedRequestNonceStore,
   SIGNATURE_HEADER,
 } from "../../../src/server/api/auth/signed-request-verify";
+
+// ---------------------------------------------------------------------------
+// Actors
+// ---------------------------------------------------------------------------
+
+const owner = `G${"A".repeat(55)}`; // Alice — legitimate resource owner
+const attacker = `G${"B".repeat(55)}`; // Bob — cross-account attacker
+const delegate = `G${"D".repeat(55)}`; // Dave — used for delegation tests
+const externalWallet = `G${"E".repeat(55)}`;
+const contactAddress = `G${"F".repeat(55)}`;
+const messageId = "a".repeat(64);
+const requestId = "00000000-0000-4000-8000-000000000001";
+
+// ---------------------------------------------------------------------------
+// Route handlers (extracted once)
+// ---------------------------------------------------------------------------
 
 const updatePolicyHandler = (PolicyRoute.options as any).server?.handlers?.PUT;
 const getSenderRuleHandler = (SenderRuleRoute.options as any).server?.handlers?.GET;
@@ -50,37 +102,45 @@ const postPostageHandler = (PostageRoute.options as any).server?.handlers?.POST;
 // Request builder helpers
 // ---------------------------------------------------------------------------
 
-const ownerKeypair = Keypair.random();
-const attackerKeypair = Keypair.random();
-const owner = ownerKeypair.publicKey();
-const attacker = attackerKeypair.publicKey();
+function req(
+  path: string,
+  method: string,
+  actor?: string,
+  body?: unknown,
+  extraHeaders: Record<string, string> = {},
+): Request {
+  const headers: Record<string, string> = { "content-type": "application/json", ...extraHeaders };
+  if (actor !== undefined) headers[ACTOR_HEADER] = actor;
+  const init: RequestInit = { method, headers };
+  if (body !== undefined) init.body = JSON.stringify(body);
+  return new Request(`https://stealth.test${path}`, init);
+}
 
-const POLICY_BODY = {
-  allowUnknown: true,
-  minimumPostage: "500",
-  requireVerified: false,
-};
-
-function updatePolicyRequest(actorKeypair: Keypair, overrides: Record<string, string> = {}) {
-  const url = `https://stealth.test/api/v1/policies/${owner}`;
-  const body = JSON.stringify(POLICY_BODY);
-  const signed = buildSignedRequestHeaders({
-    keypair: actorKeypair,
-    method: "PUT",
-    url,
-    body,
-    audience: "stealth.test",
-  });
-
-  return new Request(url, {
-    method: "PUT",
-    headers: {
-      "content-type": "application/json",
-      ...signed,
-      ...overrides,
-    },
-    body,
-  });
+function reqWithDelegation(
+  path: string,
+  method: string,
+  actor: string,
+  delegation: Partial<MailboxDelegation>,
+  body?: unknown,
+): Request {
+  const fullDelegation: MailboxDelegation = {
+    grantor: owner,
+    delegate: actor,
+    allowedActions: ["policy:update"],
+    resourceScope: [`mailbox:${owner}:policy`],
+    issuedAt: "2026-01-01T00:00:00.000Z",
+    expiresAt: "2026-01-01T00:00:00.000Z", // expired by default for stale tests
+    revoked: false,
+    ...delegation,
+  };
+  const headers: Record<string, string> = {
+    "content-type": "application/json",
+    [ACTOR_HEADER]: actor,
+    [DELEGATION_HEADER]: JSON.stringify(fullDelegation),
+  };
+  const init: RequestInit = { method, headers };
+  if (body !== undefined) init.body = JSON.stringify(body);
+  return new Request(`https://stealth.test${path}`, init);
 }
 
 // ===========================================================================
@@ -89,63 +149,564 @@ function updatePolicyRequest(actorKeypair: Keypair, overrides: Record<string, st
 
 describe("API Security Regressions — BETA-084 (#1991)", () => {
   let repo: MemoryApiRepository;
-  const previousRequireSigned = process.env.STEALTH_AUTH_REQUIRE_SIGNED;
-
-  beforeAll(() => {
-    process.env.STEALTH_AUTH_REQUIRE_SIGNED = "1";
-  });
-
-  afterAll(() => {
-    if (previousRequireSigned === undefined) {
-      delete process.env.STEALTH_AUTH_REQUIRE_SIGNED;
-    } else {
-      process.env.STEALTH_AUTH_REQUIRE_SIGNED = previousRequireSigned;
-    }
-  });
 
   beforeEach(async () => {
     repo = (await getApiContext()).repository as MemoryApiRepository;
     repo.reset();
-    resetSignedRequestNonceStore();
   });
 
-  describe("Authentication & Authorization Bypasses", () => {
-    it("forged actor headers fail", async () => {
+  // -------------------------------------------------------------------------
+  // 1. Policy IDOR — mutation isolation
+  // -------------------------------------------------------------------------
+
+  describe("1. Policy IDOR — mutation isolation (control: actor.ts → authorizeResourceOwner)", () => {
+    it("owner can update their own policy (baseline: authorized path)", async () => {
       const response = await updatePolicyHandler({
-        request: new Request(`https://stealth.test/api/v1/policies/${owner}`, {
-          method: "PUT",
-          headers: {
-            "content-type": "application/json",
-            [ACTOR_HEADER]: owner,
-          },
-          body: JSON.stringify(POLICY_BODY),
+        request: req(`/api/v1/policies/${owner}`, "PUT", owner, {
+          allowUnknown: true,
+          minimumPostage: "500",
+          requireVerified: false,
+        }),
+        params: { owner },
+      });
+      expect(response.status).toBe(200);
+    });
+
+    it("attacker cannot update owner's policy — returns 403 without mutating state", async () => {
+      const response = await updatePolicyHandler({
+        request: req(`/api/v1/policies/${owner}`, "PUT", attacker, {
+          allowUnknown: true,
+          minimumPostage: "999",
+          requireVerified: false,
+        }),
+        params: { owner },
+      });
+      expect(response.status).toBe(403);
+      await expect(response.json()).resolves.toMatchObject({ error: { code: "forbidden" } });
+
+      // State unchanged — policy is still default
+      await expect(getMailboxPolicy(repo, owner)).resolves.toMatchObject({ source: "default" });
+    });
+
+    it("anonymous actor (missing header) cannot update policy — returns 401", async () => {
+      const response = await updatePolicyHandler({
+        request: req(`/api/v1/policies/${owner}`, "PUT", undefined, {
+          allowUnknown: true,
+          minimumPostage: "500",
+          requireVerified: false,
+        }),
+        params: { owner },
+      });
+      expect(response.status).toBe(401);
+      await expect(response.json()).resolves.toMatchObject({ error: { code: "unauthorized" } });
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // 2. Sender Rule IDOR — read isolation
+  // -------------------------------------------------------------------------
+
+  describe("2. Sender Rule IDOR — read isolation (control: actor.ts → requireActorMatches)", () => {
+    beforeEach(async () => {
+      await repo.setSenderRule(owner, attacker, "block");
+    });
+
+    it("attacker cannot read owner's sender rules — returns 403", async () => {
+      const response = await getSenderRuleHandler({
+        request: req(`/api/v1/policies/${owner}/senders/${attacker}`, "GET", attacker),
+        params: { owner, sender: attacker },
+      });
+      expect(response.status).toBe(403);
+    });
+
+    it("attacker cannot modify owner's sender rules — returns 403 without mutating state", async () => {
+      const response = await updateSenderRuleHandler({
+        request: req(`/api/v1/policies/${owner}/senders/${attacker}`, "PUT", attacker, {
+          rule: "allow",
+        }),
+        params: { owner, sender: attacker },
+      });
+      expect(response.status).toBe(403);
+      // State unchanged — attacker is still blocked
+      await expect(repo.getSenderRule(owner, attacker)).resolves.toBe("block");
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // 3. Draft IDOR — read + mutation isolation
+  // -------------------------------------------------------------------------
+
+  describe("3. Draft IDOR — read + mutation isolation (control: actor.ts → requireActor)", () => {
+    let ownerDraftId: string;
+
+    beforeEach(async () => {
+      // Owner creates a draft
+      const createRes = await createDraftHandler({
+        request: req("/api/v1/drafts", "POST", owner, {
+          to: ["bob@stealth.xyz"],
+          subject: "Owner's confidential draft",
+          body: "Private draft content",
+        }),
+      });
+      expect(createRes.status).toBe(201);
+      const created = await createRes.json();
+      ownerDraftId = created.data.draftId;
+    });
+
+    it("attacker cannot read owner's draft — returns 404 (isolated to owner)", async () => {
+      const response = await getDraftHandler({
+        request: req(`/api/v1/drafts/${ownerDraftId}`, "GET", attacker),
+        params: { draftId: ownerDraftId },
+      });
+      expect(response.status).toBe(404);
+    });
+
+    it("attacker cannot update owner's draft — returns 404 without mutating state", async () => {
+      const response = await putDraftHandler({
+        request: req(`/api/v1/drafts/${ownerDraftId}`, "PUT", attacker, {
+          subject: "HACKED",
+          expectedVersion: 1,
+        }),
+        params: { draftId: ownerDraftId },
+      });
+      expect(response.status).toBe(404);
+
+      // Subject is unchanged — verify by owner reading it
+      const ownerGet = await getDraftHandler({
+        request: req(`/api/v1/drafts/${ownerDraftId}`, "GET", owner),
+        params: { draftId: ownerDraftId },
+      });
+      expect(ownerGet.status).toBe(200);
+      const body = await ownerGet.json();
+      expect(body.data.subject).toBe("Owner's confidential draft");
+    });
+
+    it("attacker cannot delete owner's draft — returns 404", async () => {
+      const response = await deleteDraftHandler({
+        request: req(`/api/v1/drafts/${ownerDraftId}`, "DELETE", attacker),
+        params: { draftId: ownerDraftId },
+      });
+      expect(response.status).toBe(404);
+
+      // Draft still exists
+      const ownerGet = await getDraftHandler({
+        request: req(`/api/v1/drafts/${ownerDraftId}`, "GET", owner),
+        params: { draftId: ownerDraftId },
+      });
+      expect(ownerGet.status).toBe(200);
+    });
+
+    it("anonymous actor cannot list drafts — returns 401", async () => {
+      const response = await listDraftsHandler({
+        request: req("/api/v1/drafts", "GET", undefined),
+      });
+      expect(response.status).toBe(401);
+    });
+
+    it("attacker's draft list is empty — cannot enumerate owner's drafts", async () => {
+      const response = await listDraftsHandler({
+        request: req("/api/v1/drafts", "GET", attacker),
+      });
+      expect(response.status).toBe(200);
+      const body = await response.json();
+      // Attacker has no drafts of their own — cannot see owner's
+      expect(body.data.items).toHaveLength(0);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // 4. Contact IDOR — read isolation
+  // -------------------------------------------------------------------------
+
+  describe("4. Contact IDOR — read isolation (control: actor.ts → requireActor)", () => {
+    let ownerContactId: string;
+
+    beforeEach(async () => {
+      const createRes = await createContactHandler({
+        request: req("/api/v1/contacts", "POST", owner, {
+          name: "Alice's secret contact",
+          address: contactAddress,
+        }),
+      });
+      expect(createRes.status).toBe(201);
+      const created = await createRes.json();
+      ownerContactId = created.data.contactId;
+    });
+
+    it("attacker cannot read owner's contact by ID — returns 404", async () => {
+      const response = await getContactHandler({
+        request: req(`/api/v1/contacts/${ownerContactId}`, "GET", attacker),
+        params: { contactId: ownerContactId },
+      });
+      expect(response.status).toBe(404);
+    });
+
+    it("attacker's contact list is empty — cannot enumerate owner's contacts", async () => {
+      const response = await listContactsHandler({
+        request: req("/api/v1/contacts", "GET", attacker),
+      });
+      expect(response.status).toBe(200);
+      const body = await response.json();
+      expect(body.data.items).toHaveLength(0);
+    });
+
+    it("anonymous actor cannot list contacts — returns 401", async () => {
+      const response = await listContactsHandler({
+        request: req("/api/v1/contacts", "GET", undefined),
+      });
+      expect(response.status).toBe(401);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // 5. Receipt IDOR — publisher role isolation
+  // -------------------------------------------------------------------------
+
+  describe("5. Receipt IDOR — publisher role isolation (control: receipt-service.ts)", () => {
+    it("only the sender may publish a delivery receipt", async () => {
+      // Attacker (not sender) attempts to publish a delivery receipt for Alice's message
+      const response = await postDeliveryReceiptHandler({
+        request: req("/api/v1/receipts", "POST", attacker, {
+          messageId,
+          recipient: owner,
+          sender: owner, // attacker claims owner is sender to try to forge receipt
+        }),
+      });
+      // Must be denied — attacker is not the declared sender
+      expect(response.status).toBe(403);
+      await expect(repo.getReceipt(messageId)).resolves.toBeNull();
+    });
+
+    it("owner as sender can publish a delivery receipt (baseline)", async () => {
+      const response = await postDeliveryReceiptHandler({
+        request: req("/api/v1/receipts", "POST", owner, {
+          messageId,
+          recipient: attacker,
+          sender: owner,
+        }),
+      });
+      expect(response.status).toBe(201);
+    });
+
+    it("only the recipient may publish a read receipt", async () => {
+      await createDeliveryReceipt(repo, { messageId, recipient: owner, sender: attacker });
+
+      // Attacker (not recipient) attempts to mark owner's message as read
+      const response = await postReadReceiptHandler({
+        request: req(`/api/v1/receipts/${messageId}/read`, "POST", attacker),
+        params: { messageId },
+      });
+      expect(response.status).toBe(403);
+      await expect(repo.getReceipt(messageId)).resolves.toMatchObject({ readAt: null });
+    });
+
+    it("recipient can publish a read receipt (baseline)", async () => {
+      await createDeliveryReceipt(repo, { messageId, recipient: owner, sender: attacker });
+
+      const response = await postReadReceiptHandler({
+        request: req(`/api/v1/receipts/${messageId}/read`, "POST", owner),
+        params: { messageId },
+      });
+      expect(response.status).toBe(200);
+      await expect(repo.getReceipt(messageId)).resolves.toMatchObject({
+        readAt: expect.any(String),
+      });
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // 6. Wallet IDOR — link mutation isolation
+  // -------------------------------------------------------------------------
+
+  describe("6. Wallet IDOR — link mutation isolation (control: actor.ts)", () => {
+    it("attacker cannot delete owner's external wallet link — returns 403 or 404", async () => {
+      const response = await deleteWalletLinkHandler({
+        request: req(`/api/v1/wallet/link/${externalWallet}`, "DELETE", attacker),
+        params: { address: externalWallet },
+      });
+      // Either forbidden (if auth checked before lookup) or not-found (no link for attacker)
+      expect([403, 404]).toContain(response.status);
+    });
+
+    it("anonymous actor cannot delete any wallet link — returns 401", async () => {
+      const response = await deleteWalletLinkHandler({
+        request: req(`/api/v1/wallet/link/${externalWallet}`, "DELETE", undefined),
+        params: { address: externalWallet },
+      });
+      expect(response.status).toBe(401);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // 7. Admin privilege escalation (DLQ routes)
+  // -------------------------------------------------------------------------
+
+  describe("7. Admin Privilege Escalation (control: admin route handler)", () => {
+    it("non-admin actor accessing DLQ is rejected with 401 or 403 (no data leak)", async () => {
+      const response = await dlqListHandler({
+        request: req("/api/v1/admin/dlq", "GET", attacker),
+      });
+      expect([401, 403]).toContain(response.status);
+      const body = (await response.json().catch(() => null)) as any;
+      expect(body?.data?.deadLetters).toBeUndefined();
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // 8. Sender Request IDOR — decision isolation
+  // -------------------------------------------------------------------------
+
+  describe("8. Sender Request IDOR — decision isolation (control: requests route)", () => {
+    beforeEach(async () => {
+      process.env.STEALTH_CURSOR_SECRET = "security-regression-test-cursor-secret";
+      const reqRecord = {
+        requestId,
+        recipient: owner,
+        sender: attacker,
+        message: { messageId, ciphertextHash: "hash-001" },
+        createdAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + 100_000).toISOString(),
+        status: "pending" as const,
+      };
+      await createSenderRequest(repo, reqRecord);
+    });
+
+    it("attacker cannot list owner's pending requests — returns empty list or 403", async () => {
+      const response = await listRequestsHandler({
+        request: req("/api/v1/requests", "GET", attacker),
+      });
+      // Either 403 (auth enforced) or 200 with 0 items (scoped to actor)
+      if (response.status === 200) {
+        const body = await response.json();
+        const items = (body.data?.requests ?? body.data?.items ?? []) as unknown[];
+        expect(items).toHaveLength(0);
+      } else {
+        expect(response.status).toBe(403);
+      }
+    });
+
+    it("attacker cannot approve owner's sender request — returns 404 (not accessible to attacker)", async () => {
+      const response = await postDecisionHandler({
+        request: req(`/api/v1/requests/${requestId}/decisions`, "POST", attacker, {
+          decision: "always_allow",
+        }),
+        params: { requestId },
+      });
+      expect(response.status).toBe(404);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // 9. Canonicalization — alternate address form attacks
+  // -------------------------------------------------------------------------
+
+  describe("9. Canonicalization — Alternate Address Form Attacks (control: canonicalization.ts)", () => {
+    it("padded-address variant canonicalizes to the same identity as the canonical form", () => {
+      const paddedOwner = ` ${owner}`;
+      expect(isSameCanonicalAddress(owner, paddedOwner)).toBe(true);
+      expect(normalizeActorAddress(paddedOwner)).toBe(owner);
+    });
+
+    it("lowercase-address variant canonicalizes to the same identity as the canonical form", () => {
+      const lowerOwner = owner.toLowerCase();
+      expect(isSameCanonicalAddress(owner, lowerOwner)).toBe(true);
+    });
+
+    it("trailing-whitespace variant canonicalizes to the same identity", () => {
+      const trailingOwner = `${owner} `;
+      expect(normalizeActorAddress(trailingOwner)).toBe(owner);
+    });
+
+    it("policy route canonicalizes a padded-address actor header and authorizes the owner", async () => {
+      const paddedActor = ` ${owner}`;
+      const response = await updatePolicyHandler({
+        request: req(`/api/v1/policies/${owner}`, "PUT", paddedActor, {
+          allowUnknown: true,
+          minimumPostage: "500",
+          requireVerified: false,
+        }),
+        params: { owner },
+      });
+      expect(response.status).toBe(200);
+    });
+
+    it("policy route rejects an invalid-address actor header with 401", async () => {
+      const response = await updatePolicyHandler({
+        request: req(`/api/v1/policies/${owner}`, "PUT", "invalid_address", {
+          allowUnknown: true,
+          minimumPostage: "500",
+          requireVerified: false,
         }),
         params: { owner },
       });
       expect(response.status).toBe(401);
     });
 
-    it("header-only requests fail when signed auth is required", async () => {
+    it("normalized attacker address cannot impersonate the owner", () => {
+      // After normalization, attacker and owner are still distinct identities
+      expect(isSameCanonicalAddress(attacker, owner)).toBe(false);
+      expect(normalizeActorAddress(attacker)).not.toBe(owner);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // 10. Stale Authorization — expired and revoked delegations
+  // -------------------------------------------------------------------------
+
+  describe("10. Stale Authorization — Expired and Revoked Delegations (control: auth/delegation.ts)", () => {
+    it("expired delegation is rejected with forbidden — policy state unchanged", async () => {
       const response = await updatePolicyHandler({
-        request: new Request(`https://stealth.test/api/v1/policies/${owner}`, {
+        request: reqWithDelegation(
+          `/api/v1/policies/${owner}`,
+          "PUT",
+          delegate,
+          {
+            allowedActions: ["policy:update"],
+            resourceScope: [`mailbox:${owner}:policy`],
+            expiresAt: "2020-01-01T00:00:00.000Z", // expired
+            revoked: false,
+          },
+          { allowUnknown: true, minimumPostage: "999", requireVerified: false },
+        ),
+        params: { owner },
+      });
+      expect(response.status).toBe(403);
+      await expect(response.json()).resolves.toMatchObject({ error: { code: "forbidden" } });
+      await expect(getMailboxPolicy(repo, owner)).resolves.toMatchObject({ source: "default" });
+    });
+
+    it("revoked delegation is rejected with forbidden — policy state unchanged", async () => {
+      const response = await updatePolicyHandler({
+        request: reqWithDelegation(
+          `/api/v1/policies/${owner}`,
+          "PUT",
+          delegate,
+          {
+            allowedActions: ["policy:update"],
+            resourceScope: [`mailbox:${owner}:policy`],
+            expiresAt: "2029-01-01T00:00:00.000Z",
+            revoked: true, // revoked
+          },
+          { allowUnknown: true, minimumPostage: "999", requireVerified: false },
+        ),
+        params: { owner },
+      });
+      expect(response.status).toBe(403);
+      await expect(getMailboxPolicy(repo, owner)).resolves.toMatchObject({ source: "default" });
+    });
+
+    it("delegation with wrong action scope is rejected", async () => {
+      const response = await updatePolicyHandler({
+        request: reqWithDelegation(
+          `/api/v1/policies/${owner}`,
+          "PUT",
+          delegate,
+          {
+            allowedActions: ["policy:read"], // wrong action
+            resourceScope: [`mailbox:${owner}:policy`],
+            expiresAt: "2029-01-01T00:00:00.000Z",
+            revoked: false,
+          },
+          { allowUnknown: true, minimumPostage: "999", requireVerified: false },
+        ),
+        params: { owner },
+      });
+      expect(response.status).toBe(403);
+    });
+
+    it("delegation with wrong resource scope is rejected", async () => {
+      const response = await updatePolicyHandler({
+        request: reqWithDelegation(
+          `/api/v1/policies/${owner}`,
+          "PUT",
+          delegate,
+          {
+            allowedActions: ["policy:update"],
+            resourceScope: [`mailbox:${attacker}:policy`], // wrong owner
+            expiresAt: "2029-01-01T00:00:00.000Z",
+            revoked: false,
+          },
+          { allowUnknown: true, minimumPostage: "999", requireVerified: false },
+        ),
+        params: { owner },
+      });
+      expect(response.status).toBe(403);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // 11. STEALTH-AUTH-V1 signed-request enforcement (control: signed-request-verify.ts)
+  // -------------------------------------------------------------------------
+
+  describe("11. STEALTH-AUTH-V1 signed-request enforcement", () => {
+    const signer = Keypair.random();
+    const otherSigner = Keypair.random();
+    const signedOwner = signer.publicKey();
+    const policyBody = {
+      allowUnknown: true,
+      minimumPostage: "500",
+      requireVerified: false,
+    };
+    const previousRequireSigned = process.env.STEALTH_AUTH_REQUIRE_SIGNED;
+
+    beforeAll(() => {
+      process.env.STEALTH_AUTH_REQUIRE_SIGNED = "1";
+    });
+
+    afterAll(() => {
+      if (previousRequireSigned === undefined) {
+        delete process.env.STEALTH_AUTH_REQUIRE_SIGNED;
+      } else {
+        process.env.STEALTH_AUTH_REQUIRE_SIGNED = previousRequireSigned;
+      }
+    });
+
+    beforeEach(() => {
+      resetSignedRequestNonceStore();
+    });
+
+    function signedPolicyPut(actorKeypair: Keypair, overrides: Record<string, string> = {}) {
+      const url = `https://stealth.test/api/v1/policies/${signedOwner}`;
+      const body = JSON.stringify(policyBody);
+      const signed = buildSignedRequestHeaders({
+        keypair: actorKeypair,
+        method: "PUT",
+        url,
+        body,
+        audience: "stealth.test",
+      });
+      return new Request(url, {
+        method: "PUT",
+        headers: {
+          "content-type": "application/json",
+          ...signed,
+          ...overrides,
+        },
+        body,
+      });
+    }
+
+    it("rejects forged actor headers without a signature", async () => {
+      const response = await updatePolicyHandler({
+        request: new Request(`https://stealth.test/api/v1/policies/${signedOwner}`, {
           method: "PUT",
           headers: {
             "content-type": "application/json",
-            [ACTOR_HEADER]: owner,
+            [ACTOR_HEADER]: signedOwner,
           },
-          body: JSON.stringify(POLICY_BODY),
+          body: JSON.stringify(policyBody),
         }),
-        params: { owner },
+        params: { owner: signedOwner },
       });
-      expect(response.status).not.toBe(200);
+      expect(response.status).toBe(401);
     });
 
-    it("replayed signatures fail", async () => {
-      const url = `https://stealth.test/api/v1/policies/${owner}`;
-      const body = JSON.stringify(POLICY_BODY);
+    it("rejects replayed signatures", async () => {
+      const url = `https://stealth.test/api/v1/policies/${signedOwner}`;
+      const body = JSON.stringify(policyBody);
       const nonce = randomBytes(32).toString("hex");
       const signed = buildSignedRequestHeaders({
-        keypair: ownerKeypair,
+        keypair: signer,
         method: "PUT",
         url,
         body,
@@ -159,10 +720,9 @@ describe("API Security Regressions — BETA-084 (#1991)", () => {
           headers: { "content-type": "application/json", ...signed },
           body,
         }),
-        params: { owner },
+        params: { owner: signedOwner },
       });
-      expect(response.status).toBe(200);
-    });
+      expect(firstResponse.status).toBe(200);
 
       const secondResponse = await updatePolicyHandler({
         request: new Request(url, {
@@ -170,66 +730,48 @@ describe("API Security Regressions — BETA-084 (#1991)", () => {
           headers: { "content-type": "application/json", ...signed },
           body,
         }),
-        params: { owner },
+        params: { owner: signedOwner },
       });
       expect(secondResponse.status).toBe(409);
     });
 
-    it("signatures cannot move across routes or bodies", async () => {
-      const url = `https://stealth.test/api/v1/policies/${owner}`;
-      const body = JSON.stringify(POLICY_BODY);
+    it("rejects signatures that do not bind the request body", async () => {
+      const url = `https://stealth.test/api/v1/policies/${signedOwner}`;
+      const body = JSON.stringify(policyBody);
       const signedForOtherBody = buildSignedRequestHeaders({
-        keypair: ownerKeypair,
+        keypair: signer,
         method: "PUT",
         url,
-        body: JSON.stringify({ ...POLICY_BODY, minimumPostage: "999" }),
+        body: JSON.stringify({ ...policyBody, minimumPostage: "999" }),
         audience: "stealth.test",
       });
 
-  describe("10. Stale Authorization — Expired and Revoked Delegations (control: auth/delegation.ts)", () => {
-    it("expired delegation is rejected with forbidden — policy state unchanged", async () => {
       const response = await updatePolicyHandler({
         request: new Request(url, {
           method: "PUT",
           headers: { "content-type": "application/json", ...signedForOtherBody },
           body,
         }),
-        params: { owner },
+        params: { owner: signedOwner },
       });
       expect(response.status).toBe(401);
     });
 
     it("rejects a valid signature paired with a different actor address", async () => {
-      const url = `https://stealth.test/api/v1/policies/${owner}`;
-      const body = JSON.stringify(POLICY_BODY);
-      const signed = buildSignedRequestHeaders({
-        keypair: ownerKeypair,
-        method: "PUT",
-        url,
-        body,
-        audience: "stealth.test",
-      });
-
       const response = await updatePolicyHandler({
-        request: new Request(url, {
-          method: "PUT",
-          headers: {
-            "content-type": "application/json",
-            ...signed,
-            [ACTOR_HEADER]: attacker,
-          },
-          body,
+        request: signedPolicyPut(signer, {
+          [ACTOR_HEADER]: otherSigner.publicKey(),
         }),
-        params: { owner },
+        params: { owner: signedOwner },
       });
       expect(response.status).toBe(401);
     });
 
     it("rejects expired timestamps", async () => {
-      const url = `https://stealth.test/api/v1/policies/${owner}`;
-      const body = JSON.stringify(POLICY_BODY);
+      const url = `https://stealth.test/api/v1/policies/${signedOwner}`;
+      const body = JSON.stringify(policyBody);
       const signed = buildSignedRequestHeaders({
-        keypair: ownerKeypair,
+        keypair: signer,
         method: "PUT",
         url,
         body,
@@ -243,16 +785,16 @@ describe("API Security Regressions — BETA-084 (#1991)", () => {
           headers: { "content-type": "application/json", ...signed },
           body,
         }),
-        params: { owner },
+        params: { owner: signedOwner },
       });
       expect(response.status).toBe(422);
     });
 
-    it("rejects missing signatures", async () => {
-      const url = `https://stealth.test/api/v1/policies/${owner}`;
-      const body = JSON.stringify(POLICY_BODY);
+    it("rejects missing signatures when signed material is partial", async () => {
+      const url = `https://stealth.test/api/v1/policies/${signedOwner}`;
+      const body = JSON.stringify(policyBody);
       const signed = buildSignedRequestHeaders({
-        keypair: ownerKeypair,
+        keypair: signer,
         method: "PUT",
         url,
         body,
@@ -266,108 +808,26 @@ describe("API Security Regressions — BETA-084 (#1991)", () => {
           headers: { "content-type": "application/json", ...signed },
           body,
         }),
-        params: { owner },
+        params: { owner: signedOwner },
       });
       expect(response.status).toBe(401);
     });
 
-    it("rejects signatures from the wrong key", async () => {
-      const response = await updatePolicyHandler({
-        request: updatePolicyRequest(attackerKeypair),
-        params: { owner },
-      });
-      // Authenticated as attacker against owner's resource → forbidden
-      expect(response.status).toBe(403);
-    });
-
     it("accepts a correctly signed mutating request from the owner", async () => {
       const response = await updatePolicyHandler({
-        request: updatePolicyRequest(ownerKeypair),
-        params: { owner },
+        request: signedPolicyPut(signer),
+        params: { owner: signedOwner },
       });
       expect(response.status).toBe(200);
     });
 
-    it("delegation with wrong resource scope is rejected", async () => {
+    it("rejects a correctly signed request from a non-owner", async () => {
       const response = await updatePolicyHandler({
-        request: updatePolicyRequest(attackerKeypair),
-        params: { owner },
+        request: signedPolicyPut(otherSigner),
+        params: { owner: signedOwner },
       });
       expect(response.status).toBe(403);
     });
-  });
-
-  // -------------------------------------------------------------------------
-  // 11. Replay / Signature Forwarding Vectors (documented future state)
-  // -------------------------------------------------------------------------
-
-  describe("11. Replay / Signature Forwarding — documented future enforcement", () => {
-    /**
-     * The current model trusts the x-stealth-address header without HMAC signature verification.
-     * These tests are marked it.fails to document the expected future behavior once
-     * signed-request enforcement (#1555 and related) is fully implemented.
-     *
-     * They prove: the route currently returns 200 (i.e., trusts the header), and
-     * when the signing layer is enforced, these should be changed to non-failing expectations.
-     */
-    it.fails(
-      "replayed identical signature headers are rejected by the signing layer (future enforcement)",
-      async () => {
-        const validHeaders = {
-          [ACTOR_HEADER]: owner,
-          "x-stealth-nonce": "nonce-replay-001",
-          "x-stealth-timestamp": new Date().toISOString(),
-          "x-stealth-signature": "sig-replay-001",
-        };
-
-        const body = { allowUnknown: true, minimumPostage: "500", requireVerified: false };
-
-        const firstReq = req(`/api/v1/policies/${owner}`, "PUT", owner, body, {
-          "x-stealth-nonce": validHeaders["x-stealth-nonce"],
-          "x-stealth-timestamp": validHeaders["x-stealth-timestamp"],
-          "x-stealth-signature": validHeaders["x-stealth-signature"],
-        });
-
-        const firstResp = await updatePolicyHandler({
-          request: firstReq,
-          params: { owner },
-        });
-        expect(firstResp.status).toBe(200);
-
-        // Replay the exact same request — should be rejected once replay detection is enforced
-        const replayReq = req(`/api/v1/policies/${owner}`, "PUT", owner, body, {
-          "x-stealth-nonce": validHeaders["x-stealth-nonce"],
-          "x-stealth-timestamp": validHeaders["x-stealth-timestamp"],
-          "x-stealth-signature": validHeaders["x-stealth-signature"],
-        });
-        const replayResp = await updatePolicyHandler({
-          request: replayReq,
-          params: { owner },
-        });
-        // This should be non-200 once full replay detection is implemented
-        expect(replayResp.status).not.toBe(200);
-      },
-    );
-
-    it.fails(
-      "a signature obtained for one route cannot be reused on a different route (future enforcement)",
-      async () => {
-        const body = { allowUnknown: true, minimumPostage: "500", requireVerified: false };
-        // Signature was issued for a different body/route
-        const crossRouteSig = "sig-for-different-route";
-        const crossRouteReq = req(`/api/v1/policies/${owner}`, "PUT", owner, body, {
-          "x-stealth-nonce": "nonce-cross-001",
-          "x-stealth-timestamp": new Date().toISOString(),
-          "x-stealth-signature": crossRouteSig,
-        });
-        const response = await updatePolicyHandler({
-          request: crossRouteReq,
-          params: { owner },
-        });
-        // Once request signing is enforced, a mismatched signature must be rejected
-        expect(response.status).not.toBe(200);
-      },
-    );
   });
 
   // -------------------------------------------------------------------------
