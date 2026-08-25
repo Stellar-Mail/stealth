@@ -1,0 +1,107 @@
+{
+  "runAt": "2026-08-24T09:00:00.000Z",
+  "network": "local",
+  "mode": "fake",
+  "messageId": "0000000000000000000000000000000000000000000000000000000000000000",
+  "steps": [
+    {
+      "step": "attack-8-envelope-idor-bob-cannot-decrypt-alice",
+      "status": "ok",
+      "detail": {
+        "commitment": "[REDACTED]",
+        "attackVector": "wrong-aes-key",
+        "result": "OpenEnvelopeError thrown as expected"
+      }
+    },
+    {
+      "step": "attack-8-envelope-idor-carol-cannot-decrypt-bob",
+      "status": "ok",
+      "detail": {
+        "attackVector": "wrong-aes-key-third-party",
+        "result": "OpenEnvelopeError thrown as expected"
+      }
+    },
+    {
+      "step": "attack-8-tampered-ciphertext-rejected",
+      "status": "ok",
+      "detail": {
+        "attackVector": "bit-flip-ciphertext",
+        "result": "commitment-check-failed"
+      }
+    },
+    {
+      "step": "attack-9-relay-queue-idor-carol-cannot-read-bob",
+      "status": "ok",
+      "detail": {
+        "carolQueueLength": 0,
+        "bobQueueLength": 1,
+        "result": "isolation-confirmed"
+      }
+    },
+    {
+      "step": "attack-9-relay-queue-idor-alice-cannot-read-bob",
+      "status": "ok",
+      "detail": {
+        "aliceQueueLength": 0,
+        "result": "isolation-confirmed"
+      }
+    },
+    {
+      "step": "attack-4-relay-replay-deduplicated",
+      "status": "ok",
+      "detail": {
+        "firstState": "ACKNOWLEDGED",
+        "secondState": "DEDUPLICATED",
+        "result": "replay-rejected"
+      }
+    },
+    {
+      "step": "attack-6-canonicalization-padded-address",
+      "status": "ok",
+      "detail": {
+        "inputForm": "padded",
+        "normalized": "GAAA...AAA",
+        "result": "canonical-match"
+      }
+    },
+    {
+      "step": "attack-6-canonicalization-lowercase-address",
+      "status": "ok",
+      "detail": {
+        "inputForm": "lowercase",
+        "result": "canonical-match"
+      }
+    },
+    {
+      "step": "attack-5-stale-auth-mainnet-refused",
+      "status": "ok",
+      "detail": {
+        "intentTypes": ["policy", "lifecycle", "receipt", "postage", "keys"],
+        "result": "all-refused-on-mainnet-config"
+      }
+    },
+    {
+      "step": "attack-5-stale-auth-actor-mismatch-all-intent-types",
+      "status": "ok",
+      "detail": {
+        "attackedIntents": 8,
+        "result": "all-threw-actor-mismatch"
+      }
+    },
+    {
+      "step": "attack-10-attachment-key-isolation",
+      "status": "ok",
+      "detail": {
+        "result": "cross-key-decryption-failed-as-expected"
+      }
+    },
+    {
+      "step": "attack-3-sender-identity-commitment",
+      "status": "ok",
+      "detail": {
+        "result": "tampered-sender-field-rejected-by-commitment"
+      }
+    }
+  ],
+  "notes": "Baseline evidence from local-fake CI run. No credentials, no private keys, no plaintext bodies appear in this report. Live testnet run requires STEALTH_LIVE_TEST=1 operator trigger."
+}
