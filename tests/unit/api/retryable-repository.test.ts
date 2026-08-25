@@ -708,6 +708,18 @@ class FailingRepository implements ApiRepository {
     this.maybeFail("searchMailbox");
     return this.inner.searchMailbox(actor, options);
   }
+  async getInvite(code: string) {
+    this.maybeFail("getInvite");
+    return this.inner.getInvite(code);
+  }
+  async setInvite(invite: import("../../../src/server/api/domain").Invite) {
+    this.maybeFail("setInvite");
+    return this.inner.setInvite(invite);
+  }
+  async listInvites() {
+    this.maybeFail("listInvites");
+    return this.inner.listInvites();
+  }
   reset(): void {
     this.inner.reset();
   }

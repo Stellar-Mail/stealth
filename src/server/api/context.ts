@@ -31,7 +31,9 @@ import {
   onboardingDraftSchema,
   accountDeletionRequestSchema,
   draftRecordSchema,
+  inviteSchema,
 } from "./domain";
+
 import { ApiError } from "./errors";
 
 export interface TraceContext {
@@ -264,6 +266,7 @@ registerRecordSchema("onboardingDraft", 1, onboardingDraftSchema);
 registerRecordSchema("accountDeletionRequest", 1, accountDeletionRequestSchema);
 // Issue #1965 (BETA-058): durable user-scoped encrypted-at-rest draft records.
 registerRecordSchema("draftRecord", 1, draftRecordSchema);
+registerRecordSchema("invite", 1, inviteSchema);
 
 /**
  * Issue #1461: Verified API Principal model representing authenticated request identity.

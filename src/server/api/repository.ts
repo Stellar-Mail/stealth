@@ -43,6 +43,7 @@ import type {
   OnboardingDraftRecord,
   AccountDeletionRequest,
   AccountExport,
+  Invite,
 } from "./domain";
 import type { ZodSchema } from "zod";
 import { ApiError, DataIntegrityError, RetryExhaustedError } from "./errors";
@@ -657,6 +658,10 @@ export interface ApiRepository {
 
   getReceiptCheckpoint(streamId: string): Promise<ReceiptCheckpoint | null>;
   setReceiptCheckpoint(checkpoint: ReceiptCheckpoint): Promise<ReceiptCheckpoint>;
+
+  getInvite(code: string): Promise<Invite | null>;
+  setInvite(invite: Invite): Promise<Invite>;
+  listInvites(): Promise<Invite[]>;
 
   reset?(): void;
 }
@@ -1639,6 +1644,20 @@ export class ValidatedApiRepository implements ApiRepository {
     return this.inner.setReceiptCheckpoint(checkpoint);
   }
 
+  async getInvite(code: string): Promise<Invite | null> {
+    const raw = await this.inner.getInvite(code);
+    return raw ? validateRecord<Invite>("invite", raw) : null;
+  }
+
+  setInvite(invite: Invite): Promise<Invite> {
+    return this.inner.setInvite(versionRecord("invite", invite));
+  }
+
+  async listInvites(): Promise<Invite[]> {
+    const raw = await this.inner.listInvites();
+    return raw.map((r) => validateRecord<Invite>("invite", r));
+  }
+
   reset(): void {
     this.inner.reset?.();
   }
@@ -1740,6 +1759,9 @@ const RETRY_SAFE_OPERATIONS = new Set<string>([
   "setSendOperation",
   "createSendOperationIfAbsent",
   "getRecoveryCodeSet",
+  "getInvite",
+  "setInvite",
+  "listInvites",
 ]);
 
 function isRetryableError(error: unknown): boolean {
@@ -2491,6 +2513,18 @@ export class RetryableApiRepository implements ApiRepository {
     return this.withRetry("createSendOperationIfAbsent", () =>
       this.inner.createSendOperationIfAbsent(state),
     );
+  }
+
+  getInvite(code: string): Promise<Invite | null> {
+    return this.withRetry("getInvite", () => this.inner.getInvite(code));
+  }
+
+  setInvite(invite: Invite): Promise<Invite> {
+    return this.withRetry("setInvite", () => this.inner.setInvite(invite));
+  }
+
+  listInvites(): Promise<Invite[]> {
+    return this.withRetry("listInvites", () => this.inner.listInvites());
   }
 
   reset(): void {

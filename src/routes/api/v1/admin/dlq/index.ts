@@ -4,6 +4,7 @@ import { getApiContext } from "@/server/api/context";
 import { durableJobTypeSchema, deadLetterStatusSchema } from "@/server/api/domain";
 import { listDeadLetters } from "@/server/api/job-service";
 import { apiSuccess, handleApiRequest } from "@/server/api/response";
+import { requireAdminRole } from "@/server/api/authorization/admin";
 
 const querySchema = z.object({
   jobType: durableJobTypeSchema.optional(),
@@ -17,6 +18,8 @@ export const Route = createFileRoute("/api/v1/admin/dlq/")({
       GET: ({ request }) =>
         handleApiRequest(request, async () => {
           const context = await getApiContext(request);
+          await requireAdminRole(context, request);
+
           const url = new URL(request.url);
           const parsed = querySchema.parse({
             jobType: url.searchParams.get("jobType") || undefined,

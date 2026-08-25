@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getApiContext } from "@/server/api/context";
 import { durableJobTypeSchema, jobStatusSchema } from "@/server/api/domain";
 import { apiSuccess, handleApiRequest } from "@/server/api/response";
+import { requireAdminRole } from "@/server/api/authorization/admin";
 
 const querySchema = z.object({
   type: durableJobTypeSchema.optional(),
@@ -16,6 +17,8 @@ export const Route = createFileRoute("/api/v1/admin/jobs/")({
       GET: ({ request }) =>
         handleApiRequest(request, async () => {
           const context = await getApiContext(request);
+          await requireAdminRole(context, request);
+
           const url = new URL(request.url);
           const parsed = querySchema.parse({
             type: url.searchParams.get("type") || undefined,
