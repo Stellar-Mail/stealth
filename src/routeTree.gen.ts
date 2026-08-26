@@ -24,6 +24,7 @@ import { Route as AdminDlqRouteImport } from './routes/admin/dlq'
 import { Route as ApiV1ProtocolRouteImport } from './routes/api/v1/protocol'
 import { Route as ApiV1OpenapiDotjsonRouteImport } from './routes/api/v1/openapi[.]json'
 import { Route as ApiV1HealthRouteImport } from './routes/api/v1/health'
+import { Route as ApiV1FederationRouteImport } from './routes/api/v1/federation'
 import { Route as ApiV1BootstrapRouteImport } from './routes/api/v1/bootstrap'
 import { Route as ApiV1SearchIndexRouteImport } from './routes/api/v1/search/index'
 import { Route as ApiV1RequestsIndexRouteImport } from './routes/api/v1/requests/index'
@@ -199,6 +200,11 @@ const ApiV1OpenapiDotjsonRoute = ApiV1OpenapiDotjsonRouteImport.update({
 const ApiV1HealthRoute = ApiV1HealthRouteImport.update({
   id: '/api/v1/health',
   path: '/api/v1/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1FederationRoute = ApiV1FederationRouteImport.update({
+  id: '/api/v1/federation',
+  path: '/api/v1/federation',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiV1BootstrapRoute = ApiV1BootstrapRouteImport.update({
@@ -755,6 +761,7 @@ export interface FileRoutesByFullPath {
   '/auth/verify': typeof AuthVerifyRoute
   '/admin/': typeof AdminIndexRoute
   '/api/v1/bootstrap': typeof ApiV1BootstrapRoute
+  '/api/v1/federation': typeof ApiV1FederationRoute
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
   '/api/v1/protocol': typeof ApiV1ProtocolRoute
@@ -872,6 +879,7 @@ export interface FileRoutesByTo {
   '/auth/verify': typeof AuthVerifyRoute
   '/admin': typeof AdminIndexRoute
   '/api/v1/bootstrap': typeof ApiV1BootstrapRoute
+  '/api/v1/federation': typeof ApiV1FederationRoute
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
   '/api/v1/protocol': typeof ApiV1ProtocolRoute
@@ -991,6 +999,7 @@ export interface FileRoutesById {
   '/auth/verify': typeof AuthVerifyRoute
   '/admin/': typeof AdminIndexRoute
   '/api/v1/bootstrap': typeof ApiV1BootstrapRoute
+  '/api/v1/federation': typeof ApiV1FederationRoute
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
   '/api/v1/protocol': typeof ApiV1ProtocolRoute
@@ -1111,6 +1120,7 @@ export interface FileRouteTypes {
     | '/auth/verify'
     | '/admin/'
     | '/api/v1/bootstrap'
+    | '/api/v1/federation'
     | '/api/v1/health'
     | '/api/v1/openapi.json'
     | '/api/v1/protocol'
@@ -1228,6 +1238,7 @@ export interface FileRouteTypes {
     | '/auth/verify'
     | '/admin'
     | '/api/v1/bootstrap'
+    | '/api/v1/federation'
     | '/api/v1/health'
     | '/api/v1/openapi.json'
     | '/api/v1/protocol'
@@ -1346,6 +1357,7 @@ export interface FileRouteTypes {
     | '/auth/verify'
     | '/admin/'
     | '/api/v1/bootstrap'
+    | '/api/v1/federation'
     | '/api/v1/health'
     | '/api/v1/openapi.json'
     | '/api/v1/protocol'
@@ -1462,6 +1474,7 @@ export interface RootRouteChildren {
   AuthSignUpRoute: typeof AuthSignUpRoute
   AuthVerifyRoute: typeof AuthVerifyRoute
   ApiV1BootstrapRoute: typeof ApiV1BootstrapRoute
+  ApiV1FederationRoute: typeof ApiV1FederationRoute
   ApiV1HealthRoute: typeof ApiV1HealthRoute
   ApiV1OpenapiDotjsonRoute: typeof ApiV1OpenapiDotjsonRoute
   ApiV1ProtocolRoute: typeof ApiV1ProtocolRoute
@@ -1657,6 +1670,13 @@ declare module '@tanstack/react-router' {
       path: '/api/v1/health'
       fullPath: '/api/v1/health'
       preLoaderRoute: typeof ApiV1HealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/federation': {
+      id: '/api/v1/federation'
+      path: '/api/v1/federation'
+      fullPath: '/api/v1/federation'
+      preLoaderRoute: typeof ApiV1FederationRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/bootstrap': {
@@ -2506,6 +2526,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthSignUpRoute: AuthSignUpRoute,
   AuthVerifyRoute: AuthVerifyRoute,
   ApiV1BootstrapRoute: ApiV1BootstrapRoute,
+  ApiV1FederationRoute: ApiV1FederationRoute,
   ApiV1HealthRoute: ApiV1HealthRoute,
   ApiV1OpenapiDotjsonRoute: ApiV1OpenapiDotjsonRoute,
   ApiV1ProtocolRoute: ApiV1ProtocolRoute,

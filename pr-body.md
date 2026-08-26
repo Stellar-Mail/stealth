@@ -1,79 +1,36 @@
-## Email Tone Rewriter — Architecture Contract & Expanded Codebase
+## Summary
 
-**Closes #349**
+This PR configures the Stealth application and username resolver with stable HTTPS origins (`stealth.me`), DNS/TLS configurations, HTTP-to-HTTPS redirects, root domain redirects, CORS allowlists, cookie configurations, and Stellar federation response behavior. Replaces placeholder `.stealth.mail` domains with the canonical `.stealth.me` TLD, handles HTTPS redirects and root-domain routing, dynamically hosts the `stellar.toml` metadata file, and implements the SEP-2 Stellar federation lookup route with proper wildcard CORS headers.
 
-This PR adds the architecture contract and expands the codebase for the Email Tone Rewriter as a self-contained V1 individual mini-product.
-
-### Summary
-
-Adds `ARCHITECTURE.md` as the central architecture contract and 12 new files (~2,300 lines) across hooks, services, and tests — all without modifying any existing code.
+**Closes #1997**
 
 ### What's included
 
-**Architecture contract** (`ARCHITECTURE.md`):
+1. **Dynamic Stellar TOML serving (`src/server.ts`)**:
+   - Intercepts requests for `/.well-known/stellar.toml` on the root domain (`stealth.me`) and subdomains.
+   - Serves dynamic TOML content pointing `FEDERATION_SERVER` to the appropriate subdomain (e.g. `app.stealth.me` for production, `app-preview.stealth.me` for staging, and `localhost` for dev) with wildcard CORS (`Access-Control-Allow-Origin: *`) and `text/plain` Content-Type.
+2. **Redirects & Security (`src/server.ts`)**:
+   - Redirects HTTP traffic to HTTPS in production-like environments (utilizing the `x-forwarded-proto` header).
+   - Redirects root domain (`stealth.me`, `www.stealth.me`) traffic to the stable app subdomain (`app.stealth.me`) while preserving the request path and query parameters (except for `.well-known/stellar.toml` lookups).
+   - Ensures all intercepted responses are passed through `applySecurityHeaders` to keep the security envelope robust.
+3. **Stellar Federation Endpoints (`src/routes/api/v1/federation.ts` & `src/server/api/cors.ts`)**:
+   - Created a standard SEP-2 Stellar federation handler resolving name queries (`type=name` e.g. `username*stealth.me`) and ID queries (`type=id` e.g. `GBRPYHIL...`) back to their canonical handle.
+   - Configured a CORS allowlist bypass specifically for `/api/v1/federation` requests to allow wildcard `*` access, satisfying Stellar federation requirements without relaxing other API route guards.
+4. **Domain Configurations (`wrangler.jsonc`, `src/config/loader.ts`, `tests/unit/config/runtime-config.test.ts`)**:
+   - Migrated production and preview environment URLs from the `stealth.mail` TLD placeholder to the approved `stealth.me` TLD.
+   - Updated default fallbacks in the runtime configuration loader.
+   - Updated config loader test suite assertions to match the new domain settings.
+5. **Verification & Operator Guidance (`docs/deployment/DOMAINS.md`)**:
+   - Created a DNS and TLS setup runbook detailing necessary Cloudflare record targets (CNAME, TXT, SRV, redirects).
+   - Included exact, repeatable test commands (`curl`, `nslookup`, `openssl`) to verify domain resolution, SSL handshakes, dynamic TOML rendering, redirects, and federation route behavior.
 
-- Purpose & design decisions — pure, local, rule-based, deterministic, isolated
-- Complete folder structure — annotated tree of all files in the tool
-- Module responsibilities — types, services, guards, hooks, components, tests, docs
-- One-way dependency flow — Components → Hooks → Services → Types (no circular deps)
-- Data flow diagram — from draft input through guards → engine → result
-- Cross-references to existing companion docs
-- What contributors may change (8 allowances) and may NOT change (7 prohibitions)
-- Security, performance, testing strategy, and future integration path
+## Validation
 
-**New hooks** (`hooks/`):
-
-- `useEmailToneRewriter` — Full rewrite lifecycle (draft, state, rewrite, reset, dirty tracking)
-- `useRewriterHistory` — In-memory session history with push/remove/clear/label/export
-- `useBatchRewriter` — Sequential batch processing with cancel support
-- `useTonePresets` — Built-in + custom preset management with best-match logic
-- `useRewriteDiff` — Word-level diff comparison with statistics
-
-**New services** (`services/`):
-
-- `diff.ts` — LCS-based word-level diff engine (tokenize, compute, render, change rate)
-- `batch.ts` — Batch processing (sequential, parallel, validation, dedup, sorting, analysis)
-- `presets.ts` — 10 built-in presets with tags, grouping, context matching, smart suggestion
-
-**New tests** (`tests/`):
-
-- `diff.test.ts` — 50+ tests covering tokenization, LCS, backtracking, diff, render, change rate
-- `batch.test.ts` — 40+ tests covering batch processing, validation, dedup, sorting, analysis
-- `presets.test.ts` — 30+ tests covering preset lookup, filtering, grouping, suggestion
-
-### Acceptance criteria met
-
-- ✅ Clear folder-local architecture plan
-- ✅ No modifications to main app shell, routing, inbox architecture, wallet core, Stellar core, or design system
-- ✅ Specs explain what future contributors may and may not change
-- ✅ Files changed are limited to `tools/v1/individual/email-tone-rewriter/`
-- ✅ Contribution is reviewable as a self-contained mini-product change
-- ✅ No existing files were modified — all additions are new files
-
-### Labels
-
-- Architecture
-- GrantFox OSS
-- Maybe Rewarded
-- Official Campaign
-- Tooling Ecosystem
-- V1 Launch Tool
-- Individual Tool
-
-### Files changed
-
-```
-tools/v1/individual/email-tone-rewriter/ARCHITECTURE.md          (+237 lines, new)
-tools/v1/individual/email-tone-rewriter/hooks/index.ts           (+12 lines, new)
-tools/v1/individual/email-tone-rewriter/hooks/useEmailToneRewriter.ts  (+120 lines, new)
-tools/v1/individual/email-tone-rewriter/hooks/useRewriterHistory.ts   (+100 lines, new)
-tools/v1/individual/email-tone-rewriter/hooks/useBatchRewriter.ts     (+120 lines, new)
-tools/v1/individual/email-tone-rewriter/hooks/useTonePresets.ts       (+170 lines, new)
-tools/v1/individual/email-tone-rewriter/hooks/useRewriteDiff.ts       (+110 lines, new)
-tools/v1/individual/email-tone-rewriter/services/diff.ts              (+230 lines, new)
-tools/v1/individual/email-tone-rewriter/services/batch.ts             (+280 lines, new)
-tools/v1/individual/email-tone-rewriter/services/presets.ts           (+280 lines, new)
-tools/v1/individual/email-tone-rewriter/tests/diff.test.ts            (+260 lines, new)
-tools/v1/individual/email-tone-rewriter/tests/batch.test.ts           (+260 lines, new)
-tools/v1/individual/email-tone-rewriter/tests/presets.test.ts         (+180 lines, new)
-```
+- **Automated Unit Tests**:
+  - Implemented unit tests in `tests/unit/api/federation.test.ts` (9 tests passed).
+  - Updated config tests in `tests/unit/config/runtime-config.test.ts` (15 tests passed).
+  - Verified the full local test suite passes cleanly: `2700+ tests passed`.
+- **Compilation**:
+  - Confirmed the client and server SSR bundles build successfully without any compilation errors.
+- **Security & Isolation Check**:
+  - Verified no plaintext passwords, secret keys, or credentials are added to the codebase or PR artifacts.

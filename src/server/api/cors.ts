@@ -88,8 +88,12 @@ export function csrfEarlyResponse(request: Request, policy: CorsPolicy): Respons
 export const apiCorsPolicy = corsPolicyFromEnv();
 
 export function corsEarlyResponse(request: Request, policy: CorsPolicy): Response | undefined {
+  const url = new URL(request.url);
+  const isFederation =
+    url.pathname === "/api/v1/federation" || url.pathname === "/api/v1/federation/";
+
   const origin = request.headers.get("Origin");
-  if (origin !== null && !policy.allowedOrigins.includes(origin)) {
+  if (origin !== null && !isFederation && !policy.allowedOrigins.includes(origin)) {
     const headers = new Headers();
     appendVary(headers, "Origin");
     return new Response(null, { status: 403, headers });
@@ -97,6 +101,15 @@ export function corsEarlyResponse(request: Request, policy: CorsPolicy): Respons
 
   if (request.method.toUpperCase() !== "OPTIONS") {
     return undefined;
+  }
+
+  if (isFederation) {
+    const headers = new Headers({
+      "Access-Control-Allow-Origin": origin ?? "*",
+      "Access-Control-Allow-Methods": "GET, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+    });
+    return new Response(null, { status: 204, headers });
   }
 
   if (origin === null) {
@@ -135,7 +148,21 @@ export function corsEarlyResponse(request: Request, policy: CorsPolicy): Respons
 }
 
 export function applyCors(request: Request, response: Response, policy: CorsPolicy): Response {
+  const url = new URL(request.url);
+  const isFederation =
+    url.pathname === "/api/v1/federation" || url.pathname === "/api/v1/federation/";
   const origin = request.headers.get("Origin");
+
+  if (isFederation) {
+    const headers = new Headers(response.headers);
+    headers.set("Access-Control-Allow-Origin", origin ?? "*");
+    return new Response(response.body, {
+      headers,
+      status: response.status,
+      statusText: response.statusText,
+    });
+  }
+
   if (origin === null || !policy.allowedOrigins.includes(origin)) {
     return response;
   }

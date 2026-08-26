@@ -21,8 +21,8 @@ describe("BETA-001 :: Beta Runtime Configuration Contract", () => {
     STEALTH_KV_NAMESPACE_ID: "stealth-kv-beta-prod-id",
     STEALTH_REGISTRY_CONTRACT_ID: "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
     STEALTH_POSTAGE_CONTRACT_ID: "CBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
-    STEALTH_APP_URL: "https://app.stealth.mail",
-    STEALTH_CORS_ALLOWED_ORIGINS: "https://app.stealth.mail",
+    STEALTH_APP_URL: "https://app.stealth.me",
+    STEALTH_CORS_ALLOWED_ORIGINS: "https://app.stealth.me",
   };
 
   describe("Profile Loading & Defaults", () => {
@@ -36,7 +36,7 @@ describe("BETA-001 :: Beta Runtime Configuration Contract", () => {
       expect(config.storage.storageDriver).toBe("memory");
       expect(config.storage.kvNamespaceId).toBe("stealth-kv-dev");
       expect(config.secrets.cursorSecret).toBe("dev-cursor-secret-change-me");
-      expect(config.relay.relayUrl).toBe("https://relay-testnet.stealth.mail");
+      expect(config.relay.relayUrl).toBe("https://relay-testnet.stealth.me");
       expect(config.contract.domainTag).toBe("Stealth_Mail_Protocol");
       expect(config.contract.protocolVersion).toBe("v1");
       expect(config.contract.policiesContractId).toBe("C".repeat(56));
@@ -62,8 +62,8 @@ describe("BETA-001 :: Beta Runtime Configuration Contract", () => {
         STEALTH_KV_NAMESPACE_ID: "stealth-kv-beta-prod-id",
         STEALTH_REGISTRY_CONTRACT_ID: "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
         STEALTH_POSTAGE_CONTRACT_ID: "CBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
-        STEALTH_APP_URL: "https://app.stealth.mail",
-        STEALTH_CORS_ALLOWED_ORIGINS: "https://app.stealth.mail",
+        STEALTH_APP_URL: "https://app.stealth.me",
+        STEALTH_CORS_ALLOWED_ORIGINS: "https://app.stealth.me",
         STEALTH_SMTP_PASSWORD: "valid",
         STEALTH_RELAY_API_KEY: "valid",
         STEALTH_STORAGE_SECRET: "valid",
@@ -81,7 +81,7 @@ describe("BETA-001 :: Beta Runtime Configuration Contract", () => {
       expect(config.network.horizonUrl).toBe("https://horizon.stellar.org");
       expect(config.storage.kvNamespaceId).toBe("stealth-kv-beta-prod-id");
       expect(config.secrets.cursorSecret).toBe("prod-secret-key-32-chars-long-valid");
-      expect(config.origin.appUrl).toBe("https://app.stealth.mail");
+      expect(config.origin.appUrl).toBe("https://app.stealth.me");
     });
   });
 
