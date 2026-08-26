@@ -16,6 +16,7 @@ export type BudgetOptions = {
   minSuccesses?: number;
   enforceFailureRate?: boolean;
   requireRateLimit?: boolean;
+  allowedStatuses?: number[];
   budget?: PerformanceBudget;
 };
 
@@ -48,6 +49,7 @@ export function evaluateBudget(
   const p99 = percentile(result.latenciesMs, 0.99);
   const minSuccesses = options.minSuccesses ?? 1;
   const enforceFailureRate = options.enforceFailureRate ?? true;
+  const allowedStatuses = options.allowedStatuses ?? [];
 
   if (result.totalRequests === 0 || result.failures === result.totalRequests) {
     if (minSuccesses > 0 || enforceFailureRate) {
@@ -77,6 +79,16 @@ export function evaluateBudget(
     throw new Error(
       `${name}: expected at least ${budget.minRateLimitHits} 429 responses, got ${result.statusCodes[429] ?? 0}`,
     );
+  }
+  if (allowedStatuses.length > 0) {
+    const unexpected = Object.keys(result.statusCodes)
+      .map(Number)
+      .filter((status) => status !== 0 && !allowedStatuses.includes(status));
+    if (unexpected.length > 0) {
+      throw new Error(
+        `${name}: unexpected status codes ${unexpected.join(", ")}; expected ${allowedStatuses.join(", ")}`,
+      );
+    }
   }
   return { ok: true };
 }

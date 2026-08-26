@@ -16,6 +16,15 @@ function result(overrides: Partial<LoadTestResult> = {}): LoadTestResult {
     totalRequests: 10,
     successes: 10,
     failures: 0,
+    networkErrors: 0,
+    durationMs: 100,
+    resource: {
+      heapUsedBytes: 0,
+      externalBytes: 0,
+      rssBytes: 0,
+      cpuUserMicros: 0,
+      cpuSystemMicros: 0,
+    },
     ...overrides,
   };
 }
@@ -55,5 +64,14 @@ describe("BETA-083 performance budget", () => {
     expect(() => evaluateBudget("limits", result(), { budget, requireRateLimit: true })).toThrow(
       /429/,
     );
+  });
+
+  it("fails when a scenario returns an unapproved status", () => {
+    expect(() =>
+      evaluateBudget("unexpected", result({ statusCodes: { 200: 9, 503: 1 } }), {
+        budget,
+        allowedStatuses: [200],
+      }),
+    ).toThrow(/unexpected status codes 503/);
   });
 });

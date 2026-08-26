@@ -293,3 +293,27 @@ if (!summary.allMet) {
 - [Operational Alerts and Runbooks](ALERTS.md) - Diagnostic steps for auth spikes, relay failures, chain dead-letters, and storage alerts.
 - [Prometheus Alert Rules](alerts.yaml) - Alert rule configurations.
 - [Release Gates Checklist](RELEASE_GATES.md) - Pre-release validation rules.
+
+## BETA-083 Capacity Guidance
+
+Run the repeatable local gate with `LOAD_REPORT_PATH` set to a redacted JSON
+artifact path:
+
+```bash
+LOAD_REPORT_PATH=test-results/beta-083-load.json bun run test:load
+```
+
+The harness exercises health reads, registration bursts, login abuse,
+mailbox polling, malformed encrypted submissions, attachment authorization,
+and concurrent settlement idempotency. The report contains only status codes,
+latency percentiles, process memory deltas, CPU time, runtime versions, and
+the configured API URL; it never records request bodies, credentials, tokens,
+message content, or keys.
+
+The checked-in CI budget is the beta starting ceiling: 10% maximum failure
+rate, 1,200 ms p90, and 2,500 ms p99. Treat a breach as a release blocker.
+Before increasing traffic, repeat the same suite against a production-like
+stack and attach the report with user, message, and attachment volumes,
+queue age/depth, storage operation rate, and RPC pressure from the platform
+metrics. The next scaling trigger is any sustained budget breach, queue age
+above the operator SLO, or resource saturation that leaves less than 30% headroom.
