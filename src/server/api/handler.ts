@@ -238,6 +238,7 @@ export function createRouteHandler<
         method,
         path,
         status: String(status),
+        error_type: apiErr.code,
       });
 
       const outcome = status === 401 || status === 403 ? "security_denied" : "unexpected_error";

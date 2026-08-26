@@ -1,35 +1,182 @@
 groups:
-  - name: stealth-api-anomalies
+  - name: stealth-beta-operational-alerts
     rules:
-      - alert: StealthAuthInvalidSignaturesSpike
-        expr: (sum(rate(api_errors_total{status="401"}[5m])) / sum(rate(api_requests_total[5m]))) > 0.05
+      # 1. Auth Abuse & Signature Spikes
+      - alert: StealthAuthAbuseSpike
+        expr: (sum(rate(api_errors_total{status=~"401|403|409|429", path=~".*/auth.*"}[5m])) / sum(rate(api_requests_total{path=~".*/auth.*"}[5m]))) > 0.05
         for: 5m
         labels:
-          severity: warning
+          severity: critical
           tier: api
+          owner: security-oncall
         annotations:
-          summary: "Spike in invalid authentication signatures detected"
-          description: "Over the last 5 minutes, 401 unauthorized errors represent {{ $value | humanizePercentage }} of all requests on the API, indicating a potential signature generation issue or credential spraying."
-          runbook_url: "https://github.com/Dopezapha/stealth/blob/main/docs/deployment/ALERTS.md#runbook-stealthauthinvalidsignaturesspike"
+          summary: "Spike in authentication abuse, signature spoofing, or replay attempts"
+          description: "Over the last 5 minutes, 401/403/409/429 authentication errors represent {{ $value | humanizePercentage }} of all auth requests on the API, indicating possible credential spraying, replay attacks, or client signature drift."
+          user_impact: "Legitimate users may experience login failures, invalid signature rejections, or account lockout."
+          threshold: "> 5% error rate over 5m"
+          deduplication: "Group by tier, alertname"
+          silence_rule: 'alertname="StealthAuthAbuseSpike", environment="preview|test"'
+          dashboard_url: "https://grafana.stealth.mail/d/auth-security/auth-metrics-and-abuse"
+          runbook_url: "https://github.com/Stellar-Mail/stealth/blob/main/docs/deployment/ALERTS.md#runbook-auth-abuse-spike"
 
-      - alert: StealthAuthReplayAttemptsDetected
-        expr: (sum(rate(api_errors_total{status="409"}[5m])) / sum(rate(api_requests_total[5m]))) > 0.03
-        for: 5m
+      # 2. Account Provisioning Failure
+      - alert: StealthProvisioningFailureSpike
+        expr: (sum(rate(api_errors_total{status=~"4..|5..", path=~".*/accounts.*|.*/onboarding.*|.*/users.*"}[15m])) / sum(rate(api_requests_total{path=~".*/accounts.*|.*/onboarding.*|.*/users.*"}[15m]))) > 0.01
+        for: 15m
         labels:
-          severity: warning
+          severity: critical
           tier: api
+          owner: identity-oncall
         annotations:
-          summary: "Spike in potential replay attempts or duplicate mutations"
-          description: "Over the last 5 minutes, 409 conflict errors represent {{ $value | humanizePercentage }} of all requests, indicating potential message replays or idempotency failures."
-          runbook_url: "https://github.com/Dopezapha/stealth/blob/main/docs/deployment/ALERTS.md#runbook-stealthauthreplayattemptsdetected"
+          summary: "Elevated error rate in beta account provisioning"
+          description: "Over the last 15 minutes, account provisioning failures represent {{ $value | humanizePercentage }} of total provisioning operations, indicating username reservation conflicts, wallet linking failures, or key directory errors."
+          user_impact: "New beta users are blocked from creating accounts, claiming usernames, or linking wallets."
+          threshold: "> 1% error rate over 15m"
+          deduplication: "Group by tier, alertname"
+          silence_rule: 'alertname="StealthProvisioningFailureSpike", step="wallet_link_rejection"'
+          dashboard_url: "https://grafana.stealth.mail/d/provisioning/account-provisioning-health"
+          runbook_url: "https://github.com/Stellar-Mail/stealth/blob/main/docs/deployment/ALERTS.md#runbook-provisioning-failure-spike"
 
-      - alert: StealthSustainedThrottling
-        expr: (sum(rate(api_errors_total{status="429"}[10m])) / sum(rate(api_requests_total[10m]))) > 0.10
+      # 3. Queue Age & Processing Stalls
+      - alert: StealthChainQueueAgeStalled
+        expr: (chain_queue_latency > 5000) or (chain_queue_depth > 250)
         for: 10m
         labels:
           severity: warning
-          tier: api
+          tier: backend
+          owner: core-ops
         annotations:
-          summary: "Sustained high rate of client throttling (HTTP 429)"
-          description: "Over the last 10 minutes, 10% or more of requests have been throttled (HTTP 429), indicating either an active denial-of-service attempt or a misconfigured high-volume client."
-          runbook_url: "https://github.com/Dopezapha/stealth/blob/main/docs/deployment/ALERTS.md#runbook-stealthsustainedthrottling"
+          summary: "Chain job queue processing latency is elevated or stalled"
+          description: "Chain queue processing latency has exceeded 5,000 ms or queue backlog depth has exceeded 250 jobs for 10 minutes."
+          user_impact: "Asynchronous postage settlements, relay confirmations, and blockchain transactions are experiencing high latency."
+          threshold: "latency > 5000ms OR queue_depth > 250 for 10m"
+          deduplication: "Group by tier, queue_name"
+          silence_rule: 'alertname="StealthChainQueueAgeStalled", queue_name="non_critical_maintenance"'
+          dashboard_url: "https://grafana.stealth.mail/d/chain-queues/soroban-and-job-queues"
+          runbook_url: "https://github.com/Stellar-Mail/stealth/blob/main/docs/deployment/ALERTS.md#runbook-chain-queue-age-stalled"
+
+      # 4. Dead Letters Detected
+      - alert: StealthChainDeadLettersDetected
+        expr: sum(rate(chain_dead_letters_total[10m])) > 0
+        for: 5m
+        labels:
+          severity: critical
+          tier: backend
+          owner: core-ops
+        annotations:
+          summary: "Unrecoverable dead letter jobs recorded in chain queue"
+          description: "Dead letters have been moved to the unrecoverable DLQ after exhausting maximum retry attempts on Soroban contract invocations or relay settlement."
+          user_impact: "Affected transactions or message receipts will not settle automatically without operator intervention."
+          threshold: "> 0 dead letters over 10m"
+          deduplication: "Group by tier, job_type, error_code"
+          silence_rule: 'alertname="StealthChainDeadLettersDetected", job_type="test_mock"'
+          dashboard_url: "https://grafana.stealth.mail/d/dlq/dead-letter-triage"
+          runbook_url: "https://github.com/Stellar-Mail/stealth/blob/main/docs/deployment/ALERTS.md#runbook-chain-dead-letters-detected"
+
+      # 5. Storage & Object Store Errors
+      - alert: StealthStorageObjectErrorRate
+        expr: (sum(rate(api_errors_total{status=~"5..", path=~".*/storage.*|.*/envelopes.*|.*/blobs.*"}[5m])) / sum(rate(api_requests_total{path=~".*/storage.*|.*/envelopes.*|.*/blobs.*"}[5m]))) > 0.0001
+        for: 5m
+        labels:
+          severity: critical
+          tier: storage
+          owner: storage-oncall
+        annotations:
+          summary: "Storage backend 5xx error rate spike on Cloudflare R2 / KV"
+          description: "Encrypted envelope storage operations (reads/writes) are failing at a rate exceeding 0.01% of total storage requests over 5 minutes."
+          user_impact: "Clients cannot fetch message payloads, upload attachments, or persist mailbox sync state."
+          threshold: "> 0.01% error rate over 5m"
+          deduplication: "Group by tier, backend"
+          silence_rule: 'alertname="StealthStorageObjectErrorRate", backend="memory"'
+          dashboard_url: "https://grafana.stealth.mail/d/storage/r2-and-kv-storage-reliability"
+          runbook_url: "https://github.com/Stellar-Mail/stealth/blob/main/docs/deployment/ALERTS.md#runbook-storage-object-error-rate"
+
+      # 6. Indexer Gaps & Sync Drift
+      - alert: StealthIndexerGapsDetected
+        expr: (sum(rate(sync_gaps_detected_total[5m])) > 5) or (sum(rate(sync_errors_total[5m])) > 1)
+        for: 5m
+        labels:
+          severity: warning
+          tier: sync
+          owner: mailbox-oncall
+        annotations:
+          summary: "Mailbox indexer sequence gaps or sync checkpoint drift detected"
+          description: "Sync stream operations detected sequence gaps exceeding 5/s or sync errors exceeding 1/s over 5 minutes."
+          user_impact: "Mailbox clients may experience incomplete message lists or out-of-order delivery receipts until sequence rewind completes."
+          threshold: "gaps > 5/s OR sync_errors > 1/s over 5m"
+          deduplication: "Group by tier, stream_type"
+          silence_rule: 'alertname="StealthIndexerGapsDetected", stream_type="ephemeral_preview"'
+          dashboard_url: "https://grafana.stealth.mail/d/sync/mailbox-indexing-and-sync"
+          runbook_url: "https://github.com/Stellar-Mail/stealth/blob/main/docs/deployment/ALERTS.md#runbook-indexer-gaps-detected"
+
+      # 7. Soroban / Stellar RPC Network Failures
+      - alert: StealthRpcFailuresSpike
+        expr: ((sum(rate(api_errors_total{error_type=~"ERR_RPC_TIMEOUT|ERR_RPC_UNAVAILABLE|ERR_RPC_FAILED"}[5m])) / sum(rate(api_requests_total[5m]))) > 0.01) or (histogram_quantile(0.95, sum(rate(api_latency_bucket{path=~".*/postage.*|.*/rpc.*"}[5m])) by (le)) > 3000)
+        for: 5m
+        labels:
+          severity: critical
+          tier: blockchain
+          owner: core-ops
+        annotations:
+          summary: "Stellar Horizon or Soroban RPC network failure spike"
+          description: "Stellar network RPC calls (Horizon / Soroban) are returning errors exceeding 1% of total requests or p95 latency exceeding 3,000 ms over 5 minutes."
+          user_impact: "Wallet link verification, postage fee quotes, and on-chain contract invocations are timing out or failing."
+          threshold: "> 1% error rate OR latency > 3000ms over 5m"
+          deduplication: "Group by tier, endpoint"
+          silence_rule: 'alertname="StealthRpcFailuresSpike", network="futurenet"'
+          dashboard_url: "https://grafana.stealth.mail/d/stellar/soroban-rpc-status"
+          runbook_url: "https://github.com/Stellar-Mail/stealth/blob/main/docs/deployment/ALERTS.md#runbook-rpc-failures-spike"
+
+      # 8. Policy Drift & Mailbox Rule Desynchronization
+      - alert: StealthPolicyDriftDetected
+        expr: (sum(rate(api_errors_total{status="422", path=~".*/policy.*"}[5m])) / sum(rate(api_requests_total{path=~".*/policy.*"}[5m]))) > 0.005
+        for: 5m
+        labels:
+          severity: warning
+          tier: api
+          owner: policy-oncall
+        annotations:
+          summary: "Mailbox admission rule desynchronization or policy evaluation drift"
+          description: "Mailbox rule evaluation encountered policy parsing errors or fallback default rules exceeding 0.5% over 5 minutes."
+          user_impact: "Inbound messages may be evaluated against fallback default rules rather than customized recipient sender policies."
+          threshold: "> 0.5% error rate over 5m"
+          deduplication: "Group by tier, alertname"
+          silence_rule: 'alertname="StealthPolicyDriftDetected", environment="test"'
+          dashboard_url: "https://grafana.stealth.mail/d/policy/mailbox-policy-admission"
+          runbook_url: "https://github.com/Stellar-Mail/stealth/blob/main/docs/deployment/ALERTS.md#runbook-policy-drift-detected"
+
+      # 9. Relay Send Failure & Outbound Drops
+      - alert: StealthRelaySendFailureSpike
+        expr: (sum(rate(api_errors_total{status=~"5..", path=~".*/relay.*|.*/send.*"}[15m])) / sum(rate(api_requests_total{path=~".*/relay.*|.*/send.*"}[15m]))) > 0.005
+        for: 15m
+        labels:
+          severity: critical
+          tier: relay
+          owner: relay-oncall
+        annotations:
+          summary: "Elevated outbound relay transmission or delivery drop rate"
+          description: "Over the last 15 minutes, outbound relay dispatch failures represent {{ $value | humanizePercentage }} of relay requests, violating the 99.5% Relay Delivery SLI."
+          user_impact: "Outbound encrypted messages fail to dispatch to recipient mail relays and are moved into retry queues."
+          threshold: "> 0.5% error rate over 15m"
+          deduplication: "Group by tier, stage"
+          silence_rule: 'alertname="StealthRelaySendFailureSpike", stage="dry_run"'
+          dashboard_url: "https://grafana.stealth.mail/d/relay/relay-delivery-pipeline"
+          runbook_url: "https://github.com/Stellar-Mail/stealth/blob/main/docs/deployment/ALERTS.md#runbook-relay-send-failure-spike"
+
+      # 10. Multi-Window SLO Error Budget Burn Rate
+      - alert: StealthSloBurnRateCritical
+        expr: (sum(rate(api_errors_total{status=~"5..", path!~"/api/v1/health|/api/v1/openapi.json", synthetic!="true"}[1h])) / sum(rate(api_requests_total{path!~"/api/v1/health|/api/v1/openapi.json", synthetic!="true"}[1h])) > (14.4 * (1 - 0.999))) or (sum(rate(api_errors_total{status=~"5..", path!~"/api/v1/health|/api/v1/openapi.json", synthetic!="true"}[6h])) / sum(rate(api_requests_total{path!~"/api/v1/health|/api/v1/openapi.json", synthetic!="true"}[6h])) > (6.0 * (1 - 0.999)))
+        for: 5m
+        labels:
+          severity: critical
+          tier: slo
+          owner: sre-oncall
+        annotations:
+          summary: "Critical multi-window SLO error budget burn rate detected"
+          description: "API Availability SLO error budget is burning at > 14.4x over 1 hour (2% monthly budget consumed in 1 hr) or > 6.0x over 6 hours (5% monthly budget consumed in 6 hrs)."
+          user_impact: "Severe user-facing availability degradation; rapid depletion of the monthly error budget."
+          threshold: "1h burn rate > 14.4x OR 6h burn rate > 6.0x"
+          deduplication: "Group by tier, sli_name"
+          silence_rule: 'alertname="StealthSloBurnRateCritical", environment="preview"'
+          dashboard_url: "https://grafana.stealth.mail/d/slo/error-budget-and-burn-rates"
+          runbook_url: "https://github.com/Stellar-Mail/stealth/blob/main/docs/deployment/ALERTS.md#runbook-slo-burn-rate-critical"

@@ -56,6 +56,7 @@ describe("createRouteHandler", () => {
       method: "POST",
       path: "/api/test",
       status: "400",
+      error_type: "bad_request",
     });
   });
 
