@@ -554,6 +554,8 @@ jobs:
 
       - name: Start dev server
         run: bun run dev &
+        env:
+          STEALTH_AUTH_ALLOW_HEADER_ONLY: "1"
 
       - name: Wait for dev server
         run: npx --yes wait-on@8.0.1 http://127.0.0.1:5173 --timeout 120000
