@@ -441,13 +441,13 @@ export function RequestsTriageBoard({
             initial={{ y: 50, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 50, opacity: 0 }}
-            className="absolute bottom-6 left-1/2 z-40 flex -translate-x-1/2 items-center gap-4 rounded-xl border border-white/10 bg-black/85 px-6 py-3 shadow-2xl backdrop-blur-md"
+            className="absolute bottom-20 md:bottom-6 left-1/2 z-40 flex max-w-[calc(100vw-1rem)] flex-wrap md:flex-nowrap -translate-x-1/2 items-center gap-2 sm:gap-4 rounded-xl border border-white/10 bg-black/90 px-3 sm:px-6 py-2.5 sm:py-3 shadow-2xl backdrop-blur-md"
           >
-            <span className="text-xs text-foreground/80 font-medium">
-              {selectedIds.size} request{selectedIds.size > 1 ? "s" : ""} selected
+            <span className="text-xs text-foreground/80 font-medium whitespace-nowrap">
+              {selectedIds.size} selected
             </span>
-            <div className="h-4 w-px bg-white/10" />
-            <div className="flex items-center gap-2">
+            <div className="hidden sm:block h-4 w-px bg-white/10" />
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
               <button
                 onClick={() => setBulkAction("block")}
                 className="rounded-lg border border-red-500/20 bg-red-500/5 px-2.5 py-1.5 text-xs font-medium text-red-400 hover:bg-red-500/10 transition"

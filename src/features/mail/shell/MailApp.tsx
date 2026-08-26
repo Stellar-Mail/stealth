@@ -313,40 +313,80 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
                   </Suspense>
                 ) : (
                   <div className="flex h-full w-full min-w-0">
-                    <div
-                      className={cn(
-                        "min-w-0",
-                        isMobile
-                          ? "w-full"
-                          : layout.compactMode || preferences.compactMode
-                            ? "w-[320px] shrink-0"
-                            : "w-[360px] shrink-0",
-                      )}
-                    >
-                      <EmailList
-                        emails={source.emails}
-                        selectedId={navigation.selectedId}
-                        onSelect={navigation.setSelectedId}
-                        folder={navigation.folder}
-                        filters={navigation.filters}
-                        customFolder={navigation.customFolder}
-                        showAvatars
-                        useMobile={isMobile}
-                        onArchive={actions.handleArchive}
-                        onStar={actions.handleStar}
-                        onSnooze={(email) =>
-                          snooze.open({ emailId: email.id, subject: email.subject })
-                        }
-                        onMove={actions.handleMove}
-                        hasMore={source.hasMore}
-                        onLoadMore={() => {
-                          void source.loadMore();
-                        }}
-                        isLoadingMore={source.isLoadingMore}
-                      />
-                    </div>
-                    {!isMobile && (
+                    {isMobile ? (
+                      navigation.mobileView === "reader" && readerEmail ? (
+                        <div className="min-w-0 flex-1 w-full h-full">
+                          <EmailView
+                            email={readerEmail}
+                            thread={threadRead.thread}
+                            threadView={threadRead.view}
+                            onRetryThread={() => {
+                              void threadRead.retry();
+                            }}
+                            actions={actions.emailActions}
+                            onBack={() => navigation.setMobileView("list")}
+                          />
+                        </div>
+                      ) : (
+                        <div className="min-w-0 w-full h-full">
+                          <EmailList
+                            emails={source.emails}
+                            selectedId={navigation.selectedId}
+                            onSelect={(id) => {
+                              navigation.setSelectedId(id);
+                              navigation.setMobileView("reader");
+                            }}
+                            folder={navigation.folder}
+                            filters={navigation.filters}
+                            customFolder={navigation.customFolder}
+                            showAvatars
+                            useMobile={true}
+                            onArchive={actions.handleArchive}
+                            onStar={actions.handleStar}
+                            onSnooze={(email) =>
+                              snooze.open({ emailId: email.id, subject: email.subject })
+                            }
+                            onMove={actions.handleMove}
+                            hasMore={source.hasMore}
+                            onLoadMore={() => {
+                              void source.loadMore();
+                            }}
+                            isLoadingMore={source.isLoadingMore}
+                          />
+                        </div>
+                      )
+                    ) : (
                       <>
+                        <div
+                          className={cn(
+                            "min-w-0",
+                            layout.compactMode || preferences.compactMode
+                              ? "w-[320px] shrink-0"
+                              : "w-[360px] shrink-0",
+                          )}
+                        >
+                          <EmailList
+                            emails={source.emails}
+                            selectedId={navigation.selectedId}
+                            onSelect={navigation.setSelectedId}
+                            folder={navigation.folder}
+                            filters={navigation.filters}
+                            customFolder={navigation.customFolder}
+                            showAvatars
+                            useMobile={false}
+                            onArchive={actions.handleArchive}
+                            onStar={actions.handleStar}
+                            onSnooze={(email) =>
+                              snooze.open({ emailId: email.id, subject: email.subject })
+                            }
+                            onMove={actions.handleMove}
+                            hasMore={source.hasMore}
+                            onLoadMore={() => {
+                              void source.loadMore();
+                            }}
+                            isLoadingMore={source.isLoadingMore}
+                          />
+                        </div>
                         <div className="min-w-0 flex-1">
                           <EmailView
                             email={readerEmail}

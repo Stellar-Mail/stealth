@@ -6,7 +6,8 @@ export default defineConfig({
   testDir: "./tests/e2e",
   // Workflow 2 & 4 are Vitest integration suites. Keep them under e2e for protocol/security
   // ownership, but prevent Playwright from loading Vitest hooks as browser tests.
-  testIgnore: ["**/live-beta/**", "**/visual/**", "**/security/**"],
+  // browser-compat.spec.ts is run under playwright.visual.config.ts for cross-browser screenshot diffs.
+  testIgnore: ["**/live-beta/**", "**/visual/browser-compat.spec.ts", "**/security/**"],
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,

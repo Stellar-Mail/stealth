@@ -19,6 +19,7 @@ export function useMailNavigation(emails: Email[], liveCounts?: Record<MailFolde
   const [filters, setFilters] = useState<MailFilters>(defaultMailFilters);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [mobileView, setMobileView] = useState<"list" | "reader">("list");
 
   const folderCounts = useMemo(() => liveCounts ?? buildFolderCounts(emails), [emails, liveCounts]);
   const visibleEmails = useMemo(
@@ -34,6 +35,7 @@ export function useMailNavigation(emails: Email[], liveCounts?: Record<MailFolde
   const selectFolder = useCallback((next: MailFolder) => {
     setFolder(next);
     setCustomFolder(null);
+    setMobileView("list");
   }, []);
 
   const openMessage = useCallback((email: Email) => {
@@ -42,6 +44,7 @@ export function useMailNavigation(emails: Email[], liveCounts?: Record<MailFolde
     setFolder(email.folder);
     setSelectedId(email.id);
     setSelectedIds([]);
+    setMobileView("reader");
   }, []);
 
   useEffect(() => {
@@ -71,5 +74,7 @@ export function useMailNavigation(emails: Email[], liveCounts?: Record<MailFolde
     selected,
     selectFolder,
     openMessage,
+    mobileView,
+    setMobileView,
   };
 }

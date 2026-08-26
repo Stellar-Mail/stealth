@@ -33,7 +33,12 @@ export default defineConfig({
       // capture a settled frame regardless of motion preferences.
       animations: "disabled",
       caret: "hide",
-      maxDiffPixelRatio: 0.02,
+      // CI uses Linux (FreeType) canonical baselines — strict 2% diff.
+      // Local Windows dev runs use DirectWrite font rasterisation which
+      // produces ~3-5% pixel diffs on large text-heavy views vs the Linux
+      // baselines. The relaxed 8% threshold prevents false-positive failures
+      // on developer machines while CI remains strictly enforced.
+      maxDiffPixelRatio: process.env.CI ? 0.02 : 0.08,
       threshold: 0.2,
     },
   },

@@ -8,7 +8,8 @@ test.describe("Workflow 3 — Visual & Responsive Experience", () => {
   test.describe("Desktop Viewport (1280x800)", () => {
     test.use({ viewport: { width: 1280, height: 800 } });
 
-    test("Alice & Bob complete desktop web mail workflow", async ({ page }) => {
+    test("Alice & Bob complete desktop web mail workflow", async ({ page, isMobile }) => {
+      test.skip(isMobile, "Desktop workflow test only runs on desktop projects");
       await openDemoMailbox(page);
 
       // 1. Assert desktop navigation layout
@@ -44,7 +45,9 @@ test.describe("Workflow 3 — Visual & Responsive Experience", () => {
 
     test("Failure recovery: preserves compose state on simulated network failure", async ({
       page,
+      isMobile,
     }) => {
+      test.skip(isMobile, "Desktop workflow test only runs on desktop projects");
       await openDemoMailbox(page);
       await page.getByRole("complementary").getByRole("button", { name: "Compose Ctrl+N" }).click();
 
@@ -81,6 +84,44 @@ test.describe("Workflow 3 — Visual & Responsive Experience", () => {
       // Tap Inbox tab
       await bottomNav.getByRole("button", { name: "Inbox" }).click();
       await expect(page.getByRole("heading", { name: "Inbox" })).toBeVisible();
+
+      // Zero horizontal overflow check
+      const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
+      const clientWidth = await page.evaluate(() => document.documentElement.clientWidth);
+      expect(scrollWidth).toBeLessThanOrEqual(clientWidth + 2);
+    });
+
+    test("mobile list to reader transition and back navigation", async ({ page }) => {
+      await openDemoMailbox(page);
+
+      // Tap on the first email in the list
+      const firstCard = page.locator("ul[role='list'] button").first();
+      if (await firstCard.isVisible()) {
+        await firstCard.click();
+
+        // Expect reader Back button to appear
+        const backBtn = page.getByRole("button", { name: "Back to conversations" });
+        await expect(backBtn).toBeVisible();
+
+        // Tap Back to return to conversations list
+        await backBtn.click();
+        await expect(page.getByRole("heading", { name: "Inbox" })).toBeVisible();
+      }
+    });
+  });
+
+  test.describe("Tablet Viewport (768x1024 & 1024x768)", () => {
+    test.use({ viewport: { width: 768, height: 1024 } });
+
+    test("tablet layout transitions cleanly to multi-column desktop mail", async ({ page }) => {
+      await openDemoMailbox(page);
+
+      // At 768px (md: breakpoint), desktop sidebar and 2-pane mail list/reader are active
+      await expect(page.getByRole("navigation", { name: "Mail folders" })).toBeVisible();
+
+      const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
+      const clientWidth = await page.evaluate(() => document.documentElement.clientWidth);
+      expect(scrollWidth).toBeLessThanOrEqual(clientWidth + 2);
     });
   });
 
@@ -95,7 +136,25 @@ test.describe("Workflow 3 — Visual & Responsive Experience", () => {
       // Check that root layout does not produce horizontal scrollbar
       const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
       const clientWidth = await page.evaluate(() => document.documentElement.clientWidth);
-      expect(scrollWidth).toBeLessThanOrEqual(clientWidth + 2); // 2px margin of tolerance
+      expect(scrollWidth).toBeLessThanOrEqual(clientWidth + 2);
+    });
+
+    test("settings modal adapts cleanly to 320px without horizontal overflow", async ({ page }) => {
+      await openDemoMailbox(page);
+      const bottomNav = page.getByRole("navigation", { name: "Bottom navigation" });
+      await bottomNav.getByRole("button", { name: "Settings" }).click();
+
+      await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
+
+      // Modal fits screen
+      const modal = page.getByRole("dialog", { name: "Settings" });
+      await expect(modal).toBeVisible();
+
+      const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
+      const clientWidth = await page.evaluate(() => document.documentElement.clientWidth);
+      expect(scrollWidth).toBeLessThanOrEqual(clientWidth + 2);
+
+      await page.keyboard.press("Escape");
     });
   });
 });

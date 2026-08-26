@@ -456,16 +456,16 @@ export function AttachmentPreviewDrawer({
         aria-label={`Attachment preview: ${sanitizeFilenameForDisplay(attachment.name)}`}
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-white/5 px-6 py-4.5">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-white/8 bg-white/4 shadow-[inset_0_1px_0_oklch(1_0_0/0.08)]">
+        <div className="flex flex-wrap sm:flex-nowrap items-center justify-between border-b border-white/5 px-4 py-3 sm:px-6 sm:py-4.5 gap-2 shrink-0">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <div className="grid h-9 w-9 sm:h-10 sm:w-10 shrink-0 place-items-center rounded-xl border border-white/8 bg-white/4 shadow-[inset_0_1px_0_oklch(1_0_0/0.08)]">
               {getHeaderIcon(type)}
             </div>
             <div className="min-w-0">
-              <SheetTitle className="truncate text-[15px] font-semibold text-foreground/95">
+              <SheetTitle className="truncate text-sm sm:text-[15px] font-semibold text-foreground/95">
                 {sanitizeFilenameForDisplay(attachment.name)}
               </SheetTitle>
-              <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground/80 font-medium">
+              <div className="flex items-center gap-1.5 text-[10.5px] sm:text-[11px] text-muted-foreground/80 font-medium">
                 <span>{attachment.size}</span>
                 <span className="h-1 w-1 rounded-full bg-muted-foreground/40" />
                 <span className="uppercase">{attachment.type} attachment</span>
@@ -474,7 +474,7 @@ export function AttachmentPreviewDrawer({
           </div>
 
           {/* Action buttons */}
-          <div className="flex items-center gap-2 pr-8">
+          <div className="flex items-center gap-1.5 sm:gap-2 pr-6 sm:pr-8">
             {(isJSON || isText || isXML) && download.state === "ready" && (
               <button
                 onClick={handleCopy}

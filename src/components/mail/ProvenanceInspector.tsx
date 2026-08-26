@@ -52,10 +52,10 @@ export function ProvenanceInspector({
             aria-modal="true"
             aria-labelledby={headingId}
             tabIndex={-1}
-            className="glass-modal fixed left-1/2 top-1/2 z-[60] w-[min(540px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl shadow-2xl focus:outline-none"
+            className="glass-modal fixed left-1/2 top-1/2 z-[60] w-[min(540px,calc(100vw-1rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl shadow-2xl focus:outline-none"
           >
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-white/5 px-5 py-4">
+            <div className="flex items-center justify-between border-b border-white/5 px-4 py-3 sm:px-5 sm:py-4">
               <div className="flex items-center gap-2">
                 <Cpu className="h-4 w-4 text-emerald-300" aria-hidden="true" />
                 <h3 id={headingId} className="text-sm font-semibold text-foreground">
@@ -73,7 +73,7 @@ export function ProvenanceInspector({
             </div>
 
             {/* Content Body */}
-            <div className="scrollbar-thin max-h-[calc(80vh-120px)] overflow-y-auto p-5 space-y-5">
+            <div className="scrollbar-thin max-h-[calc(80vh-120px)] overflow-y-auto p-4 sm:p-5 space-y-4 sm:space-y-5">
               <p className="text-xs leading-relaxed text-muted-foreground/90">
                 {details.description}
               </p>
@@ -86,8 +86,11 @@ export function ProvenanceInspector({
               >
                 <div className="divide-y divide-white/[0.05]">
                   {details.keyValuePairs.map((pair, idx) => (
-                    <div key={idx} className="grid grid-cols-[140px_1fr] p-3 gap-2">
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground self-center">
+                    <div
+                      key={idx}
+                      className="grid grid-cols-1 sm:grid-cols-[140px_1fr] p-3 gap-1 sm:gap-2"
+                    >
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground self-start sm:self-center">
                         {pair.label}
                       </span>
                       <span

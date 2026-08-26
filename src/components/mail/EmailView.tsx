@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Archive,
+  ArrowLeft,
   BadgeCheck,
   CalendarClock,
   CheckCheck,
@@ -84,6 +85,7 @@ export type EmailViewActions = {
   }) => void;
   onRetrySend?: (email: Email) => void;
   onCancelSend?: (email: Email) => void;
+  onBack?: () => void;
 };
 
 export function EmailView({
@@ -92,12 +94,14 @@ export function EmailView({
   thread = null,
   threadView = { kind: "idle" },
   onRetryThread,
+  onBack,
 }: {
   email: Email | null;
   actions?: EmailViewActions;
   thread?: MailThread | null;
   threadView?: ThreadReadView;
   onRetryThread?: () => void;
+  onBack?: () => void;
 }) {
   const [replyMenuOpen, setReplyMenuOpen] = useState(false);
   const [inlineMode, setInlineMode] = useState<ComposeMode | null>(null);
@@ -118,7 +122,7 @@ export function EmailView({
   const outboxEntry = email ? getEntry(email.id) : null;
 
   return (
-    <section className="mail-reader-atmosphere relative m-3 ml-0 flex h-[calc(100vh-3.5rem-1.5rem)] flex-1 flex-col overflow-hidden rounded-[8px]">
+    <section className="mail-reader-atmosphere relative m-3 sm:ml-0 flex h-[calc(100vh-3.5rem-1.5rem)] flex-1 flex-col overflow-hidden rounded-[8px]">
       <AnimatePresence mode="wait">
         {threadView.kind === "loading" ? (
           <MailReaderSkeleton key="thread-loading" className="h-full" />
@@ -149,8 +153,19 @@ export function EmailView({
             transition={{ duration: 0.35, ease: [0.2, 0.8, 0.2, 1] }}
             className="flex h-full flex-col"
           >
-            <div className="flex flex-wrap items-center gap-2 border-b border-white/5 px-4 py-2.5">
-              <div className="flex-1">
+            <div className="flex flex-wrap items-center gap-2 border-b border-white/5 px-3 py-2 sm:px-4 sm:py-2.5">
+              {(actions.onBack || onBack) && (
+                <motion.button
+                  whileTap={{ scale: 0.94 }}
+                  onClick={actions.onBack || onBack}
+                  aria-label="Back to conversations"
+                  className="flex md:hidden items-center gap-1 rounded-md border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-muted-foreground transition hover:bg-white/10 hover:text-foreground shrink-0 min-h-[36px]"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  <span className="text-xs">Back</span>
+                </motion.button>
+              )}
+              <div className="flex-1 min-w-0">
                 <span className="rounded-full bg-white/5 border border-white/10 px-2.5 py-0.5 text-[10px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
                   {outboxEntry.status === "failed" ? "Failed Delivery" : "Pending Outbox"}
                 </span>
@@ -180,13 +195,13 @@ export function EmailView({
               </div>
             </div>
 
-            <div className="scrollbar-thin flex-1 overflow-y-auto px-5 py-5 sm:px-7">
+            <div className="scrollbar-thin flex-1 overflow-y-auto px-4 py-4 sm:px-7 sm:py-5">
               <article className="mx-auto w-full max-w-[920px]">
                 <div className="border-b border-white/[0.07] pb-5">
                   <p className="mail-reader-meta mb-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
                     Outbound Message
                   </p>
-                  <h1 className="mail-reader-title max-w-[720px] text-[26px] font-semibold leading-[1.12] text-foreground sm:text-[30px]">
+                  <h1 className="mail-reader-title max-w-[720px] text-[22px] font-semibold leading-[1.15] text-foreground sm:text-[30px] break-words">
                     {email.subject}
                   </h1>
                   <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -259,8 +274,19 @@ export function EmailView({
             transition={{ duration: 0.35, ease: [0.2, 0.8, 0.2, 1] }}
             className="flex h-full flex-col"
           >
-            <div className="flex min-w-0 flex-nowrap items-center gap-2 border-b border-white/5 px-4 py-2.5">
-              <div className="w-[280px] min-w-0 shrink">
+            <div className="flex min-w-0 flex-wrap sm:flex-nowrap items-center gap-2 border-b border-white/5 px-3 py-2 sm:px-4 sm:py-2.5">
+              {(actions.onBack || onBack) && (
+                <motion.button
+                  whileTap={{ scale: 0.94 }}
+                  onClick={actions.onBack || onBack}
+                  aria-label="Back to conversations"
+                  className="flex md:hidden items-center gap-1 rounded-md border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-muted-foreground transition hover:bg-white/10 hover:text-foreground shrink-0 min-h-[36px]"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  <span className="text-xs">Back</span>
+                </motion.button>
+              )}
+              <div className="min-w-0 flex-1 sm:w-[280px] sm:flex-none">
                 <SenderIdentity email={email} compact />
               </div>
 
