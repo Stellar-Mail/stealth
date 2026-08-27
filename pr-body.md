@@ -26,6 +26,8 @@ This PR configures the Stealth application and username resolver with stable HTT
 
 ## Validation
 
+The checks below document the verification performed for this change.
+
 - **Automated Unit Tests**:
   - Implemented unit tests in `tests/unit/api/federation.test.ts` (9 tests passed).
   - Updated config tests in `tests/unit/config/runtime-config.test.ts` (15 tests passed).
