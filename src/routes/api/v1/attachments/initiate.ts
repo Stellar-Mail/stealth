@@ -42,6 +42,28 @@ export const Route = createFileRoute("/api/v1/attachments/initiate")({
           }
 
           const input = await parseJsonBody(request, initiateAttachmentSchema, "compact");
+          const ip =
+            request.headers.get("cf-connecting-ip") ??
+            request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+            "unknown";
+
+          const { enforceCentralAbuse } = await import("@/server/api/abuse-service");
+          const decision = await enforceCentralAbuse(ctx.repository, {
+            route: "attachment_upload",
+            ip,
+            account: ctx.principal.address,
+            headers: request.headers,
+          });
+
+          if (!decision.allowed) {
+            throw new (await import("@/server/api/errors")).ApiError(
+              429,
+              "too_many_requests",
+              "Attachment rate limit exceeded",
+              { retryAfterSeconds: decision.retryAfterSeconds ?? 3600 },
+            );
+          }
+
           const result = initiateUploadSession({
             ownerAddress: ctx.principal.address,
             messageId: input.message_id,

@@ -51,6 +51,34 @@ export const Route = createFileRoute("/api/v1/send/coordinate")({
           });
           requireActorMatches(apiContext, input.sender);
 
+          const ip =
+            request.headers.get("cf-connecting-ip") ??
+            request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+            "unknown";
+          const recipient = "recipient" in input ? (input.recipient as string) : undefined;
+          const { enforceCentralAbuse } = await import("@/server/api/abuse-service");
+          const decision = await enforceCentralAbuse(apiContext.repository, {
+            route: "send_coordinate",
+            ip,
+            account: input.sender,
+            recipient,
+            isChainWrite: input.action === "create" || input.action === "reconcile",
+            headers: request.headers,
+          });
+
+          if (!decision.allowed) {
+            throw new (await import("@/server/api/errors")).ApiError(
+              429,
+              "too_many_requests",
+              decision.reason === "chain_write_budget_exceeded"
+                ? "Chain write budget exceeded"
+                : decision.reason === "recipient_rate_limit_exceeded"
+                  ? "Recipient rate limit exceeded"
+                  : "Send coordinate rate limit exceeded",
+              { retryAfterSeconds: decision.retryAfterSeconds ?? 3600 },
+            );
+          }
+
           const coordinator = new SendCoordinator();
           const rawIdempotencyKey = request.headers.get("x-idempotency-key");
 

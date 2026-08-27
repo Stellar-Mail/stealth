@@ -24,6 +24,13 @@ import {
   recordAuthFailure,
 } from "../../../src/server/api/rate-limit";
 import {
+  enforceCentralAbuse,
+  checkStorageByteBudget,
+  checkChainWriteBudget,
+  checkSessionLimit,
+  checkRecipientLimit,
+} from "../../../src/server/api/abuse-service";
+import {
   corsEarlyResponse,
   validateCorsPolicy,
   type CorsPolicy,
@@ -188,6 +195,41 @@ describe("BETA-076 SC-05/SC-06: abuse throttles deny at their documented limits"
       allowed: false,
       retryAfterSeconds: AUTH_FAILURE_LIMITS.ipAndAccount.windowSeconds,
     });
+  });
+
+  it("BETA-049: enforces storage-byte and chain-write budgets centrally with address canonicalization", async () => {
+    const repository = new MemoryApiRepository();
+    const acct = "GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB";
+    const lowerAcct = acct.toLowerCase();
+
+    // Storage byte budget enforcement (50MB cap)
+    const storageRes = await enforceCentralAbuse(repository, {
+      route: "attachment_upload",
+      account: lowerAcct, // Lowercase evasion attempt
+      storageBytes: 60 * 1024 * 1024,
+    });
+    expect(storageRes.allowed).toBe(false);
+    expect(storageRes.reason).toBe("storage_byte_budget_exceeded");
+    expect(storageRes.retryAfterSeconds).toBe(3600);
+
+    // Operator override bypass with configured secret
+    const prev = process.env.STEALTH_OPERATOR_OVERRIDE_TOKEN;
+    process.env.STEALTH_OPERATOR_OVERRIDE_TOKEN = "beta-override-token";
+    try {
+      const overrideRes = await enforceCentralAbuse(repository, {
+        route: "attachment_upload",
+        account: lowerAcct,
+        storageBytes: 60 * 1024 * 1024,
+        headers: new Headers({ "x-stealth-operator-override": "beta-override-token" }),
+      });
+      expect(overrideRes.allowed).toBe(true);
+    } finally {
+      if (prev !== undefined) {
+        process.env.STEALTH_OPERATOR_OVERRIDE_TOKEN = prev;
+      } else {
+        delete process.env.STEALTH_OPERATOR_OVERRIDE_TOKEN;
+      }
+    }
   });
 });
 

@@ -6,6 +6,7 @@ import { apiFailure, apiSuccess } from "./response";
 import * as metrics from "./metrics";
 import { parseJsonBody } from "./request";
 import { consumeRouteQuota, type RateLimitConfig } from "./rate-limit";
+import { isOperatorOverride } from "./abuse-service";
 import { applyCors, corsEarlyResponse, validateCorsPolicy, type CorsPolicy } from "./cors";
 import { planPrivacySafeLog } from "./logging";
 
@@ -107,37 +108,39 @@ export function createRouteHandler<
         }
       }
 
-      // 3. Rate Limiting
+      // 3. Rate Limiting & Abuse Controls
       if (config.rateLimit) {
-        const repo = apiContext.repository;
-        let subject: string;
-        if (config.rateLimit.type === "account") {
-          if (!actorId) {
-            throw new ApiError(401, "unauthorized", "Account rate limit requires authentication");
+        if (!isOperatorOverride(request.headers)) {
+          const repo = apiContext.repository;
+          let subject: string;
+          if (config.rateLimit.type === "account") {
+            if (!actorId) {
+              throw new ApiError(401, "unauthorized", "Account rate limit requires authentication");
+            }
+            subject = actorId;
+          } else {
+            subject =
+              request.headers.get("cf-connecting-ip") ??
+              request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+              "unknown";
           }
-          subject = actorId;
-        } else {
-          subject =
-            request.headers.get("cf-connecting-ip") ??
-            request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-            "unknown";
-        }
 
-        const limit = await consumeRouteQuota(
-          repo,
-          config.rateLimit.type,
-          subject,
-          config.rateLimit.operation,
-        );
-        if (!limit.allowed) {
-          throw new ApiError(
-            429,
-            "too_many_requests",
-            `${config.rateLimit.type === "account" ? "Account" : "IP"} limit exceeded`,
-            {
-              retryAfterSeconds: limit.retryAfterSeconds,
-            },
+          const limit = await consumeRouteQuota(
+            repo,
+            config.rateLimit.type,
+            subject,
+            config.rateLimit.operation,
           );
+          if (!limit.allowed) {
+            throw new ApiError(
+              429,
+              "too_many_requests",
+              `${config.rateLimit.type === "account" ? "Account" : "IP"} limit exceeded`,
+              {
+                retryAfterSeconds: limit.retryAfterSeconds,
+              },
+            );
+          }
         }
       }
 

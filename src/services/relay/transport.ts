@@ -17,6 +17,7 @@ import {
   type RelayRequest,
 } from "@/services/crypto/relayAuth";
 
+import { enforceCentralAbuse } from "@/server/api/abuse-service";
 import {
   relaySubmissionSchema,
   RELAY_MAX_PAYLOAD_BYTES,
@@ -139,6 +140,38 @@ export function handleRelaySubmit(request: Request, service: RelayService) {
       throw new ApiError(422, "validation_error", "Request validation failed");
     }
     const input = parsedInput.data;
+
+    // 1. Pre-auth Central Abuse Enforcement: check IP, storage bytes, and relay ID before expensive crypto
+    const ip =
+      request.headers.get("cf-connecting-ip") ??
+      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+      "unknown";
+    const payloadBytes = Buffer.byteLength(rawBodyText, "utf8");
+    const relayId = request.headers.get("x-stealth-relay-id") ?? undefined;
+    const repo = service.getRepository();
+
+    if (repo && typeof repo.incrementCounter === "function") {
+      const preAuthDecision = await enforceCentralAbuse(repo, {
+        route: "relay_submit",
+        ip,
+        storageBytes: payloadBytes,
+        relayId,
+        headers: request.headers,
+      });
+
+      if (!preAuthDecision.allowed) {
+        throw new ApiError(
+          429,
+          "too_many_requests",
+          preAuthDecision.reason === "storage_byte_budget_exceeded"
+            ? "Relay storage byte budget exceeded"
+            : "Relay rate limit exceeded",
+          {
+            retryAfterSeconds: preAuthDecision.retryAfterSeconds ?? 3600,
+          },
+        );
+      }
+    }
 
     const nowSeconds = service.getConfig().nowSeconds
       ? service.getConfig().nowSeconds!()
@@ -275,6 +308,29 @@ export function handleRelaySubmit(request: Request, service: RelayService) {
           throw new ApiError(409, "conflict", "REPLAY_DETECTED: request_nonce already recorded");
         }
         service.markNonceSeen(nonceHeader);
+      }
+    }
+
+    // 2. Post-auth Central Abuse Enforcement: charge authenticated sender account and recipient quotas
+    if (repo && typeof repo.incrementCounter === "function") {
+      const postAuthDecision = await enforceCentralAbuse(repo, {
+        route: "relay_submit",
+        account: input.sender,
+        recipient: input.recipient,
+        headers: request.headers,
+      });
+
+      if (!postAuthDecision.allowed) {
+        throw new ApiError(
+          429,
+          "too_many_requests",
+          postAuthDecision.reason === "recipient_rate_limit_exceeded"
+            ? "Relay recipient rate limit exceeded"
+            : "Relay account rate limit exceeded",
+          {
+            retryAfterSeconds: postAuthDecision.retryAfterSeconds ?? 3600,
+          },
+        );
       }
     }
 

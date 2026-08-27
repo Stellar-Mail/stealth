@@ -85,6 +85,12 @@ export const METRIC_DESCRIPTORS = {
   abuse_disposable_email_blocked: ["domain"],
   abuse_invite_code_invalid: ["code"],
   abuse_verification_token_locked: ["tokenId"],
+  abuse_throttled: ["route", "type", "subject"],
+  abuse_storage_bytes_exceeded: ["route", "subject", "limit"],
+  abuse_chain_writes_exceeded: ["route", "subject", "limit"],
+  abuse_operator_override: ["route", "operatorId"],
+  abuse_recipient_exceeded: ["route", "recipient", "limit"],
+  abuse_session_exceeded: ["route", "sessionId", "limit"],
 
   // 1. Auth & Session Management (RED / USE)
   auth_requests_total: ["operation", "status", "outcome"],

@@ -46,6 +46,25 @@ export const Route = createFileRoute("/api/v1/auth/login")({
 
           const currentSessionId = parseSessionCookie(request.headers.get("cookie")) ?? undefined;
 
+          const { enforceCentralAbuse } = await import("@/server/api/abuse-service");
+          const abuseDecision = await enforceCentralAbuse(apiContext.repository, {
+            route: "auth_login",
+            ip,
+            account: body.identifier,
+            fingerprint,
+            session: currentSessionId,
+            headers: request.headers,
+          });
+
+          if (!abuseDecision.allowed) {
+            throw new (await import("@/server/api/errors")).ApiError(
+              429,
+              "too_many_requests",
+              "Authentication rate limit exceeded",
+              { retryAfterSeconds: abuseDecision.retryAfterSeconds ?? 900 },
+            );
+          }
+
           const result = await authenticateWithPassword(apiContext, {
             identifier: body.identifier,
             password: body.password,

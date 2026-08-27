@@ -12,6 +12,15 @@ import {
   checkRelayLimit,
   checkSenderRecipientLimit,
   recordProofFailure,
+  checkStorageByteBudget,
+  checkChainWriteBudget,
+  checkSessionLimit,
+  checkRecipientLimit,
+  isOperatorOverride,
+  enforceCentralAbuse,
+  STORAGE_BYTE_BUDGETS,
+  CHAIN_WRITE_BUDGETS,
+  canonicalizeSubjectAddress,
 } from "../../../src/server/api/abuse-service";
 
 const sender = `G${"B".repeat(55)}`;
@@ -47,6 +56,8 @@ describe("abuse service", () => {
       proof_failure: "fail_closed",
       relay: "fail_open",
       sender_recipient: "fail_closed",
+      chain_write: "fail_closed",
+      recipient: "fail_closed",
     });
   });
 
@@ -296,6 +307,235 @@ describe("abuse service", () => {
         check: "proof_failure",
         policy: "fail_closed",
       },
+    });
+  });
+
+  describe("BETA-049: address canonicalization (anti-evasion)", () => {
+    it("canonicalizes lowercase and padded addresses so limits cannot be evaded", async () => {
+      const repository = new MemoryApiRepository();
+      const lowerSender = sender.toLowerCase();
+      const paddedSender = `   ${sender}   `;
+
+      // Fill account limit using the canonical address
+      for (let i = 0; i < 50; i++) {
+        await checkAccountLimit(repository, sender);
+      }
+
+      // Attacker attempts to evade using lowercase or whitespace padding
+      const lowerResult = await checkAccountLimit(repository, lowerSender);
+      expect(lowerResult.allowed).toBe(false);
+
+      const paddedResult = await checkAccountLimit(repository, paddedSender);
+      expect(paddedResult.allowed).toBe(false);
+    });
+
+    it("canonicalizes sender-recipient pair addresses", async () => {
+      const repository = new MemoryApiRepository();
+      const lowerSender = sender.toLowerCase();
+      const paddedRecipient = `  ${recipient}  `;
+
+      for (let i = 0; i < 10; i++) {
+        await checkSenderRecipientLimit(repository, sender, recipient);
+      }
+
+      const evasionResult = await checkSenderRecipientLimit(
+        repository,
+        lowerSender,
+        paddedRecipient,
+      );
+      expect(evasionResult.allowed).toBe(false);
+    });
+  });
+
+  describe("BETA-049: storage byte budgets", () => {
+    it("allows attachment bytes under account and IP budgets", async () => {
+      const repository = new MemoryApiRepository();
+      const result = await checkStorageByteBudget(
+        repository,
+        { ip: "192.0.2.1", account: sender, session: "sess_123" },
+        1024 * 1024, // 1MB
+      );
+      expect(result).toMatchObject({ allowed: true });
+    });
+
+    it("blocks when storage byte budget is exceeded per account", async () => {
+      const repository = new MemoryApiRepository();
+      const limit = STORAGE_BYTE_BUDGETS.account.maxBytes;
+
+      // Consume up to limit
+      const first = await checkStorageByteBudget(repository, { account: sender }, limit);
+      expect(first.allowed).toBe(true);
+
+      // Exceed limit
+      const second = await checkStorageByteBudget(repository, { account: sender }, 1);
+      expect(second.allowed).toBe(false);
+      expect(second.reason).toBe("storage_byte_budget_exceeded");
+      expect(second.retryAfterSeconds).toBe(STORAGE_BYTE_BUDGETS.account.windowSeconds);
+    });
+
+    it("blocks when storage byte budget is exceeded per IP", async () => {
+      const repository = new MemoryApiRepository();
+      const limit = STORAGE_BYTE_BUDGETS.ip.maxBytes;
+
+      const first = await checkStorageByteBudget(repository, { ip: "198.51.100.2" }, limit);
+      expect(first.allowed).toBe(true);
+
+      const second = await checkStorageByteBudget(repository, { ip: "198.51.100.2" }, 1);
+      expect(second.allowed).toBe(false);
+      expect(second.reason).toBe("storage_byte_budget_exceeded");
+    });
+  });
+
+  describe("BETA-049: chain-write budgets", () => {
+    it("allows chain writes within account budget and blocks when exceeded", async () => {
+      const repository = new MemoryApiRepository();
+      const max = CHAIN_WRITE_BUDGETS.account.max;
+
+      for (let i = 0; i < max; i++) {
+        const check = await checkChainWriteBudget(repository, { account: sender });
+        expect(check.allowed).toBe(true);
+      }
+
+      const blocked = await checkChainWriteBudget(repository, { account: sender });
+      expect(blocked.allowed).toBe(false);
+      expect(blocked.reason).toBe("chain_write_budget_exceeded");
+      expect(blocked.retryAfterSeconds).toBe(CHAIN_WRITE_BUDGETS.account.windowSeconds);
+    });
+  });
+
+  describe("BETA-049: session & recipient rate limits", () => {
+    it("throttles excessive requests per session", async () => {
+      const repository = new MemoryApiRepository();
+      const sessionId = "sess_test_abc123";
+
+      for (let i = 0; i < 100; i++) {
+        const check = await checkSessionLimit(repository, sessionId);
+        expect(check.allowed).toBe(true);
+      }
+
+      const blocked = await checkSessionLimit(repository, sessionId);
+      expect(blocked.allowed).toBe(false);
+      expect(blocked.retryAfterSeconds).toBe(3600);
+    });
+
+    it("throttles excessive traffic targeting a single recipient", async () => {
+      const repository = new MemoryApiRepository();
+
+      for (let i = 0; i < 50; i++) {
+        const check = await checkRecipientLimit(repository, recipient);
+        expect(check.allowed).toBe(true);
+      }
+
+      const blocked = await checkRecipientLimit(repository, recipient);
+      expect(blocked.allowed).toBe(false);
+      expect(blocked.retryAfterSeconds).toBe(3600);
+    });
+  });
+
+  describe("BETA-049: operator overrides", () => {
+    it("requires configured secret and rejects public literals", () => {
+      const originalEnv = process.env.STEALTH_OPERATOR_OVERRIDE_TOKEN;
+      try {
+        delete process.env.STEALTH_OPERATOR_OVERRIDE_TOKEN;
+
+        // When unconfigured, no override is permitted
+        expect(
+          isOperatorOverride(new Headers({ "x-stealth-operator-override": "stealth-token" })),
+        ).toBe(false);
+        expect(isOperatorOverride({ "x-stealth-operator-override": "true" })).toBe(false);
+        expect(isOperatorOverride({ "x-stealth-operator-override": "operator-bypass" })).toBe(
+          false,
+        );
+
+        // Configure secret
+        process.env.STEALTH_OPERATOR_OVERRIDE_TOKEN = "super-secret-token-1234";
+
+        const validHeaders = new Headers({
+          "x-stealth-operator-override": "super-secret-token-1234",
+        });
+        expect(isOperatorOverride(validHeaders)).toBe(true);
+
+        const plainHeaders = { "x-stealth-operator-override": "super-secret-token-1234" };
+        expect(isOperatorOverride(plainHeaders)).toBe(true);
+
+        // Public literals and incorrect tokens are rejected
+        expect(isOperatorOverride({ "x-stealth-operator-override": "true" })).toBe(false);
+        expect(isOperatorOverride({ "x-stealth-operator-override": "operator-bypass" })).toBe(
+          false,
+        );
+        expect(
+          isOperatorOverride(new Headers({ "x-stealth-operator-override": "wrong-token" })),
+        ).toBe(false);
+        expect(isOperatorOverride(null)).toBe(false);
+      } finally {
+        if (originalEnv !== undefined) {
+          process.env.STEALTH_OPERATOR_OVERRIDE_TOKEN = originalEnv;
+        } else {
+          delete process.env.STEALTH_OPERATOR_OVERRIDE_TOKEN;
+        }
+      }
+    });
+
+    it("bypasses all abuse checks when operator override is active with valid configured secret", async () => {
+      const originalEnv = process.env.STEALTH_OPERATOR_OVERRIDE_TOKEN;
+      process.env.STEALTH_OPERATOR_OVERRIDE_TOKEN = "test-override-secret";
+      try {
+        const repository = new MemoryApiRepository();
+        // Exhaust account limit
+        for (let i = 0; i < 50; i++) {
+          await checkAccountLimit(repository, sender);
+        }
+
+        const overrideHeaders = new Headers({
+          "x-stealth-operator-override": "test-override-secret",
+        });
+
+        const decision = await enforceCentralAbuse(repository, {
+          route: "relay_submit",
+          ip: "203.0.113.1",
+          account: sender,
+          recipient,
+          storageBytes: 1000,
+          headers: overrideHeaders,
+        });
+
+        expect(decision.allowed).toBe(true);
+      } finally {
+        if (originalEnv !== undefined) {
+          process.env.STEALTH_OPERATOR_OVERRIDE_TOKEN = originalEnv;
+        } else {
+          delete process.env.STEALTH_OPERATOR_OVERRIDE_TOKEN;
+        }
+      }
+    });
+  });
+
+  describe("BETA-049: central abuse policy enforcer & false-positive resistance", () => {
+    it("allows legitimate requests with all parameters within limits", async () => {
+      const repository = new MemoryApiRepository();
+      const decision = await enforceCentralAbuse(repository, {
+        route: "postage_submit",
+        ip: "192.0.2.55",
+        account: sender,
+        recipient,
+        storageBytes: 1024,
+        isChainWrite: true,
+      });
+
+      expect(decision.allowed).toBe(true);
+    });
+
+    it("enforces storage byte limit centrally before expensive operations", async () => {
+      const repository = new MemoryApiRepository();
+      const decision = await enforceCentralAbuse(repository, {
+        route: "attachment_upload",
+        ip: "192.0.2.55",
+        account: sender,
+        storageBytes: 60 * 1024 * 1024, // 60MB exceeds 50MB limit
+      });
+
+      expect(decision.allowed).toBe(false);
+      expect(decision.reason).toBe("storage_byte_budget_exceeded");
     });
   });
 });

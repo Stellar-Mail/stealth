@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Relay receiving service (Issue #1935 BETA-028).
  *
  * This is the domain service behind the relay health contract and message
@@ -146,6 +146,7 @@ export interface RelayServiceDependencies {
   evaluator: RelayAdmissionEvaluator;
   objectStore?: RelayObjectStore;
   mailbox?: RelayMailboxStore;
+  repository?: any;
   now?: () => Date;
 }
 
@@ -206,6 +207,10 @@ export class RelayService {
 
   getConfig(): RelayServiceConfig {
     return this.config;
+  }
+
+  getRepository(): any {
+    return this.deps.repository ?? (this.deps.mailbox as any);
   }
 
   isNonceSeen(nonce: string): boolean {

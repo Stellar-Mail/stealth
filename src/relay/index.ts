@@ -100,6 +100,7 @@ function getService(): RelayService {
       sorobanRpcUrl: runtime.network.sorobanRpcUrl,
     }),
     mailbox: repository,
+    repository,
   });
   void worker.start();
   return service;

@@ -45,6 +45,10 @@ export const Route = createFileRoute("/api/v1/attachments/chunk")({
           }
 
           const input = await parseJsonBody(request, uploadChunkSchema, "relay");
+          const ip =
+            request.headers.get("cf-connecting-ip") ??
+            request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+            "unknown";
 
           const nonceBytes = hexToBytes(input.nonce);
           const ciphertextBytes = Uint8Array.from(atob(input.ciphertext), (c) => c.charCodeAt(0));
@@ -56,6 +60,27 @@ export const Route = createFileRoute("/api/v1/attachments/chunk")({
           chunkBytes.set(nonceBytes, 0);
           chunkBytes.set(ciphertextBytes, nonceBytes.length);
           chunkBytes.set(macBytes, nonceBytes.length + ciphertextBytes.length);
+
+          const { enforceCentralAbuse } = await import("@/server/api/abuse-service");
+          const decision = await enforceCentralAbuse(ctx.repository, {
+            route: "attachment_upload",
+            ip,
+            account: ctx.principal.address,
+            session: input.session_id,
+            storageBytes: chunkBytes.length,
+            headers: request.headers,
+          });
+
+          if (!decision.allowed) {
+            throw new ApiError(
+              429,
+              "too_many_requests",
+              decision.reason === "storage_byte_budget_exceeded"
+                ? "Attachment chunk storage byte budget exceeded"
+                : "Attachment rate limit exceeded",
+              { retryAfterSeconds: decision.retryAfterSeconds ?? 3600 },
+            );
+          }
 
           try {
             const result = await uploadChunk({

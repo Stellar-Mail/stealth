@@ -22,6 +22,14 @@ const RATE_LIMITS: Record<RateLimitType, { max: number; windowSeconds: number }>
   ip: { max: 100, windowSeconds: 3600 },
 };
 
+export function canonicalizeSubject(subject: string): string {
+  const trimmed = subject.trim();
+  if (trimmed.startsWith("G") || trimmed.startsWith("g")) {
+    return trimmed.toUpperCase();
+  }
+  return trimmed;
+}
+
 export async function consumeRouteQuota(
   repository: ApiRepository,
   type: RateLimitType,
@@ -34,9 +42,14 @@ export async function consumeRouteQuota(
     return { allowed: true };
   }
 
+  const normalizedSubject = type === "account" ? canonicalizeSubject(subject) : subject;
   const { max, windowSeconds } = RATE_LIMITS[type];
   const cost = RATE_LIMIT_OPERATION_COSTS[operation];
-  const count = await repository.incrementCounter(`abuse:${type}:${subject}`, windowSeconds, cost);
+  const count = await repository.incrementCounter(
+    `abuse:${type}:${normalizedSubject}`,
+    windowSeconds,
+    cost,
+  );
 
   if (count > max) {
     return { allowed: false, retryAfterSeconds: windowSeconds };
@@ -108,7 +121,8 @@ export async function checkAuthFailureThrottle(
 ): Promise<{ allowed: boolean; retryAfterSeconds?: number }> {
   const ipVal = ip || "unknown";
   const ipHash = hashValue(ipVal);
-  const ipAcctHash = hashValue(`${ipVal}:${attemptedAddress}`);
+  const canonicalAcct = canonicalizeSubject(attemptedAddress);
+  const ipAcctHash = hashValue(`${ipVal}:${canonicalAcct}`);
 
   const ipAcctKey = `abuse:auth_fail:ip_acct:${ipAcctHash}`;
   const ipWideKey = `abuse:auth_fail:ip:${ipHash}`;
@@ -141,7 +155,8 @@ export async function recordAuthFailure(
 ): Promise<{ delaySeconds: number }> {
   const ipVal = ip || "unknown";
   const ipHash = hashValue(ipVal);
-  const ipAcctHash = hashValue(`${ipVal}:${attemptedAddress}`);
+  const canonicalAcct = canonicalizeSubject(attemptedAddress);
+  const ipAcctHash = hashValue(`${ipVal}:${canonicalAcct}`);
 
   const ipAcctKey = `abuse:auth_fail:ip_acct:${ipAcctHash}`;
   const ipWideKey = `abuse:auth_fail:ip:${ipHash}`;

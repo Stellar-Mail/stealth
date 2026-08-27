@@ -7,6 +7,8 @@ import {
   checkIpLimit,
   checkRelayLimit,
   checkSenderRecipientLimit,
+  checkRecipientLimit,
+  checkChainWriteBudget,
   type AbuseDecision,
 } from "./abuse-service";
 import { getMailboxPolicy } from "./policy-service";
@@ -656,6 +658,34 @@ export async function submitPostage(
       );
     }
 
+    const recipientLimit = await checkRecipientLimit(context.repository, input.recipient);
+    if (!recipientLimit.allowed) {
+      rejectLimitedPostage(
+        recipientLimit,
+        {
+          limit: "recipient",
+          recipient: input.recipient,
+        },
+        "Recipient limit exceeded",
+      );
+    }
+
+    const chainLimit = await checkChainWriteBudget(
+      context.repository,
+      { ip, account: input.sender },
+      "postage_submit",
+    );
+    if (!chainLimit.allowed) {
+      rejectLimitedPostage(
+        chainLimit,
+        {
+          limit: "chain_write",
+          actorId,
+        },
+        "Chain write budget exceeded",
+      );
+    }
+
     if (await context.repository.getPostage(input.messageId)) {
       throw new ApiError(409, "conflict", "Postage already exists for this message");
     }
@@ -853,6 +883,17 @@ async function transitionEscrow(
     validatePostageTransition(postage.status, nextStatus);
   } catch {
     throw terminalConflictError(postage.status, nextStatus, messageId);
+  }
+
+  const chainLimit = await checkChainWriteBudget(
+    context.repository,
+    { account: actor },
+    "postage_transition",
+  );
+  if (!chainLimit.allowed) {
+    throw new ApiError(429, "too_many_requests", "Chain write budget exceeded", {
+      retryAfterSeconds: chainLimit.retryAfterSeconds ?? 3600,
+    });
   }
 
   if (!context.escrow || !context.escrow.isLive()) {
