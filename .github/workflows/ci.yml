@@ -4,6 +4,7 @@ on:
   push:
     branches: [main, develop]
   pull_request:
+    types: [opened, reopened, synchronize, edited]
     branches: [main, develop]
 
 # BETA-088 — pinned tool versions (see scripts/ci/tool-versions.json)
