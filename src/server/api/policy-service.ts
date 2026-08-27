@@ -62,11 +62,22 @@ function chainPoliciesEqual(left: ChainMailboxPolicy, right: ChainMailboxPolicy)
   );
 }
 
-function apiPoliciesEqual(left: MailboxPolicy, right: MailboxPolicy): boolean {
+function apiPoliciesEqual(
+  left: MailboxPolicy,
+  right: MailboxPolicy,
+  leftRequireReceipt?: boolean,
+  rightRequireReceipt?: boolean,
+): boolean {
   return (
     left.allowUnknown === right.allowUnknown &&
     left.requireVerified === right.requireVerified &&
-    left.minimumPostage === right.minimumPostage
+    left.minimumPostage === right.minimumPostage &&
+    // When both sides supply a receipt preference, compare it too.  Omitting
+    // the field (undefined) means the caller doesn't have the data and the
+    // receipt dimension is skipped — matching the pre-BETA-041 behavior.
+    (leftRequireReceipt === undefined ||
+      rightRequireReceipt === undefined ||
+      leftRequireReceipt === rightRequireReceipt)
   );
 }
 
@@ -790,6 +801,12 @@ export type PolicyReconciliationState =
 export interface PolicyReconciliationChainState {
   policy?: MailboxPolicy;
   version?: number;
+  /**
+   * Whether the on-chain policy requires a delivery receipt.  The contract
+   * carries this fourth boolean but `contractPolicyToApi` omits it; passing
+   * it explicitly lets reconciliation detect receipt-policy drift.
+   */
+  requireReceipt?: boolean;
 }
 
 export interface PolicyReconciliation {
@@ -828,6 +845,7 @@ export async function getPolicyReconciliation(
 ): Promise<PolicyReconciliation> {
   const chainPolicy = chain.policy ?? null;
   const chainVersion = chain.version ?? null;
+  const chainRequireReceipt = chain.requireReceipt ?? undefined;
 
   const stored = await repository.getPolicy(owner);
   const intent = await repository.getPolicyWriteIntent(owner);
@@ -876,15 +894,35 @@ export async function getPolicyReconciliation(
     return { ...base, state: "synced" as const };
   }
 
-  if (chainVersion > (offchainVersion ?? 0)) {
-    return { ...base, state: "chain_ahead" as const };
-  }
+  // --- Version comparison with mailbox-scoped content check ---
+  //
+  // The Soroban Policies contract uses a single global version counter per
+  // owner.  Sender-rule writes (set_sender_rule, set_sender_tier) also call
+  // `bump_version`, so a sender-rule update raises the contract version even
+  // though the mailbox policy itself hasn't changed.  Comparing versions alone
+  // therefore produces false `chain_ahead`.  Instead, when the contract
+  // version is ahead, we fall through to a content comparison: if the policy
+  // content (including requireReceipt) matches, the version gap is caused by
+  // an unrelated sender mutation and the mailbox is still synced.
+
   if (chainVersion < (offchainVersion ?? 0)) {
     return { ...base, state: "pending_write" as const };
   }
 
-  if (chainPolicy && !apiPoliciesEqual(chainPolicy, policy)) {
+  if (
+    chainPolicy &&
+    !apiPoliciesEqual(chainPolicy, policy, chainRequireReceipt, intent?.policy.requireReceipt)
+  ) {
+    if (chainVersion > (offchainVersion ?? 0)) {
+      return { ...base, state: "chain_ahead" as const };
+    }
     return { ...base, state: "diverged" as const };
+  }
+
+  // Content matches (or no chain policy to compare).  Versions may still
+  // differ when a sender-rule write bumped the global counter.
+  if (chainVersion > (offchainVersion ?? 0)) {
+    return { ...base, state: "synced" as const };
   }
   return { ...base, state: "synced" as const };
 }
@@ -899,10 +937,14 @@ export async function getSenderRuleReconciliation(
   const writeIntent = await repository.getSenderRuleWriteIntent(owner, sender);
   const offchainRule = record?.rule ?? "default";
 
+  // The chain does not store "default" — null means no rule override, which
+  // is semantically equivalent to "default".
+  const effectiveChainRule = chainRule ?? "default";
+
   let state: "pending_write" | "synced" | "diverged" = "synced";
   if (writeIntent && writeIntent.status !== "confirmed") {
     state = "pending_write";
-  } else if (chainRule !== offchainRule) {
+  } else if (effectiveChainRule !== offchainRule) {
     state = "diverged";
   }
 

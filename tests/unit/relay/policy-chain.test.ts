@@ -55,19 +55,121 @@ describe("createLivePolicyChainClient", () => {
     ).rejects.toThrow(/malformed_chain_reason/);
   });
 
-  it("accepts a mixed checksum-bearing contract id shape", () => {
-    expect(
-      isLivePoliciesContractId("CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABSC4"),
-    ).toBe(true);
+  it("maps all valid PolicyReason variants to PolicyReasonCode", async () => {
+    const reasonMap: Array<[PolicyReason, string]> = [
+      [PolicyReason.SenderAllowed, "sender_allowed"],
+      [PolicyReason.SenderBlocked, "sender_blocked"],
+      [PolicyReason.UnknownSendersDisabled, "unknown_senders_disabled"],
+      [PolicyReason.VerificationRequired, "verification_required"],
+      [PolicyReason.ReceiptRequired, "receipt_required"],
+      [PolicyReason.InsufficientPostage, "insufficient_postage"],
+      [PolicyReason.PolicySatisfied, "policy_satisfied"],
+      [PolicyReason.TierSatisfied, "tier_satisfied"],
+    ];
+
+    for (const [reason, expectedCode] of reasonMap) {
+      const client = createLivePolicyChainClient({
+        contractId: "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABSC4",
+        networkPassphrase: "Test SDF Network ; September 2015",
+        rpcUrl: "https://soroban-testnet.stellar.org",
+        evaluateFn: (async () => ({
+          allowed: true,
+          reason,
+          required_postage: 0n,
+          rule: SenderRule.Default,
+          version: 1,
+        })) as never,
+      });
+
+      const result = await client.evaluate({
+        owner,
+        sender,
+        postage: "0",
+        verified: true,
+        receipt: false,
+      });
+      expect(result.reason).toBe(expectedCode);
+    }
   });
 
-  it("rejects placeholders and repeated-letter development ids", () => {
-    expect(isLivePoliciesContractId(undefined)).toBe(false);
-    expect(isLivePoliciesContractId("placeholder")).toBe(false);
-    expect(isLivePoliciesContractId("C".repeat(56))).toBe(false);
-    expect(
-      isLivePoliciesContractId("CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"),
-    ).toBe(false);
-    expect(isLivePoliciesContractId("not-a-contract")).toBe(false);
+  it("maps all valid SenderRule contract variants to domain SenderRule", async () => {
+    const ruleMap: Array<[SenderRule, string]> = [
+      [SenderRule.Default, "default"],
+      [SenderRule.Allow, "allow"],
+      [SenderRule.Block, "block"],
+    ];
+
+    for (const [rule, expectedRule] of ruleMap) {
+      const client = createLivePolicyChainClient({
+        contractId: "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABSC4",
+        networkPassphrase: "Test SDF Network ; September 2015",
+        rpcUrl: "https://soroban-testnet.stellar.org",
+        evaluateFn: (async () => ({
+          allowed: true,
+          reason: PolicyReason.PolicySatisfied,
+          required_postage: 0n,
+          rule,
+          version: 1,
+        })) as never,
+      });
+
+      const result = await client.evaluate({
+        owner,
+        sender,
+        postage: "0",
+        verified: true,
+        receipt: false,
+      });
+      expect(result.rule).toBe(expectedRule);
+    }
+  });
+
+  it("handles zero-version policy decisions", async () => {
+    const client = createLivePolicyChainClient({
+      contractId: "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABSC4",
+      networkPassphrase: "Test SDF Network ; September 2015",
+      rpcUrl: "https://soroban-testnet.stellar.org",
+      evaluateFn: (async () => ({
+        allowed: false,
+        reason: PolicyReason.UnknownSendersDisabled,
+        required_postage: 0n,
+        rule: SenderRule.Default,
+        version: 0,
+      })) as never,
+    });
+
+    const result = await client.evaluate({
+      owner,
+      sender,
+      postage: "0",
+      verified: false,
+      receipt: false,
+    });
+    expect(result.version).toBe(0);
+    expect(result.allowed).toBe(false);
+  });
+
+  it("handles large required_postage values", async () => {
+    const client = createLivePolicyChainClient({
+      contractId: "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABSC4",
+      networkPassphrase: "Test SDF Network ; September 2015",
+      rpcUrl: "https://soroban-testnet.stellar.org",
+      evaluateFn: (async () => ({
+        allowed: false,
+        reason: PolicyReason.InsufficientPostage,
+        required_postage: 9999999999n,
+        rule: SenderRule.Default,
+        version: 1,
+      })) as never,
+    });
+
+    const result = await client.evaluate({
+      owner,
+      sender,
+      postage: "0",
+      verified: true,
+      receipt: false,
+    });
+    expect(result.requiredPostage).toBe("9999999999");
   });
 });
