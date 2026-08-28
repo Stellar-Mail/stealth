@@ -1,17 +1,23 @@
 import { loadRuntimeConfig } from "../../../config";
 import { BetaControlService } from "./service";
 import type { BetaControlConfig } from "../../../config/schema";
+import { createBetaControlPersistence } from "./kv-persistence";
 
 let singleton: BetaControlService | undefined;
 let initialized = false;
 
 /**
  * Reads the beta-control baseline from runtime config and constructs the service.
- * In tests this is overridden via `setBetaControlServiceForTests`.
+ * When the deployment exposes a shared KV binding, operator mutations are
+ * persisted there so kill switches, flags, cohorts and invites remain
+ * authoritative across workers and restarts (BETA-095). In tests this is
+ * overridden via `setBetaControlServiceForTests`.
  */
 export function createBetaControlService(config?: BetaControlConfig): BetaControlService {
-  const resolved = config ?? loadRuntimeConfig().betaControl;
-  return new BetaControlService({ config: resolved });
+  const full = loadRuntimeConfig();
+  const resolved = config ?? full.betaControl;
+  const persistence = createBetaControlPersistence(full.storage.kvBinding);
+  return new BetaControlService({ config: resolved, persistence });
 }
 
 /**

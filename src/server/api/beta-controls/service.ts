@@ -213,8 +213,8 @@ export class BetaControlService {
     return this.store.getCohort(id);
   }
 
-  async upsertCohort(cohort: Cohort): Promise<Cohort> {
-    const saved = await this.store.upsertCohort(cohort);
+  async upsertCohort(cohort: Cohort, opts: { expectedVersion?: number } = {}): Promise<Cohort> {
+    const saved = await this.store.upsertCohort(cohort, opts);
     this.invalidateCache();
     return saved;
   }
@@ -259,6 +259,13 @@ export class BetaControlService {
     requestId?: string,
   ): Promise<BetaInvite> {
     const saved = await this.store.revokeInvite(code, actor, reason, requestId);
+    this.invalidateCache();
+    return saved;
+  }
+
+  /** Rolls a redeemed invite back to active (used to release a failed registration). */
+  async releaseInviteRedemption(code: string, actor = "system"): Promise<BetaInvite> {
+    const saved = await this.store.releaseInviteRedemption(code, actor);
     this.invalidateCache();
     return saved;
   }

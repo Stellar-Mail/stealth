@@ -91,6 +91,12 @@ export const Route = createFileRoute("/api/v1/admin/beta/flags/")({
             );
           const actor = context.principal!.address;
 
+          // The mandatory audit reason must come from the operator, not a fixed
+          // string, so deletions are attributable. Reuse the same
+          // adminMutationSchema the other mutation handlers enforce.
+          const body = await request.json().catch(() => ({}));
+          const parsed = adminMutationSchema.parse(body);
+
           const service = getBetaControlService();
           await service.deleteFlag(key, actor, context.requestId || "");
 
@@ -98,7 +104,7 @@ export const Route = createFileRoute("/api/v1/admin/beta/flags/")({
             actor,
             action: "beta.flag.delete",
             target: `flag:${key}`,
-            reason: "Operator delete",
+            reason: parsed.reason,
             beforeState: { key },
             afterState: null,
             requestId: context.requestId || "",

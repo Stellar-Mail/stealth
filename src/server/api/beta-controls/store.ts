@@ -32,7 +32,7 @@ export interface BetaControlSnapshotData {
   audit: BetaControlAuditEvent[];
 }
 
-class MemoryPersistence implements BetaControlPersistence {
+export class MemoryPersistence implements BetaControlPersistence {
   private data: BetaControlSnapshotData | null = null;
   async load() {
     return this.data;
@@ -219,9 +219,27 @@ export class BetaControlStore {
     return this.cohorts.get(id);
   }
 
-  upsertCohort(cohort: Cohort): Promise<Cohort> {
+  upsertCohort(
+    cohort: Cohort,
+    opts: { expectedVersion?: number } = {},
+  ): Promise<Cohort> {
     return this.runExclusive(async () => {
       const parsed = cohortSchema.parse(cohort);
+      // Enforce optimistic concurrency *inside* the serialized write so two
+      // concurrent PUTs carrying the same expectedVersion cannot both pass a
+      // pre-check and then silently overwrite one another.
+      if (opts.expectedVersion !== undefined) {
+        const current = this.cohorts.get(parsed.id);
+        const currentVersion = current ? current.version : 0;
+        if (currentVersion !== opts.expectedVersion) {
+          throw new ApiError(
+            409,
+            "conflict",
+            "Cohort was modified by another operator; reload and retry.",
+            { currentVersion },
+          );
+        }
+      }
       const isNew = !this.cohorts.has(parsed.id);
       this.cohorts.set(parsed.id, parsed);
       this.appendAudit({
@@ -365,6 +383,37 @@ export class BetaControlStore {
         reason,
         result: "success",
         requestId,
+      });
+      await this.persist();
+      return updated;
+    });
+  }
+
+  /**
+   * Rolls back a previously redeemed invite back to `active` (e.g. when the
+   * account it was bound to could not be created). Only a redeemed invite is
+   * affected; other states are returned unchanged. Serialized through the mutex
+   * so concurrent operators observe a consistent state.
+   */
+  releaseInviteRedemption(code: string, actor = "system"): Promise<BetaInvite> {
+    return this.runExclusive(async () => {
+      const existing = this.invites.get(code.toUpperCase());
+      if (!existing) throw new ApiError(404, "not_found", `Invite code '${code}' not found`);
+      if (existing.status !== "redeemed") return existing;
+      const updated: BetaInvite = {
+        ...existing,
+        status: "active",
+        usedBy: null,
+        usedAt: null,
+        version: existing.version + 1,
+      };
+      this.invites.set(updated.code, updated);
+      this.appendAudit({
+        actor,
+        action: "invite.release",
+        target: `invite:${updated.code}`,
+        after: { code: updated.code, status: updated.status },
+        result: "success",
       });
       await this.persist();
       return updated;

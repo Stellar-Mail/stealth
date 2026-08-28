@@ -50,16 +50,6 @@ export const Route = createFileRoute("/api/v1/admin/beta/cohorts/$cohortId")({
           const existing = await service.getCohort(params.cohortId);
           if (!existing)
             throw new ApiError(404, "not_found", `Cohort '${params.cohortId}' not found`);
-          if (parsed.expectedVersion !== undefined && existing.version !== parsed.expectedVersion) {
-            throw new ApiError(
-              409,
-              "conflict",
-              "Cohort was modified by another operator; reload and retry.",
-              {
-                currentVersion: existing.version,
-              },
-            );
-          }
 
           const now = new Date().toISOString();
           const updated: Cohort = cohortSchema.parse({
@@ -75,7 +65,11 @@ export const Route = createFileRoute("/api/v1/admin/beta/cohorts/$cohortId")({
             version: existing.version + 1,
           });
 
-          const saved = await service.upsertCohort(updated);
+          // The expected-version check is performed inside the store's
+          // serialized mutation so a concurrent PUT cannot win a lost update.
+          const saved = await service.upsertCohort(updated, {
+            expectedVersion: parsed.expectedVersion,
+          });
           const supportId = recordAdminMutationAudit({
             actor,
             action: "beta.cohort.update",
@@ -102,12 +96,17 @@ export const Route = createFileRoute("/api/v1/admin/beta/cohorts/$cohortId")({
           if (!existing)
             throw new ApiError(404, "not_found", `Cohort '${params.cohortId}' not found`);
 
+          // The mandatory audit reason must come from the operator, not a fixed
+          // string, so deletions are attributable.
+          const deleteBody = await request.json().catch(() => ({}));
+          const deleteParsed = adminMutationSchema.parse(deleteBody);
+
           await service.deleteCohort(params.cohortId, actor, context.requestId || "");
           const supportId = recordAdminMutationAudit({
             actor,
             action: "beta.cohort.delete",
             target: `cohort:${params.cohortId}`,
-            reason: "Operator delete",
+            reason: deleteParsed.reason,
             beforeState: { id: params.cohortId },
             afterState: null,
             requestId: context.requestId || "",

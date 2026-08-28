@@ -52,23 +52,27 @@ export async function registerWithPassword(
   // store is unavailable (no signups until the control is reachable).
   await enforceCapability("signup");
 
-  // BETA-095: if an invite code is supplied, it must map to an active, unexpired
-  // beta invite. Codes are validated (and redeemed) before the account is created.
+  // BETA-095: when an invite code is supplied it is redeemed *before* the
+  // account is created, inside the store's serialized mutex. This makes invite
+  // redemption and account creation effectively atomic: a duplicate concurrent
+  // registration fails the (already-claimed) invite instead of creating a
+  // dangling account that consumed the email/username without owning the invite.
+  let redeemedInvite: string | null = null;
   if (input.inviteCode && input.inviteCode.trim().length > 0) {
-    const beta = getBetaControlService();
-    const invite = await beta.getInvite(input.inviteCode.trim());
-    if (!invite) {
-      throw new ApiError(400, "invite_invalid", "The supplied beta invite code is not recognized.");
-    }
-    if (invite.status !== "active") {
-      throw new ApiError(
-        409,
-        "invite_invalid",
-        `The supplied beta invite code is ${invite.status}.`,
-      );
-    }
-    if (invite.expiresAt && new Date(invite.expiresAt).getTime() < Date.now()) {
-      throw new ApiError(410, "invite_expired", "The supplied beta invite code has expired.");
+    try {
+      redeemedInvite = input.inviteCode.trim();
+      await getBetaControlService().redeemInvite(redeemedInvite, userId);
+    } catch (error) {
+      if (error instanceof ApiError) throw error;
+      recordAuditEvent({
+        actor: userId,
+        action: "auth.invite_redeem_failed",
+        targetType: "account",
+        safeTargetReference: userId,
+        result: "denied",
+        requestId: apiContext.requestId ?? "registration",
+      });
+      throw new ApiError(400, "invite_invalid", "The supplied beta invite code could not be redeemed.");
     }
   }
 
@@ -118,27 +122,20 @@ export async function registerWithPassword(
   try {
     await apiContext.repository.createUser(user, credential, profile);
   } catch (error) {
+    // Roll back the invite redemption so the code can be retried on a
+    // successful registration rather than being permanently consumed by a
+    // failed one.
+    if (redeemedInvite) {
+      try {
+        await getBetaControlService().releaseInviteRedemption(redeemedInvite, userId);
+      } catch {
+        // Best-effort rollback; the audit trail still records the failure below.
+      }
+    }
     if (error instanceof ApiError && error.code === "conflict") {
       throw new ApiError("conflict");
     }
     throw error;
-  }
-
-  // BETA-095: redeem the beta invite against the newly created account.
-  if (input.inviteCode && input.inviteCode.trim().length > 0) {
-    try {
-      await getBetaControlService().redeemInvite(input.inviteCode.trim(), userId);
-    } catch (error) {
-      if (error instanceof ApiError) throw error;
-      recordAuditEvent({
-        actor: userId,
-        action: "auth.invite_redeem_failed",
-        targetType: "account",
-        safeTargetReference: userId,
-        result: "denied",
-        requestId: apiContext.requestId ?? "registration",
-      });
-    }
   }
 
   await provisionManagedStellarWallet(apiContext.repository, userId, config, {

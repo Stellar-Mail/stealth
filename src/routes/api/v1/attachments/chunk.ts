@@ -5,6 +5,7 @@ import { getApiContext, getObjectStore } from "@/server/api/context";
 import { parseJsonBody } from "@/server/api/request";
 import { apiSuccess, handleApiRequest } from "@/server/api/response";
 import { ApiError } from "@/server/api/errors";
+import { enforceCapability } from "@/server/api/beta-controls/guard";
 import {
   uploadChunk,
   getUploadSession,
@@ -43,6 +44,11 @@ export const Route = createFileRoute("/api/v1/attachments/chunk")({
           if (!ctx.isAuthenticated) {
             throw new ApiError(401, "unauthorized", "Authentication is required");
           }
+
+          // BETA-095: operator kill switch for attachments. Fails closed. A
+          // session obtained before the switch closed must not keep streaming
+          // (or finalizing) data, so the gate is enforced on every upload step.
+          await enforceCapability("attachments");
 
           const input = await parseJsonBody(request, uploadChunkSchema, "relay");
           const ip =
