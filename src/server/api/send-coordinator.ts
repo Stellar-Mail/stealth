@@ -8,6 +8,7 @@ import {
   type PostageQuoteResult,
   type QuoteSubmissionInput,
 } from "./postage-service";
+import { advanceToDeliveryState } from "./delivery-hooks";
 import { createDeliveryReceipt } from "./receipt-service";
 import {
   submitToRelay,
@@ -199,6 +200,19 @@ export class SendCoordinator {
     };
 
     const saved = await context.repository.setSendOperation(updated);
+
+    await advanceToDeliveryState(
+      context.repository,
+      input.messageId,
+      submission.messageDeliveryState,
+      input.sender,
+      isAccepted
+        ? "Relay accepted message submission"
+        : `Relay submission failed (${submission.errorCode ?? submission.state})`,
+      null,
+      this.now(),
+    );
+
     return { state: saved, submission };
   }
 

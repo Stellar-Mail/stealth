@@ -2,6 +2,7 @@ import { contract, Keypair } from "@stellar/stellar-sdk";
 import type { BetaRuntimeConfig } from "../../config/schema";
 import { lifecycle } from "../../services/stellar/contracts";
 import type { LifecycleAnchor } from "./domain";
+import { advanceToDeliveryState } from "./delivery-hooks";
 import { ApiError } from "./errors";
 import type { ApiRepository } from "./repository";
 
@@ -288,14 +289,27 @@ export async function anchorLifecycle(
 
   switch (outcome.status) {
     case "confirmed":
-    case "duplicate":
-      return repository.setLifecycleAnchor({
+    case "duplicate": {
+      const anchored = await repository.setLifecycleAnchor({
         ...existing,
         status: "confirmed",
         updatedAt: iso,
         txHash: outcome.status === "confirmed" ? (outcome.txHash ?? null) : existing.txHash,
         lastError: null,
       });
+      const chainReference =
+        outcome.status === "confirmed" ? (outcome.txHash ?? null) : (anchored.txHash ?? null);
+      await advanceToDeliveryState(
+        repository,
+        messageId,
+        "anchored",
+        existing.sender,
+        "Lifecycle commitment anchored on-chain",
+        chainReference,
+        now,
+      );
+      return anchored;
+    }
     case "mismatch":
     case "rejected":
       return repository.setLifecycleAnchor({
@@ -347,10 +361,20 @@ export async function reconcileLifecycleStatus(
   const chain = await adapter.getStatus(messageId);
   if (!chain.found) return existing;
 
-  return repository.setLifecycleAnchor({
+  const reconciled = await repository.setLifecycleAnchor({
     ...existing,
     status: "confirmed",
     updatedAt: now.toISOString(),
     lastError: null,
   });
+  await advanceToDeliveryState(
+    repository,
+    messageId,
+    "anchored",
+    existing.sender,
+    "Lifecycle commitment confirmed on-chain",
+    reconciled.txHash ?? null,
+    now,
+  );
+  return reconciled;
 }
