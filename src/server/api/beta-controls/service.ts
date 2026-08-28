@@ -147,7 +147,10 @@ export class BetaControlService {
 
   // ---- Feature flags ----
 
-  async isFeatureEnabled(key: string, opts: { account?: string } = {}): Promise<FeatureFlagEvaluation> {
+  async isFeatureEnabled(
+    key: string,
+    opts: { account?: string } = {},
+  ): Promise<FeatureFlagEvaluation> {
     const controls = await this.getEffectiveControls();
     const flag = controls.flags[key];
     if (!flag) {
