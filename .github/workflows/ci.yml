@@ -118,6 +118,7 @@ jobs:
         run: bun run generate:openapi
 
       - name: OpenAPI Compatibility
+        if: env.FORK_PR != 'true'
         run: |
           mkdir -p /tmp/optic-env
           cd /tmp/optic-env
@@ -136,6 +137,10 @@ jobs:
           /tmp/optic-env/node_modules/.bin/optic diff openapi.json --base origin/main --check
         env:
           OPTIC_TOKEN: ${{ secrets.OPTIC_TOKEN }}
+
+      - name: Skip OpenAPI Compatibility on fork PR
+        if: env.FORK_PR == 'true'
+        run: echo "Skipping OpenAPI compatibility check on fork PR (no OPTIC_TOKEN available to run optic diff --check against Optic Cloud)."
 
       - name: Config Guard
         run: bun run config:check
