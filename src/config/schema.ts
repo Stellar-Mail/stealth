@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { betaCapabilitySchema, killSwitchStateSchema } from "../server/api/beta-controls/types";
 
 export const configProfileSchema = z.enum(["development", "test", "preview", "production"]);
 export type ConfigProfile = z.infer<typeof configProfileSchema>;
@@ -141,6 +142,23 @@ export const notificationsConfigSchema = z.object({
 export type NotificationsConfig = z.infer<typeof notificationsConfigSchema>;
 
 /**
+ * Beta control configuration (BETA-095).
+ *
+ * Carries the operator-configurable baseline for kill switches, feature flags
+ * and the bounded propagation window. This is the *default* baseline only; the
+ * live state is mutated at runtime by operators through the admin API and held
+ * in the BetaControlService store. If the store cannot be read, enforcement
+ * falls back to this baseline (and fail-closed guarantees the capability is
+ * disabled when the store is unreachable).
+ */
+export const betaControlConfigSchema = z.object({
+  controlTtlSeconds: z.number().int().positive().default(5),
+  killSwitchDefaults: z.record(betaCapabilitySchema, killSwitchStateSchema).default({}),
+  featureFlagDefaults: z.record(z.string(), z.boolean()).default({}),
+});
+export type BetaControlConfig = z.infer<typeof betaControlConfigSchema>;
+
+/**
  * Public Configuration (Client-safe subset with ZERO secrets)
  */
 export const publicConfigSchema = z.object({
@@ -204,6 +222,7 @@ export const runtimeConfigSchema = z.object({
   contract: contractConfigSchema,
   origin: originConfigSchema,
   notifications: notificationsConfigSchema,
+  betaControl: betaControlConfigSchema,
   secrets: secretConfigSchema,
 });
 export type BetaRuntimeConfig = z.infer<typeof runtimeConfigSchema>;

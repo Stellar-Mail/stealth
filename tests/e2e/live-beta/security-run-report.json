@@ -1,11 +1,11 @@
 {
   "issue": "BETA-084",
-  "runAt": "2026-08-25T14:27:32.433Z",
+  "runAt": "2026-08-28T12:44:29.201Z",
   "mode": "local-fake",
   "network": "local",
   "toolVersions": {
     "vitest": "4.x",
-    "node": "v24.16.0"
+    "node": "v24.15.0"
   },
   "steps": [
     {

@@ -40,6 +40,12 @@ given release.
 | SC-23 | Installs resolve through committed lock files (`bun.lockb` / `package-lock.json`)                      | Procedure        | Release Manager | lock files at repo root                                                       | checklist item VC-P0-2 (clean install from lockfile)                             |
 | SC-24 | Committed wrangler config contains placeholders only; preview/production KV namespaces never collide   | Code             | Deploy Owner    | `wrangler-config-guard.ts` + `bun run config:check`                           | `tests/unit/security/beta-controls.test.ts` (guard section) + VC-P0-6            |
 | SC-25 | Secrets live in operator consoles/CI stores only; repo-side scan compensates when gitleaks is disabled | Procedure        | Deploy Owner    | `docs/deployment/SECRETS.md`; gitleaks job (conditional); local scan          | checklist item VC-P0-8                                                           |
+| SC-26 | Beta cohorts, invite limits, feature flags, percentage/account targeting, expiry, and audit metadata are modeled and operator-managed | Code | Release Operator | `src/server/api/beta-controls/*`, `src/config/schema.ts` (`betaControlConfigSchema`) | `tests/unit/api/beta-controls.test.ts` (cohorts/invites/flags) |
+| SC-27 | Kill switches for signup, funding, sending, attachments, postage writes, receipts, and external wallet linking are enforced at the real entry points (fail closed) | Code | Release Operator | `enforceCapability` in `src/server/api/beta-controls/guard.ts`; wired in `registration-service.ts`, `account-provision.ts`, `send/coordinate.ts`, `attachments/initiate.ts`, `postage/*`, `receipts/index.ts`, `wallet-link-service.ts` | `tests/unit/api/admin-beta-routes.test.ts`, `tests/unit/api/beta-controls.workflow.test.ts` |
+| SC-28 | Kill switches fail closed and propagate within a bounded time (cache TTL) | Code | Release Operator | `BetaControlService.evaluateKillSwitch` try/catch (`source: "fail_closed"`) + TTL cache in `service.ts` | `tests/unit/api/beta-controls.test.ts` (fail-closed + stale-cache sections) |
+| SC-29 | Flags cannot grant unauthorized data access or bypass server checks | Code | Release Operator | `isFeatureEnabled` returns a boolean only; no authz branch on flags | `tests/unit/api/beta-controls.test.ts` (precedence + "never returns data" sections) |
+| SC-30 | Protected mutation controls require operator role + mandatory audit `reason` | Code | Release Operator | `requireAdminRole` + `adminMutationSchema` + `recordAdminMutationAudit` in `src/routes/api/v1/admin/beta/*` | `tests/unit/api/admin-beta-routes.test.ts` (403/422/401 checks) |
+| SC-31 | Concurrent operator changes are safe (optimistic version conflict → 409) and recoverable | Code | Release Operator | `BetaControlStore.setKillSwitch` version guard; `UpsertCohort` `expectedVersion` | `tests/unit/api/beta-controls.test.ts` (concurrent operator changes) |
 
 ## 2. Accepted beta limitations
 
@@ -65,3 +71,4 @@ Acceptance scenario 1 requires every live beta component to have an owner and bo
 | Wallet linking           | TB6              | SC-15                     | Wallet Owner                   |
 | Soroban contracts        | TB5              | SC-17–SC-20               | Contract Owner                 |
 | Deployment pipeline      | TB8              | SC-07, SC-19, SC-22–SC-25 | Deploy Owner / Release Manager |
+| Beta control plane (BETA-095) | TB8, TB3 | SC-26–SC-31 | Release Operator |

@@ -16,6 +16,8 @@ import {
   type VerificationPolicy,
 } from "../verification-service";
 import { recordAuditEvent } from "../audit";
+import { enforceCapability } from "@/server/api/beta-controls/guard";
+import { getBetaControlService } from "@/server/api/beta-controls";
 
 const SIGNUP_RATE_LIMIT_WINDOW_SECONDS = 60 * 60;
 const MAX_SIGNUPS_PER_IP = 10;
@@ -44,6 +46,30 @@ export async function registerWithPassword(
     throw new ApiError(429, "too_many_requests", "Registration rate limit exceeded for IP", {
       retryAfterSeconds: ipCheck.retryAfterSeconds ?? SIGNUP_RATE_LIMIT_WINDOW_SECONDS,
     });
+  }
+
+  // BETA-095: operator kill switch for signup. Fails closed if the control
+  // store is unavailable (no signups until the control is reachable).
+  await enforceCapability("signup");
+
+  // BETA-095: if an invite code is supplied, it must map to an active, unexpired
+  // beta invite. Codes are validated (and redeemed) before the account is created.
+  if (input.inviteCode && input.inviteCode.trim().length > 0) {
+    const beta = getBetaControlService();
+    const invite = await beta.getInvite(input.inviteCode.trim());
+    if (!invite) {
+      throw new ApiError(400, "invite_invalid", "The supplied beta invite code is not recognized.");
+    }
+    if (invite.status !== "active") {
+      throw new ApiError(
+        409,
+        "invite_invalid",
+        `The supplied beta invite code is ${invite.status}.`,
+      );
+    }
+    if (invite.expiresAt && new Date(invite.expiresAt).getTime() < Date.now()) {
+      throw new ApiError(410, "invite_expired", "The supplied beta invite code has expired.");
+    }
   }
 
   const now = new Date();
@@ -96,6 +122,23 @@ export async function registerWithPassword(
       throw new ApiError("conflict");
     }
     throw error;
+  }
+
+  // BETA-095: redeem the beta invite against the newly created account.
+  if (input.inviteCode && input.inviteCode.trim().length > 0) {
+    try {
+      await getBetaControlService().redeemInvite(input.inviteCode.trim(), userId);
+    } catch (error) {
+      if (error instanceof ApiError) throw error;
+      recordAuditEvent({
+        actor: userId,
+        action: "auth.invite_redeem_failed",
+        targetType: "account",
+        safeTargetReference: userId,
+        result: "denied",
+        requestId: apiContext.requestId ?? "registration",
+      });
+    }
   }
 
   await provisionManagedStellarWallet(apiContext.repository, userId, config, {

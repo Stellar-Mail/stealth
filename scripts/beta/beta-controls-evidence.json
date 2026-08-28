@@ -1,0 +1,41 @@
+{
+  "task": "BETA-095",
+  "generatedAt": "2026-08-28T12:39:34.385Z",
+  "identifiers": {
+    "packageVersion": "unknown",
+    "gitCommit": "00309a7c",
+    "controlConfig": {
+      "controlTtlSeconds": 5,
+      "killSwitchDefaults": {
+        "signup": "open",
+        "funding": "open",
+        "sending": "open",
+        "attachments": "open",
+        "postageWrites": "open",
+        "receipts": "open",
+        "walletLinking": "open"
+      },
+      "featureFlagDefaults": {}
+    }
+  },
+  "journeys": {
+    "operator": {
+      "closedAttachments": 200
+    },
+    "securityTester": {
+      "observedAttachmentDisabled": true
+    },
+    "betaUser": {
+      "denialStatus": 503,
+      "denialCode": "beta_capability_disabled"
+    },
+    "recovery": {
+      "reopened": 200,
+      "retryStatus": 422
+    },
+    "rollback": {
+      "closedAgain": 200,
+      "denialStatus": 503
+    }
+  }
+}

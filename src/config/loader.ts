@@ -5,6 +5,7 @@ import {
   type NotificationTransport,
   type PublicConfig,
 } from "./schema";
+import { BETA_CAPABILITIES } from "../server/api/beta-controls/types";
 import { loadManifest, validateRegistryDrift } from "./registry";
 
 const DEFAULT_ALLOWED_METHODS = ["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "PATCH"];
@@ -225,6 +226,32 @@ export function loadRuntimeConfig(options: LoadConfigOptions = {}): BetaRuntimeC
   );
   const verificationMaxAttempts = parseNumber(env.STEALTH_VERIFICATION_MAX_ATTEMPTS, 5);
 
+  // 8. Beta controls (BETA-095). Kill switches default to the configured
+  // baseline (`STEALTH_BETA_KILLSWITCH_DEFAULT`, default "open") so the stack
+  // runs normally out of the box; operators may then close any individual
+  // switch at runtime without redeploy. A missing/unreachable store still
+  // fails closed at enforcement time.
+  const controlTtlSeconds = parseNumber(env.STEALTH_BETA_CONTROL_TTL_SECONDS, 5);
+  const killSwitchBaseline = (env.STEALTH_BETA_KILLSWITCH_DEFAULT as string) ?? "open";
+  const killSwitchDefaults: Record<string, "open" | "closed"> = {};
+  for (const capability of BETA_CAPABILITIES) {
+    const override = env[`STEALTH_BETA_KILLSWITCH_${capability.toUpperCase()}`] as
+      | string
+      | undefined;
+    if (override === "open" || override === "closed") {
+      killSwitchDefaults[capability] = override;
+    } else {
+      killSwitchDefaults[capability] = killSwitchBaseline === "closed" ? "closed" : "open";
+    }
+  }
+  const featureFlagDefaults: Record<string, boolean> = {};
+  for (const envKey of Object.keys(env)) {
+    const match = /^STEALTH_BETA_FLAG_(.+)$/.exec(envKey);
+    if (match) {
+      featureFlagDefaults[match[1].toLowerCase()] = parseBool(env[envKey], false);
+    }
+  }
+
   // Perform validation gates according to profile
   if (isProd) {
     if ((role === "all" || role === "web") && isPlaceholderSecret(cursorSecret)) {
@@ -368,6 +395,11 @@ export function loadRuntimeConfig(options: LoadConfigOptions = {}): BetaRuntimeC
         username: smtpUsername,
         password: smtpPassword,
       },
+    },
+    betaControl: {
+      controlTtlSeconds,
+      killSwitchDefaults,
+      featureFlagDefaults,
     },
   };
 

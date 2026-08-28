@@ -9,6 +9,8 @@ import { getOnboardingDraft } from "@/server/api/onboarding-service";
 import { getMailboxPolicy } from "@/server/api/policy-service";
 import { apiSuccess, handleApiRequest } from "@/server/api/response";
 import { resolveActiveSigner } from "@/server/api/wallet-link-service";
+import { getBetaControlService, initBetaControlService } from "@/server/api/beta-controls";
+import { BETA_CAPABILITIES } from "@/server/api/beta-controls/types";
 
 export const Route = createFileRoute("/api/v1/bootstrap")({
   server: {
@@ -16,6 +18,7 @@ export const Route = createFileRoute("/api/v1/bootstrap")({
       GET: ({ request }) =>
         handleApiRequest(request, async () => {
           const apiContext = await getApiContext(request);
+          await initBetaControlService();
           const sessionId = parseSessionCookie(request.headers.get("cookie"));
 
           if (!sessionId) {
@@ -141,6 +144,26 @@ export const Route = createFileRoute("/api/v1/bootstrap")({
               betaStateMachines: true,
               sorobanPostage: true,
               liveMailboxSync: true,
+            },
+            betaControls: {
+              killSwitches: await Promise.all(
+                BETA_CAPABILITIES.map(async (capability) => {
+                  const evaluation = await getBetaControlService().evaluateKillSwitch(capability);
+                  return { capability, enabled: evaluation.enabled, source: evaluation.source };
+                }),
+              ),
+              featureFlags: await (async () => {
+                const betaService = getBetaControlService();
+                const flags = await betaService.listFlags();
+                const evaluated: Record<string, boolean> = {};
+                for (const flag of flags) {
+                  const evaluation = await betaService.isFeatureEnabled(flag.key, {
+                    account: owner,
+                  });
+                  evaluated[flag.key] = evaluation.enabled;
+                }
+                return evaluated;
+              })(),
             },
             branch,
           });

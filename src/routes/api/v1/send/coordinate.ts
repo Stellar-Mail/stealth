@@ -8,6 +8,7 @@ import { SendCoordinator } from "@/server/api/send-coordinator";
 import { parseJsonBody } from "@/server/api/request";
 import { apiSuccess, handleApiRequest } from "@/server/api/response";
 import { withIdempotency } from "@/server/api/idempotency-service";
+import { enforceCapability } from "@/server/api/beta-controls/guard";
 
 const coordinateActionSchema = z.discriminatedUnion("action", [
   z.object({
@@ -50,6 +51,9 @@ export const Route = createFileRoute("/api/v1/send/coordinate")({
             route: "POST /send/coordinate",
           });
           requireActorMatches(apiContext, input.sender);
+
+          // BETA-095: operator kill switch for sending. Fails closed.
+          await enforceCapability("sending");
 
           const ip =
             request.headers.get("cf-connecting-ip") ??
