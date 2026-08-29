@@ -18,15 +18,15 @@ Issue **#2005** · Workflow 4 — Security, Operations & Beta Launch
 
 ## Journey coverage
 
-| Journey              | Automated                     | Manual script      |
-| -------------------- | ----------------------------- | ------------------ |
-| Onboarding / mailbox | `acceptance-journeys.spec.ts` | Desktop #1         |
-| Address sharing      | `acceptance-journeys.spec.ts` | Desktop #1         |
-| Compose / send       | `acceptance-journeys.spec.ts` | Desktop #2         |
-| Requests triage      | `acceptance-journeys.spec.ts` | Desktop #3         |
-| Proof inspection     | `acceptance-journeys.spec.ts` | Desktop #4         |
-| Recovery / sign-in   | `acceptance-journeys.spec.ts` | Desktop #5, Mobile |
-| Beta feedback        | `acceptance-evidence.test.ts` | Desktop #6         |
+| Journey              | Automated                                                     | Manual script      |
+| -------------------- | ------------------------------------------------------------- | ------------------ |
+| Onboarding / mailbox | `acceptance-journeys.spec.ts`                                 | Desktop #1         |
+| Address sharing      | `acceptance-journeys.spec.ts`                                 | Desktop #1         |
+| Compose / send       | `acceptance-journeys.spec.ts`                                 | Desktop #2         |
+| Requests triage      | `acceptance-journeys.spec.ts`                                 | Desktop #3         |
+| Proof inspection     | `acceptance-journeys.spec.ts`                                 | Desktop #4         |
+| Recovery / sign-in   | `acceptance-journeys.spec.ts` (desktop + mobile)              | Desktop #5, Mobile |
+| Beta feedback        | `acceptance-journeys.spec.ts` + `acceptance-evidence.test.ts` | Desktop #6, Mobile |
 
 ## Run commands
 

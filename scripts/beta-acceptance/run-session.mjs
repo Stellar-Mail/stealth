@@ -44,12 +44,7 @@ function run(cmd, label) {
 }
 
 const results = [];
-results.push(
-  run(
-    "npx vitest run tests/unit/feedback/beta-feedback.test.ts tests/unit/beta-acceptance/acceptance-evidence.test.ts --reporter=verbose",
-    "Acceptance evidence (vitest)",
-  ),
-);
+results.push(run("npm run test:beta:acceptance", "Acceptance evidence (vitest)"));
 results.push(
   run(
     "npx playwright test tests/e2e/beta-acceptance/acceptance-journeys.spec.ts --reporter=line",

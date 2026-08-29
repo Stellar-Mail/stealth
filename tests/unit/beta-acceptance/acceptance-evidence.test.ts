@@ -3,7 +3,10 @@
  */
 import { afterAll, describe, expect, it } from "vitest";
 import metrics from "../../fixtures/beta-acceptance-metrics.json";
-import { buildBetaFeedbackPayload } from "../../../src/features/feedback";
+import {
+  buildBetaFeedbackPayload,
+  BetaFeedbackValidationError,
+} from "../../../src/features/feedback";
 import { assertNoSecretsLeaked } from "../../fixtures/identity";
 import {
   writeAcceptanceReport,
@@ -39,6 +42,25 @@ describe("BETA-098 acceptance evidence (#2005)", () => {
       viewport: "desktop",
       status: "pass",
       controlOwner: "product/ux",
+    });
+  });
+
+  it("rejects feedback without informed consent (denial path)", () => {
+    expect(() =>
+      buildBetaFeedbackPayload({
+        sessionId: "sess_b098_denied",
+        taskId: "beta-feedback",
+        category: "comprehension",
+        rating: 3,
+        informedConsent: false,
+        viewport: "desktop",
+      }),
+    ).toThrow(BetaFeedbackValidationError);
+    steps.push({
+      journeyId: "beta-feedback-consent-denied",
+      viewport: "desktop",
+      status: "denied",
+      controlOwner: "platform/client",
     });
   });
 
