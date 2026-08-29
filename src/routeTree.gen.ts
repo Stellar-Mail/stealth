@@ -58,6 +58,7 @@ import { Route as ApiV1DraftsDraftIdRouteImport } from './routes/api/v1/drafts/$
 import { Route as ApiV1DeliveryMessageIdRouteImport } from './routes/api/v1/delivery/$messageId'
 import { Route as ApiV1ContactsMergeRouteImport } from './routes/api/v1/contacts/merge'
 import { Route as ApiV1ContactsContactIdRouteImport } from './routes/api/v1/contacts/$contactId'
+import { Route as ApiV1BetaStateRouteImport } from './routes/api/v1/beta/state'
 import { Route as ApiV1AuthVerifyRouteImport } from './routes/api/v1/auth/verify'
 import { Route as ApiV1AuthSessionRouteImport } from './routes/api/v1/auth/session'
 import { Route as ApiV1AuthResendVerificationRouteImport } from './routes/api/v1/auth/resend-verification'
@@ -117,11 +118,17 @@ import { Route as ApiV1AdminInvitesRevokeRouteImport } from './routes/api/v1/adm
 import { Route as ApiV1AdminDlqIdRouteImport } from './routes/api/v1/admin/dlq/$id'
 import { Route as ApiV1AccountsProvisioningRetryRouteImport } from './routes/api/v1/accounts/provisioning/retry'
 import { Route as ApiV1PoliciesOwnerSendersIndexRouteImport } from './routes/api/v1/policies/$owner/senders/index'
+import { Route as ApiV1AdminBetaKillswitchesIndexRouteImport } from './routes/api/v1/admin/beta/killswitches/index'
+import { Route as ApiV1AdminBetaInvitesIndexRouteImport } from './routes/api/v1/admin/beta/invites/index'
+import { Route as ApiV1AdminBetaFlagsIndexRouteImport } from './routes/api/v1/admin/beta/flags/index'
+import { Route as ApiV1AdminBetaCohortsIndexRouteImport } from './routes/api/v1/admin/beta/cohorts/index'
 import { Route as ApiV1PoliciesOwnerSendersSenderRouteImport } from './routes/api/v1/policies/$owner/senders/$sender'
 import { Route as ApiV1AdminUsersUserIdSuspendRouteImport } from './routes/api/v1/admin/users/$userId/suspend'
 import { Route as ApiV1AdminUsersUserIdReactivateRouteImport } from './routes/api/v1/admin/users/$userId/reactivate'
 import { Route as ApiV1AdminDlqIdRetryRouteImport } from './routes/api/v1/admin/dlq/$id/retry'
 import { Route as ApiV1AdminDlqIdAbandonRouteImport } from './routes/api/v1/admin/dlq/$id/abandon'
+import { Route as ApiV1AdminBetaInvitesCodeRouteImport } from './routes/api/v1/admin/beta/invites/$code'
+import { Route as ApiV1AdminBetaCohortsCohortIdRouteImport } from './routes/api/v1/admin/beta/cohorts/$cohortId'
 import { Route as ApiV1AccountsUserIdWalletProvisionRouteImport } from './routes/api/v1/accounts/$userId/wallet/provision'
 import { Route as ApiV1PoliciesOwnerSendersSenderRetryRouteImport } from './routes/api/v1/policies/$owner/senders/$sender/retry'
 import { Route as ApiV1PoliciesOwnerSendersSenderChainStatusRouteImport } from './routes/api/v1/policies/$owner/senders/$sender/chain-status'
@@ -371,6 +378,11 @@ const ApiV1ContactsMergeRoute = ApiV1ContactsMergeRouteImport.update({
 const ApiV1ContactsContactIdRoute = ApiV1ContactsContactIdRouteImport.update({
   id: '/api/v1/contacts/$contactId',
   path: '/api/v1/contacts/$contactId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1BetaStateRoute = ApiV1BetaStateRouteImport.update({
+  id: '/api/v1/beta/state',
+  path: '/api/v1/beta/state',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiV1AuthVerifyRoute = ApiV1AuthVerifyRouteImport.update({
@@ -694,6 +706,30 @@ const ApiV1PoliciesOwnerSendersIndexRoute =
     path: '/senders/',
     getParentRoute: () => ApiV1PoliciesOwnerRoute,
   } as any)
+const ApiV1AdminBetaKillswitchesIndexRoute =
+  ApiV1AdminBetaKillswitchesIndexRouteImport.update({
+    id: '/api/v1/admin/beta/killswitches/',
+    path: '/api/v1/admin/beta/killswitches/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiV1AdminBetaInvitesIndexRoute =
+  ApiV1AdminBetaInvitesIndexRouteImport.update({
+    id: '/api/v1/admin/beta/invites/',
+    path: '/api/v1/admin/beta/invites/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiV1AdminBetaFlagsIndexRoute =
+  ApiV1AdminBetaFlagsIndexRouteImport.update({
+    id: '/api/v1/admin/beta/flags/',
+    path: '/api/v1/admin/beta/flags/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiV1AdminBetaCohortsIndexRoute =
+  ApiV1AdminBetaCohortsIndexRouteImport.update({
+    id: '/api/v1/admin/beta/cohorts/',
+    path: '/api/v1/admin/beta/cohorts/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiV1PoliciesOwnerSendersSenderRoute =
   ApiV1PoliciesOwnerSendersSenderRouteImport.update({
     id: '/senders/$sender',
@@ -722,6 +758,18 @@ const ApiV1AdminDlqIdAbandonRoute = ApiV1AdminDlqIdAbandonRouteImport.update({
   path: '/abandon',
   getParentRoute: () => ApiV1AdminDlqIdRoute,
 } as any)
+const ApiV1AdminBetaInvitesCodeRoute =
+  ApiV1AdminBetaInvitesCodeRouteImport.update({
+    id: '/api/v1/admin/beta/invites/$code',
+    path: '/api/v1/admin/beta/invites/$code',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiV1AdminBetaCohortsCohortIdRoute =
+  ApiV1AdminBetaCohortsCohortIdRouteImport.update({
+    id: '/api/v1/admin/beta/cohorts/$cohortId',
+    path: '/api/v1/admin/beta/cohorts/$cohortId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiV1AccountsUserIdWalletProvisionRoute =
   ApiV1AccountsUserIdWalletProvisionRouteImport.update({
     id: '/api/v1/accounts/$userId/wallet/provision',
@@ -784,6 +832,7 @@ export interface FileRoutesByFullPath {
   '/api/v1/auth/resend-verification': typeof ApiV1AuthResendVerificationRoute
   '/api/v1/auth/session': typeof ApiV1AuthSessionRoute
   '/api/v1/auth/verify': typeof ApiV1AuthVerifyRoute
+  '/api/v1/beta/state': typeof ApiV1BetaStateRoute
   '/api/v1/contacts/$contactId': typeof ApiV1ContactsContactIdRoute
   '/api/v1/contacts/merge': typeof ApiV1ContactsMergeRoute
   '/api/v1/delivery/$messageId': typeof ApiV1DeliveryMessageIdRoute
@@ -856,11 +905,17 @@ export interface FileRoutesByFullPath {
   '/api/v1/identity/keys/': typeof ApiV1IdentityKeysIndexRoute
   '/api/v1/wallet/link/': typeof ApiV1WalletLinkIndexRoute
   '/api/v1/accounts/$userId/wallet/provision': typeof ApiV1AccountsUserIdWalletProvisionRoute
+  '/api/v1/admin/beta/cohorts/$cohortId': typeof ApiV1AdminBetaCohortsCohortIdRoute
+  '/api/v1/admin/beta/invites/$code': typeof ApiV1AdminBetaInvitesCodeRoute
   '/api/v1/admin/dlq/$id/abandon': typeof ApiV1AdminDlqIdAbandonRoute
   '/api/v1/admin/dlq/$id/retry': typeof ApiV1AdminDlqIdRetryRoute
   '/api/v1/admin/users/$userId/reactivate': typeof ApiV1AdminUsersUserIdReactivateRoute
   '/api/v1/admin/users/$userId/suspend': typeof ApiV1AdminUsersUserIdSuspendRoute
   '/api/v1/policies/$owner/senders/$sender': typeof ApiV1PoliciesOwnerSendersSenderRouteWithChildren
+  '/api/v1/admin/beta/cohorts/': typeof ApiV1AdminBetaCohortsIndexRoute
+  '/api/v1/admin/beta/flags/': typeof ApiV1AdminBetaFlagsIndexRoute
+  '/api/v1/admin/beta/invites/': typeof ApiV1AdminBetaInvitesIndexRoute
+  '/api/v1/admin/beta/killswitches/': typeof ApiV1AdminBetaKillswitchesIndexRoute
   '/api/v1/policies/$owner/senders/': typeof ApiV1PoliciesOwnerSendersIndexRoute
   '/api/v1/admin/users/$userId/provision/retry': typeof ApiV1AdminUsersUserIdProvisionRetryRoute
   '/api/v1/policies/$owner/senders/$sender/chain-status': typeof ApiV1PoliciesOwnerSendersSenderChainStatusRoute
@@ -902,6 +957,7 @@ export interface FileRoutesByTo {
   '/api/v1/auth/resend-verification': typeof ApiV1AuthResendVerificationRoute
   '/api/v1/auth/session': typeof ApiV1AuthSessionRoute
   '/api/v1/auth/verify': typeof ApiV1AuthVerifyRoute
+  '/api/v1/beta/state': typeof ApiV1BetaStateRoute
   '/api/v1/contacts/$contactId': typeof ApiV1ContactsContactIdRoute
   '/api/v1/contacts/merge': typeof ApiV1ContactsMergeRoute
   '/api/v1/delivery/$messageId': typeof ApiV1DeliveryMessageIdRoute
@@ -974,11 +1030,17 @@ export interface FileRoutesByTo {
   '/api/v1/identity/keys': typeof ApiV1IdentityKeysIndexRoute
   '/api/v1/wallet/link': typeof ApiV1WalletLinkIndexRoute
   '/api/v1/accounts/$userId/wallet/provision': typeof ApiV1AccountsUserIdWalletProvisionRoute
+  '/api/v1/admin/beta/cohorts/$cohortId': typeof ApiV1AdminBetaCohortsCohortIdRoute
+  '/api/v1/admin/beta/invites/$code': typeof ApiV1AdminBetaInvitesCodeRoute
   '/api/v1/admin/dlq/$id/abandon': typeof ApiV1AdminDlqIdAbandonRoute
   '/api/v1/admin/dlq/$id/retry': typeof ApiV1AdminDlqIdRetryRoute
   '/api/v1/admin/users/$userId/reactivate': typeof ApiV1AdminUsersUserIdReactivateRoute
   '/api/v1/admin/users/$userId/suspend': typeof ApiV1AdminUsersUserIdSuspendRoute
   '/api/v1/policies/$owner/senders/$sender': typeof ApiV1PoliciesOwnerSendersSenderRouteWithChildren
+  '/api/v1/admin/beta/cohorts': typeof ApiV1AdminBetaCohortsIndexRoute
+  '/api/v1/admin/beta/flags': typeof ApiV1AdminBetaFlagsIndexRoute
+  '/api/v1/admin/beta/invites': typeof ApiV1AdminBetaInvitesIndexRoute
+  '/api/v1/admin/beta/killswitches': typeof ApiV1AdminBetaKillswitchesIndexRoute
   '/api/v1/policies/$owner/senders': typeof ApiV1PoliciesOwnerSendersIndexRoute
   '/api/v1/admin/users/$userId/provision/retry': typeof ApiV1AdminUsersUserIdProvisionRetryRoute
   '/api/v1/policies/$owner/senders/$sender/chain-status': typeof ApiV1PoliciesOwnerSendersSenderChainStatusRoute
@@ -1022,6 +1084,7 @@ export interface FileRoutesById {
   '/api/v1/auth/resend-verification': typeof ApiV1AuthResendVerificationRoute
   '/api/v1/auth/session': typeof ApiV1AuthSessionRoute
   '/api/v1/auth/verify': typeof ApiV1AuthVerifyRoute
+  '/api/v1/beta/state': typeof ApiV1BetaStateRoute
   '/api/v1/contacts/$contactId': typeof ApiV1ContactsContactIdRoute
   '/api/v1/contacts/merge': typeof ApiV1ContactsMergeRoute
   '/api/v1/delivery/$messageId': typeof ApiV1DeliveryMessageIdRoute
@@ -1094,11 +1157,17 @@ export interface FileRoutesById {
   '/api/v1/identity/keys/': typeof ApiV1IdentityKeysIndexRoute
   '/api/v1/wallet/link/': typeof ApiV1WalletLinkIndexRoute
   '/api/v1/accounts/$userId/wallet/provision': typeof ApiV1AccountsUserIdWalletProvisionRoute
+  '/api/v1/admin/beta/cohorts/$cohortId': typeof ApiV1AdminBetaCohortsCohortIdRoute
+  '/api/v1/admin/beta/invites/$code': typeof ApiV1AdminBetaInvitesCodeRoute
   '/api/v1/admin/dlq/$id/abandon': typeof ApiV1AdminDlqIdAbandonRoute
   '/api/v1/admin/dlq/$id/retry': typeof ApiV1AdminDlqIdRetryRoute
   '/api/v1/admin/users/$userId/reactivate': typeof ApiV1AdminUsersUserIdReactivateRoute
   '/api/v1/admin/users/$userId/suspend': typeof ApiV1AdminUsersUserIdSuspendRoute
   '/api/v1/policies/$owner/senders/$sender': typeof ApiV1PoliciesOwnerSendersSenderRouteWithChildren
+  '/api/v1/admin/beta/cohorts/': typeof ApiV1AdminBetaCohortsIndexRoute
+  '/api/v1/admin/beta/flags/': typeof ApiV1AdminBetaFlagsIndexRoute
+  '/api/v1/admin/beta/invites/': typeof ApiV1AdminBetaInvitesIndexRoute
+  '/api/v1/admin/beta/killswitches/': typeof ApiV1AdminBetaKillswitchesIndexRoute
   '/api/v1/policies/$owner/senders/': typeof ApiV1PoliciesOwnerSendersIndexRoute
   '/api/v1/admin/users/$userId/provision/retry': typeof ApiV1AdminUsersUserIdProvisionRetryRoute
   '/api/v1/policies/$owner/senders/$sender/chain-status': typeof ApiV1PoliciesOwnerSendersSenderChainStatusRoute
@@ -1143,6 +1212,7 @@ export interface FileRouteTypes {
     | '/api/v1/auth/resend-verification'
     | '/api/v1/auth/session'
     | '/api/v1/auth/verify'
+    | '/api/v1/beta/state'
     | '/api/v1/contacts/$contactId'
     | '/api/v1/contacts/merge'
     | '/api/v1/delivery/$messageId'
@@ -1215,11 +1285,17 @@ export interface FileRouteTypes {
     | '/api/v1/identity/keys/'
     | '/api/v1/wallet/link/'
     | '/api/v1/accounts/$userId/wallet/provision'
+    | '/api/v1/admin/beta/cohorts/$cohortId'
+    | '/api/v1/admin/beta/invites/$code'
     | '/api/v1/admin/dlq/$id/abandon'
     | '/api/v1/admin/dlq/$id/retry'
     | '/api/v1/admin/users/$userId/reactivate'
     | '/api/v1/admin/users/$userId/suspend'
     | '/api/v1/policies/$owner/senders/$sender'
+    | '/api/v1/admin/beta/cohorts/'
+    | '/api/v1/admin/beta/flags/'
+    | '/api/v1/admin/beta/invites/'
+    | '/api/v1/admin/beta/killswitches/'
     | '/api/v1/policies/$owner/senders/'
     | '/api/v1/admin/users/$userId/provision/retry'
     | '/api/v1/policies/$owner/senders/$sender/chain-status'
@@ -1261,6 +1337,7 @@ export interface FileRouteTypes {
     | '/api/v1/auth/resend-verification'
     | '/api/v1/auth/session'
     | '/api/v1/auth/verify'
+    | '/api/v1/beta/state'
     | '/api/v1/contacts/$contactId'
     | '/api/v1/contacts/merge'
     | '/api/v1/delivery/$messageId'
@@ -1333,11 +1410,17 @@ export interface FileRouteTypes {
     | '/api/v1/identity/keys'
     | '/api/v1/wallet/link'
     | '/api/v1/accounts/$userId/wallet/provision'
+    | '/api/v1/admin/beta/cohorts/$cohortId'
+    | '/api/v1/admin/beta/invites/$code'
     | '/api/v1/admin/dlq/$id/abandon'
     | '/api/v1/admin/dlq/$id/retry'
     | '/api/v1/admin/users/$userId/reactivate'
     | '/api/v1/admin/users/$userId/suspend'
     | '/api/v1/policies/$owner/senders/$sender'
+    | '/api/v1/admin/beta/cohorts'
+    | '/api/v1/admin/beta/flags'
+    | '/api/v1/admin/beta/invites'
+    | '/api/v1/admin/beta/killswitches'
     | '/api/v1/policies/$owner/senders'
     | '/api/v1/admin/users/$userId/provision/retry'
     | '/api/v1/policies/$owner/senders/$sender/chain-status'
@@ -1380,6 +1463,7 @@ export interface FileRouteTypes {
     | '/api/v1/auth/resend-verification'
     | '/api/v1/auth/session'
     | '/api/v1/auth/verify'
+    | '/api/v1/beta/state'
     | '/api/v1/contacts/$contactId'
     | '/api/v1/contacts/merge'
     | '/api/v1/delivery/$messageId'
@@ -1452,11 +1536,17 @@ export interface FileRouteTypes {
     | '/api/v1/identity/keys/'
     | '/api/v1/wallet/link/'
     | '/api/v1/accounts/$userId/wallet/provision'
+    | '/api/v1/admin/beta/cohorts/$cohortId'
+    | '/api/v1/admin/beta/invites/$code'
     | '/api/v1/admin/dlq/$id/abandon'
     | '/api/v1/admin/dlq/$id/retry'
     | '/api/v1/admin/users/$userId/reactivate'
     | '/api/v1/admin/users/$userId/suspend'
     | '/api/v1/policies/$owner/senders/$sender'
+    | '/api/v1/admin/beta/cohorts/'
+    | '/api/v1/admin/beta/flags/'
+    | '/api/v1/admin/beta/invites/'
+    | '/api/v1/admin/beta/killswitches/'
     | '/api/v1/policies/$owner/senders/'
     | '/api/v1/admin/users/$userId/provision/retry'
     | '/api/v1/policies/$owner/senders/$sender/chain-status'
@@ -1497,6 +1587,7 @@ export interface RootRouteChildren {
   ApiV1AuthResendVerificationRoute: typeof ApiV1AuthResendVerificationRoute
   ApiV1AuthSessionRoute: typeof ApiV1AuthSessionRoute
   ApiV1AuthVerifyRoute: typeof ApiV1AuthVerifyRoute
+  ApiV1BetaStateRoute: typeof ApiV1BetaStateRoute
   ApiV1ContactsContactIdRoute: typeof ApiV1ContactsContactIdRoute
   ApiV1ContactsMergeRoute: typeof ApiV1ContactsMergeRoute
   ApiV1DeliveryMessageIdRoute: typeof ApiV1DeliveryMessageIdRoute
@@ -1560,8 +1651,14 @@ export interface RootRouteChildren {
   ApiV1IdentityKeysIndexRoute: typeof ApiV1IdentityKeysIndexRoute
   ApiV1WalletLinkIndexRoute: typeof ApiV1WalletLinkIndexRoute
   ApiV1AccountsUserIdWalletProvisionRoute: typeof ApiV1AccountsUserIdWalletProvisionRoute
+  ApiV1AdminBetaCohortsCohortIdRoute: typeof ApiV1AdminBetaCohortsCohortIdRoute
+  ApiV1AdminBetaInvitesCodeRoute: typeof ApiV1AdminBetaInvitesCodeRoute
   ApiV1AdminUsersUserIdReactivateRoute: typeof ApiV1AdminUsersUserIdReactivateRoute
   ApiV1AdminUsersUserIdSuspendRoute: typeof ApiV1AdminUsersUserIdSuspendRoute
+  ApiV1AdminBetaCohortsIndexRoute: typeof ApiV1AdminBetaCohortsIndexRoute
+  ApiV1AdminBetaFlagsIndexRoute: typeof ApiV1AdminBetaFlagsIndexRoute
+  ApiV1AdminBetaInvitesIndexRoute: typeof ApiV1AdminBetaInvitesIndexRoute
+  ApiV1AdminBetaKillswitchesIndexRoute: typeof ApiV1AdminBetaKillswitchesIndexRoute
   ApiV1AdminUsersUserIdProvisionRetryRoute: typeof ApiV1AdminUsersUserIdProvisionRetryRoute
 }
 
@@ -1908,6 +2005,13 @@ declare module '@tanstack/react-router' {
       path: '/api/v1/contacts/$contactId'
       fullPath: '/api/v1/contacts/$contactId'
       preLoaderRoute: typeof ApiV1ContactsContactIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/beta/state': {
+      id: '/api/v1/beta/state'
+      path: '/api/v1/beta/state'
+      fullPath: '/api/v1/beta/state'
+      preLoaderRoute: typeof ApiV1BetaStateRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/auth/verify': {
@@ -2323,6 +2427,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1PoliciesOwnerSendersIndexRouteImport
       parentRoute: typeof ApiV1PoliciesOwnerRoute
     }
+    '/api/v1/admin/beta/killswitches/': {
+      id: '/api/v1/admin/beta/killswitches/'
+      path: '/api/v1/admin/beta/killswitches'
+      fullPath: '/api/v1/admin/beta/killswitches/'
+      preLoaderRoute: typeof ApiV1AdminBetaKillswitchesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/admin/beta/invites/': {
+      id: '/api/v1/admin/beta/invites/'
+      path: '/api/v1/admin/beta/invites'
+      fullPath: '/api/v1/admin/beta/invites/'
+      preLoaderRoute: typeof ApiV1AdminBetaInvitesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/admin/beta/flags/': {
+      id: '/api/v1/admin/beta/flags/'
+      path: '/api/v1/admin/beta/flags'
+      fullPath: '/api/v1/admin/beta/flags/'
+      preLoaderRoute: typeof ApiV1AdminBetaFlagsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/admin/beta/cohorts/': {
+      id: '/api/v1/admin/beta/cohorts/'
+      path: '/api/v1/admin/beta/cohorts'
+      fullPath: '/api/v1/admin/beta/cohorts/'
+      preLoaderRoute: typeof ApiV1AdminBetaCohortsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/policies/$owner/senders/$sender': {
       id: '/api/v1/policies/$owner/senders/$sender'
       path: '/senders/$sender'
@@ -2357,6 +2489,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/v1/admin/dlq/$id/abandon'
       preLoaderRoute: typeof ApiV1AdminDlqIdAbandonRouteImport
       parentRoute: typeof ApiV1AdminDlqIdRoute
+    }
+    '/api/v1/admin/beta/invites/$code': {
+      id: '/api/v1/admin/beta/invites/$code'
+      path: '/api/v1/admin/beta/invites/$code'
+      fullPath: '/api/v1/admin/beta/invites/$code'
+      preLoaderRoute: typeof ApiV1AdminBetaInvitesCodeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/admin/beta/cohorts/$cohortId': {
+      id: '/api/v1/admin/beta/cohorts/$cohortId'
+      path: '/api/v1/admin/beta/cohorts/$cohortId'
+      fullPath: '/api/v1/admin/beta/cohorts/$cohortId'
+      preLoaderRoute: typeof ApiV1AdminBetaCohortsCohortIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/v1/accounts/$userId/wallet/provision': {
       id: '/api/v1/accounts/$userId/wallet/provision'
@@ -2549,6 +2695,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1AuthResendVerificationRoute: ApiV1AuthResendVerificationRoute,
   ApiV1AuthSessionRoute: ApiV1AuthSessionRoute,
   ApiV1AuthVerifyRoute: ApiV1AuthVerifyRoute,
+  ApiV1BetaStateRoute: ApiV1BetaStateRoute,
   ApiV1ContactsContactIdRoute: ApiV1ContactsContactIdRoute,
   ApiV1ContactsMergeRoute: ApiV1ContactsMergeRoute,
   ApiV1DeliveryMessageIdRoute: ApiV1DeliveryMessageIdRoute,
@@ -2613,8 +2760,14 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1WalletLinkIndexRoute: ApiV1WalletLinkIndexRoute,
   ApiV1AccountsUserIdWalletProvisionRoute:
     ApiV1AccountsUserIdWalletProvisionRoute,
+  ApiV1AdminBetaCohortsCohortIdRoute: ApiV1AdminBetaCohortsCohortIdRoute,
+  ApiV1AdminBetaInvitesCodeRoute: ApiV1AdminBetaInvitesCodeRoute,
   ApiV1AdminUsersUserIdReactivateRoute: ApiV1AdminUsersUserIdReactivateRoute,
   ApiV1AdminUsersUserIdSuspendRoute: ApiV1AdminUsersUserIdSuspendRoute,
+  ApiV1AdminBetaCohortsIndexRoute: ApiV1AdminBetaCohortsIndexRoute,
+  ApiV1AdminBetaFlagsIndexRoute: ApiV1AdminBetaFlagsIndexRoute,
+  ApiV1AdminBetaInvitesIndexRoute: ApiV1AdminBetaInvitesIndexRoute,
+  ApiV1AdminBetaKillswitchesIndexRoute: ApiV1AdminBetaKillswitchesIndexRoute,
   ApiV1AdminUsersUserIdProvisionRetryRoute:
     ApiV1AdminUsersUserIdProvisionRetryRoute,
 }

@@ -16,6 +16,8 @@ import {
   type VerificationPolicy,
 } from "../verification-service";
 import { recordAuditEvent } from "../audit";
+import { enforceCapability } from "@/server/api/beta-controls/guard";
+import { getBetaControlService } from "@/server/api/beta-controls";
 
 const SIGNUP_RATE_LIMIT_WINDOW_SECONDS = 60 * 60;
 const MAX_SIGNUPS_PER_IP = 10;
@@ -46,9 +48,44 @@ export async function registerWithPassword(
     });
   }
 
+  // BETA-095: operator kill switch for signup. Fails closed if the control
+  // store is unavailable (no signups until the control is reachable).
+  await enforceCapability("signup");
+
+  // Reserve the user id up front so it can be used as the audit actor for the
+  // invite redemption that happens before the account row is written.
   const now = new Date();
   const nowIso = now.toISOString();
   const userId = `usr_${crypto.randomUUID().replace(/-/g, "")}`;
+
+  // BETA-095: when an invite code is supplied it is redeemed *before* the
+  // account is created, inside the store's serialized mutex. This makes invite
+  // redemption and account creation effectively atomic: a duplicate concurrent
+  // registration fails the (already-claimed) invite instead of creating a
+  // dangling account that consumed the email/username without owning the invite.
+  let redeemedInvite: string | null = null;
+  if (input.inviteCode && input.inviteCode.trim().length > 0) {
+    try {
+      redeemedInvite = input.inviteCode.trim();
+      await getBetaControlService().redeemInvite(redeemedInvite, userId);
+    } catch (error) {
+      if (error instanceof ApiError) throw error;
+      recordAuditEvent({
+        actor: userId,
+        action: "auth.invite_redeem_failed",
+        targetType: "account",
+        safeTargetReference: userId,
+        result: "denied",
+        requestId: apiContext.requestId ?? "registration",
+      });
+      throw new ApiError(
+        400,
+        "invite_invalid",
+        "The supplied beta invite code could not be redeemed.",
+      );
+    }
+  }
+
   const { hash, salt } = await hashPassword(input.password);
 
   const config = loadRuntimeConfig();
@@ -92,6 +129,16 @@ export async function registerWithPassword(
   try {
     await apiContext.repository.createUser(user, credential, profile);
   } catch (error) {
+    // Roll back the invite redemption so the code can be retried on a
+    // successful registration rather than being permanently consumed by a
+    // failed one.
+    if (redeemedInvite) {
+      try {
+        await getBetaControlService().releaseInviteRedemption(redeemedInvite, userId);
+      } catch {
+        // Best-effort rollback; the audit trail still records the failure below.
+      }
+    }
     if (error instanceof ApiError && error.code === "conflict") {
       throw new ApiError("conflict");
     }

@@ -15,6 +15,7 @@ import {
 import { parseJsonBody } from "@/server/api/request";
 import { apiSuccess, handleApiRequest } from "@/server/api/response";
 import { withIdempotency } from "@/server/api/idempotency-service";
+import { enforceCapability } from "@/server/api/beta-controls/guard";
 
 const transitionOperationSchema = z.enum(["settle", "refund", "dispute", "expire", "reclaim"]);
 
@@ -40,6 +41,11 @@ export const Route = createFileRoute("/api/v1/postage/$messageId")({
           const context = await getApiContext(request);
           const actor = requireActor(context);
           const messageId = hash32Schema.parse(params.messageId);
+
+          // BETA-095: operator kill switch for postage writes. Fails closed.
+          // This PATCH route can settle, refund, dispute, expire and reclaim, so
+          // every transition must be gated, not just the dedicated handlers.
+          await enforceCapability("postageWrites");
 
           const readForAuth = await getPostage(context.repository, messageId);
           assertPostageParticipant(readForAuth, actor);
