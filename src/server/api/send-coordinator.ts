@@ -65,6 +65,16 @@ export class SendCoordinator {
 
     const { state } = await repo.createSendOperationIfAbsent(initialState);
 
+    await advanceToDeliveryState(
+      repo,
+      input.messageId,
+      "queued",
+      input.sender,
+      "Send operation created",
+      null,
+      this.now(),
+    );
+
     recordAuditEvent({
       actor: input.sender,
       action: "send_coordinator.create",
