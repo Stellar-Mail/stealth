@@ -55,6 +55,10 @@ import type {
   AccountDeletionRequest,
   AccountExport,
   Invite,
+  FeedbackReport,
+  FeedbackCategory,
+  FeedbackSeverity,
+  FeedbackStatus,
 } from "./domain";
 import { ApiError } from "./errors";
 
@@ -1082,6 +1086,36 @@ export class HybridApiRepository implements ApiRepository {
       if (invite) invites.push(invite);
     }
     return invites;
+  }
+
+  async getFeedbackReport(reportId: string): Promise<FeedbackReport | null> {
+    const report = await this.kv.get(this.key("feedback", reportId), "json");
+    return (report as FeedbackReport) ?? null;
+  }
+
+  async setFeedbackReport(report: FeedbackReport): Promise<FeedbackReport> {
+    await this.kv.put(this.key("feedback", report.reportId), JSON.stringify(report));
+    return report;
+  }
+
+  async listFeedbackReports(filter?: {
+    status?: FeedbackStatus;
+    category?: FeedbackCategory;
+    severity?: FeedbackSeverity;
+    limit?: number;
+  }): Promise<FeedbackReport[]> {
+    const listed = await this.kv.list({ prefix: "feedback:" });
+    const reports: FeedbackReport[] = [];
+    for (const entry of listed.keys) {
+      const report = (await this.kv.get(entry.name, "json")) as FeedbackReport | null;
+      if (!report) continue;
+      if (filter?.status && report.status !== filter.status) continue;
+      if (filter?.category && report.category !== filter.category) continue;
+      if (filter?.severity && report.severity !== filter.severity) continue;
+      reports.push(report);
+    }
+    reports.sort((left, right) => right.createdAt.localeCompare(left.createdAt));
+    return reports.slice(0, filter?.limit ?? 100);
   }
 
   async getSendOperation(messageId: string): Promise<import("./domain").SendOperationState | null> {

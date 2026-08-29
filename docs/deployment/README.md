@@ -8,6 +8,7 @@ Deployment runbooks, environment setup, Cloudflare notes, network configuration,
 - [Schema Migrations](MIGRATIONS.md) - Migration order and rollback guidance for durable storage.
 - [R2 Encrypted Object Storage](R2.md) - R2 bucket setup, deterministic object naming, integrity checks, and orphan cleanup.
 - [Self-hosted SMTP verification delivery (BETA-091)](smtp-email-setup.md) - Administrator SMTP, STARTTLS, DKIM/SPF/DMARC checks, queues, bounce handling, and redacted observability.
+- [Privacy-safe beta feedback (BETA-096)](BETA_FEEDBACK.md) - Tester submission, diagnostics allowlist, operator triage/export/close, security verification, and rollback.
 - [Deployment Workflows (BETA-089)](DEPLOYMENT_WORKFLOWS.md) - GitHub Actions workflows for staging and production deployments from GitHub.
 
 ## Beta Runtime Configuration Contract (BETA-001)

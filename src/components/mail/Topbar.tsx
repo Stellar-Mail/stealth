@@ -10,6 +10,7 @@ import {
   Command,
   Filter,
   LogOut,
+  MessageSquareWarning,
   Paperclip,
   RefreshCw,
   Search,
@@ -75,6 +76,7 @@ type TopbarProps = {
   onImportContacts: () => void;
   onShowToast: (message: string) => void;
   onOpenShortcuts: () => void;
+  onReportProblem: () => void;
   filters: MailFilters;
   onFiltersChange: (filters: MailFilters) => void;
   onQuickAction: (action: "proofs" | "later" | "files") => void;
@@ -107,6 +109,7 @@ export function Topbar({
   onImportContacts,
   onShowToast,
   onOpenShortcuts,
+  onReportProblem,
   filters,
   onFiltersChange,
   onQuickAction,
@@ -412,6 +415,17 @@ export function Topbar({
                       <kbd className="rounded border border-white/10 bg-black/30 px-1.5 py-0.5 font-mono text-[10px]">
                         ?
                       </kbd>
+                    </button>
+                    <button
+                      role="menuitem"
+                      onClick={() => {
+                        setHelpOpen(false);
+                        onReportProblem();
+                      }}
+                      className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground"
+                    >
+                      <MessageSquareWarning className="h-4 w-4" />
+                      <span className="flex-1">Report a problem</span>
                     </button>
                   </motion.div>
                 </>

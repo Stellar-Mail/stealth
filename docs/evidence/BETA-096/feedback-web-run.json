@@ -1,0 +1,22 @@
+{
+  "issue": "BETA-096 / #2003",
+  "runAt": "2026-08-28T23:46:47.818Z",
+  "environment": "production-like-local-http-stack",
+  "browser": "Chromium 149.0.7827.55",
+  "appVersion": "beta-096-e2e",
+  "route": "/demo",
+  "reportReference": "fb_bc173156-6d7f-4826-8e0f-4847057b911e",
+  "controls": {
+    "pageHasContent": true,
+    "frameworkErrorOverlay": false,
+    "featureConsoleErrors": 0,
+    "diagnosticsPreviewed": true,
+    "optionalScreenshotRemovedBeforeSubmit": true,
+    "persistedThroughHttpApi": true
+  },
+  "screenshot": {
+    "path": "docs/evidence/BETA-096/feedback-diagnostics-preview.png",
+    "sha256": "ee08c0b32bb7074a25ca9e2504cab51f965c435e24aa43b4f01c34b7b512e6c8",
+    "scope": "feedback dialog only; captured before reproduction steps"
+  }
+}

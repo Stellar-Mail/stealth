@@ -408,15 +408,10 @@ const CONTRACTS = ["policies", "postage", "receipts", "lifecycle"];
 const OUT_DIR = join(ROOT, "src", "services", "stellar", "contracts");
 mkdirSync(OUT_DIR, { recursive: true });
 
-// Windows shells resolve `npx` through npx.cmd, which execFileSync cannot find
-// without shell spawning; run prettier through the local binary so generation
-// works on every platform.
-const PRETTIER = join(
-  ROOT,
-  "node_modules",
-  ".bin",
-  process.platform === "win32" ? "prettier.cmd" : "prettier",
-);
+// Invoke Prettier's JavaScript entry point through the current Node runtime.
+// This avoids shell quoting failures when a Windows checkout path contains
+// spaces and remains identical on Unix runners.
+const PRETTIER = join(ROOT, "node_modules", "prettier", "bin", "prettier.cjs");
 
 for (const name of CONTRACTS) {
   const specPath = join(ROOT, "contracts", "soroban", name, "spec.json");
@@ -425,9 +420,8 @@ for (const name of CONTRACTS) {
   const code = emitClient(spec, name, xdrEntries);
   const outPath = join(OUT_DIR, `${name}.ts`);
   writeFileSync(outPath, code, "utf8");
-  execFileSync(PRETTIER, ["--write", outPath], {
+  execFileSync(process.execPath, [PRETTIER, "--write", outPath], {
     stdio: "inherit",
-    shell: process.platform === "win32",
   });
   console.log(`Generated ${outPath}`);
 }
@@ -436,8 +430,7 @@ for (const name of CONTRACTS) {
 const index = CONTRACTS.map((c) => `export * as ${camelCase(c)} from "./${c}";`).join("\n") + "\n";
 const indexPath = join(OUT_DIR, "index.ts");
 writeFileSync(indexPath, index, "utf8");
-execFileSync(PRETTIER, ["--write", indexPath], {
+execFileSync(process.execPath, [PRETTIER, "--write", indexPath], {
   stdio: "inherit",
-  shell: process.platform === "win32",
 });
 console.log(`Generated ${indexPath}`);

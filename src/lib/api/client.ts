@@ -24,6 +24,7 @@ export interface ApiMeta {
   requestId: string;
   timestamp: string;
   correlationId?: string;
+  supportId?: string;
 }
 
 export interface ApiEnvelope<T> {
@@ -43,6 +44,17 @@ export interface ApiClientOptions {
 }
 
 const CLIENT_CORRELATION_HEADER = "x-request-id";
+export const LATEST_SUPPORT_ID_STORAGE_KEY = "stealth:latest-support-id";
+
+export function rememberLatestSupportId(value: string | null | undefined): void {
+  if (!value || !/^sup_[a-f0-9]{8,12}$/i.test(value)) return;
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.setItem(LATEST_SUPPORT_ID_STORAGE_KEY, value.toLowerCase());
+  } catch {
+    // Storage can be unavailable in hardened/privacy browser modes.
+  }
+}
 
 export class ApiClient {
   readonly basePath: string;
@@ -101,6 +113,14 @@ export class ApiClient {
     });
 
     const body: unknown = await response.json().catch(() => null);
+    const envelopeSupportId =
+      body && typeof body === "object" && "meta" in body
+        ? (body as { meta?: { supportId?: unknown } }).meta?.supportId
+        : undefined;
+    rememberLatestSupportId(
+      response.headers?.get?.("x-support-id") ||
+        (typeof envelopeSupportId === "string" ? envelopeSupportId : undefined),
+    );
 
     if (!response.ok) {
       const error = parseErrorEnvelope(body, response.status);

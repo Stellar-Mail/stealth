@@ -1862,3 +1862,112 @@ export const inviteSchema = z.object({
   reason: z.string().optional(),
 });
 export type Invite = z.infer<typeof inviteSchema>;
+
+// ---------------------------------------------------------------------------
+// Issue #2003 (BETA-096) — privacy-safe beta feedback
+// ---------------------------------------------------------------------------
+
+export const feedbackCategorySchema = z.enum([
+  "bug",
+  "performance",
+  "usability",
+  "security",
+  "other",
+]);
+export type FeedbackCategory = z.infer<typeof feedbackCategorySchema>;
+
+export const feedbackSeveritySchema = z.enum(["low", "medium", "high", "critical"]);
+export type FeedbackSeverity = z.infer<typeof feedbackSeveritySchema>;
+
+export const feedbackStatusSchema = z.enum(["new", "triaged", "closed"]);
+export type FeedbackStatus = z.infer<typeof feedbackStatusSchema>;
+
+export const feedbackServiceStatusSchema = z.enum([
+  "healthy",
+  "degraded",
+  "unavailable",
+  "unknown",
+]);
+
+/**
+ * The complete diagnostics allowlist. The strict object is intentional: an
+ * unexpected key such as messageBody, token, attachment, or addressBook is a
+ * validation error instead of being silently persisted.
+ */
+export const feedbackDiagnosticsSchema = z
+  .object({
+    appVersion: z.string().min(1).max(80),
+    browser: z.string().min(1).max(120),
+    route: z.string().min(1).max(160),
+    featureFlags: z.array(z.string().min(1).max(64)).max(32),
+    supportId: z
+      .string()
+      .regex(/^sup_[a-f0-9]{8,12}$/i)
+      .nullable(),
+    serviceStatus: feedbackServiceStatusSchema,
+  })
+  .strict();
+export type FeedbackDiagnostics = z.infer<typeof feedbackDiagnosticsSchema>;
+
+export const feedbackScreenshotSchema = z
+  .object({
+    mediaType: z.enum(["image/png", "image/jpeg", "image/webp"]),
+    sizeBytes: z
+      .number()
+      .int()
+      .positive()
+      .max(1024 * 1024),
+    base64: z.string().min(4).max(1_500_000),
+  })
+  .strict();
+export type FeedbackScreenshot = z.infer<typeof feedbackScreenshotSchema>;
+
+export const feedbackReportSchema = z
+  .object({
+    $v: z.literal(1).optional(),
+    reportId: z.string().regex(/^fb_[0-9a-f-]{36}$/i),
+    reporterReference: z.string().regex(/^usr_[a-f0-9]{16}$/),
+    category: feedbackCategorySchema,
+    severity: feedbackSeveritySchema,
+    steps: z.string().min(10).max(4000),
+    diagnosticsConsent: z.boolean(),
+    diagnostics: feedbackDiagnosticsSchema.nullable(),
+    screenshotConsent: z.boolean(),
+    screenshot: feedbackScreenshotSchema.nullable(),
+    status: feedbackStatusSchema,
+    triageNote: z.string().max(1000).nullable(),
+    createdAt: z.string().datetime(),
+    updatedAt: z.string().datetime(),
+    closedAt: z.string().datetime().nullable(),
+    closedByReference: z
+      .string()
+      .regex(/^op_[a-f0-9]{16}$/)
+      .nullable(),
+    version: z.number().int().positive(),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (value.diagnosticsConsent !== (value.diagnostics !== null)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["diagnostics"],
+        message: "Stored diagnostics must match recorded consent",
+      });
+    }
+    if (!value.screenshotConsent && value.screenshot !== null) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["screenshot"],
+        message: "Stored screenshot evidence requires recorded consent",
+      });
+    }
+    const closed = value.status === "closed";
+    if (closed !== (value.closedAt !== null && value.closedByReference !== null)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["closedAt"],
+        message: "Closure metadata must match the workflow status",
+      });
+    }
+  });
+export type FeedbackReport = z.infer<typeof feedbackReportSchema>;

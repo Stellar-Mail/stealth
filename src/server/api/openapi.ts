@@ -1285,6 +1285,134 @@ export const openApiDocument = {
           contacts: { type: "array", items: { $ref: "#/components/schemas/Contact" } },
         },
       },
+      FeedbackDiagnostics: {
+        type: "object",
+        required: ["appVersion", "browser", "route", "featureFlags", "supportId", "serviceStatus"],
+        additionalProperties: false,
+        description: "The complete allowlist of diagnostics a tester may consent to submit.",
+        properties: {
+          appVersion: { type: "string", minLength: 1, maxLength: 80 },
+          browser: { type: "string", minLength: 1, maxLength: 120 },
+          route: { type: "string", minLength: 1, maxLength: 160 },
+          featureFlags: {
+            type: "array",
+            maxItems: 32,
+            items: { type: "string", minLength: 1, maxLength: 64 },
+          },
+          supportId: {
+            anyOf: [{ type: "string", pattern: "^sup_[a-f0-9]{8,12}$" }, { type: "null" }],
+          },
+          serviceStatus: {
+            type: "string",
+            enum: ["healthy", "degraded", "unavailable", "unknown"],
+          },
+        },
+      },
+      FeedbackScreenshotSubmission: {
+        type: "object",
+        required: ["dataUrl"],
+        additionalProperties: false,
+        properties: {
+          dataUrl: {
+            type: "string",
+            maxLength: 1500100,
+            description:
+              "Explicitly consented PNG, JPEG, or WebP data URL; decoded content is limited to 1 MiB.",
+          },
+        },
+      },
+      FeedbackSubmission: {
+        type: "object",
+        required: [
+          "category",
+          "severity",
+          "steps",
+          "diagnosticsConsent",
+          "diagnostics",
+          "screenshotConsent",
+          "screenshot",
+        ],
+        additionalProperties: false,
+        properties: {
+          category: {
+            type: "string",
+            enum: ["bug", "performance", "usability", "security", "other"],
+          },
+          severity: { type: "string", enum: ["low", "medium", "high", "critical"] },
+          steps: { type: "string", minLength: 10, maxLength: 4000 },
+          diagnosticsConsent: { type: "boolean" },
+          diagnostics: {
+            anyOf: [{ $ref: "#/components/schemas/FeedbackDiagnostics" }, { type: "null" }],
+          },
+          screenshotConsent: { type: "boolean" },
+          screenshot: {
+            anyOf: [
+              { $ref: "#/components/schemas/FeedbackScreenshotSubmission" },
+              { type: "null" },
+            ],
+          },
+        },
+      },
+      FeedbackOperatorReport: {
+        type: "object",
+        required: [
+          "reportId",
+          "reporterReference",
+          "category",
+          "severity",
+          "steps",
+          "diagnosticsConsent",
+          "diagnostics",
+          "screenshotConsent",
+          "screenshot",
+          "status",
+          "triageNote",
+          "createdAt",
+          "updatedAt",
+          "closedAt",
+          "closedByReference",
+          "version",
+        ],
+        additionalProperties: false,
+        properties: {
+          reportId: { type: "string", pattern: "^fb_[0-9a-f-]{36}$" },
+          reporterReference: { type: "string", pattern: "^usr_[a-f0-9]{16}$" },
+          category: {
+            type: "string",
+            enum: ["bug", "performance", "usability", "security", "other"],
+          },
+          severity: { type: "string", enum: ["low", "medium", "high", "critical"] },
+          steps: { type: "string", minLength: 10, maxLength: 4000 },
+          diagnosticsConsent: { type: "boolean" },
+          diagnostics: {
+            anyOf: [{ $ref: "#/components/schemas/FeedbackDiagnostics" }, { type: "null" }],
+          },
+          screenshotConsent: { type: "boolean" },
+          screenshot: {
+            anyOf: [
+              {
+                type: "object",
+                required: ["mediaType", "sizeBytes"],
+                additionalProperties: false,
+                properties: {
+                  mediaType: { type: "string", enum: ["image/png", "image/jpeg", "image/webp"] },
+                  sizeBytes: { type: "integer", minimum: 1, maximum: 1048576 },
+                },
+              },
+              { type: "null" },
+            ],
+          },
+          status: { type: "string", enum: ["new", "triaged", "closed"] },
+          triageNote: { anyOf: [{ type: "string", maxLength: 1000 }, { type: "null" }] },
+          createdAt: { type: "string", format: "date-time" },
+          updatedAt: { type: "string", format: "date-time" },
+          closedAt: { anyOf: [{ type: "string", format: "date-time" }, { type: "null" }] },
+          closedByReference: {
+            anyOf: [{ type: "string", pattern: "^op_[a-f0-9]{16}$" }, { type: "null" }],
+          },
+          version: { type: "integer", minimum: 1 },
+        },
+      },
       DraftAttachmentDescriptor: {
         type: "object",
         required: ["filename", "contentType", "sizeBytes"],
@@ -1396,6 +1524,207 @@ export const openApiDocument = {
     },
   },
   paths: {
+    "/feedback": {
+      post: {
+        operationId: "createFeedbackReport",
+        summary: "Submit privacy-safe beta feedback from the affected screen",
+        description:
+          "Accepts explicit tester prose and only consented allowlisted diagnostics or a consented screenshot. Unknown fields are rejected.",
+        security: [{ SessionCookie: [] }, { StellarSignedRequest: [] }],
+        "x-max-body-bytes": 2 * 1024 * 1024,
+        "x-stability": "beta",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": { schema: { $ref: "#/components/schemas/FeedbackSubmission" } },
+          },
+        },
+        responses: {
+          default: { description: "Feedback submission response" },
+          "201": { description: "Feedback report accepted" },
+          "401": {
+            description: "Authentication required",
+            content: {
+              "application/json": { schema: { $ref: "#/components/schemas/ErrorEnvelope" } },
+            },
+          },
+          "413": {
+            description: "Request or decoded screenshot exceeds its limit",
+            content: {
+              "application/json": { schema: { $ref: "#/components/schemas/ErrorEnvelope" } },
+            },
+          },
+          "422": {
+            description: "Strict schema or consent validation failed",
+            content: {
+              "application/json": { schema: { $ref: "#/components/schemas/ErrorEnvelope" } },
+            },
+          },
+          "429": {
+            description: "Account or IP spam limit exceeded",
+            content: {
+              "application/json": { schema: { $ref: "#/components/schemas/ErrorEnvelope" } },
+            },
+          },
+        },
+      },
+    },
+    "/admin/feedback": {
+      get: {
+        operationId: "listFeedbackReports",
+        summary: "List redacted feedback reports for allowlisted operators",
+        security: [{ SessionCookie: [] }, { StellarSignedRequest: [] }],
+        "x-stability": "beta",
+        parameters: [
+          {
+            name: "status",
+            in: "query",
+            schema: { type: "string", enum: ["new", "triaged", "closed"] },
+          },
+          {
+            name: "category",
+            in: "query",
+            schema: {
+              type: "string",
+              enum: ["bug", "performance", "usability", "security", "other"],
+            },
+          },
+          {
+            name: "severity",
+            in: "query",
+            schema: { type: "string", enum: ["low", "medium", "high", "critical"] },
+          },
+          {
+            name: "limit",
+            in: "query",
+            schema: { type: "integer", minimum: 1, maximum: 200, default: 100 },
+          },
+        ],
+        responses: {
+          default: { description: "Feedback list response" },
+          "200": { description: "Redacted reports; screenshot bytes are excluded" },
+          "401": { description: "Authentication required" },
+          "403": { description: "Operator allowlist membership required" },
+        },
+      },
+    },
+    "/admin/feedback/{reportId}": {
+      get: {
+        operationId: "getFeedbackReport",
+        summary: "Read one redacted feedback report",
+        security: [{ SessionCookie: [] }, { StellarSignedRequest: [] }],
+        "x-stability": "beta",
+        parameters: [{ name: "reportId", in: "path", required: true, schema: { type: "string" } }],
+        responses: {
+          default: { description: "Feedback report response" },
+          "200": { description: "Redacted feedback report" },
+          "401": { description: "Authentication required" },
+          "403": { description: "Operator allowlist membership required" },
+          "404": { description: "Feedback report not found" },
+        },
+      },
+      patch: {
+        operationId: "updateFeedbackReport",
+        summary: "Triage, close, or reopen a feedback report",
+        security: [{ SessionCookie: [] }, { StellarSignedRequest: [] }],
+        "x-max-body-bytes": 64 * 1024,
+        "x-stability": "beta",
+        parameters: [{ name: "reportId", in: "path", required: true, schema: { type: "string" } }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["expectedVersion", "reason", "status"],
+                additionalProperties: false,
+                properties: {
+                  expectedVersion: { type: "integer", minimum: 1 },
+                  reason: { type: "string", minLength: 4, maxLength: 500 },
+                  status: { type: "string", enum: ["new", "triaged", "closed"] },
+                  triageNote: { anyOf: [{ type: "string", maxLength: 1000 }, { type: "null" }] },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          default: { description: "Feedback workflow response" },
+          "200": { description: "Workflow state updated" },
+          "401": { description: "Authentication required" },
+          "403": { description: "Operator allowlist membership required" },
+          "409": { description: "Expected version is stale; refresh before retrying" },
+        },
+      },
+    },
+    "/admin/feedback/{reportId}/screenshot": {
+      get: {
+        operationId: "getFeedbackScreenshot",
+        summary: "View one explicitly consented feedback screenshot",
+        security: [{ SessionCookie: [] }, { StellarSignedRequest: [] }],
+        "x-stability": "beta",
+        parameters: [{ name: "reportId", in: "path", required: true, schema: { type: "string" } }],
+        responses: {
+          default: { description: "Screenshot response" },
+          "200": { description: "Validated image bytes with no-store and nosniff headers" },
+          "401": { description: "Authentication required" },
+          "403": { description: "Operator allowlist membership required" },
+          "404": { description: "Feedback screenshot not found" },
+        },
+      },
+      delete: {
+        operationId: "removeFeedbackScreenshot",
+        summary: "Permanently remove screenshot evidence from a feedback report",
+        security: [{ SessionCookie: [] }, { StellarSignedRequest: [] }],
+        "x-max-body-bytes": 4 * 1024,
+        "x-stability": "beta",
+        parameters: [{ name: "reportId", in: "path", required: true, schema: { type: "string" } }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["expectedVersion", "reason"],
+                additionalProperties: false,
+                properties: {
+                  expectedVersion: { type: "integer", minimum: 1 },
+                  reason: { type: "string", minLength: 4, maxLength: 500 },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          default: { description: "Screenshot removal response" },
+          "200": { description: "Screenshot removed" },
+          "401": { description: "Authentication required" },
+          "403": { description: "Operator allowlist membership required" },
+          "409": { description: "Expected version is stale; refresh before retrying" },
+        },
+      },
+    },
+    "/admin/feedback/export": {
+      get: {
+        operationId: "exportFeedbackReports",
+        summary: "Export redacted feedback reports without screenshot bytes",
+        security: [{ SessionCookie: [] }, { StellarSignedRequest: [] }],
+        "x-stability": "beta",
+        parameters: [
+          {
+            name: "format",
+            in: "query",
+            schema: { type: "string", enum: ["json", "csv"], default: "json" },
+          },
+        ],
+        responses: {
+          default: { description: "Feedback export response" },
+          "200": { description: "Redacted JSON or formula-neutralized CSV attachment" },
+          "401": { description: "Authentication required" },
+          "403": { description: "Operator allowlist membership required" },
+        },
+      },
+    },
     "/auth/recovery/redeem": {
       post: {
         operationId: "redeemRecoveryCode",

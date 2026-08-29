@@ -1,6 +1,11 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { HybridApiRepository } from "../../../src/server/api/kv-repository";
-import type { MailboxPolicy, Postage, Receipt } from "../../../src/server/api/domain";
+import type {
+  FeedbackReport,
+  MailboxPolicy,
+  Postage,
+  Receipt,
+} from "../../../src/server/api/domain";
 
 class MockKVNamespace {
   public store = new Map<string, string>();
@@ -20,6 +25,14 @@ class MockKVNamespace {
 
   async delete(key: string): Promise<void> {
     this.store.delete(key);
+  }
+
+  async list(options: { prefix: string }) {
+    return {
+      keys: Array.from(this.store.keys())
+        .filter((key) => key.startsWith(options.prefix))
+        .map((name) => ({ name })),
+    };
   }
 }
 
@@ -205,6 +218,45 @@ describe("HybridApiRepository - KV Operations", () => {
     expect(await repo.getRelayLastSuccessfulDelivery("relay-1")).toBeNull();
     expect(await repo.getRelayLastFailedDelivery("relay-1")).toBeNull();
     expect(await repo.getRelayDeadLetterCount("relay-1")).toBe(0);
+  });
+
+  it("persists, retrieves, filters, and orders feedback reports in KV", async () => {
+    const first: FeedbackReport = {
+      reportId: "fb_00000000-0000-0000-0000-000000000001",
+      reporterReference: "usr_0000000000000001",
+      category: "bug",
+      severity: "medium",
+      steps: "Open inbox and observe the first reproducible feedback problem",
+      diagnosticsConsent: false,
+      diagnostics: null,
+      screenshotConsent: false,
+      screenshot: null,
+      status: "new",
+      triageNote: null,
+      createdAt: "2026-08-28T10:00:00.000Z",
+      updatedAt: "2026-08-28T10:00:00.000Z",
+      closedAt: null,
+      closedByReference: null,
+      version: 1,
+    };
+    const second: FeedbackReport = {
+      ...first,
+      reportId: "fb_00000000-0000-0000-0000-000000000002",
+      reporterReference: "usr_0000000000000002",
+      category: "performance",
+      severity: "high",
+      status: "triaged",
+      createdAt: "2026-08-28T11:00:00.000Z",
+      updatedAt: "2026-08-28T11:00:00.000Z",
+    };
+
+    await repo.setFeedbackReport(first);
+    await repo.setFeedbackReport(second);
+
+    await expect(repo.getFeedbackReport(first.reportId)).resolves.toEqual(first);
+    await expect(repo.listFeedbackReports()).resolves.toEqual([second, first]);
+    await expect(repo.listFeedbackReports({ status: "triaged" })).resolves.toEqual([second]);
+    await expect(repo.listFeedbackReports({ category: "bug", limit: 1 })).resolves.toEqual([first]);
   });
 
   describe("transitionPostage - atomic settlement", () => {

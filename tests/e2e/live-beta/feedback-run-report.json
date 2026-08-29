@@ -1,0 +1,80 @@
+{
+  "issue": "BETA-096 / #2003",
+  "runAt": "2026-08-29T04:13:26.258Z",
+  "environment": "production-like-local-route-stack",
+  "source": {
+    "branch": "BETA-096",
+    "baseCommit": "00309a7c35c55613700c7e850c776c468d649d1d",
+    "implementationManifest": "sha256:c4f008de0dd0c87633571111b391106b2605894e67e4df2ae42477bc84a52de1",
+    "wranglerManifest": "sha256:85ab2276e8cec9281cb2c134d74e18213bfe4a5627c0943a2a2ba4efb51b12c5"
+  },
+  "toolVersions": {
+    "node": "v24.15.0",
+    "bun": "bun@1.3.14",
+    "vite": "7.3.6",
+    "vitest": "4.1.9",
+    "playwright": "1.61.1",
+    "typescript": "5.9.3"
+  },
+  "controls": [
+    {
+      "control": "anonymous-submission-denied",
+      "status": "pass",
+      "owner": "api-auth",
+      "result": {
+        "httpStatus": 401
+      }
+    },
+    {
+      "control": "consented-report-created",
+      "status": "pass",
+      "owner": "feedback-api",
+      "result": {
+        "httpStatus": 201,
+        "reportReference": "fb_879f31f7-5790-4647-8d27-448911d411b0",
+        "diagnostics": true,
+        "screenshot": true
+      }
+    },
+    {
+      "control": "oversized-request-denied",
+      "status": "pass",
+      "owner": "api-security",
+      "result": {
+        "httpStatus": 413,
+        "configuredLimitBytes": 2097152
+      }
+    },
+    {
+      "control": "stale-operator-write-denied",
+      "status": "pass",
+      "owner": "feedback-operations",
+      "result": {
+        "httpStatus": 409,
+        "recovery": "refresh-and-retry"
+      }
+    },
+    {
+      "control": "triage-close-screenshot-removal-rollback",
+      "status": "pass",
+      "owner": "feedback-operations",
+      "result": {
+        "screenshotRemoved": true,
+        "closed": true,
+        "recoveryState": "triaged",
+        "version": 5
+      }
+    },
+    {
+      "control": "redacted-export",
+      "status": "pass",
+      "owner": "feedback-operations",
+      "result": {
+        "httpStatus": 200,
+        "reportCount": 1,
+        "screenshotBytesExcluded": true
+      }
+    }
+  ],
+  "artifactPolicy": "allowlisted identifiers and status codes only; raw actors and screenshot bytes excluded"
+}

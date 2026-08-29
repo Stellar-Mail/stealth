@@ -38,8 +38,13 @@ export default defineConfig({
     // exercise their mocked bootstrap states through the route guard.
     env: {
       VITE_E2E: "true",
+      VITE_APP_VERSION: "beta-096-e2e",
+      VITE_FEATURE_FLAGS: "operator-feedback",
       // Dev-server-only identity transport for browser E2E; production builds ignore this.
       STEALTH_AUTH_ALLOW_HEADER_ONLY: "1",
+      // Unsafe browser requests include Origin; keep the local HTTP acceptance
+      // stack on the same explicit-origin CORS contract as deployed builds.
+      STEALTH_CORS_ALLOWED_ORIGINS: BASE_URL,
     },
     url: BASE_URL,
     reuseExistingServer: !process.env.CI,

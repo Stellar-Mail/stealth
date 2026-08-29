@@ -52,7 +52,9 @@
     "test:beta:auth": "vitest run tests/unit/api/auth",
     "test:beta:security": "vitest run tests/unit/crypto tests/unit/stellar/managed-wallet.test.ts tests/unit/api/security.regression.test.ts",
     "test:beta:migrations": "vitest run tests/unit/migrations",
-    "test:beta:live-data": "vitest run tests/e2e/live-beta/workflow2.test.ts -t \"local fake\""
+    "test:beta:live-data": "vitest run tests/e2e/live-beta/workflow2.test.ts -t \"local fake\"",
+    "test:beta:feedback": "vitest run tests/unit/api/feedback-routes.test.ts tests/unit/feedback/diagnostics.test.ts tests/e2e/live-beta/feedback-workflow.test.ts",
+    "test:beta:feedback:web": "playwright test tests/e2e/feedback-workflow.spec.ts"
   },
   "overrides": {
     "ws": "8.21.0",

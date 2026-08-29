@@ -114,6 +114,9 @@ describe("body-limit registry (#1487)", () => {
       "mergeContacts",
       "previewContactImport",
       "commitContactImport",
+      "createFeedbackReport",
+      "updateFeedbackReport",
+      "removeFeedbackScreenshot",
     ]) {
       expect(documented.get(opId), `${opId} documents x-max-body-bytes`).toBeGreaterThan(0);
     }

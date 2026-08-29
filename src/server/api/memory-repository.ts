@@ -42,6 +42,10 @@ import type {
   AccountDeletionRequest,
   AccountExport,
   Invite,
+  FeedbackReport,
+  FeedbackCategory,
+  FeedbackSeverity,
+  FeedbackStatus,
 } from "./domain";
 import { toPublicProfile, toPublicUser } from "./domain";
 import type {
@@ -78,6 +82,7 @@ function activeTokenKey(userId: string, purpose: string) {
 export class MemoryApiRepository implements ApiRepository {
   private readonly policies = new Map<string, MailboxPolicy>();
   private readonly invites = new Map<string, Invite>();
+  private readonly feedbackReports = new Map<string, FeedbackReport>();
   private readonly policyWriteIntents = new Map<string, PolicyWriteIntent>();
   private readonly lifecycleAnchors = new Map<string, LifecycleAnchor>();
   private readonly postage = new Map<string, Postage>();
@@ -1949,6 +1954,7 @@ export class MemoryApiRepository implements ApiRepository {
     this.sendOperations.clear();
     this.recoveryCodeSets.clear();
     this.recoveryCodeSetLocks.clear();
+    this.feedbackReports.clear();
   }
 
   async getInvite(code: string): Promise<Invite | null> {
@@ -1963,6 +1969,32 @@ export class MemoryApiRepository implements ApiRepository {
 
   async listInvites(): Promise<Invite[]> {
     return Array.from(this.invites.values()).map((r) => structuredClone(r));
+  }
+
+  async getFeedbackReport(reportId: string): Promise<FeedbackReport | null> {
+    return structuredClone(this.feedbackReports.get(reportId) ?? null);
+  }
+
+  async setFeedbackReport(report: FeedbackReport): Promise<FeedbackReport> {
+    const stored = structuredClone(report);
+    this.feedbackReports.set(report.reportId, stored);
+    return structuredClone(stored);
+  }
+
+  async listFeedbackReports(filter?: {
+    status?: FeedbackStatus;
+    category?: FeedbackCategory;
+    severity?: FeedbackSeverity;
+    limit?: number;
+  }): Promise<FeedbackReport[]> {
+    const limit = filter?.limit ?? 100;
+    return Array.from(this.feedbackReports.values())
+      .filter((report) => !filter?.status || report.status === filter.status)
+      .filter((report) => !filter?.category || report.category === filter.category)
+      .filter((report) => !filter?.severity || report.severity === filter.severity)
+      .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
+      .slice(0, limit)
+      .map((report) => structuredClone(report));
   }
 
   async getSendOperation(messageId: string): Promise<import("./domain").SendOperationState | null> {

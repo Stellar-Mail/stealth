@@ -44,6 +44,10 @@ import type {
   AccountDeletionRequest,
   AccountExport,
   Invite,
+  FeedbackReport,
+  FeedbackCategory,
+  FeedbackSeverity,
+  FeedbackStatus,
 } from "./domain";
 import type { ZodSchema } from "zod";
 import { ApiError, DataIntegrityError, RetryExhaustedError } from "./errors";
@@ -662,6 +666,16 @@ export interface ApiRepository {
   getInvite(code: string): Promise<Invite | null>;
   setInvite(invite: Invite): Promise<Invite>;
   listInvites(): Promise<Invite[]>;
+
+  // BETA-096 (Issue #2003): privacy-safe tester reports and operator workflow.
+  getFeedbackReport(reportId: string): Promise<FeedbackReport | null>;
+  setFeedbackReport(report: FeedbackReport): Promise<FeedbackReport>;
+  listFeedbackReports(filter?: {
+    status?: FeedbackStatus;
+    category?: FeedbackCategory;
+    severity?: FeedbackSeverity;
+    limit?: number;
+  }): Promise<FeedbackReport[]>;
 
   reset?(): void;
 }
@@ -1658,6 +1672,25 @@ export class ValidatedApiRepository implements ApiRepository {
     return raw.map((r) => validateRecord<Invite>("invite", r));
   }
 
+  async getFeedbackReport(reportId: string): Promise<FeedbackReport | null> {
+    const raw = await this.inner.getFeedbackReport(reportId);
+    return raw ? validateRecord<FeedbackReport>("feedbackReport", raw) : null;
+  }
+
+  setFeedbackReport(report: FeedbackReport): Promise<FeedbackReport> {
+    return this.inner.setFeedbackReport(versionRecord("feedbackReport", report));
+  }
+
+  async listFeedbackReports(filter?: {
+    status?: FeedbackStatus;
+    category?: FeedbackCategory;
+    severity?: FeedbackSeverity;
+    limit?: number;
+  }): Promise<FeedbackReport[]> {
+    const raw = await this.inner.listFeedbackReports(filter);
+    return raw.map((report) => validateRecord<FeedbackReport>("feedbackReport", report));
+  }
+
   reset(): void {
     this.inner.reset?.();
   }
@@ -1762,6 +1795,9 @@ const RETRY_SAFE_OPERATIONS = new Set<string>([
   "getInvite",
   "setInvite",
   "listInvites",
+  "getFeedbackReport",
+  "setFeedbackReport",
+  "listFeedbackReports",
 ]);
 
 function isRetryableError(error: unknown): boolean {
@@ -2525,6 +2561,23 @@ export class RetryableApiRepository implements ApiRepository {
 
   listInvites(): Promise<Invite[]> {
     return this.withRetry("listInvites", () => this.inner.listInvites());
+  }
+
+  getFeedbackReport(reportId: string): Promise<FeedbackReport | null> {
+    return this.withRetry("getFeedbackReport", () => this.inner.getFeedbackReport(reportId));
+  }
+
+  setFeedbackReport(report: FeedbackReport): Promise<FeedbackReport> {
+    return this.withRetry("setFeedbackReport", () => this.inner.setFeedbackReport(report));
+  }
+
+  listFeedbackReports(filter?: {
+    status?: FeedbackStatus;
+    category?: FeedbackCategory;
+    severity?: FeedbackSeverity;
+    limit?: number;
+  }): Promise<FeedbackReport[]> {
+    return this.withRetry("listFeedbackReports", () => this.inner.listFeedbackReports(filter));
   }
 
   reset(): void {

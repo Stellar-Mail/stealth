@@ -5,7 +5,7 @@
 // preferences) and the existing visual chrome. The root route only mounts this.
 // ---------------------------------------------------------------------------
 
-import { lazy, Suspense, useCallback, useEffect } from "react";
+import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { MotionConfig } from "framer-motion";
 
 import { AmbientBackground } from "@/components/mail/AmbientBackground";
@@ -51,12 +51,16 @@ const RequestsTriageBoard = lazy(() =>
 const SenderJourney = lazy(() =>
   import("@/features/sender-journey").then((m) => ({ default: m.SenderJourney })),
 );
+const FeedbackDialog = lazy(() =>
+  import("@/features/feedback/FeedbackDialog").then((m) => ({ default: m.FeedbackDialog })),
+);
 
 export interface MailAppProps {
   isDemoMode?: boolean;
 }
 
 export function MailApp({ isDemoMode = false }: MailAppProps) {
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
   const session = useSession({ enabled: !isDemoMode });
   const actor = sessionActor(session.data);
 
@@ -244,6 +248,7 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
                 onOpenSettings={() => overlays.openSettings(preferences)}
                 onOpenProofInspector={() => runCommand("open-proof-inspector")}
                 onOpenShortcuts={() => overlays.setShortcutOverlayOpen(true)}
+                onReportProblem={() => setFeedbackOpen(true)}
                 onImportContacts={() => overlays.setImportOpen(true)}
                 onShowToast={showToast}
                 filters={navigation.filters}
@@ -485,6 +490,14 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
           onSelectFolder={navigation.selectFolder}
         />
         <FeedbackViewport items={feedbackItems} onDismiss={dismissFeedback} />
+        <Suspense fallback={null}>
+          <FeedbackDialog
+            open={feedbackOpen}
+            onOpenChange={setFeedbackOpen}
+            actor={source.actor}
+            onSubmitted={(reportId) => showToast(`Report ${reportId} submitted`)}
+          />
+        </Suspense>
       </div>
     </MotionConfig>
   );

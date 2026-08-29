@@ -78,7 +78,7 @@ describe("Requests triage board unit helpers", () => {
     try {
       const val = BigInt(stroops);
       const xlm = Number(val) / 10_000_000;
-      return `${xlm.toLocaleString(undefined, {
+      return `${xlm.toLocaleString("en-US", {
         minimumFractionDigits: 1,
         maximumFractionDigits: 4,
       })} XLM`;

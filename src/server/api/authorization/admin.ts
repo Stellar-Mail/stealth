@@ -21,12 +21,22 @@ export function getAdminAddresses(): string[] {
   return [];
 }
 
-export async function requireAdminRole(context: ApiContext, request: Request): Promise<void> {
-  if (!context.isAuthenticated || !context.principal) {
+export async function requireAdminRole(context: ApiContext, request: Request): Promise<string> {
+  const cookieHeader = request.headers.get("cookie");
+  const sessionId = parseSessionCookie(cookieHeader);
+  let activeSession: Awaited<ReturnType<typeof validateSession>> = null;
+  let actorAddress = context.principal?.address.toUpperCase();
+
+  // The operations console is a browser surface, so a valid same-origin
+  // session is an authenticated principal even when no actor header is sent.
+  if (!actorAddress && sessionId) {
+    activeSession = await validateSession(context, sessionId);
+    actorAddress = activeSession?.user.address.toUpperCase();
+  }
+  if (!actorAddress) {
     throw new ApiError(401, "unauthorized", "Authentication required");
   }
 
-  const actorAddress = context.principal.address.toUpperCase();
   const admins = getAdminAddresses();
 
   if (!admins.includes(actorAddress)) {
@@ -34,10 +44,8 @@ export async function requireAdminRole(context: ApiContext, request: Request): P
   }
 
   // Require recent authentication (within 15 minutes) if session cookie is present
-  const cookieHeader = request.headers.get("cookie");
-  const sessionId = parseSessionCookie(cookieHeader);
   if (sessionId) {
-    const activeSession = await validateSession(context, sessionId);
+    activeSession ??= await validateSession(context, sessionId);
     if (!activeSession) {
       throw new ApiError(401, "unauthorized", "Invalid or expired session");
     }
@@ -51,6 +59,7 @@ export async function requireAdminRole(context: ApiContext, request: Request): P
       );
     }
   }
+  return actorAddress;
 }
 
 export const adminMutationSchema = z.object({
