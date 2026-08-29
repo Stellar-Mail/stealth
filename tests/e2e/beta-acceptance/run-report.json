@@ -1,6 +1,6 @@
 {
   "issue": "BETA-098",
-  "runAt": "2026-08-29T08:35:23.143Z",
+  "runAt": "2026-08-29T23:19:10.612Z",
   "mode": "local-fake",
   "toolVersions": {
     "vitest": "4.x",
@@ -18,6 +18,12 @@
       "viewport": "desktop",
       "status": "pass",
       "controlOwner": "product/ux"
+    },
+    {
+      "journeyId": "beta-feedback-consent-denied",
+      "viewport": "desktop",
+      "status": "denied",
+      "controlOwner": "platform/client"
     },
     {
       "journeyId": "beta-feedback",
