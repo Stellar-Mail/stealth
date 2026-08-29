@@ -28,9 +28,11 @@ test.describe("BETA-098 acceptance journeys — desktop", () => {
     await expectNoSeriousAxeViolations(page);
   });
 
-  test("address-sharing: account menu exposes copyable address", async ({ page }) => {
-    await page.getByRole("button", { name: /Account menu/i }).click();
-    await expect(page.getByText(/G[A-Z0-9]{55}/)).toBeVisible();
+  test("address-sharing: account menu exposes shareable federation address", async ({ page }) => {
+    await page.getByRole("button", { name: "Account menu" }).click();
+    const menu = page.getByRole("menu", { name: "Account" });
+    await expect(menu).toBeVisible();
+    await expect(menu.getByText(/\*stealth\./)).toBeVisible();
   });
 
   test("compose-send: opens compose dialog and shows pipeline entry", async ({ page }) => {
