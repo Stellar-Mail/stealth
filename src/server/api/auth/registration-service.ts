@@ -52,6 +52,12 @@ export async function registerWithPassword(
   // store is unavailable (no signups until the control is reachable).
   await enforceCapability("signup");
 
+  // Reserve the user id up front so it can be used as the audit actor for the
+  // invite redemption that happens before the account row is written.
+  const now = new Date();
+  const nowIso = now.toISOString();
+  const userId = `usr_${crypto.randomUUID().replace(/-/g, "")}`;
+
   // BETA-095: when an invite code is supplied it is redeemed *before* the
   // account is created, inside the store's serialized mutex. This makes invite
   // redemption and account creation effectively atomic: a duplicate concurrent
@@ -72,13 +78,14 @@ export async function registerWithPassword(
         result: "denied",
         requestId: apiContext.requestId ?? "registration",
       });
-      throw new ApiError(400, "invite_invalid", "The supplied beta invite code could not be redeemed.");
+      throw new ApiError(
+        400,
+        "invite_invalid",
+        "The supplied beta invite code could not be redeemed.",
+      );
     }
   }
 
-  const now = new Date();
-  const nowIso = now.toISOString();
-  const userId = `usr_${crypto.randomUUID().replace(/-/g, "")}`;
   const { hash, salt } = await hashPassword(input.password);
 
   const config = loadRuntimeConfig();

@@ -219,10 +219,7 @@ export class BetaControlStore {
     return this.cohorts.get(id);
   }
 
-  upsertCohort(
-    cohort: Cohort,
-    opts: { expectedVersion?: number } = {},
-  ): Promise<Cohort> {
+  upsertCohort(cohort: Cohort, opts: { expectedVersion?: number } = {}): Promise<Cohort> {
     return this.runExclusive(async () => {
       const parsed = cohortSchema.parse(cohort);
       // Enforce optimistic concurrency *inside* the serialized write so two
