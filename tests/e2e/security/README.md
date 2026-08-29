@@ -121,6 +121,8 @@ Issue **#1992** · Workflow 4 — Security, Operations & Beta Launch
 | Reproducible regression fixtures                              | Done   | `tests/fixtures/crypto-misuse-corpus.json`                              |
 | Redacted secrets in all output                                | Done   | `assertNoSecretsLeaked()` in BETA-085 suites                            |
 | CI crypto gate                                                | Done   | `beta-security` job in `.github/workflows/ci.yml`                       |
+| Live-beta success + denial evidence                           | Done   | `tests/e2e/live-beta/crypto-misuse-evidence.test.ts`                    |
+| Operator repeatable command                                   | Done   | `bun run crypto:misuse-regression` → `gate-result-beta-085-crypto.json` |
 
 ## Attack classes
 
@@ -134,6 +136,14 @@ Issue **#1992** · Workflow 4 — Security, Operations & Beta Launch
 | Client raw-sign API      | `api-surface.test.ts`                           | `api/clients`             |
 | Parser confusion / fuzz  | `fuzz.test.ts`                                  | `schema` / `intents`      |
 
+## Evidence artifacts
+
+| File                                                | Purpose                                    |
+| --------------------------------------------------- | ------------------------------------------ |
+| `tests/e2e/live-beta/crypto-misuse-run-report.json` | Redacted local-fake misuse steps           |
+| `gate-result-beta-085-crypto.json`                  | Operator crypto misuse regression evidence |
+| `gate-result-beta-security.json`                    | CI gate result from `beta-security` job    |
+
 ## Run commands
 
 ```bash
@@ -141,6 +151,10 @@ Issue **#1992** · Workflow 4 — Security, Operations & Beta Launch
 bun x vitest run tests/unit/crypto/misuse-resistance.test.ts tests/unit/crypto/fuzz.test.ts tests/unit/crypto/api-surface.test.ts
 bun x vitest run tests/unit/stellar/managed-wallet.test.ts
 bun x vitest run src/services/crypto/*.test.ts
+bun run test:beta:security:live
+
+# Operator full crypto misuse regression + evidence artifact
+bun run crypto:misuse-regression
 
 # Full beta-security gate (same as CI)
 bun run test:beta:security

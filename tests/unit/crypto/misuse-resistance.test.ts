@@ -27,6 +27,15 @@ import { assertNoSecretsLeaked } from "../../fixtures/identity";
 import { ManagedWalletService } from "../../../src/services/stellar/managed-wallet";
 import type { BetaRuntimeConfig } from "../../../src/config/schema";
 import { CryptoError } from "../../../src/services/crypto/errors";
+import {
+  verifyEnvelopeSignature,
+  ENVELOPE_SIGNATURE_DOMAIN,
+  type EnvelopeSignature,
+} from "../../../src/services/crypto/signature";
+import { canonicalizePayload, type EnvelopePayload } from "../../../src/services/crypto/envelope";
+import { toHex } from "../../../src/services/crypto/codec";
+import { generateNonce } from "../../../src/services/crypto/nonce";
+import { Buffer } from "node:buffer";
 
 describe("BETA-085 misuse resistance (#1992)", () => {
   it("loads the regression corpus with expected attack classes", () => {
@@ -187,6 +196,43 @@ describe("BETA-085 misuse resistance (#1992)", () => {
       expect(err).toBeInstanceOf(ManagedWalletCryptoError);
       expect(String(err)).not.toContain(seed);
       assertNoSecretsLeaked(String(err));
+    });
+  });
+
+  describe("signature substitution — envelope binding rejects wrong signer", () => {
+    it("rejects a valid signature from a non-sender key", () => {
+      const sender = Keypair.random();
+      const impostor = Keypair.random();
+      const payload: EnvelopePayload = {
+        version: "v1",
+        sender: sender.publicKey(),
+        recipient: Keypair.random().publicKey(),
+        timestamp: "2024-01-01T00:00:00.000Z",
+        encryption_metadata: {
+          algorithm: "AES-256-GCM",
+          nonce: "0102030405060708090a0b0c",
+          mac: "0102030405060708090a0b0c0d0e0f10",
+        },
+        content_commitment:
+          "v1:sha256:hex:a591a6d40bf420404a011733cfb7b190d62c65bf0bcda32b57b277d9ad9f146e",
+        attachments: [],
+      };
+      const canonical = canonicalizePayload(payload);
+      const sigBytes = impostor.sign(Buffer.from(ENVELOPE_SIGNATURE_DOMAIN + canonical));
+      const signature: EnvelopeSignature = {
+        scheme: "Ed25519",
+        signerAddress: impostor.publicKey(),
+        value: toHex(new Uint8Array(sigBytes)),
+      };
+      expect(verifyEnvelopeSignature(payload, signature, sender.publicKey())).toBe(false);
+    });
+  });
+
+  describe("nonce reuse — production path generates distinct values", () => {
+    it("never returns identical nonces across consecutive generations", () => {
+      const a = generateNonce("AES-256-GCM");
+      const b = generateNonce("AES-256-GCM");
+      expect(a).not.toEqual(b);
     });
   });
 });

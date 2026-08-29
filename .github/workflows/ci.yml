@@ -471,6 +471,11 @@ jobs:
           bun x vitest run src/services/crypto/*.test.ts
           bun x vitest run tests/unit/stellar/managed-wallet.test.ts
 
+      - name: Run crypto misuse regression evidence
+        id: crypto_evidence
+        run: bun run crypto:misuse-regression
+        continue-on-error: true
+
       - name: Run security regression evidence
         id: security_regression
         run: bun run security:regression
