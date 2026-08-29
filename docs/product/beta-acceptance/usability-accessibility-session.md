@@ -49,7 +49,7 @@ All diagnostic logging was captured under informed consent using non-sensitive t
 - **Keyboard Traversal & Focus Rings**:
   - Full interactive parity maintained without mouse dependency across all views.
   - Visible `:focus-visible` focus outlines with contrast ratios $\ge 4.5:1$.
-  - Modals, drawers, and popovers maintain strict focus trapping and `Escape` dismissal.
+  - Modals and drawers maintain strict circular focus trapping (`useFocusTrap`) with `Escape` dismissal, while non-modal popovers (topbar filters, help, account) manage initial focus shifting and `Escape` dismissal without circular `Tab` trapping (`usePopoverFocus`).
 - **Screen Reader Semantics**:
   - Live regions (`aria-live="polite"`) implemented for asynchronous postage calculations, transaction submissions, and toast alerts.
   - Explicit `aria-label` tags assigned to icon-only action triggers (copy address, refresh inbox, delete draft).
