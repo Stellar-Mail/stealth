@@ -17,28 +17,28 @@ All diagnostic logging was captured under informed consent using non-sensitive t
 
 ## 2. Participant Demographics & Test Matrix
 
-| Cohort ID | Profile Description | Assistive Tech / Modality | Primary Device / OS |
-| :--- | :--- | :--- | :--- |
-| **C-01** | First-time Web3 / Non-technical User | Standard Input / Mouse & Keyboard | macOS Sonoma (Chrome 126) |
-| **C-02** | Experienced Crypto / Stellar User | Mobile Touch | iOS 17.5 (Safari) |
-| **C-03** | Low-Vision / High-Contrast User | Screen Reader (VoiceOver) + 200% Zoom | macOS Sonoma (Safari 17) |
-| **C-04** | Motor-Impaired / Keyboard-Only User | Keyboard Navigation (No Pointer) | Windows 11 (Edge 126) |
-| **C-05** | Mobile Assistive Tech User | TalkBack + Large Dynamic Type | Android 14 (Chrome 126) |
+| Cohort ID | Profile Description                  | Assistive Tech / Modality             | Primary Device / OS       |
+| :-------- | :----------------------------------- | :------------------------------------ | :------------------------ |
+| **C-01**  | First-time Web3 / Non-technical User | Standard Input / Mouse & Keyboard     | macOS Sonoma (Chrome 126) |
+| **C-02**  | Experienced Crypto / Stellar User    | Mobile Touch                          | iOS 17.5 (Safari)         |
+| **C-03**  | Low-Vision / High-Contrast User      | Screen Reader (VoiceOver) + 200% Zoom | macOS Sonoma (Safari 17)  |
+| **C-04**  | Motor-Impaired / Keyboard-Only User  | Keyboard Navigation (No Pointer)      | Windows 11 (Edge 126)     |
+| **C-05**  | Mobile Assistive Tech User           | TalkBack + Large Dynamic Type         | Android 14 (Chrome 126)   |
 
 ---
 
 ## 3. Evaluated User Journeys & Quantitative Targets
 
-| Journey # | User Journey Name | Target Completion Rate | Target Max Time | Observed Completion | Observed Avg Time | Target Status |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **J-01** | User Registration & Verification | $\ge 95\%$ | $\le 90\text{s}$ | **100%** (5/5) | 64s |  Passed |
-| **J-02** | Onboarding & Keypair Generation | $\ge 95\%$ | $\le 60\text{s}$ | **100%** (5/5) | 42s |  Passed |
-| **J-03** | Stealth Address Sharing & Resolution | $\ge 90\%$ | $\le 45\text{s}$ | **100%** (5/5) | 28s |  Passed |
-| **J-04** | Composing & Sending Encrypted Mail | $\ge 90\%$ | $\le 120\text{s}$ | **100%** (5/5) | 78s |  Passed |
-| **J-05** | Inbound Message Requests & Decisions | $\ge 90\%$ | $\le 60\text{s}$ | **100%** (5/5) | 35s |  Passed |
-| **J-06** | Postage Proof & Cryptographic Verification | $\ge 85\%$ | $\le 45\text{s}$ | **100%** (5/5) | 31s |  Passed |
-| **J-07** | Account Recovery via Seed / Backup Codes | $\ge 90\%$ | $\le 150\text{s}$ | **100%** (5/5) | 98s |  Passed |
-| **J-08** | In-App Beta Feedback Submission | $\ge 95\%$ | $\le 30\text{s}$ | **100%** (5/5) | 22s |  Passed |
+| Journey # | User Journey Name                          | Target Completion Rate | Target Max Time   | Observed Completion | Observed Avg Time | Target Status |
+| :-------- | :----------------------------------------- | :--------------------- | :---------------- | :------------------ | :---------------- | :------------ |
+| **J-01**  | User Registration & Verification           | $\ge 95\%$             | $\le 90\text{s}$  | **100%** (5/5)      | 64s               | Passed        |
+| **J-02**  | Onboarding & Keypair Generation            | $\ge 95\%$             | $\le 60\text{s}$  | **100%** (5/5)      | 42s               | Passed        |
+| **J-03**  | Stealth Address Sharing & Resolution       | $\ge 90\%$             | $\le 45\text{s}$  | **100%** (5/5)      | 28s               | Passed        |
+| **J-04**  | Composing & Sending Encrypted Mail         | $\ge 90\%$             | $\le 120\text{s}$ | **100%** (5/5)      | 78s               | Passed        |
+| **J-05**  | Inbound Message Requests & Decisions       | $\ge 90\%$             | $\le 60\text{s}$  | **100%** (5/5)      | 35s               | Passed        |
+| **J-06**  | Postage Proof & Cryptographic Verification | $\ge 85\%$             | $\le 45\text{s}$  | **100%** (5/5)      | 31s               | Passed        |
+| **J-07**  | Account Recovery via Seed / Backup Codes   | $\ge 90\%$             | $\le 150\text{s}$ | **100%** (5/5)      | 98s               | Passed        |
+| **J-08**  | In-App Beta Feedback Submission            | $\ge 95\%$             | $\le 30\text{s}$  | **100%** (5/5)      | 22s               | Passed        |
 
 ---
 
@@ -61,13 +61,13 @@ All diagnostic logging was captured under informed consent using non-sensitive t
 
 ## 5. Triage & Findings Register
 
-| Finding ID | Severity | Category | Description & Impact | Resolution / Owner | Status |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **F-01** | Minor | UX / Clarity | First-time users asked for tooltip explanation on "Postage Proof" indicator. | Added informational tooltip in header (#1980 / @stealth-team) |  Resolved |
-| **F-02** | Minor | Accessibility | Mobile bottom navigation sheet needed explicit `aria-expanded` state. | Added ARIA state synchronization in UI (#1982 / @stealth-team) |  Resolved |
-| **F-03** | Low | Performance | Reduced avatar placeholder layout shift during rapid scroll. | Implemented fixed aspect-ratio containers (#2003 / @stealth-team) |  Resolved |
+| Finding ID | Severity | Category      | Description & Impact                                                         | Resolution / Owner                                                | Status   |
+| :--------- | :------- | :------------ | :--------------------------------------------------------------------------- | :---------------------------------------------------------------- | :------- |
+| **F-01**   | Minor    | UX / Clarity  | First-time users asked for tooltip explanation on "Postage Proof" indicator. | Added informational tooltip in header (#1980 / @stealth-team)     | Resolved |
+| **F-02**   | Minor    | Accessibility | Mobile bottom navigation sheet needed explicit `aria-expanded` state.        | Added ARIA state synchronization in UI (#1982 / @stealth-team)    | Resolved |
+| **F-03**   | Low      | Performance   | Reduced avatar placeholder layout shift during rapid scroll.                 | Implemented fixed aspect-ratio containers (#2003 / @stealth-team) | Resolved |
 
-*Zero Critical (P0) or Major (P1) release-blocking defects identified.*
+_Zero Critical (P0) or Major (P1) release-blocking defects identified._
 
 ---
 
