@@ -6,6 +6,7 @@ import type {
 } from "../../server/api/domain";
 import { toPublicFundingOperation } from "../../server/api/domain";
 import { FundingError, type StellarFundingAdapter } from "./funding-adapter";
+import { enforceCapability } from "@/server/api/beta-controls/guard";
 
 export { FundingError };
 
@@ -198,6 +199,11 @@ export async function runFundingOperation(options: {
   }
 
   try {
+    // BETA-095: operator kill switch for funding. Fails closed. This is the
+    // path actually invoked by managed-wallet provisioning (via
+    // ensureManagedWalletFunded), so the gate must live here rather than on
+    // the unused fundManagedWalletAccount helper.
+    await enforceCapability("funding");
     const result = await options.adapter.fundAccount(options.address);
     const succeeded: FundingOperation = {
       ...current,

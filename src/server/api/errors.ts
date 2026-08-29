@@ -153,6 +153,25 @@ export const API_ERROR_REGISTRY = {
     description:
       "The requested operation requires the user to have authenticated recently. The current session has expired for sensitive operations.",
   },
+  beta_capability_disabled: {
+    status: 503,
+    message: "The requested beta capability is temporarily disabled",
+    retryable: true,
+    description:
+      "An operator kill switch has disabled this capability. The request is rejected until the switch is reopened.",
+  },
+  invite_invalid: {
+    status: 400,
+    message: "The beta invite code is invalid",
+    retryable: false,
+    description: "The supplied beta invite code is unrecognized, already used, or not active.",
+  },
+  invite_expired: {
+    status: 410,
+    message: "The beta invite code has expired",
+    retryable: false,
+    description: "The supplied beta invite code is past its expiration time.",
+  },
 } as const satisfies Record<string, ApiErrorDefinition>;
 
 export type ApiErrorCode = keyof typeof API_ERROR_REGISTRY;

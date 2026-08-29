@@ -13,6 +13,7 @@ import {
 import { parseJsonBody } from "@/server/api/request";
 import { apiSuccess, handleApiRequest } from "@/server/api/response";
 import { withIdempotency } from "@/server/api/idempotency-service";
+import { enforceCapability } from "@/server/api/beta-controls/guard";
 
 const submissionSchema = z.object({
   amount: stroopAmountSchema,
@@ -38,6 +39,9 @@ export const Route = createFileRoute("/api/v1/postage/")({
             route: "POST /postage",
           });
           requireActorMatches(apiContext, input.sender);
+
+          // BETA-095: operator kill switch for postage writes. Fails closed.
+          await enforceCapability("postageWrites");
 
           await verifyQuoteSubmission(apiContext, input);
 

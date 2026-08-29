@@ -2,6 +2,7 @@ import { recordAuditEvent } from "./audit";
 import type { ExternalWallet, ExternalWalletChallenge, WalletCapability } from "./domain";
 import { ApiError } from "./errors";
 import type { ApiRepository } from "./repository";
+import { enforceCapability } from "./beta-controls/guard";
 
 const CHALLENGE_EXPIRY_MS = 5 * 60 * 1000;
 
@@ -76,6 +77,8 @@ export async function linkExternalWallet(
   owner: string,
   wallet: ExternalWallet,
 ): Promise<ExternalWallet> {
+  // BETA-095: operator kill switch for external wallet linking. Fails closed.
+  await enforceCapability("walletLinking");
   const existing = await repository.getExternalWallets(owner);
   const duplicate = existing.find((w) => w.address === wallet.address);
   if (duplicate) {
