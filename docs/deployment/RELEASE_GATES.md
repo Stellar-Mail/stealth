@@ -25,6 +25,7 @@ Main is not releasable while the summary verdict is `fail` or `blocked`.
 | `beta-security`         | Security & Crypto Gates      | `security/platform`    | BETA-084, BETA-085 | crypto + managed-wallet + STEALTH-AUTH-V1 signed-request on mutating HTTP |
 | `beta-live-data`        | Live-Data No-Mock            | `protocol/relay`       | BETA-050           | `npm run test:beta:live-data`                                             |
 | `beta-performance`      | Performance Budget           | `platform/performance` | BETA-083           | `npm run test:load`                                                       |
+| `beta-acceptance`       | Beta Usability & A11y Acceptance | `product/ux`       | BETA-098           | `npm run test:beta:acceptance`                                            |
 | `e2e`                   | E2E & Browser Gates          | `platform/client`      | BETA-087           | Playwright chromium (pinned)                                              |
 | `visual-e2e`            | Visual & Cross-Browser       | `platform/client`      | BETA-087           | `npm run test:visual` (committed Linux baselines)                         |
 | `security`              | Security & Dependency Review | `security/platform`    | BETA-088           | dependency-review (skipped on fork PRs), Gitleaks                         |
