@@ -2,6 +2,7 @@ import type { BetaRuntimeConfig } from "../../config/schema";
 import type { StellarFundingAdapter } from "@/services/stellar/funding-adapter";
 import { generateStellarKeypair } from "./keypair";
 import { encryptWalletSecret } from "./wallet-secret-crypto";
+import { enforceCapability } from "@/server/api/beta-controls/guard";
 
 export interface PrepareManagedWalletInput {
   userId: string;
@@ -46,5 +47,7 @@ export async function fundManagedWalletAccount(
   fundingAdapter: StellarFundingAdapter,
   publicKey: string,
 ): Promise<{ funded: boolean; transactionId?: string }> {
+  // BETA-095: operator kill switch for funding managed wallets. Fails closed.
+  await enforceCapability("funding");
   return fundingAdapter.fundAccount(publicKey);
 }

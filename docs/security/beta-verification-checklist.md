@@ -87,6 +87,40 @@ The automated proof lives in `tests/unit/security/beta-controls.test.ts` (execut
 - **Recovery/rollback paths:** rollback requires explicit target version and restores exact prior
   records (SC-20); resolved-config guard fails closed on unresolved placeholders (SC-24).
 
+## BETA-095 — beta invitation, cohort, feature-flag & kill-switch controls
+
+Controlled testing needs staged exposure and the ability to disable risky capabilities without
+redeploying. Controls are owned by the **Release Operator** and enforced by the code paths listed in
+the [control map](./beta-control-map.md) (SC-26–SC-31).
+
+| ID        | Check                                                                                     | Command                                                      | Status | Captured result (redacted)                                                                                                                   |
+| :-------- | :---------------------------------------------------------------------------------------- | :----------------------------------------------------------- | :----- | :------------------------------------------------------------------------------------------------------------------------------------------- |
+| VC-B095-1 | Beta control unit suite (precedence, stale cache, rollback, concurrency, cohorts/invites) | `bun x vitest run tests/unit/api/beta-controls.test.ts`      | PASS   | 20 tests passed; covers SC-26/SC-28/SC-29/SC-31                                                                                              |
+| VC-B095-2 | Admin route RBAC + audit-reason gates                                                     | `bun x vitest run tests/unit/api/admin-beta-routes.test.ts`  | PASS   | 9 tests passed; 401/403/422/200 assertions on operator mutations (SC-30)                                                                     |
+| VC-B095-3 | Operator→security-tester→beta-user journey on the real beta path                          | `bun scripts/beta/verify-beta-controls.mjs`                  | PASS   | denial 503 + recovery + rollback proven; redacted evidence in `scripts/beta/beta-controls-evidence.json`; controlConfig + gitCommit recorded |
+| VC-B095-4 | Read-only client state exposes no secrets                                                 | `tests/unit/api/admin-beta-routes.test.ts` (no-secrets scan) | PASS   | deep key scan over `GET /api/v1/beta/state` response finds zero secret-bearing fields                                                        |
+| VC-B095-5 | Fail-closed kill switch on unavailable store                                              | `tests/unit/api/beta-controls.test.ts` (fail-closed section) | PASS   | `evaluateKillSwitch` returns `enabled:false, source:"fail_closed"` when the store read throws                                                |
+
+### Proven behavioral paths (BETA-095)
+
+- **Successful path:** operator opens a capability; beta-user request proceeds past the kill switch
+  (returns non-503, reaching downstream validation).
+- **Denial path:** operator closes `attachments` (or any of the 7 switches); beta-user attempt is
+  rejected with `503 beta_capability_disabled` including the disabled `capability`.
+- **Recovery path:** operator reopens the switch; the same beta-user attempt now passes the gate.
+- **Rollback path:** operator closes again under uncertainty; denial resumes immediately.
+- **Concurrency path:** two operators editing the same switch with a stale `expectedVersion` get a
+  `409 conflict`; reloading the current version and retrying succeeds.
+- **Stale-cache path:** a change written on another node is served stale within the TTL, then
+  propagates after the bounded TTL elapses.
+
+### Dependency gates (do not sign off while incomplete)
+
+- **BETA-080 (#1987)** user data export / deletion / retention — assumed merged; retention policy
+  hooks (`SC-14`) already enforced.
+- **BETA-093 (#2000)** actionable alerts + operator runbooks — assumed merged; this issue adds the
+  operator-facing controls those runbooks act upon.
+
 ## Sign-off
 
 Record execution results in the release record table of

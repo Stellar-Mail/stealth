@@ -5,6 +5,7 @@ import { getApiContext } from "@/server/api/context";
 import { parseJsonBody } from "@/server/api/request";
 import { apiSuccess, handleApiRequest } from "@/server/api/response";
 import { ApiError } from "@/server/api/errors";
+import { enforceCapability } from "@/server/api/beta-controls/guard";
 import {
   finalizeUploadSession,
   type UploadSessionError,
@@ -23,6 +24,9 @@ export const Route = createFileRoute("/api/v1/attachments/finalize")({
           if (!ctx.isAuthenticated) {
             throw new ApiError(401, "unauthorized", "Authentication is required");
           }
+
+          // BETA-095: operator kill switch for attachments. Fails closed.
+          await enforceCapability("attachments");
 
           const input = await parseJsonBody(request, finalizeSchema, "compact");
 

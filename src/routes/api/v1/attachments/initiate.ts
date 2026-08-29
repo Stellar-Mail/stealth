@@ -6,6 +6,7 @@ import { stellarAddressSchema, hash32Schema } from "@/server/api/domain";
 import { parseJsonBody } from "@/server/api/request";
 import { apiSuccess, handleApiRequest } from "@/server/api/response";
 import { initiateUploadSession } from "@/services/attachment/upload-session";
+import { enforceCapability } from "@/server/api/beta-controls/guard";
 
 const initiateAttachmentSchema = z.object({
   message_id: hash32Schema,
@@ -40,6 +41,9 @@ export const Route = createFileRoute("/api/v1/attachments/initiate")({
               "Authentication is required",
             );
           }
+
+          // BETA-095: operator kill switch for attachments. Fails closed.
+          await enforceCapability("attachments");
 
           const input = await parseJsonBody(request, initiateAttachmentSchema, "compact");
           const ip =

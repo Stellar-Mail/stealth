@@ -66,6 +66,17 @@ export const bootstrapHealthSchema = z.object({
   dependencies: z.record(z.string(), z.string()),
 });
 
+export const bootstrapBetaControlsSchema = z.object({
+  killSwitches: z.array(
+    z.object({
+      capability: z.string(),
+      enabled: z.boolean(),
+      source: z.string().optional(),
+    }),
+  ),
+  featureFlags: z.record(z.string(), z.boolean()),
+});
+
 export const bootstrapDataSchema = z.object({
   user: bootstrapUserSchema,
   session: bootstrapSessionSchema,
@@ -77,6 +88,7 @@ export const bootstrapDataSchema = z.object({
   health: bootstrapHealthSchema,
   syncCursor: z.string(),
   featureFlags: z.record(z.string(), z.boolean()),
+  betaControls: bootstrapBetaControlsSchema.optional(),
   branch: bootstrapBranchSchema,
 });
 
@@ -174,6 +186,10 @@ function getDemoState(): BootstrapState {
         betaStateMachines: true,
         sorobanPostage: true,
         liveMailboxSync: true,
+      },
+      betaControls: {
+        killSwitches: [],
+        featureFlags: {},
       },
       branch: "active",
     },
