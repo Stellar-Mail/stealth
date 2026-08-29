@@ -157,7 +157,7 @@ export function validateHoneypotFields(
   if (payload && typeof payload === "object" && honeypotKey in payload) {
     const val = payload[honeypotKey];
     if (typeof val === "string" && val.trim().length > 0) {
-      throw new ApiError(400, "invalid_request", "Automated submission rejected");
+      throw new ApiError(400, "bad_request", "Automated submission rejected");
     }
   }
 }
