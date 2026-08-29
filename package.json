@@ -50,7 +50,7 @@
     "ci:scan-artifacts": "node scripts/ci/scan-artifacts-for-secrets.mjs",
     "ci:release-gate-summary": "node scripts/ci/release-gate-summary.mjs",
     "test:beta:auth": "vitest run tests/unit/api/auth",
-    "test:beta:security": "vitest run tests/unit/crypto tests/unit/stellar/managed-wallet.test.ts tests/unit/api/security.regression.test.ts",
+    "test:beta:security": "vitest run tests/unit/crypto src/services/crypto/*.test.ts tests/unit/stellar/managed-wallet.test.ts tests/unit/api/security.regression.test.ts",
     "test:beta:migrations": "vitest run tests/unit/migrations",
     "test:beta:live-data": "vitest run tests/e2e/live-beta/workflow2.test.ts -t \"local fake\""
   },

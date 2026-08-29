@@ -39,6 +39,7 @@ describe("Managed Wallet Boundary", () => {
   const knownContract1 = StrKey.encodeContract(Buffer.alloc(32, 0));
   const knownContract2 = StrKey.encodeContract(Buffer.alloc(32, 1));
   const knownContract3 = StrKey.encodeContract(Buffer.alloc(32, 2));
+  const knownContract4 = StrKey.encodeContract(Buffer.alloc(32, 3));
 
   const mockConfig: BetaRuntimeConfig = {
     network: {
@@ -53,6 +54,7 @@ describe("Managed Wallet Boundary", () => {
       registryContractId: knownContract3,
       postageContractId: knownContract2,
       policiesContractId: knownContract1,
+      receiptsContractId: knownContract4,
       domainTag: "test",
       protocolVersion: "1.0",
     },
@@ -157,6 +159,78 @@ describe("Managed Wallet Boundary", () => {
       "Only invokeHostFunction operations are allowed",
     );
   });
+
+  it("rejects invalid transaction XDR", async () => {
+    const intent = { type: "policy", ownerAddress: actorAddress } as const;
+    await expect(
+      wallet.signTransaction(intent, actorAddress, "not-valid-xdr!!!", "req-bad-xdr"),
+    ).rejects.toThrow("Invalid transaction XDR");
+  });
+
+  it("rejects multi-operation transactions", async () => {
+    const account = new Account(operatorKeypair.publicKey(), "1");
+    const tx = new TransactionBuilder(account, {
+      fee: "100",
+      networkPassphrase: mockConfig.network.networkPassphrase,
+    })
+      .addOperation(new Contract(knownContract1).call("set_policy"))
+      .addOperation(new Contract(knownContract1).call("set_sender_tier"))
+      .setTimeout(30)
+      .build();
+    const intent = { type: "policy", ownerAddress: actorAddress } as const;
+    await expect(
+      wallet.signTransaction(intent, actorAddress, tx.toEnvelope().toXDR("base64"), "req-multi"),
+    ).rejects.toThrow("Managed wallet only signs single-operation transactions");
+  });
+
+  it("rejects keys directory intents (fail closed)", async () => {
+    const txXdr = buildMockTx(knownContract1, "set_policy", [actorAddress]);
+    const intent = {
+      type: "keys",
+      ownerAddress: actorAddress,
+      operation: "publish",
+    } as const;
+    await expect(wallet.signTransaction(intent, actorAddress, txXdr, "req-keys")).rejects.toThrow(
+      "Managed wallet does not sign key directory transactions",
+    );
+  });
+
+  it("rejects receipt intent with wrong contract id", async () => {
+    const intent = { type: "receipt", recipientAddress: actorAddress } as const;
+    const txXdr = buildMockTx(knownContract1, "emit_receipt", [actorAddress]);
+    await expect(wallet.signTransaction(intent, actorAddress, txXdr, "req-rcpt")).rejects.toThrow(
+      "Invalid contract ID for receipt intent",
+    );
+  });
+
+  it("allows valid receipt intent on receipts contract", async () => {
+    const intent = { type: "receipt", recipientAddress: actorAddress } as const;
+    const txXdr = buildMockTx(knownContract4, "emit_receipt", [actorAddress]);
+    await expect(
+      wallet.signTransaction(intent, actorAddress, txXdr, "req-rcpt-ok"),
+    ).resolves.toBeTruthy();
+  });
+
+  it("rejects postage intent with wrong sender in submit()", async () => {
+    const malicious = Keypair.random().publicKey();
+    const intent = {
+      type: "postage",
+      senderAddress: actorAddress,
+      amountStroops: "1000",
+    } as const;
+    const txXdr = buildMockTx(knownContract2, "submit", [malicious, malicious]);
+    await expect(wallet.signTransaction(intent, actorAddress, txXdr, "req-post")).rejects.toThrow(
+      /different sender/,
+    );
+  });
+
+  it("allows lifecycle intent on registry contract", async () => {
+    const intent = { type: "lifecycle", userAddress: actorAddress } as const;
+    const txXdr = buildMockTx(knownContract3, "set_delegate", [actorAddress]);
+    await expect(
+      wallet.signTransaction(intent, actorAddress, txXdr, "req-life"),
+    ).resolves.toBeTruthy();
+  });
 });
 
 describe("managed wallet envelope custody", () => {
@@ -178,6 +252,7 @@ describe("managed wallet envelope custody", () => {
         registryContractId: contractId,
         postageContractId: contractId,
         policiesContractId: contractId,
+        receiptsContractId: contractId,
         domainTag: "test",
         protocolVersion: "1",
       },
