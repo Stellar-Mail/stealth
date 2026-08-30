@@ -610,6 +610,78 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
+  beta-acceptance:
+    name: Beta Usability & Accessibility Acceptance
+    needs: [client-checks]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Verify Playwright matches lockfile pin
+        run: node scripts/ci/verify-playwright-version.mjs
+
+      - name: Install Playwright browsers
+        run: ./node_modules/.bin/playwright install chromium --with-deps
+
+      - name: Acceptance evidence tests
+        id: evidence
+        run: bun run test:beta:acceptance
+
+      - name: Acceptance journey specs
+        id: journeys
+        run: bun x playwright test tests/e2e/beta-acceptance/acceptance-journeys.spec.ts
+        env:
+          CI: true
+
+      - name: Write acceptance evidence artifact
+        if: always()
+        run: |
+          node -e "
+          const fs=require('fs');
+          const evidence={
+            issue:'BETA-098',
+            gateId:'beta-098-acceptance',
+            status: process.env.EVIDENCE==='success' && process.env.JOURNEYS==='success' ? 'pass' : 'fail',
+            results:[
+              { step:'evidence', status: process.env.EVIDENCE==='success' ? 'pass' : 'fail' },
+              { step:'journeys', status: process.env.JOURNEYS==='success' ? 'pass' : 'fail' },
+            ],
+          };
+          fs.writeFileSync('gate-result-beta-098-acceptance.json', JSON.stringify(evidence,null,2)+'\n');
+          "
+        env:
+          EVIDENCE: ${{ steps.evidence.outcome }}
+          JOURNEYS: ${{ steps.journeys.outcome }}
+
+      - name: Write gate result
+        if: always()
+        run: |
+          node scripts/ci/write-beta-acceptance-gate.mjs \
+            --journeys "${{ steps.journeys.outcome }}" \
+            --evidence gate-result-beta-098-acceptance.json
+
+      - name: Upload gate result
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: gate-beta-acceptance
+          path: gate-result-beta-acceptance.json
+          retention-days: 7
+          if-no-files-found: ignore
+
   e2e:
     name: E2E Tests
     runs-on: ubuntu-latest
@@ -873,6 +945,7 @@ jobs:
       - beta-security
       - beta-live-data
       - beta-performance
+      - beta-acceptance
       - e2e
       - visual-e2e
       - security

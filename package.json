@@ -54,7 +54,9 @@
     "test:beta:security:live": "vitest run tests/e2e/live-beta/crypto-misuse-evidence.test.ts",
     "crypto:misuse-regression": "node scripts/crypto/run-misuse-regression.mjs",
     "test:beta:migrations": "vitest run tests/unit/migrations",
-    "test:beta:live-data": "vitest run tests/e2e/live-beta/workflow2.test.ts -t \"local fake\""
+    "test:beta:live-data": "vitest run tests/e2e/live-beta/workflow2.test.ts -t \"local fake\"",
+    "test:beta:acceptance": "vitest run tests/unit/feedback/beta-feedback.test.ts tests/unit/beta-acceptance/acceptance-evidence.test.ts tests/unit/ci/beta-acceptance-gate.test.ts",
+    "beta-acceptance:session": "node scripts/beta-acceptance/run-session.mjs"
   },
   "overrides": {
     "ws": "8.21.0",

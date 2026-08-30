@@ -1,0 +1,36 @@
+{
+  "issue": "BETA-098",
+  "runAt": "2026-08-30T06:35:55.098Z",
+  "mode": "local-fake",
+  "toolVersions": {
+    "vitest": "4.x",
+    "node": "v24.19.0"
+  },
+  "metricsTargets": {
+    "taskCompletionRate": 0.8,
+    "maxCriticalAxeViolations": 0,
+    "maxComprehensionBlockers": 0,
+    "informedConsentRate": 1
+  },
+  "steps": [
+    {
+      "journeyId": "metrics-fixture",
+      "viewport": "desktop",
+      "status": "pass",
+      "controlOwner": "product/ux"
+    },
+    {
+      "journeyId": "beta-feedback-consent-denied",
+      "viewport": "desktop",
+      "status": "denied",
+      "controlOwner": "platform/client"
+    },
+    {
+      "journeyId": "beta-feedback",
+      "viewport": "desktop",
+      "status": "pass",
+      "controlOwner": "platform/client"
+    }
+  ],
+  "notes": "Automated local-fake evidence; facilitated sessions append to gate-result-beta-098-acceptance.json"
+}

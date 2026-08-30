@@ -1,0 +1,47 @@
+{
+  "version": "beta-098-v1",
+  "issue": "2005",
+  "targets": {
+    "taskCompletionRate": 0.8,
+    "maxCriticalAxeViolations": 0,
+    "maxComprehensionBlockers": 0,
+    "informedConsentRate": 1.0
+  },
+  "journeys": [
+    {
+      "id": "onboarding-mailbox",
+      "label": "Land in mailbox after onboarding",
+      "viewport": ["desktop", "mobile"]
+    },
+    {
+      "id": "address-sharing",
+      "label": "Copy/share Stealth address",
+      "viewport": ["desktop", "mobile"]
+    },
+    {
+      "id": "compose-send",
+      "label": "Open compose and reach send pipeline",
+      "viewport": ["desktop", "mobile"]
+    },
+    {
+      "id": "requests-triage",
+      "label": "Approve or refund unknown sender",
+      "viewport": ["desktop"]
+    },
+    {
+      "id": "proof-inspection",
+      "label": "Inspect cryptographic proof record",
+      "viewport": ["desktop"]
+    },
+    {
+      "id": "recovery-sign-in",
+      "label": "Recover from expired session to sign-in",
+      "viewport": ["desktop", "mobile"]
+    },
+    {
+      "id": "beta-feedback",
+      "label": "Submit privacy-safe session feedback",
+      "viewport": ["desktop", "mobile"]
+    }
+  ]
+}
