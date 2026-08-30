@@ -7,7 +7,7 @@ import {
   type ReceiptsContractProvider,
 } from "./receipt-contract-service";
 import type { ApiRepository } from "./repository";
-import { transitionDeliveryState } from "./delivery-service";
+import { advanceToDeliveryState } from "./delivery-hooks";
 
 function isSameReceiptParticipants(
   receipt: Pick<Receipt, "recipient" | "sender">,
@@ -69,34 +69,15 @@ export async function createDeliveryReceipt(
     );
   }
 
-  try {
-    let currentStatus = await repository.getMessageDeliveryStatus(input.messageId);
-    if (!currentStatus) {
-      await transitionDeliveryState(
-        repository,
-        input.messageId,
-        "accepted",
-        input.sender,
-        "Envelope accepted by relay",
-        null,
-        now,
-      );
-    }
-    currentStatus = await repository.getMessageDeliveryStatus(input.messageId);
-    if (currentStatus && currentStatus.state !== "delivered" && !currentStatus.isTerminal) {
-      await transitionDeliveryState(
-        repository,
-        input.messageId,
-        "delivered",
-        input.recipient,
-        "Delivered to recipient mailbox",
-        null,
-        now,
-      );
-    }
-  } catch {
-    // Delivery state transition is best-effort when creating receipt
-  }
+  await advanceToDeliveryState(
+    repository,
+    input.messageId,
+    "delivered",
+    input.recipient,
+    "Delivered to recipient mailbox",
+    null,
+    now,
+  );
 
   return receipt;
 }
@@ -179,43 +160,15 @@ export async function markReceiptRead(
     return receipt;
   }
 
-  try {
-    const currentStatus = await repository.getMessageDeliveryStatus(messageId);
-    if (!currentStatus) {
-      await transitionDeliveryState(
-        repository,
-        messageId,
-        "accepted",
-        result.receipt.sender,
-        "Envelope accepted",
-        null,
-        now,
-      );
-      await transitionDeliveryState(
-        repository,
-        messageId,
-        "delivered",
-        result.receipt.recipient,
-        "Delivered to recipient mailbox",
-        null,
-        now,
-      );
-    }
-    const updatedStatus = await repository.getMessageDeliveryStatus(messageId);
-    if (updatedStatus && updatedStatus.state === "delivered") {
-      await transitionDeliveryState(
-        repository,
-        messageId,
-        "read",
-        result.receipt.recipient,
-        "Marked as read by recipient",
-        null,
-        now,
-      );
-    }
-  } catch {
-    // Delivery state transition best-effort on mark receipt read
-  }
+  await advanceToDeliveryState(
+    repository,
+    messageId,
+    "read",
+    result.receipt.recipient,
+    "Marked as read by recipient",
+    null,
+    now,
+  );
 
   return result.receipt;
 }

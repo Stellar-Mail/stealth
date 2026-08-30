@@ -6,6 +6,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MemoryApiRepository } from "@/server/api/memory-repository";
+import { getDeliveryState } from "@/server/api/delivery-service";
 import { SendCoordinator } from "@/server/api/send-coordinator";
 import { createApiContext, type ApiContext, type ApiPrincipal } from "@/server/api/context";
 
@@ -58,6 +59,31 @@ describe("SendCoordinator (BETA-048)", () => {
 
     expect(op2.createdAt).toBe(op1.createdAt);
     expect(op2.version).toBe(1);
+  });
+
+  it("records queued delivery state at operation creation (BETA-035)", async () => {
+    await coordinator.createOperation(context, {
+      messageId,
+      sender: SENDER,
+      recipient: RECIPIENT,
+    });
+
+    const delivery = await getDeliveryState(repo, messageId);
+    expect(delivery.state).toBe("queued");
+    expect(delivery.actor).toBe(SENDER);
+    expect(delivery.reason).toBe("Send operation created");
+    expect(delivery.history).toHaveLength(1);
+    expect(delivery.history[0]?.toState).toBe("queued");
+
+    await coordinator.createOperation(context, {
+      messageId,
+      sender: SENDER,
+      recipient: RECIPIENT,
+    });
+
+    const afterRetry = await getDeliveryState(repo, messageId);
+    expect(afterRetry.state).toBe("queued");
+    expect(afterRetry.history).toHaveLength(1);
   });
 
   it("requests a postage quote and attaches it to the operation state", async () => {

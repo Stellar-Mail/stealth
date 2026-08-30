@@ -216,6 +216,64 @@ export const openApiDocument = {
         type: "string",
         pattern: "^[a-f0-9]{64}$",
       },
+      MessageDeliveryState: {
+        type: "string",
+        enum: ["queued", "accepted", "anchored", "delivered", "read", "failed", "expired"],
+        description: "Canonical off-chain message delivery state (BETA-035).",
+      },
+      MessageDeliveryTransition: {
+        type: "object",
+        required: ["fromState", "toState", "timestamp", "actor", "reason"],
+        additionalProperties: false,
+        properties: {
+          fromState: {
+            oneOf: [{ $ref: "#/components/schemas/MessageDeliveryState" }, { type: "null" }],
+          },
+          toState: { $ref: "#/components/schemas/MessageDeliveryState" },
+          timestamp: { type: "string", format: "date-time" },
+          actor: { type: "string", minLength: 1 },
+          reason: { type: "string", minLength: 1 },
+          chainReference: { type: "string", nullable: true },
+        },
+      },
+      PublicDeliveryStatus: {
+        type: "object",
+        required: [
+          "messageId",
+          "state",
+          "isTerminal",
+          "isRetryable",
+          "observedAt",
+          "actor",
+          "reason",
+          "history",
+        ],
+        additionalProperties: false,
+        properties: {
+          messageId: { $ref: "#/components/schemas/Hash32" },
+          state: { $ref: "#/components/schemas/MessageDeliveryState" },
+          isTerminal: { type: "boolean" },
+          isRetryable: { type: "boolean" },
+          observedAt: { type: "string", format: "date-time" },
+          actor: { type: "string" },
+          reason: { type: "string" },
+          chainReference: { type: "string", nullable: true },
+          history: {
+            type: "array",
+            items: { $ref: "#/components/schemas/MessageDeliveryTransition" },
+          },
+        },
+      },
+      DeliveryTransitionRequest: {
+        type: "object",
+        required: ["toState", "reason"],
+        additionalProperties: false,
+        properties: {
+          toState: { $ref: "#/components/schemas/MessageDeliveryState" },
+          reason: { type: "string", minLength: 1 },
+          chainReference: { type: "string", nullable: true },
+        },
+      },
       StroopAmount: {
         type: "string",
         pattern: "^(0|[1-9][0-9]*)$",
@@ -5586,6 +5644,114 @@ export const openApiDocument = {
           },
           "503": {
             description: "Dependency unavailable",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorEnvelope" },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/delivery/{messageId}": {
+      get: {
+        operationId: "getDeliveryStatus",
+        summary: "Read canonical off-chain delivery status for a message",
+        description:
+          "Returns the stable public delivery state, retryability, and transition audit trail without exposing internal storage mechanics.",
+        security: [{ StellarSignedRequest: [] }],
+        "x-stability": "stable",
+        parameters: [
+          {
+            name: "messageId",
+            in: "path",
+            required: true,
+            schema: { $ref: "#/components/schemas/Hash32" },
+          },
+        ],
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Current delivery status",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["data"],
+                  properties: {
+                    data: { $ref: "#/components/schemas/PublicDeliveryStatus" },
+                  },
+                },
+              },
+            },
+          },
+          "404": {
+            description: "No delivery status for this message",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorEnvelope" },
+              },
+            },
+          },
+          "422": {
+            description: "Request validation failed",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorEnvelope" },
+              },
+            },
+          },
+        },
+      },
+      post: {
+        operationId: "transitionDeliveryStatus",
+        summary: "Advance off-chain delivery state for a message",
+        description:
+          "Applies a legal state transition. Illegal, backward, duplicate, and terminal-out transitions are rejected with 409.",
+        security: [{ StellarSignedRequest: [] }],
+        "x-stability": "stable",
+        parameters: [
+          {
+            name: "messageId",
+            in: "path",
+            required: true,
+            schema: { $ref: "#/components/schemas/Hash32" },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/DeliveryTransitionRequest" },
+            },
+          },
+        },
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Updated delivery status",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["data"],
+                  properties: {
+                    data: { $ref: "#/components/schemas/PublicDeliveryStatus" },
+                  },
+                },
+              },
+            },
+          },
+          "409": {
+            description: "Illegal or duplicate state transition",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorEnvelope" },
+              },
+            },
+          },
+          "422": {
+            description: "Request validation failed",
             content: {
               "application/json": {
                 schema: { $ref: "#/components/schemas/ErrorEnvelope" },

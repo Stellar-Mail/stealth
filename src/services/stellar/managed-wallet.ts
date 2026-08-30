@@ -224,10 +224,19 @@ export class ManagedWalletService {
         throw new Error(`Transaction alters lifecycle for a different user: ${targetUser}`);
       }
     } else if (intent.type === "receipt") {
+      if (contractAddress !== config.contract.receiptsContractId) {
+        throw new Error("Invalid contract ID for receipt intent");
+      }
       const allowedFuncs = ["emit_receipt", "record_delivery"];
       if (!allowedFuncs.includes(functionName)) {
         throw new Error(`Function ${functionName} is not allowed for receipt intents`);
       }
+      const targetRecipient = args[0];
+      if (targetRecipient !== intent.recipientAddress) {
+        throw new Error(`Transaction emits receipt for a different recipient: ${targetRecipient}`);
+      }
+    } else if (intent.type === "keys") {
+      throw new Error("Managed wallet does not sign key directory transactions");
     }
   }
 }
