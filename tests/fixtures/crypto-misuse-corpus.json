@@ -1,0 +1,59 @@
+{
+  "version": "beta-085-v1",
+  "issue": "1992",
+  "description": "Reproducible regression seeds for cryptography and managed-wallet misuse resistance. All values are synthetic; no production credentials.",
+  "attackClasses": [
+    {
+      "id": "key-exfiltration-persisted-record",
+      "control": "managed-wallet-envelope",
+      "expect": "no seed in serialized envelope or store record"
+    },
+    {
+      "id": "tampered-wrapped-key",
+      "control": "key-wrap",
+      "expect": "unwrap returns null or throws KeyWrapError; no plaintext key"
+    },
+    {
+      "id": "wrong-master-key-version",
+      "control": "managed-wallet-envelope",
+      "expect": "ManagedWalletCryptoError without revealing seed"
+    },
+    {
+      "id": "revoked-recipient",
+      "control": "sendRecipientValidation",
+      "expect": "code revoked; fail closed"
+    },
+    {
+      "id": "signature-substitution",
+      "control": "open-envelope / STEALTH-AUTH-V1",
+      "expect": "typed crypto or auth rejection"
+    },
+    {
+      "id": "nonce-reuse-detection",
+      "control": "nonce helpers",
+      "expect": "distinct nonces in production path"
+    },
+    {
+      "id": "memory-cleanup",
+      "control": "secret-buffer / withManagedWalletSeed",
+      "expect": "buffers zeroed after use"
+    },
+    {
+      "id": "arbitrary-xdr-signing",
+      "control": "managed-wallet signTransaction",
+      "expect": "rejection before signing"
+    },
+    {
+      "id": "client-api-raw-sign",
+      "control": "WalletClient surface",
+      "expect": "no signTransaction or raw XDR methods exposed"
+    }
+  ],
+  "fuzzTargets": [
+    "sealedEnvelopeSchema",
+    "keyDirectoryRecordSchema",
+    "attachmentMetadataSchema",
+    "ManagedWalletIntent validateIntent"
+  ],
+  "boundedIterations": 64
+}

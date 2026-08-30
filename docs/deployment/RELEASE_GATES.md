@@ -12,24 +12,25 @@ Main is not releasable while the summary verdict is `fail` or `blocked`.
 
 ## CI Gate Matrix (automated)
 
-| Gate ID                 | CI Job                       | Owner                  | Dependency         | Command / evidence                                                        |
-| ----------------------- | ---------------------------- | ---------------------- | ------------------ | ------------------------------------------------------------------------- |
-| `client-checks`         | Client Checks                | `platform/client`      | BETA-088           | `bun install --frozen-lockfile`, lint, tsc, build                         |
-| `build-reproducibility` | Client Checks                | `platform/client`      | BETA-088           | `npm run ci:verify-drift`                                                 |
-| `pinned-versions`       | Client Checks                | `platform/release`     | BETA-088           | `npm run ci:verify-versions`                                              |
-| `contract-checks`       | Contract Checks              | `platform/contracts`   | BETA-086           | `cargo test --workspace`, release wasm build                              |
-| `contract-registry`     | Contract Registry            | `platform/contracts`   | BETA-086           | `npm run ci:verify-wasm-hashes`                                           |
-| `beta-migrations`       | Migration Gates              | `platform/storage`     | BETA-082           | `npm run migrations:integrity-check`, forward/rollback                    |
-| `beta-backup`           | Backup & Restore Gates       | `platform/storage`     | BETA-081           | `npm run backup:rehearsal`                                                |
-| `beta-auth`             | Auth & Abuse Gates           | `security/platform`    | BETA-079           | `npm run test:beta:auth`                                                  |
-| `beta-security`         | Security & Crypto Gates      | `security/platform`    | BETA-084, BETA-085 | crypto + managed-wallet + STEALTH-AUTH-V1 signed-request on mutating HTTP |
-| `beta-live-data`        | Live-Data No-Mock            | `protocol/relay`       | BETA-050           | `npm run test:beta:live-data`                                             |
-| `beta-performance`      | Performance Budget           | `platform/performance` | BETA-083           | `npm run test:load`                                                       |
-| `e2e`                   | E2E & Browser Gates          | `platform/client`      | BETA-087           | Playwright chromium (pinned)                                              |
-| `visual-e2e`            | Visual & Cross-Browser       | `platform/client`      | BETA-087           | `npm run test:visual` (committed Linux baselines)                         |
-| `security`              | Security & Dependency Review | `security/platform`    | BETA-088           | dependency-review (skipped on fork PRs), Gitleaks                         |
-| `provenance`            | Provenance & Hashes          | `platform/release`     | BETA-088           | `npm run ci:collect-hashes`, `npm run ci:scan-artifacts`                  |
-| `beta-soroban-live`     | Soroban Live Integration     | `platform/contracts`   | BETA-086           | Manual: `.github/workflows/beta-live-testnet.yml`                         |
+| Gate ID                 | CI Job                           | Owner                  | Dependency         | Command / evidence                                                        |
+| ----------------------- | -------------------------------- | ---------------------- | ------------------ | ------------------------------------------------------------------------- |
+| `client-checks`         | Client Checks                    | `platform/client`      | BETA-088           | `bun install --frozen-lockfile`, lint, tsc, build                         |
+| `build-reproducibility` | Client Checks                    | `platform/client`      | BETA-088           | `npm run ci:verify-drift`                                                 |
+| `pinned-versions`       | Client Checks                    | `platform/release`     | BETA-088           | `npm run ci:verify-versions`                                              |
+| `contract-checks`       | Contract Checks                  | `platform/contracts`   | BETA-086           | `cargo test --workspace`, release wasm build                              |
+| `contract-registry`     | Contract Registry                | `platform/contracts`   | BETA-086           | `npm run ci:verify-wasm-hashes`                                           |
+| `beta-migrations`       | Migration Gates                  | `platform/storage`     | BETA-082           | `npm run migrations:integrity-check`, forward/rollback                    |
+| `beta-backup`           | Backup & Restore Gates           | `platform/storage`     | BETA-081           | `npm run backup:rehearsal`                                                |
+| `beta-auth`             | Auth & Abuse Gates               | `security/platform`    | BETA-079           | `npm run test:beta:auth`                                                  |
+| `beta-security`         | Security & Crypto Gates          | `security/platform`    | BETA-084, BETA-085 | crypto + managed-wallet + STEALTH-AUTH-V1 signed-request on mutating HTTP |
+| `beta-live-data`        | Live-Data No-Mock                | `protocol/relay`       | BETA-050           | `npm run test:beta:live-data`                                             |
+| `beta-performance`      | Performance Budget               | `platform/performance` | BETA-083           | `npm run test:load`                                                       |
+| `beta-acceptance`       | Beta Usability & A11y Acceptance | `product/ux`           | BETA-098           | `npm run test:beta:acceptance` + Playwright `acceptance-journeys.spec.ts` |
+| `e2e`                   | E2E & Browser Gates              | `platform/client`      | BETA-087           | Playwright chromium (pinned)                                              |
+| `visual-e2e`            | Visual & Cross-Browser           | `platform/client`      | BETA-087           | `npm run test:visual` (committed Linux baselines)                         |
+| `security`              | Security & Dependency Review     | `security/platform`    | BETA-088           | dependency-review (skipped on fork PRs), Gitleaks                         |
+| `provenance`            | Provenance & Hashes              | `platform/release`     | BETA-088           | `npm run ci:collect-hashes`, `npm run ci:scan-artifacts`                  |
+| `beta-soroban-live`     | Soroban Live Integration         | `platform/contracts`   | BETA-086           | Manual: `.github/workflows/beta-live-testnet.yml`                         |
 
 Pinned versions: `scripts/ci/tool-versions.json`, `.node-version`, `rust-toolchain.toml`.
 
