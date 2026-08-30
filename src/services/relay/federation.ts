@@ -41,7 +41,7 @@ export function mapRelayStateToMessageDeliveryState(
       return "accepted";
     case "ACKNOWLEDGED":
     case "DEDUPLICATED":
-      return "delivered";
+      return "accepted";
     case "DEAD_LETTER":
       return errorCode === "ERR_DELIVERY_EXPIRED" ? "expired" : "failed";
     default:

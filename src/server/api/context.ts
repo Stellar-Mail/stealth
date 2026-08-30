@@ -32,6 +32,7 @@ import {
   accountDeletionRequestSchema,
   draftRecordSchema,
   inviteSchema,
+  messageDeliveryStatusRecordSchema,
 } from "./domain";
 
 import { ApiError } from "./errors";
@@ -267,6 +268,9 @@ registerRecordSchema("accountDeletionRequest", 1, accountDeletionRequestSchema);
 // Issue #1965 (BETA-058): durable user-scoped encrypted-at-rest draft records.
 registerRecordSchema("draftRecord", 1, draftRecordSchema);
 registerRecordSchema("invite", 1, inviteSchema);
+// Issue #1942 (BETA-035): off-chain message delivery state records are versioned
+// and validated at the adapter boundary like every other durable record.
+registerRecordSchema("messageDeliveryStatusRecord", 1, messageDeliveryStatusRecordSchema);
 
 /**
  * Issue #1461: Verified API Principal model representing authenticated request identity.
