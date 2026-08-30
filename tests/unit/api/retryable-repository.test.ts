@@ -720,6 +720,27 @@ class FailingRepository implements ApiRepository {
     this.maybeFail("listInvites");
     return this.inner.listInvites();
   }
+  async getFeedbackReport(reportId: string) {
+    this.maybeFail("getFeedbackReport");
+    return this.inner.getFeedbackReport(reportId);
+  }
+  async createFeedbackReport(report: import("../../../src/server/api/domain").FeedbackReport) {
+    this.maybeFail("createFeedbackReport");
+    return this.inner.createFeedbackReport(report);
+  }
+  async updateFeedbackReport(report: import("../../../src/server/api/domain").FeedbackReport) {
+    this.maybeFail("updateFeedbackReport");
+    return this.inner.updateFeedbackReport(report);
+  }
+  async listFeedbackReports(filter?: {
+    status?: import("../../../src/server/api/domain").FeedbackStatus;
+    category?: import("../../../src/server/api/domain").FeedbackCategory;
+    limit?: number;
+    after?: string;
+  }) {
+    this.maybeFail("listFeedbackReports");
+    return this.inner.listFeedbackReports(filter);
+  }
   reset(): void {
     this.inner.reset();
   }
