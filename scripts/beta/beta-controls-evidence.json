@@ -1,9 +1,16 @@
 {
   "task": "BETA-095",
+<<<<<<< HEAD
   "generatedAt": "2026-08-30T00:00:39.988Z",
   "identifiers": {
     "packageVersion": "unknown",
     "gitCommit": "d86cfc8e",
+=======
+  "generatedAt": "2026-08-30T16:17:18.453Z",
+  "identifiers": {
+    "packageVersion": "unknown",
+    "gitCommit": "927cd491",
+>>>>>>> 5249f8ea (ci failres fixed)
     "controlConfig": {
       "controlTtlSeconds": 5,
       "killSwitchDefaults": {

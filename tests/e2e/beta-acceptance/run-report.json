@@ -1,10 +1,10 @@
 {
   "issue": "BETA-098",
-  "runAt": "2026-08-30T06:35:55.098Z",
+  "runAt": "2026-08-30T16:17:42.051Z",
   "mode": "local-fake",
   "toolVersions": {
     "vitest": "4.x",
-    "node": "v24.19.0"
+    "node": "v22.20.0"
   },
   "metricsTargets": {
     "taskCompletionRate": 0.8,
