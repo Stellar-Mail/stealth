@@ -11,7 +11,7 @@ export const REPORT_PATH = resolve(__dirname, "run-report.json");
 export interface AcceptanceStep {
   journeyId: string;
   viewport: "desktop" | "mobile";
-  status: "pass" | "fail" | "blocked";
+  status: "pass" | "fail" | "blocked" | "denied";
   elapsedMs?: number;
   controlOwner: string;
 }
