@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet, Link } from "@tanstack/react-router";
-import { Shield, Activity, Users, FileText, ArrowLeft } from "lucide-react";
+import { Shield, Activity, Users, FileText, ArrowLeft, Bug } from "lucide-react";
 
 export const Route = createFileRoute("/admin")({
   component: AdminLayout,
@@ -57,6 +57,17 @@ function AdminLayout() {
             >
               <FileText className="size-4" />
               <span>DLQ Monitoring</span>
+            </Link>
+            <Link
+              to="/admin/feedback"
+              activeProps={{ className: "bg-neutral-800 text-purple-400 font-medium" }}
+              inactiveProps={{
+                className: "text-neutral-400 hover:bg-neutral-800/50 hover:text-neutral-200",
+              }}
+              className="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm transition-all"
+            >
+              <Bug className="size-4" />
+              <span>Feedback Reports</span>
             </Link>
           </nav>
         </div>

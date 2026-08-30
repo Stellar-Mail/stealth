@@ -1099,4 +1099,29 @@ export class HybridApiRepository implements ApiRepository {
   ): Promise<{ created: boolean; state: import("./domain").SendOperationState }> {
     return this.getStub().createSendOperationIfAbsent(state);
   }
+
+  async getFeedbackReport(reportId: string): Promise<import("./domain").FeedbackReport | null> {
+    return this.getStub().getFeedbackReport(reportId);
+  }
+
+  async createFeedbackReport(
+    report: import("./domain").FeedbackReport,
+  ): Promise<import("./domain").FeedbackReport> {
+    return this.getStub().createFeedbackReport(report);
+  }
+
+  async updateFeedbackReport(
+    report: import("./domain").FeedbackReport,
+  ): Promise<import("./domain").FeedbackReport> {
+    return this.getStub().updateFeedbackReport(report);
+  }
+
+  async listFeedbackReports(filter?: {
+    status?: import("./domain").FeedbackStatus;
+    category?: import("./domain").FeedbackCategory;
+    limit?: number;
+    after?: string;
+  }): Promise<import("./domain").FeedbackReport[]> {
+    return this.getStub().listFeedbackReports(filter);
+  }
 }

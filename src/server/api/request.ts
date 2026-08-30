@@ -72,6 +72,9 @@ export const ROUTE_BODY_LIMITS = {
   "POST /send/coordinate": "standard",
   "PUT /api/v1/onboarding/draft": "standard",
   "POST /api/v1/onboarding/complete": "standard",
+  "POST /api/v1/feedback": "standard",
+  "POST /api/v1/admin/feedback/:reportId/triage": "standard",
+  "POST /api/v1/admin/feedback/:reportId/close": "standard",
   // BETA-037: sender rule chain status and retry
   "POST /policies/{owner}/senders/{sender}/chain-status": "minimal",
   "POST /policies/{owner}/senders/{sender}/retry": "minimal",

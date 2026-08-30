@@ -1,9 +1,9 @@
 {
   "task": "BETA-095",
-  "generatedAt": "2026-08-28T12:39:34.385Z",
+  "generatedAt": "2026-08-30T00:00:39.988Z",
   "identifiers": {
     "packageVersion": "unknown",
-    "gitCommit": "00309a7c",
+    "gitCommit": "d86cfc8e",
     "controlConfig": {
       "controlTtlSeconds": 5,
       "killSwitchDefaults": {

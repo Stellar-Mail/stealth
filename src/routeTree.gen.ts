@@ -20,6 +20,7 @@ import { Route as AuthVerifyRouteImport } from './routes/auth/verify'
 import { Route as AuthSignUpRouteImport } from './routes/auth/sign-up'
 import { Route as AuthSignInRouteImport } from './routes/auth/sign-in'
 import { Route as AdminUsersRouteImport } from './routes/admin/users'
+import { Route as AdminFeedbackRouteImport } from './routes/admin/feedback'
 import { Route as AdminDlqRouteImport } from './routes/admin/dlq'
 import { Route as ApiV1ProtocolRouteImport } from './routes/api/v1/protocol'
 import { Route as ApiV1OpenapiDotjsonRouteImport } from './routes/api/v1/openapi[.]json'
@@ -30,6 +31,7 @@ import { Route as ApiV1SearchIndexRouteImport } from './routes/api/v1/search/ind
 import { Route as ApiV1RequestsIndexRouteImport } from './routes/api/v1/requests/index'
 import { Route as ApiV1ReceiptsIndexRouteImport } from './routes/api/v1/receipts/index'
 import { Route as ApiV1PostageIndexRouteImport } from './routes/api/v1/postage/index'
+import { Route as ApiV1FeedbackIndexRouteImport } from './routes/api/v1/feedback/index'
 import { Route as ApiV1DraftsIndexRouteImport } from './routes/api/v1/drafts/index'
 import { Route as ApiV1ContactsIndexRouteImport } from './routes/api/v1/contacts/index'
 import { Route as ApiV1AccountsIndexRouteImport } from './routes/api/v1/accounts/index'
@@ -84,6 +86,7 @@ import { Route as ApiV1AuthSessionsIndexRouteImport } from './routes/api/v1/auth
 import { Route as ApiV1AdminJobsIndexRouteImport } from './routes/api/v1/admin/jobs/index'
 import { Route as ApiV1AdminInvitesIndexRouteImport } from './routes/api/v1/admin/invites/index'
 import { Route as ApiV1AdminFundingIndexRouteImport } from './routes/api/v1/admin/funding/index'
+import { Route as ApiV1AdminFeedbackIndexRouteImport } from './routes/api/v1/admin/feedback/index'
 import { Route as ApiV1AdminDlqIndexRouteImport } from './routes/api/v1/admin/dlq/index'
 import { Route as ApiV1WalletLinkVerifyRouteImport } from './routes/api/v1/wallet/link/verify'
 import { Route as ApiV1WalletLinkChallengeRouteImport } from './routes/api/v1/wallet/link/challenge'
@@ -125,6 +128,8 @@ import { Route as ApiV1AdminBetaCohortsIndexRouteImport } from './routes/api/v1/
 import { Route as ApiV1PoliciesOwnerSendersSenderRouteImport } from './routes/api/v1/policies/$owner/senders/$sender'
 import { Route as ApiV1AdminUsersUserIdSuspendRouteImport } from './routes/api/v1/admin/users/$userId/suspend'
 import { Route as ApiV1AdminUsersUserIdReactivateRouteImport } from './routes/api/v1/admin/users/$userId/reactivate'
+import { Route as ApiV1AdminFeedbackReportIdTriageRouteImport } from './routes/api/v1/admin/feedback/$reportId/triage'
+import { Route as ApiV1AdminFeedbackReportIdCloseRouteImport } from './routes/api/v1/admin/feedback/$reportId/close'
 import { Route as ApiV1AdminDlqIdRetryRouteImport } from './routes/api/v1/admin/dlq/$id/retry'
 import { Route as ApiV1AdminDlqIdAbandonRouteImport } from './routes/api/v1/admin/dlq/$id/abandon'
 import { Route as ApiV1AdminBetaInvitesCodeRouteImport } from './routes/api/v1/admin/beta/invites/$code'
@@ -189,6 +194,11 @@ const AdminUsersRoute = AdminUsersRouteImport.update({
   path: '/users',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminFeedbackRoute = AdminFeedbackRouteImport.update({
+  id: '/feedback',
+  path: '/feedback',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminDlqRoute = AdminDlqRouteImport.update({
   id: '/dlq',
   path: '/dlq',
@@ -237,6 +247,11 @@ const ApiV1ReceiptsIndexRoute = ApiV1ReceiptsIndexRouteImport.update({
 const ApiV1PostageIndexRoute = ApiV1PostageIndexRouteImport.update({
   id: '/api/v1/postage/',
   path: '/api/v1/postage/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1FeedbackIndexRoute = ApiV1FeedbackIndexRouteImport.update({
+  id: '/api/v1/feedback/',
+  path: '/api/v1/feedback/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiV1DraftsIndexRoute = ApiV1DraftsIndexRouteImport.update({
@@ -517,6 +532,11 @@ const ApiV1AdminFundingIndexRoute = ApiV1AdminFundingIndexRouteImport.update({
   path: '/api/v1/admin/funding/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1AdminFeedbackIndexRoute = ApiV1AdminFeedbackIndexRouteImport.update({
+  id: '/api/v1/admin/feedback/',
+  path: '/api/v1/admin/feedback/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1AdminDlqIndexRoute = ApiV1AdminDlqIndexRouteImport.update({
   id: '/api/v1/admin/dlq/',
   path: '/api/v1/admin/dlq/',
@@ -748,6 +768,18 @@ const ApiV1AdminUsersUserIdReactivateRoute =
     path: '/api/v1/admin/users/$userId/reactivate',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiV1AdminFeedbackReportIdTriageRoute =
+  ApiV1AdminFeedbackReportIdTriageRouteImport.update({
+    id: '/api/v1/admin/feedback/$reportId/triage',
+    path: '/api/v1/admin/feedback/$reportId/triage',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiV1AdminFeedbackReportIdCloseRoute =
+  ApiV1AdminFeedbackReportIdCloseRouteImport.update({
+    id: '/api/v1/admin/feedback/$reportId/close',
+    path: '/api/v1/admin/feedback/$reportId/close',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiV1AdminDlqIdRetryRoute = ApiV1AdminDlqIdRetryRouteImport.update({
   id: '/retry',
   path: '/retry',
@@ -803,6 +835,7 @@ export interface FileRoutesByFullPath {
   '/motion-gallery': typeof MotionGalleryRoute
   '/onboarding': typeof OnboardingRoute
   '/admin/dlq': typeof AdminDlqRoute
+  '/admin/feedback': typeof AdminFeedbackRoute
   '/admin/users': typeof AdminUsersRoute
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
@@ -861,6 +894,7 @@ export interface FileRoutesByFullPath {
   '/api/v1/accounts/': typeof ApiV1AccountsIndexRoute
   '/api/v1/contacts/': typeof ApiV1ContactsIndexRoute
   '/api/v1/drafts/': typeof ApiV1DraftsIndexRoute
+  '/api/v1/feedback/': typeof ApiV1FeedbackIndexRoute
   '/api/v1/postage/': typeof ApiV1PostageIndexRoute
   '/api/v1/receipts/': typeof ApiV1ReceiptsIndexRoute
   '/api/v1/requests/': typeof ApiV1RequestsIndexRoute
@@ -898,6 +932,7 @@ export interface FileRoutesByFullPath {
   '/api/v1/wallet/link/challenge': typeof ApiV1WalletLinkChallengeRoute
   '/api/v1/wallet/link/verify': typeof ApiV1WalletLinkVerifyRoute
   '/api/v1/admin/dlq/': typeof ApiV1AdminDlqIndexRoute
+  '/api/v1/admin/feedback/': typeof ApiV1AdminFeedbackIndexRoute
   '/api/v1/admin/funding/': typeof ApiV1AdminFundingIndexRoute
   '/api/v1/admin/invites/': typeof ApiV1AdminInvitesIndexRoute
   '/api/v1/admin/jobs/': typeof ApiV1AdminJobsIndexRoute
@@ -909,6 +944,8 @@ export interface FileRoutesByFullPath {
   '/api/v1/admin/beta/invites/$code': typeof ApiV1AdminBetaInvitesCodeRoute
   '/api/v1/admin/dlq/$id/abandon': typeof ApiV1AdminDlqIdAbandonRoute
   '/api/v1/admin/dlq/$id/retry': typeof ApiV1AdminDlqIdRetryRoute
+  '/api/v1/admin/feedback/$reportId/close': typeof ApiV1AdminFeedbackReportIdCloseRoute
+  '/api/v1/admin/feedback/$reportId/triage': typeof ApiV1AdminFeedbackReportIdTriageRoute
   '/api/v1/admin/users/$userId/reactivate': typeof ApiV1AdminUsersUserIdReactivateRoute
   '/api/v1/admin/users/$userId/suspend': typeof ApiV1AdminUsersUserIdSuspendRoute
   '/api/v1/policies/$owner/senders/$sender': typeof ApiV1PoliciesOwnerSendersSenderRouteWithChildren
@@ -928,6 +965,7 @@ export interface FileRoutesByTo {
   '/motion-gallery': typeof MotionGalleryRoute
   '/onboarding': typeof OnboardingRoute
   '/admin/dlq': typeof AdminDlqRoute
+  '/admin/feedback': typeof AdminFeedbackRoute
   '/admin/users': typeof AdminUsersRoute
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
@@ -986,6 +1024,7 @@ export interface FileRoutesByTo {
   '/api/v1/accounts': typeof ApiV1AccountsIndexRoute
   '/api/v1/contacts': typeof ApiV1ContactsIndexRoute
   '/api/v1/drafts': typeof ApiV1DraftsIndexRoute
+  '/api/v1/feedback': typeof ApiV1FeedbackIndexRoute
   '/api/v1/postage': typeof ApiV1PostageIndexRoute
   '/api/v1/receipts': typeof ApiV1ReceiptsIndexRoute
   '/api/v1/requests': typeof ApiV1RequestsIndexRoute
@@ -1023,6 +1062,7 @@ export interface FileRoutesByTo {
   '/api/v1/wallet/link/challenge': typeof ApiV1WalletLinkChallengeRoute
   '/api/v1/wallet/link/verify': typeof ApiV1WalletLinkVerifyRoute
   '/api/v1/admin/dlq': typeof ApiV1AdminDlqIndexRoute
+  '/api/v1/admin/feedback': typeof ApiV1AdminFeedbackIndexRoute
   '/api/v1/admin/funding': typeof ApiV1AdminFundingIndexRoute
   '/api/v1/admin/invites': typeof ApiV1AdminInvitesIndexRoute
   '/api/v1/admin/jobs': typeof ApiV1AdminJobsIndexRoute
@@ -1034,6 +1074,8 @@ export interface FileRoutesByTo {
   '/api/v1/admin/beta/invites/$code': typeof ApiV1AdminBetaInvitesCodeRoute
   '/api/v1/admin/dlq/$id/abandon': typeof ApiV1AdminDlqIdAbandonRoute
   '/api/v1/admin/dlq/$id/retry': typeof ApiV1AdminDlqIdRetryRoute
+  '/api/v1/admin/feedback/$reportId/close': typeof ApiV1AdminFeedbackReportIdCloseRoute
+  '/api/v1/admin/feedback/$reportId/triage': typeof ApiV1AdminFeedbackReportIdTriageRoute
   '/api/v1/admin/users/$userId/reactivate': typeof ApiV1AdminUsersUserIdReactivateRoute
   '/api/v1/admin/users/$userId/suspend': typeof ApiV1AdminUsersUserIdSuspendRoute
   '/api/v1/policies/$owner/senders/$sender': typeof ApiV1PoliciesOwnerSendersSenderRouteWithChildren
@@ -1055,6 +1097,7 @@ export interface FileRoutesById {
   '/motion-gallery': typeof MotionGalleryRoute
   '/onboarding': typeof OnboardingRoute
   '/admin/dlq': typeof AdminDlqRoute
+  '/admin/feedback': typeof AdminFeedbackRoute
   '/admin/users': typeof AdminUsersRoute
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
@@ -1113,6 +1156,7 @@ export interface FileRoutesById {
   '/api/v1/accounts/': typeof ApiV1AccountsIndexRoute
   '/api/v1/contacts/': typeof ApiV1ContactsIndexRoute
   '/api/v1/drafts/': typeof ApiV1DraftsIndexRoute
+  '/api/v1/feedback/': typeof ApiV1FeedbackIndexRoute
   '/api/v1/postage/': typeof ApiV1PostageIndexRoute
   '/api/v1/receipts/': typeof ApiV1ReceiptsIndexRoute
   '/api/v1/requests/': typeof ApiV1RequestsIndexRoute
@@ -1150,6 +1194,7 @@ export interface FileRoutesById {
   '/api/v1/wallet/link/challenge': typeof ApiV1WalletLinkChallengeRoute
   '/api/v1/wallet/link/verify': typeof ApiV1WalletLinkVerifyRoute
   '/api/v1/admin/dlq/': typeof ApiV1AdminDlqIndexRoute
+  '/api/v1/admin/feedback/': typeof ApiV1AdminFeedbackIndexRoute
   '/api/v1/admin/funding/': typeof ApiV1AdminFundingIndexRoute
   '/api/v1/admin/invites/': typeof ApiV1AdminInvitesIndexRoute
   '/api/v1/admin/jobs/': typeof ApiV1AdminJobsIndexRoute
@@ -1161,6 +1206,8 @@ export interface FileRoutesById {
   '/api/v1/admin/beta/invites/$code': typeof ApiV1AdminBetaInvitesCodeRoute
   '/api/v1/admin/dlq/$id/abandon': typeof ApiV1AdminDlqIdAbandonRoute
   '/api/v1/admin/dlq/$id/retry': typeof ApiV1AdminDlqIdRetryRoute
+  '/api/v1/admin/feedback/$reportId/close': typeof ApiV1AdminFeedbackReportIdCloseRoute
+  '/api/v1/admin/feedback/$reportId/triage': typeof ApiV1AdminFeedbackReportIdTriageRoute
   '/api/v1/admin/users/$userId/reactivate': typeof ApiV1AdminUsersUserIdReactivateRoute
   '/api/v1/admin/users/$userId/suspend': typeof ApiV1AdminUsersUserIdSuspendRoute
   '/api/v1/policies/$owner/senders/$sender': typeof ApiV1PoliciesOwnerSendersSenderRouteWithChildren
@@ -1183,6 +1230,7 @@ export interface FileRouteTypes {
     | '/motion-gallery'
     | '/onboarding'
     | '/admin/dlq'
+    | '/admin/feedback'
     | '/admin/users'
     | '/auth/sign-in'
     | '/auth/sign-up'
@@ -1241,6 +1289,7 @@ export interface FileRouteTypes {
     | '/api/v1/accounts/'
     | '/api/v1/contacts/'
     | '/api/v1/drafts/'
+    | '/api/v1/feedback/'
     | '/api/v1/postage/'
     | '/api/v1/receipts/'
     | '/api/v1/requests/'
@@ -1278,6 +1327,7 @@ export interface FileRouteTypes {
     | '/api/v1/wallet/link/challenge'
     | '/api/v1/wallet/link/verify'
     | '/api/v1/admin/dlq/'
+    | '/api/v1/admin/feedback/'
     | '/api/v1/admin/funding/'
     | '/api/v1/admin/invites/'
     | '/api/v1/admin/jobs/'
@@ -1289,6 +1339,8 @@ export interface FileRouteTypes {
     | '/api/v1/admin/beta/invites/$code'
     | '/api/v1/admin/dlq/$id/abandon'
     | '/api/v1/admin/dlq/$id/retry'
+    | '/api/v1/admin/feedback/$reportId/close'
+    | '/api/v1/admin/feedback/$reportId/triage'
     | '/api/v1/admin/users/$userId/reactivate'
     | '/api/v1/admin/users/$userId/suspend'
     | '/api/v1/policies/$owner/senders/$sender'
@@ -1308,6 +1360,7 @@ export interface FileRouteTypes {
     | '/motion-gallery'
     | '/onboarding'
     | '/admin/dlq'
+    | '/admin/feedback'
     | '/admin/users'
     | '/auth/sign-in'
     | '/auth/sign-up'
@@ -1366,6 +1419,7 @@ export interface FileRouteTypes {
     | '/api/v1/accounts'
     | '/api/v1/contacts'
     | '/api/v1/drafts'
+    | '/api/v1/feedback'
     | '/api/v1/postage'
     | '/api/v1/receipts'
     | '/api/v1/requests'
@@ -1403,6 +1457,7 @@ export interface FileRouteTypes {
     | '/api/v1/wallet/link/challenge'
     | '/api/v1/wallet/link/verify'
     | '/api/v1/admin/dlq'
+    | '/api/v1/admin/feedback'
     | '/api/v1/admin/funding'
     | '/api/v1/admin/invites'
     | '/api/v1/admin/jobs'
@@ -1414,6 +1469,8 @@ export interface FileRouteTypes {
     | '/api/v1/admin/beta/invites/$code'
     | '/api/v1/admin/dlq/$id/abandon'
     | '/api/v1/admin/dlq/$id/retry'
+    | '/api/v1/admin/feedback/$reportId/close'
+    | '/api/v1/admin/feedback/$reportId/triage'
     | '/api/v1/admin/users/$userId/reactivate'
     | '/api/v1/admin/users/$userId/suspend'
     | '/api/v1/policies/$owner/senders/$sender'
@@ -1434,6 +1491,7 @@ export interface FileRouteTypes {
     | '/motion-gallery'
     | '/onboarding'
     | '/admin/dlq'
+    | '/admin/feedback'
     | '/admin/users'
     | '/auth/sign-in'
     | '/auth/sign-up'
@@ -1492,6 +1550,7 @@ export interface FileRouteTypes {
     | '/api/v1/accounts/'
     | '/api/v1/contacts/'
     | '/api/v1/drafts/'
+    | '/api/v1/feedback/'
     | '/api/v1/postage/'
     | '/api/v1/receipts/'
     | '/api/v1/requests/'
@@ -1529,6 +1588,7 @@ export interface FileRouteTypes {
     | '/api/v1/wallet/link/challenge'
     | '/api/v1/wallet/link/verify'
     | '/api/v1/admin/dlq/'
+    | '/api/v1/admin/feedback/'
     | '/api/v1/admin/funding/'
     | '/api/v1/admin/invites/'
     | '/api/v1/admin/jobs/'
@@ -1540,6 +1600,8 @@ export interface FileRouteTypes {
     | '/api/v1/admin/beta/invites/$code'
     | '/api/v1/admin/dlq/$id/abandon'
     | '/api/v1/admin/dlq/$id/retry'
+    | '/api/v1/admin/feedback/$reportId/close'
+    | '/api/v1/admin/feedback/$reportId/triage'
     | '/api/v1/admin/users/$userId/reactivate'
     | '/api/v1/admin/users/$userId/suspend'
     | '/api/v1/policies/$owner/senders/$sender'
@@ -1616,6 +1678,7 @@ export interface RootRouteChildren {
   ApiV1AccountsIndexRoute: typeof ApiV1AccountsIndexRoute
   ApiV1ContactsIndexRoute: typeof ApiV1ContactsIndexRoute
   ApiV1DraftsIndexRoute: typeof ApiV1DraftsIndexRoute
+  ApiV1FeedbackIndexRoute: typeof ApiV1FeedbackIndexRoute
   ApiV1PostageIndexRoute: typeof ApiV1PostageIndexRoute
   ApiV1ReceiptsIndexRoute: typeof ApiV1ReceiptsIndexRoute
   ApiV1RequestsIndexRoute: typeof ApiV1RequestsIndexRoute
@@ -1644,6 +1707,7 @@ export interface RootRouteChildren {
   ApiV1WalletLinkChallengeRoute: typeof ApiV1WalletLinkChallengeRoute
   ApiV1WalletLinkVerifyRoute: typeof ApiV1WalletLinkVerifyRoute
   ApiV1AdminDlqIndexRoute: typeof ApiV1AdminDlqIndexRoute
+  ApiV1AdminFeedbackIndexRoute: typeof ApiV1AdminFeedbackIndexRoute
   ApiV1AdminFundingIndexRoute: typeof ApiV1AdminFundingIndexRoute
   ApiV1AdminInvitesIndexRoute: typeof ApiV1AdminInvitesIndexRoute
   ApiV1AdminJobsIndexRoute: typeof ApiV1AdminJobsIndexRoute
@@ -1653,6 +1717,8 @@ export interface RootRouteChildren {
   ApiV1AccountsUserIdWalletProvisionRoute: typeof ApiV1AccountsUserIdWalletProvisionRoute
   ApiV1AdminBetaCohortsCohortIdRoute: typeof ApiV1AdminBetaCohortsCohortIdRoute
   ApiV1AdminBetaInvitesCodeRoute: typeof ApiV1AdminBetaInvitesCodeRoute
+  ApiV1AdminFeedbackReportIdCloseRoute: typeof ApiV1AdminFeedbackReportIdCloseRoute
+  ApiV1AdminFeedbackReportIdTriageRoute: typeof ApiV1AdminFeedbackReportIdTriageRoute
   ApiV1AdminUsersUserIdReactivateRoute: typeof ApiV1AdminUsersUserIdReactivateRoute
   ApiV1AdminUsersUserIdSuspendRoute: typeof ApiV1AdminUsersUserIdSuspendRoute
   ApiV1AdminBetaCohortsIndexRoute: typeof ApiV1AdminBetaCohortsIndexRoute
@@ -1741,6 +1807,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminUsersRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/feedback': {
+      id: '/admin/feedback'
+      path: '/feedback'
+      fullPath: '/admin/feedback'
+      preLoaderRoute: typeof AdminFeedbackRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/dlq': {
       id: '/admin/dlq'
       path: '/dlq'
@@ -1809,6 +1882,13 @@ declare module '@tanstack/react-router' {
       path: '/api/v1/postage'
       fullPath: '/api/v1/postage/'
       preLoaderRoute: typeof ApiV1PostageIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/feedback/': {
+      id: '/api/v1/feedback/'
+      path: '/api/v1/feedback'
+      fullPath: '/api/v1/feedback/'
+      preLoaderRoute: typeof ApiV1FeedbackIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/drafts/': {
@@ -2189,6 +2269,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1AdminFundingIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/admin/feedback/': {
+      id: '/api/v1/admin/feedback/'
+      path: '/api/v1/admin/feedback'
+      fullPath: '/api/v1/admin/feedback/'
+      preLoaderRoute: typeof ApiV1AdminFeedbackIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/admin/dlq/': {
       id: '/api/v1/admin/dlq/'
       path: '/api/v1/admin/dlq'
@@ -2476,6 +2563,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1AdminUsersUserIdReactivateRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/admin/feedback/$reportId/triage': {
+      id: '/api/v1/admin/feedback/$reportId/triage'
+      path: '/api/v1/admin/feedback/$reportId/triage'
+      fullPath: '/api/v1/admin/feedback/$reportId/triage'
+      preLoaderRoute: typeof ApiV1AdminFeedbackReportIdTriageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/admin/feedback/$reportId/close': {
+      id: '/api/v1/admin/feedback/$reportId/close'
+      path: '/api/v1/admin/feedback/$reportId/close'
+      fullPath: '/api/v1/admin/feedback/$reportId/close'
+      preLoaderRoute: typeof ApiV1AdminFeedbackReportIdCloseRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/admin/dlq/$id/retry': {
       id: '/api/v1/admin/dlq/$id/retry'
       path: '/retry'
@@ -2537,12 +2638,14 @@ declare module '@tanstack/react-router' {
 
 interface AdminRouteChildren {
   AdminDlqRoute: typeof AdminDlqRoute
+  AdminFeedbackRoute: typeof AdminFeedbackRoute
   AdminUsersRoute: typeof AdminUsersRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminDlqRoute: AdminDlqRoute,
+  AdminFeedbackRoute: AdminFeedbackRoute,
   AdminUsersRoute: AdminUsersRoute,
   AdminIndexRoute: AdminIndexRoute,
 }
@@ -2724,6 +2827,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1AccountsIndexRoute: ApiV1AccountsIndexRoute,
   ApiV1ContactsIndexRoute: ApiV1ContactsIndexRoute,
   ApiV1DraftsIndexRoute: ApiV1DraftsIndexRoute,
+  ApiV1FeedbackIndexRoute: ApiV1FeedbackIndexRoute,
   ApiV1PostageIndexRoute: ApiV1PostageIndexRoute,
   ApiV1ReceiptsIndexRoute: ApiV1ReceiptsIndexRoute,
   ApiV1RequestsIndexRoute: ApiV1RequestsIndexRoute,
@@ -2752,6 +2856,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1WalletLinkChallengeRoute: ApiV1WalletLinkChallengeRoute,
   ApiV1WalletLinkVerifyRoute: ApiV1WalletLinkVerifyRoute,
   ApiV1AdminDlqIndexRoute: ApiV1AdminDlqIndexRoute,
+  ApiV1AdminFeedbackIndexRoute: ApiV1AdminFeedbackIndexRoute,
   ApiV1AdminFundingIndexRoute: ApiV1AdminFundingIndexRoute,
   ApiV1AdminInvitesIndexRoute: ApiV1AdminInvitesIndexRoute,
   ApiV1AdminJobsIndexRoute: ApiV1AdminJobsIndexRoute,
@@ -2762,6 +2867,8 @@ const rootRouteChildren: RootRouteChildren = {
     ApiV1AccountsUserIdWalletProvisionRoute,
   ApiV1AdminBetaCohortsCohortIdRoute: ApiV1AdminBetaCohortsCohortIdRoute,
   ApiV1AdminBetaInvitesCodeRoute: ApiV1AdminBetaInvitesCodeRoute,
+  ApiV1AdminFeedbackReportIdCloseRoute: ApiV1AdminFeedbackReportIdCloseRoute,
+  ApiV1AdminFeedbackReportIdTriageRoute: ApiV1AdminFeedbackReportIdTriageRoute,
   ApiV1AdminUsersUserIdReactivateRoute: ApiV1AdminUsersUserIdReactivateRoute,
   ApiV1AdminUsersUserIdSuspendRoute: ApiV1AdminUsersUserIdSuspendRoute,
   ApiV1AdminBetaCohortsIndexRoute: ApiV1AdminBetaCohortsIndexRoute,

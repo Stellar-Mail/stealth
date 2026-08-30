@@ -7,13 +7,16 @@ const execFileAsync = promisify(execFile);
 
 describe("Deployment Script Constraints", () => {
   const scriptPath = resolve(process.cwd(), "scripts/stellar/deploy.ts");
-  const tsxCli = resolve(process.cwd(), "node_modules/tsx/dist/cli.mjs");
+
+  // Node v22+ supports native TypeScript via --experimental-strip-types.
+  // This avoids a hard dependency on the `tsx` binary which may not be
+  // present in all CI environments.
+  const nodeArgs = ["--experimental-strip-types", scriptPath];
 
   it("fails if mainnet is used without release-mode", { timeout: 60000 }, async () => {
     try {
       await execFileAsync(process.execPath, [
-        tsxCli,
-        scriptPath,
+        ...nodeArgs,
         "--network",
         "mainnet",
         "--deployer",
@@ -32,7 +35,7 @@ describe("Deployment Script Constraints", () => {
 
   it("fails if deployer is missing", { timeout: 60000 }, async () => {
     try {
-      await execFileAsync(process.execPath, [tsxCli, scriptPath, "--network", "testnet"]);
+      await execFileAsync(process.execPath, [...nodeArgs, "--network", "testnet"]);
       expect.fail("Should have failed without deployer");
     } catch (err: any) {
       expect(err.stderr || err.stdout).toContain("--deployer (secret key) is required");
