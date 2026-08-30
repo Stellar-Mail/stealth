@@ -15,6 +15,7 @@ import {
   isValidTransition,
   toPublicDeliveryStatus,
 } from "@/services/relay/deliveryStateMachine";
+import { computeAdvanceSteps, advanceToDeliveryState } from "@/server/api/delivery-hooks";
 import { MemoryApiRepository } from "@/server/api/memory-repository";
 import { getDeliveryState, transitionDeliveryState } from "@/server/api/delivery-service";
 import { createDeliveryReceipt, markReceiptRead } from "@/server/api/receipt-service";
@@ -323,6 +324,78 @@ describe("BETA-035: Off-Chain Message Delivery State Machine", () => {
           expect(allowed).toBe(expected);
         }
       }
+    });
+
+    it("covers null initial-state transitions in the property matrix", () => {
+      const states: MessageDeliveryState[] = [
+        "queued",
+        "accepted",
+        "anchored",
+        "delivered",
+        "read",
+        "failed",
+        "expired",
+      ];
+
+      expect(isValidTransition(null, "queued")).toBe(true);
+      expect(isValidTransition(null, "accepted")).toBe(true);
+      for (const toState of states) {
+        if (toState === "queued" || toState === "accepted") {
+          continue;
+        }
+        expect(isValidTransition(null, toState)).toBe(false);
+      }
+    });
+
+    it("computes shortest legal advance paths", () => {
+      expect(computeAdvanceSteps(null, "accepted")).toEqual(["accepted"]);
+      expect(computeAdvanceSteps(null, "delivered")).toEqual(["accepted", "delivered"]);
+      expect(computeAdvanceSteps("accepted", "anchored")).toEqual(["anchored"]);
+      expect(computeAdvanceSteps("delivered", "read")).toEqual(["read"]);
+      expect(computeAdvanceSteps("read", "queued")).toEqual([]);
+    });
+
+    it("maps persisted records to stable public delivery status", async () => {
+      const now = new Date("2026-08-17T20:00:00Z");
+      const record = applyTransition(null, {
+        messageId: MESSAGE_ID,
+        toState: "queued",
+        actor: SENDER,
+        reason: "Enqueued",
+        now,
+      });
+      const publicStatus = toPublicDeliveryStatus(record);
+      expect(publicStatus.state).toBe("queued");
+      expect(publicStatus.observedAt).toBe(record.updatedAt);
+      expect(publicStatus.isRetryable).toBe(true);
+      expect(publicStatus.history).toHaveLength(1);
+    });
+
+    it("advances idempotently through advanceToDeliveryState", async () => {
+      const now = new Date("2026-08-17T20:00:00Z");
+      const first = await advanceToDeliveryState(
+        repository,
+        MESSAGE_ID,
+        "accepted",
+        SENDER,
+        "Relay accepted",
+        null,
+        now,
+      );
+      expect(first?.state).toBe("accepted");
+
+      const second = await advanceToDeliveryState(
+        repository,
+        MESSAGE_ID,
+        "accepted",
+        SENDER,
+        "Duplicate accept attempt",
+        null,
+        now,
+      );
+      expect(second?.state).toBe("accepted");
+      const stored = await getDeliveryState(repository, MESSAGE_ID);
+      expect(stored.history).toHaveLength(1);
     });
   });
 });

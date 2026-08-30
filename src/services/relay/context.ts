@@ -7,11 +7,8 @@
  * `cloudflare:workers` binding), which constructs its own service directly.
  */
 import { loadRuntimeConfig } from "@/config";
-import {
-  scheduleLifecycleAnchor,
-  buildLifecycleChainAdapter,
-} from "@/server/api/lifecycle-service";
-import { MemoryApiRepository } from "@/server/api/memory-repository";
+import { scheduleLifecycleAnchor } from "@/server/api/lifecycle-service";
+import { advanceToDeliveryState } from "@/server/api/delivery-hooks";
 import type { ApiRepository } from "@/server/api/repository";
 import { protocolManifest } from "@/server/api/protocol";
 import { getVersionInfo } from "@/server/api/version";
@@ -52,8 +49,16 @@ function buildConfig(): RelayServiceConfig {
  */
 function buildOnAcceptedHook(repo: ApiRepository): RelayServiceConfig["onAccepted"] {
   const config = loadRuntimeConfig();
-  const adapter = buildLifecycleChainAdapter(config);
-  return async ({ messageId, sender, recipient }) => {
+  return async ({ messageId, sender, recipient, receivedAt }) => {
+    await advanceToDeliveryState(
+      repo,
+      messageId,
+      "accepted",
+      `relay:${config.contract.protocolVersion}`,
+      "Envelope validated and accepted by relay",
+      null,
+      new Date(receivedAt),
+    );
     const postage = await repo.getPostage(messageId);
     await scheduleLifecycleAnchor(repo, {
       messageId,
@@ -64,20 +69,6 @@ function buildOnAcceptedHook(repo: ApiRepository): RelayServiceConfig["onAccepte
       receiptRequired: false,
     });
   };
-}
-
-async function getLifecycleRepository(): Promise<ApiRepository> {
-  if (!import.meta.env.PROD) {
-    return new MemoryApiRepository();
-  }
-  const { env } = await import("cloudflare:workers");
-  if (!env.STEALTH_KV || !env.STEALTH_COORDINATOR) {
-    throw new Error(
-      "Configuration error: STEALTH_KV or STEALTH_COORDINATOR binding is required for lifecycle anchoring in production.",
-    );
-  }
-  const { HybridApiRepository } = await import("@/server/api/kv-repository");
-  return new HybridApiRepository(env.STEALTH_KV, env.STEALTH_COORDINATOR);
 }
 
 export async function getRelayService(): Promise<RelayService> {
@@ -104,7 +95,7 @@ export async function getRelayService(): Promise<RelayService> {
       worker,
       {
         ...relayConfig,
-        onAccepted: buildOnAcceptedHook(await getLifecycleRepository()),
+        onAccepted: buildOnAcceptedHook(repository),
       },
       {
         evaluator,
@@ -132,7 +123,7 @@ export async function getRelayService(): Promise<RelayService> {
     worker,
     {
       ...relayConfig,
-      onAccepted: buildOnAcceptedHook(await getLifecycleRepository()),
+      onAccepted: buildOnAcceptedHook(repository),
     },
     {
       evaluator,
