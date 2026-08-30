@@ -1949,6 +1949,7 @@ export class MemoryApiRepository implements ApiRepository {
     this.sendOperations.clear();
     this.recoveryCodeSets.clear();
     this.recoveryCodeSetLocks.clear();
+    this.feedbackReports.clear();
   }
 
   async getInvite(code: string): Promise<Invite | null> {
@@ -1989,5 +1990,63 @@ export class MemoryApiRepository implements ApiRepository {
       this.sendOperations.set(state.messageId, stored);
       return { created: true, state: structuredClone(stored) };
     });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Issue #2001 (BETA-094) — Beta tester feedback reports
+  // ---------------------------------------------------------------------------
+  private readonly feedbackReports = new Map<string, import("./domain").FeedbackReport>();
+
+  async getFeedbackReport(reportId: string): Promise<import("./domain").FeedbackReport | null> {
+    return structuredClone(this.feedbackReports.get(reportId) ?? null);
+  }
+
+  async createFeedbackReport(
+    report: import("./domain").FeedbackReport,
+  ): Promise<import("./domain").FeedbackReport> {
+    if (this.feedbackReports.has(report.reportId)) {
+      throw new ApiError(409, "conflict", `Feedback report ${report.reportId} already exists`);
+    }
+    const stored = structuredClone(report);
+    this.feedbackReports.set(report.reportId, stored);
+    return structuredClone(stored);
+  }
+
+  async updateFeedbackReport(
+    report: import("./domain").FeedbackReport,
+  ): Promise<import("./domain").FeedbackReport> {
+    if (!this.feedbackReports.has(report.reportId)) {
+      throw new ApiError(404, "not_found", `Feedback report ${report.reportId} not found`);
+    }
+    const stored = structuredClone(report);
+    this.feedbackReports.set(report.reportId, stored);
+    return structuredClone(stored);
+  }
+
+  async listFeedbackReports(filter?: {
+    status?: import("./domain").FeedbackStatus;
+    category?: import("./domain").FeedbackCategory;
+    limit?: number;
+    after?: string;
+  }): Promise<import("./domain").FeedbackReport[]> {
+    let reports = Array.from(this.feedbackReports.values()).map((r) => structuredClone(r));
+
+    if (filter?.status) {
+      reports = reports.filter((r) => r.status === filter.status);
+    }
+    if (filter?.category) {
+      reports = reports.filter((r) => r.category === filter.category);
+    }
+
+    // Stable order: newest first
+    reports.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+
+    if (filter?.after) {
+      const idx = reports.findIndex((r) => r.reportId === filter.after);
+      if (idx >= 0) reports = reports.slice(idx + 1);
+    }
+
+    const limit = filter?.limit ?? 50;
+    return reports.slice(0, limit);
   }
 }

@@ -1862,3 +1862,105 @@ export const inviteSchema = z.object({
   reason: z.string().optional(),
 });
 export type Invite = z.infer<typeof inviteSchema>;
+
+// ---------------------------------------------------------------------------
+// Beta Tester Feedback Reports (Issue #2001 — BETA-094)
+//
+// Only safe diagnostic metadata is collected. Message body, tokens, private
+// keys, seed phrases, and raw address books are NEVER included in a report.
+// Screenshots must be explicitly consented to and are stripped server-side if
+// consent is absent. Support IDs are random and do not encode user identity.
+// ---------------------------------------------------------------------------
+
+export const feedbackCategorySchema = z.enum([
+  "bug",
+  "performance",
+  "ui",
+  "security",
+  "feature_request",
+  "other",
+]);
+export type FeedbackCategory = z.infer<typeof feedbackCategorySchema>;
+
+export const feedbackSeveritySchema = z.enum(["low", "medium", "high", "critical"]);
+export type FeedbackSeverity = z.infer<typeof feedbackSeveritySchema>;
+
+export const feedbackStatusSchema = z.enum(["open", "triaged", "resolved", "closed", "wont_fix"]);
+export type FeedbackStatus = z.infer<typeof feedbackStatusSchema>;
+
+/**
+ * Safe redacted diagnostics attached to a report.
+ * No plaintext message content, no tokens, no keys, no seeds.
+ */
+export const feedbackDiagnosticsSchema = z.object({
+  /** Redacted app version string (e.g. "1.4.2-beta"). */
+  appVersion: z.string().max(40).optional(),
+  /** User-agent browser string — safe metadata only. */
+  userAgent: z.string().max(300).optional(),
+  /** Current client-side route path only (no query params, no IDs). */
+  route: z.string().max(200).optional(),
+  /** Active feature flags as recorded on the bootstrap snapshot. */
+  featureFlags: z.record(z.boolean()).optional(),
+  /** Browser-safe support ID from the most recent API response header. */
+  supportId: z.string().max(128).optional(),
+  /** Service dependency statuses from the last health check. */
+  serviceStatus: z.record(z.string().max(20)).optional(),
+});
+export type FeedbackDiagnostics = z.infer<typeof feedbackDiagnosticsSchema>;
+
+/**
+ * Beta tester feedback report.
+ *
+ * Security invariants:
+ * - `steps` is free text supplied by the user; server strips any pattern that
+ *   looks like a token, private key, or seed phrase before persisting.
+ * - `screenshotDataUrl` is only persisted when `screenshotConsent` is true.
+ * - `reporterId` is a support-ID-style opaque token, never a real address.
+ */
+export const feedbackReportSchema = z.object({
+  reportId: z.string().min(1),
+  category: feedbackCategorySchema,
+  severity: feedbackSeveritySchema,
+  status: feedbackStatusSchema,
+  /** Redacted reproduction steps — no message body or secrets. */
+  steps: z.string().min(10).max(2000),
+  /** True only when the user explicitly checked the consent box. */
+  screenshotConsent: z.boolean(),
+  /**
+   * Base64 data URL of the screenshot, present only when `screenshotConsent`
+   * is true and the payload passed server-side size limits. Stripped otherwise.
+   */
+  screenshotDataUrl: z.string().max(512_000).nullable(),
+  diagnostics: feedbackDiagnosticsSchema.nullable(),
+  /** Opaque support-token that identifies the reporting session — not an address. */
+  reporterId: z.string().max(128),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+  /** Admin triage notes — visible in the operations console only. */
+  triageNotes: z.string().max(1000).nullable(),
+  /** Admin actor who closed / resolved this report. */
+  resolvedBy: z.string().max(128).nullable(),
+  resolvedAt: z.string().datetime().nullable(),
+});
+export type FeedbackReport = z.infer<typeof feedbackReportSchema>;
+
+/**
+ * Input schema for the POST /api/v1/feedback endpoint.
+ * Only the fields the client may supply — reportId and timestamps are server-assigned.
+ */
+export const feedbackSubmitSchema = z.object({
+  category: feedbackCategorySchema,
+  severity: feedbackSeveritySchema,
+  steps: z
+    .string()
+    .min(10, "Steps must be at least 10 characters")
+    .max(2000, "Steps cannot exceed 2000 characters"),
+  screenshotConsent: z.boolean(),
+  screenshotDataUrl: z
+    .string()
+    .max(512_000, "Screenshot data exceeds the 512 KB limit")
+    .nullable()
+    .optional(),
+  diagnostics: feedbackDiagnosticsSchema.nullable().optional(),
+});
+export type FeedbackSubmitInput = z.infer<typeof feedbackSubmitSchema>;
