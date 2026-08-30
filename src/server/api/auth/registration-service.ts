@@ -8,7 +8,12 @@ import { hashPassword } from "./password";
 import { provisionManagedStellarWallet } from "../account-provisioning";
 import { prepareManagedWalletSecret } from "@/services/stellar/account-provision";
 import { createFundingAdapter } from "@/services/stellar/funding-adapter";
-import { checkIpLimit } from "../abuse-service";
+import {
+  checkIpLimit,
+  checkEmailDomainLimit,
+  checkInviteCode,
+  checkUsernameReservationLimit,
+} from "../abuse-service";
 import type { DeliveryReceipt, VerificationEmailMessage } from "@/services/notifications";
 import {
   buildVerificationUrl,
@@ -33,8 +38,13 @@ export async function registerWithPassword(
     deliver?: RegistrationDelivery;
     appUrl?: string;
     verificationPolicy?: VerificationPolicy;
+    inviteCodeRequired?: boolean;
+    validInviteCodes?: string[];
   },
 ): Promise<RegistrationResponse> {
+  // BETA-079: Layered abuse controls for registration
+
+  // 1. IP rate limiting
   const ipCheck = await checkIpLimit(
     apiContext.repository,
     ip,

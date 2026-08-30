@@ -5,6 +5,7 @@ import {
   checkInviteCode,
   checkPasswordResetAbuse,
   checkTestnetFundingAbuse,
+  checkUsernameReservationLimit,
   checkVerificationTokenAbuse,
   createChallengeNonce,
   recordVerificationTokenFailure,
@@ -74,8 +75,8 @@ describe("BETA-079 Registration & Account Recovery Hardening Controls", () => {
     const challenge = createChallengeNonce();
     expect(challenge.challengeId).toBeDefined();
 
-    // Invalid solution
-    expect(validateChallengeSolution(challenge.challengeId, "wrong_nonce", 2)).toBe(false);
+    // Invalid solution (empty string always fails)
+    expect(validateChallengeSolution(challenge.challengeId, "", 2)).toBe(false);
 
     // Compute valid nonce
     let validNonce = 0;
@@ -83,6 +84,9 @@ describe("BETA-079 Registration & Account Recovery Hardening Controls", () => {
       validNonce++;
     }
     expect(validateChallengeSolution(challenge.challengeId, validNonce.toString(), 2)).toBe(true);
+
+    // Verify that a wrong nonce does not validate (use difficulty 4 for reliability)
+    expect(validateChallengeSolution(challenge.challengeId, "wrong_nonce", 4)).toBe(false);
   });
 
   it("enforces password reset IP and account limits", async () => {
@@ -97,5 +101,35 @@ describe("BETA-079 Registration & Account Recovery Hardening Controls", () => {
 
     const fourth = await checkPasswordResetAbuse(repository, email, ip);
     expect(fourth.allowed).toBe(false);
+  });
+
+  it("enforces username reservation rate limit per IP", async () => {
+    const repository = new MemoryApiRepository();
+    const ip = "203.0.113.50";
+
+    // First 10 reservations should be allowed
+    for (let i = 0; i < 10; i++) {
+      const check = await checkUsernameReservationLimit(repository, ip);
+      expect(check.allowed).toBe(true);
+    }
+
+    // 11th should be blocked
+    const eleventh = await checkUsernameReservationLimit(repository, ip);
+    expect(eleventh.allowed).toBe(false);
+  });
+
+  it("allows username reservations from different IPs", async () => {
+    const repository = new MemoryApiRepository();
+    const ip1 = "203.0.113.100";
+    const ip2 = "203.0.113.101";
+
+    // IP1 makes some reservations
+    for (let i = 0; i < 5; i++) {
+      await checkUsernameReservationLimit(repository, ip1);
+    }
+
+    // IP2 should still be able to make reservations
+    const ip2Check = await checkUsernameReservationLimit(repository, ip2);
+    expect(ip2Check.allowed).toBe(true);
   });
 });

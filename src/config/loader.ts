@@ -378,6 +378,8 @@ export function loadRuntimeConfig(options: LoadConfigOptions = {}): BetaRuntimeC
       allowedMethods,
       allowedHeaders,
       allowCredentials,
+      inviteCodeRequired: parseBool(env.STEALTH_INVITE_CODE_REQUIRED, false),
+      validInviteCodes: parseList(env.STEALTH_VALID_INVITE_CODES, []),
     },
     notifications: {
       transport: notificationTransport,

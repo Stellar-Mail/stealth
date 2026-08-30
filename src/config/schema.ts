@@ -88,6 +88,10 @@ export type ContractConfig = z.infer<typeof contractConfigSchema>;
 
 /**
  * 6. Origin & CORS Domain Schema
+ *
+ * BETA-079: Added invite code configuration for controlled beta access.
+ * The invite code requirement can be enabled/disabled via configuration
+ * without code changes, supporting the transition from beta to open registration.
  */
 export const originConfigSchema = z.object({
   appUrl: z.string().url("App URL must be a valid HTTP(S) URL"),
@@ -95,6 +99,8 @@ export const originConfigSchema = z.object({
   allowedMethods: z.array(z.string()).min(1, "Allowed CORS methods are required"),
   allowedHeaders: z.array(z.string()).min(1, "Allowed CORS headers are required"),
   allowCredentials: z.boolean(),
+  inviteCodeRequired: z.boolean().default(false),
+  validInviteCodes: z.array(z.string()).optional(),
 });
 export type OriginConfig = z.infer<typeof originConfigSchema>;
 
