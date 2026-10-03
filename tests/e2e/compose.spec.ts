@@ -1,7 +1,7 @@
-import { test, expect, openDemoMailbox } from "./fixtures";
+import { test, expect, openDemoMailbox, mockAccountSigner } from "./fixtures";
 import { generateRecipientKeyPair } from "../../src/services/crypto/key-wrap";
 
-// Deterministic Stellar address for the injected demo wallet.
+// Deterministic address returned by the account-stamp endpoint.
 const DEMO_SIGNER = `G${"C".repeat(55)}`;
 const RECIPIENT = `G${"B".repeat(55)}`;
 
@@ -51,26 +51,9 @@ test.beforeAll(async () => {
 });
 
 test.describe("compose flow", () => {
-  // E2E runs in a headless browser with no Freighter extension and no live
-  // relay. Install a deterministic wallet stub (read by the wallet seam in
-  // src/services/stellar/wallet.ts) and stub relay discovery, the relay accept
-  // endpoint, and the recipient key directory so the full send pipeline can
-  // complete end to end.
+  // Stub account stamps, relay discovery, and recipient keys for demo sends.
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript((signer) => {
-      Object.defineProperty(window, "__freighterApi", {
-        configurable: true,
-        value: {
-          isConnected: () => Promise.resolve({ isConnected: true }),
-          requestAccess: () => Promise.resolve({ address: signer }),
-          signMessage: () =>
-            Promise.resolve({
-              signedMessage: "e2e-mock-signature",
-              signerAddress: signer,
-            }),
-        },
-      });
-    }, DEMO_SIGNER);
+    await mockAccountSigner(page, DEMO_SIGNER);
 
     await page.route("**/relays/**/diagnostics", (route) =>
       route.fulfill({

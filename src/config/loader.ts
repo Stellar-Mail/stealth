@@ -158,7 +158,7 @@ export function loadRuntimeConfig(options: LoadConfigOptions = {}): BetaRuntimeC
   // 4. Relay
   const relayUrl =
     (env.STEALTH_RELAY_URL as string) ??
-    (isProd ? "https://relay.stealth.me" : "https://relay-testnet.stealth.me");
+    (isProd ? "https://relay.betasmail.com" : "https://relay-testnet.betasmail.com");
   const relayTimeoutMs = parseNumber(env.STEALTH_RELAY_TIMEOUT_MS, 10000);
 
   // Secrets
@@ -189,10 +189,19 @@ export function loadRuntimeConfig(options: LoadConfigOptions = {}): BetaRuntimeC
   // 6. Origin
   const appUrl =
     (env.STEALTH_APP_URL as string) ??
-    (isProd ? "https://app.stealth.me" : "http://localhost:3000");
+    (isProd ? "https://app.betasmail.com" : "http://localhost:3000");
   const allowedOrigins = parseList(
     env.STEALTH_CORS_ALLOWED_ORIGINS,
-    isProd ? ["https://app.stealth.me"] : ["http://localhost:3000", "http://localhost:5173"],
+    isProd
+      ? ["https://app.betasmail.com"]
+      : [
+          "http://localhost:3000",
+          "http://localhost:5173",
+          "http://localhost:8080",
+          "http://127.0.0.1:3000",
+          "http://127.0.0.1:5173",
+          "http://127.0.0.1:8080",
+        ],
   );
   const allowedMethods = parseList(env.STEALTH_CORS_ALLOWED_METHODS, DEFAULT_ALLOWED_METHODS);
   const allowedHeaders = parseList(env.STEALTH_CORS_ALLOWED_HEADERS, DEFAULT_ALLOWED_HEADERS);
@@ -215,7 +224,7 @@ export function loadRuntimeConfig(options: LoadConfigOptions = {}): BetaRuntimeC
   const smtpUsername = (env.STEALTH_SMTP_USERNAME as string) || undefined;
   const notificationFrom =
     (env.STEALTH_NOTIFICATION_FROM as string) ??
-    (isProd ? "noreply@app.stealth.me" : "stealth@localhost");
+    (isProd ? "noreply@app.betasmail.com" : "stealth@localhost");
   const verificationTokenLifetimeMs = parseNumber(
     env.STEALTH_VERIFICATION_TOKEN_LIFETIME_MS,
     24 * 60 * 60 * 1000,

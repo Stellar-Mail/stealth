@@ -39,7 +39,7 @@ describe("GET /api/v1/bootstrap", () => {
     expect(body.error.code).toBe("unauthorized");
   });
 
-  it("returns active branch and full bootstrap data for authenticated user", async () => {
+  it("returns onboarding and full bootstrap data for a new active user", async () => {
     const repository = new MemoryApiRepository();
     (globalThis as any).__stealthApiRepository = repository;
 
@@ -72,7 +72,7 @@ describe("GET /api/v1/bootstrap", () => {
 
     expect(response.status).toBe(200);
     const body = await response.json();
-    expect(body.data.branch).toBe("active");
+    expect(body.data.branch).toBe("onboarding");
     expect(body.data.user.username).toBe("bootstrapuser");
     expect(body.data.user.email).toBe("bootstrap@stealth.mail");
     expect(body.data.wallet.connected).toBe(true);
@@ -128,7 +128,7 @@ describe("GET /api/v1/bootstrap", () => {
 
     expect(response.status).toBe(200);
     const body = await response.json();
-    expect(body.data.branch).toBe("active");
+    expect(body.data.branch).toBe("onboarding");
     expect(body.data.onboarding.status).toBe("in_progress");
     expect(body.data.onboarding.step).toBe("postage");
     expect(body.data.onboarding.displayName).toBe("Ada");

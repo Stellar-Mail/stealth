@@ -8,7 +8,7 @@ import {
 } from "../../fixtures/identity";
 
 test.describe("BETA-025 (Issue #1932): Two-User Identity Acceptance Journey (Alice & Bob)", () => {
-  test("proves independent registration, verification, policy provisioning, login, and session isolation", async ({
+  test("proves independent registration, immediate login, and secret redaction", async ({
     request,
   }) => {
     // Generate distinct identities per run to avoid collision across retries
@@ -33,7 +33,7 @@ test.describe("BETA-025 (Issue #1932): Two-User Identity Acceptance Journey (Ali
     });
     expect(aliceRegRes.status()).toBe(201);
     const { data: aliceReg } = await aliceRegRes.json();
-    expect(aliceReg.accountStatus).toBe("pending_verification");
+    expect(aliceReg.accountStatus).toBe("active");
     expect(aliceReg.email).toBe(alice.email);
     expect(aliceReg.username).toBe(alice.username);
     expect(aliceReg.maskedEmail).toBe(maskEmail(alice.email));
@@ -44,7 +44,7 @@ test.describe("BETA-025 (Issue #1932): Two-User Identity Acceptance Journey (Ali
     });
     expect(bobRegRes.status()).toBe(201);
     const { data: bobReg } = await bobRegRes.json();
-    expect(bobReg.accountStatus).toBe("pending_verification");
+    expect(bobReg.accountStatus).toBe("active");
     expect(bobReg.email).toBe(bob.email);
     expect(bobReg.username).toBe(bob.username);
 
@@ -62,14 +62,14 @@ test.describe("BETA-025 (Issue #1932): Two-User Identity Acceptance Journey (Ali
     // -------------------------------------------------------------------------
     // 2. Login & Session Isolation
     // -------------------------------------------------------------------------
-    // Attempting login prior to activation returns 403 Forbidden
-    const pendingLogin = await request.post("/api/v1/auth/login", {
+    // A newly registered account can sign in without a verification round trip.
+    const immediateLogin = await request.post("/api/v1/auth/login", {
       data: {
         identifier: alice.email,
         password: alice.password,
       },
     });
-    expect(pendingLogin.status()).toBe(403);
+    expect(immediateLogin.status()).toBe(200);
 
     // -------------------------------------------------------------------------
     // 3. Authenticated Journey & Redaction Verification

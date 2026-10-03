@@ -36,9 +36,9 @@ export default {
       if (isDev) {
         fedServer = `http://${host}/api/v1/federation`;
       } else if (isPreview) {
-        fedServer = `https://app-preview.stealth.me/api/v1/federation`;
+        fedServer = `https://app-preview.betasmail.com/api/v1/federation`;
       } else {
-        fedServer = `https://app.stealth.me/api/v1/federation`;
+        fedServer = `https://app.betasmail.com/api/v1/federation`;
       }
 
       const tomlContent = [
@@ -57,13 +57,13 @@ export default {
       );
     }
 
-    // 3. Root domain redirect (stealth.me -> app.stealth.me)
-    if (host === "stealth.me" || host === "www.stealth.me") {
+    // 3. Root domain redirect (betasmail.com -> app.betasmail.com)
+    if (host === "betasmail.com" || host === "www.betasmail.com") {
       return applySecurityHeaders(
         new Response(null, {
           status: 301,
           headers: {
-            Location: `https://app.stealth.me${url.pathname}${url.search}`,
+            Location: `https://app.betasmail.com${url.pathname}${url.search}`,
           },
         }),
       );

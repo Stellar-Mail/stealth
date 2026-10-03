@@ -24,6 +24,7 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import { readInstalledPlaywrightVersion } from "./verify-playwright-version.mjs";
+import { assertRustPin } from "./verify-rust-version.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const read = (p) => readFileSync(resolve(ROOT, p), "utf8");
@@ -47,6 +48,7 @@ const ciYml = read(".github/workflows/ci.yml");
 for (const [envKey, tvKey] of [
   ["BUN_VERSION", "bun"],
   ["NODE_VERSION", "node"],
+  ["RUST_VERSION", "rust"],
   ["OPTIC_VERSION", "optic"],
 ]) {
   const m = ciYml.match(new RegExp(`^\\s*${envKey}:\\s*"([^"]+)"`, "m"));
@@ -74,7 +76,12 @@ if (installedPlaywright) {
 if (!existsSync(resolve(ROOT, "rust-toolchain.toml"))) {
   problems.push("- rust-toolchain.toml is missing (Rust pin required)");
 } else {
-  ok.push("- rust-toolchain.toml present");
+  const channel = read("rust-toolchain.toml").match(/^channel\s*=\s*"([^"]+)"/m)?.[1];
+  const result = assertRustPin({ pinned: toolVersions.rust, channel });
+  (result.ok ? ok : problems).push(`- ${result.message}`);
+  if (!ciYml.includes("toolchain: ${{ env.RUST_VERSION }}")) {
+    problems.push("- Contract Checks must install the pinned RUST_VERSION");
+  }
 }
 
 console.log("Pinned tool-version consistency check");

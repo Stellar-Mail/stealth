@@ -246,8 +246,8 @@ describe("BETA-003 (Issue #1910): Canonical Stealth username validation", () => 
       const result = await reserveUsername("alice", "usr_alice123", repository);
       expect(result.success).toBe(true);
       expect(result.canonical).toBe("alice");
-      expect(result.federationAddress).toBe("alice*stealth.me");
-      expect(result.emailAddress).toBe("alice@stealth.me");
+      expect(result.federationAddress).toBe("alice*betasmail.com");
+      expect(result.emailAddress).toBe("alice@betasmail.com");
       expect(result.expiresAt).toBeDefined();
     });
 
@@ -276,8 +276,8 @@ describe("BETA-003 (Issue #1910): Canonical Stealth username validation", () => 
 
     it("produces deterministic federation and email mappings", async () => {
       const result = await reserveUsername("testuser", "usr_test", repository);
-      expect(result.federationAddress).toBe("testuser*stealth.me");
-      expect(result.emailAddress).toBe("testuser@stealth.me");
+      expect(result.federationAddress).toBe("testuser*betasmail.com");
+      expect(result.emailAddress).toBe("testuser@betasmail.com");
     });
   });
 

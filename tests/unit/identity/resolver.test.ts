@@ -132,7 +132,7 @@ describe("BETA-026 (Issue #1933): Production Stealth-Address & Stellar-Federatio
       expect(parseIdentifier("alice")).toEqual({
         type: "local_handle",
         username: "alice",
-        domain: "stealth.me",
+        domain: "betasmail.com",
       });
 
       expect(parseIdentifier("")).toEqual({
@@ -145,7 +145,15 @@ describe("BETA-026 (Issue #1933): Production Stealth-Address & Stellar-Federatio
 
   describe("2. Local Stealth Identity Resolution", () => {
     it("resolves active user across email, federation asterisk, and bare username formats", async () => {
-      const formats = ["alice@stealth.me", "alice*stealth.me", "alice@stealth.xyz", "alice"];
+      const formats = [
+        "alice@betasmail.com",
+        "alice*betasmail.com",
+        "alice@smail.com",
+        "alice@stealth.me",
+        "alice*stealth.me",
+        "alice@stealth.xyz",
+        "alice",
+      ];
 
       for (const format of formats) {
         const result = await resolver.resolve(format, {

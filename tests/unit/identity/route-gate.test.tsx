@@ -10,7 +10,7 @@ import {
   Outlet,
   RouterProvider,
 } from "@tanstack/react-router";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 
 import { RouteGate } from "@/features/identity/RouteGate";
@@ -94,7 +94,10 @@ async function renderAt(initialUrl: string) {
 }
 
 describe("RouteGate — component-level navigation coverage", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
   it("redirects an anonymous visitor to sign-in", async () => {
+    vi.stubEnv("DEV", false);
     mock.setBranch("unauthorized");
     mock.setData(null);
     const router = await renderAt("/");
@@ -156,6 +159,7 @@ describe("RouteGate — component-level navigation coverage", () => {
   });
 
   it("sends an authenticated visitor away from the sign-in page back home", async () => {
+    vi.stubEnv("DEV", false);
     mock.setBranch("active");
     mock.setData(null);
     const router = await renderAt("/auth/sign-in");
@@ -181,6 +185,7 @@ describe("RouteGate — component-level navigation coverage", () => {
   });
 
   it("moves a suspended visitor to the state view even when they open the sign-in page", async () => {
+    vi.stubEnv("DEV", false);
     mock.setBranch("suspended");
     mock.setData({ user: { userId: "user_blocked" } } as never);
     await renderAt("/auth/sign-in");

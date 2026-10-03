@@ -10,7 +10,7 @@ describe("BETA-090: Stellar Federation (SEP-2) & Root Redirects / TOML", () => {
   const ALICE_USER: User = {
     userId: "usr_alice123",
     address: "GBRPYHIL2CI3WHZDTOOQFC6EB4KJJGUJGU7XYBNBNQ2LMCAKLKZ6DXAA",
-    email: "alice@stealth.me",
+    email: "alice@betasmail.com",
     username: "alice",
     status: "active",
     version: 1,
@@ -21,7 +21,7 @@ describe("BETA-090: Stellar Federation (SEP-2) & Root Redirects / TOML", () => {
   const BOB_SUSPENDED: User = {
     userId: "usr_bob123",
     address: "GAYOLLLVPWNOY2R572622UGLM2F2D72VFU7GY3QMR44QW277U7H353PPA",
-    email: "bob@stealth.me",
+    email: "bob@betasmail.com",
     username: "bob",
     status: "suspended",
     version: 1,
@@ -59,7 +59,7 @@ describe("BETA-090: Stellar Federation (SEP-2) & Root Redirects / TOML", () => {
     it("GET type=name resolves active local username handle to account ID", async () => {
       const handler = (FederationRoute.options.server?.handlers as any).GET;
       const request = new Request(
-        "https://app.stealth.me/api/v1/federation?type=name&q=alice*stealth.me",
+        "https://app.betasmail.com/api/v1/federation?type=name&q=alice*betasmail.com",
       );
 
       const response = await handler({ request });
@@ -68,7 +68,7 @@ describe("BETA-090: Stellar Federation (SEP-2) & Root Redirects / TOML", () => {
 
       const body = await response.json();
       expect(body.data).toEqual({
-        stellar_address: "alice*stealth.me",
+        stellar_address: "alice*betasmail.com",
         account_id: ALICE_USER.address,
       });
     });
@@ -76,7 +76,7 @@ describe("BETA-090: Stellar Federation (SEP-2) & Root Redirects / TOML", () => {
     it("GET type=id resolves G-address back to active user's federation handle", async () => {
       const handler = (FederationRoute.options.server?.handlers as any).GET;
       const request = new Request(
-        `https://app.stealth.me/api/v1/federation?type=id&q=${ALICE_USER.address}`,
+        `https://app.betasmail.com/api/v1/federation?type=id&q=${ALICE_USER.address}`,
       );
 
       const response = await handler({ request });
@@ -85,7 +85,7 @@ describe("BETA-090: Stellar Federation (SEP-2) & Root Redirects / TOML", () => {
 
       const body = await response.json();
       expect(body.data).toEqual({
-        stellar_address: "alice*stealth.me",
+        stellar_address: "alice*betasmail.com",
         account_id: ALICE_USER.address,
       });
     });
@@ -93,7 +93,7 @@ describe("BETA-090: Stellar Federation (SEP-2) & Root Redirects / TOML", () => {
     it("GET returns 404 for suspended or inactive accounts", async () => {
       const handler = (FederationRoute.options.server?.handlers as any).GET;
       const request = new Request(
-        "https://app.stealth.me/api/v1/federation?type=name&q=bob*stealth.me",
+        "https://app.betasmail.com/api/v1/federation?type=name&q=bob*betasmail.com",
       );
 
       const response = await handler({ request });
@@ -105,7 +105,7 @@ describe("BETA-090: Stellar Federation (SEP-2) & Root Redirects / TOML", () => {
     it("GET returns 404 for nonexistent handles", async () => {
       const handler = (FederationRoute.options.server?.handlers as any).GET;
       const request = new Request(
-        "https://app.stealth.me/api/v1/federation?type=name&q=nonexistent*stealth.me",
+        "https://app.betasmail.com/api/v1/federation?type=name&q=nonexistent*betasmail.com",
       );
 
       const response = await handler({ request });
@@ -115,7 +115,7 @@ describe("BETA-090: Stellar Federation (SEP-2) & Root Redirects / TOML", () => {
     it("GET returns 400 for malformed parameters", async () => {
       const handler = (FederationRoute.options.server?.handlers as any).GET;
       const request = new Request(
-        "https://app.stealth.me/api/v1/federation?type=invalid_type&q=alice*stealth.me",
+        "https://app.betasmail.com/api/v1/federation?type=invalid_type&q=alice*betasmail.com",
       );
 
       const response = await handler({ request });
@@ -125,34 +125,34 @@ describe("BETA-090: Stellar Federation (SEP-2) & Root Redirects / TOML", () => {
 
   describe("2. Server Intercepts and Redirects (src/server.ts)", () => {
     it("redirects HTTP requests to HTTPS in production environments", async () => {
-      const request = new Request("http://app.stealth.me/inbox", {
+      const request = new Request("http://app.betasmail.com/inbox", {
         headers: {
           "x-forwarded-proto": "http",
-          host: "app.stealth.me",
+          host: "app.betasmail.com",
         },
       });
 
       const response = await serverEntry.fetch(request);
       expect(response.status).toBe(301);
-      expect(response.headers.get("Location")).toBe("https://app.stealth.me/inbox");
+      expect(response.headers.get("Location")).toBe("https://app.betasmail.com/inbox");
     });
 
     it("redirects root domain calls to the app subdomain", async () => {
-      const request = new Request("https://stealth.me/dashboard", {
+      const request = new Request("https://betasmail.com/dashboard", {
         headers: {
-          host: "stealth.me",
+          host: "betasmail.com",
         },
       });
 
       const response = await serverEntry.fetch(request);
       expect(response.status).toBe(301);
-      expect(response.headers.get("Location")).toBe("https://app.stealth.me/dashboard");
+      expect(response.headers.get("Location")).toBe("https://app.betasmail.com/dashboard");
     });
 
     it("serves stellar.toml directly from root domain with dynamic federation server URL", async () => {
-      const request = new Request("https://stealth.me/.well-known/stellar.toml", {
+      const request = new Request("https://betasmail.com/.well-known/stellar.toml", {
         headers: {
-          host: "stealth.me",
+          host: "betasmail.com",
         },
       });
 
@@ -162,13 +162,13 @@ describe("BETA-090: Stellar Federation (SEP-2) & Root Redirects / TOML", () => {
       expect(response.headers.get("Access-Control-Allow-Origin")).toBe("*");
 
       const text = await response.text();
-      expect(text).toContain('FEDERATION_SERVER="https://app.stealth.me/api/v1/federation"');
+      expect(text).toContain('FEDERATION_SERVER="https://app.betasmail.com/api/v1/federation"');
     });
 
     it("serves stellar.toml dynamically with preview domain for staging environments", async () => {
-      const request = new Request("https://app-preview.stealth.me/.well-known/stellar.toml", {
+      const request = new Request("https://app-preview.betasmail.com/.well-known/stellar.toml", {
         headers: {
-          host: "app-preview.stealth.me",
+          host: "app-preview.betasmail.com",
         },
       });
 
@@ -176,7 +176,7 @@ describe("BETA-090: Stellar Federation (SEP-2) & Root Redirects / TOML", () => {
       expect(response.status).toBe(200);
       const text = await response.text();
       expect(text).toContain(
-        'FEDERATION_SERVER="https://app-preview.stealth.me/api/v1/federation"',
+        'FEDERATION_SERVER="https://app-preview.betasmail.com/api/v1/federation"',
       );
     });
   });

@@ -1,5 +1,5 @@
-import { Link, useNavigate } from "@tanstack/react-router";
-import { CheckCircle2, LoaderCircle, Mail, ShieldCheck } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { LoaderCircle, Mail, ShieldCheck } from "lucide-react";
 import { type FormEvent, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -28,7 +28,6 @@ function FormError({ message }: { message: string | null }) {
 }
 
 export function SignUpPage({ destination }: { destination?: string }) {
-  const navigate = useNavigate();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -53,13 +52,11 @@ export function SignUpPage({ destination }: { destination?: string }) {
         termsVersion: "2026-01",
         privacyPolicyVersion: "2026-01",
       });
-      await navigate({
-        to: "/auth/verify",
-        search: {
-          email: registration.maskedEmail ?? "your email",
-          next: safeReturnTo(destination),
-        },
+      await api.auth.login({
+        identifier: registration.email,
+        password,
       });
+      window.location.assign(`/onboarding?next=${encodeURIComponent(safeReturnTo(destination))}`);
     } catch (cause) {
       setError(
         cause instanceof ApiClientError
@@ -154,7 +151,7 @@ export function SignInPage({ destination }: { destination?: string }) {
       setError(
         cause instanceof ApiClientError
           ? cause.status === 403
-            ? "Your account needs email verification before you can sign in."
+            ? "Your account is not currently available. Please contact support."
             : cause.status === 401
               ? "Invalid email, username, or password."
               : errorLabel(cause)
@@ -199,32 +196,6 @@ export function SignInPage({ destination }: { destination?: string }) {
             Create an account
           </Link>
         </p>
-      </CardContent>
-    </AuthLayout>
-  );
-}
-
-export function VerifyEmailPage({ email }: { email?: string }) {
-  return (
-    <AuthLayout>
-      <CardHeader className="items-center text-center">
-        <div className="mb-2 flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-          <CheckCircle2 />
-        </div>
-        <CardTitle>Check your email</CardTitle>
-        <CardDescription>
-          We sent a verification link to {email || "your email address"}. Open it in this browser to
-          finish setting up your account.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4 text-center">
-        <p className="text-sm text-muted-foreground">
-          The link may take a few minutes to arrive. If it expires, return to this page from a new
-          registration email.
-        </p>
-        <Button variant="outline" className="w-full" asChild>
-          <Link to="/auth/sign-in">Back to sign in</Link>
-        </Button>
       </CardContent>
     </AuthLayout>
   );

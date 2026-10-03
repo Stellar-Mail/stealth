@@ -201,7 +201,7 @@ describe("BETA-006 & BETA-007: Password Login, Session Renewal, Rotation & Expir
           identifier: "unverified@stealth.mail",
           password: defaultPassword,
         }),
-      ).rejects.toThrow("Account verification required");
+      ).rejects.toThrow("Account is not active");
 
       // Suspended account
       await expect(

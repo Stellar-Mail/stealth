@@ -141,9 +141,6 @@ export async function authenticateWithPassword(
   }
 
   // Account status checks
-  if (user.status === "pending_verification") {
-    throw new ApiError(403, "forbidden", "Account verification required");
-  }
   if (user.status === "suspended") {
     throw new ApiError(403, "forbidden", "Account suspended");
   }

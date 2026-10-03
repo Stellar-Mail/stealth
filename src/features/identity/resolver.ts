@@ -1,4 +1,5 @@
 import { Federation } from "@stellar/stellar-sdk";
+import { LOCAL_MAIL_DOMAINS, MAIL_DOMAIN, formatMailAddress } from "./mail-domain";
 import type {
   ResolvedIdentity,
   ResolutionFreshness,
@@ -8,13 +9,7 @@ import type {
   PublicProfile,
 } from "./types";
 
-export const LOCAL_STEALTH_DOMAINS = new Set([
-  "stealth.me",
-  "stealth.xyz",
-  "stealth.mail",
-  "stealth.local",
-  "localhost",
-]);
+export const LOCAL_STEALTH_DOMAINS = new Set<string>(LOCAL_MAIL_DOMAINS);
 
 export interface IdentityRepositoryAdapter {
   getUserByUsername(username: string): Promise<any>;
@@ -123,7 +118,7 @@ export function parseIdentifier(rawInput: string): ParsedIdentifier {
 
   // 5. Bare username / handle (alphanumeric, dot, underscore, dash)
   if (/^[a-z0-9._-]{3,64}$/.test(normalized)) {
-    return { type: "local_handle", username: normalized, domain: "stealth.me" };
+    return { type: "local_handle", username: normalized, domain: MAIL_DOMAIN };
   }
 
   return {
@@ -429,7 +424,7 @@ export class IdentityResolverService {
 
       return {
         identifier: normalized,
-        canonicalAddress: `${user.username}@stealth.me`,
+        canonicalAddress: formatMailAddress(user.username),
         account: address,
         resolved: true,
         status: "active",
@@ -478,7 +473,7 @@ export class IdentityResolverService {
     repository?: IdentityRepositoryAdapter,
   ): Promise<ResolvedIdentity> {
     const nowIso = new Date().toISOString();
-    const canonical = `${username}@${domain}`;
+    const canonical = formatMailAddress(username);
 
     if (!repository) {
       return this.createErrorResult(
@@ -609,7 +604,7 @@ export class IdentityResolverService {
         const rawProfile = await repository.getProfile(user.userId);
         return {
           identifier: normalized,
-          canonicalAddress: `${user.username}@stealth.me`,
+          canonicalAddress: formatMailAddress(user.username),
           account: user.address,
           resolved: true,
           status: "active",

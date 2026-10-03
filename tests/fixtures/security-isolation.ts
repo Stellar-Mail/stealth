@@ -71,7 +71,7 @@ export const REQUEST_ID = "11111111-1111-4111-8111-111111111111";
 export const DRAFT_ID = "draft_alice_001";
 
 const NOW = "2026-08-23T08:00:00.000Z";
-const SESSION_EXPIRY = "2026-09-23T08:00:00.000Z";
+const SESSION_EXPIRY = new Date(Date.now() + 86_400_000).toISOString();
 
 export interface IsolatedUserFixture {
   user: User;

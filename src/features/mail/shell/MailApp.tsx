@@ -88,6 +88,7 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
   const senderConversion = useSenderConversion();
   const snooze = useSnooze();
   const isMobile = useIsMobile();
+  const isCompactViewport = useMediaQuery("(max-width: 1279px)");
   const showRightPanel = useMediaQuery("(min-width: 1800px)");
   const calendar = useCalendar();
   const { dismiss: dismissFeedback, items: feedbackItems, notify: showToast } = useFeedback();
@@ -210,7 +211,7 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
             <div
               className={cn(
                 "shrink-0 transition-[width] duration-200 ease-out",
-                layout.sidebarCollapsed ? "w-[76px]" : "w-[264px]",
+                layout.sidebarCollapsed ? "w-[64px]" : "w-[240px]",
               )}
             >
               <Sidebar
@@ -360,7 +361,7 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
                         <div
                           className={cn(
                             "min-w-0",
-                            layout.compactMode || preferences.compactMode
+                            layout.compactMode || preferences.compactMode || isCompactViewport
                               ? "w-[320px] shrink-0"
                               : "w-[360px] shrink-0",
                           )}
