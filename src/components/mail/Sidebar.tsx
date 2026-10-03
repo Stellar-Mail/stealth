@@ -28,6 +28,7 @@ import {
 import { cn } from "@/lib/utils";
 import type { MailFolder } from "./data";
 import { DROP_TARGET_FOLDERS } from "./useDragDrop";
+import { formatMailAddress } from "@/features/identity/mail-domain";
 
 type SidebarItem = { key: MailFolder; label: string; icon: LucideIcon };
 
@@ -115,7 +116,7 @@ export function Sidebar({
   return (
     <motion.aside
       initial={false}
-      animate={{ width: collapsed ? 76 : 264 }}
+      animate={{ width: collapsed ? 64 : 240 }}
       transition={{ type: "spring", stiffness: 260, damping: 30 }}
       className="glass relative z-10 hidden h-screen flex-col rounded-none border-y-0 border-l-0 p-3 md:flex"
     >
@@ -277,7 +278,9 @@ export function Sidebar({
         {!collapsed && (
           <div className="min-w-0 flex-1 leading-tight">
             <div className="truncate text-xs font-medium text-foreground">Uthaimin</div>
-            <div className="truncate text-[11px] text-muted-foreground">kryputh@stealth.me</div>
+            <div className="truncate text-[11px] text-muted-foreground">
+              {formatMailAddress("kryputh")}
+            </div>
           </div>
         )}
         {!collapsed && (

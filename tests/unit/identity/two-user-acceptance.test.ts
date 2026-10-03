@@ -49,13 +49,13 @@ describe("BETA-025 (Issue #1932): Two-User Identity Acceptance Suite", () => {
     (globalThis as any).__stealthApiRepository = repository;
   });
 
-  describe("1. Isolated Registration & Verification Flow", () => {
+  describe("1. Isolated Registration & Immediate Activation", () => {
     it("allows Alice and Bob to register independently and receive isolated records", async () => {
       const mockContext = createMockContext();
 
       // 1. Register Alice
       const aliceReg = await registerWithPassword(mockContext, ALICE_FIXTURE, "192.0.2.1");
-      expect(aliceReg.accountStatus).toBe("pending_verification");
+      expect(aliceReg.accountStatus).toBe("active");
       expect(aliceReg.email).toBe("alice@stealth.mail");
       expect(aliceReg.username).toBe("alice_smith");
       expect(aliceReg.maskedEmail).toBe("al•••@stealth.mail");
@@ -65,11 +65,11 @@ describe("BETA-025 (Issue #1932): Two-User Identity Acceptance Suite", () => {
       expect(aliceUser).not.toBeNull();
       expect(aliceUser?.userId).toMatch(/^usr_[a-f0-9]+$/);
       expect(aliceUser?.address).toMatch(/^G[A-Z2-7]{55}$/);
-      expect(aliceUser?.status).toBe("pending_verification");
+      expect(aliceUser?.status).toBe("active");
 
       // 2. Register Bob
       const bobReg = await registerWithPassword(mockContext, BOB_FIXTURE, "192.0.2.2");
-      expect(bobReg.accountStatus).toBe("pending_verification");
+      expect(bobReg.accountStatus).toBe("active");
       expect(bobReg.email).toBe("bob@stealth.mail");
       expect(bobReg.username).toBe("bob_jones");
 
@@ -78,7 +78,7 @@ describe("BETA-025 (Issue #1932): Two-User Identity Acceptance Suite", () => {
       expect(bobUser).not.toBeNull();
       expect(bobUser?.userId).toMatch(/^usr_[a-f0-9]+$/);
       expect(bobUser?.address).toMatch(/^G[A-Z2-7]{55}$/);
-      expect(bobUser?.status).toBe("pending_verification");
+      expect(bobUser?.status).toBe("active");
 
       // Assert complete isolation of identities
       expect(aliceUser?.userId).not.toBe(bobUser?.userId);
@@ -126,7 +126,7 @@ describe("BETA-025 (Issue #1932): Two-User Identity Acceptance Suite", () => {
       ).rejects.toThrow(ApiError);
     });
 
-    it("verifies and activates Alice and Bob accounts independently", async () => {
+    it("allows both accounts to sign in immediately after registration", async () => {
       const mockContext = createMockContext();
       await registerWithPassword(mockContext, ALICE_FIXTURE, "192.0.2.1");
       await registerWithPassword(mockContext, BOB_FIXTURE, "192.0.2.2");
@@ -134,29 +134,18 @@ describe("BETA-025 (Issue #1932): Two-User Identity Acceptance Suite", () => {
       const aliceUser = (await repository.getUserByEmail("alice@stealth.mail"))!;
       const bobUser = (await repository.getUserByEmail("bob@stealth.mail"))!;
 
-      // Activate Alice
-      const aliceActivation = await repository.updateUser(
-        { ...aliceUser, status: "active" },
-        aliceUser.version,
-      );
-      expect(aliceActivation.updated).toBe(true);
-      if (aliceActivation.updated) {
-        expect(aliceActivation.user.status).toBe("active");
-      }
-
-      // Verify Bob remains pending until explicitly activated
-      const bobCheck = await repository.getUserById(bobUser.userId);
-      expect(bobCheck?.status).toBe("pending_verification");
-
-      // Activate Bob
-      const bobActivation = await repository.updateUser(
-        { ...bobUser, status: "active" },
-        bobUser.version,
-      );
-      expect(bobActivation.updated).toBe(true);
-      if (bobActivation.updated) {
-        expect(bobActivation.user.status).toBe("active");
-      }
+      const aliceLogin = await authenticateWithPassword(mockContext, {
+        identifier: ALICE_FIXTURE.username,
+        password: ALICE_FIXTURE.password,
+      });
+      const bobLogin = await authenticateWithPassword(mockContext, {
+        identifier: BOB_FIXTURE.username,
+        password: BOB_FIXTURE.password,
+      });
+      expect(aliceLogin.user.userId).toBe(aliceUser.userId);
+      expect(bobLogin.user.userId).toBe(bobUser.userId);
+      expect(aliceLogin.user.status).toBe("active");
+      expect(bobLogin.user.status).toBe("active");
     });
   });
 

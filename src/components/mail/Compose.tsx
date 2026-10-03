@@ -43,7 +43,7 @@ import { PostageBalanceBadge } from "./PostageBalanceBadge";
 import { SendPipeline, type StageState } from "@/features/compose/sendPipeline";
 import { SendProgress, type FailureInspectionDetails } from "@/features/compose/SendProgress";
 import { useFreighter } from "@/features/onboarding/useFreighter";
-import { resolveSenderAddress } from "@/services/stellar/wallet";
+import { resolveAccountSenderAddress } from "@/services/stellar/account-signer";
 import { useDraftAutosave } from "@/features/compose/useDraftAutosave";
 import { DraftStatusBadge } from "@/features/compose/DraftStatusBadge";
 import { DraftConflictBanner } from "@/features/compose/DraftConflictBanner";
@@ -396,7 +396,7 @@ export function Compose({
           address: recipient.address,
           account: recipient.resolvedAccount ?? recipient.address,
         }));
-      const resolvedSender = (await resolveSenderAddress()) ?? senderAddress;
+      const resolvedSender = (await resolveAccountSenderAddress()) ?? senderAddress;
       const pipeline =
         pipelineRef.current ??
         new SendPipeline(
@@ -446,11 +446,11 @@ export function Compose({
         });
 
         if (outcome.reason === "wallet_rejected") {
-          setSendError("Signature declined — your draft is safe. Retry when ready.");
-          onShowToast?.("Signature declined — draft kept");
+          setSendError("Account stamp declined. Your draft is safe; retry when ready.");
+          onShowToast?.("Account stamp declined; draft kept");
         } else if (outcome.reason === "wallet_unavailable") {
-          setSendError("No Stellar wallet detected. Unlock Freighter, then retry.");
-          onShowToast?.("Wallet unavailable");
+          setSendError("Your account stamp is unavailable. Sign in, then retry.");
+          onShowToast?.("Account stamp unavailable");
         } else {
           setSendError(failure.message);
           onShowToast?.("Send failed — unsent draft kept");

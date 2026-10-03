@@ -94,6 +94,18 @@ export function resolveRouteGuard(input: RouteGuardInput): GuardDecision {
   const isDev = input.isDev ?? false;
   const demoFlag = input.demoFlag ?? false;
 
+  if (isDev && isPublicAuthPath(pathname)) return { kind: "render" };
+  // Local UI development opens the mailbox while bootstrap resolves or when
+  // no session is present. Authenticated onboarding still uses the real gate.
+  if (
+    isDev &&
+    !input.isE2E &&
+    pathname === HOME_ROUTE &&
+    (state === "loading" || state === "anonymous" || state === "outage")
+  ) {
+    return { kind: "render" };
+  }
+
   switch (state) {
     case "loading":
       return { kind: "loading-view" };
@@ -113,7 +125,7 @@ export function resolveRouteGuard(input: RouteGuardInput): GuardDecision {
 
     case "onboarding":
     case "verified": {
-      if (pathname === ONBOARDING_ROUTE || pathname === "/auth/verify") {
+      if (pathname === ONBOARDING_ROUTE) {
         return { kind: "render" };
       }
       return { kind: "redirect", to: ONBOARDING_ROUTE };

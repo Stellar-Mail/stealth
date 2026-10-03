@@ -14,7 +14,6 @@ export const Route = createFileRoute("/onboarding")({
 function OnboardingPage() {
   const { data, retry, isRetrying } = useBootstrap();
 
-  const pendingVerification = data?.user.accountStatus === "pending_verification";
   const onboarding = data?.onboarding;
   const completed = onboarding?.status === "completed";
 
@@ -25,7 +24,7 @@ function OnboardingPage() {
     await retry();
   };
 
-  if (data && !pendingVerification && !completed) {
+  if (data && !completed) {
     return (
       <OnboardingFlow
         account={{
@@ -47,20 +46,13 @@ function OnboardingPage() {
             <CheckCircle2 className="size-6" />
           </div>
           <CardTitle tabIndex={-1} className="outline-none">
-            {pendingVerification ? "Email verification required" : "Finish setting up your account"}
+            Finish setting up your account
           </CardTitle>
           <CardDescription>
-            {pendingVerification
-              ? `We sent a verification link to ${data?.user.email ?? "your email"}. Please check your inbox to finish activating your mailbox.`
-              : "Your mailbox is still being prepared. This usually takes a moment — check again shortly."}
+            Your mailbox is still being prepared. Check again shortly.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Button variant="outline" className="w-full" asChild>
-            <Link to="/auth/verify" search={{ email: data?.user.email }}>
-              View verification status
-            </Link>
-          </Button>
           <Button
             variant="ghost"
             className="w-full"
@@ -71,7 +63,7 @@ function OnboardingPage() {
             Check again
           </Button>
           <p className="text-center text-xs text-muted-foreground">
-            Already verified?{" "}
+            Already have an account?{" "}
             <Link to="/auth/sign-in" className="text-primary underline-offset-4 hover:underline">
               Sign in to your account <ArrowRight className="ml-1 inline size-3" />
             </Link>

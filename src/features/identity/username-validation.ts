@@ -1,5 +1,7 @@
 ﻿import { z } from "zod";
 
+import { formatFederationAddress, formatMailAddress } from "./mail-domain";
+
 /**
  * BETA-003 (Issue #1910) — Canonical Stealth username validation and atomic reservation.
  *
@@ -476,8 +478,8 @@ export async function reserveUsername(
     return {
       success: true,
       canonical,
-      federationAddress: `${canonical}*stealth.me`,
-      emailAddress: `${canonical}@stealth.me`,
+      federationAddress: formatFederationAddress(canonical),
+      emailAddress: formatMailAddress(canonical),
       expiresAt: reservation.reservation?.expiresAt,
     };
   } catch {

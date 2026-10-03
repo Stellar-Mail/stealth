@@ -209,18 +209,23 @@ describe("resolveRouteGuard — five required states", () => {
       expect(decision).toEqual({ kind: "redirect", to: SIGN_IN_ROUTE, search: { next: "/" } });
     });
 
-    it("redirects anonymous visitors away from the root in development too", () => {
-      // A definitive bootstrap branch (anonymous) is honored in every
-      // environment: development mode never bypasses the auth gate. The demo
-      // shell is reached only through the explicit demo flag, which resolves
-      // bootstrap as `active`, not `anonymous`.
+    it("opens the demo mailbox at the root in development", () => {
       const decision = resolveRouteGuard({
         state: "anonymous",
         pathname: "/",
         isDev: true,
         demoFlag: false,
       });
-      expect(decision).toEqual({ kind: "redirect", to: SIGN_IN_ROUTE, search: { next: "/" } });
+      expect(decision).toEqual({ kind: "render" });
+    });
+
+    it("keeps authentication enforced during end-to-end automation", () => {
+      expect(
+        resolveRouteGuard({ state: "anonymous", pathname: "/", isDev: true, isE2E: true }),
+      ).toEqual({ kind: "redirect", to: SIGN_IN_ROUTE, search: { next: "/" } });
+      expect(
+        resolveRouteGuard({ state: "outage", pathname: "/", isDev: true, isE2E: true }),
+      ).toEqual({ kind: "state-view", view: "outage" });
     });
   });
 
@@ -253,7 +258,7 @@ describe("resolveRouteGuard — five required states", () => {
     });
   });
 
-  describe("onboarding state (email verification pending)", () => {
+  describe("onboarding state (profile setup pending)", () => {
     it("redirects to the onboarding route", () => {
       expect(resolveRouteGuard({ state: "onboarding", pathname: "/" })).toEqual({
         kind: "redirect",
@@ -265,12 +270,13 @@ describe("resolveRouteGuard — five required states", () => {
       });
     });
 
-    it("allows the onboarding route and verification status page", () => {
+    it("allows the onboarding route and redirects the retired verification page", () => {
       expect(resolveRouteGuard({ state: "onboarding", pathname: ONBOARDING_ROUTE })).toEqual({
         kind: "render",
       });
       expect(resolveRouteGuard({ state: "onboarding", pathname: "/auth/verify" })).toEqual({
-        kind: "render",
+        kind: "redirect",
+        to: ONBOARDING_ROUTE,
       });
     });
   });

@@ -10,6 +10,27 @@ export const SENDER = `G${"B".repeat(55)}`;
 export const MSG_ID = "a".repeat(64);
 export const PAYMENT_HASH = "b".repeat(64);
 
+export async function mockAccountSigner(page: Page, signerAddress: string, failFirstStamp = false) {
+  let attempts = 0;
+  await page.route("**/api/v1/envelopes/authorize", (route) => {
+    const isStamp = route.request().method() === "POST";
+    if (isStamp && failFirstStamp && ++attempts === 1) {
+      return route.fulfill({
+        status: 503,
+        json: { error: { message: "Account stamp temporarily unavailable" } },
+      });
+    }
+    return route.fulfill({
+      status: 200,
+      json: {
+        data: isStamp
+          ? { scheme: "Ed25519", signerAddress, value: "a".repeat(128) }
+          : { signerAddress },
+      },
+    });
+  });
+}
+
 // ---------------------------------------------------------------------------
 // API helpers – thin wrappers around page.request so tests stay readable
 // ---------------------------------------------------------------------------

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { formatMailAddress } from "./mail-domain";
 
 export const bootstrapBranchSchema = z.enum([
   "loading",
@@ -152,7 +153,7 @@ function getDemoState(): BootstrapState {
         userId: "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
         username: "demo_user",
         displayName: "Demo User",
-        email: "demo@stealth.mail",
+        email: formatMailAddress("demo"),
         accountStatus: "active",
         createdAt: new Date().toISOString(),
       },

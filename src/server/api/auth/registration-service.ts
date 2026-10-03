@@ -14,12 +14,6 @@ import {
   checkInviteCode,
   checkUsernameReservationLimit,
 } from "../abuse-service";
-import type { DeliveryReceipt, VerificationEmailMessage } from "@/services/notifications";
-import {
-  buildVerificationUrl,
-  issueEmailVerificationToken,
-  type VerificationPolicy,
-} from "../verification-service";
 import { recordAuditEvent } from "../audit";
 import { enforceCapability } from "@/server/api/beta-controls/guard";
 import { getBetaControlService } from "@/server/api/beta-controls";
@@ -27,17 +21,12 @@ import { getBetaControlService } from "@/server/api/beta-controls";
 const SIGNUP_RATE_LIMIT_WINDOW_SECONDS = 60 * 60;
 const MAX_SIGNUPS_PER_IP = 10;
 
-export type RegistrationDelivery = (message: VerificationEmailMessage) => Promise<DeliveryReceipt>;
-
 export async function registerWithPassword(
   apiContext: ApiContext,
   input: RegistrationRequest,
   ip = "unknown",
   deviceFingerprint = "unknown",
   options?: {
-    deliver?: RegistrationDelivery;
-    appUrl?: string;
-    verificationPolicy?: VerificationPolicy;
     inviteCodeRequired?: boolean;
     validInviteCodes?: string[];
   },
@@ -111,7 +100,7 @@ export async function registerWithPassword(
     address: prepared.address,
     email: input.email,
     username: input.username,
-    status: "pending_verification",
+    status: "active",
     createdAt: nowIso,
     updatedAt: nowIso,
     version: 1,
@@ -166,51 +155,11 @@ export async function registerWithPassword(
     origin: ip,
   });
 
-  // BETA-091: Issue and deliver verification after account creation. Delivery
-  // failure must not reveal tokens or change the generic registration result;
-  // the account remains pending_verification and the user can resend.
-  if (options?.deliver && options.appUrl) {
-    try {
-      const issued = await issueEmailVerificationToken(
-        apiContext,
-        userId,
-        options.verificationPolicy,
-      );
-      const verificationUrl = buildVerificationUrl(
-        options.appUrl,
-        user.email,
-        issued.plaintextToken,
-      );
-      const receipt = await options.deliver({
-        to: user.email,
-        purpose: "email_verification",
-        verificationUrl,
-        expiresAt: issued.expiresAt,
-      });
-      recordAuditEvent({
-        actor: userId,
-        action: receipt.accepted
-          ? "auth.verification_token_issued"
-          : "auth.verification_delivery_failed",
-        targetType: "verification_token",
-        safeTargetReference: issued.tokenHash,
-        result: receipt.accepted ? "success" : "denied",
-        requestId: apiContext.requestId ?? "registration",
-      });
-    } catch {
-      recordAuditEvent({
-        actor: userId,
-        action: "auth.verification_delivery_failed",
-        targetType: "account",
-        safeTargetReference: userId,
-        result: "denied",
-        requestId: apiContext.requestId ?? "registration",
-      });
-    }
-  }
+  // Stealth is a self-contained mail protocol: there is no external mailbox
+  // to confirm. Registration activates the account immediately.
 
   return {
-    accountStatus: "pending_verification",
+    accountStatus: "active",
     email: user.email,
     maskedEmail: maskEmail(user.email),
     username: user.username,

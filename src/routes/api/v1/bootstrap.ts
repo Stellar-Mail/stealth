@@ -26,10 +26,14 @@ export const Route = createFileRoute("/api/v1/bootstrap")({
           }
 
           const sessionRecord = await apiContext.repository.getSession(sessionId);
-          if (!sessionRecord) {
+          if (
+            !sessionRecord ||
+            Date.now() >= Date.parse(sessionRecord.expiresAt) ||
+            (sessionRecord.absoluteExpiresAt &&
+              Date.now() >= Date.parse(sessionRecord.absoluteExpiresAt))
+          ) {
             throw new ApiError(401, "unauthorized", "Session is invalid or expired");
           }
-
           const userRecord = await apiContext.repository.getUserById(sessionRecord.userId);
           if (!userRecord) {
             throw new ApiError(401, "unauthorized", "Associated user account not found");
@@ -76,7 +80,7 @@ export const Route = createFileRoute("/api/v1/bootstrap")({
             branch = "outage";
           } else if (user.status === "suspended" || user.status === "deactivated") {
             branch = "suspended";
-          } else if (user.status === "pending_verification") {
+          } else if (onboardingDraft?.status !== "completed") {
             branch = "onboarding";
           } else {
             branch = "active";
@@ -87,7 +91,7 @@ export const Route = createFileRoute("/api/v1/bootstrap")({
           return apiSuccess(request, {
             user,
             session,
-            address: user.userId,
+            address: userRecord.address,
             provisioning: provisioningRecord
               ? {
                   status: provisioningRecord.status,
@@ -128,7 +132,7 @@ export const Route = createFileRoute("/api/v1/bootstrap")({
               : null,
             wallet: {
               connected: signerResult !== null,
-              address: signerResult?.address ?? user.userId,
+              address: signerResult?.address ?? userRecord.address,
               signerType: signerResult?.signerType ?? "managed",
               capabilities: signerResult?.capabilities ?? ["sign", "send", "read"],
               network: "testnet",

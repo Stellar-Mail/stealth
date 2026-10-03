@@ -38,9 +38,9 @@ import {
 import {
   WalletRejectedError,
   WalletUnavailableError,
-  authorizeSend,
   type WalletSignature,
 } from "@/services/stellar/wallet";
+import { authorizeSendWithAccount } from "@/services/stellar/account-signer";
 import {
   createEntry,
   patchEntry,
@@ -153,7 +153,7 @@ const STAGE_LABELS: Record<StageId, string> = {
   resolve: "Resolving recipient keys",
   quote: "Requesting postage quote",
   encrypt: "Encrypting message",
-  sign: "Awaiting wallet signature",
+  sign: "Stamping with your account",
   escrow: "Reserving postage escrow",
   postage: "Verifying postage policy",
   persist: "Saving to outbox",
@@ -249,7 +249,7 @@ export class SendPipeline {
     this.recipients = this.recipientAccounts();
     this.domain = deriveDomain(input.to);
     this.audience = `relay.${this.domain}`;
-    this.signer = options.signer ?? authorizeSend;
+    this.signer = options.signer ?? authorizeSendWithAccount;
     this.keyResolver = options.keyResolver;
     this.quoteFetcher = options.quoteFetcher;
     this.escrowSubmitter = options.escrowSubmitter;
@@ -467,7 +467,7 @@ export class SendPipeline {
       return this.fail(
         "sign",
         "failed",
-        "Wallet could not sign the message",
+        "Your account could not stamp the message. Please sign in and retry.",
         "ERR_SIGNING_FAILED",
         true,
       );

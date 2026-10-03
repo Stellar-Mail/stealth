@@ -6,6 +6,20 @@ import { corsPolicyFromEnv, csrfEarlyResponse } from "../../../src/server/api/co
 const healthHandler = (HealthRoute.options as any).server?.handlers?.GET;
 
 describe("API route CORS integration", () => {
+  it("allows every local development port but keeps production restricted", () => {
+    const development = corsPolicyFromEnv({ STEALTH_ENV: "development" });
+    for (const host of ["localhost", "127.0.0.1"]) {
+      for (const port of [3000, 5173, 8080]) {
+        expect(development.allowedOrigins).toContain(`http://${host}:${port}`);
+      }
+    }
+    expect(
+      corsPolicyFromEnv({
+        STEALTH_ENV: "production",
+        STEALTH_CORS_ALLOWED_ORIGINS: "http://localhost:8080,https://attacker.example",
+      }).allowedOrigins,
+    ).toEqual(["https://app.betasmail.com"]);
+  });
   it("rejects a disallowed origin before executing an actual API route", async () => {
     const response = await healthHandler({
       request: new Request("http://localhost/api/v1/health", {

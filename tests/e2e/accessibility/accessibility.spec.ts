@@ -1,4 +1,4 @@
-import { test, expect, openDemoMailbox } from "../fixtures";
+import { test, expect, openDemoMailbox, mockAccountSigner } from "../fixtures";
 import { generateRecipientKeyPair } from "../../../src/services/crypto/key-wrap";
 import AxeBuilder from "@axe-core/playwright";
 import type { Page } from "@playwright/test";
@@ -66,20 +66,7 @@ function keyDirectoryBody(owner: string, spkiBase64: string) {
 }
 
 async function installSendMocks(page: Page, messageStatus = 200) {
-  await page.addInitScript(
-    (signer) => {
-      Object.defineProperty(window, "__freighterApi", {
-        configurable: true,
-        value: {
-          isConnected: () => Promise.resolve({ isConnected: true }),
-          requestAccess: () => Promise.resolve({ address: signer }),
-          signMessage: () =>
-            Promise.resolve({ signedMessage: "e2e-mock-signature", signerAddress: signer }),
-        },
-      });
-    },
-    `G${"C".repeat(55)}`,
-  );
+  await mockAccountSigner(page, `G${"C".repeat(55)}`);
 
   await page.route("**/relays/**/diagnostics", (route) =>
     route.fulfill({
@@ -245,27 +232,8 @@ test.describe("accessibility (BETA-073)", () => {
   test("send failure announces via alert and recovers through Retry", async ({ page }) => {
     await installSendMocks(page);
 
-    // Fail at the pre-commit `sign` stage on the first signature attempt, then
-    // succeed on retry (the wallet seam is re-invoked per send attempt).
-    await page.addInitScript(() => {
-      const win = window as unknown as {
-        __freighterApi?: {
-          signMessage?: () => Promise<{ signedMessage: string; signerAddress: string }>;
-        };
-      };
-      const api = win.__freighterApi;
-      const original = api?.signMessage;
-      if (!api || !original) return;
-      let attempts = 0;
-      Object.defineProperty(api, "signMessage", {
-        configurable: true,
-        value: async () => {
-          attempts += 1;
-          if (attempts === 1) throw new Error("Wallet rejected signature");
-          return original();
-        },
-      });
-    });
+    // Fail the first account stamp, then recover on retry.
+    await mockAccountSigner(page, `G${"C".repeat(55)}`, true);
 
     await page.reload();
     await page.getByRole("heading", { name: /inbox/i }).waitFor();

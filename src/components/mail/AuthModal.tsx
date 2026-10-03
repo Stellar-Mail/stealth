@@ -4,6 +4,7 @@ import { KeyRound, Lock, User, AlertCircle, CheckCircle2, X, Mail } from "lucide
 
 import { sharedTypedApi as api, ApiClientError, errorLabel } from "@/lib/api";
 import { useFocusTrap } from "@/lib/useFocusTrap";
+import { formatMailAddress } from "@/features/identity/mail-domain";
 
 export interface AuthModalProps {
   open: boolean;
@@ -20,7 +21,6 @@ export function AuthModal({ open, onClose, onSuccess }: AuthModalProps) {
   const [password, setPassword] = useState("");
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
   const [acceptedLegal, setAcceptedLegal] = useState(false);
-  const [registeredEmail, setRegisteredEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -70,9 +70,10 @@ export function AuthModal({ open, onClose, onSuccess }: AuthModalProps) {
           termsVersion: "2026-01",
           privacyPolicyVersion: "2026-01",
         });
-        setRegisteredEmail(registration.maskedEmail);
+        await api.auth.login({ identifier: registration.email, password });
         setSuccess(true);
         setLoading(false);
+        window.location.assign("/onboarding");
       } catch (caught) {
         if (caught instanceof ApiClientError) {
           setError(errorLabel(caught));
@@ -106,9 +107,7 @@ export function AuthModal({ open, onClose, onSuccess }: AuthModalProps) {
         if (caught.status === 429) {
           setError("Too many failed login attempts. Please try again later.");
         } else if (caught.status === 403) {
-          if (caught.code === "unverified_account") {
-            setError("Your account is pending verification. Please verify your email.");
-          } else if (caught.code === "account_suspended") {
+          if (caught.code === "account_suspended") {
             setError("Your account has been suspended. Please contact support.");
           } else if (caught.code === "account_deactivated") {
             setError("Your account is deactivated.");
@@ -172,188 +171,175 @@ export function AuthModal({ open, onClose, onSuccess }: AuthModalProps) {
             </div>
           </div>
 
-          {registeredEmail ? (
-            <div className="space-y-4" role="status">
-              <div className="flex items-center gap-2.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-400">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                role="alert"
+                className="flex items-center gap-2.5 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive"
+              >
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <span>{error}</span>
+              </motion.div>
+            )}
+
+            {success && !registering && (
+              <motion.div
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                role="status"
+                className="flex items-center gap-2.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-400"
+              >
                 <CheckCircle2 className="h-4 w-4 shrink-0" />
-                <span>Check your email</span>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                We sent verification instructions to {registeredEmail}. You can correct your email
-                by creating the account again with the right address.
-              </p>
-            </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {error && (
-                <motion.div
-                  initial={{ opacity: 0, y: -6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  role="alert"
-                  className="flex items-center gap-2.5 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive"
-                >
-                  <AlertCircle className="h-4 w-4 shrink-0" />
-                  <span>{error}</span>
-                </motion.div>
-              )}
+                <span>Authentication successful! Accessing mailbox...</span>
+              </motion.div>
+            )}
 
-              {success && !registering && (
-                <motion.div
-                  initial={{ opacity: 0, y: -6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  role="status"
-                  className="flex items-center gap-2.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-400"
-                >
-                  <CheckCircle2 className="h-4 w-4 shrink-0" />
-                  <span>Authentication successful! Accessing mailbox...</span>
-                </motion.div>
-              )}
-
-              {registering && (
-                <>
-                  <div>
-                    <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
-                      Full name
-                    </label>
-                    <input
-                      value={displayName}
-                      onChange={(e) => setDisplayName(e.target.value)}
-                      autoComplete="name"
-                      required
-                      className="glow-ring w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2.5 text-sm text-foreground"
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
-                      Email address
-                    </label>
-                    <div className="relative flex items-center">
-                      <Mail className="absolute left-3 h-4 w-4 text-muted-foreground" />
-                      <input
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        autoComplete="email"
-                        required
-                        className="glow-ring w-full rounded-lg border border-white/10 bg-white/[0.04] py-2.5 pl-9 pr-3 text-sm text-foreground"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
-                      Stealth username
-                    </label>
-                    <input
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value.toLowerCase())}
-                      autoComplete="username"
-                      required
-                      pattern="[a-z0-9_-]{3,30}"
-                      className="glow-ring w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2.5 text-sm text-foreground"
-                    />
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {username || "username"}@stealth.me
-                    </p>
-                  </div>
-                </>
-              )}
-              {!registering && (
+            {registering && (
+              <>
                 <div>
                   <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
-                    Email or Username
+                    Full name
+                  </label>
+                  <input
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    autoComplete="name"
+                    required
+                    className="glow-ring w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2.5 text-sm text-foreground"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                    Email address
                   </label>
                   <div className="relative flex items-center">
-                    <User className="absolute left-3 h-4 w-4 text-muted-foreground" />
+                    <Mail className="absolute left-3 h-4 w-4 text-muted-foreground" />
                     <input
-                      type="text"
-                      value={identifier}
-                      onChange={(e) => setIdentifier(e.target.value)}
-                      placeholder="alice@stealth.mail or alice_99"
-                      className="glow-ring w-full rounded-lg border border-white/10 bg-white/[0.04] py-2.5 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground/60 transition focus:bg-white/[0.08]"
-                      autoComplete="username"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      autoComplete="email"
                       required
+                      className="glow-ring w-full rounded-lg border border-white/10 bg-white/[0.04] py-2.5 pl-9 pr-3 text-sm text-foreground"
                     />
                   </div>
                 </div>
-              )}
-
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                    Stealth username
+                  </label>
+                  <input
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value.toLowerCase())}
+                    autoComplete="username"
+                    required
+                    pattern="[a-z0-9_-]{3,30}"
+                    className="glow-ring w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2.5 text-sm text-foreground"
+                  />
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {formatMailAddress(username || "username")}
+                  </p>
+                </div>
+              </>
+            )}
+            {!registering && (
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
-                  Password
+                  Email or Username
                 </label>
                 <div className="relative flex items-center">
-                  <Lock className="absolute left-3 h-4 w-4 text-muted-foreground" />
+                  <User className="absolute left-3 h-4 w-4 text-muted-foreground" />
                   <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••••••"
+                    type="text"
+                    value={identifier}
+                    onChange={(e) => setIdentifier(e.target.value)}
+                    placeholder={`${formatMailAddress("alice")} or alice_99`}
                     className="glow-ring w-full rounded-lg border border-white/10 bg-white/[0.04] py-2.5 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground/60 transition focus:bg-white/[0.08]"
-                    autoComplete="current-password"
+                    autoComplete="username"
                     required
                   />
                 </div>
               </div>
+            )}
 
-              {registering && (
-                <>
-                  <div>
-                    <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
-                      Confirm password
-                    </label>
-                    <input
-                      type="password"
-                      value={passwordConfirmation}
-                      onChange={(e) => setPasswordConfirmation(e.target.value)}
-                      autoComplete="new-password"
-                      required
-                      className="glow-ring w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2.5 text-sm text-foreground"
-                    />
-                  </div>
-                  <label className="flex items-start gap-2 text-xs text-muted-foreground">
-                    <input
-                      type="checkbox"
-                      checked={acceptedLegal}
-                      onChange={(e) => setAcceptedLegal(e.target.checked)}
-                      required
-                      className="mt-0.5"
-                    />
-                    I agree to the Terms and Privacy Policy.
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                Password
+              </label>
+              <div className="relative flex items-center">
+                <Lock className="absolute left-3 h-4 w-4 text-muted-foreground" />
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••••••"
+                  className="glow-ring w-full rounded-lg border border-white/10 bg-white/[0.04] py-2.5 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground/60 transition focus:bg-white/[0.08]"
+                  autoComplete="current-password"
+                  required
+                />
+              </div>
+            </div>
+
+            {registering && (
+              <>
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                    Confirm password
                   </label>
-                </>
-              )}
+                  <input
+                    type="password"
+                    value={passwordConfirmation}
+                    onChange={(e) => setPasswordConfirmation(e.target.value)}
+                    autoComplete="new-password"
+                    required
+                    className="glow-ring w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2.5 text-sm text-foreground"
+                  />
+                </div>
+                <label className="flex items-start gap-2 text-xs text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    checked={acceptedLegal}
+                    onChange={(e) => setAcceptedLegal(e.target.checked)}
+                    required
+                    className="mt-0.5"
+                  />
+                  I agree to the Terms and Privacy Policy.
+                </label>
+              </>
+            )}
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="glow-ring flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:opacity-50"
-              >
-                {loading ? (
-                  <span className="inline-flex items-center gap-2">
-                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
-                    {registering ? "Creating account..." : "Authenticating..."}
-                  </span>
-                ) : registering ? (
-                  "Create account"
-                ) : (
-                  "Sign In"
-                )}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setRegistering(!registering);
-                  setError(null);
-                  setSuccess(false);
-                }}
-                className="w-full text-center text-xs text-primary hover:underline"
-              >
-                {registering
-                  ? "Already have an account? Sign in"
-                  : "New to Stealth? Create an account"}
-              </button>
-            </form>
-          )}
+            <button
+              type="submit"
+              disabled={loading}
+              className="glow-ring flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:opacity-50"
+            >
+              {loading ? (
+                <span className="inline-flex items-center gap-2">
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
+                  {registering ? "Creating account..." : "Authenticating..."}
+                </span>
+              ) : registering ? (
+                "Create account"
+              ) : (
+                "Sign In"
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setRegistering(!registering);
+                setError(null);
+                setSuccess(false);
+              }}
+              className="w-full text-center text-xs text-primary hover:underline"
+            >
+              {registering
+                ? "Already have an account? Sign in"
+                : "New to Stealth? Create an account"}
+            </button>
+          </form>
         </motion.div>
       </div>
     </AnimatePresence>

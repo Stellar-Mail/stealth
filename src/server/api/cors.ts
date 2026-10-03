@@ -21,6 +21,15 @@ const DEFAULT_ALLOWED_HEADERS = [
   "X-Stealth-Address",
 ] as const;
 
+export const LOCAL_DEV_ORIGINS = [
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+  "http://localhost:8080",
+  "http://127.0.0.1:8080",
+] as const;
+
 function configuredList(value: string | undefined, fallback: readonly string[] = []): string[] {
   if (value === undefined) {
     return [...fallback];
@@ -54,12 +63,21 @@ export function validateCorsPolicy(policy: CorsPolicy) {
 export function corsPolicyFromEnv(
   env: Record<string, string | undefined> = process.env,
 ): CorsPolicy {
-  const isProduction = env.STEALTH_ENV === "production";
+  const isProduction =
+    env.STEALTH_ENV === "production" ||
+    (env.STEALTH_ENV === undefined && env.NODE_ENV === "production");
   const defaultOrigin = isProduction
-    ? "https://app.stealth.mail"
+    ? "https://app.betasmail.com"
     : (env.STEALTH_APP_URL ?? "http://localhost:3000");
   const policy: CorsPolicy = {
-    allowedOrigins: configuredList(env.STEALTH_CORS_ALLOWED_ORIGINS, [defaultOrigin]),
+    allowedOrigins: isProduction
+      ? [defaultOrigin]
+      : [
+          ...new Set([
+            ...configuredList(env.STEALTH_CORS_ALLOWED_ORIGINS, [defaultOrigin]),
+            ...LOCAL_DEV_ORIGINS,
+          ]),
+        ],
     allowedMethods: configuredList(env.STEALTH_CORS_ALLOWED_METHODS, DEFAULT_ALLOWED_METHODS),
     allowedHeaders: configuredList(env.STEALTH_CORS_ALLOWED_HEADERS, DEFAULT_ALLOWED_HEADERS),
     allowCredentials: env.STEALTH_CORS_ALLOW_CREDENTIALS?.toLowerCase() !== "false",

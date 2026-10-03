@@ -24,7 +24,7 @@ import type { MailboxFlagsPatch } from "@/lib/api";
 import { flagsPatchFromEmail } from "./live-mailbox";
 import { getEntry, removeEntry, patchEntry } from "@/services/storage/outbox";
 import { SendPipeline } from "@/features/compose/sendPipeline";
-import { authorizeSend } from "@/services/stellar/wallet";
+import { authorizeSendWithAccount } from "@/services/stellar/account-signer";
 
 import { sharedTypedApi as api } from "@/lib/api";
 
@@ -106,7 +106,7 @@ export function useMailActions(input: {
         () => {
           refreshOutbox?.();
         },
-        { signer: authorizeSend },
+        { signer: authorizeSendWithAccount },
       );
 
       try {

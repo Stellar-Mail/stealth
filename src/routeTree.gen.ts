@@ -16,7 +16,6 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as PolicyEditorRouteRouteImport } from './routes/policy-editor/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
-import { Route as AuthVerifyRouteImport } from './routes/auth/verify'
 import { Route as AuthSignUpRouteImport } from './routes/auth/sign-up'
 import { Route as AuthSignInRouteImport } from './routes/auth/sign-in'
 import { Route as AdminUsersRouteImport } from './routes/admin/users'
@@ -56,6 +55,7 @@ import { Route as ApiV1MailboxCountsRouteImport } from './routes/api/v1/mailbox/
 import { Route as ApiV1MailboxMessageIdRouteImport } from './routes/api/v1/mailbox/$messageId'
 import { Route as ApiV1LifecycleMessageIdRouteImport } from './routes/api/v1/lifecycle/$messageId'
 import { Route as ApiV1IdentityResolveRouteImport } from './routes/api/v1/identity/resolve'
+import { Route as ApiV1EnvelopesAuthorizeRouteImport } from './routes/api/v1/envelopes/authorize'
 import { Route as ApiV1DraftsDraftIdRouteImport } from './routes/api/v1/drafts/$draftId'
 import { Route as ApiV1DeliveryMessageIdRouteImport } from './routes/api/v1/delivery/$messageId'
 import { Route as ApiV1ContactsMergeRouteImport } from './routes/api/v1/contacts/merge'
@@ -173,11 +173,6 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AdminRoute,
-} as any)
-const AuthVerifyRoute = AuthVerifyRouteImport.update({
-  id: '/auth/verify',
-  path: '/auth/verify',
-  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthSignUpRoute = AuthSignUpRouteImport.update({
   id: '/auth/sign-up',
@@ -373,6 +368,11 @@ const ApiV1LifecycleMessageIdRoute = ApiV1LifecycleMessageIdRouteImport.update({
 const ApiV1IdentityResolveRoute = ApiV1IdentityResolveRouteImport.update({
   id: '/api/v1/identity/resolve',
   path: '/api/v1/identity/resolve',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1EnvelopesAuthorizeRoute = ApiV1EnvelopesAuthorizeRouteImport.update({
+  id: '/api/v1/envelopes/authorize',
+  path: '/api/v1/envelopes/authorize',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiV1DraftsDraftIdRoute = ApiV1DraftsDraftIdRouteImport.update({
@@ -839,7 +839,6 @@ export interface FileRoutesByFullPath {
   '/admin/users': typeof AdminUsersRoute
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
-  '/auth/verify': typeof AuthVerifyRoute
   '/admin/': typeof AdminIndexRoute
   '/api/v1/bootstrap': typeof ApiV1BootstrapRoute
   '/api/v1/federation': typeof ApiV1FederationRoute
@@ -870,6 +869,7 @@ export interface FileRoutesByFullPath {
   '/api/v1/contacts/merge': typeof ApiV1ContactsMergeRoute
   '/api/v1/delivery/$messageId': typeof ApiV1DeliveryMessageIdRoute
   '/api/v1/drafts/$draftId': typeof ApiV1DraftsDraftIdRoute
+  '/api/v1/envelopes/authorize': typeof ApiV1EnvelopesAuthorizeRoute
   '/api/v1/identity/resolve': typeof ApiV1IdentityResolveRoute
   '/api/v1/lifecycle/$messageId': typeof ApiV1LifecycleMessageIdRouteWithChildren
   '/api/v1/mailbox/$messageId': typeof ApiV1MailboxMessageIdRoute
@@ -969,7 +969,6 @@ export interface FileRoutesByTo {
   '/admin/users': typeof AdminUsersRoute
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
-  '/auth/verify': typeof AuthVerifyRoute
   '/admin': typeof AdminIndexRoute
   '/api/v1/bootstrap': typeof ApiV1BootstrapRoute
   '/api/v1/federation': typeof ApiV1FederationRoute
@@ -1000,6 +999,7 @@ export interface FileRoutesByTo {
   '/api/v1/contacts/merge': typeof ApiV1ContactsMergeRoute
   '/api/v1/delivery/$messageId': typeof ApiV1DeliveryMessageIdRoute
   '/api/v1/drafts/$draftId': typeof ApiV1DraftsDraftIdRoute
+  '/api/v1/envelopes/authorize': typeof ApiV1EnvelopesAuthorizeRoute
   '/api/v1/identity/resolve': typeof ApiV1IdentityResolveRoute
   '/api/v1/lifecycle/$messageId': typeof ApiV1LifecycleMessageIdRouteWithChildren
   '/api/v1/mailbox/$messageId': typeof ApiV1MailboxMessageIdRoute
@@ -1101,7 +1101,6 @@ export interface FileRoutesById {
   '/admin/users': typeof AdminUsersRoute
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
-  '/auth/verify': typeof AuthVerifyRoute
   '/admin/': typeof AdminIndexRoute
   '/api/v1/bootstrap': typeof ApiV1BootstrapRoute
   '/api/v1/federation': typeof ApiV1FederationRoute
@@ -1132,6 +1131,7 @@ export interface FileRoutesById {
   '/api/v1/contacts/merge': typeof ApiV1ContactsMergeRoute
   '/api/v1/delivery/$messageId': typeof ApiV1DeliveryMessageIdRoute
   '/api/v1/drafts/$draftId': typeof ApiV1DraftsDraftIdRoute
+  '/api/v1/envelopes/authorize': typeof ApiV1EnvelopesAuthorizeRoute
   '/api/v1/identity/resolve': typeof ApiV1IdentityResolveRoute
   '/api/v1/lifecycle/$messageId': typeof ApiV1LifecycleMessageIdRouteWithChildren
   '/api/v1/mailbox/$messageId': typeof ApiV1MailboxMessageIdRoute
@@ -1234,7 +1234,6 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/auth/sign-in'
     | '/auth/sign-up'
-    | '/auth/verify'
     | '/admin/'
     | '/api/v1/bootstrap'
     | '/api/v1/federation'
@@ -1265,6 +1264,7 @@ export interface FileRouteTypes {
     | '/api/v1/contacts/merge'
     | '/api/v1/delivery/$messageId'
     | '/api/v1/drafts/$draftId'
+    | '/api/v1/envelopes/authorize'
     | '/api/v1/identity/resolve'
     | '/api/v1/lifecycle/$messageId'
     | '/api/v1/mailbox/$messageId'
@@ -1364,7 +1364,6 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/auth/sign-in'
     | '/auth/sign-up'
-    | '/auth/verify'
     | '/admin'
     | '/api/v1/bootstrap'
     | '/api/v1/federation'
@@ -1395,6 +1394,7 @@ export interface FileRouteTypes {
     | '/api/v1/contacts/merge'
     | '/api/v1/delivery/$messageId'
     | '/api/v1/drafts/$draftId'
+    | '/api/v1/envelopes/authorize'
     | '/api/v1/identity/resolve'
     | '/api/v1/lifecycle/$messageId'
     | '/api/v1/mailbox/$messageId'
@@ -1495,7 +1495,6 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/auth/sign-in'
     | '/auth/sign-up'
-    | '/auth/verify'
     | '/admin/'
     | '/api/v1/bootstrap'
     | '/api/v1/federation'
@@ -1526,6 +1525,7 @@ export interface FileRouteTypes {
     | '/api/v1/contacts/merge'
     | '/api/v1/delivery/$messageId'
     | '/api/v1/drafts/$draftId'
+    | '/api/v1/envelopes/authorize'
     | '/api/v1/identity/resolve'
     | '/api/v1/lifecycle/$messageId'
     | '/api/v1/mailbox/$messageId'
@@ -1624,7 +1624,6 @@ export interface RootRouteChildren {
   OnboardingRoute: typeof OnboardingRoute
   AuthSignInRoute: typeof AuthSignInRoute
   AuthSignUpRoute: typeof AuthSignUpRoute
-  AuthVerifyRoute: typeof AuthVerifyRoute
   ApiV1BootstrapRoute: typeof ApiV1BootstrapRoute
   ApiV1FederationRoute: typeof ApiV1FederationRoute
   ApiV1HealthRoute: typeof ApiV1HealthRoute
@@ -1654,6 +1653,7 @@ export interface RootRouteChildren {
   ApiV1ContactsMergeRoute: typeof ApiV1ContactsMergeRoute
   ApiV1DeliveryMessageIdRoute: typeof ApiV1DeliveryMessageIdRoute
   ApiV1DraftsDraftIdRoute: typeof ApiV1DraftsDraftIdRoute
+  ApiV1EnvelopesAuthorizeRoute: typeof ApiV1EnvelopesAuthorizeRoute
   ApiV1IdentityResolveRoute: typeof ApiV1IdentityResolveRoute
   ApiV1LifecycleMessageIdRoute: typeof ApiV1LifecycleMessageIdRouteWithChildren
   ApiV1MailboxMessageIdRoute: typeof ApiV1MailboxMessageIdRoute
@@ -1778,13 +1778,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRoute
-    }
-    '/auth/verify': {
-      id: '/auth/verify'
-      path: '/auth/verify'
-      fullPath: '/auth/verify'
-      preLoaderRoute: typeof AuthVerifyRouteImport
-      parentRoute: typeof rootRouteImport
     }
     '/auth/sign-up': {
       id: '/auth/sign-up'
@@ -2057,6 +2050,13 @@ declare module '@tanstack/react-router' {
       path: '/api/v1/identity/resolve'
       fullPath: '/api/v1/identity/resolve'
       preLoaderRoute: typeof ApiV1IdentityResolveRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/envelopes/authorize': {
+      id: '/api/v1/envelopes/authorize'
+      path: '/api/v1/envelopes/authorize'
+      fullPath: '/api/v1/envelopes/authorize'
+      preLoaderRoute: typeof ApiV1EnvelopesAuthorizeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/drafts/$draftId': {
@@ -2773,7 +2773,6 @@ const rootRouteChildren: RootRouteChildren = {
   OnboardingRoute: OnboardingRoute,
   AuthSignInRoute: AuthSignInRoute,
   AuthSignUpRoute: AuthSignUpRoute,
-  AuthVerifyRoute: AuthVerifyRoute,
   ApiV1BootstrapRoute: ApiV1BootstrapRoute,
   ApiV1FederationRoute: ApiV1FederationRoute,
   ApiV1HealthRoute: ApiV1HealthRoute,
@@ -2803,6 +2802,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1ContactsMergeRoute: ApiV1ContactsMergeRoute,
   ApiV1DeliveryMessageIdRoute: ApiV1DeliveryMessageIdRoute,
   ApiV1DraftsDraftIdRoute: ApiV1DraftsDraftIdRoute,
+  ApiV1EnvelopesAuthorizeRoute: ApiV1EnvelopesAuthorizeRoute,
   ApiV1IdentityResolveRoute: ApiV1IdentityResolveRoute,
   ApiV1LifecycleMessageIdRoute: ApiV1LifecycleMessageIdRouteWithChildren,
   ApiV1MailboxMessageIdRoute: ApiV1MailboxMessageIdRoute,

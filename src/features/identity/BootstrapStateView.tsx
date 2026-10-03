@@ -66,7 +66,7 @@ export function BootstrapStateView() {
               Account ID: {data?.user.userId ?? "unknown"}
             </div>
             <Button variant="outline" className="w-full" asChild>
-              <a href="mailto:support@stealth.mail" target="_blank" rel="noreferrer">
+              <a href="mailto:support@betasmail.com" target="_blank" rel="noreferrer">
                 Contact support to appeal
               </a>
             </Button>

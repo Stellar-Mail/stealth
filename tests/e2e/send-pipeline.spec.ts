@@ -1,7 +1,7 @@
-import { test, expect, openDemoMailbox } from "./fixtures";
+import { test, expect, openDemoMailbox, mockAccountSigner } from "./fixtures";
 import { generateRecipientKeyPair } from "../../src/services/crypto/key-wrap";
 
-// Deterministic Stellar address for the injected demo wallet.
+// Deterministic address returned by the account-stamp endpoint.
 const DEMO_SIGNER = `G${"C".repeat(55)}`;
 const ALICE = `G${"B".repeat(55)}`;
 const BOB = `G${"D".repeat(55)}`;
@@ -56,20 +56,7 @@ test.beforeAll(async () => {
 
 test.describe("send pipeline", () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript((signer) => {
-      Object.defineProperty(window, "__freighterApi", {
-        configurable: true,
-        value: {
-          isConnected: () => Promise.resolve({ isConnected: true }),
-          requestAccess: () => Promise.resolve({ address: signer }),
-          signMessage: () =>
-            Promise.resolve({
-              signedMessage: "e2e-mock-signature",
-              signerAddress: signer,
-            }),
-        },
-      });
-    }, DEMO_SIGNER);
+    await mockAccountSigner(page, DEMO_SIGNER);
 
     await page.route("**/relays/**/diagnostics", (route) =>
       route.fulfill({

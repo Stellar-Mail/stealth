@@ -1,4 +1,5 @@
 import type { MailEvent } from "@/features/calendar";
+import { formatMailAddress } from "@/features/identity/mail-domain";
 
 export type MailFolder =
   | "all"
@@ -299,7 +300,7 @@ export const emails: Email[] = [
   {
     id: "4",
     from: "Kryputh",
-    email: "kryputh@stealth.me",
+    email: formatMailAddress("kryputh"),
     subject: "Investor update and postage policy",
     preview: "The paid-inbox model makes sense. Can you send over the sender-tier thresholds...",
     body: "The paid-inbox model makes sense.\n\nCan you send over the sender-tier thresholds and how postage refunds work for approved contacts? I want to understand what happens when a verified sender is whitelisted.",

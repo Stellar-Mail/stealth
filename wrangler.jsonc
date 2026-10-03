@@ -45,13 +45,14 @@
     "STEALTH_STELLAR_NETWORK": "testnet",
     "STEALTH_HORIZON_URL": "https://horizon-testnet.stellar.org",
     "STEALTH_SOROBAN_RPC_URL": "https://soroban-testnet.stellar.org",
-    "STEALTH_RELAY_URL": "https://relay-testnet.stealth.mail",
+    "STEALTH_RELAY_URL": "https://relay-testnet.betasmail.com",
     "STEALTH_APP_URL": "http://localhost:3000",
-    "STEALTH_CORS_ALLOWED_ORIGINS": "http://localhost:3000,http://localhost:5173",
+    "STEALTH_CORS_ALLOWED_ORIGINS": "http://localhost:3000,http://localhost:5173,http://localhost:8080,http://127.0.0.1:3000,http://127.0.0.1:5173,http://127.0.0.1:8080",
   },
   "env": {
     "preview": {
       "name": "stealth-mail-preview",
+      "routes": [{ "pattern": "app-preview.betasmail.com", "custom_domain": true }],
       "kv_namespaces": [
         {
           "binding": "STEALTH_KV",
@@ -94,13 +95,18 @@
         "STEALTH_STELLAR_NETWORK": "testnet",
         "STEALTH_HORIZON_URL": "https://horizon-testnet.stellar.org",
         "STEALTH_SOROBAN_RPC_URL": "https://soroban-testnet.stellar.org",
-        "STEALTH_RELAY_URL": "https://relay-preview.stealth.me",
-        "STEALTH_APP_URL": "https://app-preview.stealth.me",
-        "STEALTH_CORS_ALLOWED_ORIGINS": "https://app-preview.stealth.me",
+        "STEALTH_RELAY_URL": "https://relay-preview.betasmail.com",
+        "STEALTH_APP_URL": "https://app-preview.betasmail.com",
+        "STEALTH_CORS_ALLOWED_ORIGINS": "https://app-preview.betasmail.com",
       },
     },
     "production": {
       "name": "stealth-mail",
+      "routes": [
+        { "pattern": "betasmail.com", "custom_domain": true },
+        { "pattern": "www.betasmail.com", "custom_domain": true },
+        { "pattern": "app.betasmail.com", "custom_domain": true },
+      ],
       "kv_namespaces": [
         {
           "binding": "STEALTH_KV",
@@ -145,9 +151,9 @@
         "STEALTH_STELLAR_NETWORK": "testnet",
         "STEALTH_HORIZON_URL": "https://horizon-testnet.stellar.org",
         "STEALTH_SOROBAN_RPC_URL": "https://soroban-testnet.stellar.org",
-        "STEALTH_RELAY_URL": "https://relay.stealth.me",
-        "STEALTH_APP_URL": "https://app.stealth.me",
-        "STEALTH_CORS_ALLOWED_ORIGINS": "https://app.stealth.me",
+        "STEALTH_RELAY_URL": "https://relay.betasmail.com",
+        "STEALTH_APP_URL": "https://app.betasmail.com",
+        "STEALTH_CORS_ALLOWED_ORIGINS": "https://app.betasmail.com",
       },
     },
   },

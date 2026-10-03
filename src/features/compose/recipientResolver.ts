@@ -301,11 +301,8 @@ export function validateRecipientFormat(address: string): {
   }
 
   // Stealth email format (name@stealth.me, name@stealth.xyz, etc.)
-  if (
-    /^[a-z0-9._%+-]+@(stealth\.me|stealth\.xyz|stealth\.mail|stealth\.local|localhost)$/i.test(
-      trimmed,
-    )
-  ) {
+  const email = /^([a-z0-9._%+-]+)@([^@]+)$/i.exec(trimmed);
+  if (email && LOCAL_STEALTH_DOMAINS.has(email[2])) {
     return { valid: true };
   }
 

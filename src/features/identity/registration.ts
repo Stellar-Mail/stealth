@@ -44,7 +44,7 @@ export const registrationRequestSchema = z
   });
 
 export const registrationResponseSchema = z.object({
-  accountStatus: z.literal("pending_verification"),
+  accountStatus: z.literal("active"),
   email: emailSchema,
   maskedEmail: z.string(),
   username: usernameSchema,

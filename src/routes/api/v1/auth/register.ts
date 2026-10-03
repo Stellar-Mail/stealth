@@ -6,10 +6,6 @@ import { registerWithPassword } from "@/server/api/auth/registration-service";
 import { getApiContext } from "@/server/api/context";
 import { parseJsonBody } from "@/server/api/request";
 import { apiSuccess, handleApiRequest } from "@/server/api/response";
-import {
-  getVerificationDeliveryConfig,
-  getVerificationNotificationAdapter,
-} from "@/server/api/verification-delivery";
 import { loadRuntimeConfig } from "@/config";
 
 export const Route = createFileRoute("/api/v1/auth/register")({
@@ -28,8 +24,6 @@ export const Route = createFileRoute("/api/v1/auth/register")({
             acceptEncoding: request.headers.get("accept-encoding") ?? undefined,
             ipPrefix: ip.split(".").slice(0, 3).join("."),
           });
-          const delivery = await getVerificationDeliveryConfig();
-          const adapter = await getVerificationNotificationAdapter();
 
           // BETA-079: Load invite code configuration from runtime config
           const runtimeConfig = loadRuntimeConfig();
@@ -42,9 +36,6 @@ export const Route = createFileRoute("/api/v1/auth/register")({
             ip,
             fingerprint,
             {
-              appUrl: delivery.appUrl,
-              verificationPolicy: delivery.notifications.verification,
-              deliver: (message) => adapter.deliverVerificationEmail(message),
               inviteCodeRequired,
               validInviteCodes,
             },
