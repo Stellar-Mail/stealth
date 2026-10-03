@@ -34,6 +34,12 @@ Main is not releasable while the summary verdict is `fail` or `blocked`.
 
 Pinned versions: `scripts/ci/tool-versions.json`, `.node-version`, `rust-toolchain.toml`.
 
+Contract builds use Rust `1.98.0`, the compiler used by the passing build that
+produced the committed Wasm hashes. Keep `RUST_VERSION` in CI, the tool-version
+manifest, and `rust-toolchain.toml` in sync. A floating `stable` channel is not a
+reproducible compiler pin. Compiler upgrades require a reviewed rebuild and hash
+update; do not update expected hashes merely to silence an unexplained mismatch.
+
 If **Build reproducibility & drift** fails, regenerate and commit the drifted files:
 
 ```bash
