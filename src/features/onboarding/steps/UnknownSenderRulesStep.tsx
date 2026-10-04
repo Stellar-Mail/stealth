@@ -68,7 +68,7 @@ export function UnknownSenderRulesStep({ draft, onUpdate, onAdvance, onRetreat }
                 "active:scale-[0.99]",
                 isSelected
                   ? "border-emerald-400/30 bg-emerald-400/[0.06] ring-1 ring-emerald-400/30"
-                  : "border-white/10 bg-white/[0.025] hover:bg-white/[0.05]",
+                  : "border-surface-tint/10 bg-surface-tint/[0.025] hover:bg-surface-tint/[0.05]",
               )}
             >
               <div className="flex items-start justify-between gap-3">
@@ -80,8 +80,8 @@ export function UnknownSenderRulesStep({ draft, onUpdate, onAdvance, onRetreat }
                   className={cn(
                     "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium",
                     isSelected
-                      ? "bg-emerald-400/20 text-emerald-300"
-                      : "bg-white/[0.06] text-muted-foreground",
+                      ? "bg-emerald-400/20 text-status-success dark:text-emerald-300"
+                      : "bg-surface-tint/[0.06] text-muted-foreground",
                   )}
                 >
                   {policy.badge}
@@ -96,7 +96,7 @@ export function UnknownSenderRulesStep({ draft, onUpdate, onAdvance, onRetreat }
         <button
           type="button"
           onClick={onRetreat}
-          className="flex-1 rounded-xl border border-white/10 px-4 py-2.5 text-sm text-muted-foreground transition hover:bg-white/[0.04] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 active:scale-[0.99]"
+          className="flex-1 rounded-xl border border-surface-tint/10 px-4 py-2.5 text-sm text-muted-foreground transition hover:bg-surface-tint/[0.04] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-surface-tint/30 active:scale-[0.99]"
         >
           Back
         </button>

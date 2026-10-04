@@ -38,14 +38,14 @@ function formatLastDelivery(diagnostics: RelayDiagnosticsResponse) {
 function LoadingCard() {
   return (
     <Card
-      className="border-[#1e2430] bg-[#13161b] shadow-none"
+      className="border-border bg-surface-panel shadow-none"
       role="status"
       aria-label="Loading diagnostic metrics"
     >
       <div className="space-y-4 p-5">
-        <Skeleton className="h-3 w-32 bg-slate-800/80" />
-        <Skeleton className="h-8 w-40 bg-slate-800/80" />
-        <Skeleton className="h-1 w-full bg-slate-800/80" />
+        <Skeleton className="h-3 w-32 bg-secondary/80 dark:bg-slate-800/80" />
+        <Skeleton className="h-8 w-40 bg-secondary/80 dark:bg-slate-800/80" />
+        <Skeleton className="h-1 w-full bg-secondary/80 dark:bg-slate-800/80" />
       </div>
     </Card>
   );
@@ -58,7 +58,7 @@ function ErrorCard({ message }: { message?: string }) {
       role="alert"
       aria-live="assertive"
     >
-      <div className="p-5 text-sm text-rose-100">
+      <div className="p-5 text-sm text-status-danger dark:text-rose-100">
         {message ?? "Diagnostics unavailable — check your connection and try again"}
       </div>
     </Card>

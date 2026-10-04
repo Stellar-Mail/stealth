@@ -24,10 +24,8 @@ export function TemplateCard({ template, onSelect, isSelected = false }: Templat
   return (
     <article
       aria-labelledby={`template-${template.id}-name`}
-      className={`rounded-lg border bg-white p-4 shadow-sm transition-colors ${
-        isSelected
-          ? "border-slate-950 bg-slate-50"
-          : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
+      className={`rounded-lg border bg-card p-4 shadow-sm transition-colors ${
+        isSelected ? "border-border bg-muted" : "border-border hover:border-border hover:bg-muted"
       } ${onSelect ? "cursor-pointer" : ""}`}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
@@ -38,7 +36,7 @@ export function TemplateCard({ template, onSelect, isSelected = false }: Templat
         <div
           aria-hidden="true"
           className={`flex size-10 shrink-0 items-center justify-center rounded-md ${
-            isSelected ? "bg-slate-950 text-white" : "bg-slate-100 text-slate-700"
+            isSelected ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"
           }`}
         >
           <FileText className="size-5" />
@@ -58,13 +56,13 @@ export function TemplateCard({ template, onSelect, isSelected = false }: Templat
               </div>
             )}
           </div>
-          <p className="mt-2 text-sm text-slate-600 line-clamp-2">{template.subject}</p>
+          <p className="mt-2 text-sm text-muted-foreground line-clamp-2">{template.subject}</p>
           {template.variables.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-1.5">
-              <span className="text-xs font-medium text-slate-500">Variables:</span>
+              <span className="text-xs font-medium text-muted-foreground">Variables:</span>
               {template.variables.map((variable) => (
                 <span
-                  className="rounded bg-slate-100 px-2 py-0.5 text-xs font-mono text-slate-700"
+                  className="rounded bg-muted px-2 py-0.5 text-xs font-mono text-foreground"
                   key={variable.key}
                 >
                   {variable.key}

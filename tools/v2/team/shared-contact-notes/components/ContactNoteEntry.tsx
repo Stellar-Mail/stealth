@@ -17,15 +17,15 @@ export function ContactNoteEntry({ note, onEdit, onArchive, onDelete }: ContactN
     <article
       className={`flex items-start gap-4 p-4 rounded-lg border transition-colors ${
         isArchived
-          ? "bg-slate-50 border-slate-200 opacity-75"
-          : "bg-white border-slate-200 hover:border-slate-300"
+          ? "bg-muted border-border opacity-75"
+          : "bg-card border-border hover:border-border"
       }`}
       aria-label={`Note: ${note.content.slice(0, 60)}${note.content.length > 60 ? "..." : ""}`}
     >
-      <FileText className="h-5 w-5 text-slate-400 mt-1 flex-shrink-0" aria-hidden="true" />
+      <FileText className="h-5 w-5 text-muted-foreground mt-1 flex-shrink-0" aria-hidden="true" />
       <div className="flex-1 min-w-0">
-        <p className="text-sm text-slate-900 break-words leading-relaxed">{note.content}</p>
-        <div className="flex flex-wrap gap-3 mt-2 text-xs text-slate-500 items-center">
+        <p className="text-sm text-foreground break-words leading-relaxed">{note.content}</p>
+        <div className="flex flex-wrap gap-3 mt-2 text-xs text-muted-foreground items-center">
           <span className="inline-flex items-center gap-1">
             <User className="h-3 w-3" aria-hidden="true" />
             {note.authorId}
@@ -41,7 +41,7 @@ export function ContactNoteEntry({ note, onEdit, onArchive, onDelete }: ContactN
             </time>
           </span>
           {isArchived && (
-            <Badge variant="outline" className="text-slate-500 text-[10px]">
+            <Badge variant="outline" className="text-muted-foreground text-[10px]">
               Archived
             </Badge>
           )}
@@ -53,7 +53,7 @@ export function ContactNoteEntry({ note, onEdit, onArchive, onDelete }: ContactN
             variant="ghost"
             size="sm"
             onClick={() => onEdit(note)}
-            className="text-slate-400 hover:text-blue-600 h-8 w-8 p-0"
+            className="text-muted-foreground hover:text-blue-600 h-8 w-8 p-0"
             aria-label={`Edit note`}
           >
             <Edit2 className="h-3.5 w-3.5" />
@@ -64,7 +64,7 @@ export function ContactNoteEntry({ note, onEdit, onArchive, onDelete }: ContactN
             variant="ghost"
             size="sm"
             onClick={() => onArchive(note.id)}
-            className="text-slate-400 hover:text-amber-600 h-8 w-8 p-0"
+            className="text-muted-foreground hover:text-amber-600 h-8 w-8 p-0"
             aria-label={`Archive note`}
           >
             <Archive className="h-3.5 w-3.5" />
@@ -74,7 +74,7 @@ export function ContactNoteEntry({ note, onEdit, onArchive, onDelete }: ContactN
           variant="ghost"
           size="sm"
           onClick={() => onDelete(note.id)}
-          className="text-slate-400 hover:text-red-600 h-8 w-8 p-0"
+          className="text-muted-foreground hover:text-red-600 h-8 w-8 p-0"
           aria-label={`Delete note`}
         >
           <Trash2 className="h-3.5 w-3.5" />

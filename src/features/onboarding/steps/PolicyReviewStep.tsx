@@ -19,7 +19,7 @@ const RULE_LABELS: Record<string, string> = {
 
 function ReviewRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between py-2.5 border-b border-white/5 last:border-0">
+    <div className="flex items-center justify-between py-2.5 border-b border-surface-tint/5 last:border-0">
       <span className="text-xs text-muted-foreground">{label}</span>
       <span className="text-xs font-medium text-foreground">{value}</span>
     </div>
@@ -54,7 +54,7 @@ export function PolicyReviewStep({
         </p>
       </div>
 
-      <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 divide-y divide-white/5">
+      <div className="rounded-xl border border-surface-tint/10 bg-surface-tint/[0.03] px-4 divide-y divide-surface-tint/5">
         <ReviewRow label="Display name" value={draft.displayName || "—"} />
         <ReviewRow label="Mailbox address" value={short} />
         <ReviewRow label="Unknown senders" value={RULE_LABELS[draft.unknownSenderRule] ?? "—"} />
@@ -67,9 +67,9 @@ export function PolicyReviewStep({
           role="alert"
           className="flex items-start gap-2 rounded-xl border border-red-400/20 bg-red-400/[0.06] p-4"
         >
-          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-400" />
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-status-danger dark:text-red-400" />
           <div className="space-y-1">
-            <p className="text-sm text-red-300">{submitError}</p>
+            <p className="text-sm text-status-danger dark:text-red-300">{submitError}</p>
             <p className="text-xs text-muted-foreground">
               Your settings are saved. Try activating again.
             </p>
@@ -77,8 +77,8 @@ export function PolicyReviewStep({
         </div>
       )}
 
-      <div className="flex items-start gap-2 rounded-xl border border-white/10 bg-white/[0.02] p-3">
-        <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-400" />
+      <div className="flex items-start gap-2 rounded-xl border border-surface-tint/10 bg-surface-tint/[0.02] p-3">
+        <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-status-success dark:text-emerald-400" />
         <p className="text-xs text-muted-foreground">
           Activating writes your policy to the Stealth server. No on-chain transaction fee is
           charged at this point.
@@ -91,8 +91,8 @@ export function PolicyReviewStep({
           onClick={onRetreat}
           disabled={isSubmitting}
           className={cn(
-            "flex-1 rounded-xl border border-white/10 px-4 py-2.5 text-sm text-muted-foreground transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 active:scale-[0.99]",
-            isSubmitting ? "opacity-40" : "hover:bg-white/[0.04] hover:text-foreground",
+            "flex-1 rounded-xl border border-surface-tint/10 px-4 py-2.5 text-sm text-muted-foreground transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-surface-tint/30 active:scale-[0.99]",
+            isSubmitting ? "opacity-40" : "hover:bg-surface-tint/[0.04] hover:text-foreground",
           )}
         >
           Back
@@ -105,7 +105,7 @@ export function PolicyReviewStep({
           className={cn(
             "flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60 active:scale-[0.99]",
             isSubmitting
-              ? "cursor-not-allowed bg-white/10 text-muted-foreground"
+              ? "cursor-not-allowed bg-surface-tint/10 text-muted-foreground"
               : "bg-foreground text-background hover:opacity-90",
           )}
         >

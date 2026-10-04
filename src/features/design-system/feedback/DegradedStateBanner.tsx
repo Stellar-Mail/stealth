@@ -27,8 +27,8 @@ export function DegradedStateBanner({
       aria-live="assertive"
       className={cn(
         compact
-          ? "mx-3 mb-2 flex flex-wrap items-center gap-2 rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs text-amber-50"
-          : "mx-3 mt-2 flex flex-wrap items-center gap-3 rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2.5 text-sm text-amber-50",
+          ? "mx-3 mb-2 flex flex-wrap items-center gap-2 rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs text-status-warning dark:text-amber-50"
+          : "mx-3 mt-2 flex flex-wrap items-center gap-3 rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2.5 text-sm text-status-warning dark:text-amber-50",
         className,
       )}
     >
@@ -39,7 +39,7 @@ export function DegradedStateBanner({
       )}
       <p className="min-w-0 flex-1">{failure.message}</p>
       {failure.preservedWork ? (
-        <span className="rounded-full border border-white/10 px-2 py-0.5 text-[10px] uppercase tracking-[0.14em] text-amber-100/80">
+        <span className="rounded-full border border-surface-tint/10 px-2 py-0.5 text-[10px] uppercase tracking-[0.14em] text-status-warning dark:text-amber-100/80">
           Work kept
         </span>
       ) : null}

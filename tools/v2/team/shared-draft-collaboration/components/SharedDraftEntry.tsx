@@ -35,17 +35,17 @@ export const SharedDraftEntry: React.FC<SharedDraftEntryProps> = ({
 }) => {
   return (
     <div
-      className={`flex items-start gap-4 p-4 bg-white rounded-lg border transition-colors cursor-pointer focus-within:ring-2 focus-within:ring-blue-500 ${
-        isActive ? "border-blue-300 bg-blue-50" : "border-slate-200 hover:border-slate-300"
+      className={`flex items-start gap-4 p-4 bg-card rounded-lg border transition-colors cursor-pointer focus-within:ring-2 focus-within:ring-blue-500 ${
+        isActive ? "border-blue-300 bg-blue-50" : "border-border hover:border-border"
       }`}
       role="article"
       aria-label={`Draft: ${title}`}
     >
-      <FileText className="h-5 w-5 text-slate-400 mt-1 flex-shrink-0" aria-hidden="true" />
+      <FileText className="h-5 w-5 text-muted-foreground mt-1 flex-shrink-0" aria-hidden="true" />
       <div className="flex-1 min-w-0">
-        <h3 className="font-medium text-slate-900 break-words">{title}</h3>
-        {subject && <p className="text-sm text-slate-600 break-words">{subject}</p>}
-        <div className="flex flex-wrap gap-3 mt-3 text-xs text-slate-500">
+        <h3 className="font-medium text-foreground break-words">{title}</h3>
+        {subject && <p className="text-sm text-muted-foreground break-words">{subject}</p>}
+        <div className="flex flex-wrap gap-3 mt-3 text-xs text-muted-foreground">
           <span className="inline-flex items-center gap-1">
             <Clock className="h-3 w-3" aria-hidden="true" />
             {new Date(lastModified).toLocaleDateString()}{" "}
@@ -66,7 +66,7 @@ export const SharedDraftEntry: React.FC<SharedDraftEntryProps> = ({
         variant="ghost"
         size="sm"
         onClick={() => onEdit(id)}
-        className="text-slate-400 hover:text-blue-600 flex-shrink-0"
+        className="text-muted-foreground hover:text-blue-600 flex-shrink-0"
         aria-label={`Edit draft: ${title}`}
       >
         <Edit2 className="h-4 w-4" />

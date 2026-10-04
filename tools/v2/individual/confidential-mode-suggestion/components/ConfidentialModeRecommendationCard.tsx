@@ -33,7 +33,7 @@ export function ConfidentialModeRecommendationCard({
   const Icon = config.icon;
 
   return (
-    <article className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+    <article className="rounded-lg border border-border bg-card p-4 shadow-sm">
       <div className="flex items-start gap-3">
         <div
           aria-hidden="true"
@@ -44,16 +44,16 @@ export function ConfidentialModeRecommendationCard({
 
         <div className="flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h3 className="font-semibold text-slate-900">{suggestion.title}</h3>
+            <h3 className="font-semibold text-foreground">{suggestion.title}</h3>
 
             <span className={`rounded border px-2 py-1 text-xs font-medium ${config.badge}`}>
               {suggestion.severity}
             </span>
           </div>
 
-          <p className="mt-2 text-sm leading-6 text-slate-600">{suggestion.description}</p>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">{suggestion.description}</p>
 
-          <p className="mt-2 text-xs uppercase tracking-wide text-slate-500">
+          <p className="mt-2 text-xs uppercase tracking-wide text-muted-foreground">
             {suggestion.category}
           </p>
         </div>

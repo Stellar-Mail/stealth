@@ -6,10 +6,10 @@ import { cn } from "@/lib/utils";
 import type { FeedbackItem, FeedbackTone } from "./use-feedback";
 
 const toneStyles: Record<FeedbackTone, string> = {
-  neutral: "border-white/10 text-foreground",
-  success: "border-emerald-300/20 text-emerald-100",
-  warning: "border-amber-300/20 text-amber-100",
-  danger: "border-red-300/20 text-red-100",
+  neutral: "border-surface-tint/10 text-foreground",
+  success: "border-emerald-300/20 text-status-success dark:text-emerald-100",
+  warning: "border-amber-300/20 text-status-warning dark:text-amber-100",
+  danger: "border-red-300/20 text-status-danger dark:text-red-100",
 };
 
 const toneIcons: Record<FeedbackTone, typeof Info> = {
@@ -60,7 +60,7 @@ export function FeedbackViewport({ items, onDismiss }: FeedbackViewportProps) {
                 type="button"
                 aria-label="Dismiss notification"
                 onClick={() => onDismiss(item.id)}
-                className="glow-ring rounded-lg p-1 text-muted-foreground transition hover:bg-white/[0.07] hover:text-foreground"
+                className="glow-ring rounded-lg p-1 text-muted-foreground transition hover:bg-surface-tint/[0.07] hover:text-foreground"
               >
                 <X aria-hidden className="size-4" />
               </button>

@@ -16,22 +16,26 @@ export function AgentList({ agents, threads, onStatusChange }: AgentListProps) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-zinc-300 uppercase tracking-wider">
+        <h3 className="text-sm font-semibold text-status-neutral uppercase tracking-wider">
           Team Collaborators ({agents.length})
         </h3>
-        <span className="text-[10px] text-zinc-500" aria-hidden="true">
+        <span className="text-[10px] text-muted-foreground" aria-hidden="true">
           Click status to toggle availability
         </span>
       </div>
 
       {agents.length === 0 ? (
         <div
-          className="text-center py-8 border border-dashed border-zinc-800 rounded-xl bg-zinc-900/5"
+          className="text-center py-8 border border-dashed border-border rounded-xl bg-surface-panel/5"
           role="status"
           aria-live="polite"
         >
-          <p className="text-xs text-zinc-400 font-medium">No agents found in the roster.</p>
-          <p className="text-[10px] text-zinc-500 mt-1">Check team assignments or refresh data.</p>
+          <p className="text-xs text-muted-foreground font-medium">
+            No agents found in the roster.
+          </p>
+          <p className="text-[10px] text-muted-foreground mt-1">
+            Check team assignments or refresh data.
+          </p>
         </div>
       ) : (
         <div
@@ -46,19 +50,19 @@ export function AgentList({ agents, threads, onStatusChange }: AgentListProps) {
               <div
                 key={agent.id}
                 role="listitem"
-                className="p-4 rounded-xl border border-zinc-800/80 bg-zinc-900/30 hover:bg-zinc-900/50 hover:border-zinc-700/80 transition-all duration-200 group flex flex-col justify-between"
+                className="p-4 rounded-xl border border-border/80 bg-surface-panel/30 hover:bg-surface-panel/50 hover:border-border/80 transition-all duration-200 group flex flex-col justify-between"
               >
                 <div>
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-zinc-800/80 border border-zinc-700/50 flex items-center justify-center text-xl shadow-inner group-hover:scale-105 transition-transform duration-200">
+                      <div className="w-10 h-10 rounded-full bg-surface-panel/80 border border-border/50 flex items-center justify-center text-xl shadow-inner group-hover:scale-105 transition-transform duration-200">
                         {agent.avatar}
                       </div>
                       <div>
-                        <h4 className="text-sm font-semibold text-zinc-100 group-hover:text-sky-400 transition-colors duration-200">
+                        <h4 className="text-sm font-semibold text-status-neutral group-hover:text-status-info transition-colors duration-200">
                           {agent.name}
                         </h4>
-                        <p className="text-xs text-zinc-400">{agent.role}</p>
+                        <p className="text-xs text-muted-foreground">{agent.role}</p>
                       </div>
                     </div>
 
@@ -69,21 +73,21 @@ export function AgentList({ agents, threads, onStatusChange }: AgentListProps) {
                       onChange={(e) =>
                         onStatusChange(agent.id, e.target.value as "active" | "busy" | "offline")
                       }
-                      className={`text-[11px] font-semibold px-2 py-0.5 rounded border outline-none focus:ring-2 focus:ring-sky-500 cursor-pointer bg-zinc-950 transition-all ${
+                      className={`text-[11px] font-semibold px-2 py-0.5 rounded border outline-none focus:ring-2 focus:ring-sky-500 cursor-pointer bg-surface-panel transition-all ${
                         agent.status === "active"
-                          ? "text-emerald-400 border-emerald-500/30 bg-emerald-500/5 hover:bg-emerald-500/10"
+                          ? "text-status-success border-emerald-500/30 bg-emerald-500/5 hover:bg-emerald-500/10"
                           : agent.status === "busy"
-                            ? "text-amber-400 border-amber-500/30 bg-amber-500/5 hover:bg-amber-500/10"
-                            : "text-zinc-400 border-zinc-700 bg-zinc-800/20 hover:bg-zinc-800/40"
+                            ? "text-status-warning border-amber-500/30 bg-amber-500/5 hover:bg-amber-500/10"
+                            : "text-muted-foreground border-border bg-surface-panel/20 hover:bg-surface-panel/40"
                       }`}
                     >
-                      <option value="active" className="text-emerald-400 bg-zinc-950">
+                      <option value="active" className="text-status-success bg-surface-panel">
                         ● Active
                       </option>
-                      <option value="busy" className="text-amber-400 bg-zinc-950">
+                      <option value="busy" className="text-status-warning bg-surface-panel">
                         ● Busy
                       </option>
-                      <option value="offline" className="text-zinc-400 bg-zinc-950">
+                      <option value="offline" className="text-muted-foreground bg-surface-panel">
                         ○ Offline
                       </option>
                     </select>
@@ -94,7 +98,7 @@ export function AgentList({ agents, threads, onStatusChange }: AgentListProps) {
                     {agent.specialties.map((spec) => (
                       <span
                         key={spec}
-                        className="px-2 py-0.5 text-[9px] font-medium rounded-full bg-zinc-800/40 text-zinc-400 border border-zinc-800/80 uppercase tracking-wider"
+                        className="px-2 py-0.5 text-[9px] font-medium rounded-full bg-surface-panel/40 text-muted-foreground border border-border/80 uppercase tracking-wider"
                       >
                         {spec}
                       </span>
@@ -103,16 +107,16 @@ export function AgentList({ agents, threads, onStatusChange }: AgentListProps) {
                 </div>
 
                 {/* Workload and assigned tasks */}
-                <div className="mt-4 pt-3 border-t border-zinc-800/60 flex flex-col gap-2">
+                <div className="mt-4 pt-3 border-t border-border/60 flex flex-col gap-2">
                   <div className="flex justify-between items-center text-xs">
-                    <span className="text-zinc-500">Active Workload</span>
+                    <span className="text-muted-foreground">Active Workload</span>
                     <span
                       className={`font-mono font-semibold px-1.5 py-0.5 rounded ${
                         agent.workload > 2
-                          ? "bg-rose-500/10 text-rose-400 border border-rose-500/20"
+                          ? "bg-rose-500/10 text-status-danger border border-rose-500/20"
                           : agent.workload > 0
-                            ? "bg-sky-500/10 text-sky-400 border border-sky-500/20"
-                            : "bg-zinc-800 text-zinc-500"
+                            ? "bg-sky-500/10 text-status-info border border-sky-500/20"
+                            : "bg-surface-panel text-muted-foreground"
                       }`}
                     >
                       {agent.workload} {agent.workload === 1 ? "thread" : "threads"}
@@ -122,22 +126,24 @@ export function AgentList({ agents, threads, onStatusChange }: AgentListProps) {
                   {/* mini thread indicators */}
                   {assigned.length > 0 && (
                     <div className="space-y-1">
-                      <p className="text-[10px] text-zinc-500 uppercase tracking-wide">Assigned:</p>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wide">
+                        Assigned:
+                      </p>
                       <div className="max-h-20 overflow-y-auto space-y-1 pr-1 scrollbar-thin">
                         {assigned.map((t) => (
                           <div
                             key={t.id}
-                            className="px-2 py-1 text-[10px] rounded bg-zinc-950/40 border border-zinc-800/50 flex justify-between items-center text-zinc-300 truncate"
+                            className="px-2 py-1 text-[10px] rounded bg-surface-panel/40 border border-border/50 flex justify-between items-center text-status-neutral truncate"
                             title={t.subject}
                           >
                             <span className="truncate flex-1 font-medium">{t.subject}</span>
                             <span
                               className={`text-[8px] px-1 rounded ml-1 font-mono uppercase ${
                                 t.priority === "high"
-                                  ? "bg-rose-950 text-rose-400"
+                                  ? "bg-rose-950 text-status-danger"
                                   : t.priority === "medium"
-                                    ? "bg-amber-950 text-amber-400"
-                                    : "bg-zinc-800 text-zinc-400"
+                                    ? "bg-amber-950 text-status-warning"
+                                    : "bg-surface-panel text-muted-foreground"
                               }`}
                             >
                               {t.priority}

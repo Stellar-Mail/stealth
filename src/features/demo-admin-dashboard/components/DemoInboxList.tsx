@@ -131,7 +131,7 @@ function DemoMessageRow({ message, onSelect, index }: DemoMessageRowProps) {
 
                 {/* Trust Badge */}
                 {message.sender.isTrusted && (
-                  <Shield className="h-3 w-3 text-green-500 flex-shrink-0" />
+                  <Shield className="h-3 w-3 text-status-success dark:text-green-500 flex-shrink-0" />
                 )}
 
                 {/* Proof Status */}
@@ -140,7 +140,9 @@ function DemoMessageRow({ message, onSelect, index }: DemoMessageRowProps) {
 
               <div className="flex items-center space-x-1 flex-shrink-0">
                 <span className="text-xs text-muted-foreground">{relativeTime}</span>
-                {message.isStarred && <Star className="h-3 w-3 text-yellow-500 fill-current" />}
+                {message.isStarred && (
+                  <Star className="h-3 w-3 text-status-warning dark:text-yellow-500 fill-current" />
+                )}
               </div>
             </div>
 
@@ -213,11 +215,11 @@ interface ProofStatusIconProps {
 function ProofStatusIcon({ status }: ProofStatusIconProps) {
   switch (status) {
     case "verified":
-      return <CheckCircle2 className="h-3 w-3 text-green-500" />;
+      return <CheckCircle2 className="h-3 w-3 text-status-success dark:text-green-500" />;
     case "pending":
-      return <Clock className="h-3 w-3 text-yellow-500" />;
+      return <Clock className="h-3 w-3 text-status-warning dark:text-yellow-500" />;
     case "failed":
-      return <AlertCircle className="h-3 w-3 text-red-500" />;
+      return <AlertCircle className="h-3 w-3 text-status-danger dark:text-red-500" />;
     default:
       return null;
   }

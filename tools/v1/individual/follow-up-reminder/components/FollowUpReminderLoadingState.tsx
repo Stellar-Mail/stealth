@@ -13,7 +13,9 @@ export const FollowUpReminderLoadingState: React.FC = () => {
         role="presentation"
       />
       <span className="text-indigo-600 font-medium">Analyzing email content...</span>
-      <p className="text-sm text-gray-500 mt-2">Scanning for follow-up requests and due dates.</p>
+      <p className="text-sm text-muted-foreground mt-2">
+        Scanning for follow-up requests and due dates.
+      </p>
     </div>
   );
 };

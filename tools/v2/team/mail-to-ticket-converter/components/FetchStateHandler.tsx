@@ -46,7 +46,7 @@ export function FetchStateHandler<T>({
           className="flex flex-col items-center gap-3 rounded-lg border border-red-500/30 bg-red-900/10 p-6"
           role="alert"
         >
-          <p className="text-sm text-red-400">
+          <p className="text-sm text-status-danger">
             {errorMessage} {state.message}
           </p>
           <button

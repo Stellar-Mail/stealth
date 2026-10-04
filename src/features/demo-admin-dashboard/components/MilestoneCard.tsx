@@ -33,8 +33,8 @@ export function MilestoneCard({ milestone, isOverdue }: MilestoneCardProps) {
   return (
     <div
       className={cn(
-        "rounded-xl border bg-white/[0.02] p-4 space-y-3 transition-colors",
-        isOverdue ? "border-rose-500/40 bg-rose-500/5" : "border-white/[0.08]",
+        "rounded-xl border bg-surface-tint/[0.02] p-4 space-y-3 transition-colors",
+        isOverdue ? "border-rose-500/40 bg-rose-500/5" : "border-surface-tint/[0.08]",
       )}
     >
       <div className="flex items-start justify-between gap-2">
@@ -60,7 +60,9 @@ export function MilestoneCard({ milestone, isOverdue }: MilestoneCardProps) {
             {statusToken.label}
           </span>
         </div>
-        {isOverdue && <AlertTriangle className="h-3.5 w-3.5 text-rose-400 shrink-0 mt-0.5" />}
+        {isOverdue && (
+          <AlertTriangle className="h-3.5 w-3.5 text-status-danger dark:text-rose-400 shrink-0 mt-0.5" />
+        )}
       </div>
 
       <div>
@@ -69,14 +71,14 @@ export function MilestoneCard({ milestone, isOverdue }: MilestoneCardProps) {
           Due {formatLocalDate(milestone.dueAt)}
         </p>
         {milestone.resolvedAt && (
-          <p className="mt-0.5 text-[11px] text-emerald-400 tabular-nums">
+          <p className="mt-0.5 text-[11px] text-status-success dark:text-emerald-400 tabular-nums">
             Resolved {formatLocalDate(milestone.resolvedAt)}
           </p>
         )}
       </div>
 
       {milestone.note && (
-        <p className="text-[11px] text-muted-foreground leading-relaxed border-t border-white/[0.05] pt-2">
+        <p className="text-[11px] text-muted-foreground leading-relaxed border-t border-surface-tint/[0.05] pt-2">
           {milestone.note}
         </p>
       )}

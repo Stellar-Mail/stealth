@@ -76,7 +76,7 @@ export function MinimumPostageStep({ draft, onUpdate, onAdvance, onRetreat }: Pr
                 "active:scale-[0.99]",
                 isSelected
                   ? "border-emerald-400/30 bg-emerald-400/[0.06] ring-1 ring-emerald-400/30"
-                  : "border-white/10 bg-white/[0.025] hover:bg-white/[0.05]",
+                  : "border-surface-tint/10 bg-surface-tint/[0.025] hover:bg-surface-tint/[0.05]",
               )}
             >
               <span className="block text-sm font-medium text-foreground">{preset.label}</span>
@@ -90,7 +90,7 @@ export function MinimumPostageStep({ draft, onUpdate, onAdvance, onRetreat }: Pr
         <button
           type="button"
           onClick={() => setCustom(true)}
-          className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground transition rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+          className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground transition rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-surface-tint/30"
         >
           Enter custom amount
         </button>
@@ -98,8 +98,10 @@ export function MinimumPostageStep({ draft, onUpdate, onAdvance, onRetreat }: Pr
           <div className="space-y-1">
             <div
               className={cn(
-                "flex items-center rounded-xl border bg-white/[0.04] px-3 transition",
-                inputError ? "border-red-400/40" : "border-white/10 focus-within:border-white/20",
+                "flex items-center rounded-xl border bg-surface-tint/[0.04] px-3 transition",
+                inputError
+                  ? "border-red-400/40"
+                  : "border-surface-tint/10 focus-within:border-surface-tint/20",
               )}
             >
               <input
@@ -112,12 +114,14 @@ export function MinimumPostageStep({ draft, onUpdate, onAdvance, onRetreat }: Pr
               />
               <span className="shrink-0 text-xs text-muted-foreground">XLM</span>
             </div>
-            {inputError && <p className="text-xs text-red-400">{inputError}</p>}
+            {inputError && (
+              <p className="text-xs text-status-danger dark:text-red-400">{inputError}</p>
+            )}
           </div>
         )}
       </div>
 
-      <div className="flex items-start gap-2 rounded-xl border border-white/10 bg-white/[0.02] p-3">
+      <div className="flex items-start gap-2 rounded-xl border border-surface-tint/10 bg-surface-tint/[0.02] p-3">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
         <p className="text-xs text-muted-foreground">
           You can change the minimum at any time from Settings. The policy update takes effect
@@ -129,7 +133,7 @@ export function MinimumPostageStep({ draft, onUpdate, onAdvance, onRetreat }: Pr
         <button
           type="button"
           onClick={onRetreat}
-          className="flex-1 rounded-xl border border-white/10 px-4 py-2.5 text-sm text-muted-foreground transition hover:bg-white/[0.04] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 active:scale-[0.99]"
+          className="flex-1 rounded-xl border border-surface-tint/10 px-4 py-2.5 text-sm text-muted-foreground transition hover:bg-surface-tint/[0.04] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-surface-tint/30 active:scale-[0.99]"
         >
           Back
         </button>
@@ -141,7 +145,7 @@ export function MinimumPostageStep({ draft, onUpdate, onAdvance, onRetreat }: Pr
             "flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60 active:scale-[0.99]",
             canAdvance
               ? "bg-foreground text-background hover:opacity-90"
-              : "cursor-not-allowed bg-white/10 text-muted-foreground",
+              : "cursor-not-allowed bg-surface-tint/10 text-muted-foreground",
           )}
         >
           Continue

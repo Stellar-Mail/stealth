@@ -1,5 +1,5 @@
 .idd-shell {
-  color: #172033;
+  color: var(--foreground);
   display: grid;
   gap: 1rem;
   max-width: 760px;
@@ -30,7 +30,7 @@
 
 .idd-kicker,
 .idd-state-label {
-  color: #58627a;
+  color: var(--muted-foreground);
   font-size: 0.78rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -46,16 +46,16 @@
 }
 
 .idd-badge {
-  background: #e7f2ec;
-  color: #12633f;
+  background: var(--secondary);
+  color: var(--status-success);
 }
 
 .idd-controls,
 .idd-panel {
-  background: #ffffff;
-  border: 1px solid #d9dfeb;
+  background: var(--card);
+  border: 1px solid var(--border);
   border-radius: 8px;
-  box-shadow: 0 10px 30px rgb(20 32 50 / 8%);
+  box-shadow: var(--shadow-elegant);
   padding: 1rem;
 }
 
@@ -66,13 +66,13 @@
 
 .idd-help,
 .idd-panel p {
-  color: #4d5870;
+  color: var(--muted-foreground);
   line-height: 1.5;
   margin: 0;
 }
 
 .idd-controls fieldset {
-  border: 1px solid #d9dfeb;
+  border: 1px solid var(--border);
   border-radius: 8px;
   display: grid;
   gap: 0.7rem;
@@ -82,7 +82,7 @@
 
 .idd-controls legend,
 .idd-field span {
-  color: #202a3e;
+  color: var(--foreground);
   font-weight: 700;
 }
 
@@ -98,10 +98,10 @@
 }
 
 .idd-field select {
-  background: #f8fafc;
-  border: 1px solid #cbd5e1;
+  background: var(--card);
+  border: 1px solid var(--muted-foreground);
   border-radius: 6px;
-  color: #172033;
+  color: var(--foreground);
   min-height: 2.5rem;
   padding: 0.55rem 0.7rem;
 }
@@ -112,10 +112,10 @@
 }
 
 .idd-shell button {
-  background: #17324d;
-  border: 1px solid #17324d;
+  background: var(--status-info);
+  border: 1px solid var(--status-info);
   border-radius: 6px;
-  color: #ffffff;
+  color: var(--primary-foreground);
   cursor: pointer;
   font-weight: 700;
   min-height: 2.5rem;
@@ -124,25 +124,25 @@
 
 .idd-shell button:hover,
 .idd-shell button:focus-visible {
-  background: #234a70;
+  background: var(--status-info);
 }
 
 .idd-shell button:focus-visible,
 .idd-field select:focus-visible,
 .idd-checkbox input:focus-visible {
-  outline: 3px solid #f5b84b;
+  outline: 3px solid var(--status-warning);
   outline-offset: 2px;
 }
 
 .idd-shell .idd-secondary {
-  background: #ffffff;
-  color: #17324d;
+  background: var(--card);
+  color: var(--status-info);
 }
 
 .idd-shell .idd-ghost {
   background: transparent;
   border-color: transparent;
-  color: #334155;
+  color: var(--foreground);
 }
 
 .idd-panel {
@@ -155,7 +155,7 @@
 }
 
 .idd-error {
-  border-color: #d8594c;
+  border-color: var(--status-danger);
 }
 
 .idd-loading {
@@ -164,9 +164,9 @@
 
 .idd-spinner {
   animation: idd-spin 850ms linear infinite;
-  border: 3px solid #d9dfeb;
+  border: 3px solid var(--border);
   border-radius: 50%;
-  border-top-color: #17324d;
+  border-top-color: var(--status-info);
   height: 2rem;
   width: 2rem;
 }
@@ -183,19 +183,19 @@
 }
 
 .idd-insights div {
-  background: #f6f8fb;
-  border: 1px solid #e4e9f1;
+  background: var(--card);
+  border: 1px solid var(--secondary);
   border-radius: 8px;
   padding: 0.8rem;
 }
 
 .idd-insights dt {
-  color: #58627a;
+  color: var(--muted-foreground);
   font-size: 0.8rem;
 }
 
 .idd-insights dd {
-  color: #172033;
+  color: var(--foreground);
   font-size: 1.4rem;
   font-weight: 800;
   margin: 0.2rem 0 0;
@@ -215,7 +215,7 @@
 
 .idd-email-list li {
   align-items: center;
-  border: 1px solid #e4e9f1;
+  border: 1px solid var(--secondary);
   border-radius: 8px;
   display: grid;
   gap: 0.75rem;
@@ -229,22 +229,22 @@
 }
 
 .idd-email-list span {
-  color: #58627a;
+  color: var(--muted-foreground);
 }
 
 .idd-priority-high {
-  background: #fdecea;
-  color: #a3291f;
+  background: var(--secondary);
+  color: var(--status-danger);
 }
 
 .idd-priority-normal {
-  background: #eaf1fb;
-  color: #1c5790;
+  background: var(--secondary);
+  color: var(--status-info);
 }
 
 .idd-priority-low {
-  background: #eef2f7;
-  color: #475569;
+  background: var(--secondary);
+  color: var(--muted-foreground);
 }
 
 .idd-next-actions {

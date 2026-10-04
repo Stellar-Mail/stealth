@@ -93,14 +93,14 @@ export function AccessConsole() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8 space-y-8 bg-zinc-950 text-zinc-100 rounded-3xl border border-zinc-800/80 shadow-2xl backdrop-blur-xl">
+    <div className="max-w-6xl mx-auto px-4 py-8 space-y-8 bg-surface-panel text-status-neutral rounded-3xl border border-border/80 shadow-2xl backdrop-blur-xl">
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-zinc-800 pb-6 gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-border pb-6 gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-sky-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent">
             Role-Based Mail Access Control Plane
           </h2>
-          <p className="text-sm text-zinc-400 mt-1.5">
+          <p className="text-sm text-muted-foreground mt-1.5">
             Validate user roles, enforce thread-level read/write rules, and guard boundaries against
             payload injection.
           </p>
@@ -108,14 +108,14 @@ export function AccessConsole() {
         <div className="flex gap-2">
           <button
             onClick={resetLogs}
-            className="px-4 py-2 text-xs font-semibold bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-300 rounded-lg transition"
+            className="px-4 py-2 text-xs font-semibold bg-surface-panel border border-border hover:bg-surface-panel text-status-neutral rounded-lg transition"
           >
             Reset Access Logs
           </button>
           <button
             onClick={runHostileScanner}
             disabled={isScanningHostile}
-            className="px-4 py-2 text-xs font-semibold bg-rose-950/40 border border-rose-500/20 text-rose-400 hover:bg-rose-950/70 rounded-lg transition disabled:opacity-50"
+            className="px-4 py-2 text-xs font-semibold bg-rose-950/40 border border-rose-500/20 text-status-danger hover:bg-rose-950/70 rounded-lg transition disabled:opacity-50"
           >
             🛡 Run Threat Scan
           </button>
@@ -123,12 +123,12 @@ export function AccessConsole() {
       </div>
 
       {/* Preset Injection Panel */}
-      <div className="p-6 border border-zinc-800/60 rounded-2xl bg-zinc-900/10 space-y-4">
+      <div className="p-6 border border-border/60 rounded-2xl bg-surface-panel/10 space-y-4">
         <div>
-          <h3 className="text-sm font-semibold text-zinc-300 uppercase tracking-wider">
+          <h3 className="text-sm font-semibold text-status-neutral uppercase tracking-wider">
             Simulate Fixture Access Requests
           </h3>
-          <p className="text-xs text-zinc-500">
+          <p className="text-xs text-muted-foreground">
             Inject pre-configured compliance tests. Includes valid checks and invalid clearance
             attempts.
           </p>
@@ -143,20 +143,22 @@ export function AccessConsole() {
               className={`p-3 text-left border rounded-xl transition flex flex-col justify-between h-24 ${
                 activePresetId === preset.id
                   ? "border-sky-500 bg-sky-500/5"
-                  : "border-zinc-800/80 bg-zinc-950/40 hover:border-zinc-700/80"
+                  : "border-border/80 bg-surface-panel/40 hover:border-border/80"
               }`}
             >
               <div>
-                <span className="text-[9px] font-mono text-zinc-500 block uppercase">
+                <span className="text-[9px] font-mono text-muted-foreground block uppercase">
                   {preset.role}
                 </span>
-                <span className="text-[11px] font-semibold text-zinc-200 block truncate">
+                <span className="text-[11px] font-semibold text-status-neutral block truncate">
                   Action: {preset.accessLevel}
                 </span>
               </div>
-              <div className="flex items-center justify-between text-[10px] text-zinc-500 mt-1">
+              <div className="flex items-center justify-between text-[10px] text-muted-foreground mt-1">
                 <span>{preset.id}</span>
-                <span className={preset.expectGranted ? "text-emerald-400" : "text-amber-400"}>
+                <span
+                  className={preset.expectGranted ? "text-status-success" : "text-status-warning"}
+                >
                   {preset.expectGranted ? "Expect: Allow" : "Expect: Block"}
                 </span>
               </div>
@@ -167,7 +169,7 @@ export function AccessConsole() {
 
       {/* Scanning status banner */}
       {isScanningHostile && (
-        <div className="p-4 bg-zinc-900/60 border border-zinc-800/80 rounded-xl flex items-center justify-center gap-3 text-xs text-zinc-400 animate-pulse">
+        <div className="p-4 bg-surface-panel/60 border border-border/80 rounded-xl flex items-center justify-center gap-3 text-xs text-muted-foreground animate-pulse">
           <div className="w-4 h-4 border-2 border-rose-500 border-t-transparent rounded-full animate-spin" />
           Analyzing 19 named hostile injection patterns (SQL, header injection, homoglyphs)...
         </div>
@@ -177,7 +179,7 @@ export function AccessConsole() {
         <div
           role="alert"
           aria-live="assertive"
-          className="p-5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl flex flex-col gap-2 animate-fade-in"
+          className="p-5 bg-emerald-500/10 border border-emerald-500/20 text-status-success rounded-xl flex flex-col gap-2 animate-fade-in"
         >
           <div className="flex items-center gap-2">
             <span className="text-base font-bold">✓</span>
@@ -185,17 +187,17 @@ export function AccessConsole() {
               Threat Scanning Validation Succeeded
             </span>
           </div>
-          <p className="text-xs text-zinc-300 font-medium">
+          <p className="text-xs text-status-neutral font-medium">
             Successfully parsed and filtered all{" "}
             <span className="font-bold text-white">{scanResults.total} hostile inputs</span> from
             the threat vectors file. The validation guards successfully blocked{" "}
-            <span className="font-bold text-emerald-400">
+            <span className="font-bold text-status-success">
               {scanResults.blocked}/{scanResults.total} vectors
             </span>
             . 0 bypasses recorded.
           </p>
           {scanResults.failures.length > 0 && (
-            <div className="mt-2 p-3 bg-zinc-950 border border-zinc-850 rounded-lg max-h-40 overflow-y-auto font-mono text-[10px] text-rose-400 space-y-1">
+            <div className="mt-2 p-3 bg-surface-panel border border-border rounded-lg max-h-40 overflow-y-auto font-mono text-[10px] text-status-danger space-y-1">
               {scanResults.failures.map((f, i) => (
                 <div key={i}>{f}</div>
               ))}
@@ -212,12 +214,12 @@ export function AccessConsole() {
           <PolicyMatrix policy={policy} onPolicyChange={updatePolicy} />
 
           {/* Size Limits verifier */}
-          <div className="p-6 border border-zinc-800/80 rounded-2xl bg-zinc-900/10 space-y-6">
+          <div className="p-6 border border-border/80 rounded-2xl bg-surface-panel/10 space-y-6">
             <div className="flex flex-col gap-1">
-              <h3 className="text-sm font-semibold text-zinc-300 uppercase tracking-wider">
+              <h3 className="text-sm font-semibold text-status-neutral uppercase tracking-wider">
                 Boundary Limit Verifiers
               </h3>
-              <p className="text-xs text-zinc-500">
+              <p className="text-xs text-muted-foreground">
                 Verify paginator-level guard limits for maximum team size (500) and attachment
                 checks (100).
               </p>
@@ -228,7 +230,7 @@ export function AccessConsole() {
               <div className="space-y-2">
                 <label
                   htmlFor="teamSizeVerifier"
-                  className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold block"
+                  className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold block"
                 >
                   Simulated Team Size
                 </label>
@@ -238,20 +240,20 @@ export function AccessConsole() {
                     id="teamSizeVerifier"
                     value={teamSizeInput}
                     onChange={(e) => setTeamSizeInput(Number(e.target.value))}
-                    className={`w-full p-2 bg-zinc-950 border rounded-lg text-xs text-zinc-200 focus:outline-none focus:border-zinc-700 font-mono`}
+                    className={`w-full p-2 bg-surface-panel border rounded-lg text-xs text-status-neutral focus:outline-none focus:border-border font-mono`}
                   />
                   <span
                     className={`px-2 py-1 rounded text-[10px] font-bold font-mono ${
                       limitChecks.teamSizeValid
-                        ? "bg-emerald-950 text-emerald-400 border border-emerald-500/20"
-                        : "bg-rose-950 text-rose-400 border border-rose-500/20"
+                        ? "bg-emerald-950 text-status-success border border-emerald-500/20"
+                        : "bg-rose-950 text-status-danger border border-rose-500/20"
                     }`}
                   >
                     {limitChecks.teamSizeValid ? "Safe" : "Limit Exceeded"}
                   </span>
                 </div>
                 {!limitChecks.teamSizeValid && (
-                  <p className="text-[10px] text-rose-400 font-mono mt-1">
+                  <p className="text-[10px] text-status-danger font-mono mt-1">
                     {limitChecks.teamSizeError}
                   </p>
                 )}
@@ -261,7 +263,7 @@ export function AccessConsole() {
               <div className="space-y-2">
                 <label
                   htmlFor="attachmentsVerifier"
-                  className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold block"
+                  className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold block"
                 >
                   Simulated Attachment Count
                 </label>
@@ -271,20 +273,20 @@ export function AccessConsole() {
                     id="attachmentsVerifier"
                     value={attachmentsInput}
                     onChange={(e) => setAttachmentsInput(Number(e.target.value))}
-                    className={`w-full p-2 bg-zinc-950 border rounded-lg text-xs text-zinc-200 focus:outline-none focus:border-zinc-700 font-mono`}
+                    className={`w-full p-2 bg-surface-panel border rounded-lg text-xs text-status-neutral focus:outline-none focus:border-border font-mono`}
                   />
                   <span
                     className={`px-2 py-1 rounded text-[10px] font-bold font-mono ${
                       limitChecks.attachmentCountValid
-                        ? "bg-emerald-950 text-emerald-400 border border-emerald-500/20"
-                        : "bg-rose-950 text-rose-400 border border-rose-500/20"
+                        ? "bg-emerald-950 text-status-success border border-emerald-500/20"
+                        : "bg-rose-950 text-status-danger border border-rose-500/20"
                     }`}
                   >
                     {limitChecks.attachmentCountValid ? "Safe" : "Limit Exceeded"}
                   </span>
                 </div>
                 {!limitChecks.attachmentCountValid && (
-                  <p className="text-[10px] text-rose-400 font-mono mt-1">
+                  <p className="text-[10px] text-status-danger font-mono mt-1">
                     {limitChecks.attachmentCountError}
                   </p>
                 )}
@@ -303,17 +305,19 @@ export function AccessConsole() {
           />
 
           {/* Audit Logs list */}
-          <div className="space-y-4 pt-4 border-t border-zinc-800/60">
+          <div className="space-y-4 pt-4 border-t border-border/60">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-zinc-300 uppercase tracking-wider">
+              <h3 className="text-sm font-semibold text-status-neutral uppercase tracking-wider">
                 Clearance Check Audit Trail ({logs.length})
               </h3>
-              <span className="text-[10px] text-zinc-500 font-mono">Real-time evaluations</span>
+              <span className="text-[10px] text-muted-foreground font-mono">
+                Real-time evaluations
+              </span>
             </div>
 
-            <div className="max-h-80 overflow-y-auto border border-zinc-800/80 rounded-xl bg-zinc-950 p-4 space-y-2.5 scrollbar-thin">
+            <div className="max-h-80 overflow-y-auto border border-border/80 rounded-xl bg-surface-panel p-4 space-y-2.5 scrollbar-thin">
               {logs.length === 0 ? (
-                <p className="text-[11px] text-zinc-600 italic text-center py-10">
+                <p className="text-[11px] text-muted-foreground italic text-center py-10">
                   No access checks executed yet. Use the presets above or form to trigger
                   verification.
                 </p>
@@ -323,39 +327,41 @@ export function AccessConsole() {
                     key={log.id}
                     className={`p-3 border rounded-xl text-[11px] flex flex-col gap-1.5 transition ${
                       log.isAllowed
-                        ? "border-emerald-500/10 bg-emerald-500/5 text-zinc-300"
+                        ? "border-emerald-500/10 bg-emerald-500/5 text-status-neutral"
                         : log.error
-                          ? "border-rose-500/10 bg-rose-500/5 text-zinc-400"
-                          : "border-amber-500/10 bg-amber-500/5 text-zinc-300"
+                          ? "border-rose-500/10 bg-rose-500/5 text-muted-foreground"
+                          : "border-amber-500/10 bg-amber-500/5 text-status-neutral"
                     }`}
                   >
-                    <div className="flex justify-between items-center text-[10px] text-zinc-500">
+                    <div className="flex justify-between items-center text-[10px] text-muted-foreground">
                       <span className="font-mono">{log.id}</span>
                       <span>{new Date(log.timestamp).toLocaleTimeString()}</span>
                     </div>
 
                     <div className="flex flex-wrap items-center gap-1">
-                      <span className="font-semibold text-zinc-100">
+                      <span className="font-semibold text-status-neutral">
                         {log.request.requesterEmail}
                       </span>
-                      <span className="text-zinc-500">({log.request.role})</span>
-                      <span className="text-zinc-400">requested</span>
-                      <span className="font-semibold text-sky-400">{log.request.accessLevel}</span>
-                      <span className="text-zinc-400">on</span>
-                      <span className="font-mono bg-zinc-900 px-1 rounded truncate max-w-[120px]">
+                      <span className="text-muted-foreground">({log.request.role})</span>
+                      <span className="text-muted-foreground">requested</span>
+                      <span className="font-semibold text-status-info">
+                        {log.request.accessLevel}
+                      </span>
+                      <span className="text-muted-foreground">on</span>
+                      <span className="font-mono bg-surface-panel px-1 rounded truncate max-w-[120px]">
                         {log.request.threadId}
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-between border-t border-zinc-850/60 pt-1.5 mt-0.5">
-                      <span className="text-[10px] text-zinc-500">Outcome:</span>
+                    <div className="flex items-center justify-between border-t border-border/60 pt-1.5 mt-0.5">
+                      <span className="text-[10px] text-muted-foreground">Outcome:</span>
                       <span
                         className={`text-[9px] font-bold font-mono px-1.5 rounded uppercase ${
                           log.isAllowed
-                            ? "bg-emerald-950 text-emerald-400"
+                            ? "bg-emerald-950 text-status-success"
                             : log.error
-                              ? "bg-rose-950 text-rose-400"
-                              : "bg-amber-950 text-amber-400"
+                              ? "bg-rose-950 text-status-danger"
+                              : "bg-amber-950 text-status-warning"
                         }`}
                       >
                         {log.isAllowed ? "Permitted" : log.error ? "Blocked (Error)" : "Denied"}
@@ -363,7 +369,7 @@ export function AccessConsole() {
                     </div>
 
                     {log.error && (
-                      <p className="text-[10px] text-rose-400/90 font-mono mt-1 border-t border-rose-950/20 pt-1">
+                      <p className="text-[10px] text-status-danger/90 font-mono mt-1 border-t border-rose-950/20 pt-1">
                         Reason: {log.error}
                       </p>
                     )}

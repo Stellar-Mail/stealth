@@ -58,7 +58,7 @@ export function BulkMovePanel({ messages, selectedIds, onApply, className }: Bul
     return (
       <section
         className={cn(
-          "flex flex-col items-center justify-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.02] p-6 text-center",
+          "flex flex-col items-center justify-center gap-2 rounded-xl border border-surface-tint/[0.08] bg-surface-tint/[0.02] p-6 text-center",
           className,
         )}
       >
@@ -73,7 +73,7 @@ export function BulkMovePanel({ messages, selectedIds, onApply, className }: Bul
   return (
     <section
       className={cn(
-        "flex flex-col gap-4 rounded-xl border border-white/[0.08] bg-white/[0.02] p-4",
+        "flex flex-col gap-4 rounded-xl border border-surface-tint/[0.08] bg-surface-tint/[0.02] p-4",
         className,
       )}
     >
@@ -91,7 +91,7 @@ export function BulkMovePanel({ messages, selectedIds, onApply, className }: Bul
         {selectedMessages.map((message) => (
           <li
             key={message.id}
-            className="flex items-center justify-between rounded-lg border border-white/[0.06] px-3 py-2 text-sm"
+            className="flex items-center justify-between rounded-lg border border-surface-tint/[0.06] px-3 py-2 text-sm"
           >
             <span className="truncate pr-3">{message.subject || "(no subject)"}</span>
             <span className="shrink-0 text-xs text-muted-foreground">
@@ -109,7 +109,7 @@ export function BulkMovePanel({ messages, selectedIds, onApply, className }: Bul
           id="bulk-move-target-folder"
           value={targetFolder}
           onChange={(event) => setTargetFolder(event.target.value as MessageFolder)}
-          className="rounded-lg border border-white/[0.08] bg-transparent px-3 py-2 text-sm outline-none focus:border-sky-500/40"
+          className="rounded-lg border border-surface-tint/[0.08] bg-transparent px-3 py-2 text-sm outline-none focus:border-sky-500/40"
         >
           {MESSAGE_FOLDERS.map((folder) => (
             <option key={folder} value={folder}>
@@ -119,7 +119,7 @@ export function BulkMovePanel({ messages, selectedIds, onApply, className }: Bul
         </select>
       </div>
 
-      <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-3 text-sm">
+      <div className="rounded-lg border border-surface-tint/[0.06] bg-surface-tint/[0.02] p-3 text-sm">
         <p className="font-medium">Move preview</p>
         <p className="mt-1 text-muted-foreground">
           {preview.movedCount} will move to {getMessageFolderLabel(preview.targetFolder)}
@@ -144,7 +144,7 @@ export function BulkMovePanel({ messages, selectedIds, onApply, className }: Bul
       </div>
 
       {validationError ? (
-        <p className="text-sm text-rose-300" role="alert">
+        <p className="text-sm text-status-danger dark:text-rose-300" role="alert">
           {validationError}
         </p>
       ) : null}
@@ -156,8 +156,8 @@ export function BulkMovePanel({ messages, selectedIds, onApply, className }: Bul
         className={cn(
           "flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors",
           preview.movedCount > 0
-            ? "border-sky-500/30 bg-sky-500/10 text-sky-200 hover:bg-sky-500/20"
-            : "cursor-not-allowed border-white/[0.06] text-muted-foreground opacity-60",
+            ? "border-sky-500/30 bg-sky-500/10 text-status-info dark:text-sky-200 hover:bg-sky-500/20"
+            : "cursor-not-allowed border-surface-tint/[0.06] text-muted-foreground opacity-60",
         )}
       >
         <MoveRight className="h-4 w-4" />
@@ -165,7 +165,7 @@ export function BulkMovePanel({ messages, selectedIds, onApply, className }: Bul
       </button>
 
       {lastResult ? (
-        <div className="rounded-lg border border-white/[0.08] bg-white/[0.02] p-3 text-sm">
+        <div className="rounded-lg border border-surface-tint/[0.08] bg-surface-tint/[0.02] p-3 text-sm">
           <p className="font-medium">{summarizeBulkFolderMove(lastResult)}</p>
           <ul className="mt-2 flex flex-col gap-1 text-xs text-muted-foreground">
             {lastResult.changes

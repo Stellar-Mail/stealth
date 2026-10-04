@@ -145,12 +145,12 @@ export function AuthModal({ open, onClose, onSuccess }: AuthModalProps) {
           initial={{ opacity: 0, scale: 0.95, y: 10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 10 }}
-          className="relative z-[130] w-full max-w-md overflow-hidden rounded-2xl border border-white/10 bg-[#121316] p-6 text-foreground shadow-2xl outline-none"
+          className="relative z-[130] w-full max-w-md overflow-hidden rounded-2xl border border-surface-tint/10 bg-surface-panel p-6 text-foreground shadow-2xl outline-none"
         >
           <button
             onClick={close}
             aria-label={registering ? "Close create account" : "Close sign in"}
-            className="absolute right-4 top-4 rounded-lg p-1 text-muted-foreground transition hover:bg-white/10 hover:text-foreground"
+            className="absolute right-4 top-4 rounded-lg p-1 text-muted-foreground transition hover:bg-surface-tint/10 hover:text-foreground"
           >
             <X className="h-5 w-5" />
           </button>
@@ -189,7 +189,7 @@ export function AuthModal({ open, onClose, onSuccess }: AuthModalProps) {
                 initial={{ opacity: 0, y: -6 }}
                 animate={{ opacity: 1, y: 0 }}
                 role="status"
-                className="flex items-center gap-2.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-400"
+                className="flex items-center gap-2.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-status-success dark:text-emerald-400"
               >
                 <CheckCircle2 className="h-4 w-4 shrink-0" />
                 <span>Authentication successful! Accessing mailbox...</span>
@@ -207,7 +207,7 @@ export function AuthModal({ open, onClose, onSuccess }: AuthModalProps) {
                     onChange={(e) => setDisplayName(e.target.value)}
                     autoComplete="name"
                     required
-                    className="glow-ring w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2.5 text-sm text-foreground"
+                    className="glow-ring w-full rounded-lg border border-surface-tint/10 bg-surface-tint/[0.04] px-3 py-2.5 text-sm text-foreground"
                   />
                 </div>
                 <div>
@@ -222,7 +222,7 @@ export function AuthModal({ open, onClose, onSuccess }: AuthModalProps) {
                       onChange={(e) => setEmail(e.target.value)}
                       autoComplete="email"
                       required
-                      className="glow-ring w-full rounded-lg border border-white/10 bg-white/[0.04] py-2.5 pl-9 pr-3 text-sm text-foreground"
+                      className="glow-ring w-full rounded-lg border border-surface-tint/10 bg-surface-tint/[0.04] py-2.5 pl-9 pr-3 text-sm text-foreground"
                     />
                   </div>
                 </div>
@@ -236,7 +236,7 @@ export function AuthModal({ open, onClose, onSuccess }: AuthModalProps) {
                     autoComplete="username"
                     required
                     pattern="[a-z0-9_-]{3,30}"
-                    className="glow-ring w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2.5 text-sm text-foreground"
+                    className="glow-ring w-full rounded-lg border border-surface-tint/10 bg-surface-tint/[0.04] px-3 py-2.5 text-sm text-foreground"
                   />
                   <p className="mt-1 text-xs text-muted-foreground">
                     {formatMailAddress(username || "username")}
@@ -256,7 +256,7 @@ export function AuthModal({ open, onClose, onSuccess }: AuthModalProps) {
                     value={identifier}
                     onChange={(e) => setIdentifier(e.target.value)}
                     placeholder={`${formatMailAddress("alice")} or alice_99`}
-                    className="glow-ring w-full rounded-lg border border-white/10 bg-white/[0.04] py-2.5 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground/60 transition focus:bg-white/[0.08]"
+                    className="glow-ring w-full rounded-lg border border-surface-tint/10 bg-surface-tint/[0.04] py-2.5 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground/60 transition focus:bg-surface-tint/[0.08]"
                     autoComplete="username"
                     required
                   />
@@ -275,7 +275,7 @@ export function AuthModal({ open, onClose, onSuccess }: AuthModalProps) {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••••••"
-                  className="glow-ring w-full rounded-lg border border-white/10 bg-white/[0.04] py-2.5 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground/60 transition focus:bg-white/[0.08]"
+                  className="glow-ring w-full rounded-lg border border-surface-tint/10 bg-surface-tint/[0.04] py-2.5 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground/60 transition focus:bg-surface-tint/[0.08]"
                   autoComplete="current-password"
                   required
                 />
@@ -294,7 +294,7 @@ export function AuthModal({ open, onClose, onSuccess }: AuthModalProps) {
                     onChange={(e) => setPasswordConfirmation(e.target.value)}
                     autoComplete="new-password"
                     required
-                    className="glow-ring w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2.5 text-sm text-foreground"
+                    className="glow-ring w-full rounded-lg border border-surface-tint/10 bg-surface-tint/[0.04] px-3 py-2.5 text-sm text-foreground"
                   />
                 </div>
                 <label className="flex items-start gap-2 text-xs text-muted-foreground">

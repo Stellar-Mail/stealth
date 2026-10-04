@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { defaultPreferences, type UiPreferences } from "./types";
 
 const storageKey = "stealth-ui-preferences";
@@ -56,19 +56,23 @@ export function resolveStoredPreferences(
   return { preferences: defaultPreferences, corrupt: false };
 }
 
-export function usePreferences() {
+export function usePreferencesController() {
   const [preferences, setPreferences] = useState<UiPreferences>(defaultPreferences);
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    const { preferences: resolved, corrupt } = resolveStoredPreferences(
-      window.localStorage.getItem(storageKey),
-      window.localStorage.getItem("stealth-preferences"),
-    );
-    if (corrupt) {
-      window.localStorage.removeItem(storageKey);
-    } else {
-      setPreferences(resolved);
+    try {
+      const { preferences: resolved, corrupt } = resolveStoredPreferences(
+        window.localStorage.getItem(storageKey),
+        window.localStorage.getItem("stealth-preferences"),
+      );
+      if (corrupt) {
+        window.localStorage.removeItem(storageKey);
+      } else {
+        setPreferences(resolved);
+      }
+    } catch {
+      // Privacy settings can deny storage; appearance must still work in memory.
     }
     setHydrated(true);
   }, []);
@@ -90,7 +94,11 @@ export function usePreferences() {
     };
 
     apply();
-    window.localStorage.setItem(storageKey, JSON.stringify(preferences));
+    try {
+      window.localStorage.setItem(storageKey, JSON.stringify(preferences));
+    } catch {
+      // Keep the selected theme usable even when persistence is unavailable.
+    }
 
     if (preferences.theme === "system") colorScheme.addEventListener("change", apply);
     // Always track the OS reduced-motion setting so the fallback stays honored.
@@ -101,5 +109,15 @@ export function usePreferences() {
     };
   }, [hydrated, preferences]);
 
-  return { preferences, setPreferences, hydrated };
+  return useMemo(() => ({ preferences, setPreferences, hydrated }), [preferences, hydrated]);
+}
+
+export const PreferencesContext = createContext<ReturnType<typeof usePreferencesController> | null>(
+  null,
+);
+
+export function usePreferences() {
+  const context = useContext(PreferencesContext);
+  if (!context) throw new Error("usePreferences must be used within PreferencesProvider");
+  return context;
 }

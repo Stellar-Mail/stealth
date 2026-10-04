@@ -27,7 +27,7 @@ function getStatusBadge(status: MemberStatus) {
     case "active":
       return (
         <span
-          className="bg-green-500/15 text-green-600 dark:text-green-400 inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium"
+          className="bg-green-500/15 text-green-600 dark:text-status-success inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium"
           aria-label="Status: Active"
         >
           <span aria-hidden="true">✓</span> Active
@@ -45,7 +45,7 @@ function getStatusBadge(status: MemberStatus) {
     case "underutilized":
       return (
         <span
-          className="bg-blue-500/15 text-blue-600 dark:text-blue-400 inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium"
+          className="bg-blue-500/15 text-blue-600 dark:text-status-info inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium"
           aria-label="Status: Underutilized"
         >
           <span aria-hidden="true">ℹ️</span> Underutilized

@@ -41,7 +41,7 @@ export function EmojiPicker({
             className="glass-strong absolute bottom-full left-0 z-50 mb-2 w-72 overflow-hidden rounded-xl"
           >
             {/* Category tabs */}
-            <div className="flex border-b border-white/5 px-2 pt-2">
+            <div className="flex border-b border-surface-tint/5 px-2 pt-2">
               {(Object.keys(emojiCategories) as Category[]).map((cat) => (
                 <button
                   key={cat}
@@ -49,7 +49,7 @@ export function EmojiPicker({
                   className={cn(
                     "flex-1 rounded-t-lg px-2 py-1.5 text-[10px] capitalize transition",
                     activeCategory === cat
-                      ? "bg-white/[0.08] text-foreground"
+                      ? "bg-surface-tint/[0.08] text-foreground"
                       : "text-muted-foreground hover:text-foreground",
                   )}
                 >
@@ -67,7 +67,7 @@ export function EmojiPicker({
                     onSelect(emoji);
                     onClose();
                   }}
-                  className="flex h-9 w-9 items-center justify-center rounded-lg text-lg transition hover:bg-white/[0.08]"
+                  className="flex h-9 w-9 items-center justify-center rounded-lg text-lg transition hover:bg-surface-tint/[0.08]"
                 >
                   {emoji}
                 </button>

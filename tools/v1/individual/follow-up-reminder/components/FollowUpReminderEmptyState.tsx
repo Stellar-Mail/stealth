@@ -19,8 +19,8 @@ export const FollowUpReminderEmptyState: React.FC = () => {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
         </svg>
       </div>
-      <h3 className="text-lg font-medium text-gray-900">No Follow-Ups Needed</h3>
-      <p className="text-gray-500 mt-1 max-w-sm">
+      <h3 className="text-lg font-medium text-foreground">No Follow-Ups Needed</h3>
+      <p className="text-muted-foreground mt-1 max-w-sm">
         No actionable follow-up requests, deadlines, or reminders were found in the selected email.
       </p>
     </div>

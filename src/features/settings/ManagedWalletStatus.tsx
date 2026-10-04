@@ -25,7 +25,7 @@ export function ManagedWalletStatus() {
   const status = "status" in ui ? ui.status : undefined;
 
   return (
-    <div className="space-y-3 rounded-xl border border-white/10 bg-white/[0.03] p-4">
+    <div className="space-y-3 rounded-xl border border-surface-tint/10 bg-surface-tint/[0.03] p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2">
           <Wallet className="h-4 w-4 text-muted-foreground" />
@@ -39,7 +39,7 @@ export function ManagedWalletStatus() {
         <button
           type="button"
           onClick={() => refetch()}
-          className="rounded-lg border border-white/10 p-1.5 text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground"
+          className="rounded-lg border border-surface-tint/10 p-1.5 text-muted-foreground transition hover:bg-surface-tint/[0.06] hover:text-foreground"
           aria-label="Refresh wallet status"
         >
           <RefreshCw className={cn("h-3.5 w-3.5", isFetching && "animate-spin")} />
@@ -50,17 +50,18 @@ export function ManagedWalletStatus() {
         <span
           className={cn(
             "rounded-full px-2 py-0.5 text-[11px] font-medium",
-            ui.kind === "active" && "bg-emerald-500/15 text-emerald-300",
-            ui.kind === "pending" && "bg-amber-500/15 text-amber-300",
-            ui.kind === "stale" && "bg-amber-500/15 text-amber-300",
-            (ui.kind === "unavailable" || ui.kind === "failed") && "bg-red-500/15 text-red-300",
-            ui.kind === "loading" && "bg-white/10 text-muted-foreground",
+            ui.kind === "active" && "bg-emerald-500/15 text-status-success dark:text-emerald-300",
+            ui.kind === "pending" && "bg-amber-500/15 text-status-warning dark:text-amber-300",
+            ui.kind === "stale" && "bg-amber-500/15 text-status-warning dark:text-amber-300",
+            (ui.kind === "unavailable" || ui.kind === "failed") &&
+              "bg-red-500/15 text-status-danger dark:text-red-300",
+            ui.kind === "loading" && "bg-surface-tint/10 text-muted-foreground",
           )}
         >
           {activationLabel(ui.kind)}
         </span>
         {ui.kind === "stale" || ui.kind === "unavailable" ? (
-          <AlertTriangle className="h-3.5 w-3.5 text-amber-300" />
+          <AlertTriangle className="h-3.5 w-3.5 text-status-warning dark:text-amber-300" />
         ) : null}
       </div>
 

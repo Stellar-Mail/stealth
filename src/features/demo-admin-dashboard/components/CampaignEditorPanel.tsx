@@ -62,7 +62,7 @@ export function CampaignEditorPanel({
   return (
     <section
       className={cn(
-        "space-y-4 rounded-xl border border-white/[0.08] bg-white/[0.02] p-4",
+        "space-y-4 rounded-xl border border-surface-tint/[0.08] bg-surface-tint/[0.02] p-4",
         className,
       )}
     >
@@ -147,7 +147,7 @@ export function CampaignEditorPanel({
           />
         </Field>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-surface-tint/[0.06] bg-surface-tint/[0.02] px-3 py-2">
           <div className="text-xs text-muted-foreground">
             <span className="font-medium text-foreground">{state.drafts.length}</span> demo drafts
             attached
@@ -176,15 +176,15 @@ export function CampaignEditorPanel({
       ) : null}
 
       {(showPreview || !validation.valid || validation.warnings.length > 0) && (
-        <div className="space-y-3 rounded-lg border border-white/[0.06] bg-black/20 p-3">
+        <div className="space-y-3 rounded-lg border border-surface-tint/[0.06] bg-surface-recessed/20 p-3">
           <div className="flex items-center justify-between gap-3">
             <p className="text-sm font-medium">Review preview</p>
             <span
               className={cn(
                 "rounded-full border px-2 py-0.5 text-xs",
                 validation.valid
-                  ? "border-emerald-500/30 text-emerald-300"
-                  : "border-rose-500/30 text-rose-300",
+                  ? "border-emerald-500/30 text-status-success dark:text-emerald-300"
+                  : "border-rose-500/30 text-status-danger dark:text-rose-300",
               )}
             >
               {validation.valid ? "valid" : "needs metadata"}
@@ -200,7 +200,7 @@ export function CampaignEditorPanel({
               {tags.map((tag) => (
                 <span
                   key={tag}
-                  className="rounded-full border border-white/[0.08] bg-white/[0.03] px-2 py-0.5 text-xs text-muted-foreground"
+                  className="rounded-full border border-surface-tint/[0.08] bg-surface-tint/[0.03] px-2 py-0.5 text-xs text-muted-foreground"
                 >
                   {tag}
                 </span>
@@ -216,7 +216,7 @@ export function CampaignEditorPanel({
 }
 
 const inputClass =
-  "w-full rounded-lg border border-white/[0.08] bg-black/30 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 focus:border-white/20 focus:outline-none";
+  "w-full rounded-lg border border-surface-tint/[0.08] bg-surface-recessed/30 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 focus:border-surface-tint/20 focus:outline-none";
 
 function Field({
   label,
@@ -242,7 +242,7 @@ function Field({
 
 function PreviewMetric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-md border border-white/[0.06] bg-white/[0.02] px-3 py-2">
+    <div className="rounded-md border border-surface-tint/[0.06] bg-surface-tint/[0.02] px-3 py-2">
       <p className="text-muted-foreground">{label}</p>
       <p className="mt-1 truncate font-medium text-foreground">{value}</p>
     </div>
@@ -259,8 +259,8 @@ function ValidationList({ tone, items }: { tone: "error" | "warning"; items: str
       className={cn(
         "space-y-1 rounded-md border px-3 py-2 text-xs",
         tone === "error"
-          ? "border-rose-500/20 text-rose-200"
-          : "border-amber-500/20 text-amber-200",
+          ? "border-rose-500/20 text-status-danger dark:text-rose-200"
+          : "border-amber-500/20 text-status-warning dark:text-amber-200",
       )}
     >
       {items.map((item) => (
@@ -274,7 +274,7 @@ function actionClass(enabled: boolean): string {
   return cn(
     "inline-flex items-center gap-1 rounded-lg border px-3 py-2 text-sm transition-colors",
     enabled
-      ? "border-white/[0.08] text-foreground hover:bg-white/[0.04]"
-      : "cursor-not-allowed border-white/[0.06] text-muted-foreground opacity-60",
+      ? "border-surface-tint/[0.08] text-foreground hover:bg-surface-tint/[0.04]"
+      : "cursor-not-allowed border-surface-tint/[0.06] text-muted-foreground opacity-60",
   );
 }

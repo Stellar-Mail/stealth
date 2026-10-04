@@ -22,10 +22,17 @@ interface CheckItem {
 }
 
 function StatusIcon({ status }: { status: CheckItem["status"] }) {
-  if (status === "ok") return <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-400" />;
-  if (status === "error") return <AlertCircle className="h-3.5 w-3.5 shrink-0 text-red-400" />;
-  if (status === "warn") return <ShieldAlert className="h-3.5 w-3.5 shrink-0 text-amber-400" />;
-  return <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-blue-400" />;
+  if (status === "ok")
+    return (
+      <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-status-success dark:text-emerald-400" />
+    );
+  if (status === "error")
+    return <AlertCircle className="h-3.5 w-3.5 shrink-0 text-status-danger dark:text-red-400" />;
+  if (status === "warn")
+    return <ShieldAlert className="h-3.5 w-3.5 shrink-0 text-status-warning dark:text-amber-400" />;
+  return (
+    <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-status-info dark:text-blue-400" />
+  );
 }
 
 function overallStatus(checks: CheckItem[]): "ready" | "blocked" | "warning" | "pending" {
@@ -121,10 +128,10 @@ export function DeliveryEstimator({
   const overall = overallStatus(checks);
 
   const bannerClass = {
-    ready: "border-emerald-300/20 bg-emerald-300/[0.05] text-emerald-200",
-    blocked: "border-red-300/20 bg-red-300/[0.05] text-red-200",
-    warning: "border-amber-300/20 bg-amber-300/[0.05] text-amber-200",
-    pending: "border-blue-300/20 bg-blue-300/[0.05] text-blue-200",
+    ready: "border-emerald-300/20 bg-emerald-300/[0.05] text-status-success dark:text-emerald-200",
+    blocked: "border-red-300/20 bg-red-300/[0.05] text-status-danger dark:text-red-200",
+    warning: "border-amber-300/20 bg-amber-300/[0.05] text-status-warning dark:text-amber-200",
+    pending: "border-blue-300/20 bg-blue-300/[0.05] text-status-info dark:text-blue-200",
   }[overall];
 
   const bannerLabel = {

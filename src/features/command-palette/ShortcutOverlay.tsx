@@ -57,11 +57,11 @@ export function ShortcutOverlay({ open, onClose }: Props) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 12, scale: 0.99 }}
             transition={{ type: "spring", stiffness: 280, damping: 28 }}
-            className="glass-strong fixed left-1/2 top-1/2 z-[180] grid w-[min(760px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[24px] border border-white/10"
+            className="glass-strong fixed left-1/2 top-1/2 z-[180] grid w-[min(760px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[24px] border border-surface-tint/10"
           >
-            <div className="border-b border-white/8 px-5 py-4">
+            <div className="border-b border-surface-tint/8 px-5 py-4">
               <div className="flex items-center gap-3">
-                <div className="grid h-10 w-10 place-items-center rounded-2xl border border-white/10 bg-white/[0.06]">
+                <div className="grid h-10 w-10 place-items-center rounded-2xl border border-surface-tint/10 bg-surface-tint/[0.06]">
                   <Keyboard className="h-4.5 w-4.5 text-foreground/85" />
                 </div>
                 <div className="min-w-0 flex-1">
@@ -72,7 +72,7 @@ export function ShortcutOverlay({ open, onClose }: Props) {
                   </p>
                 </div>
               </div>
-              <div className="mt-4 flex items-center gap-3 rounded-2xl border border-white/8 bg-black/20 px-4 py-3 transition focus-within:border-white/20 focus-within:bg-black/30">
+              <div className="mt-4 flex items-center gap-3 rounded-2xl border border-surface-tint/8 bg-surface-recessed/20 px-4 py-3 transition focus-within:border-surface-tint/20 focus-within:bg-surface-recessed/30">
                 <Search className="h-4 w-4 text-muted-foreground" />
                 <input
                   autoFocus
@@ -94,7 +94,7 @@ export function ShortcutOverlay({ open, onClose }: Props) {
                   {shortcuts.map((shortcut) => (
                     <li
                       key={shortcut.id}
-                      className="rounded-2xl border border-white/8 bg-white/[0.025] px-4 py-3"
+                      className="rounded-2xl border border-surface-tint/8 bg-surface-tint/[0.025] px-4 py-3"
                     >
                       <div className="flex flex-wrap items-center gap-3">
                         <div className="min-w-0 flex-1">
@@ -109,7 +109,7 @@ export function ShortcutOverlay({ open, onClose }: Props) {
                           {shortcut.keys.map((key) => (
                             <kbd
                               key={`${shortcut.id}-${key}`}
-                              className="rounded-md border border-white/10 bg-black/30 px-2 py-1 font-mono text-[11px] text-muted-foreground"
+                              className="rounded-md border border-surface-tint/10 bg-surface-recessed/30 px-2 py-1 font-mono text-[11px] text-muted-foreground"
                             >
                               {key}
                             </kbd>
@@ -117,7 +117,7 @@ export function ShortcutOverlay({ open, onClose }: Props) {
                         </div>
                       </div>
                       {shortcut.conflict && (
-                        <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-200/10 bg-amber-200/[0.05] px-3 py-2 text-[11px] leading-5 text-amber-100/80">
+                        <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-200/10 bg-amber-200/[0.05] px-3 py-2 text-[11px] leading-5 text-status-warning dark:text-amber-100/80">
                           <Slash className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                           <span>{shortcut.conflict}</span>
                         </div>
@@ -128,7 +128,7 @@ export function ShortcutOverlay({ open, onClose }: Props) {
               )}
             </div>
 
-            <div className="flex flex-wrap items-center gap-3 border-t border-white/8 px-5 py-3 text-[11px] text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-3 border-t border-surface-tint/8 px-5 py-3 text-[11px] text-muted-foreground">
               <Hint keyLabel="?">Open help</Hint>
               <Hint keyLabel="Ctrl/Cmd K">Search commands</Hint>
               <Hint keyLabel="Esc">Close</Hint>
@@ -143,7 +143,7 @@ export function ShortcutOverlay({ open, onClose }: Props) {
 function Hint({ keyLabel, children }: { keyLabel: string; children: React.ReactNode }) {
   return (
     <span className={cn("flex items-center gap-1.5")}>
-      <kbd className="rounded border border-white/10 bg-black/30 px-1.5 py-0.5 font-mono text-[10px]">
+      <kbd className="rounded border border-surface-tint/10 bg-surface-recessed/30 px-1.5 py-0.5 font-mono text-[10px]">
         {keyLabel}
       </kbd>
       <span>{children}</span>

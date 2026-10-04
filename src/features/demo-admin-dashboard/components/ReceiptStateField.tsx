@@ -40,7 +40,7 @@ export function ReceiptStateField({
         value={value}
         onChange={handleChange}
         className={cn(
-          "rounded-lg border border-white/[0.08] bg-white/[0.02] px-3 py-2",
+          "rounded-lg border border-surface-tint/[0.08] bg-surface-tint/[0.02] px-3 py-2",
           "text-sm text-foreground",
         )}
       >

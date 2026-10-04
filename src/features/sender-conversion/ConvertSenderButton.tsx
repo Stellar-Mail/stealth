@@ -5,8 +5,9 @@ type Variant = "solid" | "subtle" | "ghost";
 
 const variantClasses: Record<Variant, string> = {
   solid: "bg-foreground text-background hover:opacity-90",
-  subtle: "border border-white/12 bg-white/[0.05] text-foreground/90 hover:bg-white/[0.09]",
-  ghost: "text-muted-foreground hover:bg-white/[0.06] hover:text-foreground",
+  subtle:
+    "border border-surface-tint/12 bg-surface-tint/[0.05] text-foreground/90 hover:bg-surface-tint/[0.09]",
+  ghost: "text-muted-foreground hover:bg-surface-tint/[0.06] hover:text-foreground",
 };
 
 /**

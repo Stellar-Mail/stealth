@@ -90,8 +90,8 @@ export function SnoozeMetadataEditor({
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
         {/* ── Snoozed messages ── */}
-        <div className="rounded-xl border border-white/[0.06] bg-white/[0.02]">
-          <p className="border-b border-white/[0.06] px-3 py-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+        <div className="rounded-xl border border-surface-tint/[0.06] bg-surface-tint/[0.02]">
+          <p className="border-b border-surface-tint/[0.06] px-3 py-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
             Snoozed messages
           </p>
           <ul
@@ -110,7 +110,9 @@ export function SnoozeMetadataEditor({
                     onClick={() => selectMessage(message)}
                     className={cn(
                       "flex w-full items-start gap-2.5 rounded-lg px-2.5 py-2 text-left transition",
-                      active ? "bg-white/[0.07] ring-1 ring-white/10" : "hover:bg-white/[0.04]",
+                      active
+                        ? "bg-surface-tint/[0.07] ring-1 ring-surface-tint/10"
+                        : "hover:bg-surface-tint/[0.04]",
                     )}
                   >
                     <Clock className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
@@ -130,7 +132,7 @@ export function SnoozeMetadataEditor({
         </div>
 
         {/* ── Editor ── */}
-        <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
+        <div className="rounded-xl border border-surface-tint/[0.06] bg-surface-tint/[0.02] p-4">
           {selected ? (
             <div className="space-y-3">
               <div>
@@ -153,7 +155,7 @@ export function SnoozeMetadataEditor({
                         "rounded-lg border px-2 py-2 text-left text-xs transition",
                         isActive
                           ? "border-emerald-400/30 bg-emerald-400/[0.08] text-foreground"
-                          : "border-white/[0.08] bg-white/[0.02] text-foreground/80 hover:bg-white/[0.05]",
+                          : "border-surface-tint/[0.08] bg-surface-tint/[0.02] text-foreground/80 hover:bg-surface-tint/[0.05]",
                       )}
                     >
                       <span className="block font-medium">{preset.label}</span>
@@ -173,7 +175,7 @@ export function SnoozeMetadataEditor({
                   "flex w-full items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm transition",
                   choice === "custom"
                     ? "border-emerald-400/30 bg-emerald-400/[0.08]"
-                    : "border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.05]",
+                    : "border-surface-tint/[0.08] bg-surface-tint/[0.02] hover:bg-surface-tint/[0.05]",
                 )}
               >
                 <CalendarClock className="h-4 w-4 text-muted-foreground" />
@@ -191,7 +193,7 @@ export function SnoozeMetadataEditor({
                       value={customDate}
                       min={format(now, "yyyy-MM-dd")}
                       onChange={(event) => setCustomDate(event.target.value)}
-                      className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-foreground outline-none focus:border-white/25 [color-scheme:dark]"
+                      className="rounded-lg border border-surface-tint/[0.08] bg-surface-tint/[0.04] px-3 py-2 text-sm text-foreground outline-none focus:border-surface-tint/25 [color-scheme:dark]"
                     />
                   </label>
                   <label className="flex flex-col gap-1">
@@ -202,22 +204,22 @@ export function SnoozeMetadataEditor({
                       type="time"
                       value={customTime}
                       onChange={(event) => setCustomTime(event.target.value)}
-                      className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-foreground outline-none focus:border-white/25 [color-scheme:dark]"
+                      className="rounded-lg border border-surface-tint/[0.08] bg-surface-tint/[0.04] px-3 py-2 text-sm text-foreground outline-none focus:border-surface-tint/25 [color-scheme:dark]"
                     />
                   </label>
                 </div>
               )}
 
               {/* Live preview / validation */}
-              <div className="rounded-lg border border-white/[0.06] bg-black/20 p-3 text-xs">
+              <div className="rounded-lg border border-surface-tint/[0.06] bg-surface-recessed/20 p-3 text-xs">
                 {pending.error ? (
-                  <p className="flex items-center gap-2 text-red-200">
+                  <p className="flex items-center gap-2 text-status-danger dark:text-red-200">
                     <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
                     {pending.error}
                   </p>
                 ) : pending.remindAt ? (
                   <p className="flex items-center gap-2 text-foreground">
-                    <Check className="h-3.5 w-3.5 shrink-0 text-emerald-300" />
+                    <Check className="h-3.5 w-3.5 shrink-0 text-status-success dark:text-emerald-300" />
                     {formatRemindAt(pending.remindAt, now)}
                   </p>
                 ) : (
@@ -233,7 +235,7 @@ export function SnoozeMetadataEditor({
                   "w-full rounded-lg px-3 py-2 text-xs font-semibold transition",
                   pending.remindAt
                     ? "bg-foreground text-background hover:opacity-90"
-                    : "cursor-not-allowed bg-white/[0.04] text-muted-foreground",
+                    : "cursor-not-allowed bg-surface-tint/[0.04] text-muted-foreground",
                 )}
               >
                 Apply reminder

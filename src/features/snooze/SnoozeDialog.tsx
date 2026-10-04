@@ -28,7 +28,7 @@ type Props = {
 };
 
 const inputClass =
-  "rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-foreground outline-none focus:border-white/25 [color-scheme:dark]";
+  "rounded-lg border border-surface-tint/10 bg-surface-tint/[0.04] px-3 py-2 text-sm text-foreground outline-none focus:border-surface-tint/25 [color-scheme:dark]";
 
 /**
  * Smart snooze dialog: one-tap presets plus a custom date/time, with a live
@@ -135,7 +135,7 @@ export function SnoozeDialog({ target, initialState, events, onConfirm, onClose 
               <button
                 onClick={onClose}
                 aria-label="Cancel"
-                className="glow-ring shrink-0 rounded-lg p-1.5 text-muted-foreground transition hover:bg-white/[0.07] hover:text-foreground"
+                className="glow-ring shrink-0 rounded-lg p-1.5 text-muted-foreground transition hover:bg-surface-tint/[0.07] hover:text-foreground"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -154,7 +154,7 @@ export function SnoozeDialog({ target, initialState, events, onConfirm, onClose 
                         "rounded-xl border px-2 py-3 text-center transition",
                         selected
                           ? "border-emerald-400/30 bg-emerald-400/[0.08] text-foreground"
-                          : "border-white/10 bg-white/[0.025] text-foreground/80 hover:bg-white/[0.05]",
+                          : "border-surface-tint/10 bg-surface-tint/[0.025] text-foreground/80 hover:bg-surface-tint/[0.05]",
                       )}
                     >
                       <Clock className="mx-auto mb-1 h-4 w-4 text-muted-foreground" />
@@ -174,7 +174,7 @@ export function SnoozeDialog({ target, initialState, events, onConfirm, onClose 
                   "mt-2 flex w-full items-center gap-2 rounded-xl border px-3 py-2.5 text-left text-sm transition",
                   choice === "custom"
                     ? "border-emerald-400/30 bg-emerald-400/[0.08]"
-                    : "border-white/10 bg-white/[0.025] hover:bg-white/[0.05]",
+                    : "border-surface-tint/10 bg-surface-tint/[0.025] hover:bg-surface-tint/[0.05]",
                 )}
               >
                 <CalendarClock className="h-4 w-4 text-muted-foreground" />
@@ -210,23 +210,23 @@ export function SnoozeDialog({ target, initialState, events, onConfirm, onClose 
               )}
 
               {/* Live preview / validation / conflicts */}
-              <div className="mt-4 min-h-[44px] rounded-xl border border-white/10 bg-black/15 p-3">
+              <div className="mt-4 min-h-[44px] rounded-xl border border-surface-tint/10 bg-surface-recessed/15 p-3">
                 {resolved.error ? (
-                  <p className="flex items-center gap-2 text-xs text-red-200">
+                  <p className="flex items-center gap-2 text-xs text-status-danger dark:text-red-200">
                     <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
                     {resolved.error}
                   </p>
                 ) : resolved.remindAt ? (
                   <div className="space-y-2">
                     <p className="flex items-center gap-2 text-xs text-foreground">
-                      <Check className="h-3.5 w-3.5 shrink-0 text-emerald-300" />
+                      <Check className="h-3.5 w-3.5 shrink-0 text-status-success dark:text-emerald-300" />
                       Returns {format(resolved.remindAt, "EEEE, MMM d")} at{" "}
                       {format(resolved.remindAt, "h:mm a")}
                       <span className="text-muted-foreground">· {getLocalTimeZone()}</span>
                     </p>
                     {conflicts.length > 0 && (
                       <div className="rounded-lg border border-amber-300/20 bg-amber-300/[0.06] p-2">
-                        <p className="flex items-center gap-1.5 text-[11px] font-medium text-amber-200">
+                        <p className="flex items-center gap-1.5 text-[11px] font-medium text-status-warning dark:text-amber-200">
                           <AlertTriangle className="h-3 w-3" />
                           Near {conflicts.length} calendar event
                           {conflicts.length > 1 ? "s" : ""}
@@ -252,7 +252,7 @@ export function SnoozeDialog({ target, initialState, events, onConfirm, onClose 
               <div className="mt-5 flex gap-3">
                 <button
                   onClick={onClose}
-                  className="flex-1 rounded-xl border border-white/10 px-4 py-2.5 text-sm text-muted-foreground transition hover:bg-white/[0.04] hover:text-foreground"
+                  className="flex-1 rounded-xl border border-surface-tint/10 px-4 py-2.5 text-sm text-muted-foreground transition hover:bg-surface-tint/[0.04] hover:text-foreground"
                 >
                   Cancel
                 </button>
@@ -263,7 +263,7 @@ export function SnoozeDialog({ target, initialState, events, onConfirm, onClose 
                     "flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold transition",
                     canConfirm
                       ? "bg-foreground text-background hover:opacity-90"
-                      : "cursor-not-allowed bg-white/[0.06] text-muted-foreground",
+                      : "cursor-not-allowed bg-surface-tint/[0.06] text-muted-foreground",
                   )}
                 >
                   {initialState ? "Update reminder" : "Snooze"}

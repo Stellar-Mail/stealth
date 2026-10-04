@@ -3,9 +3,9 @@ import type { SenderPolicy } from "@/components/mail/data";
 import { getSenderPolicyOption } from "./types";
 
 const toneClasses: Record<SenderPolicy, string> = {
-  allow: "border-emerald-300/25 bg-emerald-300/10 text-emerald-200",
-  verify: "border-sky-300/25 bg-sky-300/10 text-sky-200",
-  block: "border-red-300/25 bg-red-300/10 text-red-200",
+  allow: "border-emerald-300/25 bg-emerald-300/10 text-status-success dark:text-emerald-200",
+  verify: "border-sky-300/25 bg-sky-300/10 text-status-info dark:text-sky-200",
+  block: "border-red-300/25 bg-red-300/10 text-status-danger dark:text-red-200",
 };
 
 /**

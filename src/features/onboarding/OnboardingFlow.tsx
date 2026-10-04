@@ -52,7 +52,7 @@ function ProgressBar({ stepIndex, totalSteps }: { stepIndex: number; totalSteps:
             key={i}
             className="h-0.5 flex-1 rounded-full transition-all duration-300"
             style={{
-              background: i <= stepIndex ? "rgba(255,255,255,0.7)" : "rgba(255,255,255,0.1)",
+              background: i <= stepIndex ? "var(--primary)" : "var(--border)",
             }}
           />
         ))}
@@ -172,7 +172,7 @@ export function OnboardingFlow({ account, mailboxAddress, onComplete }: Props) {
     return (
       <main className="ambient-bg flex min-h-screen items-center justify-center p-4 sm:p-6">
         <div className="glass-strong w-[min(480px,calc(100vw-2rem))] rounded-2xl p-8 text-center">
-          <CheckCircle2 className="mx-auto mb-4 size-10 text-emerald-400" />
+          <CheckCircle2 className="mx-auto mb-4 size-10 text-status-success dark:text-emerald-400" />
           <h1 className="text-lg font-semibold text-foreground">You&apos;re all set</h1>
           <p className="mt-2 text-sm text-muted-foreground">
             Your mailbox policy is active. Opening your inbox…
@@ -222,8 +222,10 @@ export function OnboardingFlow({ account, mailboxAddress, onComplete }: Props) {
                 role="status"
                 className="flex items-start gap-2 rounded-xl border border-amber-400/20 bg-amber-400/[0.06] p-3"
               >
-                <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-amber-300" />
-                <p className="text-xs text-amber-200">{onboarding.restoreError}</p>
+                <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-status-warning dark:text-amber-300" />
+                <p className="text-xs text-status-warning dark:text-amber-200">
+                  {onboarding.restoreError}
+                </p>
               </div>
             </div>
           )}

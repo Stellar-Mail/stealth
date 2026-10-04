@@ -43,7 +43,7 @@ export function BulkTagEditor({ campaigns, onApply, className }: BulkTagEditorPr
   return (
     <section
       className={cn(
-        "flex flex-col gap-4 rounded-xl border border-white/[0.08] bg-white/[0.02] p-4",
+        "flex flex-col gap-4 rounded-xl border border-surface-tint/[0.08] bg-surface-tint/[0.02] p-4",
         className,
       )}
     >
@@ -64,14 +64,14 @@ export function BulkTagEditor({ campaigns, onApply, className }: BulkTagEditorPr
                   "flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left text-sm transition-colors",
                   checked
                     ? "border-sky-500/40 bg-sky-500/10"
-                    : "border-white/[0.06] hover:bg-white/[0.04]",
+                    : "border-surface-tint/[0.06] hover:bg-surface-tint/[0.04]",
                 )}
               >
                 <span className="flex items-center gap-2">
                   <span
                     className={cn(
                       "flex h-4 w-4 items-center justify-center rounded border",
-                      checked ? "border-sky-400 bg-sky-500/20" : "border-white/20",
+                      checked ? "border-sky-400 bg-sky-500/20" : "border-surface-tint/20",
                     )}
                   >
                     {checked ? <Check className="h-3 w-3" /> : null}
@@ -109,7 +109,7 @@ export function BulkTagEditor({ campaigns, onApply, className }: BulkTagEditorPr
           onChange={(event) => setTagsInput(event.target.value)}
           aria-label="Tags to add or remove"
           placeholder="Tags (comma separated), e.g. promo, vip"
-          className="rounded-lg border border-white/[0.08] bg-transparent px-3 py-2 text-sm outline-none focus:border-sky-500/40"
+          className="rounded-lg border border-surface-tint/[0.08] bg-transparent px-3 py-2 text-sm outline-none focus:border-sky-500/40"
         />
         <div className="flex gap-2">
           <button
@@ -119,8 +119,8 @@ export function BulkTagEditor({ campaigns, onApply, className }: BulkTagEditorPr
             className={cn(
               "flex items-center gap-1 rounded-lg border px-3 py-2 text-sm transition-colors",
               canApply
-                ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20"
-                : "cursor-not-allowed border-white/[0.06] text-muted-foreground opacity-60",
+                ? "border-emerald-500/30 bg-emerald-500/10 text-status-success dark:text-emerald-300 hover:bg-emerald-500/20"
+                : "cursor-not-allowed border-surface-tint/[0.06] text-muted-foreground opacity-60",
             )}
           >
             <Plus className="h-4 w-4" />
@@ -133,8 +133,8 @@ export function BulkTagEditor({ campaigns, onApply, className }: BulkTagEditorPr
             className={cn(
               "flex items-center gap-1 rounded-lg border px-3 py-2 text-sm transition-colors",
               canApply
-                ? "border-rose-500/30 bg-rose-500/10 text-rose-300 hover:bg-rose-500/20"
-                : "cursor-not-allowed border-white/[0.06] text-muted-foreground opacity-60",
+                ? "border-rose-500/30 bg-rose-500/10 text-status-danger dark:text-rose-300 hover:bg-rose-500/20"
+                : "cursor-not-allowed border-surface-tint/[0.06] text-muted-foreground opacity-60",
             )}
           >
             <X className="h-4 w-4" />
@@ -144,7 +144,7 @@ export function BulkTagEditor({ campaigns, onApply, className }: BulkTagEditorPr
       </div>
 
       {lastResult ? (
-        <div className="rounded-lg border border-white/[0.08] bg-white/[0.02] p-3 text-sm">
+        <div className="rounded-lg border border-surface-tint/[0.08] bg-surface-tint/[0.02] p-3 text-sm">
           <p className="font-medium">{summarizeBulkTagEdit(lastResult)}</p>
           <ul className="mt-2 flex flex-col gap-1 text-xs text-muted-foreground">
             {lastResult.changes

@@ -7,14 +7,14 @@ import { filterPersonas, isPersonaAssigned } from "../utils/personaHelpers";
 import { AdminSearchBar } from "../AdminSearchBar";
 
 const AVATAR_COLORS = [
-  "bg-violet-500/20 text-violet-300",
-  "bg-orange-500/20 text-orange-300",
-  "bg-cyan-500/20 text-cyan-300",
-  "bg-emerald-500/20 text-emerald-300",
-  "bg-rose-500/20 text-rose-300",
-  "bg-amber-500/20 text-amber-300",
-  "bg-sky-500/20 text-sky-300",
-  "bg-indigo-500/20 text-indigo-300",
+  "bg-violet-500/20 text-status-special dark:text-violet-300",
+  "bg-orange-500/20 text-status-warning dark:text-orange-300",
+  "bg-cyan-500/20 text-status-info dark:text-cyan-300",
+  "bg-emerald-500/20 text-status-success dark:text-emerald-300",
+  "bg-rose-500/20 text-status-danger dark:text-rose-300",
+  "bg-amber-500/20 text-status-warning dark:text-amber-300",
+  "bg-sky-500/20 text-status-info dark:text-sky-300",
+  "bg-indigo-500/20 text-status-info dark:text-indigo-300",
 ];
 
 function avatarColor(personaId: string): string {
@@ -46,9 +46,9 @@ export function PersonaPicker({ pool, segment, onToggle, onClose }: PersonaPicke
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="relative flex w-full max-w-lg flex-col rounded-2xl border border-white/[0.10] bg-black/90 shadow-2xl backdrop-blur-xl overflow-hidden max-h-[80vh]">
+      <div className="relative flex w-full max-w-lg flex-col rounded-2xl border border-surface-tint/[0.10] bg-surface-recessed/90 shadow-2xl backdrop-blur-xl overflow-hidden max-h-[80vh]">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-white/[0.06] px-5 py-4">
+        <div className="flex items-center justify-between border-b border-surface-tint/[0.06] px-5 py-4">
           <div>
             <h3 className="text-sm font-semibold text-foreground">Add personas</h3>
             <p className="mt-0.5 text-[11px] text-muted-foreground">
@@ -62,14 +62,14 @@ export function PersonaPicker({ pool, segment, onToggle, onClose }: PersonaPicke
             type="button"
             onClick={onClose}
             aria-label="Close persona picker"
-            className="rounded-lg p-1.5 text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground"
+            className="rounded-lg p-1.5 text-muted-foreground transition hover:bg-surface-tint/[0.06] hover:text-foreground"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
         {/* Search */}
-        <div className="border-b border-white/[0.06] px-5 py-3">
+        <div className="border-b border-surface-tint/[0.06] px-5 py-3">
           <AdminSearchBar
             value={query}
             onChange={setQuery}
@@ -80,7 +80,7 @@ export function PersonaPicker({ pool, segment, onToggle, onClose }: PersonaPicke
         </div>
 
         {/* Persona list */}
-        <div className="flex-1 overflow-y-auto divide-y divide-white/[0.04]">
+        <div className="flex-1 overflow-y-auto divide-y divide-surface-tint/[0.04]">
           {filtered.length === 0 ? (
             <p className="px-5 py-10 text-center text-sm text-muted-foreground">
               No personas found.
@@ -95,7 +95,7 @@ export function PersonaPicker({ pool, segment, onToggle, onClose }: PersonaPicke
                   onClick={() => onToggle(persona.id)}
                   className={cn(
                     "w-full px-5 py-3 text-left transition flex items-center gap-3",
-                    "hover:bg-white/[0.03] cursor-pointer",
+                    "hover:bg-surface-tint/[0.03] cursor-pointer",
                   )}
                   aria-pressed={assigned}
                 >
@@ -125,8 +125,8 @@ export function PersonaPicker({ pool, segment, onToggle, onClose }: PersonaPicke
                     className={cn(
                       "shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium",
                       assigned
-                        ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
-                        : "bg-white/[0.04] border-white/[0.08] text-muted-foreground",
+                        ? "bg-emerald-500/10 border-emerald-500/20 text-status-success dark:text-emerald-400"
+                        : "bg-surface-tint/[0.04] border-surface-tint/[0.08] text-muted-foreground",
                     )}
                   >
                     {assigned ? "Assigned" : "Add"}

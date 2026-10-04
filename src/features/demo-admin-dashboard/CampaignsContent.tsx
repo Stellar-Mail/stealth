@@ -18,7 +18,7 @@ export function CampaignsContent() {
   return (
     <div className="space-y-6">
       {/* Sub-navigation toggle */}
-      <div className="flex items-center gap-1 rounded-lg bg-white/[0.03] p-1 border border-white/[0.06] w-fit">
+      <div className="flex items-center gap-1 rounded-lg bg-surface-tint/[0.03] p-1 border border-surface-tint/[0.06] w-fit">
         {(
           [
             { key: "assignments" as const, label: "Assignments", icon: Target },
@@ -39,10 +39,10 @@ export function CampaignsContent() {
               aria-current={isActive ? "page" : undefined}
               onClick={() => setCampaignSubView(tab.key)}
               className={cn(
-                "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20",
+                "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-surface-tint/20",
                 isActive
-                  ? "bg-white/[0.08] text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground hover:bg-white/[0.04]",
+                  ? "bg-surface-tint/[0.08] text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground hover:bg-surface-tint/[0.04]",
               )}
             >
               <TabIcon className="h-3.5 w-3.5" />

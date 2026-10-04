@@ -43,14 +43,14 @@ export function AdminSearchBar({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className="w-full rounded-xl border border-white/10 bg-white/[0.04] py-2 pl-9 pr-9 text-sm text-foreground placeholder:text-muted-foreground/50 outline-none transition focus:border-white/20"
+          className="w-full rounded-xl border border-surface-tint/10 bg-surface-tint/[0.04] py-2 pl-9 pr-9 text-sm text-foreground placeholder:text-muted-foreground/50 outline-none transition focus:border-surface-tint/20"
         />
         {hasQuery && (
           <button
             type="button"
             onClick={() => onChange("")}
             aria-label="Clear search"
-            className="absolute right-2 rounded-lg p-1 text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground"
+            className="absolute right-2 rounded-lg p-1 text-muted-foreground transition hover:bg-surface-tint/[0.06] hover:text-foreground"
           >
             <X className="h-3.5 w-3.5" />
           </button>

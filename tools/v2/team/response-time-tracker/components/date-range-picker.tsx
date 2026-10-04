@@ -67,7 +67,7 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
           onBlur={() => setFocusedField(null)}
           onKeyDown={(e) => handleKeyDown(e, "start")}
           aria-label="Start date"
-          className="rounded-lg border border-border/30 bg-white/[0.04] px-3 py-1.5 text-sm text-foreground transition-colors focus:border-ring/50 focus:outline-none focus:ring-2 focus:ring-ring/30"
+          className="rounded-lg border border-border/30 bg-surface-tint/[0.04] px-3 py-1.5 text-sm text-foreground transition-colors focus:border-ring/50 focus:outline-none focus:ring-2 focus:ring-ring/30"
         />
         <span className="text-xs text-muted-foreground" aria-hidden="true">
           to
@@ -85,7 +85,7 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
           onBlur={() => setFocusedField(null)}
           onKeyDown={(e) => handleKeyDown(e, "end")}
           aria-label="End date"
-          className="rounded-lg border border-border/30 bg-white/[0.04] px-3 py-1.5 text-sm text-foreground transition-colors focus:border-ring/50 focus:outline-none focus:ring-2 focus:ring-ring/30"
+          className="rounded-lg border border-border/30 bg-surface-tint/[0.04] px-3 py-1.5 text-sm text-foreground transition-colors focus:border-ring/50 focus:outline-none focus:ring-2 focus:ring-ring/30"
         />
       </div>
       <p className="sr-only" aria-live="polite" role="status">

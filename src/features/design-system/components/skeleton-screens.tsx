@@ -49,7 +49,7 @@ export function MailListSkeleton({ className }: { className?: string }) {
       )}
     >
       {/* header */}
-      <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.025] px-3.5 py-3">
+      <div className="flex items-center justify-between border-b border-surface-tint/10 bg-surface-tint/[0.025] px-3.5 py-3">
         <div className="space-y-1">
           <SkeletonBlock className="h-3.5 w-20 rounded-sm" />
           <SkeletonBlock className="h-3 w-28 rounded-sm opacity-60" />
@@ -79,7 +79,7 @@ export function MailReaderSkeleton({ className }: { className?: string }) {
       )}
     >
       {/* toolbar */}
-      <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.025] px-4 py-2.5">
+      <div className="flex items-center justify-between border-b border-surface-tint/10 bg-surface-tint/[0.025] px-4 py-2.5">
         <Row>
           <SkeletonButton widthClass="w-8" />
           <SkeletonButton widthClass="w-8" />
@@ -168,7 +168,10 @@ export function CalendarSkeleton({ className }: { className?: string }) {
       {/* upcoming events */}
       <div className="mt-2 space-y-2">
         {Array.from({ length: 3 }).map((_, i) => (
-          <Row key={i} className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5">
+          <Row
+            key={i}
+            className="rounded-lg border border-surface-tint/10 bg-surface-tint/[0.03] px-3 py-2.5"
+          >
             <SkeletonBlock className="h-8 w-1 rounded-full shrink-0" />
             <div className="space-y-1 min-w-0 flex-1">
               <SkeletonBlock className="h-3.5 w-32 rounded-sm" />
@@ -185,7 +188,7 @@ export function CalendarSkeleton({ className }: { className?: string }) {
 
 function SettingsRow() {
   return (
-    <Row className="justify-between py-3 border-b border-white/[0.06] last:border-0">
+    <Row className="justify-between py-3 border-b border-surface-tint/[0.06] last:border-0">
       <div className="space-y-1">
         <SkeletonBlock className="h-3.5 w-32 rounded-sm" />
         <SkeletonBlock className="h-3 w-52 rounded-sm opacity-60" />
@@ -203,7 +206,7 @@ export function SettingsSkeleton({ className }: { className?: string }) {
       className={cn("flex flex-col gap-6 p-5", className)}
     >
       {/* identity card */}
-      <div className="rounded-xl border border-white/10 bg-white/[0.025] p-4 space-y-3">
+      <div className="rounded-xl border border-surface-tint/10 bg-surface-tint/[0.025] p-4 space-y-3">
         <Row className="gap-3">
           <SkeletonAvatar sizeClass="size-10" shape="square" />
           <div className="space-y-1.5 flex-1">
@@ -217,7 +220,7 @@ export function SettingsSkeleton({ className }: { className?: string }) {
       {Array.from({ length: 3 }).map((_, g) => (
         <div key={g}>
           <SkeletonBlock className="mb-2 h-3 w-20 rounded-sm opacity-50" />
-          <div className="rounded-xl border border-white/10 bg-white/[0.025] px-4">
+          <div className="rounded-xl border border-surface-tint/10 bg-surface-tint/[0.025] px-4">
             {Array.from({ length: 3 }).map((_, r) => (
               <SettingsRow key={r} />
             ))}
@@ -250,7 +253,7 @@ export function RightPanelSkeleton({ className }: { className?: string }) {
       </Row>
 
       {/* sender card */}
-      <div className="rounded-xl border border-white/10 bg-white/[0.025] p-3 space-y-2">
+      <div className="rounded-xl border border-surface-tint/10 bg-surface-tint/[0.025] p-3 space-y-2">
         <Row className="gap-3">
           <SkeletonAvatar sizeClass="size-8" />
           <div className="space-y-1 flex-1">
@@ -265,7 +268,10 @@ export function RightPanelSkeleton({ className }: { className?: string }) {
       <div className="space-y-2">
         <SkeletonBlock className="h-3 w-20 rounded-sm opacity-50" />
         {Array.from({ length: 2 }).map((_, i) => (
-          <Row key={i} className="rounded-lg border border-white/10 bg-white/[0.025] px-3 py-2.5">
+          <Row
+            key={i}
+            className="rounded-lg border border-surface-tint/10 bg-surface-tint/[0.025] px-3 py-2.5"
+          >
             <SkeletonBlock className="h-7 w-1 rounded-full shrink-0" />
             <div className="space-y-1 flex-1">
               <SkeletonBlock className="h-3.5 w-28 rounded-sm" />
@@ -276,7 +282,7 @@ export function RightPanelSkeleton({ className }: { className?: string }) {
       </div>
 
       {/* provenance block */}
-      <div className="rounded-xl border border-white/10 bg-white/[0.025] p-3 space-y-2.5">
+      <div className="rounded-xl border border-surface-tint/10 bg-surface-tint/[0.025] p-3 space-y-2.5">
         <SkeletonBlock className="h-3 w-24 rounded-sm opacity-50" />
         {Array.from({ length: 3 }).map((_, i) => (
           <Row key={i} className="justify-between">

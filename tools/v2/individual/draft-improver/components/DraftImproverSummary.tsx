@@ -23,11 +23,13 @@ export function DraftImproverSummary({
       {summaryItems.map(([key, label, value]) => (
         <div
           className={`rounded-lg border p-4 ${
-            key === "errors" && value > 0 ? "border-red-200 bg-red-50" : "border-slate-200 bg-white"
+            key === "errors" && value > 0 ? "border-red-200 bg-red-50" : "border-border bg-card"
           }`}
           key={key}
         >
-          <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</dt>
+          <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            {label}
+          </dt>
           <dd
             className={`mt-1 text-2xl font-semibold ${
               key === "errors" && value > 0 ? "text-red-800" : "text-slate-950"

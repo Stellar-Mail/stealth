@@ -1,8 +1,8 @@
 .dataset-summary {
-  background: var(--dashboard-panel, rgba(15, 23, 42, 0.72));
-  border: 1px solid rgba(148, 163, 184, 0.24);
+  background: var(--dashboard-panel, var(--glass-strong));
+  border: 1px solid var(--border);
   border-radius: 1.25rem;
-  color: #e2e8f0;
+  color: var(--foreground);
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
@@ -10,7 +10,7 @@
 }
 
 .dataset-summary__header {
-  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+  border-bottom: 1px solid var(--border);
   padding-bottom: 1rem;
 }
 
@@ -21,7 +21,7 @@
 }
 
 .dataset-summary__stat-card {
-  background: rgba(30, 41, 59, 0.4);
+  background: var(--secondary);
   border-radius: 0.75rem;
   display: flex;
   flex-direction: column;
@@ -29,13 +29,13 @@
 }
 
 .dataset-summary__stat-value {
-  color: #f8fafc;
+  color: var(--foreground);
   font-size: 1.5rem;
   font-weight: 700;
 }
 
 .dataset-summary__stat-label {
-  color: #94a3b8;
+  color: var(--muted-foreground);
   font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
@@ -80,11 +80,11 @@
 }
 
 .dataset-summary__warning-item--info .dataset-summary__warning-icon {
-  color: #38bdf8;
+  color: var(--status-info);
 }
 .dataset-summary__warning-item--warning .dataset-summary__warning-icon {
-  color: #facc15;
+  color: var(--status-warning);
 }
 .dataset-summary__warning-item--error .dataset-summary__warning-icon {
-  color: #f87171;
+  color: var(--status-danger);
 }

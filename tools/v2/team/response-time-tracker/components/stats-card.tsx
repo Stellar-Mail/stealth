@@ -17,7 +17,7 @@ export function StatsCard({ icon, label, value, trend, trendLabel }: StatsCardPr
 
   return (
     <div
-      className="relative overflow-hidden rounded-2xl border border-border/40 bg-white/5 p-5 backdrop-blur-sm"
+      className="relative overflow-hidden rounded-2xl border border-border/40 bg-surface-tint/5 p-5 backdrop-blur-sm"
       role="region"
       aria-label={label}
     >
@@ -27,7 +27,7 @@ export function StatsCard({ icon, label, value, trend, trendLabel }: StatsCardPr
         </p>
         {icon ? (
           <div
-            className="flex size-8 items-center justify-center rounded-lg bg-white/5 text-foreground"
+            className="flex size-8 items-center justify-center rounded-lg bg-surface-tint/5 text-foreground"
             aria-hidden="true"
           >
             {icon}

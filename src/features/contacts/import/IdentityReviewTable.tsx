@@ -19,25 +19,25 @@ type Props = {
 };
 
 const TRUST_COLORS: Record<string, string> = {
-  allow: "border-emerald-400/20 bg-emerald-400/[0.06] text-emerald-300",
-  block: "border-red-400/20 bg-red-400/[0.06] text-red-300",
-  default: "border-white/10 bg-white/[0.04] text-muted-foreground",
+  allow: "border-emerald-400/20 bg-emerald-400/[0.06] text-status-success dark:text-emerald-300",
+  block: "border-red-400/20 bg-red-400/[0.06] text-status-danger dark:text-red-300",
+  default: "border-surface-tint/10 bg-surface-tint/[0.04] text-muted-foreground",
 };
 
 const MATCH_META: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
   exact: {
     label: "Matched",
-    color: "text-emerald-400",
+    color: "text-status-success dark:text-emerald-400",
     icon: <CheckCircle2 className="h-3.5 w-3.5" />,
   },
   fuzzy: {
     label: "Similar",
-    color: "text-sky-400",
+    color: "text-status-info dark:text-sky-400",
     icon: <HelpCircle className="h-3.5 w-3.5" />,
   },
   ambiguous: {
     label: "Review needed",
-    color: "text-amber-400",
+    color: "text-status-warning dark:text-amber-400",
     icon: <AlertCircle className="h-3.5 w-3.5" />,
   },
   none: {
@@ -109,8 +109,8 @@ export function IdentityReviewTable({ rows, onChange }: Props) {
 
       {hasAmbiguous && (
         <div className="flex items-start gap-2 rounded-xl border border-amber-400/20 bg-amber-400/[0.06] p-3">
-          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
-          <div className="text-xs text-amber-200">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-status-warning dark:text-amber-400" />
+          <div className="text-xs text-status-warning dark:text-amber-200">
             <span className="font-medium">
               {ambiguousCount} ambiguous match{ambiguousCount !== 1 ? "es" : ""}
             </span>{" "}
@@ -127,7 +127,7 @@ export function IdentityReviewTable({ rows, onChange }: Props) {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by name or address…"
-            className="w-full rounded-lg border border-white/10 bg-white/[0.04] py-1.5 pl-8 pr-3 text-xs text-foreground placeholder:text-muted-foreground/50 outline-none focus:border-white/20"
+            className="w-full rounded-lg border border-surface-tint/10 bg-surface-tint/[0.04] py-1.5 pl-8 pr-3 text-xs text-foreground placeholder:text-muted-foreground/50 outline-none focus:border-surface-tint/20"
           />
         </div>
       </div>
@@ -147,8 +147,8 @@ export function IdentityReviewTable({ rows, onChange }: Props) {
             className={cn(
               "rounded-md border px-2 py-0.5 transition",
               filter === t.key
-                ? "border-white/20 bg-white/[0.08] text-foreground"
-                : "border-white/5 text-muted-foreground hover:border-white/10 hover:text-foreground",
+                ? "border-surface-tint/20 bg-surface-tint/[0.08] text-foreground"
+                : "border-surface-tint/5 text-muted-foreground hover:border-surface-tint/10 hover:text-foreground",
             )}
           >
             {t.label}
@@ -175,7 +175,7 @@ export function IdentityReviewTable({ rows, onChange }: Props) {
                   ? "border-red-400/20 bg-red-400/[0.03]"
                   : row.match?.type === "ambiguous"
                     ? "border-amber-400/20 bg-amber-400/[0.03]"
-                    : "border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04]",
+                    : "border-surface-tint/[0.06] bg-surface-tint/[0.02] hover:bg-surface-tint/[0.04]",
               )}
             >
               <div className="flex items-center gap-2">
@@ -185,7 +185,7 @@ export function IdentityReviewTable({ rows, onChange }: Props) {
                     value={row.name}
                     onChange={(e) => updateRow(row.id, { name: e.target.value })}
                     placeholder="Name"
-                    className="min-w-0 flex-1 rounded-lg border border-white/10 bg-white/[0.04] px-2 py-1 text-xs text-foreground placeholder:text-muted-foreground/50 outline-none focus:border-white/20"
+                    className="min-w-0 flex-1 rounded-lg border border-surface-tint/10 bg-surface-tint/[0.04] px-2 py-1 text-xs text-foreground placeholder:text-muted-foreground/50 outline-none focus:border-surface-tint/20"
                   />
                 </div>
                 <select
@@ -207,7 +207,7 @@ export function IdentityReviewTable({ rows, onChange }: Props) {
                 <button
                   onClick={() => removeRow(row.id)}
                   aria-label="Remove contact"
-                  className="shrink-0 rounded p-1 text-muted-foreground transition hover:text-red-400"
+                  className="shrink-0 rounded p-1 text-muted-foreground transition hover:text-status-danger dark:hover:text-red-400"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
@@ -218,8 +218,10 @@ export function IdentityReviewTable({ rows, onChange }: Props) {
                 onChange={(e) => updateRow(row.id, { address: e.target.value })}
                 placeholder="alice*stealth.xyz or GABC…"
                 className={cn(
-                  "w-full rounded-lg border bg-white/[0.04] px-2.5 py-1.5 font-mono text-xs outline-none focus:border-white/20",
-                  row.error ? "border-red-400/30 text-red-300" : "border-white/10 text-foreground",
+                  "w-full rounded-lg border bg-surface-tint/[0.04] px-2.5 py-1.5 font-mono text-xs outline-none focus:border-surface-tint/20",
+                  row.error
+                    ? "border-red-400/30 text-status-danger dark:text-red-300"
+                    : "border-surface-tint/10 text-foreground",
                 )}
               />
 
@@ -231,7 +233,7 @@ export function IdentityReviewTable({ rows, onChange }: Props) {
                   </span>
                 )}
                 {row.error && (
-                  <span className="flex items-center gap-1 text-red-400">
+                  <span className="flex items-center gap-1 text-status-danger dark:text-red-400">
                     <AlertCircle className="h-3 w-3 shrink-0" />
                     {row.error}
                   </span>

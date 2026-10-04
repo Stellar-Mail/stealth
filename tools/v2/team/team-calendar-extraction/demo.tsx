@@ -6,7 +6,7 @@ import { TeamCalendarExtraction } from "./components/TeamCalendarExtraction";
  */
 export function TeamCalendarExtractionDemo() {
   return (
-    <div className="w-full min-h-screen bg-zinc-950 p-6 md:p-12 flex items-center justify-center">
+    <div className="w-full min-h-screen bg-surface-panel p-6 md:p-12 flex items-center justify-center">
       <div className="w-full max-w-6xl">
         <TeamCalendarExtraction />
       </div>

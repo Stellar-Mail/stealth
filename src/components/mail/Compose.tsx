@@ -512,7 +512,7 @@ export function Compose({
             transition={{ type: "spring", stiffness: 280, damping: 28 }}
             className="glass-strong fixed bottom-6 right-6 z-50 w-[min(640px,calc(100vw-2rem))] overflow-hidden rounded-2xl"
           >
-            <div className="flex items-center justify-between border-b border-white/5 px-4 py-3">
+            <div className="flex items-center justify-between border-b border-surface-tint/5 px-4 py-3">
               <div className="flex items-center gap-3">
                 <div className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
                   {getHeaderTitle(mode)}
@@ -527,7 +527,7 @@ export function Compose({
                 type="button"
                 onClick={close}
                 aria-label="Close compose"
-                className="rounded-lg p-1.5 text-muted-foreground transition hover:bg-white/6 hover:text-foreground"
+                className="rounded-lg p-1.5 text-muted-foreground transition hover:bg-surface-tint/6 hover:text-foreground"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -580,7 +580,7 @@ export function Compose({
                 onChange={(e) => setBody(e.target.value)}
                 placeholder="Write your message…"
                 aria-label="Message"
-                className="glow-ring w-full resize-none rounded-lg border border-transparent bg-transparent px-1 py-2 text-sm placeholder:text-muted-foreground focus:border-white/10"
+                className="glow-ring w-full resize-none rounded-lg border border-transparent bg-transparent px-1 py-2 text-sm placeholder:text-muted-foreground focus:border-surface-tint/10"
               />
 
               {sendStages.length > 0 && (
@@ -602,7 +602,7 @@ export function Compose({
                   {attachments.map((att, i) => (
                     <div
                       key={`${att.name}-${att.size}`}
-                      className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/4 px-2 py-1.5"
+                      className="flex items-center gap-2 rounded-lg border border-surface-tint/10 bg-surface-tint/4 px-2 py-1.5"
                     >
                       {att.type === "image" ? (
                         <ImageIcon className="h-3.5 w-3.5 text-muted-foreground" />
@@ -615,7 +615,7 @@ export function Compose({
                         type="button"
                         onClick={() => removeAttachment(i)}
                         aria-label={`Remove attachment ${att.name}`}
-                        className="ml-1 rounded p-0.5 text-muted-foreground transition hover:bg-white/8 hover:text-foreground"
+                        className="ml-1 rounded p-0.5 text-muted-foreground transition hover:bg-surface-tint/8 hover:text-foreground"
                       >
                         <X className="h-3 w-3" />
                       </button>
@@ -629,7 +629,7 @@ export function Compose({
                 initial={{ opacity: 0, y: 4 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.15 }}
-                className="mt-2 flex items-center gap-2 rounded-lg border border-white/10 bg-white/3 px-3 py-2 text-[11px] text-muted-foreground"
+                className="mt-2 flex items-center gap-2 rounded-lg border border-surface-tint/10 bg-surface-tint/3 px-3 py-2 text-[11px] text-muted-foreground"
               >
                 <Sparkles className="h-3.5 w-3.5 shrink-0" />
                 <span className="min-w-0 flex-1 truncate">
@@ -638,7 +638,7 @@ export function Compose({
                 <button
                   type="button"
                   onClick={() => insertAtCursor(aiSuggestion)}
-                  className="shrink-0 rounded-md border border-white/10 bg-white/6 px-2 py-0.5 text-[10px] text-foreground/90 transition hover:bg-white/10"
+                  className="shrink-0 rounded-md border border-surface-tint/10 bg-surface-tint/6 px-2 py-0.5 text-[10px] text-foreground/90 transition hover:bg-surface-tint/10"
                 >
                   Tab to insert
                 </button>
@@ -659,7 +659,7 @@ export function Compose({
                   detail="On-chain proof"
                   onClick={() => setReceipt((value) => !value)}
                 />
-                <label className="flex items-center justify-between rounded-lg border border-white/10 bg-white/[0.035] px-3 py-2">
+                <label className="flex items-center justify-between rounded-lg border border-surface-tint/10 bg-surface-tint/[0.035] px-3 py-2">
                   <div className="flex items-center gap-2">
                     <Coins className="h-4 w-4 text-muted-foreground" />
                     <span className="min-w-0 flex-1">
@@ -674,12 +674,12 @@ export function Compose({
                             setPostage(event.target.value);
                           }}
                           inputMode="decimal"
-                          className="w-16 rounded-sm bg-transparent font-mono outline-none focus-visible:ring-2 focus-visible:ring-white/20"
+                          className="w-16 rounded-sm bg-transparent font-mono outline-none focus-visible:ring-2 focus-visible:ring-surface-tint/20"
                           aria-label="Postage amount"
                         />
                         XLM
                         {isTrustedSender(quoteState) && (
-                          <span className="ml-1 text-[9px] text-emerald-400 font-medium uppercase tracking-wide">
+                          <span className="ml-1 text-[9px] text-status-success dark:text-emerald-400 font-medium uppercase tracking-wide">
                             free
                           </span>
                         )}
@@ -690,7 +690,7 @@ export function Compose({
                 </label>
               </div>
             </div>
-            <div className="flex items-center gap-1 border-t border-white/5 px-3 py-2.5">
+            <div className="flex items-center gap-1 border-t border-surface-tint/5 px-3 py-2.5">
               {/* Hidden file inputs */}
               <input
                 ref={fileInputRef}
@@ -713,7 +713,7 @@ export function Compose({
                 whileTap={{ scale: 0.9 }}
                 onClick={() => fileInputRef.current?.click()}
                 aria-label="Attach files"
-                className="rounded-lg p-2 text-muted-foreground transition hover:bg-white/6 hover:text-foreground"
+                className="rounded-lg p-2 text-muted-foreground transition hover:bg-surface-tint/6 hover:text-foreground"
               >
                 <Paperclip className="h-4 w-4" />
               </motion.button>
@@ -723,7 +723,7 @@ export function Compose({
                 whileTap={{ scale: 0.9 }}
                 onClick={() => imageInputRef.current?.click()}
                 aria-label="Attach image"
-                className="rounded-lg p-2 text-muted-foreground transition hover:bg-white/6 hover:text-foreground"
+                className="rounded-lg p-2 text-muted-foreground transition hover:bg-surface-tint/6 hover:text-foreground"
               >
                 <ImageIcon className="h-4 w-4" />
               </motion.button>
@@ -737,8 +737,8 @@ export function Compose({
                   aria-expanded={emojiOpen}
                   aria-haspopup="dialog"
                   className={cn(
-                    "rounded-lg p-2 text-muted-foreground transition hover:bg-white/6 hover:text-foreground",
-                    emojiOpen && "bg-white/6 text-foreground",
+                    "rounded-lg p-2 text-muted-foreground transition hover:bg-surface-tint/6 hover:text-foreground",
+                    emojiOpen && "bg-surface-tint/6 text-foreground",
                   )}
                 >
                   <Smile className="h-4 w-4" />
@@ -773,7 +773,7 @@ export function Compose({
                     new Date() > new Date(quoteState.quote.expiresAt),
                   )
                 }
-                className="ml-auto inline-flex items-center gap-2 rounded-lg border border-white/10 px-3 py-1.5 text-xs text-muted-foreground transition hover:bg-white/6 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                className="ml-auto inline-flex items-center gap-2 rounded-lg border border-surface-tint/10 px-3 py-1.5 text-xs text-muted-foreground transition hover:bg-surface-tint/6 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <CalendarClock className="h-3.5 w-3.5" />
                 Schedule
@@ -809,27 +809,27 @@ export function Compose({
                 if (isSending) {
                   sendLabel = "Sending...";
                   sendButtonClass =
-                    "inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.08] px-3 py-1.5 text-xs font-medium text-foreground opacity-50 cursor-not-allowed";
+                    "inline-flex items-center gap-2 rounded-lg border border-surface-tint/10 bg-surface-tint/[0.08] px-3 py-1.5 text-xs font-medium text-foreground opacity-50 cursor-not-allowed";
                 } else if (isBlocked) {
                   sendLabel = "Blocked";
                   sendButtonClass =
-                    "inline-flex items-center gap-2 rounded-lg border border-red-300/20 bg-red-300/[0.08] px-3 py-1.5 text-xs font-medium text-red-200 opacity-70 cursor-not-allowed";
+                    "inline-flex items-center gap-2 rounded-lg border border-red-300/20 bg-red-300/[0.08] px-3 py-1.5 text-xs font-medium text-status-danger dark:text-red-200 opacity-70 cursor-not-allowed";
                 } else if (isStale) {
                   sendLabel = "Stale";
                   sendButtonClass =
-                    "inline-flex items-center gap-2 rounded-lg border border-yellow-300/20 bg-yellow-300/[0.08] px-3 py-1.5 text-xs font-medium text-yellow-200 opacity-70 cursor-not-allowed";
+                    "inline-flex items-center gap-2 rounded-lg border border-yellow-300/20 bg-yellow-300/[0.08] px-3 py-1.5 text-xs font-medium text-status-warning dark:text-yellow-200 opacity-70 cursor-not-allowed";
                 } else if (trusted) {
                   sendLabel = "Send free";
                   sendButtonClass =
-                    "inline-flex items-center gap-2 rounded-lg border border-emerald-300/20 bg-emerald-300/[0.08] px-3 py-1.5 text-xs font-medium text-emerald-100 transition hover:bg-emerald-300/[0.14]";
+                    "inline-flex items-center gap-2 rounded-lg border border-emerald-300/20 bg-emerald-300/[0.08] px-3 py-1.5 text-xs font-medium text-status-success dark:text-emerald-100 transition hover:bg-emerald-300/[0.14]";
                 } else if (quoteState.status === "quoted" && Number(postage) > 0) {
                   sendLabel = `Send + ${postage} XLM`;
                   sendButtonClass =
-                    "inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.08] px-3 py-1.5 text-xs font-medium text-foreground transition hover:bg-white/[0.14]";
+                    "inline-flex items-center gap-2 rounded-lg border border-surface-tint/10 bg-surface-tint/[0.08] px-3 py-1.5 text-xs font-medium text-foreground transition hover:bg-surface-tint/[0.14]";
                 } else {
                   sendLabel = "Send";
                   sendButtonClass =
-                    "inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.08] px-3 py-1.5 text-xs font-medium text-foreground transition hover:bg-white/[0.14]";
+                    "inline-flex items-center gap-2 rounded-lg border border-surface-tint/10 bg-surface-tint/[0.08] px-3 py-1.5 text-xs font-medium text-foreground transition hover:bg-surface-tint/[0.14]";
                 }
 
                 const disabledReason = getDisabledReason(isBlocked, recipientResolving, isStale);
@@ -873,17 +873,17 @@ function recipientTrustState(state: RecipientReadiness["state"]): TrustState {
 function getRecipientChipColor(state: RecipientReadiness["state"]) {
   switch (state) {
     case "verified":
-      return "border-emerald-300/25 bg-emerald-300/10 text-emerald-100";
+      return "border-emerald-300/25 bg-emerald-300/10 text-status-success dark:text-emerald-100";
     case "blocked":
-      return "border-red-300/25 bg-red-300/10 text-red-100";
+      return "border-red-300/25 bg-red-300/10 text-status-danger dark:text-red-100";
     case "invalid":
-      return "border-red-300/25 bg-red-300/10 text-red-100";
+      return "border-red-300/25 bg-red-300/10 text-status-danger dark:text-red-100";
     case "unknown":
-      return "border-amber-300/25 bg-amber-300/10 text-amber-100";
+      return "border-amber-300/25 bg-amber-300/10 text-status-warning dark:text-amber-100";
     case "resolving":
-      return "border-blue-300/25 bg-blue-300/10 text-blue-100 motion-safe:animate-pulse";
+      return "border-blue-300/25 bg-blue-300/10 text-status-info dark:text-blue-100 motion-safe:animate-pulse";
     default:
-      return "border-zinc-300/25 bg-zinc-300/10 text-zinc-100";
+      return "border-border/25 dark:border-zinc-300/25 bg-secondary/10 dark:bg-zinc-300/10 text-status-neutral dark:text-zinc-100";
   }
 }
 
@@ -891,7 +891,7 @@ function RecipientReadinessChips({ recipients }: Readonly<{ recipients: Recipien
   if (!recipients.length) return null;
 
   return (
-    <div className="flex flex-wrap gap-1.5 border-b border-white/5 py-2 pl-19">
+    <div className="flex flex-wrap gap-1.5 border-b border-surface-tint/5 py-2 pl-19">
       {recipients.map((recipient) => (
         <div
           key={recipient.address}
@@ -918,12 +918,12 @@ function RecipientReadinessChips({ recipients }: Readonly<{ recipients: Recipien
 
           {/* Cache provenance badge */}
           {recipient.provenance && recipient.cached && (
-            <span className="shrink-0 rounded-sm bg-white/8 px-1 py-0.5 text-[8px] uppercase tracking-wider opacity-60">
+            <span className="shrink-0 rounded-sm bg-surface-tint/8 px-1 py-0.5 text-[8px] uppercase tracking-wider opacity-60">
               cached
             </span>
           )}
           {recipient.provenance === "stellar_federation" && (
-            <span className="shrink-0 rounded-sm bg-blue-400/15 px-1 py-0.5 text-[8px] uppercase tracking-wider text-blue-300">
+            <span className="shrink-0 rounded-sm bg-blue-400/15 px-1 py-0.5 text-[8px] uppercase tracking-wider text-status-info dark:text-blue-300">
               federation
             </span>
           )}
@@ -937,7 +937,7 @@ function RecipientReadinessChips({ recipients }: Readonly<{ recipients: Recipien
           )}
           {recipient.keyStatus === "revoked" && (
             <span
-              className="shrink-0 rounded-sm bg-red-400/15 px-1 py-0.5 text-[8px] uppercase tracking-wider text-red-300"
+              className="shrink-0 rounded-sm bg-red-400/15 px-1 py-0.5 text-[8px] uppercase tracking-wider text-status-danger dark:text-red-300"
               title="Key revoked"
             >
               key revoked
@@ -945,7 +945,7 @@ function RecipientReadinessChips({ recipients }: Readonly<{ recipients: Recipien
           )}
           {recipient.keyStatus === "retired" && (
             <span
-              className="shrink-0 rounded-sm bg-amber-400/15 px-1 py-0.5 text-[8px] uppercase tracking-wider text-amber-300"
+              className="shrink-0 rounded-sm bg-amber-400/15 px-1 py-0.5 text-[8px] uppercase tracking-wider text-status-warning dark:text-amber-300"
               title="Key retired"
             >
               key retired
@@ -953,7 +953,7 @@ function RecipientReadinessChips({ recipients }: Readonly<{ recipients: Recipien
           )}
           {recipient.keyStatus === "unavailable" && (
             <span
-              className="shrink-0 rounded-sm bg-zinc-400/15 px-1 py-0.5 text-[8px] uppercase tracking-wider text-zinc-400"
+              className="shrink-0 rounded-sm bg-secondary/15 dark:bg-zinc-400/15 px-1 py-0.5 text-[8px] uppercase tracking-wider text-muted-foreground dark:text-zinc-400"
               title="Key directory unavailable"
             >
               key pending
@@ -992,10 +992,15 @@ function ProtocolToggle({
         "flex items-center gap-2 rounded-lg border px-3 py-2 text-left transition",
         active
           ? "border-emerald-200/20 bg-emerald-200/6"
-          : "border-white/10 bg-white/2.5 opacity-60",
+          : "border-surface-tint/10 bg-surface-tint/2.5 opacity-60",
       )}
     >
-      <Icon className={cn("h-4 w-4", active ? "text-emerald-200" : "text-muted-foreground")} />
+      <Icon
+        className={cn(
+          "h-4 w-4",
+          active ? "text-status-success dark:text-emerald-200" : "text-muted-foreground",
+        )}
+      />
       <span>
         <span className="block text-xs font-medium text-foreground">{label}</span>
         <span className="block text-[10px] text-muted-foreground">{detail}</span>
@@ -1020,7 +1025,7 @@ function Field({
   innerRef?: React.Ref<HTMLInputElement>;
 }>) {
   return (
-    <div className="flex items-center gap-3 border-b border-white/5 py-2">
+    <div className="flex items-center gap-3 border-b border-surface-tint/5 py-2">
       <label
         htmlFor={id}
         className="w-16 shrink-0 text-[11px] uppercase tracking-[0.18em] text-muted-foreground"
@@ -1033,7 +1038,7 @@ function Field({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="glow-ring w-full rounded-sm bg-transparent text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
+        className="glow-ring w-full rounded-sm bg-transparent text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-surface-tint/20"
       />
     </div>
   );

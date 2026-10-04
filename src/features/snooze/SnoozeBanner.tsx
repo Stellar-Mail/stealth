@@ -20,7 +20,7 @@ export function SnoozeBanner({
 
   return (
     <div className="mt-5 flex flex-wrap items-center gap-3 rounded-xl border border-sky-300/15 bg-sky-300/[0.04] p-4">
-      <CalendarClock className="h-4 w-4 shrink-0 text-sky-200" />
+      <CalendarClock className="h-4 w-4 shrink-0 text-status-info dark:text-sky-200" />
       <div className="min-w-0 flex-1">
         <p className="text-sm font-medium text-foreground">
           {due ? "Reminder is due" : formatSnoozeSummary(state)}
@@ -34,7 +34,7 @@ export function SnoozeBanner({
       <div className="flex gap-2">
         <button
           onClick={onEdit}
-          className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-muted-foreground transition hover:bg-white/[0.05] hover:text-foreground"
+          className="rounded-lg border border-surface-tint/10 px-3 py-1.5 text-xs text-muted-foreground transition hover:bg-surface-tint/[0.05] hover:text-foreground"
         >
           Edit
         </button>

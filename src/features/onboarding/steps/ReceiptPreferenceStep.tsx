@@ -58,14 +58,16 @@ export function ReceiptPreferenceStep({ draft, onUpdate, onAdvance, onRetreat }:
                 "active:scale-[0.99]",
                 isSelected
                   ? "border-emerald-400/30 bg-emerald-400/[0.06] ring-1 ring-emerald-400/30"
-                  : "border-white/10 bg-white/[0.025] hover:bg-white/[0.05]",
+                  : "border-surface-tint/10 bg-surface-tint/[0.025] hover:bg-surface-tint/[0.05]",
               )}
             >
               {Icon ? (
                 <Icon
                   className={cn(
                     "mt-0.5 h-4 w-4 shrink-0",
-                    isSelected ? "text-emerald-400" : "text-muted-foreground",
+                    isSelected
+                      ? "text-status-success dark:text-emerald-400"
+                      : "text-muted-foreground",
                   )}
                 />
               ) : (
@@ -80,7 +82,7 @@ export function ReceiptPreferenceStep({ draft, onUpdate, onAdvance, onRetreat }:
         })}
       </div>
 
-      <div className="flex items-start gap-2 rounded-xl border border-white/10 bg-white/[0.02] p-3">
+      <div className="flex items-start gap-2 rounded-xl border border-surface-tint/10 bg-surface-tint/[0.02] p-3">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
         <p className="text-xs text-muted-foreground">
           Receipts are opt-in per-message in conversations. This setting controls the default.
@@ -91,7 +93,7 @@ export function ReceiptPreferenceStep({ draft, onUpdate, onAdvance, onRetreat }:
         <button
           type="button"
           onClick={onRetreat}
-          className="flex-1 rounded-xl border border-white/10 px-4 py-2.5 text-sm text-muted-foreground transition hover:bg-white/[0.04] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 active:scale-[0.99]"
+          className="flex-1 rounded-xl border border-surface-tint/10 px-4 py-2.5 text-sm text-muted-foreground transition hover:bg-surface-tint/[0.04] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-surface-tint/30 active:scale-[0.99]"
         >
           Back
         </button>

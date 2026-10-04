@@ -108,7 +108,9 @@ export function DemoMailReader({ message, onBackToList }: DemoMailReaderProps) {
             <Star
               className={cn(
                 "h-4 w-4",
-                message.isStarred ? "text-yellow-500 fill-current" : "text-muted-foreground",
+                message.isStarred
+                  ? "text-status-warning dark:text-yellow-500 fill-current"
+                  : "text-muted-foreground",
               )}
             />
           </Button>
@@ -245,7 +247,7 @@ function ProofStatusBadge({ status }: ProofStatusBadgeProps) {
       icon: Clock,
       label: "Proof Pending",
       variant: "secondary" as const,
-      className: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
+      className: "bg-status-warning/10 text-status-warning dark:bg-yellow-900 dark:text-yellow-200",
     },
     failed: {
       icon: AlertCircle,

@@ -1,8 +1,8 @@
 .import-dataset-panel {
-  background: var(--dashboard-panel, rgba(15, 23, 42, 0.72));
-  border: 1px solid rgba(148, 163, 184, 0.24);
+  background: var(--dashboard-panel, var(--glass-strong));
+  border: 1px solid var(--border);
   border-radius: 1.25rem;
-  color: #e2e8f0;
+  color: var(--foreground);
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
@@ -10,7 +10,7 @@
 }
 
 .import-dataset-panel__header {
-  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+  border-bottom: 1px solid var(--border);
   padding-bottom: 1rem;
 }
 
@@ -21,10 +21,10 @@
 }
 
 .import-dataset-panel__textarea {
-  background: rgba(15, 23, 42, 0.5);
-  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: var(--glass-strong);
+  border: 1px solid var(--border);
   border-radius: 0.75rem;
-  color: #f8fafc;
+  color: var(--foreground);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 0.875rem;
   min-height: 200px;
@@ -33,7 +33,7 @@
 }
 
 .import-dataset-panel__textarea:focus {
-  border-color: #0ea5e9;
+  border-color: var(--primary);
   outline: none;
 }
 
@@ -44,10 +44,10 @@
 }
 
 .import-dataset-panel__button {
-  background: #0ea5e9;
+  background: var(--primary);
   border: 0;
   border-radius: 999px;
-  color: #082f49;
+  color: var(--primary-foreground);
   cursor: pointer;
   font-weight: 800;
   padding: 0.75rem 1.5rem;
@@ -73,7 +73,7 @@
   background: rgba(248, 113, 113, 0.1);
   border: 1px solid rgba(248, 113, 113, 0.2);
   border-radius: 0.5rem;
-  color: #f87171;
+  color: var(--status-danger);
   font-size: 0.875rem;
   padding: 0.75rem;
 }
@@ -88,7 +88,7 @@
   background: rgba(74, 222, 128, 0.1);
   border: 1px solid rgba(74, 222, 128, 0.2);
   border-radius: 0.5rem;
-  color: #4ade80;
+  color: var(--status-success);
   font-size: 0.875rem;
   padding: 0.75rem;
   text-align: center;

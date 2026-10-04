@@ -98,22 +98,22 @@ export const InternalCommentThread: React.FC = () => {
 
   return (
     <div
-      className="p-6 border border-gray-200 rounded-xl max-w-2xl mx-auto bg-white shadow-sm"
+      className="p-6 border border-border rounded-xl max-w-2xl mx-auto bg-card shadow-sm"
       role="region"
       aria-labelledby="comment-thread-title"
     >
       <header className="mb-6 border-b pb-4 flex justify-between items-center">
         <div>
-          <h2 className="text-xl font-semibold text-gray-800" id="comment-thread-title">
+          <h2 className="text-xl font-semibold text-foreground" id="comment-thread-title">
             Internal Comment Thread
           </h2>
-          <p className="text-xs text-gray-500 mt-0.5">
+          <p className="text-xs text-muted-foreground mt-0.5">
             Collaborate internally on this mail thread.
           </p>
         </div>
         <button
           onClick={handleReset}
-          className="text-xs text-gray-500 hover:text-gray-800 px-2 py-1 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-1"
+          className="text-xs text-muted-foreground hover:text-foreground px-2 py-1 border border-border rounded focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-1"
           aria-label="Reset tool view state"
         >
           Reset View
@@ -122,11 +122,11 @@ export const InternalCommentThread: React.FC = () => {
 
       {/* Simulator Control Panel (For Review/Verification purposes) */}
       <div
-        className="mb-6 p-3 bg-gray-50 rounded-lg border border-gray-200 flex flex-wrap gap-2 items-center"
+        className="mb-6 p-3 bg-muted rounded-lg border border-border flex flex-wrap gap-2 items-center"
         role="group"
         aria-label="Demo State Controller"
       >
-        <span className="text-xs font-semibold text-gray-600 mr-2">Demo States:</span>
+        <span className="text-xs font-semibold text-muted-foreground mr-2">Demo States:</span>
         <button
           onClick={handleLoadThread}
           className="text-xs px-3 py-1 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -161,7 +161,7 @@ export const InternalCommentThread: React.FC = () => {
       >
         {state === "idle" && (
           <div className="flex flex-col items-center justify-center py-12 text-center">
-            <p className="text-gray-500">Comments are currently hidden.</p>
+            <p className="text-muted-foreground">Comments are currently hidden.</p>
             <button
               onClick={handleLoadThread}
               className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
@@ -181,7 +181,7 @@ export const InternalCommentThread: React.FC = () => {
               className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-3"
               role="presentation"
             ></div>
-            <p className="text-sm text-gray-500 font-medium">
+            <p className="text-sm text-muted-foreground font-medium">
               Fetching internal thread discussion...
             </p>
           </div>
@@ -189,13 +189,13 @@ export const InternalCommentThread: React.FC = () => {
 
         {state === "empty" && (
           <div className="flex flex-col items-center justify-center py-12 text-center">
-            <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-3">
+            <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center mb-3">
               <span className="text-xl" role="img" aria-hidden="true">
                 💬
               </span>
             </div>
-            <h3 className="text-sm font-semibold text-gray-900">No comments yet</h3>
-            <p className="text-xs text-gray-500 mt-1 max-w-xs">
+            <h3 className="text-sm font-semibold text-foreground">No comments yet</h3>
+            <p className="text-xs text-muted-foreground mt-1 max-w-xs">
               Be the first to share notes or internal tasks with your team on this thread.
             </p>
           </div>
@@ -205,7 +205,7 @@ export const InternalCommentThread: React.FC = () => {
           <div className="bg-red-50 border border-red-200 p-4 rounded-lg mb-4" role="alert">
             <div className="flex">
               <div className="flex-shrink-0">
-                <span className="text-red-500 text-lg" aria-hidden="true">
+                <span className="text-status-danger dark:text-red-500 text-lg" aria-hidden="true">
                   ⚠️
                 </span>
               </div>
@@ -226,7 +226,7 @@ export const InternalCommentThread: React.FC = () => {
                       setState("idle");
                       setErrorMsg(null);
                     }}
-                    className="px-2 py-1 bg-white hover:bg-gray-100 text-gray-700 text-xs border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-gray-500"
+                    className="px-2 py-1 bg-card hover:bg-muted text-foreground text-xs border border-border rounded focus:outline-none focus:ring-2 focus:ring-gray-500"
                   >
                     Dismiss
                   </button>
@@ -247,22 +247,22 @@ export const InternalCommentThread: React.FC = () => {
                 {comments.map((comment) => (
                   <li
                     key={comment.id}
-                    className="p-3 border border-gray-100 rounded-lg bg-gray-50 hover:bg-gray-100 focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500 outline-none transition-all"
+                    className="p-3 border border-border rounded-lg bg-muted hover:bg-muted focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500 outline-none transition-all"
                     tabIndex={0}
                     aria-label={`Comment by ${comment.author}, ${comment.role}, posted ${comment.timestamp}`}
                   >
                     <div className="flex justify-between items-start mb-1">
                       <div>
-                        <span className="font-semibold text-sm text-gray-800">
+                        <span className="font-semibold text-sm text-foreground">
                           {comment.author}
                         </span>
                         <span className="text-[10px] bg-indigo-100 text-indigo-800 font-medium px-2 py-0.5 rounded-full ml-2">
                           {comment.role}
                         </span>
                       </div>
-                      <span className="text-[10px] text-gray-500">{comment.timestamp}</span>
+                      <span className="text-[10px] text-muted-foreground">{comment.timestamp}</span>
                     </div>
-                    <p className="text-xs text-gray-700 whitespace-pre-wrap mt-1">
+                    <p className="text-xs text-foreground whitespace-pre-wrap mt-1">
                       {comment.content}
                     </p>
                   </li>
@@ -275,7 +275,7 @@ export const InternalCommentThread: React.FC = () => {
               <div className="flex flex-col gap-2">
                 <label
                   htmlFor="new-comment-textarea"
-                  className="text-xs font-semibold text-gray-700"
+                  className="text-xs font-semibold text-foreground"
                 >
                   Add Internal Note
                 </label>
@@ -285,12 +285,12 @@ export const InternalCommentThread: React.FC = () => {
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
                   placeholder="Type an internal comment... (type 'simulate error' to test validation)"
-                  className="w-full p-2.5 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  className="w-full p-2.5 text-xs border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                   rows={3}
                   aria-required="true"
                 />
                 <div className="flex justify-between items-center mt-1">
-                  <span className="text-[10px] text-gray-500" id="textarea-desc">
+                  <span className="text-[10px] text-muted-foreground" id="textarea-desc">
                     Visible only to teammates.
                   </span>
                   <button

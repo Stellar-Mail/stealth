@@ -84,7 +84,7 @@ export function BootstrapStateView() {
       <main className="ambient-bg flex min-h-screen items-center justify-center p-4 sm:p-6">
         <Card className="w-full max-w-md border-amber-500/50 bg-card/95 shadow-xl backdrop-blur">
           <CardHeader className="text-center">
-            <div className="mx-auto mb-2 flex size-12 items-center justify-center rounded-full bg-amber-500/10 text-amber-500">
+            <div className="mx-auto mb-2 flex size-12 items-center justify-center rounded-full bg-amber-500/10 text-status-warning dark:text-amber-500">
               <Icon className="size-6" />
             </div>
             <CardTitle tabIndex={-1} ref={headingRef} className="outline-none">

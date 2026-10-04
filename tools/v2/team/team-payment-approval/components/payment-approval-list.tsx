@@ -37,15 +37,15 @@ const STATUS_BADGE_COLORS: Record<string, { bg: string; text: string }> = {
   },
   rejected: { bg: "bg-destructive/10", text: "text-destructive" },
   expired: {
-    bg: "bg-gray-100 dark:bg-gray-900",
-    text: "text-gray-800 dark:text-gray-100",
+    bg: "bg-muted dark:bg-surface-panel",
+    text: "text-foreground dark:text-status-neutral",
   },
 };
 
 const PRIORITY_COLORS: Record<string, string> = {
   low: "text-muted-foreground",
   normal: "text-foreground",
-  high: "text-amber-600 dark:text-amber-400",
+  high: "text-amber-600 dark:text-status-warning",
   urgent: "text-destructive",
 };
 

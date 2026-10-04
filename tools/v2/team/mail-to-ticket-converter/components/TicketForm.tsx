@@ -143,7 +143,7 @@ export function TicketForm({ email, teamMembers, onSubmit, onCancel }: TicketFor
       </label>
 
       {error && (
-        <div role="alert" className="rounded-md bg-red-900/20 p-3 text-xs text-red-400">
+        <div role="alert" className="rounded-md bg-red-900/20 p-3 text-xs text-status-danger">
           {error}
         </div>
       )}

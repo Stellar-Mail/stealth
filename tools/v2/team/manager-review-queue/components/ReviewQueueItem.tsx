@@ -16,24 +16,24 @@ export const ReviewQueueItem: React.FC<ReviewQueueItemProps> = ({
 }) => {
   return (
     <li
-      className="flex flex-col sm:flex-row gap-4 p-4 border rounded-lg bg-white shadow-sm hover:shadow transition-shadow focus-within:ring-2 focus-within:ring-blue-500"
+      className="flex flex-col sm:flex-row gap-4 p-4 border rounded-lg bg-card shadow-sm hover:shadow transition-shadow focus-within:ring-2 focus-within:ring-blue-500"
       aria-labelledby={`review-item-${item.id}-title`}
     >
       <div className="flex-1 space-y-2">
-        <h3 id={`review-item-${item.id}-title`} className="text-lg font-semibold text-gray-900">
+        <h3 id={`review-item-${item.id}-title`} className="text-lg font-semibold text-foreground">
           Review Request: {item.id}
         </h3>
-        <p className="text-sm text-gray-500">
-          <span className="font-medium text-gray-700">Submitter:</span> {item.submitterId}
+        <p className="text-sm text-muted-foreground">
+          <span className="font-medium text-foreground">Submitter:</span> {item.submitterId}
         </p>
-        <p className="text-sm text-gray-600 border-l-2 border-gray-200 pl-3 italic">
+        <p className="text-sm text-muted-foreground border-l-2 border-border pl-3 italic">
           "{item.contentSnippet}"
         </p>
         <div className="flex items-center gap-3 text-xs">
-          <span className="bg-gray-100 text-gray-800 px-2 py-1 rounded-full font-medium">
+          <span className="bg-muted text-foreground px-2 py-1 rounded-full font-medium">
             Risk Score: {item.riskScore}
           </span>
-          <time dateTime={item.submittedAt} className="text-gray-400">
+          <time dateTime={item.submittedAt} className="text-muted-foreground">
             {new Date(item.submittedAt).toLocaleString()}
           </time>
         </div>

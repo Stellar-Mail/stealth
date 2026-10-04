@@ -27,18 +27,18 @@ function MetricsDisplay({ metrics }: { metrics: TicketMetrics }) {
       value: metrics.totalTickets,
       color: "text-[--text-primary]",
     },
-    { label: "Open", value: metrics.openTickets, color: "text-yellow-400" },
+    { label: "Open", value: metrics.openTickets, color: "text-status-warning" },
     {
       label: "In Progress",
       value: metrics.inProgressTickets,
-      color: "text-blue-400",
+      color: "text-status-info",
     },
     {
       label: "Resolved",
       value: metrics.resolvedTickets,
-      color: "text-green-400",
+      color: "text-status-success",
     },
-    { label: "Closed", value: metrics.closedTickets, color: "text-gray-400" },
+    { label: "Closed", value: metrics.closedTickets, color: "text-muted-foreground" },
   ];
 
   return (

@@ -70,16 +70,16 @@ export function ProfileStep({ account, draft, onUpdate, onAdvance }: Props) {
           placeholder={account.displayName?.trim() || account.username || "Your name"}
           aria-invalid={error !== null}
           className={cn(
-            "w-full rounded-xl border bg-white/[0.04] px-3 py-2.5 text-sm text-foreground outline-none transition",
+            "w-full rounded-xl border bg-surface-tint/[0.04] px-3 py-2.5 text-sm text-foreground outline-none transition",
             error
               ? "border-red-400/40 focus:border-red-400/60"
-              : "border-white/10 focus:border-white/20",
+              : "border-surface-tint/10 focus:border-surface-tint/20",
           )}
         />
-        {error && <p className="text-xs text-red-400">{error}</p>}
+        {error && <p className="text-xs text-status-danger dark:text-red-400">{error}</p>}
       </div>
 
-      <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2.5">
+      <div className="flex items-center gap-2 rounded-xl border border-surface-tint/10 bg-surface-tint/[0.02] px-3 py-2.5">
         <Mail className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
         <div className="min-w-0">
           <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Email</p>
@@ -95,7 +95,7 @@ export function ProfileStep({ account, draft, onUpdate, onAdvance }: Props) {
           "flex w-full items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60 active:scale-[0.99]",
           canAdvance
             ? "bg-foreground text-background hover:opacity-90"
-            : "cursor-not-allowed bg-white/10 text-muted-foreground",
+            : "cursor-not-allowed bg-surface-tint/10 text-muted-foreground",
         )}
       >
         Continue

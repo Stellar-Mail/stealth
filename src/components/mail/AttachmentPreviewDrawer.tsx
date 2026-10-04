@@ -117,15 +117,15 @@ function getMimeType(ext: string): string {
 
 function getHeaderIcon(type: string) {
   const t = type.toLowerCase();
-  if (t === "pdf") return <FileText className="h-5 w-5 text-red-300" />;
+  if (t === "pdf") return <FileText className="h-5 w-5 text-status-danger dark:text-red-300" />;
   if (["png", "jpg", "jpeg", "webp", "gif", "svg"].includes(t))
-    return <ImageIcon className="h-5 w-5 text-violet-300" />;
-  if (t === "json") return <Braces className="h-5 w-5 text-emerald-300" />;
+    return <ImageIcon className="h-5 w-5 text-status-special dark:text-violet-300" />;
+  if (t === "json") return <Braces className="h-5 w-5 text-status-success dark:text-emerald-300" />;
   if (["txt", "log", "md", "csv", "xml"].includes(t))
-    return <FileCode className="h-5 w-5 text-sky-200" />;
+    return <FileCode className="h-5 w-5 text-status-info dark:text-sky-200" />;
   if (["enc", "pgp", "gpg", "bin", "payload"].includes(t))
-    return <Lock className="h-5 w-5 text-amber-300" />;
-  return <File className="h-5 w-5 text-slate-300" />;
+    return <Lock className="h-5 w-5 text-status-warning dark:text-amber-300" />;
+  return <File className="h-5 w-5 text-status-neutral dark:text-slate-300" />;
 }
 
 // --- JSON Syntax Highlighting ---
@@ -145,35 +145,35 @@ function renderHighlightedJson(jsonStr: string) {
 
     if (part.startsWith('"') && part.endsWith(":")) {
       return (
-        <span key={key} className="text-sky-300">
+        <span key={key} className="text-status-info dark:text-sky-300">
           {part}
         </span>
       );
     }
     if (part.startsWith('"')) {
       return (
-        <span key={key} className="text-emerald-300">
+        <span key={key} className="text-status-success dark:text-emerald-300">
           {part}
         </span>
       );
     }
     if (/^(true|false)$/.test(part)) {
       return (
-        <span key={key} className="text-amber-300 font-semibold">
+        <span key={key} className="text-status-warning dark:text-amber-300 font-semibold">
           {part}
         </span>
       );
     }
     if (part === "null") {
       return (
-        <span key={key} className="text-gray-400 italic">
+        <span key={key} className="text-muted-foreground dark:text-gray-400 italic">
           {part}
         </span>
       );
     }
     if (/^-?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?$/.test(part)) {
       return (
-        <span key={key} className="text-violet-300">
+        <span key={key} className="text-status-special dark:text-violet-300">
           {part}
         </span>
       );
@@ -197,7 +197,7 @@ function renderTextWithLines(text: string) {
 
   return (
     <div className="flex font-mono text-[13px] leading-6 select-text">
-      <div className="w-10 text-right select-none text-muted-foreground/45 border-r border-white/5 pr-2.5 mr-3 font-semibold tabular-nums">
+      <div className="w-10 text-right select-none text-muted-foreground/45 border-r border-surface-tint/5 pr-2.5 mr-3 font-semibold tabular-nums">
         {lines.map((line) => (
           <div key={`num-${line.id}`}>{line.num}</div>
         ))}
@@ -215,7 +215,7 @@ function renderTextWithLines(text: string) {
 
 function ProgressBar({ progress }: { progress: number }) {
   return (
-    <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">
+    <div className="w-full h-1 bg-surface-tint/10 rounded-full overflow-hidden">
       <div
         className="h-full bg-emerald-400 transition-all duration-300 ease-out rounded-full"
         style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
@@ -245,14 +245,14 @@ function StatusOverlay({
   if (state === "ready" || state === "idle") return null;
 
   const icons: Record<string, React.ReactNode> = {
-    loading: <Loader2 className="h-8 w-8 text-sky-300 animate-spin" />,
-    decrypting: <Lock className="h-8 w-8 text-amber-300 animate-pulse" />,
-    error: <AlertTriangle className="h-8 w-8 text-red-400" />,
-    unauthorized: <Ban className="h-8 w-8 text-red-400" />,
-    offline: <WifiOff className="h-8 w-8 text-orange-300" />,
-    expired: <Clock className="h-8 w-8 text-yellow-300" />,
-    oversized: <AlertTriangle className="h-8 w-8 text-orange-400" />,
-    corrupted: <ShieldAlert className="h-8 w-8 text-red-400" />,
+    loading: <Loader2 className="h-8 w-8 text-status-info dark:text-sky-300 animate-spin" />,
+    decrypting: <Lock className="h-8 w-8 text-status-warning dark:text-amber-300 animate-pulse" />,
+    error: <AlertTriangle className="h-8 w-8 text-status-danger dark:text-red-400" />,
+    unauthorized: <Ban className="h-8 w-8 text-status-danger dark:text-red-400" />,
+    offline: <WifiOff className="h-8 w-8 text-status-warning dark:text-orange-300" />,
+    expired: <Clock className="h-8 w-8 text-status-warning dark:text-yellow-300" />,
+    oversized: <AlertTriangle className="h-8 w-8 text-status-warning dark:text-orange-400" />,
+    corrupted: <ShieldAlert className="h-8 w-8 text-status-danger dark:text-red-400" />,
   };
 
   const labels: Record<string, string> = {
@@ -281,7 +281,7 @@ function StatusOverlay({
         {error?.retryable && onRetry && (
           <button
             onClick={onRetry}
-            className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/4 px-3 py-2 text-xs font-semibold text-foreground hover:bg-white/8 transition"
+            className="flex items-center gap-1.5 rounded-lg border border-surface-tint/10 bg-surface-tint/4 px-3 py-2 text-xs font-semibold text-foreground hover:bg-surface-tint/8 transition"
           >
             <RefreshCw className="h-3.5 w-3.5" />
             Retry
@@ -290,7 +290,7 @@ function StatusOverlay({
         {onCancel && (
           <button
             onClick={onCancel}
-            className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/4 px-3 py-2 text-xs font-semibold text-muted-foreground hover:bg-white/8 transition"
+            className="flex items-center gap-1.5 rounded-lg border border-surface-tint/10 bg-surface-tint/4 px-3 py-2 text-xs font-semibold text-muted-foreground hover:bg-surface-tint/8 transition"
           >
             <X className="h-3.5 w-3.5" />
             Cancel
@@ -452,13 +452,13 @@ export function AttachmentPreviewDrawer({
   return (
     <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <SheetContent
-        className="sm:max-w-2xl md:max-w-3xl w-full h-full p-0 flex flex-col border-l border-white/10 bg-black/85 backdrop-blur-xl"
+        className="sm:max-w-2xl md:max-w-3xl w-full h-full p-0 flex flex-col border-l border-surface-tint/10 bg-surface-recessed/85 backdrop-blur-xl"
         aria-label={`Attachment preview: ${sanitizeFilenameForDisplay(attachment.name)}`}
       >
         {/* Header */}
-        <div className="flex flex-wrap sm:flex-nowrap items-center justify-between border-b border-white/5 px-4 py-3 sm:px-6 sm:py-4.5 gap-2 shrink-0">
+        <div className="flex flex-wrap sm:flex-nowrap items-center justify-between border-b border-surface-tint/5 px-4 py-3 sm:px-6 sm:py-4.5 gap-2 shrink-0">
           <div className="flex items-center gap-3 min-w-0 flex-1">
-            <div className="grid h-9 w-9 sm:h-10 sm:w-10 shrink-0 place-items-center rounded-xl border border-white/8 bg-white/4 shadow-[inset_0_1px_0_oklch(1_0_0/0.08)]">
+            <div className="grid h-9 w-9 sm:h-10 sm:w-10 shrink-0 place-items-center rounded-xl border border-surface-tint/8 bg-surface-tint/4 shadow-[inset_0_1px_0_oklch(1_0_0/0.08)]">
               {getHeaderIcon(type)}
             </div>
             <div className="min-w-0">
@@ -479,13 +479,13 @@ export function AttachmentPreviewDrawer({
               <button
                 onClick={handleCopy}
                 title="Copy contents"
-                className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/4 px-3 py-2 text-xs font-semibold text-muted-foreground hover:bg-white/8 hover:text-foreground transition duration-150"
+                className="flex items-center gap-1.5 rounded-lg border border-surface-tint/10 bg-surface-tint/4 px-3 py-2 text-xs font-semibold text-muted-foreground hover:bg-surface-tint/8 hover:text-foreground transition duration-150"
                 aria-label={copied ? "Copied" : "Copy contents"}
               >
                 {copied ? (
                   <>
-                    <Check className="h-3.5 w-3.5 text-emerald-400" />
-                    <span className="text-emerald-400">Copied</span>
+                    <Check className="h-3.5 w-3.5 text-status-success dark:text-emerald-400" />
+                    <span className="text-status-success dark:text-emerald-400">Copied</span>
                   </>
                 ) : (
                   <>
@@ -499,7 +499,7 @@ export function AttachmentPreviewDrawer({
               onClick={handleDownload}
               disabled={download.state === "loading"}
               title="Download file"
-              className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-foreground px-3 py-2 text-xs font-semibold text-background hover:opacity-90 transition duration-150 disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-lg border border-surface-tint/10 bg-foreground px-3 py-2 text-xs font-semibold text-background hover:opacity-90 transition duration-150 disabled:opacity-50"
             >
               {download.state === "loading" ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -512,7 +512,7 @@ export function AttachmentPreviewDrawer({
               <button
                 onClick={handleDownloadFile}
                 title="Download file"
-                className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-foreground px-3 py-2 text-xs font-semibold text-background hover:opacity-90 transition duration-150"
+                className="flex items-center gap-1.5 rounded-lg border border-surface-tint/10 bg-foreground px-3 py-2 text-xs font-semibold text-background hover:opacity-90 transition duration-150"
                 aria-label="Download file"
               >
                 <Download className="h-3.5 w-3.5" />
@@ -531,7 +531,7 @@ export function AttachmentPreviewDrawer({
 
         {/* Preview Viewport */}
         <div
-          className="flex-1 overflow-y-auto scrollbar-thin bg-black/25 flex flex-col"
+          className="flex-1 overflow-y-auto scrollbar-thin bg-surface-recessed/25 flex flex-col"
           ref={contentRef}
         >
           {/* Status overlays for non-ready states */}
@@ -547,7 +547,7 @@ export function AttachmentPreviewDrawer({
           {/* IDLE: no key available — show info card */}
           {download.state === "idle" && !key && (
             <div className="p-8 flex-1 flex flex-col justify-center items-center text-center max-w-[420px] mx-auto">
-              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/4 shadow-inner text-muted-foreground">
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-surface-tint/10 bg-surface-tint/4 shadow-inner text-muted-foreground">
                 <Lock className="h-6 w-6" />
               </div>
               <h3 className="text-base font-semibold text-foreground/95">Attachment locked</h3>
@@ -561,11 +561,11 @@ export function AttachmentPreviewDrawer({
           {/* PDF PREVIEW — sandboxed iframe, no scripts */}
           {canPreview && isPDF && download.result && (
             <div className="flex-1 flex flex-col h-full">
-              <div className="flex items-center justify-between px-6 py-2 bg-white/2 border-b border-white/5 text-xs text-muted-foreground">
+              <div className="flex items-center justify-between px-6 py-2 bg-surface-tint/2 border-b border-surface-tint/5 text-xs text-muted-foreground">
                 <div className="flex items-center gap-1.5">
                   <button
                     onClick={() => setZoom((z) => Math.max(0.5, z - 0.1))}
-                    className="p-1 hover:bg-white/5 rounded text-foreground transition"
+                    className="p-1 hover:bg-surface-tint/5 rounded text-foreground transition"
                     aria-label="Zoom out"
                   >
                     <ZoomOut className="h-3.5 w-3.5" />
@@ -573,14 +573,14 @@ export function AttachmentPreviewDrawer({
                   <span className="font-mono w-10 text-center">{Math.round(zoom * 100)}%</span>
                   <button
                     onClick={() => setZoom((z) => Math.min(2, z + 0.1))}
-                    className="p-1 hover:bg-white/5 rounded text-foreground transition"
+                    className="p-1 hover:bg-surface-tint/5 rounded text-foreground transition"
                     aria-label="Zoom in"
                   >
                     <ZoomIn className="h-3.5 w-3.5" />
                   </button>
                   <button
                     onClick={() => setRotation((r) => (r + 90) % 360)}
-                    className="p-1 hover:bg-white/5 rounded text-foreground transition ml-1"
+                    className="p-1 hover:bg-surface-tint/5 rounded text-foreground transition ml-1"
                     title="Rotate 90°"
                     aria-label="Rotate 90 degrees"
                   >
@@ -591,7 +591,7 @@ export function AttachmentPreviewDrawer({
                   <button
                     disabled={pdfPage <= 1}
                     onClick={() => setPdfPage((p) => Math.max(1, p - 1))}
-                    className="p-1 hover:bg-white/5 rounded text-foreground disabled:opacity-40 transition"
+                    className="p-1 hover:bg-surface-tint/5 rounded text-foreground disabled:opacity-40 transition"
                     aria-label="Previous page"
                   >
                     <ChevronLeft className="h-4 w-4" />
@@ -599,7 +599,7 @@ export function AttachmentPreviewDrawer({
                   <span className="font-medium">Page {pdfPage}</span>
                   <button
                     onClick={() => setPdfPage((p) => p + 1)}
-                    className="p-1 hover:bg-white/5 rounded text-foreground transition"
+                    className="p-1 hover:bg-surface-tint/5 rounded text-foreground transition"
                     aria-label="Next page"
                   >
                     <ChevronRight className="h-4 w-4" />
@@ -607,7 +607,7 @@ export function AttachmentPreviewDrawer({
                 </div>
               </div>
 
-              <div className="flex-1 p-6 overflow-y-auto flex justify-center items-start bg-[#141416]">
+              <div className="flex-1 p-6 overflow-y-auto flex justify-center items-start bg-surface-panel">
                 {/* Sandboxed iframe: allow-same-origin for blob URL access, NO allow-scripts */}
                 <iframe
                   src={download.result.blobUrl}
@@ -626,12 +626,12 @@ export function AttachmentPreviewDrawer({
 
           {/* IMAGE PREVIEW — blob URL, natively sandboxed */}
           {canPreview && isImage && download.result && (
-            <div className="flex-1 flex flex-col h-full bg-[#18181b]">
-              <div className="flex items-center justify-between px-6 py-2 bg-white/2 border-b border-white/5 text-xs text-muted-foreground">
+            <div className="flex-1 flex flex-col h-full bg-surface-panel">
+              <div className="flex items-center justify-between px-6 py-2 bg-surface-tint/2 border-b border-surface-tint/5 text-xs text-muted-foreground">
                 <div className="flex items-center gap-1.5">
                   <button
                     onClick={() => setZoom((z) => Math.max(0.2, z - 0.1))}
-                    className="p-1 hover:bg-white/5 rounded text-foreground transition"
+                    className="p-1 hover:bg-surface-tint/5 rounded text-foreground transition"
                     aria-label="Zoom out"
                   >
                     <ZoomOut className="h-3.5 w-3.5" />
@@ -639,7 +639,7 @@ export function AttachmentPreviewDrawer({
                   <span className="font-mono w-10 text-center">{Math.round(zoom * 100)}%</span>
                   <button
                     onClick={() => setZoom((z) => Math.min(3, z + 0.1))}
-                    className="p-1 hover:bg-white/5 rounded text-foreground transition"
+                    className="p-1 hover:bg-surface-tint/5 rounded text-foreground transition"
                     aria-label="Zoom in"
                   >
                     <ZoomIn className="h-3.5 w-3.5" />
@@ -649,14 +649,14 @@ export function AttachmentPreviewDrawer({
                       setZoom(1);
                       setRotation(0);
                     }}
-                    className="px-2 py-0.5 hover:bg-white/5 rounded text-foreground transition text-[10px]"
+                    className="px-2 py-0.5 hover:bg-surface-tint/5 rounded text-foreground transition text-[10px]"
                   >
                     Reset
                   </button>
                 </div>
                 <button
                   onClick={() => setRotation((r) => (r + 90) % 360)}
-                  className="p-1 hover:bg-white/5 rounded text-foreground transition flex items-center gap-1"
+                  className="p-1 hover:bg-surface-tint/5 rounded text-foreground transition flex items-center gap-1"
                   title="Rotate 90°"
                   aria-label="Rotate 90 degrees"
                 >
@@ -692,7 +692,7 @@ export function AttachmentPreviewDrawer({
           {/* JSON PREVIEW — decrypted text, rendered as syntax-highlighted pre */}
           {canPreview && isJSON && download.result && (
             <div className="p-6">
-              <div className="rounded-xl border border-white/10 bg-black/45 p-5 shadow-inner">
+              <div className="rounded-xl border border-surface-tint/10 bg-surface-recessed/45 p-5 shadow-inner">
                 <pre className="font-mono text-[13px] leading-6 select-text overflow-x-auto whitespace-pre">
                   {renderHighlightedJson(textContent)}
                 </pre>
@@ -703,7 +703,7 @@ export function AttachmentPreviewDrawer({
           {/* TEXT PREVIEW — decrypted text with line numbers */}
           {canPreview && (isText || isXML) && download.result && (
             <div className="p-6">
-              <div className="rounded-xl border border-white/10 bg-black/45 p-5 shadow-inner">
+              <div className="rounded-xl border border-surface-tint/10 bg-surface-recessed/45 p-5 shadow-inner">
                 {renderTextWithLines(textContent)}
               </div>
             </div>
@@ -713,7 +713,7 @@ export function AttachmentPreviewDrawer({
           {canPreview && isEncrypted && download.result && (
             <div className="p-6 space-y-5">
               <div className="rounded-xl border border-amber-500/15 bg-amber-500/3 p-4 flex gap-3.5">
-                <div className="h-10 w-10 shrink-0 grid place-items-center rounded-lg bg-amber-500/10 text-amber-300">
+                <div className="h-10 w-10 shrink-0 grid place-items-center rounded-lg bg-amber-500/10 text-status-warning dark:text-amber-300">
                   <ShieldAlert className="h-5 w-5" />
                 </div>
                 <div>
@@ -727,7 +727,7 @@ export function AttachmentPreviewDrawer({
                 </div>
               </div>
 
-              <div className="rounded-xl border border-white/5 bg-white/1.5 p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="rounded-xl border border-surface-tint/5 bg-surface-tint/1.5 p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground/60">
                     Content Hash
@@ -740,7 +740,7 @@ export function AttachmentPreviewDrawer({
                   <div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground/60">
                     Integrity
                   </div>
-                  <div className="text-xs font-semibold text-emerald-400 flex items-center gap-1">
+                  <div className="text-xs font-semibold text-status-success dark:text-emerald-400 flex items-center gap-1">
                     <Check className="h-3.5 w-3.5" /> Verified
                   </div>
                 </div>
@@ -758,9 +758,9 @@ export function AttachmentPreviewDrawer({
           {/* RISKY/UNSUPPORTED: force download, never preview */}
           {(isRisky || (!isPreviewableType(type) && download.state === "ready")) && (
             <div className="p-8 flex-1 flex flex-col justify-center items-center text-center max-w-[420px] mx-auto">
-              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/4 shadow-inner text-muted-foreground">
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-surface-tint/10 bg-surface-tint/4 shadow-inner text-muted-foreground">
                 {isRisky ? (
-                  <ShieldAlert className="h-6 w-6 text-amber-400" />
+                  <ShieldAlert className="h-6 w-6 text-status-warning dark:text-amber-400" />
                 ) : (
                   <File className="h-6 w-6" />
                 )}
@@ -784,14 +784,14 @@ export function AttachmentPreviewDrawer({
                 )}
               </p>
 
-              <div className="w-full mt-6 rounded-xl border border-white/5 bg-white/2 p-4 text-left space-y-3">
-                <div className="flex justify-between border-b border-white/5 pb-2 text-xs">
+              <div className="w-full mt-6 rounded-xl border border-surface-tint/5 bg-surface-tint/2 p-4 text-left space-y-3">
+                <div className="flex justify-between border-b border-surface-tint/5 pb-2 text-xs">
                   <span className="text-muted-foreground">File name</span>
                   <span className="font-semibold text-foreground truncate max-w-[200px]">
                     {sanitizeFilenameForDisplay(attachment.name)}
                   </span>
                 </div>
-                <div className="flex justify-between border-b border-white/5 pb-2 text-xs">
+                <div className="flex justify-between border-b border-surface-tint/5 pb-2 text-xs">
                   <span className="text-muted-foreground">File size</span>
                   <span className="font-semibold text-foreground">{attachment.size}</span>
                 </div>

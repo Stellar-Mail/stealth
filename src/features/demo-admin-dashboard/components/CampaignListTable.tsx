@@ -53,11 +53,11 @@ export function CampaignListTable({
   return (
     <section
       className={cn(
-        "overflow-hidden rounded-xl border border-white/[0.08] bg-white/[0.02]",
+        "overflow-hidden rounded-xl border border-surface-tint/[0.08] bg-surface-tint/[0.02]",
         className,
       )}
     >
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.06] px-4 py-3">
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-surface-tint/[0.06] px-4 py-3">
         <div>
           <h3 className="text-sm font-medium">Campaign list</h3>
           <p className="text-xs text-muted-foreground">
@@ -69,7 +69,7 @@ export function CampaignListTable({
           onClick={() =>
             updateSelection(allSelected ? clearCampaignSelection() : selectAllCampaigns(campaigns))
           }
-          className="inline-flex items-center gap-1 rounded-lg border border-white/[0.08] px-3 py-2 text-sm text-foreground hover:bg-white/[0.04]"
+          className="inline-flex items-center gap-1 rounded-lg border border-surface-tint/[0.08] px-3 py-2 text-sm text-foreground hover:bg-surface-tint/[0.04]"
         >
           {allSelected ? <CheckSquare className="h-4 w-4" /> : <Square className="h-4 w-4" />}
           {allSelected ? "Clear all" : "Select all"}
@@ -78,7 +78,7 @@ export function CampaignListTable({
 
       <div className="overflow-x-auto">
         <table className="min-w-full text-left text-sm">
-          <thead className="border-b border-white/[0.06] text-xs text-muted-foreground">
+          <thead className="border-b border-surface-tint/[0.06] text-xs text-muted-foreground">
             <tr>
               <th className="w-12 px-4 py-3">Select</th>
               {sortableColumns.map((column) => (
@@ -100,7 +100,7 @@ export function CampaignListTable({
           </thead>
           <tbody>
             {rows.map((row) => (
-              <tr key={row.id} className="border-b border-white/[0.04] last:border-0">
+              <tr key={row.id} className="border-b border-surface-tint/[0.04] last:border-0">
                 <td className="px-4 py-3">
                   <button
                     type="button"
@@ -109,7 +109,7 @@ export function CampaignListTable({
                     className="text-muted-foreground hover:text-foreground"
                   >
                     {row.selected ? (
-                      <CheckSquare className="h-4 w-4 text-emerald-300" />
+                      <CheckSquare className="h-4 w-4 text-status-success dark:text-emerald-300" />
                     ) : (
                       <Square className="h-4 w-4" />
                     )}
@@ -123,7 +123,7 @@ export function CampaignListTable({
                 </td>
                 <td className="px-4 py-3 text-muted-foreground">{row.targetAudience}</td>
                 <td className="px-4 py-3">
-                  <span className="rounded-full border border-white/[0.08] px-2 py-0.5 text-xs text-muted-foreground">
+                  <span className="rounded-full border border-surface-tint/[0.08] px-2 py-0.5 text-xs text-muted-foreground">
                     {row.status}
                   </span>
                 </td>

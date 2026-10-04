@@ -58,23 +58,24 @@ type InspectStatus = "idle" | "loading" | "ready" | "error";
 
 const stateStyles: Record<ProofCheckState, { badge: string; icon: typeof CheckCircle }> = {
   verified: {
-    badge: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
+    badge:
+      "bg-emerald-500/10 text-status-success dark:text-emerald-400 border border-emerald-500/20",
     icon: ShieldCheck,
   },
   pending: {
-    badge: "bg-amber-500/10 text-amber-400 border border-amber-500/20",
+    badge: "bg-amber-500/10 text-status-warning dark:text-amber-400 border border-amber-500/20",
     icon: Clock,
   },
   missing: {
-    badge: "bg-white/[0.04] text-muted-foreground border border-white/10",
+    badge: "bg-surface-tint/[0.04] text-muted-foreground border border-surface-tint/10",
     icon: HelpCircle,
   },
   mismatched: {
-    badge: "bg-rose-500/10 text-rose-400 border border-rose-500/20",
+    badge: "bg-rose-500/10 text-status-danger dark:text-rose-400 border border-rose-500/20",
     icon: AlertTriangle,
   },
   tampered: {
-    badge: "bg-red-500/10 text-red-400 border border-red-500/20",
+    badge: "bg-red-500/10 text-status-danger dark:text-red-400 border border-red-500/20",
     icon: ShieldAlert,
   },
 };
@@ -205,12 +206,12 @@ export function ProofInspectorModal({
             role="dialog"
             aria-modal="true"
             aria-label="Cryptographic proof inspector"
-            className="glass-strong fixed left-1/2 top-1/2 z-[101] w-[min(640px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl border border-white/10"
+            className="glass-strong fixed left-1/2 top-1/2 z-[101] w-[min(640px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl border border-surface-tint/10"
           >
             {/* Header */}
-            <div className="flex items-start justify-between border-b border-white/[0.08] px-6 py-4 bg-white/[0.01]">
+            <div className="flex items-start justify-between border-b border-surface-tint/[0.08] px-6 py-4 bg-surface-tint/[0.01]">
               <div className="flex items-center gap-2">
-                <Database className="h-4 w-4 text-[oklch(0.85_0.005_270)]" />
+                <Database className="h-4 w-4 text-silver" />
                 <div>
                   <h3 className="text-sm font-bold text-foreground">Stealth Proof Inspector</h3>
                   <p className="text-[11px] text-muted-foreground mt-0.5">
@@ -220,7 +221,7 @@ export function ProofInspectorModal({
               </div>
               <button
                 onClick={onClose}
-                className="rounded-lg p-1 text-muted-foreground transition hover:bg-white/5 hover:text-foreground focus:outline-none focus:ring-2 focus:ring-white/10"
+                className="rounded-lg p-1 text-muted-foreground transition hover:bg-surface-tint/5 hover:text-foreground focus:outline-none focus:ring-2 focus:ring-surface-tint/10"
                 aria-label="Close inspector"
               >
                 <X className="h-4 w-4" />
@@ -251,10 +252,10 @@ export function ProofInspectorModal({
                       placeholder="Enter Message Hash, Payment Preimage, Address, or Sender..."
                       aria-label="Proof query"
                       className={cn(
-                        "glow-ring h-10 w-full min-w-0 rounded-xl border pl-9 pr-10 text-xs text-foreground bg-black/40",
+                        "glow-ring h-10 w-full min-w-0 rounded-xl border pl-9 pr-10 text-xs text-foreground bg-surface-recessed/40",
                         validationMsg.type === "error"
                           ? "border-red-500/40 focus:border-red-500/60"
-                          : "border-white/10 focus:border-white/20",
+                          : "border-surface-tint/10 focus:border-surface-tint/20",
                       )}
                     />
                     {query && (
@@ -275,7 +276,7 @@ export function ProofInspectorModal({
                   <button
                     type="submit"
                     disabled={status === "loading"}
-                    className="h-10 rounded-xl bg-white px-4 text-xs font-bold text-black transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-white/30 disabled:opacity-50"
+                    className="h-10 rounded-xl bg-primary dark:bg-white px-4 text-xs font-bold text-primary-foreground dark:text-black transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-surface-tint/30 disabled:opacity-50"
                   >
                     {status === "loading" ? "Searching..." : "Inspect"}
                   </button>
@@ -286,9 +287,10 @@ export function ProofInspectorModal({
                   <p
                     className={cn(
                       "text-[10px] font-medium leading-none px-1",
-                      validationMsg.type === "success" && "text-emerald-400",
-                      validationMsg.type === "warning" && "text-amber-400",
-                      validationMsg.type === "error" && "text-red-400",
+                      validationMsg.type === "success" &&
+                        "text-status-success dark:text-emerald-400",
+                      validationMsg.type === "warning" && "text-status-warning dark:text-amber-400",
+                      validationMsg.type === "error" && "text-status-danger dark:text-red-400",
                     )}
                   >
                     {validationMsg.text}
@@ -310,7 +312,7 @@ export function ProofInspectorModal({
                           setQuery(email.id);
                           void runSearch(email.id);
                         }}
-                        className="flex items-start gap-2.5 rounded-xl border border-white/5 bg-white/[0.01] p-2.5 text-left text-xs transition hover:bg-white/[0.04] hover:border-white/10"
+                        className="flex items-start gap-2.5 rounded-xl border border-surface-tint/5 bg-surface-tint/[0.01] p-2.5 text-left text-xs transition hover:bg-surface-tint/[0.04] hover:border-surface-tint/10"
                       >
                         <Mail className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
                         <div className="min-w-0 flex-1">
@@ -333,14 +335,14 @@ export function ProofInspectorModal({
                     {...motionPresets.entrance.fadeIn()}
                     className="space-y-4 pt-2"
                   >
-                    <div className="h-16 w-full animate-pulse rounded-xl bg-white/[0.03] border border-white/[0.05]" />
+                    <div className="h-16 w-full animate-pulse rounded-xl bg-surface-tint/[0.03] border border-surface-tint/[0.05]" />
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                      <div className="h-[120px] w-full animate-pulse rounded-xl bg-white/[0.03] border border-white/[0.05]" />
-                      <div className="h-[120px] w-full animate-pulse rounded-xl bg-white/[0.03] border border-white/[0.05]" />
-                      <div className="h-[120px] w-full animate-pulse rounded-xl bg-white/[0.03] border border-white/[0.05]" />
-                      <div className="h-[120px] w-full animate-pulse rounded-xl bg-white/[0.03] border border-white/[0.05]" />
+                      <div className="h-[120px] w-full animate-pulse rounded-xl bg-surface-tint/[0.03] border border-surface-tint/[0.05]" />
+                      <div className="h-[120px] w-full animate-pulse rounded-xl bg-surface-tint/[0.03] border border-surface-tint/[0.05]" />
+                      <div className="h-[120px] w-full animate-pulse rounded-xl bg-surface-tint/[0.03] border border-surface-tint/[0.05]" />
+                      <div className="h-[120px] w-full animate-pulse rounded-xl bg-surface-tint/[0.03] border border-surface-tint/[0.05]" />
                     </div>
-                    <div className="h-10 w-full animate-pulse rounded-xl bg-white/[0.03] border border-white/[0.05]" />
+                    <div className="h-10 w-full animate-pulse rounded-xl bg-surface-tint/[0.03] border border-surface-tint/[0.05]" />
                   </motion.div>
                 )}
 
@@ -352,7 +354,7 @@ export function ProofInspectorModal({
                     className="rounded-xl border border-rose-500/20 bg-rose-500/[0.01] p-4 space-y-3"
                   >
                     <div className="flex items-start gap-3">
-                      <span className="grid h-7 w-7 place-items-center rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20 shrink-0">
+                      <span className="grid h-7 w-7 place-items-center rounded-full bg-rose-500/10 text-status-danger dark:text-rose-400 border border-rose-500/20 shrink-0">
                         <ShieldAlert className="h-4 w-4" />
                       </span>
                       <div className="min-w-0">
@@ -364,11 +366,11 @@ export function ProofInspectorModal({
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 border-t border-white/5 pt-3">
+                    <div className="flex items-center gap-2 border-t border-surface-tint/5 pt-3">
                       <button
                         type="button"
                         onClick={() => void runSearch(query)}
-                        className="inline-flex items-center gap-1.5 rounded-xl bg-white px-3 py-2 text-xs font-bold text-black transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-white/30"
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-primary dark:bg-white px-3 py-2 text-xs font-bold text-primary-foreground dark:text-black transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-surface-tint/30"
                       >
                         <RefreshCw className="h-3.5 w-3.5" />
                         Retry
@@ -387,7 +389,7 @@ export function ProofInspectorModal({
                       /* MISSING RECORDS / NEXT STEPS GUIDE */
                       <div className="rounded-xl border border-rose-500/20 bg-rose-500/[0.01] p-4 space-y-4">
                         <div className="flex items-start gap-3">
-                          <span className="grid h-7 w-7 place-items-center rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20 shrink-0">
+                          <span className="grid h-7 w-7 place-items-center rounded-full bg-rose-500/10 text-status-danger dark:text-rose-400 border border-rose-500/20 shrink-0">
                             <ShieldAlert className="h-4 w-4" />
                           </span>
                           <div className="min-w-0">
@@ -401,8 +403,8 @@ export function ProofInspectorModal({
                           </div>
                         </div>
 
-                        <div className="border-t border-white/5 pt-3.5 space-y-2.5">
-                          <h5 className="text-[10px] uppercase tracking-wider text-rose-400/90 font-semibold flex items-center gap-1.5">
+                        <div className="border-t border-surface-tint/5 pt-3.5 space-y-2.5">
+                          <h5 className="text-[10px] uppercase tracking-wider text-status-danger/90 dark:text-rose-400/90 font-semibold flex items-center gap-1.5">
                             <Terminal className="h-3 w-3" />
                             Recommended Next Steps
                           </h5>
@@ -432,7 +434,7 @@ export function ProofInspectorModal({
                                   href="https://stellar.expert"
                                   target="_blank"
                                   rel="noreferrer"
-                                  className="text-emerald-400 hover:underline inline-flex items-center gap-0.5"
+                                  className="text-status-success dark:text-emerald-400 hover:underline inline-flex items-center gap-0.5"
                                 >
                                   Stellar.Expert
                                   <ExternalLink className="h-2.5 w-2.5" />
@@ -456,15 +458,16 @@ export function ProofInspectorModal({
                               "border-amber-500/20 bg-amber-500/[0.03]",
                             (verdict.state === "conflict" || verdict.state === "tampered") &&
                               "border-rose-500/20 bg-rose-500/[0.03]",
-                            verdict.state === "incomplete" && "border-white/10 bg-white/[0.02]",
+                            verdict.state === "incomplete" &&
+                              "border-surface-tint/10 bg-surface-tint/[0.02]",
                           )}
                         >
                           {verdict.state === "verified" ? (
-                            <ShieldCheck className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
+                            <ShieldCheck className="h-4 w-4 text-status-success dark:text-emerald-400 shrink-0 mt-0.5" />
                           ) : verdict.state === "pending" ? (
-                            <Clock className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
+                            <Clock className="h-4 w-4 text-status-warning dark:text-amber-400 shrink-0 mt-0.5" />
                           ) : verdict.state === "conflict" || verdict.state === "tampered" ? (
-                            <ShieldAlert className="h-4 w-4 text-rose-400 shrink-0 mt-0.5" />
+                            <ShieldAlert className="h-4 w-4 text-status-danger dark:text-rose-400 shrink-0 mt-0.5" />
                           ) : (
                             <HelpCircle className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
                           )}
@@ -485,8 +488,8 @@ export function ProofInspectorModal({
                         </div>
 
                         {/* Security Alert: Sensitive payload notice */}
-                        <div className="flex items-start gap-2.5 rounded-lg bg-white/[0.02] border border-white/[0.04] p-3 text-xs text-muted-foreground leading-normal">
-                          <Info className="h-3.5 w-3.5 text-[oklch(0.85_0.005_270)] shrink-0 mt-0.5" />
+                        <div className="flex items-start gap-2.5 rounded-lg bg-surface-tint/[0.02] border border-surface-tint/[0.04] p-3 text-xs text-muted-foreground leading-normal">
+                          <Info className="h-3.5 w-3.5 text-silver shrink-0 mt-0.5" />
                           <p>
                             <span className="font-semibold text-foreground/80">
                               Diagnostic Mode:
@@ -498,7 +501,7 @@ export function ProofInspectorModal({
                         </div>
 
                         {/* Header overview */}
-                        <div className="flex items-center justify-between rounded-xl bg-white/[0.02] border border-white/5 p-3 text-xs">
+                        <div className="flex items-center justify-between rounded-xl bg-surface-tint/[0.02] border border-surface-tint/5 p-3 text-xs">
                           <div>
                             <span className="text-muted-foreground">Subject (Omitted preview)</span>
                             <span className="font-semibold text-foreground block mt-0.5">
@@ -512,10 +515,12 @@ export function ProofInspectorModal({
                             <span
                               className={cn(
                                 "inline-flex items-center gap-1 font-semibold block mt-0.5",
-                                verdict.state === "verified" && "text-emerald-400",
-                                verdict.state === "pending" && "text-amber-400",
+                                verdict.state === "verified" &&
+                                  "text-status-success dark:text-emerald-400",
+                                verdict.state === "pending" &&
+                                  "text-status-warning dark:text-amber-400",
                                 (verdict.state === "conflict" || verdict.state === "tampered") &&
-                                  "text-rose-400",
+                                  "text-status-danger dark:text-rose-400",
                                 verdict.state === "incomplete" && "text-muted-foreground",
                               )}
                             >
@@ -530,8 +535,8 @@ export function ProofInspectorModal({
                         </div>
 
                         {/* Per-check classification */}
-                        <div className="rounded-xl border border-white/5 bg-white/[0.01] p-3 space-y-2">
-                          <h5 className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold border-b border-white/5 pb-1">
+                        <div className="rounded-xl border border-surface-tint/5 bg-surface-tint/[0.01] p-3 space-y-2">
+                          <h5 className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold border-b border-surface-tint/5 pb-1">
                             Proof checks
                           </h5>
                           <ul className="space-y-2">
@@ -564,7 +569,7 @@ export function ProofInspectorModal({
                                             onClick={() =>
                                               copyToClipboard(check.copyable!, check.label)
                                             }
-                                            className="inline-flex items-center gap-1 font-mono text-[9px] text-emerald-400 hover:underline"
+                                            className="inline-flex items-center gap-1 font-mono text-[9px] text-status-success dark:text-emerald-400 hover:underline"
                                           >
                                             {check.copyable.slice(0, 12)}...
                                             <Copy className="h-2.5 w-2.5" />
@@ -593,8 +598,8 @@ export function ProofInspectorModal({
                         {/* Structured Details Sections Grid */}
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                           {/* Section 1: Policy Info */}
-                          <div className="rounded-xl border border-white/5 bg-white/[0.01] p-3 space-y-2">
-                            <h5 className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold border-b border-white/5 pb-1">
+                          <div className="rounded-xl border border-surface-tint/5 bg-surface-tint/[0.01] p-3 space-y-2">
+                            <h5 className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold border-b border-surface-tint/5 pb-1">
                               Policy Metadata
                             </h5>
                             <div className="space-y-1.5 text-xs">
@@ -622,8 +627,8 @@ export function ProofInspectorModal({
                           </div>
 
                           {/* Section 2: Postage Info */}
-                          <div className="rounded-xl border border-white/5 bg-white/[0.01] p-3 space-y-2">
-                            <h5 className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold border-b border-white/5 pb-1">
+                          <div className="rounded-xl border border-surface-tint/5 bg-surface-tint/[0.01] p-3 space-y-2">
+                            <h5 className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold border-b border-surface-tint/5 pb-1">
                               Postage details
                             </h5>
                             <div className="space-y-1.5 text-xs">
@@ -641,16 +646,17 @@ export function ProofInspectorModal({
                                   className={cn(
                                     "font-semibold uppercase text-[9px] px-1 rounded",
                                     readyRecord.postage?.status === "settled" &&
-                                      "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
+                                      "bg-emerald-500/10 text-status-success dark:text-emerald-400 border border-emerald-500/20",
                                     (readyRecord.postage?.status === "pending" ||
                                       readyRecord.postage?.status === "expired") &&
-                                      "bg-amber-500/10 text-amber-400 border border-amber-500/20",
+                                      "bg-amber-500/10 text-status-warning dark:text-amber-400 border border-amber-500/20",
                                     (readyRecord.postage?.status === "refunded" ||
                                       readyRecord.postage?.status === "reclaimed") &&
-                                      "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
+                                      "bg-emerald-500/10 text-status-success dark:text-emerald-400 border border-emerald-500/20",
                                     readyRecord.postage?.status === "disputed" &&
-                                      "bg-red-500/10 text-red-400 border border-red-500/20",
-                                    !readyRecord.postage && "bg-white/[0.04] text-muted-foreground",
+                                      "bg-red-500/10 text-status-danger dark:text-red-400 border border-red-500/20",
+                                    !readyRecord.postage &&
+                                      "bg-surface-tint/[0.04] text-muted-foreground",
                                   )}
                                 >
                                   {readyRecord.postage?.status ?? "missing"}
@@ -666,7 +672,7 @@ export function ProofInspectorModal({
                                         "Payment Hash",
                                       )
                                     }
-                                    className="font-mono text-[10px] text-emerald-400 hover:underline flex items-center gap-1"
+                                    className="font-mono text-[10px] text-status-success dark:text-emerald-400 hover:underline flex items-center gap-1"
                                   >
                                     {readyRecord.postage.paymentHash.slice(0, 8)}...
                                     <Copy className="h-2.5 w-2.5" />
@@ -679,8 +685,8 @@ export function ProofInspectorModal({
                           </div>
 
                           {/* Section 3: Receipt Info */}
-                          <div className="rounded-xl border border-white/5 bg-white/[0.01] p-3 space-y-2">
-                            <h5 className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold border-b border-white/5 pb-1">
+                          <div className="rounded-xl border border-surface-tint/5 bg-surface-tint/[0.01] p-3 space-y-2">
+                            <h5 className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold border-b border-surface-tint/5 pb-1">
                               Receipt details
                             </h5>
                             <div className="space-y-1.5 text-xs">
@@ -718,8 +724,8 @@ export function ProofInspectorModal({
                           </div>
 
                           {/* Section 4: Relay Metadata */}
-                          <div className="rounded-xl border border-white/5 bg-white/[0.01] p-3 space-y-2">
-                            <h5 className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold border-b border-white/5 pb-1">
+                          <div className="rounded-xl border border-surface-tint/5 bg-surface-tint/[0.01] p-3 space-y-2">
+                            <h5 className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold border-b border-surface-tint/5 pb-1">
                               Relay metadata
                             </h5>
                             <div className="space-y-1.5 text-xs">
@@ -802,7 +808,7 @@ export function ProofInspectorModal({
                               "Proof diagnostic report",
                             )
                           }
-                          className="w-full inline-flex items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.02] py-2 text-xs font-semibold text-foreground transition hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-white/10"
+                          className="w-full inline-flex items-center justify-center gap-1.5 rounded-xl border border-surface-tint/10 bg-surface-tint/[0.02] py-2 text-xs font-semibold text-foreground transition hover:bg-surface-tint/5 focus:outline-none focus:ring-2 focus:ring-surface-tint/10"
                         >
                           <Copy className="h-3.5 w-3.5" />
                           Copy Proof Diagnostic Report
@@ -815,7 +821,7 @@ export function ProofInspectorModal({
             </div>
 
             {/* Modal Footer CTAs */}
-            <div className="flex items-center justify-between border-t border-white/[0.08] px-6 py-4 bg-white/[0.01]">
+            <div className="flex items-center justify-between border-t border-surface-tint/[0.08] px-6 py-4 bg-surface-tint/[0.01]">
               <div className="flex items-center gap-2">
                 {selectedEmail && status === "ready" && !error && (
                   <>
@@ -829,7 +835,7 @@ export function ProofInspectorModal({
                       }
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex items-center gap-1 rounded-xl border border-white/10 px-3 py-2 text-xs font-semibold text-muted-foreground transition hover:bg-white/5 hover:text-foreground focus:outline-none focus:ring-2 focus:ring-white/10"
+                      className="inline-flex items-center gap-1 rounded-xl border border-surface-tint/10 px-3 py-2 text-xs font-semibold text-muted-foreground transition hover:bg-surface-tint/5 hover:text-foreground focus:outline-none focus:ring-2 focus:ring-surface-tint/10"
                     >
                       Stellar.Expert
                       <ExternalLink className="h-3.5 w-3.5" />
@@ -839,7 +845,7 @@ export function ProofInspectorModal({
                         onOpenMessage(selectedEmail);
                         onClose();
                       }}
-                      className="inline-flex items-center gap-1.5 rounded-xl bg-white px-4 py-2 text-xs font-bold text-black transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-white/30"
+                      className="inline-flex items-center gap-1.5 rounded-xl bg-primary dark:bg-white px-4 py-2 text-xs font-bold text-primary-foreground dark:text-black transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-surface-tint/30"
                     >
                       <Mail className="h-3.5 w-3.5" />
                       Open Message
@@ -850,7 +856,7 @@ export function ProofInspectorModal({
 
               <button
                 onClick={onClose}
-                className="rounded-xl border border-white/10 px-4 py-2 text-xs font-semibold text-foreground transition hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-white/10"
+                className="rounded-xl border border-surface-tint/10 px-4 py-2 text-xs font-semibold text-foreground transition hover:bg-surface-tint/5 focus:outline-none focus:ring-2 focus:ring-surface-tint/10"
               >
                 Close
               </button>

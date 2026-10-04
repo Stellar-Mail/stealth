@@ -27,14 +27,14 @@ import { AdminDataTable, type Column } from "./AdminDataTable";
 import { PersonaPicker } from "./PersonaPicker";
 
 const AVATAR_COLORS = [
-  "bg-violet-500/20 text-violet-300",
-  "bg-orange-500/20 text-orange-300",
-  "bg-cyan-500/20 text-cyan-300",
-  "bg-emerald-500/20 text-emerald-300",
-  "bg-rose-500/20 text-rose-300",
-  "bg-amber-500/20 text-amber-300",
-  "bg-sky-500/20 text-sky-300",
-  "bg-indigo-500/20 text-indigo-300",
+  "bg-violet-500/20 text-status-special dark:text-violet-300",
+  "bg-orange-500/20 text-status-warning dark:text-orange-300",
+  "bg-cyan-500/20 text-status-info dark:text-cyan-300",
+  "bg-emerald-500/20 text-status-success dark:text-emerald-300",
+  "bg-rose-500/20 text-status-danger dark:text-rose-300",
+  "bg-amber-500/20 text-status-warning dark:text-amber-300",
+  "bg-sky-500/20 text-status-info dark:text-sky-300",
+  "bg-indigo-500/20 text-status-info dark:text-indigo-300",
 ];
 
 function avatarColor(personaId: string): string {
@@ -184,7 +184,7 @@ export function AudienceSegmentEditor({ className }: AudienceSegmentEditorProps)
         <button
           type="button"
           onClick={handleReset}
-          className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-muted-foreground transition hover:bg-white/[0.07] hover:text-foreground"
+          className="flex items-center gap-1.5 rounded-lg border border-surface-tint/10 bg-surface-tint/[0.04] px-3 py-1.5 text-xs font-medium text-muted-foreground transition hover:bg-surface-tint/[0.07] hover:text-foreground"
           title="Reset all segments to fixture defaults"
         >
           <RotateCcw className="h-3.5 w-3.5" />
@@ -211,13 +211,13 @@ export function AudienceSegmentEditor({ className }: AudienceSegmentEditorProps)
         {/* Right: Segment editor (~60%) */}
         <div className="flex-1 space-y-4 min-w-0">
           {!selectedSegment ? (
-            <div className="flex h-64 items-center justify-center rounded-xl border border-white/[0.06] bg-white/[0.01] text-sm text-muted-foreground">
+            <div className="flex h-64 items-center justify-center rounded-xl border border-surface-tint/[0.06] bg-surface-tint/[0.01] text-sm text-muted-foreground">
               Select a segment to view and edit its details.
             </div>
           ) : (
             <>
               {/* Segment header */}
-              <div className="rounded-xl border border-white/[0.06] bg-white/[0.01] p-4 space-y-3">
+              <div className="rounded-xl border border-surface-tint/[0.06] bg-surface-tint/[0.01] p-4 space-y-3">
                 <div className="flex items-center gap-3">
                   <span className="text-2xl leading-none">{selectedSegment.icon}</span>
                   <div className="flex-1 min-w-0 space-y-1.5">
@@ -231,7 +231,7 @@ export function AudienceSegmentEditor({ className }: AudienceSegmentEditorProps)
                         updateSegment(updateSegmentLabel(selectedSegment, e.target.value))
                       }
                       maxLength={60}
-                      className="w-full rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-1.5 text-sm text-foreground outline-none transition focus:border-white/20 placeholder:text-muted-foreground/50"
+                      className="w-full rounded-lg border border-surface-tint/[0.08] bg-surface-tint/[0.04] px-3 py-1.5 text-sm text-foreground outline-none transition focus:border-surface-tint/20 placeholder:text-muted-foreground/50"
                       placeholder="Segment label…"
                     />
                     {validationResult?.errors
@@ -252,14 +252,14 @@ export function AudienceSegmentEditor({ className }: AudienceSegmentEditorProps)
                       updateSegment(updateSegmentDescription(selectedSegment, e.target.value))
                     }
                     rows={2}
-                    className="w-full rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-foreground outline-none transition focus:border-white/20 resize-none placeholder:text-muted-foreground/50"
+                    className="w-full rounded-lg border border-surface-tint/[0.08] bg-surface-tint/[0.04] px-3 py-2 text-sm text-foreground outline-none transition focus:border-surface-tint/20 resize-none placeholder:text-muted-foreground/50"
                     placeholder="Describe who this segment covers…"
                   />
                 </div>
               </div>
 
               {/* Criteria */}
-              <div className="rounded-xl border border-white/[0.06] bg-white/[0.01] p-4 space-y-3">
+              <div className="rounded-xl border border-surface-tint/[0.06] bg-surface-tint/[0.01] p-4 space-y-3">
                 <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                   Filter Criteria
                 </p>
@@ -272,14 +272,14 @@ export function AudienceSegmentEditor({ className }: AudienceSegmentEditorProps)
                   {selectedSegment.criteria.map((criterion, idx) => (
                     <span
                       key={idx}
-                      className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.04] px-2.5 py-1 text-xs text-foreground"
+                      className="inline-flex items-center gap-1.5 rounded-full border border-surface-tint/[0.08] bg-surface-tint/[0.04] px-2.5 py-1 text-xs text-foreground"
                     >
                       {criterion}
                       <button
                         type="button"
                         onClick={() => updateSegment(removeCriteria(selectedSegment, idx))}
                         aria-label={`Remove criterion: ${criterion}`}
-                        className="rounded-full text-muted-foreground transition hover:text-rose-400"
+                        className="rounded-full text-muted-foreground transition hover:text-status-danger dark:hover:text-rose-400"
                       >
                         <X className="h-3 w-3" />
                       </button>
@@ -297,13 +297,13 @@ export function AudienceSegmentEditor({ className }: AudienceSegmentEditorProps)
                     onChange={(e) => setCriterionInput(e.target.value)}
                     onKeyDown={handleCriterionKeyDown}
                     placeholder="Add a criterion and press Enter…"
-                    className="flex-1 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-1.5 text-sm text-foreground outline-none transition focus:border-white/20 placeholder:text-muted-foreground/50"
+                    className="flex-1 rounded-lg border border-surface-tint/[0.08] bg-surface-tint/[0.04] px-3 py-1.5 text-sm text-foreground outline-none transition focus:border-surface-tint/20 placeholder:text-muted-foreground/50"
                   />
                   <button
                     type="button"
                     onClick={handleAddCriterion}
                     aria-label="Add criterion"
-                    className="flex items-center gap-1 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-foreground transition hover:bg-white/[0.07]"
+                    className="flex items-center gap-1 rounded-lg border border-surface-tint/10 bg-surface-tint/[0.04] px-3 py-1.5 text-xs font-medium text-foreground transition hover:bg-surface-tint/[0.07]"
                   >
                     <Plus className="h-3.5 w-3.5" />
                     Add
@@ -312,7 +312,7 @@ export function AudienceSegmentEditor({ className }: AudienceSegmentEditorProps)
               </div>
 
               {/* Personas */}
-              <div className="rounded-xl border border-white/[0.06] bg-white/[0.01] p-4 space-y-3">
+              <div className="rounded-xl border border-surface-tint/[0.06] bg-surface-tint/[0.01] p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                     Personas ({selectedSegment.personaIds.length})
@@ -320,7 +320,7 @@ export function AudienceSegmentEditor({ className }: AudienceSegmentEditorProps)
                   <button
                     type="button"
                     onClick={() => setPickerOpen(true)}
-                    className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-foreground transition hover:bg-white/[0.07]"
+                    className="flex items-center gap-1.5 rounded-lg border border-surface-tint/10 bg-surface-tint/[0.04] px-3 py-1.5 text-xs font-medium text-foreground transition hover:bg-surface-tint/[0.07]"
                   >
                     <UserPlus className="h-3.5 w-3.5" />
                     Add personas
@@ -342,7 +342,7 @@ export function AudienceSegmentEditor({ className }: AudienceSegmentEditorProps)
                     {assignedPersonas.map((persona) => (
                       <div
                         key={persona.id}
-                        className="flex items-center gap-3 rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2"
+                        className="flex items-center gap-3 rounded-lg border border-surface-tint/[0.06] bg-surface-tint/[0.02] px-3 py-2"
                       >
                         <span
                           className={cn(
@@ -366,7 +366,7 @@ export function AudienceSegmentEditor({ className }: AudienceSegmentEditorProps)
                             updateSegment(removePersonaFromSegment(selectedSegment, persona.id))
                           }
                           aria-label={`Remove ${persona.name}`}
-                          className="rounded-lg p-1.5 text-muted-foreground transition hover:bg-rose-500/10 hover:text-rose-400"
+                          className="rounded-lg p-1.5 text-muted-foreground transition hover:bg-rose-500/10 hover:text-status-danger dark:hover:text-rose-400"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
@@ -401,9 +401,12 @@ function ValidationBanner({
     <p
       className={cn(
         "text-[11px] rounded-lg border px-3 py-1.5",
-        error.severity === "error" && "bg-rose-500/10 border-rose-500/20 text-rose-400",
-        error.severity === "warning" && "bg-amber-500/10 border-amber-500/20 text-amber-400",
-        error.severity === "info" && "bg-slate-500/10 border-slate-500/20 text-slate-400",
+        error.severity === "error" &&
+          "bg-rose-500/10 border-rose-500/20 text-status-danger dark:text-rose-400",
+        error.severity === "warning" &&
+          "bg-amber-500/10 border-amber-500/20 text-status-warning dark:text-amber-400",
+        error.severity === "info" &&
+          "bg-secondary/10 dark:bg-slate-500/10 border-border/20 dark:border-slate-500/20 text-muted-foreground dark:text-slate-400",
       )}
     >
       {error.message}

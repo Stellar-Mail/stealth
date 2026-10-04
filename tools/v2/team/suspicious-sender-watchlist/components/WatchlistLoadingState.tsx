@@ -13,11 +13,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 export const WatchlistLoadingState: React.FC = () => {
   return (
     <div className="space-y-4" role="status" aria-busy="true" aria-label="Loading watchlist">
-      <div className="text-sm text-slate-600">Loading watchlist...</div>
+      <div className="text-sm text-muted-foreground">Loading watchlist...</div>
       {[...Array(3)].map((_, i) => (
         <div
           key={i}
-          className="flex items-center gap-4 p-4 bg-white rounded-lg border border-slate-200"
+          className="flex items-center gap-4 p-4 bg-card rounded-lg border border-border"
         >
           <Skeleton className="h-10 w-10 rounded-full" />
           <div className="flex-1 space-y-2">

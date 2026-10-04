@@ -41,11 +41,11 @@ export function ContactNoteForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className="bg-white rounded-lg border border-slate-200 p-4 space-y-3"
+      className="bg-card rounded-lg border border-border p-4 space-y-3"
       aria-label="Add or edit note"
     >
       <div className="space-y-1">
-        <label htmlFor="note-content" className="text-sm font-medium text-slate-700">
+        <label htmlFor="note-content" className="text-sm font-medium text-foreground">
           Note
         </label>
         <textarea
@@ -58,7 +58,7 @@ export function ContactNoteForm({
           }}
           placeholder="Add a note about this contact..."
           rows={3}
-          className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed resize-none"
+          className="w-full rounded-md border border-border px-3 py-2 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed resize-none"
           aria-invalid={error ? "true" : undefined}
           aria-describedby={error ? "note-error" : undefined}
           disabled={isSubmitting}

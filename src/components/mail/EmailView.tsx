@@ -135,7 +135,7 @@ export function EmailView({
             className="flex flex-1 items-center justify-center p-10 text-center"
           >
             <div>
-              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04]">
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl border border-surface-tint/10 bg-surface-tint/[0.04]">
                 <Sparkles className="h-5 w-5 text-muted-foreground" />
               </div>
               <h3 className="text-sm font-medium text-foreground">No conversation selected</h3>
@@ -153,20 +153,20 @@ export function EmailView({
             transition={{ duration: 0.35, ease: [0.2, 0.8, 0.2, 1] }}
             className="flex h-full flex-col"
           >
-            <div className="flex flex-wrap items-center gap-2 border-b border-white/5 px-3 py-2 sm:px-4 sm:py-2.5">
+            <div className="flex flex-wrap items-center gap-2 border-b border-surface-tint/5 px-3 py-2 sm:px-4 sm:py-2.5">
               {(actions.onBack || onBack) && (
                 <motion.button
                   whileTap={{ scale: 0.94 }}
                   onClick={actions.onBack || onBack}
                   aria-label="Back to conversations"
-                  className="flex md:hidden items-center gap-1 rounded-md border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-muted-foreground transition hover:bg-white/10 hover:text-foreground shrink-0 min-h-[36px]"
+                  className="flex md:hidden items-center gap-1 rounded-md border border-surface-tint/10 bg-surface-tint/5 px-2.5 py-1.5 text-xs text-muted-foreground transition hover:bg-surface-tint/10 hover:text-foreground shrink-0 min-h-[36px]"
                 >
                   <ArrowLeft className="h-4 w-4" />
                   <span className="text-xs">Back</span>
                 </motion.button>
               )}
               <div className="flex-1 min-w-0">
-                <span className="rounded-full bg-white/5 border border-white/10 px-2.5 py-0.5 text-[10px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
+                <span className="rounded-full bg-surface-tint/5 border border-surface-tint/10 px-2.5 py-0.5 text-[10px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
                   {outboxEntry.status === "failed" ? "Failed Delivery" : "Pending Outbox"}
                 </span>
               </div>
@@ -177,7 +177,7 @@ export function EmailView({
                     whileTap={{ scale: 0.96 }}
                     whileHover={{ y: -1 }}
                     onClick={() => actions.onCancelSend?.(email)}
-                    className="flex items-center gap-1.5 rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-muted-foreground transition hover:bg-white/10 hover:text-foreground"
+                    className="flex items-center gap-1.5 rounded-md border border-surface-tint/10 bg-surface-tint/5 px-3 py-1.5 text-xs text-muted-foreground transition hover:bg-surface-tint/10 hover:text-foreground"
                   >
                     Cancel Send
                   </motion.button>
@@ -187,7 +187,7 @@ export function EmailView({
                     whileTap={{ scale: 0.96 }}
                     whileHover={{ y: -1 }}
                     onClick={() => actions.onRetrySend?.(email)}
-                    className="flex items-center gap-1.5 rounded-md border border-blue-400/30 bg-blue-500/20 px-3.5 py-1.5 text-xs font-semibold text-blue-100 transition hover:bg-blue-500/30"
+                    className="flex items-center gap-1.5 rounded-md border border-blue-400/30 bg-blue-500/20 px-3.5 py-1.5 text-xs font-semibold text-status-info dark:text-blue-100 transition hover:bg-blue-500/30"
                   >
                     Retry Send
                   </motion.button>
@@ -197,7 +197,7 @@ export function EmailView({
 
             <div className="scrollbar-thin flex-1 overflow-y-auto px-4 py-4 sm:px-7 sm:py-5">
               <article className="mx-auto w-full max-w-[920px]">
-                <div className="border-b border-white/[0.07] pb-5">
+                <div className="border-b border-surface-tint/[0.07] pb-5">
                   <p className="mail-reader-meta mb-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
                     Outbound Message
                   </p>
@@ -205,15 +205,15 @@ export function EmailView({
                     {email.subject}
                   </h1>
                   <div className="mt-3 flex flex-wrap items-center gap-2">
-                    <span className="mail-reader-meta rounded-md border border-white/[0.1] bg-white/[0.045] px-2 py-1 text-[10px] uppercase text-muted-foreground">
+                    <span className="mail-reader-meta rounded-md border border-surface-tint/[0.1] bg-surface-tint/[0.045] px-2 py-1 text-[10px] uppercase text-muted-foreground">
                       Recipients: {outboxEntry.recipients.join(", ")}
                     </span>
                     {outboxEntry.postageAmount && (
-                      <span className="mail-reader-meta rounded-md border border-white/[0.1] bg-white/[0.045] px-2 py-1 text-[10px] uppercase text-muted-foreground">
+                      <span className="mail-reader-meta rounded-md border border-surface-tint/[0.1] bg-surface-tint/[0.045] px-2 py-1 text-[10px] uppercase text-muted-foreground">
                         Postage: {outboxEntry.postageAmount} XLM
                       </span>
                     )}
-                    <span className="mail-reader-meta rounded-md border border-white/[0.1] bg-white/[0.045] px-2 py-1 text-[10px] uppercase text-muted-foreground">
+                    <span className="mail-reader-meta rounded-md border border-surface-tint/[0.1] bg-surface-tint/[0.045] px-2 py-1 text-[10px] uppercase text-muted-foreground">
                       Started: {email.time}
                     </span>
                   </div>
@@ -255,7 +255,7 @@ export function EmailView({
                 <div className="mt-7 max-w-[68ch] space-y-4 text-sm text-muted-foreground">
                   <p>Plaintext body is not persisted locally for security and privacy reasons.</p>
                   {outboxEntry.status === "failed" && (
-                    <p className="text-xs text-red-300">
+                    <p className="text-xs text-status-danger dark:text-red-300">
                       Error Details:{" "}
                       {outboxEntry.errorMessage ??
                         "No detailed error message was returned from the relay."}
@@ -274,13 +274,13 @@ export function EmailView({
             transition={{ duration: 0.35, ease: [0.2, 0.8, 0.2, 1] }}
             className="flex h-full flex-col"
           >
-            <div className="flex min-w-0 flex-wrap sm:flex-nowrap items-center gap-2 border-b border-white/5 px-3 py-2 sm:px-4 sm:py-2.5">
+            <div className="flex min-w-0 flex-wrap sm:flex-nowrap items-center gap-2 border-b border-surface-tint/5 px-3 py-2 sm:px-4 sm:py-2.5">
               {(actions.onBack || onBack) && (
                 <motion.button
                   whileTap={{ scale: 0.94 }}
                   onClick={actions.onBack || onBack}
                   aria-label="Back to conversations"
-                  className="flex md:hidden items-center gap-1 rounded-md border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-muted-foreground transition hover:bg-white/10 hover:text-foreground shrink-0 min-h-[36px]"
+                  className="flex md:hidden items-center gap-1 rounded-md border border-surface-tint/10 bg-surface-tint/5 px-2.5 py-1.5 text-xs text-muted-foreground transition hover:bg-surface-tint/10 hover:text-foreground shrink-0 min-h-[36px]"
                 >
                   <ArrowLeft className="h-4 w-4" />
                   <span className="text-xs">Back</span>
@@ -300,8 +300,8 @@ export function EmailView({
                     className={cn(
                       "flex items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 py-1.5 text-xs transition",
                       replyMenuOpen
-                        ? "bg-white/[0.08] text-foreground"
-                        : "text-muted-foreground hover:bg-white/[0.06] hover:text-foreground",
+                        ? "bg-surface-tint/[0.08] text-foreground"
+                        : "text-muted-foreground hover:bg-surface-tint/[0.06] hover:text-foreground",
                     )}
                   >
                     <Reply className="h-3.5 w-3.5" />{" "}
@@ -323,7 +323,7 @@ export function EmailView({
                             setReplyMenuOpen(false);
                             setInlineMode("reply");
                           }}
-                          className="w-full rounded-sm px-3 py-2 text-left text-xs text-foreground/90 transition hover:bg-white/[0.06]"
+                          className="w-full rounded-sm px-3 py-2 text-left text-xs text-foreground/90 transition hover:bg-surface-tint/[0.06]"
                         >
                           <div className="flex items-center gap-2">
                             <Reply className="h-3 w-3" />
@@ -337,7 +337,7 @@ export function EmailView({
                             setReplyMenuOpen(false);
                             actions.onReply?.(email);
                           }}
-                          className="w-full rounded-sm px-3 py-2 text-left text-xs text-foreground/90 transition hover:bg-white/[0.06]"
+                          className="w-full rounded-sm px-3 py-2 text-left text-xs text-foreground/90 transition hover:bg-surface-tint/[0.06]"
                         >
                           <div className="flex items-center gap-2">
                             <Reply className="h-3 w-3" />
@@ -370,7 +370,7 @@ export function EmailView({
                       else if (label === "Forward") setInlineMode("forward");
                       else onClick();
                     }}
-                    className="flex items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 py-1.5 text-xs text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground"
+                    className="flex items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 py-1.5 text-xs text-muted-foreground transition hover:bg-surface-tint/[0.06] hover:text-foreground"
                   >
                     <Icon className="h-3.5 w-3.5" />{" "}
                     <span className="hidden 2xl:inline">{label}</span>
@@ -392,7 +392,7 @@ export function EmailView({
                     whileTap={{ scale: 0.9 }}
                     onClick={() => actions.onSnooze?.(email)}
                     title="Snooze"
-                    className="inline-flex items-center gap-1.5 rounded-md p-2 text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground"
+                    className="inline-flex items-center gap-1.5 rounded-md p-2 text-muted-foreground transition hover:bg-surface-tint/[0.06] hover:text-foreground"
                   >
                     <Clock className="h-4 w-4" />
                     <ShortcutKey hint="Z" />
@@ -402,7 +402,7 @@ export function EmailView({
                   whileTap={{ scale: 0.9 }}
                   onClick={() => actions.onArchive?.(email)}
                   title="Archive"
-                  className="inline-flex items-center gap-1.5 rounded-md p-2 text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground"
+                  className="inline-flex items-center gap-1.5 rounded-md p-2 text-muted-foreground transition hover:bg-surface-tint/[0.06] hover:text-foreground"
                 >
                   <Archive className="h-4 w-4" />
                   <ShortcutKey hint="E" />
@@ -411,7 +411,7 @@ export function EmailView({
                   whileTap={{ scale: 0.9 }}
                   onClick={() => actions.onTrash?.(email)}
                   title="Move to trash"
-                  className="shrink-0 rounded-md p-2 text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground"
+                  className="shrink-0 rounded-md p-2 text-muted-foreground transition hover:bg-surface-tint/[0.06] hover:text-foreground"
                 >
                   <Trash2 className="h-4 w-4" />
                 </motion.button>
@@ -420,9 +420,9 @@ export function EmailView({
                   onClick={() => actions.onToggleStar?.(email)}
                   title={email.starred ? "Unstar" : "Star"}
                   className={cn(
-                    "shrink-0 rounded-md p-2 transition hover:bg-white/[0.06]",
+                    "shrink-0 rounded-md p-2 transition hover:bg-surface-tint/[0.06]",
                     email.starred
-                      ? "text-amber-300"
+                      ? "text-status-warning dark:text-amber-300"
                       : "text-muted-foreground hover:text-foreground",
                   )}
                 >
@@ -433,7 +433,7 @@ export function EmailView({
 
             <div className="scrollbar-thin flex-1 overflow-y-auto px-5 py-5 sm:px-7">
               <article className="mx-auto w-full max-w-[920px]">
-                <div className="border-b border-white/[0.07] pb-5">
+                <div className="border-b border-surface-tint/[0.07] pb-5">
                   <div className="min-w-0 flex-1">
                     <p className="mail-reader-meta mb-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
                       Conversation
@@ -445,7 +445,7 @@ export function EmailView({
                       {email.labels?.map((label) => (
                         <span
                           key={label}
-                          className="mail-reader-meta rounded-md border border-white/[0.1] bg-white/[0.045] px-2 py-1 text-[10px] uppercase text-muted-foreground"
+                          className="mail-reader-meta rounded-md border border-surface-tint/[0.1] bg-surface-tint/[0.045] px-2 py-1 text-[10px] uppercase text-muted-foreground"
                         >
                           {label}
                         </span>
@@ -491,7 +491,7 @@ export function EmailView({
                 {thread?.mixedState ? (
                   <p
                     role="status"
-                    className="mt-5 rounded-lg border border-amber-200/20 bg-amber-200/[0.04] px-3 py-2 text-xs text-amber-100"
+                    className="mt-5 rounded-lg border border-amber-200/20 bg-amber-200/[0.04] px-3 py-2 text-xs text-status-warning dark:text-amber-100"
                   >
                     This conversation contains mixed verification states. Unverified or failed
                     messages never render as trusted content.
@@ -503,7 +503,7 @@ export function EmailView({
                     {thread.messages.map((message) => (
                       <li
                         key={message.messageId}
-                        className="rounded-md border border-white/[0.08] bg-black/10 px-3 py-2"
+                        className="rounded-md border border-surface-tint/[0.08] bg-surface-recessed/10 px-3 py-2"
                       >
                         <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
                           <span className="font-medium text-foreground/90">{message.sender}</span>
@@ -511,7 +511,7 @@ export function EmailView({
                           <span className="uppercase tracking-[0.14em]">{message.trust}</span>
                         </div>
                         {message.authenticityWarning ? (
-                          <p className="mt-1 text-[11px] text-amber-100/90">
+                          <p className="mt-1 text-[11px] text-status-warning dark:text-amber-100/90">
                             {message.authenticityWarning}
                           </p>
                         ) : null}
@@ -531,7 +531,7 @@ export function EmailView({
                 !isTrustedContent(selectedThreadMessage) ? (
                   <p
                     role="alert"
-                    className="mt-5 rounded-lg border border-amber-200/20 bg-amber-200/[0.04] px-3 py-2 text-xs text-amber-100"
+                    className="mt-5 rounded-lg border border-amber-200/20 bg-amber-200/[0.04] px-3 py-2 text-xs text-status-warning dark:text-amber-100"
                   >
                     {selectedThreadMessage.authenticityWarning}
                   </p>
@@ -606,7 +606,7 @@ export function EmailView({
                           className={cn(
                             "glass-tile flex min-w-0 items-center gap-2 rounded-md px-2 py-1.5 transition-all duration-150",
                             actions.onPreviewAttachment &&
-                              "cursor-pointer hover:bg-white/[0.08] hover:border-white/15",
+                              "cursor-pointer hover:bg-surface-tint/[0.08] hover:border-surface-tint/15",
                           )}
                         >
                           <AttachmentIcon type={attachment.type} />
@@ -721,11 +721,11 @@ function InlineReplyComposer({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 12 }}
       transition={{ duration: 0.2 }}
-      className="border-t border-white/[0.07] bg-white/[0.02] px-5 py-3 backdrop-blur-md sm:px-7"
+      className="border-t border-surface-tint/[0.07] bg-surface-tint/[0.02] px-5 py-3 backdrop-blur-md sm:px-7"
     >
       <div className="mx-auto w-full max-w-[920px] space-y-3">
         <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
-          <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-1 uppercase tracking-[0.16em] text-foreground/80">
+          <span className="rounded-full border border-surface-tint/10 bg-surface-tint/[0.04] px-2 py-1 uppercase tracking-[0.16em] text-foreground/80">
             Inline {mode.replace("-", " ")}
           </span>
           <span className="truncate">Context: {email.subject}</span>
@@ -735,9 +735,9 @@ function InlineReplyComposer({
             value={to}
             onChange={(event) => setTo(event.target.value)}
             placeholder={isForward ? "Forward to…" : "Reply to…"}
-            className="glow-ring rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/70 focus:border-white/20 focus:outline-none"
+            className="glow-ring rounded-md border border-surface-tint/10 bg-surface-tint/[0.04] px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/70 focus:border-surface-tint/20 focus:outline-none"
           />
-          <label className="flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-foreground">
+          <label className="flex items-center gap-2 rounded-md border border-surface-tint/10 bg-surface-tint/[0.04] px-3 py-2 text-xs text-foreground">
             <Coins className="h-3.5 w-3.5 text-muted-foreground" />
             <input
               value={postage}
@@ -758,10 +758,10 @@ function InlineReplyComposer({
                 className={cn(
                   "rounded-full border px-2 py-1 text-[10px]",
                   recipient.policyType === "block"
-                    ? "border-red-300/20 bg-red-300/[0.06] text-red-200"
+                    ? "border-red-300/20 bg-red-300/[0.06] text-status-danger dark:text-red-200"
                     : recipient.postage === "ready"
-                      ? "border-emerald-200/20 bg-emerald-200/[0.06] text-emerald-100"
-                      : "border-amber-200/20 bg-amber-200/[0.06] text-amber-100",
+                      ? "border-emerald-200/20 bg-emerald-200/[0.06] text-status-success dark:text-emerald-100"
+                      : "border-amber-200/20 bg-amber-200/[0.06] text-status-warning dark:text-amber-100",
                 )}
               >
                 {recipient.address} · {recipient.policyType || "default"} · postage{" "}
@@ -774,14 +774,14 @@ function InlineReplyComposer({
           value={body}
           onChange={(event) => setBody(event.target.value)}
           rows={5}
-          className="glow-ring w-full resize-none rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/70 focus:border-white/20 focus:outline-none"
+          className="glow-ring w-full resize-none rounded-md border border-surface-tint/10 bg-surface-tint/[0.04] px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/70 focus:border-surface-tint/20 focus:outline-none"
         />
         {attachments.length ? (
           <div className="flex flex-wrap gap-1.5">
             {attachments.map((attachment) => (
               <span
                 key={attachment.name}
-                className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/[0.04] px-2 py-1 text-[10px] text-muted-foreground"
+                className="inline-flex items-center gap-1 rounded-md border border-surface-tint/10 bg-surface-tint/[0.04] px-2 py-1 text-[10px] text-muted-foreground"
               >
                 <Paperclip className="h-3 w-3" /> {attachment.name} · {attachment.size}
               </span>
@@ -791,19 +791,19 @@ function InlineReplyComposer({
         <div className="flex flex-wrap justify-end gap-2">
           <button
             onClick={onCancel}
-            className="rounded-md border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] text-muted-foreground transition hover:bg-white/[0.08] hover:text-foreground"
+            className="rounded-md border border-surface-tint/10 bg-surface-tint/[0.04] px-3 py-1.5 text-[11px] text-muted-foreground transition hover:bg-surface-tint/[0.08] hover:text-foreground"
           >
             Cancel
           </button>
           <button
             onClick={onSchedule}
-            className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] text-muted-foreground transition hover:bg-white/[0.08] hover:text-foreground"
+            className="inline-flex items-center gap-1.5 rounded-md border border-surface-tint/10 bg-surface-tint/[0.04] px-3 py-1.5 text-[11px] text-muted-foreground transition hover:bg-surface-tint/[0.08] hover:text-foreground"
           >
             <CalendarClock className="h-3 w-3" /> Schedule mode
           </button>
           <button
             onClick={() => submit(mode === "schedule")}
-            className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.1] px-3 py-1.5 text-[11px] font-medium text-foreground transition hover:bg-white/[0.16]"
+            className="inline-flex items-center gap-1.5 rounded-md border border-surface-tint/10 bg-surface-tint/[0.1] px-3 py-1.5 text-[11px] font-medium text-foreground transition hover:bg-surface-tint/[0.16]"
           >
             <Send className="h-3 w-3" /> {mode === "schedule" ? "Schedule" : "Send"}
           </button>
@@ -827,7 +827,7 @@ function buildInlineBody(email: Email, mode: ComposeMode) {
 
 function ShortcutKey({ hint }: { hint: string }) {
   return (
-    <span className="hidden rounded border border-white/10 bg-black/30 px-1 py-0.5 font-mono text-[10px] text-muted-foreground lg:inline">
+    <span className="hidden rounded border border-surface-tint/10 bg-surface-recessed/30 px-1 py-0.5 font-mono text-[10px] text-muted-foreground lg:inline">
       {hint}
     </span>
   );
@@ -859,14 +859,21 @@ function ProtocolStatus({
       : "Authenticity not verified";
 
   return (
-    <div className="mt-5 flex flex-wrap items-center gap-2 rounded-lg border border-white/[0.08] bg-black/15 px-3 py-2">
-      <BadgeCheck className={cn("h-4 w-4", verified ? "text-zinc-300" : "text-amber-200")} />
+    <div className="mt-5 flex flex-wrap items-center gap-2 rounded-lg border border-surface-tint/[0.08] bg-surface-recessed/15 px-3 py-2">
+      <BadgeCheck
+        className={cn(
+          "h-4 w-4",
+          verified
+            ? "text-status-neutral dark:text-zinc-300"
+            : "text-status-warning dark:text-amber-200",
+        )}
+      />
       <span className="text-xs font-medium text-foreground">{label}</span>
       <span className="font-mono text-[10px] text-muted-foreground">{proof}</span>
       <div className="ml-auto flex items-center gap-2">
         <button
           onClick={() => setIsModalOpen(true)}
-          className="rounded-md border border-white/10 bg-white/[0.04] px-2 py-1 text-[10px] text-muted-foreground transition hover:text-foreground hover:bg-white/[0.08]"
+          className="rounded-md border border-surface-tint/10 bg-surface-tint/[0.04] px-2 py-1 text-[10px] text-muted-foreground transition hover:text-foreground hover:bg-surface-tint/[0.08]"
         >
           Inspect provenance
         </button>
@@ -879,7 +886,7 @@ function ProtocolStatus({
             await navigator.clipboard?.writeText(proof);
             onShowToast?.(`Proof ${proof} copied`);
           }}
-          className="rounded-md border border-white/10 bg-white/[0.04] px-2 py-1 text-[10px] text-muted-foreground transition hover:text-foreground hover:bg-white/[0.08]"
+          className="rounded-md border border-surface-tint/10 bg-surface-tint/[0.04] px-2 py-1 text-[10px] text-muted-foreground transition hover:text-foreground hover:bg-surface-tint/[0.08]"
         >
           Copy proof
         </button>
@@ -893,7 +900,7 @@ function ProtocolStatus({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsModalOpen(false)}
-              className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
+              className="fixed inset-0 z-50 bg-surface-recessed/60 backdrop-blur-sm"
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 16 }}
@@ -902,14 +909,14 @@ function ProtocolStatus({
               transition={{ type: "spring", stiffness: 350, damping: 28 }}
               className="glass-modal fixed left-1/2 top-1/2 z-[60] w-[min(460px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl shadow-2xl p-5"
             >
-              <div className="flex items-center justify-between border-b border-white/5 pb-3">
+              <div className="flex items-center justify-between border-b border-surface-tint/5 pb-3">
                 <div className="flex items-center gap-2">
-                  <BadgeCheck className="h-4 w-4 text-emerald-300" />
+                  <BadgeCheck className="h-4 w-4 text-status-success dark:text-emerald-300" />
                   <h3 className="text-sm font-semibold text-foreground">Message Provenance</h3>
                 </div>
                 <button
                   onClick={() => setIsModalOpen(false)}
-                  className="rounded-lg p-1.5 text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground"
+                  className="rounded-lg p-1.5 text-muted-foreground transition hover:bg-surface-tint/[0.06] hover:text-foreground"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -922,7 +929,7 @@ function ProtocolStatus({
               <div className="mt-5 flex justify-end">
                 <button
                   onClick={() => setIsModalOpen(false)}
-                  className="rounded-lg border border-white/10 bg-white/[0.03] px-4 py-2 text-xs font-semibold text-foreground transition hover:bg-white/[0.08] hover:border-white/20"
+                  className="rounded-lg border border-surface-tint/10 bg-surface-tint/[0.03] px-4 py-2 text-xs font-semibold text-foreground transition hover:bg-surface-tint/[0.08] hover:border-surface-tint/20"
                 >
                   Close
                 </button>
@@ -949,7 +956,7 @@ function ReceiptStatus({
   if (receiptState === "sent") {
     return (
       <div className="mt-3 flex items-center gap-2 rounded-lg border border-emerald-200/15 bg-emerald-200/[0.03] px-3 py-2">
-        <CheckCheck className="h-4 w-4 text-emerald-300" />
+        <CheckCheck className="h-4 w-4 text-status-success dark:text-emerald-300" />
         <span className="text-xs text-foreground">Read receipt sent</span>
       </div>
     );
@@ -958,7 +965,7 @@ function ReceiptStatus({
   if (receiptState === "pending") {
     return (
       <div className="mt-3 flex items-center gap-3 rounded-lg border border-amber-200/15 bg-amber-200/[0.03] px-3 py-2">
-        <CheckCheck className="h-4 w-4 text-amber-200" />
+        <CheckCheck className="h-4 w-4 text-status-warning dark:text-amber-200" />
         <div className="flex-1">
           <div className="text-xs font-medium text-foreground">Read receipt pending</div>
           <div className="text-[11px] text-muted-foreground">
@@ -1012,7 +1019,7 @@ function AttachmentIcon({ type }: { type: string }) {
   const { icon: Icon, className } = getAttachmentIcon(type);
 
   return (
-    <div className="grid h-7 w-7 shrink-0 place-items-center rounded-md border border-white/[0.1] bg-white/[0.06] shadow-[inset_0_1px_0_oklch(1_0_0/0.12)]">
+    <div className="grid h-7 w-7 shrink-0 place-items-center rounded-md border border-surface-tint/[0.1] bg-surface-tint/[0.06] shadow-[inset_0_1px_0_oklch(1_0_0/0.12)]">
       <Icon className={`h-4 w-4 ${className}`} />
     </div>
   );
@@ -1024,16 +1031,19 @@ function getAttachmentIcon(type: string): {
 } {
   const normalized = type.toLowerCase();
 
-  if (normalized === "pdf") return { icon: FileText, className: "text-red-300" };
-  if (normalized === "key") return { icon: KeyRound, className: "text-sky-200" };
-  if (normalized === "json") return { icon: Braces, className: "text-emerald-200" };
+  if (normalized === "pdf")
+    return { icon: FileText, className: "text-status-danger dark:text-red-300" };
+  if (normalized === "key")
+    return { icon: KeyRound, className: "text-status-info dark:text-sky-200" };
+  if (normalized === "json")
+    return { icon: Braces, className: "text-status-success dark:text-emerald-200" };
   if (["png", "jpg", "jpeg", "gif", "webp"].includes(normalized))
-    return { icon: Image, className: "text-violet-200" };
+    return { icon: Image, className: "text-status-special dark:text-violet-200" };
   if (["zip", "rar", "7z"].includes(normalized))
-    return { icon: FileArchive, className: "text-amber-200" };
+    return { icon: FileArchive, className: "text-status-warning dark:text-amber-200" };
   if (["xls", "xlsx", "csv"].includes(normalized))
-    return { icon: Table2, className: "text-green-200" };
-  return { icon: File, className: "text-slate-200" };
+    return { icon: Table2, className: "text-status-success dark:text-green-200" };
+  return { icon: File, className: "text-status-neutral dark:text-slate-200" };
 }
 
 function SenderIdentity({ email, compact = false }: { email: Email; compact?: boolean }) {
@@ -1137,7 +1147,7 @@ function ReaderBody({
             {block.fields.map((field) => (
               <div
                 key={field.label}
-                className="grid gap-1 border-b border-white/[0.06] py-2 last:border-0 sm:grid-cols-[132px_1fr] sm:gap-4"
+                className="grid gap-1 border-b border-surface-tint/[0.06] py-2 last:border-0 sm:grid-cols-[132px_1fr] sm:gap-4"
               >
                 <dt className="mail-reader-field text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                   {field.label}

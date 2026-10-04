@@ -40,7 +40,7 @@ export function ResponseTimeTracker({ service }: ResponseTimeTrackerProps) {
     <div className="mx-auto max-w-4xl" role="region" aria-label="Response Time Tracker">
       <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="flex size-10 items-center justify-center rounded-xl bg-white/5 text-foreground">
+          <div className="flex size-10 items-center justify-center rounded-xl bg-surface-tint/5 text-foreground">
             <Clock className="size-5" aria-hidden="true" />
           </div>
           <div>
@@ -55,7 +55,7 @@ export function ResponseTimeTracker({ service }: ResponseTimeTrackerProps) {
           <DateRangePicker value={dateRange} onChange={handleDateRangeChange} />
           <button
             onClick={handleRefresh}
-            className="inline-flex size-8 items-center justify-center rounded-lg border border-border/30 text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+            className="inline-flex size-8 items-center justify-center rounded-lg border border-border/30 text-muted-foreground transition-colors hover:bg-surface-tint/5 hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
             aria-label="Refresh response time data"
           >
             <RefreshCw className="size-4" aria-hidden="true" />

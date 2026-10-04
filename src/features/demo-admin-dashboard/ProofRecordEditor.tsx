@@ -54,15 +54,19 @@ function FieldRow({
         aria-invalid={Boolean(error)}
         aria-describedby={error ? `${id}-err` : undefined}
         className={cn(
-          "rounded-md border bg-white/[0.03] px-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground/50 outline-none transition focus:ring-1",
+          "rounded-md border bg-surface-tint/[0.03] px-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground/50 outline-none transition focus:ring-1",
           mono && "font-mono",
           error
             ? "border-rose-500/50 focus:ring-rose-500/40"
-            : "border-white/[0.08] focus:ring-white/20",
+            : "border-surface-tint/[0.08] focus:ring-surface-tint/20",
         )}
       />
       {error && (
-        <p id={`${id}-err`} role="alert" className="text-[11px] text-rose-400">
+        <p
+          id={`${id}-err`}
+          role="alert"
+          className="text-[11px] text-status-danger dark:text-rose-400"
+        >
           {error}
         </p>
       )}
@@ -112,12 +116,12 @@ export function ProofRecordEditor({ record, onSave, onCancel, className }: Proof
   return (
     <section
       className={cn(
-        "flex flex-col gap-4 rounded-xl border border-white/[0.08] bg-white/[0.02] p-5",
+        "flex flex-col gap-4 rounded-xl border border-surface-tint/[0.08] bg-surface-tint/[0.02] p-5",
         className,
       )}
       aria-label="Edit proof record"
     >
-      <header className="border-b border-white/[0.06] pb-3">
+      <header className="border-b border-surface-tint/[0.06] pb-3">
         <h3 className="text-sm font-semibold text-foreground">Edit Proof Record</h3>
         <p className="mt-0.5 text-[11px] text-muted-foreground">
           ID: <span className="font-mono">{record.id}</span>
@@ -188,8 +192,8 @@ export function ProofRecordEditor({ record, onSave, onCancel, className }: Proof
                 className={cn(
                   "rounded-full border px-3 py-1 text-[11px] font-medium transition",
                   draft.postageStatus === status
-                    ? "border-amber-500/50 bg-amber-500/10 text-amber-400"
-                    : "border-white/[0.08] bg-white/[0.02] text-muted-foreground hover:border-white/20 hover:text-foreground",
+                    ? "border-amber-500/50 bg-amber-500/10 text-status-warning dark:text-amber-400"
+                    : "border-surface-tint/[0.08] bg-surface-tint/[0.02] text-muted-foreground hover:border-surface-tint/20 hover:text-foreground",
                 )}
               >
                 {formatPostageStatus(status)}
@@ -197,19 +201,19 @@ export function ProofRecordEditor({ record, onSave, onCancel, className }: Proof
             ))}
           </div>
           {errors["postageStatus"] && (
-            <p role="alert" className="text-[11px] text-rose-400">
+            <p role="alert" className="text-[11px] text-status-danger dark:text-rose-400">
               {errors["postageStatus"]}
             </p>
           )}
         </div>
       </div>
 
-      <footer className="flex justify-end gap-2 border-t border-white/[0.06] pt-3">
+      <footer className="flex justify-end gap-2 border-t border-surface-tint/[0.06] pt-3">
         {onCancel && (
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-lg border border-white/[0.08] bg-white/[0.02] px-4 py-1.5 text-xs font-medium text-muted-foreground transition hover:border-white/20 hover:text-foreground"
+            className="rounded-lg border border-surface-tint/[0.08] bg-surface-tint/[0.02] px-4 py-1.5 text-xs font-medium text-muted-foreground transition hover:border-surface-tint/20 hover:text-foreground"
           >
             Cancel
           </button>
@@ -217,7 +221,7 @@ export function ProofRecordEditor({ record, onSave, onCancel, className }: Proof
         <button
           type="button"
           onClick={handleSave}
-          className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-4 py-1.5 text-xs font-medium text-emerald-400 transition hover:bg-emerald-500/20"
+          className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-4 py-1.5 text-xs font-medium text-status-success dark:text-emerald-400 transition hover:bg-emerald-500/20"
         >
           Save
         </button>

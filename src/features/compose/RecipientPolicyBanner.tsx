@@ -48,8 +48,8 @@ function getBannerConfig(quoteState: PostageQuoteState): BannerConfig | null {
       variant: "loading",
       Icon: Loader2,
       label: "Checking recipient policy…",
-      containerClass: "border-blue-300/20 bg-blue-300/[0.05] text-blue-200",
-      iconClass: "motion-safe:animate-spin text-blue-400",
+      containerClass: "border-blue-300/20 bg-blue-300/[0.05] text-status-info dark:text-blue-200",
+      iconClass: "motion-safe:animate-spin text-status-info dark:text-blue-400",
     };
   }
 
@@ -59,8 +59,9 @@ function getBannerConfig(quoteState: PostageQuoteState): BannerConfig | null {
       Icon: AlertCircle,
       label: "Policy check failed",
       detail: "Delivery requirements could not be verified — proceed with caution",
-      containerClass: "border-amber-300/20 bg-amber-300/[0.05] text-amber-200",
-      iconClass: "text-amber-400",
+      containerClass:
+        "border-amber-300/20 bg-amber-300/[0.05] text-status-warning dark:text-amber-200",
+      iconClass: "text-status-warning dark:text-amber-400",
     };
   }
 
@@ -72,8 +73,8 @@ function getBannerConfig(quoteState: PostageQuoteState): BannerConfig | null {
       Icon: Ban,
       label: "Recipient has blocked this sender",
       detail: "This address cannot receive messages from you",
-      containerClass: "border-red-300/20 bg-red-300/[0.05] text-red-200",
-      iconClass: "text-red-400",
+      containerClass: "border-red-300/20 bg-red-300/[0.05] text-status-danger dark:text-red-200",
+      iconClass: "text-status-danger dark:text-red-400",
     };
   }
 
@@ -83,8 +84,8 @@ function getBannerConfig(quoteState: PostageQuoteState): BannerConfig | null {
       Icon: Ban,
       label: "Recipient does not accept messages from unknown senders",
       detail: "You must be an approved contact to send to this address",
-      containerClass: "border-red-300/20 bg-red-300/[0.05] text-red-200",
-      iconClass: "text-red-400",
+      containerClass: "border-red-300/20 bg-red-300/[0.05] text-status-danger dark:text-red-200",
+      iconClass: "text-status-danger dark:text-red-400",
     };
   }
 
@@ -94,8 +95,9 @@ function getBannerConfig(quoteState: PostageQuoteState): BannerConfig | null {
       Icon: ShieldAlert,
       label: "Recipient requires verified identity",
       detail: "Your account must be verified before sending to this address",
-      containerClass: "border-amber-300/20 bg-amber-300/[0.05] text-amber-200",
-      iconClass: "text-amber-400",
+      containerClass:
+        "border-amber-300/20 bg-amber-300/[0.05] text-status-warning dark:text-amber-200",
+      iconClass: "text-status-warning dark:text-amber-400",
     };
   }
 
@@ -105,8 +107,9 @@ function getBannerConfig(quoteState: PostageQuoteState): BannerConfig | null {
       Icon: CheckCircle2,
       label: "Trusted sender — no postage required",
       detail: "You are on this recipient's allow list",
-      containerClass: "border-emerald-300/20 bg-emerald-300/[0.05] text-emerald-200",
-      iconClass: "text-emerald-400",
+      containerClass:
+        "border-emerald-300/20 bg-emerald-300/[0.05] text-status-success dark:text-emerald-200",
+      iconClass: "text-status-success dark:text-emerald-400",
     };
   }
 
@@ -117,8 +120,9 @@ function getBannerConfig(quoteState: PostageQuoteState): BannerConfig | null {
     Icon: Coins,
     label: `Minimum postage: ${xlm} XLM required`,
     detail: "This recipient's policy requires postage to accept messages from unknown senders",
-    containerClass: "border-amber-300/20 bg-amber-300/[0.05] text-amber-200",
-    iconClass: "text-amber-400",
+    containerClass:
+      "border-amber-300/20 bg-amber-300/[0.05] text-status-warning dark:text-amber-200",
+    iconClass: "text-status-warning dark:text-amber-400",
   };
 }
 
@@ -165,7 +169,7 @@ export function RecipientPolicyBanner({
           type="button"
           onClick={() => setDismissed(true)}
           aria-label="Dismiss policy error"
-          className="shrink-0 rounded p-0.5 opacity-60 transition hover:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
+          className="shrink-0 rounded p-0.5 opacity-60 transition hover:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-surface-tint/20"
         >
           <X className="h-3 w-3" />
         </button>

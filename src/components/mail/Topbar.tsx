@@ -267,7 +267,7 @@ export function Topbar({
                       onChange={(v) => onFiltersChange({ ...filters, hasAttachments: v })}
                     />
 
-                    <div className="my-2 border-t border-white/5" />
+                    <div className="my-2 border-t border-surface-tint/5" />
 
                     <div className="mb-2 px-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
                       Date range
@@ -280,8 +280,8 @@ export function Topbar({
                         className={cn(
                           "flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-sm transition",
                           filters.dateRange === range
-                            ? "bg-white/[0.08] text-foreground"
-                            : "text-muted-foreground hover:bg-white/[0.04] hover:text-foreground",
+                            ? "bg-surface-tint/[0.08] text-foreground"
+                            : "text-muted-foreground hover:bg-surface-tint/[0.04] hover:text-foreground",
                         )}
                       >
                         <Calendar className="h-3.5 w-3.5" />
@@ -301,7 +301,7 @@ export function Topbar({
                       filters.hasAttachments ||
                       filters.dateRange !== "all") && (
                       <>
-                        <div className="my-2 border-t border-white/5" />
+                        <div className="my-2 border-t border-surface-tint/5" />
                         <button
                           onClick={() =>
                             onFiltersChange({
@@ -310,7 +310,7 @@ export function Topbar({
                               dateRange: "all",
                             })
                           }
-                          className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-muted-foreground transition hover:bg-white/[0.04] hover:text-foreground"
+                          className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-muted-foreground transition hover:bg-surface-tint/[0.04] hover:text-foreground"
                         >
                           <RefreshCw className="h-3.5 w-3.5" />
                           Clear filters
@@ -336,7 +336,7 @@ export function Topbar({
           >
             <span className="relative">
               <Bell className="h-4 w-4" />
-              <span className="pulse-dot absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-[oklch(0.85_0.005_270)]" />
+              <span className="pulse-dot absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-silver" />
             </span>
           </IconBtn>
         </div>
@@ -380,7 +380,7 @@ export function Topbar({
                     exit={{ opacity: 0 }}
                     onClick={() => setHelpOpen(false)}
                     aria-hidden="true"
-                    className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-xl"
+                    className="fixed inset-0 z-[100] bg-surface-recessed/40 backdrop-blur-xl"
                   />
                   <motion.div
                     ref={helpPopover.panelRef}
@@ -405,11 +405,11 @@ export function Topbar({
                         setHelpOpen(false);
                         onOpenShortcuts();
                       }}
-                      className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground"
+                      className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-muted-foreground transition hover:bg-surface-tint/[0.06] hover:text-foreground"
                     >
                       <CircleHelp className="h-4 w-4" />
                       <span className="flex-1">Keyboard shortcuts</span>
-                      <kbd className="rounded border border-white/10 bg-black/30 px-1.5 py-0.5 font-mono text-[10px]">
+                      <kbd className="rounded border border-surface-tint/10 bg-surface-recessed/30 px-1.5 py-0.5 font-mono text-[10px]">
                         ?
                       </kbd>
                     </button>
@@ -430,7 +430,7 @@ export function Topbar({
           <Settings className="h-4 w-4" />
         </IconBtn>
 
-        <div className="mx-1 h-6 w-px bg-white/10" />
+        <div className="mx-1 h-6 w-px bg-surface-tint/10" />
 
         {/* Account menu */}
         <div ref={accountRef} className="relative">
@@ -441,8 +441,8 @@ export function Topbar({
             aria-expanded={accountOpen}
             aria-label="Account menu"
             className={cn(
-              "glow-ring flex items-center gap-2 rounded-[6px] border border-white/5 bg-white/[0.04] px-2 py-1.5 text-xs text-foreground transition hover:bg-white/[0.08]",
-              accountOpen && "bg-white/[0.08]",
+              "glow-ring flex items-center gap-2 rounded-[6px] border border-surface-tint/5 bg-surface-tint/[0.04] px-2 py-1.5 text-xs text-foreground transition hover:bg-surface-tint/[0.08]",
+              accountOpen && "bg-surface-tint/[0.08]",
             )}
           >
             <span
@@ -465,7 +465,7 @@ export function Topbar({
                     exit={{ opacity: 0 }}
                     onClick={() => setAccountOpen(false)}
                     aria-hidden="true"
-                    className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-xl"
+                    className="fixed inset-0 z-[100] bg-surface-recessed/40 backdrop-blur-xl"
                   />
                   <motion.div
                     ref={accountPopover.panelRef}
@@ -485,7 +485,7 @@ export function Topbar({
                     className="glass-modal overflow-hidden rounded-xl"
                   >
                     {/* Account info */}
-                    <div className="border-b border-white/5 p-3">
+                    <div className="border-b border-surface-tint/5 p-3">
                       <div className="flex items-center gap-3">
                         <div className="h-10 w-10 rounded-full bg-gradient-to-br from-[#4d5560] to-[#232326] flex items-center justify-center">
                           <span className="text-sm font-medium text-white/90">EN</span>
@@ -534,7 +534,7 @@ export function Topbar({
                           onOpenLogin?.();
                         }}
                       />
-                      <div className="my-1 border-t border-white/5" />
+                      <div className="my-1 border-t border-surface-tint/5" />
                       <AccountMenuItem
                         icon={LogOut}
                         label="Sign out"
@@ -561,8 +561,11 @@ export function Topbar({
             exit={{ opacity: 0, y: -4 }}
             className="pointer-events-none absolute left-3 top-full mt-2 px-1 text-[11px] text-muted-foreground"
           >
-            Press <kbd className="rounded border border-white/10 bg-black/40 px-1">Ctrl+K</kbd> for
-            the command palette
+            Press{" "}
+            <kbd className="rounded border border-surface-tint/10 bg-surface-recessed/40 px-1">
+              Ctrl+K
+            </kbd>{" "}
+            for the command palette
           </motion.div>
         )}
       </AnimatePresence>
@@ -598,15 +601,15 @@ function IconBtn({
       onClick={onClick}
       {...rest}
       className={cn(
-        "glow-ring rounded-[6px] p-2 text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground",
+        "glow-ring rounded-[6px] p-2 text-muted-foreground transition hover:bg-surface-tint/[0.06] hover:text-foreground",
         "inline-flex items-center justify-center gap-1.5 min-h-[36px] min-w-[36px]",
-        active && "bg-white/[0.06] text-foreground",
+        active && "bg-surface-tint/[0.06] text-foreground",
         className,
       )}
     >
       {children}
       {hint && (
-        <span className="hidden rounded border border-white/10 bg-black/30 px-1 py-0.5 font-mono text-[10px] text-muted-foreground lg:inline">
+        <span className="hidden rounded border border-surface-tint/10 bg-surface-recessed/30 px-1 py-0.5 font-mono text-[10px] text-muted-foreground lg:inline">
           {hint}
         </span>
       )}
@@ -634,7 +637,7 @@ function QuickAction({
     >
       <Icon className="h-4 w-4" />
       <span className="hidden 2xl:inline">{label}</span>
-      <span className="rounded-[4px] border border-white/[0.08] bg-black/20 px-1.5 py-0.5 font-mono text-[10px] text-foreground/80">
+      <span className="rounded-[4px] border border-surface-tint/[0.08] bg-surface-recessed/20 px-1.5 py-0.5 font-mono text-[10px] text-foreground/80">
         {value}
       </span>
     </motion.button>
@@ -658,8 +661,8 @@ function FilterToggle({
       className={cn(
         "flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-sm transition",
         checked
-          ? "bg-white/[0.08] text-foreground"
-          : "text-muted-foreground hover:bg-white/[0.04] hover:text-foreground",
+          ? "bg-surface-tint/[0.08] text-foreground"
+          : "text-muted-foreground hover:bg-surface-tint/[0.04] hover:text-foreground",
       )}
     >
       <Icon className="h-3.5 w-3.5" />
@@ -682,7 +685,7 @@ function AccountMenuItem({
     <button
       role="menuitem"
       onClick={onClick}
-      className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground"
+      className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground transition hover:bg-surface-tint/[0.06] hover:text-foreground"
     >
       <Icon className="h-4 w-4" />
       {label}

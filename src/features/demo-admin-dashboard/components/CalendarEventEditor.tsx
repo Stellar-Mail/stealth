@@ -65,7 +65,7 @@ export function CalendarEventEditor({
   return (
     <div
       className={cn(
-        "rounded-xl border border-white/[0.08] bg-white/[0.02] p-5 space-y-4",
+        "rounded-xl border border-surface-tint/[0.08] bg-surface-tint/[0.02] p-5 space-y-4",
         className,
       )}
       onKeyDown={handleKeyDown}
@@ -80,7 +80,7 @@ export function CalendarEventEditor({
             type="button"
             onClick={onCancel}
             aria-label="Cancel editing"
-            className="rounded-md p-1 text-muted-foreground hover:bg-white/[0.04] hover:text-foreground"
+            className="rounded-md p-1 text-muted-foreground hover:bg-surface-tint/[0.04] hover:text-foreground"
           >
             <X className="h-4 w-4" />
           </button>
@@ -98,15 +98,17 @@ export function CalendarEventEditor({
           onChange={(e) => onChange({ ...state, title: e.target.value })}
           placeholder="e.g. Design Review"
           className={cn(
-            "w-full rounded-lg border px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none bg-black/40",
+            "w-full rounded-lg border px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none bg-surface-recessed/40",
             titleIssues.length > 0
               ? "border-red-500/50 focus:border-red-400"
-              : "border-white/[0.08] focus:border-white/20",
+              : "border-surface-tint/[0.08] focus:border-surface-tint/20",
           )}
           required
         />
         {titleIssues.length > 0 && (
-          <p className="text-xs font-medium text-rose-400">{titleIssues[0].message}</p>
+          <p className="text-xs font-medium text-status-danger dark:text-rose-400">
+            {titleIssues[0].message}
+          </p>
         )}
       </div>
 
@@ -121,15 +123,17 @@ export function CalendarEventEditor({
             value={state.startTime}
             onChange={(e) => onChange({ ...state, startTime: e.target.value })}
             className={cn(
-              "w-full rounded-lg border px-3 py-2 text-xs text-foreground focus:outline-none bg-black/40",
+              "w-full rounded-lg border px-3 py-2 text-xs text-foreground focus:outline-none bg-surface-recessed/40",
               startTimeIssues.length > 0
                 ? "border-red-500/50 focus:border-red-400"
-                : "border-white/[0.08] focus:border-white/20",
+                : "border-surface-tint/[0.08] focus:border-surface-tint/20",
             )}
             required
           />
           {startTimeIssues.length > 0 && (
-            <p className="text-xs font-medium text-rose-400">{startTimeIssues[0].message}</p>
+            <p className="text-xs font-medium text-status-danger dark:text-rose-400">
+              {startTimeIssues[0].message}
+            </p>
           )}
         </div>
 
@@ -143,15 +147,17 @@ export function CalendarEventEditor({
             value={state.endTime}
             onChange={(e) => onChange({ ...state, endTime: e.target.value })}
             className={cn(
-              "w-full rounded-lg border px-3 py-2 text-xs text-foreground focus:outline-none bg-black/40",
+              "w-full rounded-lg border px-3 py-2 text-xs text-foreground focus:outline-none bg-surface-recessed/40",
               endTimeIssues.length > 0
                 ? "border-red-500/50 focus:border-red-400"
-                : "border-white/[0.08] focus:border-white/20",
+                : "border-surface-tint/[0.08] focus:border-surface-tint/20",
             )}
             required
           />
           {endTimeIssues.length > 0 && (
-            <p className="text-xs font-medium text-rose-400">{endTimeIssues[0].message}</p>
+            <p className="text-xs font-medium text-status-danger dark:text-rose-400">
+              {endTimeIssues[0].message}
+            </p>
           )}
         </div>
       </div>
@@ -166,7 +172,7 @@ export function CalendarEventEditor({
           value={state.location}
           onChange={(e) => onChange({ ...state, location: e.target.value })}
           placeholder="e.g. Conference Room A"
-          className="w-full rounded-lg border border-white/[0.08] px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none bg-black/40 focus:border-white/20"
+          className="w-full rounded-lg border border-surface-tint/[0.08] px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none bg-surface-recessed/40 focus:border-surface-tint/20"
         />
       </div>
 
@@ -181,14 +187,16 @@ export function CalendarEventEditor({
           onChange={(e) => handleAttendeesChange(e.target.value)}
           placeholder="e.g. eve@stealth.xyz, lina@vantage.studio"
           className={cn(
-            "w-full rounded-lg border px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none bg-black/40",
+            "w-full rounded-lg border px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none bg-surface-recessed/40",
             attendeeIssues.length > 0
               ? "border-red-500/50 focus:border-red-400"
-              : "border-white/[0.08] focus:border-white/20",
+              : "border-surface-tint/[0.08] focus:border-surface-tint/20",
           )}
         />
         {attendeeIssues.length > 0 && (
-          <p className="text-xs font-medium text-rose-400">{attendeeIssues[0].message}</p>
+          <p className="text-xs font-medium text-status-danger dark:text-rose-400">
+            {attendeeIssues[0].message}
+          </p>
         )}
       </div>
 
@@ -205,7 +213,7 @@ export function CalendarEventEditor({
               responseState: e.target.value as CalendarResponseState,
             })
           }
-          className="w-full rounded-lg border border-white/[0.08] px-3 py-2 text-xs text-foreground focus:outline-none bg-black/40 focus:border-white/20"
+          className="w-full rounded-lg border border-surface-tint/[0.08] px-3 py-2 text-xs text-foreground focus:outline-none bg-surface-recessed/40 focus:border-surface-tint/20"
         >
           {CALENDAR_RESPONSE_STATES.map((rs) => {
             const opt = getResponseStateOption(rs);
@@ -231,7 +239,7 @@ export function CalendarEventEditor({
             <button
               type="button"
               onClick={onCancel}
-              className="rounded-lg border border-white/[0.08] bg-white/[0.01] px-4 py-2 text-xs font-medium text-muted-foreground transition hover:bg-white/[0.04] hover:text-foreground"
+              className="rounded-lg border border-surface-tint/[0.08] bg-surface-tint/[0.01] px-4 py-2 text-xs font-medium text-muted-foreground transition hover:bg-surface-tint/[0.04] hover:text-foreground"
             >
               Cancel
             </button>
@@ -244,7 +252,7 @@ export function CalendarEventEditor({
               className={cn(
                 "rounded-lg px-4 py-2 text-xs font-semibold transition",
                 hasErrors
-                  ? "cursor-not-allowed bg-white/[0.04] text-muted-foreground"
+                  ? "cursor-not-allowed bg-surface-tint/[0.04] text-muted-foreground"
                   : "bg-foreground text-background hover:opacity-90",
               )}
             >

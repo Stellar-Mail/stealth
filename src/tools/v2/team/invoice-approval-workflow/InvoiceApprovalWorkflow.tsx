@@ -7,15 +7,15 @@ export const InvoiceApprovalWorkflow: React.FC = () => {
 
   return (
     <div
-      className="p-6 border rounded-xl max-w-3xl mx-auto bg-white shadow-sm"
+      className="p-6 border rounded-xl max-w-3xl mx-auto bg-card shadow-sm"
       role="region"
       aria-labelledby="invoice-workflow-heading"
     >
       <header className="mb-6 border-b pb-4">
-        <h2 className="text-2xl font-semibold text-gray-800" id="invoice-workflow-heading">
+        <h2 className="text-2xl font-semibold text-foreground" id="invoice-workflow-heading">
           Invoice Approval Workflow
         </h2>
-        <p className="text-sm text-gray-500 mt-1">
+        <p className="text-sm text-muted-foreground mt-1">
           Review, approve, or reject pending team invoices in isolation.
         </p>
       </header>
@@ -31,7 +31,7 @@ export const InvoiceApprovalWorkflow: React.FC = () => {
         </button>
         <button
           onClick={() => setState("empty")}
-          className="px-4 py-2 bg-gray-50 text-gray-700 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors font-medium text-sm"
+          className="px-4 py-2 bg-muted text-foreground rounded-md hover:bg-muted focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors font-medium text-sm"
           aria-pressed={state === "empty"}
         >
           View Empty Queue
@@ -56,11 +56,11 @@ export const InvoiceApprovalWorkflow: React.FC = () => {
       <div
         aria-live="polite"
         aria-atomic="true"
-        className="min-h-[250px] bg-gray-50 rounded-lg border border-gray-100 p-4"
+        className="min-h-[250px] bg-muted rounded-lg border border-border p-4"
       >
         {state === "idle" && (
           <div className="flex items-center justify-center h-full min-h-[200px]">
-            <p className="text-gray-500 text-center">
+            <p className="text-muted-foreground text-center">
               Select an action above to load the invoice queue.
             </p>
           </div>
@@ -82,13 +82,13 @@ export const InvoiceApprovalWorkflow: React.FC = () => {
 
         {state === "empty" && (
           <div className="flex flex-col items-center justify-center h-full min-h-[200px] text-center px-4">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-3">
+            <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-3">
               <span className="text-2xl" role="img" aria-hidden="true">
                 🎉
               </span>
             </div>
-            <h3 className="text-lg font-medium text-gray-900">All caught up!</h3>
-            <p className="text-gray-500 mt-1 max-w-sm">
+            <h3 className="text-lg font-medium text-foreground">All caught up!</h3>
+            <p className="text-muted-foreground mt-1 max-w-sm">
               There are no pending invoices awaiting your approval at this time.
             </p>
           </div>
@@ -102,7 +102,7 @@ export const InvoiceApprovalWorkflow: React.FC = () => {
             >
               <div className="flex items-start">
                 <div className="flex-shrink-0 mt-0.5">
-                  <span className="text-red-500 text-lg" aria-hidden="true">
+                  <span className="text-status-danger dark:text-red-500 text-lg" aria-hidden="true">
                     ⚠️
                   </span>
                 </div>
@@ -130,58 +130,62 @@ export const InvoiceApprovalWorkflow: React.FC = () => {
           <div className="space-y-4">
             <div className="flex justify-between items-center mb-2 px-2">
               <span
-                className="text-sm font-medium text-gray-500 uppercase tracking-wider"
+                className="text-sm font-medium text-muted-foreground uppercase tracking-wider"
                 aria-live="polite"
               >
                 2 Pending Approvals
               </span>
-              <span className="text-sm font-medium text-gray-700">Total: $12,450.00</span>
+              <span className="text-sm font-medium text-foreground">Total: $12,450.00</span>
             </div>
 
             <ul className="space-y-3" aria-label="Pending Invoice List">
               <li
-                className="p-5 border border-gray-200 rounded-lg bg-white shadow-sm hover:border-blue-300 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 outline-none transition-all"
+                className="p-5 border border-border rounded-lg bg-card shadow-sm hover:border-blue-300 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 outline-none transition-all"
                 tabIndex={0}
               >
                 <div className="flex justify-between items-start mb-2">
                   <div>
-                    <h4 className="font-semibold text-gray-900 text-lg">Acme Corp Software</h4>
-                    <p className="text-sm text-gray-500">Submitted by usr_abc123 • Due Oct 31</p>
+                    <h4 className="font-semibold text-foreground text-lg">Acme Corp Software</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Submitted by usr_abc123 • Due Oct 31
+                    </p>
                   </div>
-                  <span className="text-lg font-bold text-gray-900">$1,500.00</span>
+                  <span className="text-lg font-bold text-foreground">$1,500.00</span>
                 </div>
-                <p className="text-sm text-gray-600 mb-4 bg-gray-50 p-2 rounded border border-gray-100">
+                <p className="text-sm text-muted-foreground mb-4 bg-muted p-2 rounded border border-border">
                   Annual SaaS subscription renewal for engineering team.
                 </p>
                 <div className="flex gap-2">
                   <button className="flex-1 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors">
                     Approve
                   </button>
-                  <button className="flex-1 py-2 bg-white border border-gray-300 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors">
+                  <button className="flex-1 py-2 bg-card border border-border text-foreground rounded-md text-sm font-medium hover:bg-muted focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors">
                     Reject
                   </button>
                 </div>
               </li>
 
               <li
-                className="p-5 border border-gray-200 rounded-lg bg-white shadow-sm hover:border-blue-300 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 outline-none transition-all"
+                className="p-5 border border-border rounded-lg bg-card shadow-sm hover:border-blue-300 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 outline-none transition-all"
                 tabIndex={0}
               >
                 <div className="flex justify-between items-start mb-2">
                   <div>
-                    <h4 className="font-semibold text-gray-900 text-lg">Global Logistics LLC</h4>
-                    <p className="text-sm text-gray-500">Submitted by usr_def456 • Due Nov 15</p>
+                    <h4 className="font-semibold text-foreground text-lg">Global Logistics LLC</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Submitted by usr_def456 • Due Nov 15
+                    </p>
                   </div>
-                  <span className="text-lg font-bold text-gray-900">$10,950.00</span>
+                  <span className="text-lg font-bold text-foreground">$10,950.00</span>
                 </div>
-                <p className="text-sm text-gray-600 mb-4 bg-gray-50 p-2 rounded border border-gray-100">
+                <p className="text-sm text-muted-foreground mb-4 bg-muted p-2 rounded border border-border">
                   Q3 Freight and shipping reconciliation.
                 </p>
                 <div className="flex gap-2">
                   <button className="flex-1 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors">
                     Approve
                   </button>
-                  <button className="flex-1 py-2 bg-white border border-gray-300 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors">
+                  <button className="flex-1 py-2 bg-card border border-border text-foreground rounded-md text-sm font-medium hover:bg-muted focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors">
                     Reject
                   </button>
                 </div>

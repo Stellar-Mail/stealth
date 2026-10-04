@@ -102,7 +102,7 @@ export function SenderConversionDialog({ target, onConfirm, onClose }: Props) {
               <button
                 onClick={onClose}
                 aria-label="Cancel"
-                className="glow-ring shrink-0 rounded-lg p-1.5 text-muted-foreground transition hover:bg-white/[0.07] hover:text-foreground"
+                className="glow-ring shrink-0 rounded-lg p-1.5 text-muted-foreground transition hover:bg-surface-tint/[0.07] hover:text-foreground"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -137,7 +137,7 @@ export function SenderConversionDialog({ target, onConfirm, onClose }: Props) {
                             "relative rounded-xl border p-3 text-left transition",
                             selected
                               ? "border-emerald-400/30 bg-emerald-400/[0.07]"
-                              : "border-white/10 bg-white/[0.025] hover:bg-white/[0.05]",
+                              : "border-surface-tint/10 bg-surface-tint/[0.025] hover:bg-surface-tint/[0.05]",
                           )}
                         >
                           <div className="flex items-start gap-3">
@@ -145,8 +145,8 @@ export function SenderConversionDialog({ target, onConfirm, onClose }: Props) {
                               className={cn(
                                 "mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg border",
                                 selected
-                                  ? "border-emerald-300/30 bg-emerald-300/10 text-emerald-200"
-                                  : "border-white/10 bg-white/[0.04] text-muted-foreground",
+                                  ? "border-emerald-300/30 bg-emerald-300/10 text-status-success dark:text-emerald-200"
+                                  : "border-surface-tint/10 bg-surface-tint/[0.04] text-muted-foreground",
                               )}
                             >
                               <Icon className="h-3.5 w-3.5" />
@@ -157,7 +157,7 @@ export function SenderConversionDialog({ target, onConfirm, onClose }: Props) {
                                   {option.label}
                                 </span>
                                 {current && (
-                                  <span className="rounded-full bg-white/[0.07] px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-muted-foreground">
+                                  <span className="rounded-full bg-surface-tint/[0.07] px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-muted-foreground">
                                     Current
                                   </span>
                                 )}
@@ -178,7 +178,7 @@ export function SenderConversionDialog({ target, onConfirm, onClose }: Props) {
                   <div className="mt-5 flex gap-3">
                     <button
                       onClick={onClose}
-                      className="flex-1 rounded-xl border border-white/10 px-4 py-2.5 text-sm text-muted-foreground transition hover:bg-white/[0.04] hover:text-foreground"
+                      className="flex-1 rounded-xl border border-surface-tint/10 px-4 py-2.5 text-sm text-muted-foreground transition hover:bg-surface-tint/[0.04] hover:text-foreground"
                     >
                       Cancel
                     </button>
@@ -189,7 +189,7 @@ export function SenderConversionDialog({ target, onConfirm, onClose }: Props) {
                         "flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition",
                         choice
                           ? "bg-foreground text-background hover:opacity-90"
-                          : "cursor-not-allowed bg-white/[0.06] text-muted-foreground",
+                          : "cursor-not-allowed bg-surface-tint/[0.06] text-muted-foreground",
                       )}
                     >
                       {choice ? getSenderPolicyOption(choice).label : "Choose an action"}
@@ -207,7 +207,7 @@ export function SenderConversionDialog({ target, onConfirm, onClose }: Props) {
                   className="px-6 pb-6 pt-4"
                 >
                   <div className="mb-4 flex items-center gap-2">
-                    <span className="grid h-8 w-8 place-items-center rounded-full border border-emerald-300/30 bg-emerald-300/10 text-emerald-200">
+                    <span className="grid h-8 w-8 place-items-center rounded-full border border-emerald-300/30 bg-emerald-300/10 text-status-success dark:text-emerald-200">
                       <Check className="h-4 w-4" />
                     </span>
                     <p className="text-sm text-foreground/90">
@@ -215,7 +215,7 @@ export function SenderConversionDialog({ target, onConfirm, onClose }: Props) {
                     </p>
                   </div>
 
-                  <dl className="space-y-2 rounded-xl border border-white/10 bg-black/15 p-3">
+                  <dl className="space-y-2 rounded-xl border border-surface-tint/10 bg-surface-recessed/15 p-3">
                     <div className="flex items-center justify-between gap-3">
                       <dt className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
                         Sender badge
@@ -224,7 +224,7 @@ export function SenderConversionDialog({ target, onConfirm, onClose }: Props) {
                         <SenderBadge policy={choice ?? undefined} />
                       </dd>
                     </div>
-                    <div className="flex items-center justify-between gap-3 border-t border-white/[0.06] pt-2">
+                    <div className="flex items-center justify-between gap-3 border-t border-surface-tint/[0.06] pt-2">
                       <dt className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
                         Filed under
                       </dt>

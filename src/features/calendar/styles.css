@@ -175,12 +175,79 @@
 
 :root[data-theme="light"] .calendar-workspace,
 :root[data-theme="light"] .calendar-editor {
-  background:
-    radial-gradient(760px 420px at 0% 0%, oklch(0.86 0.035 255 / 0.65), transparent 62%),
-    oklch(0.98 0.004 270 / 0.98);
+  background: var(--gradient-glass), var(--popover);
+  box-shadow: var(--shadow-elegant);
 }
 
 :root[data-theme="light"] .calendar-primary-button {
-  color: white;
-  background: oklch(0.22 0.008 270);
+  color: var(--primary-foreground);
+  background: var(--primary);
+}
+
+:root[data-theme="light"] :is(.calendar-control, .calendar-input, .calendar-icon-button) {
+  color: var(--foreground);
+  background: var(--card);
+  border-color: var(--input);
+}
+
+:root[data-theme="light"] :is(.calendar-control, .calendar-icon-button):hover {
+  background: var(--accent);
+}
+
+:root[data-theme="light"]
+  :is(
+    .calendar-control,
+    .calendar-input,
+    .calendar-icon-button,
+    .calendar-primary-button
+  ):focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+:root[data-theme="light"] .calendar-picker {
+  background: var(--card);
+}
+
+:root[data-theme="light"] .event-mail-hero {
+  background: linear-gradient(125deg, var(--accent), var(--card) 60%, var(--secondary));
+  border-color: var(--border);
+  box-shadow: var(--shadow-elegant);
+}
+
+:root[data-theme="light"] .event-mail-hero::before {
+  background: var(--gradient-glass);
+}
+
+:root[data-theme="light"] .event-mail-ridges {
+  background: repeating-linear-gradient(
+    100deg,
+    var(--input) 0 1px,
+    var(--secondary) 1px 9px,
+    var(--accent) 9px 15px
+  );
+  border-color: var(--border);
+  box-shadow: none;
+}
+
+:root[data-theme="light"] .event-mail-ridges::after {
+  background: linear-gradient(
+    90deg,
+    var(--secondary),
+    transparent 28%,
+    transparent 68%,
+    var(--secondary)
+  );
+}
+
+:root[data-theme="light"] .event-calendar-card {
+  background: var(--gradient-glass), var(--glass-strong);
+  border-color: var(--input);
+  box-shadow: var(--shadow-elegant);
+}
+
+.event-calendar-selected {
+  background: color-mix(in srgb, var(--primary) 75%, transparent);
+  color: var(--primary-foreground);
 }

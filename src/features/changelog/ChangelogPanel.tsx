@@ -95,11 +95,11 @@ const ChangelogEntry = memo(function ChangelogEntry({
     <article
       className={cn(
         "group rounded-lg border transition-all duration-200 motion-reduce:transition-none",
-        "hover:shadow-sm hover:border-white/15",
+        "hover:shadow-sm hover:border-surface-tint/15",
         "focus-within:ring-1 focus-within:ring-ring",
         isUnread
-          ? "border-white/15 bg-white/[0.06]"
-          : "border-white/5 bg-white/[0.015] hover:bg-white/[0.04]",
+          ? "border-surface-tint/15 bg-surface-tint/[0.06]"
+          : "border-surface-tint/5 bg-surface-tint/[0.015] hover:bg-surface-tint/[0.04]",
       )}
     >
       <div className="p-3">
@@ -122,8 +122,8 @@ const ChangelogEntry = memo(function ChangelogEntry({
             size="sm"
             asChild
             className={cn(
-              "mt-2 h-auto p-0 text-[11px] text-sky-400 transition-colors duration-200 motion-reduce:transition-none",
-              "hover:text-sky-300 focus-visible:ring-1 focus-visible:ring-ring",
+              "mt-2 h-auto p-0 text-[11px] text-status-info dark:text-sky-400 transition-colors duration-200 motion-reduce:transition-none",
+              "hover:text-status-info dark:hover:text-sky-300 focus-visible:ring-1 focus-visible:ring-ring",
             )}
           >
             <a
@@ -186,8 +186,13 @@ export function ChangelogPanel() {
               role="status"
               aria-label="All release notes read"
             >
-              <CheckCircle2 className="h-3 w-3 text-emerald-400 flex-shrink-0" aria-hidden="true" />
-              <span className="text-[11px] font-medium text-emerald-300">All read</span>
+              <CheckCircle2
+                className="h-3 w-3 text-status-success dark:text-emerald-400 flex-shrink-0"
+                aria-hidden="true"
+              />
+              <span className="text-[11px] font-medium text-status-success dark:text-emerald-300">
+                All read
+              </span>
             </div>
           )}
         </div>
@@ -195,7 +200,7 @@ export function ChangelogPanel() {
 
       {/* Empty State */}
       {isEmpty && (
-        <div className="rounded-lg border border-white/5 bg-white/[0.02] p-6">
+        <div className="rounded-lg border border-surface-tint/5 bg-surface-tint/[0.02] p-6">
           <div className="flex flex-col items-center justify-center gap-2 text-center">
             <p className="text-sm font-medium text-muted-foreground">No releases yet</p>
             <p className="text-xs text-muted-foreground/75">

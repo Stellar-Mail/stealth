@@ -233,14 +233,14 @@ export function ContactMigrationDialog({
             className="glass-strong fixed left-1/2 top-1/2 z-50 w-[min(580px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl"
           >
             {/* header */}
-            <div className="flex items-center justify-between border-b border-white/5 px-5 py-4">
+            <div className="flex items-center justify-between border-b border-surface-tint/5 px-5 py-4">
               <div className="flex items-center gap-2.5">
                 <Users className="h-4 w-4 text-muted-foreground" />
                 <h2 className="text-sm font-semibold text-foreground">Contact migration</h2>
               </div>
               <button
                 onClick={onClose}
-                className="rounded-lg p-1.5 text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground"
+                className="rounded-lg p-1.5 text-muted-foreground transition hover:bg-surface-tint/[0.06] hover:text-foreground"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -263,8 +263,7 @@ export function ContactMigrationDialog({
                     key={i}
                     className="h-0.5 flex-1 rounded-full transition-all duration-300"
                     style={{
-                      background:
-                        i <= stepIndex ? "rgba(255,255,255,0.7)" : "rgba(255,255,255,0.1)",
+                      background: i <= stepIndex ? "var(--primary)" : "var(--border)",
                     }}
                   />
                 ))}
@@ -289,14 +288,14 @@ export function ContactMigrationDialog({
                       <IdentityReviewTable rows={rows} onChange={setRows} />
 
                       {/* retention notice */}
-                      <div className="flex items-start gap-2 rounded-xl border border-white/10 bg-white/[0.02] p-3">
+                      <div className="flex items-start gap-2 rounded-xl border border-surface-tint/10 bg-surface-tint/[0.02] p-3">
                         <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                         <div className="text-[11px] text-muted-foreground">
                           Imported data retention:{" "}
                           <select
                             value={retention}
                             onChange={(e) => setRetention(e.target.value as DataRetentionPolicy)}
-                            className="bg-transparent border-b border-white/10 text-foreground outline-none"
+                            className="bg-transparent border-b border-surface-tint/10 text-foreground outline-none"
                           >
                             <option value="session">Session only</option>
                             <option value="1h">1 hour</option>
@@ -310,7 +309,7 @@ export function ContactMigrationDialog({
                       <div className="flex gap-3">
                         <button
                           onClick={() => goTo("source")}
-                          className="flex-1 rounded-xl border border-white/10 px-4 py-2.5 text-sm text-muted-foreground transition hover:bg-white/[0.04] hover:text-foreground"
+                          className="flex-1 rounded-xl border border-surface-tint/10 px-4 py-2.5 text-sm text-muted-foreground transition hover:bg-surface-tint/[0.04] hover:text-foreground"
                         >
                           Back
                         </button>
@@ -331,7 +330,7 @@ export function ContactMigrationDialog({
                             "flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold transition",
                             rows.filter((r) => !r.error).length > 0
                               ? "bg-foreground text-background hover:opacity-90"
-                              : "cursor-not-allowed bg-white/10 text-muted-foreground",
+                              : "cursor-not-allowed bg-surface-tint/10 text-muted-foreground",
                           )}
                         >
                           Continue
@@ -431,8 +430,8 @@ function TrustDefaultsStep({
             className={cn(
               "rounded-xl border p-4 text-left transition",
               fallbackTrust === opt.value
-                ? "border-white/20 bg-white/[0.08]"
-                : "border-white/10 bg-white/[0.025] hover:bg-white/[0.05]",
+                ? "border-surface-tint/20 bg-surface-tint/[0.08]"
+                : "border-surface-tint/10 bg-surface-tint/[0.025] hover:bg-surface-tint/[0.05]",
             )}
           >
             <span className="block text-sm font-medium text-foreground">{opt.label}</span>
@@ -444,7 +443,7 @@ function TrustDefaultsStep({
       <div className="flex gap-3">
         <button
           onClick={onBack}
-          className="flex-1 rounded-xl border border-white/10 px-4 py-2.5 text-sm text-muted-foreground transition hover:bg-white/[0.04] hover:text-foreground"
+          className="flex-1 rounded-xl border border-surface-tint/10 px-4 py-2.5 text-sm text-muted-foreground transition hover:bg-surface-tint/[0.04] hover:text-foreground"
         >
           Back
         </button>
@@ -479,7 +478,7 @@ function MigrationDoneStep({
         </p>
       </div>
 
-      <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4 space-y-2">
+      <div className="rounded-xl border border-surface-tint/10 bg-surface-tint/[0.02] p-4 space-y-2">
         <div className="flex items-center justify-between text-xs">
           <span className="text-muted-foreground">Sender rules written</span>
           <span className="text-foreground font-medium">{succeeded}</span>

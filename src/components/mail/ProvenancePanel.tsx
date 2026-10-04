@@ -32,7 +32,7 @@ import {
   timelineStepAriaLabel,
 } from "./provenance-a11y";
 
-const focusRingClass = "focus:outline-none focus:ring-2 focus:ring-white/10";
+const focusRingClass = "focus:outline-none focus:ring-2 focus:ring-surface-tint/10";
 
 export function ProvenancePanel({
   email,
@@ -120,7 +120,7 @@ export function ProvenancePanel({
     const isCopied = copiedKey === fieldKey;
 
     return (
-      <div className="flex flex-col gap-1 rounded-lg border border-white/[0.04] bg-white/[0.02] p-2.5 transition hover:bg-white/[0.04]">
+      <div className="flex flex-col gap-1 rounded-lg border border-surface-tint/[0.04] bg-surface-tint/[0.02] p-2.5 transition hover:bg-surface-tint/[0.04]">
         <div className="flex items-center gap-2">
           <Icon className="h-3.5 w-3.5 text-muted-foreground/80 shrink-0" aria-hidden="true" />
           <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -130,12 +130,15 @@ export function ProvenancePanel({
             <button
               type="button"
               onClick={() => handleCopy(fieldKey, rawValue, label)}
-              className={`rounded p-1 text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground ${focusRingClass}`}
+              className={`rounded p-1 text-muted-foreground transition hover:bg-surface-tint/[0.06] hover:text-foreground ${focusRingClass}`}
               aria-label={copyFieldAriaLabel(label, isCopied)}
               aria-pressed={isCopied}
             >
               {isCopied ? (
-                <Check className="h-3 w-3 text-emerald-400" aria-hidden="true" />
+                <Check
+                  className="h-3 w-3 text-status-success dark:text-emerald-400"
+                  aria-hidden="true"
+                />
               ) : (
                 <Copy className="h-3 w-3" aria-hidden="true" />
               )}
@@ -143,7 +146,7 @@ export function ProvenancePanel({
             <button
               type="button"
               onClick={() => setInspectItem(inspectorData)}
-              className={`rounded p-1 text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground ${focusRingClass}`}
+              className={`rounded p-1 text-muted-foreground transition hover:bg-surface-tint/[0.06] hover:text-foreground ${focusRingClass}`}
               aria-label={inspectFieldAriaLabel(label)}
             >
               <Search className="h-3 w-3" aria-hidden="true" />
@@ -170,16 +173,16 @@ export function ProvenancePanel({
     <div className="space-y-3" role="region" aria-label="Message provenance and receipt details">
       {/* High-level status header */}
       <section
-        className="flex items-start gap-3 rounded-xl border border-white/[0.06] bg-black/15 p-3"
+        className="flex items-start gap-3 rounded-xl border border-surface-tint/[0.06] bg-surface-recessed/15 p-3"
         aria-labelledby={statusHeadingId}
       >
         <div className="mt-0.5 shrink-0" aria-hidden="true">
           {isVerified ? (
-            <ShieldCheck className="h-5 w-5 text-emerald-300" />
+            <ShieldCheck className="h-5 w-5 text-status-success dark:text-emerald-300" />
           ) : isSpam ? (
-            <ShieldAlert className="h-5 w-5 text-red-300" />
+            <ShieldAlert className="h-5 w-5 text-status-danger dark:text-red-300" />
           ) : (
-            <Shield className="h-5 w-5 text-amber-200" />
+            <Shield className="h-5 w-5 text-status-warning dark:text-amber-200" />
           )}
         </div>
         <div className="min-w-0 flex-1">
@@ -199,7 +202,7 @@ export function ProvenancePanel({
       </section>
 
       <section
-        className="mt-4 rounded-2xl border border-white/[0.06] bg-black/10 p-3"
+        className="mt-4 rounded-2xl border border-surface-tint/[0.06] bg-surface-recessed/10 p-3"
         aria-labelledby={timelineHeadingId}
       >
         <div
@@ -219,7 +222,7 @@ export function ProvenancePanel({
                 ? "border-emerald-500 bg-emerald-500 text-black"
                 : item.status === "pending"
                   ? "border-amber-300 bg-amber-300 text-black"
-                  : "border-white/10 bg-white/10 text-muted-foreground";
+                  : "border-surface-tint/10 bg-surface-tint/10 text-muted-foreground";
 
             return (
               <li
@@ -234,10 +237,10 @@ export function ProvenancePanel({
                     <Icon className="h-4 w-4" />
                   </span>
                   {index < provenance.timeline.length - 1 && (
-                    <span className="absolute top-10 left-1/2 h-full w-px -translate-x-1/2 bg-white/[0.08]" />
+                    <span className="absolute top-10 left-1/2 h-full w-px -translate-x-1/2 bg-surface-tint/[0.08]" />
                   )}
                 </div>
-                <div className="border-b border-white/[0.04] pb-3 last:border-none last:pb-0">
+                <div className="border-b border-surface-tint/[0.04] pb-3 last:border-none last:pb-0">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
                       <div className="text-sm font-semibold text-foreground">{item.title}</div>
@@ -260,7 +263,7 @@ export function ProvenancePanel({
       </section>
 
       {/* Accordion Toggle for Progressive Disclosure */}
-      <div className="border-t border-white/[0.06] pt-1">
+      <div className="border-t border-surface-tint/[0.06] pt-1">
         <button
           type="button"
           onClick={() => setExpanded(!expanded)}

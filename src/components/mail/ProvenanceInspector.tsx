@@ -55,9 +55,12 @@ export function ProvenanceInspector({
             className="glass-modal fixed left-1/2 top-1/2 z-[60] w-[min(540px,calc(100vw-1rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl shadow-2xl focus:outline-none"
           >
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-white/5 px-4 py-3 sm:px-5 sm:py-4">
+            <div className="flex items-center justify-between border-b border-surface-tint/5 px-4 py-3 sm:px-5 sm:py-4">
               <div className="flex items-center gap-2">
-                <Cpu className="h-4 w-4 text-emerald-300" aria-hidden="true" />
+                <Cpu
+                  className="h-4 w-4 text-status-success dark:text-emerald-300"
+                  aria-hidden="true"
+                />
                 <h3 id={headingId} className="text-sm font-semibold text-foreground">
                   {details.title}
                 </h3>
@@ -65,7 +68,7 @@ export function ProvenanceInspector({
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-lg p-1.5 text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground focus:outline-none focus:ring-2 focus:ring-white/10"
+                className="rounded-lg p-1.5 text-muted-foreground transition hover:bg-surface-tint/[0.06] hover:text-foreground focus:outline-none focus:ring-2 focus:ring-surface-tint/10"
                 aria-label="Close dialog"
               >
                 <X className="h-4 w-4" aria-hidden="true" />
@@ -80,11 +83,11 @@ export function ProvenanceInspector({
 
               {/* Technical key-value list */}
               <div
-                className="rounded-xl border border-white/[0.06] bg-black/15 overflow-hidden"
+                className="rounded-xl border border-surface-tint/[0.06] bg-surface-recessed/15 overflow-hidden"
                 role="region"
                 aria-label="Verification fields"
               >
-                <div className="divide-y divide-white/[0.05]">
+                <div className="divide-y divide-surface-tint/[0.05]">
                   {details.keyValuePairs.map((pair, idx) => (
                     <div
                       key={idx}
@@ -96,7 +99,7 @@ export function ProvenanceInspector({
                       <span
                         className={`text-xs text-foreground/90 break-all leading-normal ${
                           pair.isCode
-                            ? "font-mono bg-white/[0.03] px-1 py-0.5 rounded border border-white/[0.04]"
+                            ? "font-mono bg-surface-tint/[0.03] px-1 py-0.5 rounded border border-surface-tint/[0.04]"
                             : ""
                         }`}
                       >
@@ -119,12 +122,15 @@ export function ProvenanceInspector({
                     onClick={handleCopyJson}
                     aria-label={copyFieldAriaLabel("raw JSON record", copied)}
                     aria-pressed={copied}
-                    className="flex items-center gap-1 rounded border border-white/10 bg-white/[0.04] px-2 py-1 text-[10px] text-muted-foreground transition hover:border-white/20 hover:text-foreground hover:bg-white/[0.08] focus:outline-none focus:ring-2 focus:ring-white/10"
+                    className="flex items-center gap-1 rounded border border-surface-tint/10 bg-surface-tint/[0.04] px-2 py-1 text-[10px] text-muted-foreground transition hover:border-surface-tint/20 hover:text-foreground hover:bg-surface-tint/[0.08] focus:outline-none focus:ring-2 focus:ring-surface-tint/10"
                   >
                     {copied ? (
                       <>
-                        <Check className="h-3 w-3 text-emerald-400" aria-hidden="true" />
-                        <span className="text-emerald-400">Copied</span>
+                        <Check
+                          className="h-3 w-3 text-status-success dark:text-emerald-400"
+                          aria-hidden="true"
+                        />
+                        <span className="text-status-success dark:text-emerald-400">Copied</span>
                       </>
                     ) : (
                       <>
@@ -135,7 +141,7 @@ export function ProvenanceInspector({
                   </button>
                 </div>
                 <pre
-                  className="scrollbar-thin overflow-auto rounded-xl border border-white/[0.06] bg-black/25 p-3.5 font-mono text-[11px] leading-relaxed text-foreground/80 max-h-56"
+                  className="scrollbar-thin overflow-auto rounded-xl border border-surface-tint/[0.06] bg-surface-recessed/25 p-3.5 font-mono text-[11px] leading-relaxed text-foreground/80 max-h-56"
                   aria-label="Raw verification JSON"
                 >
                   {details.rawJson}
@@ -144,11 +150,11 @@ export function ProvenanceInspector({
             </div>
 
             {/* Footer */}
-            <div className="flex justify-end border-t border-white/5 px-5 py-3.5 bg-black/10">
+            <div className="flex justify-end border-t border-surface-tint/5 px-5 py-3.5 bg-surface-recessed/10">
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-lg border border-white/10 bg-white/[0.03] px-4 py-2 text-xs font-semibold text-foreground transition hover:bg-white/[0.08] hover:border-white/20 focus:outline-none focus:ring-2 focus:ring-white/10"
+                className="rounded-lg border border-surface-tint/10 bg-surface-tint/[0.03] px-4 py-2 text-xs font-semibold text-foreground transition hover:bg-surface-tint/[0.08] hover:border-surface-tint/20 focus:outline-none focus:ring-2 focus:ring-surface-tint/10"
               >
                 Done
               </button>

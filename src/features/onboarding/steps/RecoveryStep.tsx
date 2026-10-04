@@ -46,8 +46,8 @@ export function RecoveryStep({ draft, onUpdate, onAdvance, onRetreat }: Props) {
       </div>
 
       <div className="flex items-start gap-3 rounded-xl border border-amber-400/20 bg-amber-400/[0.06] p-4">
-        <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" />
-        <p className="text-xs text-amber-200">
+        <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-status-warning dark:text-amber-300" />
+        <p className="text-xs text-status-warning dark:text-amber-200">
           Stealth has no account recovery system. If you lose your recovery access, your mailbox
           address and all associated mail history become permanently inaccessible.
         </p>
@@ -66,7 +66,7 @@ export function RecoveryStep({ draft, onUpdate, onAdvance, onRetreat }: Props) {
               "active:scale-[0.99]",
               checked[index]
                 ? "border-emerald-400/30 bg-emerald-400/[0.06] ring-1 ring-emerald-400/30"
-                : "border-white/10 bg-white/[0.025] hover:bg-white/[0.05]",
+                : "border-surface-tint/10 bg-surface-tint/[0.025] hover:bg-surface-tint/[0.05]",
             )}
           >
             <span
@@ -74,7 +74,7 @@ export function RecoveryStep({ draft, onUpdate, onAdvance, onRetreat }: Props) {
                 "mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border transition",
                 checked[index]
                   ? "border-emerald-400/40 bg-emerald-400/20"
-                  : "border-white/20 bg-white/[0.04]",
+                  : "border-surface-tint/20 bg-surface-tint/[0.04]",
               )}
             >
               {checked[index] && (
@@ -92,7 +92,7 @@ export function RecoveryStep({ draft, onUpdate, onAdvance, onRetreat }: Props) {
         <button
           type="button"
           onClick={onRetreat}
-          className="flex-1 rounded-xl border border-white/10 px-4 py-2.5 text-sm text-muted-foreground transition hover:bg-white/[0.04] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 active:scale-[0.99]"
+          className="flex-1 rounded-xl border border-surface-tint/10 px-4 py-2.5 text-sm text-muted-foreground transition hover:bg-surface-tint/[0.04] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-surface-tint/30 active:scale-[0.99]"
         >
           Back
         </button>
@@ -104,7 +104,7 @@ export function RecoveryStep({ draft, onUpdate, onAdvance, onRetreat }: Props) {
             "flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60 active:scale-[0.99]",
             allChecked
               ? "bg-foreground text-background hover:opacity-90"
-              : "cursor-not-allowed bg-white/10 text-muted-foreground",
+              : "cursor-not-allowed bg-surface-tint/10 text-muted-foreground",
           )}
         >
           Continue

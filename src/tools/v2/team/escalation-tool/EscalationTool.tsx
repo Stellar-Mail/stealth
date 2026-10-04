@@ -7,15 +7,15 @@ export const EscalationTool: React.FC = () => {
 
   return (
     <div
-      className="p-6 border rounded-xl max-w-3xl mx-auto bg-white shadow-sm"
+      className="p-6 border rounded-xl max-w-3xl mx-auto bg-card shadow-sm"
       role="region"
       aria-labelledby="escalation-tool-heading"
     >
       <header className="mb-6 border-b pb-4">
-        <h2 className="text-2xl font-semibold text-gray-800" id="escalation-tool-heading">
+        <h2 className="text-2xl font-semibold text-foreground" id="escalation-tool-heading">
           Escalation Tool
         </h2>
-        <p className="text-sm text-gray-500 mt-1">
+        <p className="text-sm text-muted-foreground mt-1">
           Review, route, and resolve high-priority support tickets and escalated emails.
         </p>
       </header>
@@ -35,7 +35,7 @@ export const EscalationTool: React.FC = () => {
         </button>
         <button
           onClick={() => setState("empty")}
-          className="px-4 py-2 bg-gray-50 text-gray-700 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors font-medium text-sm"
+          className="px-4 py-2 bg-muted text-foreground rounded-md hover:bg-muted focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors font-medium text-sm"
           aria-pressed={state === "empty"}
         >
           View Empty Inbox
@@ -60,11 +60,11 @@ export const EscalationTool: React.FC = () => {
       <div
         aria-live="polite"
         aria-atomic="true"
-        className="min-h-[300px] bg-gray-50 rounded-lg border border-gray-100 p-4"
+        className="min-h-[300px] bg-muted rounded-lg border border-border p-4"
       >
         {state === "idle" && (
           <div className="flex items-center justify-center h-full min-h-[250px]">
-            <p className="text-gray-500 text-center">
+            <p className="text-muted-foreground text-center">
               Select an action above to load the escalation queue.
             </p>
           </div>
@@ -86,7 +86,7 @@ export const EscalationTool: React.FC = () => {
 
         {state === "empty" && (
           <div className="flex flex-col items-center justify-center h-full min-h-[250px] text-center px-4">
-            <div className="w-16 h-16 bg-green-50 text-green-500 rounded-full flex items-center justify-center mb-3">
+            <div className="w-16 h-16 bg-green-50 text-status-success dark:text-green-500 rounded-full flex items-center justify-center mb-3">
               <svg
                 className="w-8 h-8"
                 fill="none"
@@ -102,8 +102,8 @@ export const EscalationTool: React.FC = () => {
                 />
               </svg>
             </div>
-            <h3 className="text-lg font-medium text-gray-900">Inbox Zero</h3>
-            <p className="text-gray-500 mt-1 max-w-sm">
+            <h3 className="text-lg font-medium text-foreground">Inbox Zero</h3>
+            <p className="text-muted-foreground mt-1 max-w-sm">
               There are no escalated items requiring your attention at this time.
             </p>
           </div>
@@ -117,7 +117,7 @@ export const EscalationTool: React.FC = () => {
             >
               <div className="flex items-start">
                 <div className="flex-shrink-0 mt-0.5">
-                  <span className="text-red-500 text-lg" aria-hidden="true">
+                  <span className="text-status-danger dark:text-red-500 text-lg" aria-hidden="true">
                     ⚠️
                   </span>
                 </div>
@@ -145,7 +145,7 @@ export const EscalationTool: React.FC = () => {
           <div className="space-y-4">
             <div className="flex justify-between items-center mb-2 px-2">
               <span
-                className="text-sm font-medium text-gray-500 uppercase tracking-wider"
+                className="text-sm font-medium text-muted-foreground uppercase tracking-wider"
                 aria-live="polite"
               >
                 2 Active Escalations
@@ -163,15 +163,15 @@ export const EscalationTool: React.FC = () => {
                       <span className="px-2 py-0.5 bg-red-200 text-red-800 text-xs font-bold rounded uppercase tracking-wide">
                         High Priority
                       </span>
-                      <span className="text-sm text-gray-500">Ticket #84920</span>
+                      <span className="text-sm text-muted-foreground">Ticket #84920</span>
                     </div>
-                    <h4 className="font-semibold text-gray-900 text-lg">
+                    <h4 className="font-semibold text-foreground text-lg">
                       VIP Customer Payment Failure
                     </h4>
                   </div>
-                  <span className="text-sm text-gray-500">2 hrs ago</span>
+                  <span className="text-sm text-muted-foreground">2 hrs ago</span>
                 </div>
-                <p className="text-sm text-gray-700 mb-4 bg-white p-3 rounded border border-red-100 shadow-sm">
+                <p className="text-sm text-foreground mb-4 bg-card p-3 rounded border border-red-100 shadow-sm">
                   Enterprise customer reported multiple failed transactions on their primary routing
                   account. Escalate to Engineering immediately.
                 </p>
@@ -179,7 +179,7 @@ export const EscalationTool: React.FC = () => {
                   <button className="flex-1 py-2 bg-red-600 text-white rounded-md text-sm font-medium hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors">
                     Acknowledge & Route
                   </button>
-                  <button className="flex-1 py-2 bg-white border border-gray-300 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors">
+                  <button className="flex-1 py-2 bg-card border border-border text-foreground rounded-md text-sm font-medium hover:bg-muted focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors">
                     Dismiss
                   </button>
                 </div>
@@ -195,15 +195,15 @@ export const EscalationTool: React.FC = () => {
                       <span className="px-2 py-0.5 bg-orange-200 text-orange-800 text-xs font-bold rounded uppercase tracking-wide">
                         Medium Priority
                       </span>
-                      <span className="text-sm text-gray-500">Ticket #84915</span>
+                      <span className="text-sm text-muted-foreground">Ticket #84915</span>
                     </div>
-                    <h4 className="font-semibold text-gray-900 text-lg">
+                    <h4 className="font-semibold text-foreground text-lg">
                       Billing Discrepancy Inquiry
                     </h4>
                   </div>
-                  <span className="text-sm text-gray-500">1 day ago</span>
+                  <span className="text-sm text-muted-foreground">1 day ago</span>
                 </div>
-                <p className="text-sm text-gray-700 mb-4 bg-white p-3 rounded border border-orange-100 shadow-sm">
+                <p className="text-sm text-foreground mb-4 bg-card p-3 rounded border border-orange-100 shadow-sm">
                   User is requesting a manual review of their last invoice due to an unapplied
                   credit.
                 </p>
@@ -211,7 +211,7 @@ export const EscalationTool: React.FC = () => {
                   <button className="flex-1 py-2 bg-orange-600 text-white rounded-md text-sm font-medium hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition-colors">
                     Acknowledge & Route
                   </button>
-                  <button className="flex-1 py-2 bg-white border border-gray-300 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors">
+                  <button className="flex-1 py-2 bg-card border border-border text-foreground rounded-md text-sm font-medium hover:bg-muted focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors">
                     Dismiss
                   </button>
                 </div>

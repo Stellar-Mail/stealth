@@ -37,7 +37,7 @@ export function AdminEmptyState({
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center rounded-lg border border-dashed border-white/[0.08] bg-white/[0.02] px-6 py-10 text-center",
+        "flex flex-col items-center justify-center rounded-lg border border-dashed border-surface-tint/[0.08] bg-surface-tint/[0.02] px-6 py-10 text-center",
         className,
       )}
       role="status"

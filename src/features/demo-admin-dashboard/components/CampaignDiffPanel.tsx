@@ -16,7 +16,7 @@ export function CampaignDiffPanel({ base, comparison, className }: CampaignDiffP
   return (
     <section
       className={cn(
-        "flex flex-col gap-4 rounded-xl border border-white/[0.08] bg-white/[0.02] p-4",
+        "flex flex-col gap-4 rounded-xl border border-surface-tint/[0.08] bg-surface-tint/[0.02] p-4",
         className,
       )}
     >
@@ -29,15 +29,15 @@ export function CampaignDiffPanel({ base, comparison, className }: CampaignDiffP
           className={cn(
             "rounded-full border px-2 py-0.5 text-xs",
             result.hasChanges
-              ? "border-amber-500/30 text-amber-300"
-              : "border-emerald-500/30 text-emerald-300",
+              ? "border-amber-500/30 text-status-warning dark:text-amber-300"
+              : "border-emerald-500/30 text-status-success dark:text-emerald-300",
           )}
         >
           {result.hasChanges ? "needs review" : "no changes"}
         </span>
       </header>
 
-      <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2">
+      <div className="rounded-lg border border-surface-tint/[0.06] bg-surface-tint/[0.02] px-3 py-2">
         <p className="text-sm font-medium">
           {base.name} to {comparison.name}
         </p>
@@ -64,13 +64,13 @@ function DiffRow({ entry }: { entry: CampaignDiffEntry }) {
   const Icon = getKindIcon(entry.kind);
 
   return (
-    <li className="rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2">
+    <li className="rounded-lg border border-surface-tint/[0.06] bg-surface-tint/[0.02] px-3 py-2">
       <div className="flex gap-3">
         <Icon className={cn("mt-0.5 h-4 w-4 shrink-0", getKindClass(entry.kind))} />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-sm font-medium">{entry.label}</span>
-            <span className="rounded-full border border-white/[0.08] px-2 py-0.5 text-[11px] text-muted-foreground">
+            <span className="rounded-full border border-surface-tint/[0.08] px-2 py-0.5 text-[11px] text-muted-foreground">
               {entry.section}
             </span>
           </div>
@@ -89,7 +89,7 @@ function DiffRow({ entry }: { entry: CampaignDiffEntry }) {
 
 function Metric({ label, value, tone }: { label: string; value: number; tone: CampaignDiffKind }) {
   return (
-    <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2">
+    <div className="rounded-lg border border-surface-tint/[0.06] bg-surface-tint/[0.02] px-3 py-2">
       <p className="text-muted-foreground">{label}</p>
       <p className={cn("text-lg font-semibold", getKindClass(tone))}>{value}</p>
     </div>
@@ -98,7 +98,7 @@ function Metric({ label, value, tone }: { label: string; value: number; tone: Ca
 
 function ValueBlock({ label, value }: { label: string; value?: string }) {
   return (
-    <div className="rounded-md border border-white/[0.06] bg-black/20 px-2 py-1.5">
+    <div className="rounded-md border border-surface-tint/[0.06] bg-surface-recessed/20 px-2 py-1.5">
       <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</p>
       <p className="mt-1 line-clamp-3 whitespace-pre-wrap break-words text-foreground/80">
         {value || "None"}
@@ -122,13 +122,13 @@ function getKindIcon(kind: CampaignDiffKind) {
 
 function getKindClass(kind: CampaignDiffKind): string {
   if (kind === "added") {
-    return "text-emerald-300";
+    return "text-status-success dark:text-emerald-300";
   }
   if (kind === "removed") {
-    return "text-rose-300";
+    return "text-status-danger dark:text-rose-300";
   }
   if (kind === "changed") {
-    return "text-amber-300";
+    return "text-status-warning dark:text-amber-300";
   }
   return "text-muted-foreground";
 }

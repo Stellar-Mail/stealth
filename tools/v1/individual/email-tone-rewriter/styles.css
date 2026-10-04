@@ -1,8 +1,8 @@
 .etr-card {
-  background: #fffdf8;
-  border: 1px solid #eadfc8;
+  background: var(--card);
+  border: 1px solid var(--border);
   border-radius: 16px;
-  color: #2f2a21;
+  color: var(--foreground);
   display: grid;
   gap: 1rem;
   max-width: 48rem;
@@ -10,7 +10,7 @@
 }
 
 .etr-card :focus-visible {
-  outline: 3px solid #7c3aed;
+  outline: 3px solid var(--ring);
   outline-offset: 3px;
 }
 
@@ -26,7 +26,7 @@
 }
 
 .etr-eyebrow {
-  color: #8a5a12;
+  color: var(--status-warning);
   font-size: 0.78rem;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -45,7 +45,7 @@
 
 .etr-field input,
 .etr-field textarea {
-  border: 1px solid #cdbf9f;
+  border: 1px solid var(--border);
   border-radius: 10px;
   font: inherit;
   line-height: 1.5;
@@ -53,7 +53,7 @@
 }
 
 .etr-tone-group {
-  border: 1px solid #eadfc8;
+  border: 1px solid var(--border);
   border-radius: 12px;
   display: flex;
   flex-wrap: wrap;
@@ -69,10 +69,10 @@
 }
 
 .etr-card button {
-  background: #4c1d95;
-  border: 1px solid #4c1d95;
+  background: var(--primary);
+  border: 1px solid var(--primary);
   border-radius: 999px;
-  color: #ffffff;
+  color: var(--primary-foreground);
   cursor: pointer;
   font: inherit;
   font-weight: 700;
@@ -89,13 +89,13 @@
 .etr-hint,
 .etr-meta,
 .etr-card [aria-label="Preserved key points"] {
-  color: #5f5749;
+  color: var(--muted-foreground);
   font-size: 0.9rem;
 }
 
 .etr-output {
-  background: #f7f1ff;
-  border: 1px solid #d9c5ff;
+  background: var(--secondary);
+  border: 1px solid var(--border);
   border-radius: 12px;
   line-height: 1.6;
   padding: 1rem;
@@ -122,6 +122,6 @@
 }
 
 .etr-error {
-  border-color: #f5b5ad;
-  background: #fff7f5;
+  border-color: var(--border);
+  background: var(--card);
 }

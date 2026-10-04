@@ -3,12 +3,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 export function ContactNotesLoadingState() {
   return (
     <div className="space-y-4" role="status" aria-busy="true" aria-label="Loading contact notes">
-      <div className="text-sm text-slate-600">Loading notes...</div>
+      <div className="text-sm text-muted-foreground">Loading notes...</div>
       {Array.from({ length: 3 }).map((_, i) => (
-        <div
-          key={i}
-          className="flex flex-col gap-3 p-4 bg-white rounded-lg border border-slate-200"
-        >
+        <div key={i} className="flex flex-col gap-3 p-4 bg-card rounded-lg border border-border">
           <Skeleton className="h-5 w-48" />
           <Skeleton className="h-3 w-full" />
           <Skeleton className="h-3 w-3/4" />

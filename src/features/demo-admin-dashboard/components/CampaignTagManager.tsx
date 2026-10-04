@@ -138,7 +138,7 @@ export function CampaignTagManager() {
         <div className="flex items-center gap-2">
           <Tags className="h-4 w-4 text-muted-foreground" />
           <h4 className="text-sm font-semibold text-foreground">Campaign Tags</h4>
-          <span className="rounded-full bg-white/[0.06] px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+          <span className="rounded-full bg-surface-tint/[0.06] px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
             {tags.length}
           </span>
         </div>
@@ -146,7 +146,7 @@ export function CampaignTagManager() {
           <button
             type="button"
             onClick={openCreate}
-            className="flex items-center gap-1.5 rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-1.5 text-xs font-medium text-foreground transition hover:bg-white/[0.06]"
+            className="flex items-center gap-1.5 rounded-lg border border-surface-tint/[0.08] bg-surface-tint/[0.03] px-3 py-1.5 text-xs font-medium text-foreground transition hover:bg-surface-tint/[0.06]"
           >
             <Plus className="h-3.5 w-3.5" />
             New Tag
@@ -158,7 +158,7 @@ export function CampaignTagManager() {
       {createMode && (
         <form
           onSubmit={handleCreate}
-          className="space-y-3 rounded-xl border border-white/[0.08] bg-white/[0.02] p-4"
+          className="space-y-3 rounded-xl border border-surface-tint/[0.08] bg-surface-tint/[0.02] p-4"
         >
           <p className="text-xs font-semibold text-foreground">New Tag</p>
           <input
@@ -170,14 +170,16 @@ export function CampaignTagManager() {
               setCreateName(e.target.value);
               setCreateError("");
             }}
-            className="w-full rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-white/20"
+            className="w-full rounded-lg border border-surface-tint/[0.08] bg-surface-tint/[0.03] px-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-surface-tint/20"
           />
-          {createError && <p className="text-[11px] text-rose-400">{createError}</p>}
+          {createError && (
+            <p className="text-[11px] text-status-danger dark:text-rose-400">{createError}</p>
+          )}
           <TagColorSelector value={createColor} onChange={setCreateColor} />
           <div className="flex gap-2">
             <button
               type="submit"
-              className="flex items-center gap-1.5 rounded-lg bg-white/[0.08] px-3 py-1.5 text-xs font-medium text-foreground transition hover:bg-white/[0.12]"
+              className="flex items-center gap-1.5 rounded-lg bg-surface-tint/[0.08] px-3 py-1.5 text-xs font-medium text-foreground transition hover:bg-surface-tint/[0.12]"
             >
               <Check className="h-3.5 w-3.5" />
               Create
@@ -185,7 +187,7 @@ export function CampaignTagManager() {
             <button
               type="button"
               onClick={resetAllModes}
-              className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs text-muted-foreground transition hover:bg-white/[0.04] hover:text-foreground"
+              className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs text-muted-foreground transition hover:bg-surface-tint/[0.04] hover:text-foreground"
             >
               <X className="h-3.5 w-3.5" />
               Cancel
@@ -196,7 +198,7 @@ export function CampaignTagManager() {
 
       {/* Tag list */}
       {sortedTags.length === 0 && !createMode ? (
-        <div className="flex h-28 items-center justify-center rounded-xl border border-dashed border-white/[0.1] text-xs text-muted-foreground">
+        <div className="flex h-28 items-center justify-center rounded-xl border border-dashed border-surface-tint/[0.1] text-xs text-muted-foreground">
           No tags yet. Create one to get started.
         </div>
       ) : (
@@ -210,7 +212,10 @@ export function CampaignTagManager() {
             const otherTags = tags.filter((t) => t.id !== tag.id);
 
             return (
-              <div key={tag.id} className="rounded-xl border border-white/[0.06] bg-white/[0.02]">
+              <div
+                key={tag.id}
+                className="rounded-xl border border-surface-tint/[0.06] bg-surface-tint/[0.02]"
+              >
                 {/* Default row */}
                 {!isEditing && !isMerging && !isDeleting && (
                   <div className="group flex items-center gap-3 px-4 py-2.5">
@@ -231,7 +236,7 @@ export function CampaignTagManager() {
                       <button
                         type="button"
                         onClick={() => openEdit(tag)}
-                        className="flex items-center gap-1 rounded px-2 py-1 text-[11px] text-muted-foreground hover:bg-white/[0.06] hover:text-foreground"
+                        className="flex items-center gap-1 rounded px-2 py-1 text-[11px] text-muted-foreground hover:bg-surface-tint/[0.06] hover:text-foreground"
                       >
                         <Pencil className="h-3 w-3" />
                         Edit
@@ -240,7 +245,7 @@ export function CampaignTagManager() {
                         <button
                           type="button"
                           onClick={() => openMerge(tag)}
-                          className="flex items-center gap-1 rounded px-2 py-1 text-[11px] text-muted-foreground hover:bg-white/[0.06] hover:text-foreground"
+                          className="flex items-center gap-1 rounded px-2 py-1 text-[11px] text-muted-foreground hover:bg-surface-tint/[0.06] hover:text-foreground"
                         >
                           <ArrowRightLeft className="h-3 w-3" />
                           Merge
@@ -249,7 +254,7 @@ export function CampaignTagManager() {
                       <button
                         type="button"
                         onClick={() => openDelete(tag)}
-                        className="flex items-center gap-1 rounded px-2 py-1 text-[11px] text-rose-400/70 hover:bg-rose-500/10 hover:text-rose-400"
+                        className="flex items-center gap-1 rounded px-2 py-1 text-[11px] text-status-danger/70 dark:text-rose-400/70 hover:bg-rose-500/10 hover:text-status-danger dark:hover:text-rose-400"
                       >
                         <Trash2 className="h-3 w-3" />
                         Delete
@@ -270,9 +275,13 @@ export function CampaignTagManager() {
                         setEditState({ ...editState, name: e.target.value });
                         setEditError("");
                       }}
-                      className="w-full rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-white/20"
+                      className="w-full rounded-lg border border-surface-tint/[0.08] bg-surface-tint/[0.03] px-3 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-surface-tint/20"
                     />
-                    {editError && <p className="text-[11px] text-rose-400">{editError}</p>}
+                    {editError && (
+                      <p className="text-[11px] text-status-danger dark:text-rose-400">
+                        {editError}
+                      </p>
+                    )}
                     <TagColorSelector
                       value={editState.color}
                       onChange={(color) => setEditState({ ...editState, color })}
@@ -280,7 +289,7 @@ export function CampaignTagManager() {
                     <div className="flex gap-2">
                       <button
                         type="submit"
-                        className="flex items-center gap-1.5 rounded-lg bg-white/[0.08] px-3 py-1.5 text-xs font-medium text-foreground transition hover:bg-white/[0.12]"
+                        className="flex items-center gap-1.5 rounded-lg bg-surface-tint/[0.08] px-3 py-1.5 text-xs font-medium text-foreground transition hover:bg-surface-tint/[0.12]"
                       >
                         <Check className="h-3.5 w-3.5" />
                         Save
@@ -288,7 +297,7 @@ export function CampaignTagManager() {
                       <button
                         type="button"
                         onClick={resetAllModes}
-                        className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs text-muted-foreground transition hover:bg-white/[0.04] hover:text-foreground"
+                        className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs text-muted-foreground transition hover:bg-surface-tint/[0.04] hover:text-foreground"
                       >
                         <X className="h-3.5 w-3.5" />
                         Cancel
@@ -322,7 +331,7 @@ export function CampaignTagManager() {
                           targetId: e.target.value,
                         })
                       }
-                      className="w-full rounded-lg border border-white/[0.08] bg-black/60 px-3 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-white/20"
+                      className="w-full rounded-lg border border-surface-tint/[0.08] bg-surface-recessed/60 px-3 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-surface-tint/20"
                     >
                       {otherTags.map((t) => (
                         <option key={t.id} value={t.id}>
@@ -339,7 +348,7 @@ export function CampaignTagManager() {
                       <button
                         type="button"
                         onClick={handleMerge}
-                        className="flex items-center gap-1.5 rounded-lg bg-white/[0.08] px-3 py-1.5 text-xs font-medium text-foreground transition hover:bg-white/[0.12]"
+                        className="flex items-center gap-1.5 rounded-lg bg-surface-tint/[0.08] px-3 py-1.5 text-xs font-medium text-foreground transition hover:bg-surface-tint/[0.12]"
                       >
                         <ArrowRightLeft className="h-3.5 w-3.5" />
                         Merge
@@ -347,7 +356,7 @@ export function CampaignTagManager() {
                       <button
                         type="button"
                         onClick={resetAllModes}
-                        className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs text-muted-foreground transition hover:bg-white/[0.04] hover:text-foreground"
+                        className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs text-muted-foreground transition hover:bg-surface-tint/[0.04] hover:text-foreground"
                       >
                         <X className="h-3.5 w-3.5" />
                         Cancel
@@ -359,7 +368,7 @@ export function CampaignTagManager() {
                 {/* Delete row */}
                 {isDeleting && (
                   <div className="space-y-3 p-4">
-                    <div className="flex items-center gap-2 text-rose-400">
+                    <div className="flex items-center gap-2 text-status-danger dark:text-rose-400">
                       <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
                       <p className="text-xs font-semibold">Delete "{tag.name}"?</p>
                     </div>
@@ -376,7 +385,7 @@ export function CampaignTagManager() {
                       <button
                         type="button"
                         onClick={handleDelete}
-                        className="flex items-center gap-1.5 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-1.5 text-xs font-medium text-rose-400 transition hover:bg-rose-500/20"
+                        className="flex items-center gap-1.5 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-1.5 text-xs font-medium text-status-danger dark:text-rose-400 transition hover:bg-rose-500/20"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                         Confirm Delete
@@ -384,7 +393,7 @@ export function CampaignTagManager() {
                       <button
                         type="button"
                         onClick={resetAllModes}
-                        className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs text-muted-foreground transition hover:bg-white/[0.04] hover:text-foreground"
+                        className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs text-muted-foreground transition hover:bg-surface-tint/[0.04] hover:text-foreground"
                       >
                         <X className="h-3.5 w-3.5" />
                         Cancel

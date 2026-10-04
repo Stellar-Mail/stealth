@@ -16,10 +16,10 @@ export const ReviewFlagPanel: React.FC = () => {
       className="mx-auto flex max-w-xl flex-col gap-4 p-4"
     >
       <header>
-        <h2 id="review-flag-heading" className="text-lg font-semibold text-gray-900">
+        <h2 id="review-flag-heading" className="text-lg font-semibold text-foreground">
           Legal &amp; Compliance Review Flag
         </h2>
-        <p className="mt-1 text-sm text-gray-600">
+        <p className="mt-1 text-sm text-muted-foreground">
           Raise a legal or compliance review flag for a mail resource. This surface is isolated to
           the tool folder and is not wired into the main app.
         </p>

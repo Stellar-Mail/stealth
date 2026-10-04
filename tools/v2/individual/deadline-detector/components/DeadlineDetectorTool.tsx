@@ -68,7 +68,7 @@ export function DeadlineDetectorTool({
         action={
           onRequestMessages ? (
             <button
-              className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-900 transition-colors hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-950"
+              className="inline-flex items-center gap-2 rounded-md border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-950"
               onClick={onRequestMessages}
               type="button"
             >
@@ -84,17 +84,17 @@ export function DeadlineDetectorTool({
   return (
     <section
       aria-labelledby="deadline-detector-title"
-      className="mx-auto w-full max-w-5xl space-y-6 rounded-lg border border-slate-200 bg-slate-50 p-4 md:p-6"
+      className="mx-auto w-full max-w-5xl space-y-6 rounded-lg border border-border bg-muted p-4 md:p-6"
     >
       <header>
         <div>
-          <p className="text-sm font-medium uppercase tracking-wide text-slate-500">
+          <p className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
             Individual V2 tool
           </p>
           <h1 className="mt-1 text-2xl font-semibold text-slate-950" id="deadline-detector-title">
             Deadline Detector
           </h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
             Detect likely due dates, expired requests, and ambiguous deadline language before a
             future inbox integration creates reminders.
           </p>
@@ -103,8 +103,8 @@ export function DeadlineDetectorTool({
 
       <DeadlineDetectorSummary summary={result.summary} />
 
-      <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-3 md:flex-row md:items-center md:justify-between">
-        <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
+      <div className="flex flex-col gap-3 rounded-lg border border-border bg-card p-3 md:flex-row md:items-center md:justify-between">
+        <div className="flex items-center gap-2 text-sm font-medium text-foreground">
           <Filter aria-hidden="true" className="size-4" />
           Filter results
         </div>
@@ -114,8 +114,8 @@ export function DeadlineDetectorTool({
             <label
               className={`cursor-pointer rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
                 filter === option.value
-                  ? "border-slate-950 bg-slate-950 text-white"
-                  : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                  ? "border-border bg-primary text-primary-foreground"
+                  : "border-border bg-card text-foreground hover:bg-muted"
               }`}
               key={option.value}
             >

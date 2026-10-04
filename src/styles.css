@@ -4,9 +4,10 @@
 @import "./features/design-system/styles/tokens.css";
 @import "tailwindcss" source(none);
 @source "../src";
+@source "../tools";
 @import "tw-animate-css";
 
-@custom-variant dark (&:is(.dark *));
+@custom-variant dark (&:where(:root:not([data-theme="light"]), :root:not([data-theme="light"]) *));
 
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
@@ -36,6 +37,18 @@
   --color-glass: var(--glass);
   --color-glass-strong: var(--glass-strong);
   --color-silver: var(--silver);
+  --color-surface-tint: var(--surface-tint);
+  --color-surface-recessed: var(--surface-recessed);
+  --color-surface-panel: var(--surface-panel);
+  --color-preview: var(--preview-background);
+  --color-preview-active: var(--preview-active);
+  --color-preview-hover: var(--preview-hover);
+  --color-status-success: var(--status-success);
+  --color-status-warning: var(--status-warning);
+  --color-status-danger: var(--status-danger);
+  --color-status-info: var(--status-info);
+  --color-status-special: var(--status-special);
+  --color-status-neutral: var(--status-neutral);
   --font-sans: var(--font-interface);
 }
 

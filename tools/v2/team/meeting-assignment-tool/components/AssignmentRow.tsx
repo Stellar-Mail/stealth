@@ -14,16 +14,16 @@ const REASON_LABEL: Record<MeetingAssignment["reason"], string> = {
 export const AssignmentRow: React.FC<AssignmentRowProps> = ({ assignment }) => {
   const isAssigned = assignment.status === "assigned";
   return (
-    <li className="flex items-center justify-between gap-4 rounded-md border border-gray-200 p-4">
+    <li className="flex items-center justify-between gap-4 rounded-md border border-border p-4">
       <div className="min-w-0">
-        <p className="truncate text-sm font-medium text-gray-900">{assignment.meetingTitle}</p>
-        <p className="mt-0.5 text-xs text-gray-500">
+        <p className="truncate text-sm font-medium text-foreground">{assignment.meetingTitle}</p>
+        <p className="mt-0.5 text-xs text-muted-foreground">
           {new Date(assignment.scheduledAt).toLocaleString()} - {assignment.durationMinutes} min -
           priority {assignment.priority}
         </p>
       </div>
       <div className="text-right">
-        <p className="text-sm text-gray-900">
+        <p className="text-sm text-foreground">
           {isAssigned ? assignment.assigneeName : "Unassigned"}
         </p>
         <span

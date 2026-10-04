@@ -7,15 +7,15 @@ export const KnowledgeBaseSuggestion: React.FC = () => {
 
   return (
     <div
-      className="p-6 border rounded-xl max-w-3xl mx-auto bg-white shadow-sm"
+      className="p-6 border rounded-xl max-w-3xl mx-auto bg-card shadow-sm"
       role="region"
       aria-labelledby="kb-suggestion-heading"
     >
       <header className="mb-6 border-b pb-4">
-        <h2 className="text-2xl font-semibold text-gray-800" id="kb-suggestion-heading">
+        <h2 className="text-2xl font-semibold text-foreground" id="kb-suggestion-heading">
           Knowledge Base Suggestions
         </h2>
-        <p className="text-sm text-gray-500 mt-1">
+        <p className="text-sm text-muted-foreground mt-1">
           Review AI-suggested documentation links based on active email threads and support tickets.
         </p>
       </header>
@@ -35,7 +35,7 @@ export const KnowledgeBaseSuggestion: React.FC = () => {
         </button>
         <button
           onClick={() => setState("empty")}
-          className="px-4 py-2 bg-gray-50 text-gray-700 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors font-medium text-sm"
+          className="px-4 py-2 bg-muted text-foreground rounded-md hover:bg-muted focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors font-medium text-sm"
           aria-pressed={state === "empty"}
         >
           No Matches Found
@@ -60,11 +60,11 @@ export const KnowledgeBaseSuggestion: React.FC = () => {
       <div
         aria-live="polite"
         aria-atomic="true"
-        className="min-h-[250px] bg-gray-50 rounded-lg border border-gray-100 p-4"
+        className="min-h-[250px] bg-muted rounded-lg border border-border p-4"
       >
         {state === "idle" && (
           <div className="flex items-center justify-center h-full min-h-[200px]">
-            <p className="text-gray-500 text-center">
+            <p className="text-muted-foreground text-center">
               Click "Analyze Thread" to fetch relevant knowledge base articles.
             </p>
           </div>
@@ -86,7 +86,7 @@ export const KnowledgeBaseSuggestion: React.FC = () => {
 
         {state === "empty" && (
           <div className="flex flex-col items-center justify-center h-full min-h-[200px] text-center px-4">
-            <div className="w-16 h-16 bg-gray-100 text-gray-400 rounded-full flex items-center justify-center mb-3">
+            <div className="w-16 h-16 bg-muted text-muted-foreground rounded-full flex items-center justify-center mb-3">
               <svg
                 className="w-8 h-8"
                 fill="none"
@@ -102,8 +102,8 @@ export const KnowledgeBaseSuggestion: React.FC = () => {
                 />
               </svg>
             </div>
-            <h3 className="text-lg font-medium text-gray-900">No suggestions found</h3>
-            <p className="text-gray-500 mt-1 max-w-sm">
+            <h3 className="text-lg font-medium text-foreground">No suggestions found</h3>
+            <p className="text-muted-foreground mt-1 max-w-sm">
               We couldn't find any relevant documentation matching the context of this conversation.
             </p>
           </div>
@@ -145,7 +145,7 @@ export const KnowledgeBaseSuggestion: React.FC = () => {
           <div className="space-y-4">
             <div className="flex justify-between items-center mb-2 px-2">
               <span
-                className="text-sm font-medium text-gray-500 uppercase tracking-wider"
+                className="text-sm font-medium text-muted-foreground uppercase tracking-wider"
                 aria-live="polite"
               >
                 2 Recommended Articles
@@ -159,10 +159,10 @@ export const KnowledgeBaseSuggestion: React.FC = () => {
               >
                 <div className="flex justify-between items-start mb-2">
                   <div>
-                    <h4 className="font-semibold text-gray-900 text-base mb-1">
+                    <h4 className="font-semibold text-foreground text-base mb-1">
                       Configuring Wallet Authentication
                     </h4>
-                    <p className="text-sm text-gray-600 line-clamp-2">
+                    <p className="text-sm text-muted-foreground line-clamp-2">
                       Learn how to securely configure web3 wallet signatures, challenge issuance,
                       and JSON Web Token (JWT) validation flows for new users.
                     </p>
@@ -175,7 +175,7 @@ export const KnowledgeBaseSuggestion: React.FC = () => {
                   <button className="flex-1 py-1.5 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors">
                     Insert Link
                   </button>
-                  <button className="flex-1 py-1.5 bg-white border border-gray-300 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors">
+                  <button className="flex-1 py-1.5 bg-card border border-border text-foreground rounded-md text-sm font-medium hover:bg-muted focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors">
                     Preview
                   </button>
                 </div>
@@ -187,10 +187,10 @@ export const KnowledgeBaseSuggestion: React.FC = () => {
               >
                 <div className="flex justify-between items-start mb-2">
                   <div>
-                    <h4 className="font-semibold text-gray-900 text-base mb-1">
+                    <h4 className="font-semibold text-foreground text-base mb-1">
                       Troubleshooting Stellar Node Sync Issues
                     </h4>
-                    <p className="text-sm text-gray-600 line-clamp-2">
+                    <p className="text-sm text-muted-foreground line-clamp-2">
                       Common resolution paths for when the EventIndexer falls behind the active
                       ledger or drops webhook payloads during network congestion.
                     </p>
@@ -203,7 +203,7 @@ export const KnowledgeBaseSuggestion: React.FC = () => {
                   <button className="flex-1 py-1.5 bg-teal-600 text-white rounded-md text-sm font-medium hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 transition-colors">
                     Insert Link
                   </button>
-                  <button className="flex-1 py-1.5 bg-white border border-gray-300 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors">
+                  <button className="flex-1 py-1.5 bg-card border border-border text-foreground rounded-md text-sm font-medium hover:bg-muted focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors">
                     Preview
                   </button>
                 </div>

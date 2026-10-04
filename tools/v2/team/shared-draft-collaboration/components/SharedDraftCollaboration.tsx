@@ -97,10 +97,10 @@ export const SharedDraftCollaboration: React.FC = () => {
   };
 
   return (
-    <div className="w-full max-w-3xl mx-auto p-6 bg-white rounded-lg">
+    <div className="w-full max-w-3xl mx-auto p-6 bg-card rounded-lg">
       <header className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">Shared Draft Collaboration</h1>
-        <p className="text-slate-600 text-sm mt-1">
+        <h1 className="text-2xl font-bold text-foreground">Shared Draft Collaboration</h1>
+        <p className="text-muted-foreground text-sm mt-1">
           Collaborate with team members on email drafts in real-time
         </p>
       </header>
@@ -115,7 +115,7 @@ export const SharedDraftCollaboration: React.FC = () => {
       </main>
 
       {activeDraftId && (
-        <div className="mt-8 p-4 bg-slate-100 rounded-lg text-sm text-slate-600">
+        <div className="mt-8 p-4 bg-muted rounded-lg text-sm text-muted-foreground">
           <p>
             Draft "{drafts.find((d) => d.id === activeDraftId)?.title}" selected - editor would
             display here in integrated app

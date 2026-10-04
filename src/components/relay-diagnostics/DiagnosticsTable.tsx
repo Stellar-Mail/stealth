@@ -12,10 +12,11 @@ export interface DeliveryEntry {
 }
 
 const outcomeStyles: Record<DeliveryEntry["outcome"], string> = {
-  delivered: "border-indigo-500/30 bg-indigo-500/10 text-indigo-200",
-  retried: "border-amber-500/30 bg-amber-500/10 text-amber-200",
-  rejected: "border-rose-500/30 bg-rose-500/10 text-rose-200",
-  dead_letter: "border-rose-500/30 bg-rose-500/10 text-rose-200 font-semibold",
+  delivered: "border-indigo-500/30 bg-indigo-500/10 text-status-info dark:text-indigo-200",
+  retried: "border-amber-500/30 bg-amber-500/10 text-status-warning dark:text-amber-200",
+  rejected: "border-rose-500/30 bg-rose-500/10 text-status-danger dark:text-rose-200",
+  dead_letter:
+    "border-rose-500/30 bg-rose-500/10 text-status-danger dark:text-rose-200 font-semibold",
 };
 
 const outcomeLabels: Record<DeliveryEntry["outcome"], string> = {
@@ -50,9 +51,11 @@ function formatTimestamp(timestamp: string) {
 
 export function DiagnosticsTable({ entries }: { entries: DeliveryEntry[] }) {
   return (
-    <Card className="border-[#1e2430] bg-[#13161b] shadow-none">
-      <CardHeader className="border-b border-[#1e2430] px-5 py-4">
-        <CardTitle className="text-sm font-medium text-slate-200">Delivery diagnostics</CardTitle>
+    <Card className="border-border bg-surface-panel shadow-none">
+      <CardHeader className="border-b border-border px-5 py-4">
+        <CardTitle className="text-sm font-medium text-status-neutral dark:text-slate-200">
+          Delivery diagnostics
+        </CardTitle>
       </CardHeader>
       <CardContent className="px-0 pb-0">
         <div
@@ -62,7 +65,7 @@ export function DiagnosticsTable({ entries }: { entries: DeliveryEntry[] }) {
           aria-label="Delivery diagnostics table"
         >
           <table className="w-full border-collapse text-left text-sm">
-            <thead className="border-b border-[#1e2430] text-xs uppercase tracking-[0.2em] text-slate-500">
+            <thead className="border-b border-border text-xs uppercase tracking-[0.2em] text-muted-foreground dark:text-slate-500">
               <tr>
                 <th className="px-5 py-3 font-medium">Timestamp</th>
                 <th className="px-5 py-3 font-medium">Recipient domain</th>
@@ -74,14 +77,17 @@ export function DiagnosticsTable({ entries }: { entries: DeliveryEntry[] }) {
             <tbody>
               {entries.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-5 py-10 text-center text-slate-500">
+                  <td
+                    colSpan={5}
+                    className="px-5 py-10 text-center text-muted-foreground dark:text-slate-500"
+                  >
                     No delivery records yet
                   </td>
                 </tr>
               ) : (
                 entries.map((entry) => (
-                  <tr key={entry.id} className="border-b border-[#1e2430]/60 last:border-0">
-                    <td className="px-5 py-4 font-mono text-slate-200">
+                  <tr key={entry.id} className="border-b border-border/60 last:border-0">
+                    <td className="px-5 py-4 font-mono text-status-neutral dark:text-slate-200">
                       <time
                         dateTime={entry.timestamp}
                         aria-label={new Date(entry.timestamp).toLocaleString()}
@@ -89,7 +95,9 @@ export function DiagnosticsTable({ entries }: { entries: DeliveryEntry[] }) {
                         {formatTimestamp(entry.timestamp)}
                       </time>
                     </td>
-                    <td className="px-5 py-4 text-slate-200">{entry.recipientDomain}</td>
+                    <td className="px-5 py-4 text-status-neutral dark:text-slate-200">
+                      {entry.recipientDomain}
+                    </td>
                     <td className="px-5 py-4">
                       <Badge
                         variant="outline"
@@ -101,10 +109,12 @@ export function DiagnosticsTable({ entries }: { entries: DeliveryEntry[] }) {
                         {outcomeLabels[entry.outcome]}
                       </Badge>
                     </td>
-                    <td className="px-5 py-4 font-mono text-slate-300">
+                    <td className="px-5 py-4 font-mono text-status-neutral dark:text-slate-300">
                       {formatFailureReason(entry.failureReason ?? null)}
                     </td>
-                    <td className="px-5 py-4 font-mono text-slate-300">{entry.retryCount}</td>
+                    <td className="px-5 py-4 font-mono text-status-neutral dark:text-slate-300">
+                      {entry.retryCount}
+                    </td>
                   </tr>
                 ))
               )}

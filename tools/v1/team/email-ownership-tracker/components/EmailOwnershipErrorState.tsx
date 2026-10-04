@@ -26,13 +26,13 @@ export function EmailOwnershipErrorState({
 
       <h2 className="text-xl font-semibold text-red-900">{title}</h2>
 
-      <p className="mt-3 text-sm leading-6 text-slate-700">{details}</p>
+      <p className="mt-3 text-sm leading-6 text-foreground">{details}</p>
 
       {onRetry ? (
         <button
           type="button"
           onClick={onRetry}
-          className="mt-6 inline-flex items-center gap-2 rounded-md bg-slate-950 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-950"
+          className="mt-6 inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-950"
         >
           <RotateCcw className="size-4" aria-hidden="true" />
           Retry

@@ -184,11 +184,11 @@ export function CalendarWorkspace({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 12, scale: 0.99 }}
             transition={{ type: "spring", stiffness: 280, damping: 28 }}
-            className="calendar-workspace grid h-[min(860px,94vh)] w-full max-w-[1360px] grid-rows-[auto_1fr] overflow-hidden rounded-[24px] border border-white/10"
+            className="calendar-workspace grid h-[min(860px,94vh)] w-full max-w-[1360px] grid-rows-[auto_1fr] overflow-hidden rounded-[24px] border border-surface-tint/10"
           >
-            <header className="flex flex-wrap items-center gap-3 border-b border-white/8 px-4 py-3 sm:px-5">
+            <header className="flex flex-wrap items-center gap-3 border-b border-surface-tint/8 px-4 py-3 sm:px-5">
               <div className="flex items-center gap-3">
-                <div className="grid h-9 w-9 place-items-center rounded-xl border border-white/10 bg-white/[0.07]">
+                <div className="grid h-9 w-9 place-items-center rounded-xl border border-surface-tint/10 bg-surface-tint/[0.07]">
                   <CalendarDays className="h-4 w-4" />
                 </div>
                 <div>
@@ -210,7 +210,7 @@ export function CalendarWorkspace({
                 >
                   Today
                 </button>
-                <div className="flex rounded-lg border border-white/10 bg-black/15 p-0.5">
+                <div className="flex rounded-lg border border-surface-tint/10 bg-surface-recessed/15 p-0.5">
                   <button
                     onClick={() => setMonth((current) => subMonths(current, 1))}
                     className="calendar-icon-button"
@@ -226,7 +226,7 @@ export function CalendarWorkspace({
                     <ChevronRight className="h-4 w-4" />
                   </button>
                 </div>
-                <div className="hidden rounded-lg border border-white/10 bg-black/15 p-0.5 sm:flex">
+                <div className="hidden rounded-lg border border-surface-tint/10 bg-surface-recessed/15 p-0.5 sm:flex">
                   {(["agenda", "month"] as const).map((mode) => (
                     <button
                       key={mode}
@@ -234,7 +234,7 @@ export function CalendarWorkspace({
                       className={cn(
                         "rounded-md px-3 py-1.5 text-[11px] capitalize transition",
                         view === mode
-                          ? "bg-white text-black"
+                          ? "bg-primary text-primary-foreground dark:bg-white dark:text-black"
                           : "text-muted-foreground hover:text-foreground",
                       )}
                     >
@@ -256,7 +256,7 @@ export function CalendarWorkspace({
             </header>
 
             <div className="grid min-h-0 lg:grid-cols-[260px_minmax(360px,1fr)_330px]">
-              <aside className="scrollbar-thin overflow-y-auto border-r border-white/8 p-4">
+              <aside className="scrollbar-thin overflow-y-auto border-r border-surface-tint/8 p-4">
                 <Calendar
                   mode="single"
                   month={month}
@@ -268,7 +268,7 @@ export function CalendarWorkspace({
                     hasEvent:
                       "after:absolute after:bottom-0.5 after:left-1/2 after:h-1 after:w-1 after:-translate-x-1/2 after:rounded-full after:bg-emerald-300",
                   }}
-                  className="calendar-picker w-full rounded-xl border border-white/8 bg-white/[0.025]"
+                  className="calendar-picker w-full rounded-xl border border-surface-tint/8 bg-surface-tint/[0.025]"
                 />
 
                 <div className="mt-5">
@@ -285,14 +285,14 @@ export function CalendarWorkspace({
                         onClick={() => onToggleCalendar(calendar.id)}
                         aria-pressed={calendar.visible}
                         className={cn(
-                          "flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-xs transition hover:bg-white/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20",
+                          "flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-xs transition hover:bg-surface-tint/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-surface-tint/20",
                           !calendar.visible && "text-muted-foreground",
                         )}
                       >
                         <span
                           className={cn(
                             "grid h-4 w-4 place-items-center rounded-[5px] border",
-                            calendar.visible ? "border-transparent" : "border-white/20",
+                            calendar.visible ? "border-transparent" : "border-surface-tint/20",
                           )}
                           style={{
                             background: calendar.visible ? calendar.color : "transparent",
@@ -310,7 +310,7 @@ export function CalendarWorkspace({
                 </div>
 
                 <form
-                  className="mt-5 rounded-xl border border-white/8 bg-white/[0.025] p-3"
+                  className="mt-5 rounded-xl border border-surface-tint/8 bg-surface-tint/[0.025] p-3"
                   onSubmit={(event) => {
                     event.preventDefault();
                     if (!calendarName.trim()) return;
@@ -329,7 +329,7 @@ export function CalendarWorkspace({
                     value={calendarName}
                     onChange={(event) => setCalendarName(event.target.value)}
                     placeholder="Calendar name"
-                    className="glow-ring mt-2 h-9 w-full rounded-lg border border-white/10 bg-black/15 px-3 text-xs"
+                    className="glow-ring mt-2 h-9 w-full rounded-lg border border-surface-tint/10 bg-surface-recessed/15 px-3 text-xs"
                   />
                   <div className="mt-2 flex items-center gap-1.5">
                     {calendarColors.map((color) => (
@@ -348,7 +348,7 @@ export function CalendarWorkspace({
                     <button
                       type="submit"
                       disabled={!calendarName.trim()}
-                      className="ml-auto rounded-md border border-white/10 px-2 py-1 text-[10px] transition hover:bg-white/[0.06] disabled:opacity-40"
+                      className="ml-auto rounded-md border border-surface-tint/10 px-2 py-1 text-[10px] transition hover:bg-surface-tint/[0.06] disabled:opacity-40"
                     >
                       {calendarName.trim() ? "Add" : "Name required"}
                     </button>
@@ -368,7 +368,7 @@ export function CalendarWorkspace({
                         : format(month, "MMMM yyyy")}
                     </h3>
                   </div>
-                  <span className="rounded-lg border border-white/8 bg-white/[0.03] px-2.5 py-1 text-[10px] text-muted-foreground">
+                  <span className="rounded-lg border border-surface-tint/8 bg-surface-tint/[0.03] px-2.5 py-1 text-[10px] text-muted-foreground">
                     {displayedEvents.length} event
                     {displayedEvents.length === 1 ? "" : "s"}
                   </span>
@@ -385,8 +385,8 @@ export function CalendarWorkspace({
                           className={cn(
                             "rounded-xl border px-3 py-3 text-left transition",
                             offset === 0
-                              ? "border-white/20 bg-white/[0.08]"
-                              : "border-white/8 bg-white/[0.025] hover:bg-white/[0.05]",
+                              ? "border-surface-tint/20 bg-surface-tint/[0.08]"
+                              : "border-surface-tint/8 bg-surface-tint/[0.025] hover:bg-surface-tint/[0.05]",
                           )}
                         >
                           <span className="block text-[10px] uppercase text-muted-foreground">
@@ -403,7 +403,7 @@ export function CalendarWorkspace({
 
                 <div className="space-y-2">
                   {displayedEvents.length === 0 ? (
-                    <div className="grid min-h-56 place-items-center rounded-2xl border border-dashed border-white/10 bg-white/[0.02] text-center">
+                    <div className="grid min-h-56 place-items-center rounded-2xl border border-dashed border-surface-tint/10 bg-surface-tint/[0.02] text-center">
                       <div>
                         <CalendarDays className="mx-auto h-6 w-6 text-muted-foreground" />
                         <p className="mt-3 text-sm font-medium">{emptyState.title}</p>
@@ -424,10 +424,10 @@ export function CalendarWorkspace({
                           onClick={() => setSelectedId(event.id)}
                           className={cn(
                             "calendar-event-row group grid w-full grid-cols-[64px_5px_1fr_auto] items-center gap-3 rounded-xl border p-3 text-left transition",
-                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20",
+                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-surface-tint/20",
                             selectedId === event.id
-                              ? "border-white/20 bg-white/[0.08]"
-                              : "border-white/8 bg-white/[0.025] hover:border-white/14 hover:bg-white/[0.05]",
+                              ? "border-surface-tint/20 bg-surface-tint/[0.08]"
+                              : "border-surface-tint/8 bg-surface-tint/[0.025] hover:border-surface-tint/14 hover:bg-surface-tint/[0.05]",
                           )}
                         >
                           <div>
@@ -451,7 +451,7 @@ export function CalendarWorkspace({
                               </span>
                             </div>
                           </div>
-                          <span className="rounded-md border border-white/8 px-2 py-1 text-[9px] uppercase text-muted-foreground">
+                          <span className="rounded-md border border-surface-tint/8 px-2 py-1 text-[9px] uppercase text-muted-foreground">
                             {event.response}
                           </span>
                         </button>
@@ -461,7 +461,7 @@ export function CalendarWorkspace({
                 </div>
               </main>
 
-              <aside className="scrollbar-thin min-h-0 overflow-y-auto border-l border-white/8 p-4">
+              <aside className="scrollbar-thin min-h-0 overflow-y-auto border-l border-surface-tint/8 p-4">
                 {selectedEvent ? (
                   <EventDetails
                     event={selectedEvent}
@@ -574,7 +574,7 @@ function EventDetails({
         </button>
       </div>
 
-      <div className="mt-5 space-y-3 rounded-xl border border-white/8 bg-white/[0.025] p-3 text-xs">
+      <div className="mt-5 space-y-3 rounded-xl border border-surface-tint/8 bg-surface-tint/[0.025] p-3 text-xs">
         <DetailRow icon={CalendarDays}>
           {format(parseISO(event.date), "EEEE, MMMM d, yyyy")}
         </DetailRow>
@@ -599,8 +599,8 @@ function EventDetails({
               className={cn(
                 "rounded-lg border px-2 py-2 text-[10px] capitalize transition",
                 event.response === response
-                  ? "border-white/20 bg-white text-black"
-                  : "border-white/10 text-muted-foreground hover:bg-white/[0.05] hover:text-foreground",
+                  ? "border-surface-tint/20 bg-primary text-primary-foreground dark:bg-white dark:text-black"
+                  : "border-surface-tint/10 text-muted-foreground hover:bg-surface-tint/[0.05] hover:text-foreground",
               )}
             >
               {response}
@@ -611,7 +611,7 @@ function EventDetails({
 
       <label className="mt-5 block text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
         Reminder
-        <span className="mt-2 flex items-center gap-2 rounded-lg border border-white/10 bg-black/15 px-2">
+        <span className="mt-2 flex items-center gap-2 rounded-lg border border-surface-tint/10 bg-surface-recessed/15 px-2">
           <Bell className="h-3.5 w-3.5" />
           <select
             value={event.reminder}
@@ -655,13 +655,13 @@ function EventDetails({
         </button>
       </div>
 
-      <div className="mt-5 flex gap-2 border-t border-white/8 pt-4">
+      <div className="mt-5 flex gap-2 border-t border-surface-tint/8 pt-4">
         <button onClick={onDuplicate} className="calendar-control flex-1">
           <Copy className="h-3.5 w-3.5" /> Duplicate
         </button>
         <button
           onClick={onDelete}
-          className="calendar-control text-red-300 hover:border-red-300/20 hover:bg-red-300/5"
+          className="calendar-control text-status-danger dark:text-red-300 hover:border-red-300/20 hover:bg-red-300/5"
         >
           <Trash2 className="h-3.5 w-3.5" /> Delete
         </button>
@@ -723,7 +723,7 @@ function EventEditor({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="absolute inset-0 z-20 grid place-items-center bg-black/65 p-4 backdrop-blur-md"
+      className="absolute inset-0 z-20 grid place-items-center bg-surface-recessed/65 p-4 backdrop-blur-md"
       onMouseDown={(mouseEvent) => mouseEvent.target === mouseEvent.currentTarget && onClose()}
     >
       <motion.form
@@ -735,7 +735,7 @@ function EventEditor({
           if (!draft.title.trim()) return;
           onSave({ ...draft, title: draft.title.trim() });
         }}
-        className="calendar-editor w-full max-w-xl rounded-2xl border border-white/10 p-5 shadow-2xl"
+        className="calendar-editor w-full max-w-xl rounded-2xl border border-surface-tint/10 p-5 shadow-2xl"
       >
         <div className="flex items-center justify-between">
           <div>

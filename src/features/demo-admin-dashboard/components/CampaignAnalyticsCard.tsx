@@ -15,7 +15,7 @@ export function CampaignAnalyticsCard({ kpi }: CampaignAnalyticsCardProps) {
   const progressPct = Math.round(progress * 100);
 
   return (
-    <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 space-y-3">
+    <div className="rounded-xl border border-surface-tint/[0.08] bg-surface-tint/[0.02] p-4 space-y-3">
       {/* Header: metric kind badge + status badge */}
       <div className="flex items-center justify-between gap-2">
         <span
@@ -53,7 +53,7 @@ export function CampaignAnalyticsCard({ kpi }: CampaignAnalyticsCardProps) {
 
       {/* Progress bar */}
       <div
-        className="h-1.5 w-full rounded-full bg-white/[0.06] overflow-hidden"
+        className="h-1.5 w-full rounded-full bg-surface-tint/[0.06] overflow-hidden"
         role="progressbar"
         aria-valuenow={progressPct}
         aria-valuemin={0}

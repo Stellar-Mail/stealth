@@ -26,7 +26,7 @@ export function MockPublishPanel({
   return (
     <section
       className={cn(
-        "flex flex-col gap-4 rounded-xl border border-white/[0.08] bg-white/[0.02] p-4",
+        "flex flex-col gap-4 rounded-xl border border-surface-tint/[0.08] bg-surface-tint/[0.02] p-4",
         className,
       )}
     >
@@ -35,7 +35,7 @@ export function MockPublishPanel({
           <ShieldCheck className="h-4 w-4 text-muted-foreground" />
           <h3 className="text-sm font-medium">Mock publish workflow</h3>
         </div>
-        <span className="rounded-full border border-white/[0.08] px-2 py-0.5 text-xs text-muted-foreground">
+        <span className="rounded-full border border-surface-tint/[0.08] px-2 py-0.5 text-xs text-muted-foreground">
           {state.status}
         </span>
       </header>
@@ -48,7 +48,7 @@ export function MockPublishPanel({
             <span
               className={cn(
                 "h-2.5 w-2.5 rounded-full border",
-                step.complete ? "border-emerald-400 bg-emerald-400" : "border-white/20",
+                step.complete ? "border-emerald-400 bg-emerald-400" : "border-surface-tint/20",
               )}
             />
             <span className={step.complete ? "text-foreground" : "text-muted-foreground"}>
@@ -59,7 +59,7 @@ export function MockPublishPanel({
       </ol>
 
       {state.error ? (
-        <p className="rounded-lg border border-rose-500/20 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
+        <p className="rounded-lg border border-rose-500/20 bg-rose-500/10 px-3 py-2 text-sm text-status-danger dark:text-rose-200">
           {state.error}
         </p>
       ) : null}
@@ -101,7 +101,7 @@ function actionButtonClass(enabled: boolean): string {
   return cn(
     "inline-flex items-center gap-1 rounded-lg border px-3 py-2 text-sm transition-colors",
     enabled
-      ? "border-white/[0.08] text-foreground hover:bg-white/[0.04]"
-      : "cursor-not-allowed border-white/[0.06] text-muted-foreground opacity-60",
+      ? "border-surface-tint/[0.08] text-foreground hover:bg-surface-tint/[0.04]"
+      : "cursor-not-allowed border-surface-tint/[0.06] text-muted-foreground opacity-60",
   );
 }

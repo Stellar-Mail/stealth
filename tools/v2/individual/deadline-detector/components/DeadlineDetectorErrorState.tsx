@@ -24,10 +24,10 @@ export function DeadlineDetectorErrorState({
         <AlertTriangle className="size-7" />
       </div>
       <h2 className="text-xl font-semibold text-red-900">{title}</h2>
-      <p className="mt-3 text-sm leading-6 text-slate-700">{details}</p>
+      <p className="mt-3 text-sm leading-6 text-foreground">{details}</p>
       {onRetry ? (
         <button
-          className="mt-6 inline-flex items-center gap-2 rounded-md bg-slate-950 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-950"
+          className="mt-6 inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-950"
           onClick={onRetry}
           type="button"
         >

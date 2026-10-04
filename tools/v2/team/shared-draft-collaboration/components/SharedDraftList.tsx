@@ -39,8 +39,8 @@ export const SharedDraftList: React.FC<SharedDraftListProps> = ({
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h2 className="text-lg font-semibold text-slate-900">Shared Drafts</h2>
-          <p className="text-sm text-slate-600 mt-1">
+          <h2 className="text-lg font-semibold text-foreground">Shared Drafts</h2>
+          <p className="text-sm text-muted-foreground mt-1">
             {drafts.length} draft{drafts.length !== 1 ? "s" : ""}
             {activeDrafts > 0 && ` • ${activeDrafts} active`}
           </p>

@@ -366,15 +366,15 @@ export function ExternalWalletSettings({ ownerAddress }: { ownerAddress?: string
       <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 p-4 space-y-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <ShieldCheck className="h-4 w-4 text-blue-400 shrink-0" />
+            <ShieldCheck className="h-4 w-4 text-status-info dark:text-blue-400 shrink-0" />
             <span className="text-xs font-semibold text-foreground">Active Transaction Signer</span>
           </div>
           <span
             className={cn(
               "rounded-full px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wider",
               isManagedActiveSigner
-                ? "bg-blue-500/10 text-blue-400 border border-blue-500/20"
-                : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
+                ? "bg-blue-500/10 text-status-info dark:text-blue-400 border border-blue-500/20"
+                : "bg-emerald-500/10 text-status-success dark:text-emerald-400 border border-emerald-500/20",
             )}
           >
             {isManagedActiveSigner ? "Managed Wallet (Default)" : "External Wallet"}
@@ -401,16 +401,16 @@ export function ExternalWalletSettings({ ownerAddress }: { ownerAddress?: string
       </div>
 
       {/* Managed Wallet Public Status & Balance Card */}
-      <div className="rounded-xl border border-white/10 bg-white/[0.025] p-4 space-y-4">
+      <div className="rounded-xl border border-surface-tint/10 bg-surface-tint/[0.025] p-4 space-y-4">
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/10 text-status-info dark:text-blue-400 border border-blue-500/20">
               <Lock className="h-4 w-4" />
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <h4 className="text-xs font-semibold text-foreground">Managed Wallet</h4>
-                <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] text-emerald-400 font-medium">
+                <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] text-status-success dark:text-emerald-400 font-medium">
                   {managedStatus?.status === "funded" ? "Funded" : "Active"}
                 </span>
               </div>
@@ -422,7 +422,7 @@ export function ExternalWalletSettings({ ownerAddress }: { ownerAddress?: string
             onClick={handleRefreshBalance}
             disabled={refreshingBalance || loadingManaged}
             aria-label="Refresh wallet balance"
-            className="flex items-center gap-1.5 rounded-lg border border-white/10 px-2.5 py-1 text-[11px] text-muted-foreground hover:bg-white/[0.06] hover:text-foreground transition disabled:opacity-50"
+            className="flex items-center gap-1.5 rounded-lg border border-surface-tint/10 px-2.5 py-1 text-[11px] text-muted-foreground hover:bg-surface-tint/[0.06] hover:text-foreground transition disabled:opacity-50"
           >
             <RefreshCw className={cn("h-3 w-3", refreshingBalance && "animate-spin")} />
             <span>{refreshingBalance ? "Updating..." : "Refresh"}</span>
@@ -430,7 +430,7 @@ export function ExternalWalletSettings({ ownerAddress }: { ownerAddress?: string
         </div>
 
         {/* Public Address */}
-        <div className="rounded-lg border border-white/5 bg-black/20 p-3 space-y-1">
+        <div className="rounded-lg border border-surface-tint/5 bg-surface-recessed/20 p-3 space-y-1">
           <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
             Public Stellar Address
           </span>
@@ -440,12 +440,12 @@ export function ExternalWalletSettings({ ownerAddress }: { ownerAddress?: string
             </code>
             <button
               onClick={() => handleCopy(displayManagedAddress)}
-              className="rounded-lg p-1.5 text-muted-foreground hover:bg-white/10 hover:text-foreground transition shrink-0"
+              className="rounded-lg p-1.5 text-muted-foreground hover:bg-surface-tint/10 hover:text-foreground transition shrink-0"
               title="Copy address"
               aria-label="Copy public Stellar address"
             >
               {copiedAddress === displayManagedAddress ? (
-                <Check className="h-3.5 w-3.5 text-emerald-400" />
+                <Check className="h-3.5 w-3.5 text-status-success dark:text-emerald-400" />
               ) : (
                 <Copy className="h-3.5 w-3.5" />
               )}
@@ -455,7 +455,7 @@ export function ExternalWalletSettings({ ownerAddress }: { ownerAddress?: string
 
         {/* Live Testnet Balance Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="rounded-lg border border-white/5 bg-white/[0.02] p-3 space-y-1">
+          <div className="rounded-lg border border-surface-tint/5 bg-surface-tint/[0.02] p-3 space-y-1">
             <span className="text-[10px] uppercase font-medium tracking-wider text-muted-foreground">
               Testnet Balance
             </span>
@@ -474,12 +474,12 @@ export function ExternalWalletSettings({ ownerAddress }: { ownerAddress?: string
             </p>
           </div>
 
-          <div className="rounded-lg border border-white/5 bg-white/[0.02] p-3 space-y-1">
+          <div className="rounded-lg border border-surface-tint/5 bg-surface-tint/[0.02] p-3 space-y-1">
             <span className="text-[10px] uppercase font-medium tracking-wider text-muted-foreground">
               Custody Security
             </span>
             <div className="text-xs text-foreground font-medium flex items-center gap-1.5">
-              <ShieldCheck className="h-3.5 w-3.5 text-blue-400 shrink-0" />
+              <ShieldCheck className="h-3.5 w-3.5 text-status-info dark:text-blue-400 shrink-0" />
               <span>Hardware-sealed keys</span>
             </div>
             <p className="text-[10px] text-muted-foreground">
@@ -489,7 +489,7 @@ export function ExternalWalletSettings({ ownerAddress }: { ownerAddress?: string
         </div>
 
         {managedError && (
-          <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-2.5 text-[11px] text-amber-300 flex items-center gap-2">
+          <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-2.5 text-[11px] text-status-warning dark:text-amber-300 flex items-center gap-2">
             <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
             <span>{managedError}</span>
           </div>
@@ -505,18 +505,18 @@ export function ExternalWalletSettings({ ownerAddress }: { ownerAddress?: string
               Wallets you have cryptographically verified with ownership proofs.
             </p>
           </div>
-          <span className="rounded-full bg-white/[0.06] px-2.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+          <span className="rounded-full bg-surface-tint/[0.06] px-2.5 py-0.5 text-[10px] font-medium text-muted-foreground">
             {wallets.length} {wallets.length === 1 ? "wallet" : "wallets"}
           </span>
         </div>
 
         {loadingWallets ? (
-          <div className="rounded-xl border border-white/5 bg-white/[0.02] p-6 space-y-3 animate-pulse">
-            <div className="h-4 w-1/3 bg-white/10 rounded" />
-            <div className="h-3 w-2/3 bg-white/5 rounded" />
+          <div className="rounded-xl border border-surface-tint/5 bg-surface-tint/[0.02] p-6 space-y-3 animate-pulse">
+            <div className="h-4 w-1/3 bg-surface-tint/10 rounded" />
+            <div className="h-3 w-2/3 bg-surface-tint/5 rounded" />
           </div>
         ) : wallets.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-white/10 bg-white/[0.015] p-6 text-center space-y-2">
+          <div className="rounded-xl border border-dashed border-surface-tint/10 bg-surface-tint/[0.015] p-6 text-center space-y-2">
             <Wallet className="mx-auto h-7 w-7 text-muted-foreground/40" />
             <p className="text-xs font-medium text-foreground">No external wallets linked</p>
             <p className="text-[11px] text-muted-foreground max-w-sm mx-auto">
@@ -538,7 +538,7 @@ export function ExternalWalletSettings({ ownerAddress }: { ownerAddress?: string
                     "rounded-xl border p-4 transition space-y-3",
                     isCurrentSigner
                       ? "border-emerald-500/30 bg-emerald-500/[0.03]"
-                      : "border-white/10 bg-white/[0.02]",
+                      : "border-surface-tint/10 bg-surface-tint/[0.02]",
                   )}
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -547,8 +547,8 @@ export function ExternalWalletSettings({ ownerAddress }: { ownerAddress?: string
                         className={cn(
                           "flex h-8 w-8 items-center justify-center rounded-lg shrink-0 mt-0.5",
                           isCurrentSigner
-                            ? "bg-emerald-500/10 text-emerald-400"
-                            : "bg-white/[0.06] text-muted-foreground",
+                            ? "bg-emerald-500/10 text-status-success dark:text-emerald-400"
+                            : "bg-surface-tint/[0.06] text-muted-foreground",
                         )}
                       >
                         <Link2 className="h-4 w-4" />
@@ -560,18 +560,18 @@ export function ExternalWalletSettings({ ownerAddress }: { ownerAddress?: string
                           </code>
                           <button
                             onClick={() => handleCopy(wallet.address)}
-                            className="rounded p-1 text-muted-foreground hover:bg-white/10 hover:text-foreground transition"
+                            className="rounded p-1 text-muted-foreground hover:bg-surface-tint/10 hover:text-foreground transition"
                             title="Copy address"
                             aria-label={`Copy address ${wallet.address}`}
                           >
                             {copiedAddress === wallet.address ? (
-                              <Check className="h-3 w-3 text-emerald-400" />
+                              <Check className="h-3 w-3 text-status-success dark:text-emerald-400" />
                             ) : (
                               <Copy className="h-3 w-3" />
                             )}
                           </button>
                           {isCurrentSigner && (
-                            <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[9px] font-semibold text-emerald-400 border border-emerald-500/20">
+                            <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[9px] font-semibold text-status-success dark:text-emerald-400 border border-emerald-500/20">
                               Active Signer
                             </span>
                           )}
@@ -582,7 +582,7 @@ export function ExternalWalletSettings({ ownerAddress }: { ownerAddress?: string
                           {wallet.capabilities.map((cap) => (
                             <span
                               key={cap}
-                              className="rounded-md bg-white/[0.06] border border-white/5 px-2 py-0.5 text-[10px] text-foreground font-medium"
+                              className="rounded-md bg-surface-tint/[0.06] border border-surface-tint/5 px-2 py-0.5 text-[10px] text-foreground font-medium"
                             >
                               {CAPABILITY_DEFINITIONS[cap]?.label ?? cap}
                             </span>
@@ -612,8 +612,8 @@ export function ExternalWalletSettings({ ownerAddress }: { ownerAddress?: string
                         className={cn(
                           "rounded-lg p-1.5 transition text-xs flex items-center gap-1",
                           isEditing
-                            ? "bg-white/10 text-foreground"
-                            : "text-muted-foreground hover:bg-white/[0.06] hover:text-foreground",
+                            ? "bg-surface-tint/10 text-foreground"
+                            : "text-muted-foreground hover:bg-surface-tint/[0.06] hover:text-foreground",
                         )}
                         title="Configure capabilities"
                         aria-label={`Configure capabilities for ${wallet.address}`}
@@ -624,7 +624,7 @@ export function ExternalWalletSettings({ ownerAddress }: { ownerAddress?: string
 
                       <button
                         onClick={() => setConfirmUnlink(wallet.address)}
-                        className="rounded-lg p-1.5 text-muted-foreground hover:bg-red-500/10 hover:text-red-400 transition"
+                        className="rounded-lg p-1.5 text-muted-foreground hover:bg-red-500/10 hover:text-status-danger dark:hover:text-red-400 transition"
                         title="Unlink wallet"
                         aria-label={`Unlink wallet ${wallet.address}`}
                       >
@@ -635,7 +635,7 @@ export function ExternalWalletSettings({ ownerAddress }: { ownerAddress?: string
 
                   {/* Inline Configure Capabilities Form */}
                   {isEditing && (
-                    <div className="rounded-lg border border-white/10 bg-black/30 p-3 space-y-3 mt-2">
+                    <div className="rounded-lg border border-surface-tint/10 bg-surface-recessed/30 p-3 space-y-3 mt-2">
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-semibold text-foreground">
                           Edit Permitted Capabilities
@@ -662,11 +662,13 @@ export function ExternalWalletSettings({ ownerAddress }: { ownerAddress?: string
                                 "flex items-center justify-between rounded-lg border p-2.5 text-left transition text-xs",
                                 checked
                                   ? "border-emerald-400/30 bg-emerald-400/[0.08] text-foreground"
-                                  : "border-white/10 bg-white/[0.02] text-muted-foreground hover:bg-white/[0.04]",
+                                  : "border-surface-tint/10 bg-surface-tint/[0.02] text-muted-foreground hover:bg-surface-tint/[0.04]",
                               )}
                             >
                               <span>{label}</span>
-                              {checked && <Check className="h-3.5 w-3.5 text-emerald-400" />}
+                              {checked && (
+                                <Check className="h-3.5 w-3.5 text-status-success dark:text-emerald-400" />
+                              )}
                             </button>
                           );
                         })}
@@ -675,7 +677,7 @@ export function ExternalWalletSettings({ ownerAddress }: { ownerAddress?: string
                       <div className="flex items-center justify-end gap-2 pt-1">
                         <button
                           onClick={() => setEditingWallet(null)}
-                          className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-muted-foreground hover:bg-white/[0.06] transition"
+                          className="rounded-lg border border-surface-tint/10 px-3 py-1.5 text-xs text-muted-foreground hover:bg-surface-tint/[0.06] transition"
                         >
                           Cancel
                         </button>
@@ -694,12 +696,12 @@ export function ExternalWalletSettings({ ownerAddress }: { ownerAddress?: string
                   {confirmUnlink === wallet.address && (
                     <div className="rounded-lg border border-red-500/20 bg-red-500/10 p-3 space-y-2 mt-2">
                       <div className="flex items-start gap-2">
-                        <AlertTriangle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
+                        <AlertTriangle className="h-4 w-4 text-status-danger dark:text-red-400 shrink-0 mt-0.5" />
                         <div>
-                          <p className="text-xs font-semibold text-red-200">
+                          <p className="text-xs font-semibold text-status-danger dark:text-red-200">
                             Unlink this external wallet?
                           </p>
-                          <p className="text-[11px] text-red-200/80 mt-0.5">
+                          <p className="text-[11px] text-status-danger/80 dark:text-red-200/80 mt-0.5">
                             Transaction signing will immediately fall back to your Managed Wallet.
                             Your account login credentials remain unaffected.
                           </p>
@@ -708,7 +710,7 @@ export function ExternalWalletSettings({ ownerAddress }: { ownerAddress?: string
                       <div className="flex items-center justify-end gap-2 pt-1">
                         <button
                           onClick={() => setConfirmUnlink(null)}
-                          className="rounded-lg border border-white/10 px-3 py-1 text-xs text-muted-foreground hover:bg-white/[0.06] transition"
+                          className="rounded-lg border border-surface-tint/10 px-3 py-1 text-xs text-muted-foreground hover:bg-surface-tint/[0.06] transition"
                         >
                           Cancel
                         </button>
@@ -730,7 +732,7 @@ export function ExternalWalletSettings({ ownerAddress }: { ownerAddress?: string
       </div>
 
       {/* Connect New External Wallet Section */}
-      <div className="rounded-xl border border-white/10 bg-white/[0.025] p-5 space-y-4">
+      <div className="rounded-xl border border-surface-tint/10 bg-surface-tint/[0.025] p-5 space-y-4">
         <div>
           <h4 className="text-xs font-semibold text-foreground">Connect New External Wallet</h4>
           <p className="mt-1 text-[11px] text-muted-foreground">
@@ -751,13 +753,13 @@ export function ExternalWalletSettings({ ownerAddress }: { ownerAddress?: string
                   "rounded-lg border p-3 text-left transition",
                   selectedNetwork === network.passphrase
                     ? "border-blue-500/40 bg-blue-500/[0.08] text-foreground"
-                    : "border-white/10 bg-white/[0.02] text-muted-foreground hover:border-white/20 hover:text-foreground",
+                    : "border-surface-tint/10 bg-surface-tint/[0.02] text-muted-foreground hover:border-surface-tint/20 hover:text-foreground",
                 )}
               >
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold">{network.label}</span>
                   {selectedNetwork === network.passphrase && (
-                    <Check className="h-3.5 w-3.5 text-blue-400" />
+                    <Check className="h-3.5 w-3.5 text-status-info dark:text-blue-400" />
                   )}
                 </div>
                 <p className="text-[10px] text-muted-foreground mt-0.5">{network.description}</p>
@@ -786,7 +788,7 @@ export function ExternalWalletSettings({ ownerAddress }: { ownerAddress?: string
                     "flex w-full items-center justify-between rounded-lg border p-3 text-left transition",
                     selected
                       ? "border-emerald-400/30 bg-emerald-400/[0.06]"
-                      : "border-white/10 bg-white/[0.02] hover:bg-white/[0.04]",
+                      : "border-surface-tint/10 bg-surface-tint/[0.02] hover:bg-surface-tint/[0.04]",
                   )}
                 >
                   <div>
@@ -795,7 +797,9 @@ export function ExternalWalletSettings({ ownerAddress }: { ownerAddress?: string
                       {description}
                     </span>
                   </div>
-                  {selected && <Check className="h-4 w-4 text-emerald-400 shrink-0 ml-2" />}
+                  {selected && (
+                    <Check className="h-4 w-4 text-status-success dark:text-emerald-400 shrink-0 ml-2" />
+                  )}
                 </button>
               );
             })}
@@ -806,10 +810,14 @@ export function ExternalWalletSettings({ ownerAddress }: { ownerAddress?: string
         {linkingState.status === "error" && (
           <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-3.5 space-y-2">
             <div className="flex items-start gap-2.5">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-400" />
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-status-danger dark:text-red-400" />
               <div className="space-y-1">
-                <p className="text-xs font-semibold text-red-200">Connection Failed</p>
-                <p className="text-xs text-red-200/90 leading-relaxed">{linkingState.message}</p>
+                <p className="text-xs font-semibold text-status-danger dark:text-red-200">
+                  Connection Failed
+                </p>
+                <p className="text-xs text-status-danger/90 dark:text-red-200/90 leading-relaxed">
+                  {linkingState.message}
+                </p>
               </div>
             </div>
 
@@ -819,7 +827,7 @@ export function ExternalWalletSettings({ ownerAddress }: { ownerAddress?: string
                   href="https://www.freighter.app"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-red-500/20 border border-red-500/30 px-3 py-1 text-xs text-red-200 hover:bg-red-500/30 transition font-medium"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-red-500/20 border border-red-500/30 px-3 py-1 text-xs text-status-danger dark:text-red-200 hover:bg-red-500/30 transition font-medium"
                 >
                   <span>Install Freighter Extension</span>
                   <ExternalLink className="h-3 w-3" />
@@ -831,8 +839,8 @@ export function ExternalWalletSettings({ ownerAddress }: { ownerAddress?: string
 
         {/* Success Banner */}
         {linkingState.status === "linked" && (
-          <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3.5 flex items-center gap-2.5 text-emerald-300 text-xs">
-            <Check className="h-4 w-4 shrink-0 text-emerald-400" />
+          <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3.5 flex items-center gap-2.5 text-status-success dark:text-emerald-300 text-xs">
+            <Check className="h-4 w-4 shrink-0 text-status-success dark:text-emerald-400" />
             <span>Wallet successfully verified and linked!</span>
           </div>
         )}
@@ -844,7 +852,7 @@ export function ExternalWalletSettings({ ownerAddress }: { ownerAddress?: string
           className={cn(
             "w-full rounded-xl py-2.5 px-4 text-xs font-semibold transition flex items-center justify-center gap-2",
             isProcessing || selectedCapabilities.length === 0
-              ? "cursor-not-allowed bg-white/[0.06] text-muted-foreground"
+              ? "cursor-not-allowed bg-surface-tint/[0.06] text-muted-foreground"
               : "bg-foreground text-background hover:opacity-90 active:scale-[0.99]",
           )}
         >
@@ -884,7 +892,7 @@ export function ExternalWalletSettings({ ownerAddress }: { ownerAddress?: string
         </button>
 
         {/* Security & Credentials Guarantee Notice */}
-        <div className="rounded-lg border border-white/5 bg-white/[0.015] p-3 flex items-start gap-2">
+        <div className="rounded-lg border border-surface-tint/5 bg-surface-tint/[0.015] p-3 flex items-start gap-2">
           <Info className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
           <p className="text-[11px] text-muted-foreground leading-relaxed">
             Linking or unlinking external wallets will never modify your login credentials, email

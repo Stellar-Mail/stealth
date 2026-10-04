@@ -1,7 +1,7 @@
 .demo-admin-dashboard {
   --dashboard-gap: clamp(1rem, 2vw, 1.5rem);
-  --dashboard-panel: rgba(15, 23, 42, 0.72);
-  color: #e2e8f0;
+  --dashboard-panel: var(--glass-strong);
+  color: var(--foreground);
   container-type: inline-size;
   min-width: 0;
   padding: clamp(1rem, 3vw, 2.5rem);
@@ -22,7 +22,7 @@
 }
 
 .demo-admin-dashboard__eyebrow {
-  color: #38bdf8;
+  color: var(--status-info);
   font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.14em;
@@ -42,9 +42,9 @@
 .demo-admin-dashboard__review,
 .demo-admin-dashboard__checks article {
   background: var(--dashboard-panel);
-  border: 1px solid rgba(148, 163, 184, 0.24);
+  border: 1px solid var(--border);
   border-radius: 1.25rem;
-  box-shadow: 0 1.5rem 4rem rgba(15, 23, 42, 0.22);
+  box-shadow: var(--shadow-elegant);
   padding: 1rem;
 }
 
@@ -54,7 +54,7 @@
 }
 
 .demo-admin-dashboard__support-note strong {
-  color: #f8fafc;
+  color: var(--foreground);
   font-size: 1.5rem;
 }
 
@@ -72,10 +72,10 @@
 }
 
 .demo-admin-dashboard__controls button {
-  background: #0ea5e9;
+  background: var(--primary);
   border: 0;
   border-radius: 999px;
-  color: #082f49;
+  color: var(--primary-foreground);
   cursor: pointer;
   font-weight: 800;
   min-height: 2.75rem;
@@ -112,17 +112,17 @@
 
 .demo-admin-dashboard__card span {
   background: rgba(56, 189, 248, 0.16);
-  color: #7dd3fc;
+  color: var(--status-info);
 }
 
 .demo-admin-dashboard__card span[data-status="needs-review"] {
   background: rgba(250, 204, 21, 0.16);
-  color: #fde047;
+  color: var(--status-warning);
 }
 
 .demo-admin-dashboard__card span[data-status="draft"] {
   background: rgba(203, 213, 225, 0.12);
-  color: #cbd5e1;
+  color: var(--muted-foreground);
 }
 
 .demo-admin-dashboard__review ul {
@@ -134,12 +134,12 @@
 }
 
 .demo-admin-dashboard__review li {
-  border-left: 3px solid #38bdf8;
+  border-left: 3px solid var(--status-info);
   padding-left: 0.75rem;
 }
 
 .demo-admin-dashboard__review span {
-  color: #bae6fd;
+  color: var(--status-info);
   display: block;
   font-size: 0.85rem;
 }
@@ -150,7 +150,7 @@
 
 .demo-admin-dashboard__checks span {
   background: rgba(14, 165, 233, 0.14);
-  color: #bae6fd;
+  color: var(--status-info);
   margin-bottom: 0.65rem;
 }
 

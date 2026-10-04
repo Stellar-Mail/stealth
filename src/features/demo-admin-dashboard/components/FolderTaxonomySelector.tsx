@@ -32,7 +32,7 @@ export function FolderTaxonomySelector({
         onChange={(event: ChangeEvent<HTMLSelectElement>) =>
           onChange(event.target.value as DemoFolder)
         }
-        className="rounded-lg border border-white/[0.08] bg-white/[0.02] px-3 py-2 text-muted-foreground"
+        className="rounded-lg border border-surface-tint/[0.08] bg-surface-tint/[0.02] px-3 py-2 text-muted-foreground"
       >
         {DEMO_FOLDERS.map((folder) => (
           <option key={folder} value={folder}>

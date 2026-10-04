@@ -25,31 +25,35 @@ export interface FailureInspectionDetails {
 }
 
 function getStageColor(status: StageState["status"]) {
-  if (status === "error") return "text-red-200";
+  if (status === "error") return "text-status-danger dark:text-red-200";
   if (status === "done") return "text-foreground/90 font-medium";
-  if (status === "active") return "text-blue-200 font-medium";
+  if (status === "active") return "text-status-info dark:text-blue-200 font-medium";
   return "text-muted-foreground";
 }
 
 function StageIcon({ status }: Readonly<{ status: StageState["status"] }>) {
-  if (status === "done") return <Check className="h-3.5 w-3.5 text-emerald-400 shrink-0" />;
+  if (status === "done")
+    return <Check className="h-3.5 w-3.5 text-status-success dark:text-emerald-400 shrink-0" />;
   if (status === "active")
-    return <Loader2 className="h-3.5 w-3.5 motion-safe:animate-spin text-blue-400 shrink-0" />;
-  if (status === "error") return <AlertCircle className="h-3.5 w-3.5 text-red-400 shrink-0" />;
+    return (
+      <Loader2 className="h-3.5 w-3.5 motion-safe:animate-spin text-status-info dark:text-blue-400 shrink-0" />
+    );
+  if (status === "error")
+    return <AlertCircle className="h-3.5 w-3.5 text-status-danger dark:text-red-400 shrink-0" />;
   return <Circle className="h-3.5 w-3.5 text-muted-foreground/40 shrink-0" />;
 }
 
 function renderStatusBadge(isSafeRetry: boolean, isCommitted: boolean) {
   if (isSafeRetry) {
     return (
-      <span className="rounded bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-medium text-emerald-300 border border-emerald-500/20">
+      <span className="rounded bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-medium text-status-success dark:text-emerald-300 border border-emerald-500/20">
         Draft safe
       </span>
     );
   }
   if (isCommitted) {
     return (
-      <span className="rounded bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-medium text-amber-300 border border-amber-500/20">
+      <span className="rounded bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-medium text-status-warning dark:text-amber-300 border border-amber-500/20">
         Committed to relay
       </span>
     );
@@ -107,11 +111,11 @@ export function SendProgress({
 
   return (
     <div
-      className="mt-2 rounded-xl border border-white/10 bg-white/4 p-3.5 text-xs shadow-lg backdrop-blur-md transition-all"
+      className="mt-2 rounded-xl border border-surface-tint/10 bg-surface-tint/4 p-3.5 text-xs shadow-lg backdrop-blur-md transition-all"
       aria-live="polite"
       aria-busy={!error && stages.some((s) => s.status === "active")}
     >
-      <div className="mb-2 flex items-center justify-between border-b border-white/5 pb-2">
+      <div className="mb-2 flex items-center justify-between border-b border-surface-tint/5 pb-2">
         <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
           Send Pipeline Progress
         </span>
@@ -121,12 +125,12 @@ export function SendProgress({
             onClick={handleCopySupportId}
             title="Click to copy Support ID for this send operation"
             aria-label={`Copy support ID ${activeSupportId}`}
-            className="flex items-center gap-1.5 rounded-md border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-mono text-muted-foreground transition hover:bg-white/10 hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
+            className="flex items-center gap-1.5 rounded-md border border-surface-tint/10 bg-surface-tint/5 px-2 py-0.5 text-[10px] font-mono text-muted-foreground transition hover:bg-surface-tint/10 hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-surface-tint/20"
           >
             {copied ? (
               <>
-                <CheckCheck className="h-3 w-3 text-emerald-400" />
-                <span className="text-emerald-300">Copied</span>
+                <CheckCheck className="h-3 w-3 text-status-success dark:text-emerald-400" />
+                <span className="text-status-success dark:text-emerald-300">Copied</span>
               </>
             ) : (
               <>
@@ -155,14 +159,16 @@ export function SendProgress({
       {error && (
         <div role="alert" className="mt-3 space-y-2.5 border-t border-red-500/20 pt-2.5">
           <div className="flex items-start gap-2">
-            <AlertCircle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
+            <AlertCircle className="h-4 w-4 text-status-danger dark:text-red-400 shrink-0 mt-0.5" />
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-1.5">
-                <span className="font-medium text-red-200">{error}</span>
+                <span className="font-medium text-status-danger dark:text-red-200">{error}</span>
                 {renderStatusBadge(isSafeRetry, isCommitted)}
               </div>
               {failedStage?.detail && (
-                <p className="mt-0.5 text-[10px] text-red-300/80">{failedStage.detail}</p>
+                <p className="mt-0.5 text-[10px] text-status-danger/80 dark:text-red-300/80">
+                  {failedStage.detail}
+                </p>
               )}
             </div>
           </div>
@@ -173,7 +179,7 @@ export function SendProgress({
                 type="button"
                 onClick={toggleInspect}
                 aria-expanded={showInspection}
-                className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-foreground/80 transition hover:bg-white/10 hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
+                className="inline-flex items-center gap-1 rounded-md border border-surface-tint/10 bg-surface-tint/5 px-2 py-1 text-[11px] text-foreground/80 transition hover:bg-surface-tint/10 hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-surface-tint/20"
               >
                 <Info className="h-3 w-3 text-muted-foreground" />
                 <span>{showInspection ? "Hide details" : "Inspect failure"}</span>
@@ -188,7 +194,7 @@ export function SendProgress({
                 <button
                   type="button"
                   onClick={onSaveDraft}
-                  className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-foreground/80 transition hover:bg-white/10 hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
+                  className="inline-flex items-center gap-1 rounded-md border border-surface-tint/10 bg-surface-tint/5 px-2 py-1 text-[11px] text-foreground/80 transition hover:bg-surface-tint/10 hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-surface-tint/20"
                 >
                   <Bookmark className="h-3 w-3 text-muted-foreground" />
                   <span>Save draft</span>
@@ -200,19 +206,21 @@ export function SendProgress({
               <button
                 type="button"
                 onClick={onRetry}
-                className="inline-flex items-center gap-1 rounded-md border border-blue-400/30 bg-blue-500/20 px-2.5 py-1 text-[11px] font-medium text-blue-100 transition hover:bg-blue-500/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+                className="inline-flex items-center gap-1 rounded-md border border-blue-400/30 bg-blue-500/20 px-2.5 py-1 text-[11px] font-medium text-status-info dark:text-blue-100 transition hover:bg-blue-500/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
               >
-                <RotateCcw className="h-3 w-3 text-blue-300" />
+                <RotateCcw className="h-3 w-3 text-status-info dark:text-blue-300" />
                 <span>Retry send</span>
               </button>
             )}
           </div>
 
           {showInspection && (
-            <div className="mt-2 space-y-1.5 rounded-lg border border-white/10 bg-black/40 p-2.5 text-[10px] font-mono text-muted-foreground animate-in fade-in duration-200">
+            <div className="mt-2 space-y-1.5 rounded-lg border border-surface-tint/10 bg-surface-recessed/40 p-2.5 text-[10px] font-mono text-muted-foreground animate-in fade-in duration-200">
               <div className="flex justify-between">
                 <span className="text-foreground/70">Failed Stage:</span>
-                <span className="text-red-300">{failedStage?.id ?? "unknown"}</span>
+                <span className="text-status-danger dark:text-red-300">
+                  {failedStage?.id ?? "unknown"}
+                </span>
               </div>
               {failureDetails?.code && (
                 <div className="flex justify-between">

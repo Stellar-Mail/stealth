@@ -114,7 +114,7 @@ function PolicyEditorPage({ address }: { address: string }) {
   if (isError) {
     return (
       <div className="min-h-screen bg-background p-6 md:p-12 text-foreground">
-        <div className="rounded-lg border border-rose-500/20 bg-rose-500/10 p-4 text-sm text-rose-200">
+        <div className="rounded-lg border border-rose-500/20 bg-rose-500/10 p-4 text-sm text-status-danger dark:text-rose-200">
           Could not load policy.{" "}
           <button onClick={() => refetch()} className="underline">
             Retry
@@ -136,15 +136,15 @@ function PolicyEditorPage({ address }: { address: string }) {
 
         {mutation.isError && isApiClientError(mutation.error) && mutation.error.status === 409 && (
           <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-sm flex items-start gap-3">
-            <ShieldAlert className="h-4 w-4 shrink-0 text-amber-400 mt-0.5" />
-            <div className="text-amber-200">
+            <ShieldAlert className="h-4 w-4 shrink-0 text-status-warning dark:text-amber-400 mt-0.5" />
+            <div className="text-status-warning dark:text-amber-200">
               <p className="font-medium">Policy updated elsewhere</p>
               <p className="mt-0.5 text-xs opacity-80">
                 These settings were modified from another session or tab.
               </p>
               <button
                 onClick={() => refetch()}
-                className="mt-2 text-xs font-medium text-amber-300 hover:text-amber-200 underline underline-offset-2"
+                className="mt-2 text-xs font-medium text-status-warning dark:text-amber-300 hover:text-status-warning dark:hover:text-amber-200 underline underline-offset-2"
               >
                 Reload latest changes
               </button>
@@ -154,8 +154,8 @@ function PolicyEditorPage({ address }: { address: string }) {
 
         {reconciliation?.state === "pending_write" && (
           <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-3 text-sm flex items-start gap-3">
-            <RefreshCw className="h-4 w-4 shrink-0 text-emerald-400 mt-0.5 animate-spin" />
-            <div className="text-emerald-200">
+            <RefreshCw className="h-4 w-4 shrink-0 text-status-success dark:text-emerald-400 mt-0.5 animate-spin" />
+            <div className="text-status-success dark:text-emerald-200">
               <p className="font-medium">Changes pending on chain</p>
               <p className="mt-0.5 text-xs opacity-80">Your policy is confirming on the network.</p>
             </div>
@@ -164,8 +164,8 @@ function PolicyEditorPage({ address }: { address: string }) {
 
         {reconciliation?.state === "failed" && (
           <div className="rounded-lg border border-rose-500/20 bg-rose-500/10 p-3 text-sm flex items-start gap-3">
-            <ShieldAlert className="h-4 w-4 shrink-0 text-rose-400 mt-0.5" />
-            <div className="text-rose-200">
+            <ShieldAlert className="h-4 w-4 shrink-0 text-status-danger dark:text-rose-400 mt-0.5" />
+            <div className="text-status-danger dark:text-rose-200">
               <p className="font-medium">Policy write failed</p>
               <p className="mt-0.5 text-xs opacity-80">
                 {reconciliation.offchain.intentError || "An error occurred writing to the network."}
@@ -177,7 +177,7 @@ function PolicyEditorPage({ address }: { address: string }) {
                     version: reconciliation.offchain.version ?? undefined,
                   })
                 }
-                className="mt-2 text-xs font-medium text-rose-300 hover:text-rose-200 underline"
+                className="mt-2 text-xs font-medium text-status-danger dark:text-rose-300 hover:text-status-danger dark:hover:text-rose-200 underline"
               >
                 Retry
               </button>
@@ -221,7 +221,7 @@ function PolicyEditorPage({ address }: { address: string }) {
                       "active:scale-95",
                       currentForm.allowUnknown
                         ? "bg-emerald-500 hover:bg-emerald-400"
-                        : "bg-white/20 hover:bg-white/30",
+                        : "bg-surface-tint/20 hover:bg-surface-tint/30",
                     )}
                   >
                     <span
@@ -274,8 +274,8 @@ function PolicyEditorPage({ address }: { address: string }) {
                       currentForm.requireVerified && !verificationDisabled
                         ? "bg-emerald-500 hover:bg-emerald-400"
                         : verificationDisabled
-                          ? "bg-white/20"
-                          : "bg-white/20 hover:bg-white/30",
+                          ? "bg-surface-tint/20"
+                          : "bg-surface-tint/20 hover:bg-surface-tint/30",
                     )}
                   >
                     <span
@@ -301,7 +301,9 @@ function PolicyEditorPage({ address }: { address: string }) {
                     <span
                       className={cn(
                         "text-sm font-semibold tabular-nums transition-colors",
-                        postageDisabled ? "text-muted-foreground opacity-40" : "text-emerald-400",
+                        postageDisabled
+                          ? "text-muted-foreground opacity-40"
+                          : "text-status-success dark:text-emerald-400",
                       )}
                     >
                       {Number(currentForm.minimumPostage).toFixed(3)} XLM
@@ -348,7 +350,7 @@ function PolicyEditorPage({ address }: { address: string }) {
             </div>
 
             {/* Footer */}
-            <div className="pt-6 border-t border-white/10 flex items-center justify-between gap-4">
+            <div className="pt-6 border-t border-surface-tint/10 flex items-center justify-between gap-4">
               <p className="text-[11px] text-muted-foreground">
                 Preview updates live. Save to apply.
               </p>
@@ -372,7 +374,8 @@ function PolicyEditorPage({ address }: { address: string }) {
           <div className="space-y-6">
             <Surface className="p-6">
               <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <Shield className="w-5 h-5 text-sky-400" aria-hidden="true" /> Live Simulator
+                <Shield className="w-5 h-5 text-status-info dark:text-sky-400" aria-hidden="true" />{" "}
+                Live Simulator
               </h2>
               <p className="text-xs text-muted-foreground mb-4">
                 Shows how the current draft policy would admit each sender type.
@@ -400,9 +403,15 @@ function PolicyEditorPage({ address }: { address: string }) {
                     >
                       <div className="mt-0.5 shrink-0">
                         {result.allowed ? (
-                          <Check className="w-4 h-4 text-emerald-400" aria-label="Allowed" />
+                          <Check
+                            className="w-4 h-4 text-status-success dark:text-emerald-400"
+                            aria-label="Allowed"
+                          />
                         ) : (
-                          <X className="w-4 h-4 text-rose-400" aria-label="Blocked" />
+                          <X
+                            className="w-4 h-4 text-status-danger dark:text-rose-400"
+                            aria-label="Blocked"
+                          />
                         )}
                       </div>
                       <div className="min-w-0">
@@ -417,12 +426,16 @@ function PolicyEditorPage({ address }: { address: string }) {
               </div>
             </Surface>
 
-            <Surface className="p-6 bg-black/40">
+            <Surface className="p-6 bg-surface-recessed/40">
               <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <Code className="w-5 h-5 text-amber-400" aria-hidden="true" /> API Payload
+                <Code
+                  className="w-5 h-5 text-status-warning dark:text-amber-400"
+                  aria-hidden="true"
+                />{" "}
+                API Payload
               </h2>
               <pre
-                className="text-xs text-emerald-300 bg-black/60 p-4 rounded-lg overflow-x-auto border border-white/5 leading-relaxed"
+                className="text-xs text-status-success dark:text-emerald-300 bg-surface-recessed/60 p-4 rounded-lg overflow-x-auto border border-surface-tint/5 leading-relaxed"
                 aria-label="Current policy JSON payload"
               >
                 {JSON.stringify(currentForm, null, 2)}
@@ -434,12 +447,16 @@ function PolicyEditorPage({ address }: { address: string }) {
                   <div
                     role="alert"
                     aria-live="polite"
-                    className="mt-4 flex items-start gap-3 text-rose-300 text-xs bg-rose-400/10 p-3.5 rounded-lg border border-rose-400/20"
+                    className="mt-4 flex items-start gap-3 text-status-danger dark:text-rose-300 text-xs bg-rose-400/10 p-3.5 rounded-lg border border-rose-400/20"
                   >
                     <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" aria-hidden="true" />
                     <div className="min-w-0">
-                      <p className="font-medium text-rose-200 mb-0.5">Save failed</p>
-                      <p className="text-rose-300/80 break-words">{mutation.error?.message}</p>
+                      <p className="font-medium text-status-danger dark:text-rose-200 mb-0.5">
+                        Save failed
+                      </p>
+                      <p className="text-status-danger/80 dark:text-rose-300/80 break-words">
+                        {mutation.error?.message}
+                      </p>
                     </div>
                   </div>
                 )}

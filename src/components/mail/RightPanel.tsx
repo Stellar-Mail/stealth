@@ -77,7 +77,7 @@ export function RightPanel({
     <aside className="scrollbar-thin m-3 ml-0 flex h-full min-w-0 flex-col gap-3 overflow-y-auto">
       <Card>
         <SectionHeader icon={Sparkles} title="AI assistant" badge="beta" />
-        <div className="mt-3 rounded-xl border border-white/10 bg-black/20 p-3 text-xs text-foreground/80">
+        <div className="mt-3 rounded-xl border border-surface-tint/10 bg-surface-recessed/20 p-3 text-xs text-foreground/80">
           {summary ??
             (email
               ? `${email.from} is sharing the latest direction on "${email.subject}".`
@@ -89,13 +89,13 @@ export function RightPanel({
             onChange={(event) => setPrompt(event.target.value)}
             onKeyDown={(event) => event.key === "Enter" && draftReply()}
             placeholder="Ask AI to draft a reply..."
-            className="glow-ring h-9 w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 text-xs placeholder:text-muted-foreground/70"
+            className="glow-ring h-9 w-full rounded-lg border border-surface-tint/10 bg-surface-tint/[0.04] px-3 text-xs placeholder:text-muted-foreground/70"
           />
           <motion.button
             whileTap={{ scale: 0.94 }}
             disabled={!email || !prompt.trim()}
             onClick={draftReply}
-            className="grid h-9 w-9 place-items-center rounded-lg border border-white/10 bg-white/[0.06] text-foreground transition hover:bg-white/[0.1] disabled:cursor-not-allowed disabled:opacity-40"
+            className="grid h-9 w-9 place-items-center rounded-lg border border-surface-tint/10 bg-surface-tint/[0.06] text-foreground transition hover:bg-surface-tint/[0.1] disabled:cursor-not-allowed disabled:opacity-40"
           >
             <Send className="h-3.5 w-3.5" />
           </motion.button>
@@ -112,7 +112,7 @@ export function RightPanel({
               whileTap={{ scale: 0.97 }}
               disabled={!email}
               onClick={() => runAction(action)}
-              className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-foreground/90 transition hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-40"
+              className="rounded-lg border border-surface-tint/10 bg-surface-tint/[0.04] px-3 py-2 text-xs text-foreground/90 transition hover:bg-surface-tint/[0.08] disabled:cursor-not-allowed disabled:opacity-40"
             >
               {action[0].toUpperCase() + action.slice(1)}
             </motion.button>
@@ -125,7 +125,7 @@ export function RightPanel({
           <SectionHeader icon={Calendar} title="Today" />
           <button
             onClick={onCreateEvent}
-            className="ml-auto rounded-md p-1.5 text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground"
+            className="ml-auto rounded-md p-1.5 text-muted-foreground transition hover:bg-surface-tint/[0.06] hover:text-foreground"
             aria-label="Create calendar event"
           >
             <CalendarPlus className="h-3.5 w-3.5" />
@@ -138,7 +138,10 @@ export function RightPanel({
             .map((event) => {
               const calendar = calendars.find((item) => item.id === event.calendarId);
               return (
-                <li key={event.title} className="group rounded-lg transition hover:bg-white/[0.04]">
+                <li
+                  key={event.title}
+                  className="group rounded-lg transition hover:bg-surface-tint/[0.04]"
+                >
                   <button
                     onClick={() => onOpenCalendar(event.id)}
                     className="flex w-full items-center gap-3 px-2 py-1.5 text-left"
@@ -163,7 +166,7 @@ export function RightPanel({
         </ul>
         <button
           onClick={() => onOpenCalendar()}
-          className="mt-3 flex w-full items-center justify-between rounded-lg border border-white/8 bg-white/[0.025] px-3 py-2 text-[10px] text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground"
+          className="mt-3 flex w-full items-center justify-between rounded-lg border border-surface-tint/8 bg-surface-tint/[0.025] px-3 py-2 text-[10px] text-muted-foreground transition hover:bg-surface-tint/[0.06] hover:text-foreground"
         >
           <span>{format(getAppToday(), "MMMM d")} schedule</span>
           <span>Open calendar</span>
@@ -180,10 +183,10 @@ export function RightPanel({
                 onClick={() => onPreviewAttachment?.(attachment)}
                 className={cn(
                   "flex items-center gap-2 rounded-lg px-2 py-1.5 transition duration-150",
-                  onPreviewAttachment && "cursor-pointer hover:bg-white/[0.06]",
+                  onPreviewAttachment && "cursor-pointer hover:bg-surface-tint/[0.06]",
                 )}
               >
-                <div className="grid h-7 w-7 place-items-center rounded-md bg-white/[0.05] text-[9px] font-bold uppercase text-muted-foreground">
+                <div className="grid h-7 w-7 place-items-center rounded-md bg-surface-tint/[0.05] text-[9px] font-bold uppercase text-muted-foreground">
                   {attachment.type}
                 </div>
                 <div className="min-w-0 flex-1">
@@ -262,7 +265,7 @@ function SectionHeader({
         {title}
       </span>
       {badge && (
-        <span className="ml-auto rounded-md border border-white/10 bg-white/[0.04] px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-foreground/80">
+        <span className="ml-auto rounded-md border border-surface-tint/10 bg-surface-tint/[0.04] px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-foreground/80">
           {badge}
         </span>
       )}

@@ -35,8 +35,8 @@ export const WatchlistList: React.FC<WatchlistListProps> = ({ entries, onRemove,
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h2 className="text-lg font-semibold text-slate-900">Watchlist</h2>
-          <p className="text-sm text-slate-600 mt-1">
+          <h2 className="text-lg font-semibold text-foreground">Watchlist</h2>
+          <p className="text-sm text-muted-foreground mt-1">
             Monitoring {entries.length} sender{entries.length !== 1 ? "s" : ""}
             {highRiskCount > 0 && ` • ${highRiskCount} high risk`}
           </p>

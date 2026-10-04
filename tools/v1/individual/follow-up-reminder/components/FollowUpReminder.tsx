@@ -107,7 +107,7 @@ export const FollowUpReminder: React.FC = () => {
 
   return (
     <div
-      className="p-6 border rounded-xl max-w-3xl mx-auto bg-white shadow-sm"
+      className="p-6 border rounded-xl max-w-3xl mx-auto bg-card shadow-sm"
       role="region"
       aria-labelledby="follow-up-reminder-heading"
     >
@@ -127,11 +127,11 @@ export const FollowUpReminder: React.FC = () => {
               d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
             />
           </svg>
-          <h2 className="text-2xl font-semibold text-gray-800" id="follow-up-reminder-heading">
+          <h2 className="text-2xl font-semibold text-foreground" id="follow-up-reminder-heading">
             Follow-up Reminder
           </h2>
         </div>
-        <p className="text-sm text-gray-500 ml-9">
+        <p className="text-sm text-muted-foreground ml-9">
           Detect follow-up requests, deadlines, and action items from email content.
         </p>
       </header>
@@ -146,7 +146,7 @@ export const FollowUpReminder: React.FC = () => {
         </button>
         <button
           onClick={handleSimulateEmpty}
-          className="px-4 py-2 bg-gray-50 text-gray-700 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors font-medium text-sm"
+          className="px-4 py-2 bg-muted text-foreground rounded-md hover:bg-muted focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors font-medium text-sm"
           aria-pressed={state === "empty"}
         >
           No Reminders Found
@@ -170,13 +170,13 @@ export const FollowUpReminder: React.FC = () => {
       <div
         aria-live="polite"
         aria-atomic="true"
-        className="min-h-[300px] bg-gray-50 rounded-lg border border-gray-100 p-4"
+        className="min-h-[300px] bg-muted rounded-lg border border-border p-4"
       >
         {state === "idle" && (
           <div className="flex items-center justify-center h-full min-h-[250px]">
             <div className="text-center">
               <svg
-                className="w-12 h-12 text-gray-300 mx-auto mb-3"
+                className="w-12 h-12 text-status-neutral mx-auto mb-3"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -189,7 +189,7 @@ export const FollowUpReminder: React.FC = () => {
                   d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
                 />
               </svg>
-              <p className="text-gray-500 text-center">
+              <p className="text-muted-foreground text-center">
                 Select <span className="font-medium">Analyze Emails</span> to detect follow-up
                 reminders.
               </p>
@@ -208,7 +208,7 @@ export const FollowUpReminder: React.FC = () => {
         {state === "success" && (
           <div className="space-y-4">
             <div className="flex justify-between items-center mb-2 px-2">
-              <span className="text-sm font-medium text-gray-500 uppercase tracking-wider">
+              <span className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
                 {activeCount} {activeCount === 1 ? "Reminder" : "Reminders"} Found
               </span>
             </div>

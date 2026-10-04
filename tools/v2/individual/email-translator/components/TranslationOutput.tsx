@@ -30,12 +30,12 @@ export function TranslationOutput({
   return (
     <div className="flex flex-col">
       <div className="mb-2 flex items-center justify-between">
-        <label className="text-sm font-medium text-slate-900" htmlFor="translation-output">
+        <label className="text-sm font-medium text-foreground" htmlFor="translation-output">
           Translated text
         </label>
         <button
           aria-label={copied ? "Copied to clipboard" : "Copy to clipboard"}
-          className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-900 transition-colors hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-950"
+          className="inline-flex items-center gap-2 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-950"
           onClick={handleCopy}
           type="button"
         >
@@ -55,7 +55,7 @@ export function TranslationOutput({
       <div
         aria-describedby="translation-output-description"
         aria-label="Translated text content"
-        className="min-h-[200px] w-full overflow-auto rounded-md border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-900"
+        className="min-h-[200px] w-full overflow-auto rounded-md border border-border bg-muted px-4 py-3 text-sm text-foreground"
         id="translation-output"
         role="textbox"
         tabIndex={0}
@@ -63,7 +63,7 @@ export function TranslationOutput({
         {text}
       </div>
       {sourceLanguage && targetLanguage && (
-        <p className="mt-2 text-xs text-slate-600" id="translation-output-description">
+        <p className="mt-2 text-xs text-muted-foreground" id="translation-output-description">
           Translated from {sourceLanguage} to {targetLanguage}
         </p>
       )}

@@ -21,8 +21,8 @@ export function EmailOwnershipSummary({
   return (
     <section aria-label="Ownership summary" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {items.map((item) => (
-        <article key={item.label} className="rounded-lg border border-slate-200 bg-white p-4">
-          <dt className="text-sm font-medium text-slate-500">{item.label}</dt>
+        <article key={item.label} className="rounded-lg border border-border bg-card p-4">
+          <dt className="text-sm font-medium text-muted-foreground">{item.label}</dt>
 
           <dd className="mt-2 text-2xl font-semibold text-slate-950">{item.value}</dd>
         </article>

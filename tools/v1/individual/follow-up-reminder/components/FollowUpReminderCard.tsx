@@ -23,8 +23,8 @@ const CONFIDENCE_META: Record<
   },
   low: {
     label: "Low",
-    bg: "bg-gray-50",
-    text: "text-gray-700",
+    bg: "bg-muted",
+    text: "text-foreground",
     dot: "bg-gray-400",
   },
 };
@@ -89,7 +89,7 @@ export const FollowUpReminderCard: React.FC<FollowUpReminderCardProps> = ({
 
   return (
     <div
-      className="p-5 border border-indigo-200 rounded-lg bg-white shadow-sm hover:border-indigo-300 focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500 outline-none transition-all"
+      className="p-5 border border-indigo-200 rounded-lg bg-card shadow-sm hover:border-indigo-300 focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500 outline-none transition-all"
       tabIndex={0}
       aria-label={`Reminder: ${reminder.title}`}
     >
@@ -102,16 +102,16 @@ export const FollowUpReminderCard: React.FC<FollowUpReminderCardProps> = ({
               <span className={`w-1.5 h-1.5 rounded-full ${meta.dot}`} aria-hidden="true" />
               {meta.label}
             </span>
-            <span className="text-xs text-gray-400 font-mono">
+            <span className="text-xs text-muted-foreground font-mono">
               {reminder.state === "draft" ? "Draft" : "No Action"}
             </span>
           </div>
-          <h3 className="font-semibold text-gray-900 text-base truncate">{reminder.title}</h3>
+          <h3 className="font-semibold text-foreground text-base truncate">{reminder.title}</h3>
         </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-4 mb-3 text-sm">
-        <div className="flex items-center gap-1.5 text-gray-600">
+        <div className="flex items-center gap-1.5 text-muted-foreground">
           <svg
             className="w-4 h-4"
             fill="none"
@@ -133,7 +133,7 @@ export const FollowUpReminderCard: React.FC<FollowUpReminderCardProps> = ({
                 value={editDate}
                 onChange={(e) => setEditDate(e.target.value)}
                 onKeyDown={handleEditKeyDown}
-                className="px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="px-2 py-1 text-sm border border-border rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 aria-label="Edit due date"
                 autoFocus
               />
@@ -149,7 +149,7 @@ export const FollowUpReminderCard: React.FC<FollowUpReminderCardProps> = ({
                   setEditing(false);
                   setEditDate(reminder.dueAt ?? "");
                 }}
-                className="px-2 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                className="px-2 py-1 text-xs font-medium text-muted-foreground bg-muted rounded hover:bg-muted focus:outline-none focus:ring-2 focus:ring-gray-500"
                 aria-label="Cancel editing due date"
               >
                 Cancel
@@ -159,7 +159,7 @@ export const FollowUpReminderCard: React.FC<FollowUpReminderCardProps> = ({
             <span>
               Due {formatDueDate(reminder.dueAt)}
               {reminder.dueAt && (
-                <span className="ml-1 text-gray-400 text-xs">
+                <span className="ml-1 text-muted-foreground text-xs">
                   ({new Date(reminder.dueAt).toLocaleDateString("en-CA")})
                 </span>
               )}
@@ -211,7 +211,7 @@ export const FollowUpReminderCard: React.FC<FollowUpReminderCardProps> = ({
       )}
 
       <div
-        className="flex flex-wrap gap-2 pt-2 border-t border-gray-100"
+        className="flex flex-wrap gap-2 pt-2 border-t border-border"
         role="group"
         aria-label="Reminder actions"
       >
@@ -227,7 +227,7 @@ export const FollowUpReminderCard: React.FC<FollowUpReminderCardProps> = ({
         {reminder.state === "draft" && onSnooze && (
           <button
             onClick={() => onSnooze(reminder.sourceMessageId)}
-            className="px-3 py-1.5 bg-white border border-gray-300 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors"
+            className="px-3 py-1.5 bg-card border border-border text-foreground rounded-md text-sm font-medium hover:bg-muted focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors"
             aria-label="Snooze reminder"
           >
             Snooze
@@ -235,7 +235,7 @@ export const FollowUpReminderCard: React.FC<FollowUpReminderCardProps> = ({
         )}
         <button
           onClick={() => setEditing(true)}
-          className="px-3 py-1.5 bg-white border border-gray-300 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors"
+          className="px-3 py-1.5 bg-card border border-border text-foreground rounded-md text-sm font-medium hover:bg-muted focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors"
           aria-label="Edit reminder due date"
         >
           Edit
@@ -252,7 +252,7 @@ export const FollowUpReminderCard: React.FC<FollowUpReminderCardProps> = ({
         {onDismiss && (
           <button
             onClick={() => onDismiss(reminder.sourceMessageId)}
-            className="px-3 py-1.5 bg-white border border-gray-300 text-gray-500 rounded-md text-sm font-medium hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors"
+            className="px-3 py-1.5 bg-card border border-border text-muted-foreground rounded-md text-sm font-medium hover:bg-muted focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors"
             aria-label="Dismiss reminder"
           >
             Dismiss

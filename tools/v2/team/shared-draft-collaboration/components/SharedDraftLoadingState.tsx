@@ -13,12 +13,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 export const SharedDraftLoadingState: React.FC = () => {
   return (
     <div className="space-y-4" role="status" aria-busy="true" aria-label="Loading shared drafts">
-      <div className="text-sm text-slate-600">Loading drafts...</div>
+      <div className="text-sm text-muted-foreground">Loading drafts...</div>
       {[...Array(3)].map((_, i) => (
-        <div
-          key={i}
-          className="flex flex-col gap-3 p-4 bg-white rounded-lg border border-slate-200"
-        >
+        <div key={i} className="flex flex-col gap-3 p-4 bg-card rounded-lg border border-border">
           <Skeleton className="h-5 w-40" />
           <Skeleton className="h-3 w-60" />
           <div className="flex gap-2">

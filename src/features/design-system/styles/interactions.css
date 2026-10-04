@@ -32,6 +32,24 @@
       0 0 24px oklch(1 0 0 / 0.08);
   }
 
+  :root[data-theme="light"] .glow-ring:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+    box-shadow: none;
+  }
+
+  :root[data-theme="light"] .scrollbar-thin {
+    scrollbar-color: var(--input) transparent;
+  }
+
+  :root[data-theme="light"] .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: var(--input);
+  }
+
+  :root[data-theme="light"] .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: var(--muted-foreground);
+  }
+
   @keyframes pulse-dot {
     0%,
     100% {

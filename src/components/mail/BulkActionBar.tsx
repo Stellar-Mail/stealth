@@ -88,10 +88,10 @@ export function BulkActionBar({
       initial={{ opacity: 0, y: -8 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -8 }}
-      className="relative z-20 mx-3 rounded-t-[8px] border-x border-t border-white/10 bg-white/[0.045] p-2 backdrop-blur-md"
+      className="relative z-20 mx-3 rounded-t-[8px] border-x border-t border-surface-tint/10 bg-surface-tint/[0.045] p-2 backdrop-blur-md"
     >
       <div className="flex flex-wrap items-center gap-2">
-        <span className="rounded-md border border-white/10 bg-black/20 px-2 py-1 text-[11px] font-medium text-foreground">
+        <span className="rounded-md border border-surface-tint/10 bg-surface-recessed/20 px-2 py-1 text-[11px] font-medium text-foreground">
           {selectedEmails.length} selected
         </span>
 
@@ -175,7 +175,7 @@ export function BulkActionBar({
           type="button"
           onClick={onClearSelection}
           disabled={!!bulkProgress}
-          className="ml-auto inline-flex h-8 items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.035] px-2.5 text-[11px] font-medium text-muted-foreground transition hover:bg-white/[0.08] hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
+          className="ml-auto inline-flex h-8 items-center gap-1.5 rounded-md border border-surface-tint/10 bg-surface-tint/[0.035] px-2.5 text-[11px] font-medium text-muted-foreground transition hover:bg-surface-tint/[0.08] hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
         >
           <X className="h-3.5 w-3.5" />
           Clear
@@ -195,11 +195,11 @@ export function BulkActionBar({
       )}
 
       {bulkFailures.length > 0 && (
-        <div className="mt-2 rounded-lg border border-red-300/20 bg-red-300/[0.06] p-2 text-[11px] text-red-100">
+        <div className="mt-2 rounded-lg border border-red-300/20 bg-red-300/[0.06] p-2 text-[11px] text-status-danger dark:text-red-100">
           <p className="font-medium">
             {bulkFailures.length} message{bulkFailures.length === 1 ? "" : "s"} skipped
           </p>
-          <ul className="mt-1 space-y-0.5 text-red-100/75">
+          <ul className="mt-1 space-y-0.5 text-status-danger dark:text-red-100/75">
             {bulkFailures.slice(0, 3).map((failure) => (
               <li key={failure.id} className="truncate">
                 {failure.subject}: {failure.reason}
@@ -237,8 +237,8 @@ function ActionButton({
       className={cn(
         "inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-[11px] font-medium transition disabled:cursor-not-allowed disabled:opacity-40",
         tone === "danger"
-          ? "border-red-300/20 bg-red-300/[0.08] text-red-100 hover:bg-red-300/[0.14]"
-          : "border-white/10 bg-white/[0.04] text-foreground/90 hover:bg-white/[0.08]",
+          ? "border-red-300/20 bg-red-300/[0.08] text-status-danger dark:text-red-100 hover:bg-red-300/[0.14]"
+          : "border-surface-tint/10 bg-surface-tint/[0.04] text-foreground/90 hover:bg-surface-tint/[0.08]",
       )}
     >
       <Icon className="h-3.5 w-3.5" />

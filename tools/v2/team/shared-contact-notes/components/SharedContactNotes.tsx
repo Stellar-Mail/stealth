@@ -82,10 +82,12 @@ export function SharedContactNotes({
   }, [loadNotes]);
 
   return (
-    <div className="w-full max-w-3xl mx-auto p-6 bg-white rounded-lg">
+    <div className="w-full max-w-3xl mx-auto p-6 bg-card rounded-lg">
       <header className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">Shared Contact Notes</h1>
-        <p className="text-slate-600 text-sm mt-1">Add and manage shared notes for this contact</p>
+        <h1 className="text-2xl font-bold text-foreground">Shared Contact Notes</h1>
+        <p className="text-muted-foreground text-sm mt-1">
+          Add and manage shared notes for this contact
+        </p>
       </header>
 
       <main role="main" className="space-y-4">

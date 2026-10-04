@@ -88,13 +88,13 @@ export function AdminDataTable<T>({
   return (
     <div
       className={cn(
-        "overflow-hidden rounded-xl border border-white/[0.06] bg-white/[0.01]",
+        "overflow-hidden rounded-xl border border-surface-tint/[0.06] bg-surface-tint/[0.01]",
         className,
       )}
     >
       <table className="w-full text-left text-sm border-collapse">
         <thead>
-          <tr className="border-b border-white/[0.06] bg-white/[0.02]">
+          <tr className="border-b border-surface-tint/[0.06] bg-surface-tint/[0.02]">
             {columns.map((col) => {
               const isSorted = sortKey === col.key;
               return (
@@ -115,16 +115,16 @@ export function AdminDataTable<T>({
                     <button
                       type="button"
                       onClick={() => handleSort(col.key)}
-                      className="flex items-center gap-1 hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 rounded-sm"
+                      className="flex items-center gap-1 hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-surface-tint/20 rounded-sm"
                     >
                       <span>{col.header}</span>
                       <span className="inline-flex text-muted-foreground/60">
                         {!isSorted ? (
                           <ArrowUpDown className="h-3 w-3" />
                         ) : sortDirection === "asc" ? (
-                          <ChevronUp className="h-3.5 w-3.5 text-amber-400" />
+                          <ChevronUp className="h-3.5 w-3.5 text-status-warning dark:text-amber-400" />
                         ) : (
-                          <ChevronDown className="h-3.5 w-3.5 text-amber-400" />
+                          <ChevronDown className="h-3.5 w-3.5 text-status-warning dark:text-amber-400" />
                         )}
                       </span>
                     </button>
@@ -162,11 +162,11 @@ export function AdminDataTable<T>({
                   tabIndex={isClickable ? 0 : undefined}
                   aria-selected={isSelected ? "true" : undefined}
                   className={cn(
-                    "border-b border-white/[0.04] last:border-0 transition-colors",
+                    "border-b border-surface-tint/[0.04] last:border-0 transition-colors",
                     isClickable
-                      ? "cursor-pointer hover:bg-white/[0.02] focus-visible:outline-none focus-visible:bg-white/[0.02] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/20"
+                      ? "cursor-pointer hover:bg-surface-tint/[0.02] focus-visible:outline-none focus-visible:bg-surface-tint/[0.02] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-surface-tint/20"
                       : "",
-                    isSelected ? "bg-white/[0.04]" : "",
+                    isSelected ? "bg-surface-tint/[0.04]" : "",
                   )}
                 >
                   {columns.map((col) => (

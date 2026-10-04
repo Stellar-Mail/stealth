@@ -18,9 +18,9 @@ export function EmailTranslatorLoadingState({
       className="mx-auto flex max-w-lg flex-col items-center justify-center px-4 py-12 text-center"
       role="status"
     >
-      <Loader2 aria-hidden="true" className="size-10 animate-spin text-slate-700" />
-      <p className="mt-4 text-sm font-medium text-slate-900">{message}</p>
-      <p className="mt-2 text-sm text-slate-600">This may take a few moments...</p>
+      <Loader2 aria-hidden="true" className="size-10 animate-spin text-foreground" />
+      <p className="mt-4 text-sm font-medium text-foreground">{message}</p>
+      <p className="mt-2 text-sm text-muted-foreground">This may take a few moments...</p>
     </section>
   );
 }

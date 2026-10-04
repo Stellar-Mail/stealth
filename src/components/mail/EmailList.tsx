@@ -203,7 +203,7 @@ export function EmailList({
 
   return (
     <section className="mail-list-atmosphere relative m-3 flex h-[calc(100vh-3.5rem-1.5rem)] w-full flex-col overflow-hidden rounded-[8px] md:w-[328px] md:shrink-0 lg:w-[336px]">
-      <div className="relative z-10 flex items-center justify-between border-b border-white/10 bg-white/[0.025] px-3.5 py-3 backdrop-blur-sm">
+      <div className="relative z-10 flex items-center justify-between border-b border-surface-tint/10 bg-surface-tint/[0.025] px-3.5 py-3 backdrop-blur-sm">
         <div>
           <h2 className="text-[13px] font-semibold leading-5 tracking-normal text-foreground">
             {folderLabel}
@@ -212,7 +212,7 @@ export function EmailList({
             {filtered.length} conversations
           </p>
         </div>
-        <div className="flex items-center gap-1 rounded-[6px] border border-white/12 bg-gradient-to-b from-white/[0.08] to-white/[0.03] p-0.5 text-[10px] shadow-[0_8px_24px_-12px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.12)]">
+        <div className="flex items-center gap-1 rounded-[6px] border border-surface-tint/12 bg-gradient-to-b from-surface-tint/[0.08] to-surface-tint/[0.03] p-0.5 text-[10px] shadow-[0_8px_24px_-12px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.12)]">
           {(["all", "unread", "flagged"] as const).map((t) => (
             <motion.button
               key={t}
@@ -221,8 +221,8 @@ export function EmailList({
               className={cn(
                 "relative rounded-[5px] px-2.5 py-1 font-medium transition capitalize",
                 activeTab === t
-                  ? "bg-gradient-to-b from-white/[0.12] to-white/[0.06] text-foreground shadow-[0_4px_12px_-6px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.16)]"
-                  : "text-muted-foreground hover:text-foreground hover:bg-white/[0.04]",
+                  ? "bg-gradient-to-b from-surface-tint/[0.12] to-surface-tint/[0.06] text-foreground shadow-[0_4px_12px_-6px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.16)]"
+                  : "text-muted-foreground hover:text-foreground hover:bg-surface-tint/[0.04]",
               )}
             >
               {t}
@@ -277,9 +277,7 @@ export function EmailList({
                 aria-current={active ? "true" : undefined}
                 className={cn(
                   "mail-preview-card group relative flex h-[60px] w-full items-center gap-3 overflow-hidden rounded-[14px] border px-3 py-2 text-left transition-[background,border-color,box-shadow] duration-200",
-                  active
-                    ? "mail-preview-card--active"
-                    : "border-white/[0.09] bg-[oklch(0.3_0.006_270/0.42)]",
+                  active ? "mail-preview-card--active" : "border-surface-tint/[0.09] bg-preview",
                   verifiedSender && "mail-preview-card--verified",
                 )}
               >
@@ -338,7 +336,7 @@ export function EmailList({
               onClick={() => onLoadMore?.()}
               disabled={isLoadingMore}
               aria-busy={isLoadingMore}
-              className="w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-muted-foreground transition hover:bg-white/[0.07] hover:text-foreground disabled:opacity-60"
+              className="w-full rounded-lg border border-surface-tint/10 bg-surface-tint/[0.04] px-3 py-2 text-xs text-muted-foreground transition hover:bg-surface-tint/[0.07] hover:text-foreground disabled:opacity-60"
             >
               {isLoadingMore ? "Loading more conversations" : "Load more conversations"}
             </button>
@@ -354,15 +352,15 @@ export function EmailList({
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.97 }}
             transition={{ duration: 0.15 }}
-            className="absolute inset-0 z-30 flex items-center justify-center bg-black/50 backdrop-blur-sm rounded-[8px]"
+            className="absolute inset-0 z-30 flex items-center justify-center bg-surface-recessed/50 backdrop-blur-sm rounded-[8px]"
           >
             <div
               role="dialog"
               aria-modal="true"
               aria-label="Move to folder"
-              className="w-[min(224px,calc(100vw-2rem))] rounded-xl border border-white/12 bg-[oklch(0.15_0.005_270)] shadow-2xl overflow-hidden"
+              className="w-[min(224px,calc(100vw-2rem))] rounded-xl border border-surface-tint/12 bg-surface-panel shadow-2xl overflow-hidden"
             >
-              <div className="flex items-center gap-2 px-3 py-2.5 border-b border-white/10">
+              <div className="flex items-center gap-2 px-3 py-2.5 border-b border-surface-tint/10">
                 <FolderInput className="h-3.5 w-3.5 text-muted-foreground" />
                 <span className="text-xs font-medium text-foreground">Move to folder</span>
                 <span className="ml-auto text-[10px] text-muted-foreground">Esc to cancel</span>
@@ -396,7 +394,7 @@ export function EmailList({
                           "w-full px-3 py-2 text-left text-sm transition",
                           disabled
                             ? "opacity-40 cursor-not-allowed text-muted-foreground"
-                            : "hover:bg-white/[0.06] text-foreground cursor-pointer",
+                            : "hover:bg-surface-tint/[0.06] text-foreground cursor-pointer",
                         )}
                       >
                         {getFolderLabel(target)}

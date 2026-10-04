@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import { ActionButton, EmptyState, Surface } from "@/features/design-system";
 import { BootstrapProvider, RouteGate } from "@/features/identity";
+import { PreferencesProvider } from "@/features/preferences/PreferencesProvider";
 import appCss from "../styles.css?url";
 
 function NotFoundComponent() {
@@ -77,11 +78,13 @@ const queryClient = new QueryClient();
 function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
-      <BootstrapProvider>
-        <RouteGate>
-          <Outlet />
-        </RouteGate>
-      </BootstrapProvider>
+      <PreferencesProvider>
+        <BootstrapProvider>
+          <RouteGate>
+            <Outlet />
+          </RouteGate>
+        </BootstrapProvider>
+      </PreferencesProvider>
     </QueryClientProvider>
   );
 }

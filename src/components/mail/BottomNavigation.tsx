@@ -54,7 +54,7 @@ export function BottomNavigation({
   return (
     <nav
       aria-label="Bottom navigation"
-      className="md:hidden fixed bottom-0 left-0 right-0 z-40 glass border-t border-white/10 safe-area-inset-bottom"
+      className="md:hidden fixed bottom-0 left-0 right-0 z-40 glass border-t border-surface-tint/10 safe-area-inset-bottom"
     >
       <div className="flex items-center justify-around py-2 px-1">
         {BOTTOM_NAV_ITEMS.map((item) => {
@@ -64,7 +64,7 @@ export function BottomNavigation({
             <button
               key={item.id}
               onClick={handlers[item.id]}
-              className="glow-ring relative flex min-h-[44px] min-w-[44px] flex-col items-center justify-center rounded-lg px-2 py-1 transition-all hover:bg-white/[0.04] active:scale-[0.96]"
+              className="glow-ring relative flex min-h-[44px] min-w-[44px] flex-col items-center justify-center rounded-lg px-2 py-1 transition-all hover:bg-surface-tint/[0.04] active:scale-[0.96]"
               aria-label={item.label}
               aria-current={isActive ? "page" : undefined}
             >
@@ -87,7 +87,7 @@ export function BottomNavigation({
               {isActive && (
                 <motion.div
                   layoutId="bottom-nav-active"
-                  className="absolute inset-0 rounded-lg bg-white/5"
+                  className="absolute inset-0 rounded-lg bg-surface-tint/5"
                   transition={{ type: "spring", stiffness: 300, damping: 25 }}
                 />
               )}

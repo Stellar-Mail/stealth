@@ -42,7 +42,7 @@ function AddressStep({
           placeholder="recipient*domain.com"
           value={state.recipientAddress}
           onChange={(e) => update({ recipientAddress: e.target.value })}
-          className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+          className="w-full rounded-lg border border-surface-tint/10 bg-surface-recessed/30 px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
         />
       </div>
       <button
@@ -52,7 +52,7 @@ function AddressStep({
           "flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition",
           state.recipientAddress.trim().length > 0
             ? "bg-emerald-500 text-black hover:opacity-90"
-            : "cursor-not-allowed bg-white/5 text-muted-foreground",
+            : "cursor-not-allowed bg-surface-tint/5 text-muted-foreground",
         )}
       >
         Continue
@@ -82,7 +82,7 @@ function QuoteStep({
         </p>
       </div>
 
-      <div className="rounded-xl border border-white/10 bg-black/20 p-4 space-y-3">
+      <div className="rounded-xl border border-surface-tint/10 bg-surface-recessed/20 p-4 space-y-3">
         <div className="flex items-center justify-between gap-2">
           <span className="text-xs text-muted-foreground">Recipient</span>
           <span className="text-xs font-mono text-foreground">{state.recipientAddress}</span>
@@ -94,14 +94,14 @@ function QuoteStep({
               type="number"
               value={state.postageAmount}
               onChange={(e) => update({ postageAmount: e.target.value })}
-              className="w-24 rounded border border-white/10 bg-black/30 px-2 py-1 text-sm font-mono text-foreground"
+              className="w-24 rounded border border-surface-tint/10 bg-surface-recessed/30 px-2 py-1 text-sm font-mono text-foreground"
             />
             <span className="text-xs text-foreground">XLM</span>
           </div>
         </div>
-        <div className="border-t border-white/10 pt-3">
+        <div className="border-t border-surface-tint/10 pt-3">
           <div className="flex items-start gap-2">
-            <ShieldCheck className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
+            <ShieldCheck className="h-4 w-4 text-status-success dark:text-emerald-400 shrink-0 mt-0.5" />
             <p className="text-xs text-muted-foreground leading-relaxed">
               <strong>Refund policy:</strong> If the recipient blocks your message or refunds your
               postage, the full amount will be returned to your wallet within 24 hours.
@@ -113,7 +113,7 @@ function QuoteStep({
       <div className="flex gap-2">
         <button
           onClick={back}
-          className="flex-1 rounded-lg border border-white/10 px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-white/5"
+          className="flex-1 rounded-lg border border-surface-tint/10 px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-surface-tint/5"
         >
           Back
         </button>
@@ -138,10 +138,10 @@ function IdentityStep({ next, back }: { next: () => void; back: () => void }) {
         </p>
       </div>
 
-      <div className="rounded-xl border border-white/10 bg-black/20 p-4 space-y-3">
+      <div className="rounded-xl border border-surface-tint/10 bg-surface-recessed/20 p-4 space-y-3">
         <div className="flex items-center gap-3">
           <div className="h-9 w-9 rounded-full bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
-            <ShieldCheck className="h-4 w-4 text-emerald-400" />
+            <ShieldCheck className="h-4 w-4 text-status-success dark:text-emerald-400" />
           </div>
           <div>
             <p className="text-xs font-semibold text-foreground">Identity confirmed</p>
@@ -153,7 +153,7 @@ function IdentityStep({ next, back }: { next: () => void; back: () => void }) {
       <div className="flex gap-2">
         <button
           onClick={back}
-          className="flex-1 rounded-lg border border-white/10 px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-white/5"
+          className="flex-1 rounded-lg border border-surface-tint/10 px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-surface-tint/5"
         >
           Back
         </button>
@@ -213,7 +213,7 @@ function PaymentStep({
           placeholder="Quick question..."
           value={state.subject}
           onChange={(e) => update({ subject: e.target.value })}
-          className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+          className="w-full rounded-lg border border-surface-tint/10 bg-surface-recessed/30 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
         />
       </div>
 
@@ -226,20 +226,20 @@ function PaymentStep({
           value={state.body}
           onChange={(e) => update({ body: e.target.value })}
           rows={5}
-          className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+          className="w-full rounded-lg border border-surface-tint/10 bg-surface-recessed/30 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
         />
       </div>
 
-      <div className="rounded-xl border border-white/10 bg-black/20 p-4">
+      <div className="rounded-xl border border-surface-tint/10 bg-surface-recessed/20 p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Coins className="h-4 w-4 text-amber-400" />
+            <Coins className="h-4 w-4 text-status-warning dark:text-amber-400" />
             <span className="text-xs font-semibold text-foreground">
               {state.postageAmount} XLM postage
             </span>
           </div>
           {state.paymentStatus === "success" && (
-            <div className="flex items-center gap-1 text-emerald-400">
+            <div className="flex items-center gap-1 text-status-success dark:text-emerald-400">
               <Check className="h-4 w-4" />
               <span className="text-xs font-semibold">Paid</span>
             </div>
@@ -251,7 +251,7 @@ function PaymentStep({
               type="checkbox"
               checked={simulateFailure}
               onChange={(e) => setSimulateFailure(e.target.checked)}
-              className="rounded border-white/20 bg-black/40 text-emerald-500 focus:ring-emerald-500/30 focus:outline-none"
+              className="rounded border-surface-tint/20 bg-surface-recessed/40 text-status-success dark:text-emerald-500 focus:ring-emerald-500/30 focus:outline-none"
             />
             Simulate payment failure
           </label>
@@ -260,13 +260,13 @@ function PaymentStep({
 
       {state.paymentStatus === "failed" && (
         <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-4">
-          <p className="text-xs text-red-200 mb-2">
+          <p className="text-xs text-status-danger dark:text-red-200 mb-2">
             Payment failed. Please check your wallet balance and try again.
           </p>
           <div className="flex gap-2">
             <button
               onClick={() => update({ paymentStatus: "idle" })}
-              className="flex-1 rounded-lg border border-white/10 px-4 py-2 text-xs font-semibold text-foreground"
+              className="flex-1 rounded-lg border border-surface-tint/10 px-4 py-2 text-xs font-semibold text-foreground"
             >
               Cancel
             </button>
@@ -289,7 +289,7 @@ function PaymentStep({
       <div className="flex gap-2">
         <button
           onClick={back}
-          className="flex-1 rounded-lg border border-white/10 px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-white/5"
+          className="flex-1 rounded-lg border border-surface-tint/10 px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-surface-tint/5"
         >
           Back
         </button>
@@ -300,7 +300,7 @@ function PaymentStep({
             className={cn(
               "flex-1 rounded-lg px-4 py-2.5 text-sm font-semibold flex items-center justify-center gap-2 transition",
               isSimulating || !state.subject || !state.body
-                ? "cursor-not-allowed bg-white/5 text-muted-foreground"
+                ? "cursor-not-allowed bg-surface-tint/5 text-muted-foreground"
                 : "bg-emerald-500 text-black hover:opacity-90",
             )}
           >
@@ -357,7 +357,7 @@ function DeliveryStep({
         </p>
       </div>
 
-      <div className="rounded-xl border border-white/10 bg-black/20 p-4 space-y-3">
+      <div className="rounded-xl border border-surface-tint/10 bg-surface-recessed/20 p-4 space-y-3">
         <div className="flex items-center justify-between">
           <span className="text-xs text-muted-foreground">Subject</span>
           <span className="text-xs font-semibold text-foreground">{state.subject}</span>
@@ -368,11 +368,11 @@ function DeliveryStep({
             className={cn(
               "text-xs font-semibold",
               state.deliveryStatus === "delivered"
-                ? "text-emerald-400"
+                ? "text-status-success dark:text-emerald-400"
                 : state.deliveryStatus === "failed"
-                  ? "text-rose-400"
+                  ? "text-status-danger dark:text-rose-400"
                   : state.deliveryStatus === "pending"
-                    ? "text-blue-400"
+                    ? "text-status-info dark:text-blue-400"
                     : "text-muted-foreground",
             )}
           >
@@ -393,7 +393,7 @@ function DeliveryStep({
                 type="checkbox"
                 checked={simulateFailure}
                 onChange={(e) => setSimulateFailure(e.target.checked)}
-                className="rounded border-white/20 bg-black/40 text-emerald-500 focus:ring-emerald-500/30 focus:outline-none"
+                className="rounded border-surface-tint/20 bg-surface-recessed/40 text-status-success dark:text-emerald-500 focus:ring-emerald-500/30 focus:outline-none"
               />
               Simulate delivery failure
             </label>
@@ -403,7 +403,7 @@ function DeliveryStep({
 
       {state.deliveryStatus === "failed" && (
         <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-4">
-          <p className="text-xs text-red-200 mb-2">
+          <p className="text-xs text-status-danger dark:text-red-200 mb-2">
             Delivery failed. The recipient may be unavailable or have blocked unknown senders.
           </p>
           <button
@@ -421,7 +421,7 @@ function DeliveryStep({
             onClick={() => {
               update({ ...DEFAULT_JOURNEY_STATE });
             }}
-            className="flex-1 rounded-lg border border-white/10 px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-white/5 flex items-center justify-center gap-2"
+            className="flex-1 rounded-lg border border-surface-tint/10 px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-surface-tint/5 flex items-center justify-center gap-2"
           >
             <Home className="h-4 w-4" />
             Send another
@@ -436,7 +436,7 @@ function DeliveryStep({
           className={cn(
             "w-full rounded-lg px-4 py-2.5 text-sm font-semibold flex items-center justify-center gap-2 transition",
             isSimulating
-              ? "cursor-not-allowed bg-white/5 text-muted-foreground"
+              ? "cursor-not-allowed bg-surface-tint/5 text-muted-foreground"
               : "bg-emerald-500 text-black hover:opacity-90",
           )}
         >
@@ -478,7 +478,7 @@ function RefundStep({ update }: { update: (patch: Partial<JourneyState>) => void
 
       {!refunded ? (
         <>
-          <div className="rounded-xl border border-white/10 bg-black/20 p-4">
+          <div className="rounded-xl border border-surface-tint/10 bg-surface-recessed/20 p-4">
             <p className="text-xs text-muted-foreground">
               Your postage will be returned to your wallet within 24 hours of processing.
             </p>
@@ -489,7 +489,7 @@ function RefundStep({ update }: { update: (patch: Partial<JourneyState>) => void
             className={cn(
               "w-full rounded-lg px-4 py-2.5 text-sm font-semibold flex items-center justify-center gap-2 transition",
               isProcessing
-                ? "cursor-not-allowed bg-white/5 text-muted-foreground"
+                ? "cursor-not-allowed bg-surface-tint/5 text-muted-foreground"
                 : "bg-amber-500 text-black hover:opacity-90",
             )}
           >
@@ -507,7 +507,7 @@ function RefundStep({ update }: { update: (patch: Partial<JourneyState>) => void
         <>
           <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4 flex items-center gap-3">
             <div className="h-9 w-9 rounded-full bg-emerald-500/20 flex items-center justify-center border border-emerald-500/30">
-              <Check className="h-4 w-4 text-emerald-400" />
+              <Check className="h-4 w-4 text-status-success dark:text-emerald-400" />
             </div>
             <div>
               <p className="text-xs font-semibold text-foreground">Refund requested!</p>
@@ -518,7 +518,7 @@ function RefundStep({ update }: { update: (patch: Partial<JourneyState>) => void
           </div>
           <button
             onClick={() => update({ ...DEFAULT_JOURNEY_STATE })}
-            className="w-full rounded-lg border border-white/10 px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-white/5 flex items-center justify-center gap-2"
+            className="w-full rounded-lg border border-surface-tint/10 px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-surface-tint/5 flex items-center justify-center gap-2"
           >
             <Home className="h-4 w-4" />
             Start over
@@ -570,7 +570,7 @@ export function SenderJourney() {
   };
 
   return (
-    <div className="min-h-screen bg-black/40 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-surface-recessed/40 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Progress indicator */}
         <div className="flex items-center justify-between gap-1 mb-6">
@@ -583,7 +583,7 @@ export function SenderJourney() {
                 <div
                   className={cn(
                     "h-1.5 flex-1 rounded-full transition-colors",
-                    isActive || isCompleted ? "bg-emerald-500" : "bg-white/10",
+                    isActive || isCompleted ? "bg-emerald-500" : "bg-surface-tint/10",
                   )}
                 />
               </div>
@@ -591,7 +591,7 @@ export function SenderJourney() {
           })}
         </div>
 
-        <div className="glass-strong rounded-2xl border border-white/10 p-6">
+        <div className="glass-strong rounded-2xl border border-surface-tint/10 p-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-lg font-semibold text-foreground">Send a message</h2>
             <div className="flex items-center gap-1">

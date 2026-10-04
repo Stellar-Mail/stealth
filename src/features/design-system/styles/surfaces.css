@@ -279,4 +279,103 @@
     background: linear-gradient(135deg, oklch(1 0 0 / 0.07), transparent 38%, oklch(1 0 0 / 0.02));
     opacity: 0.85;
   }
+
+  :root[data-theme="light"]
+    :is(
+      .glass,
+      .glass-strong,
+      .mail-list-atmosphere,
+      .mail-reader-atmosphere,
+      .glass-tile,
+      .glass-modal
+    ) {
+    border-color: var(--border);
+    box-shadow: var(--shadow-elegant);
+  }
+
+  :root[data-theme="light"] :is(.mail-list-atmosphere, .mail-reader-atmosphere) {
+    background: var(--glass);
+  }
+
+  :root[data-theme="light"] :is(.mail-list-atmosphere::before, .mail-list-atmosphere::after) {
+    background: transparent;
+  }
+
+  :root[data-theme="light"] :is(.glass-tile, .glass-modal) {
+    background: var(--gradient-glass), var(--glass-strong);
+  }
+
+  :root[data-theme="light"] :is(.glass-hover:hover, .glass-tile:hover) {
+    background: var(--secondary);
+    border-color: var(--input);
+    box-shadow: var(--shadow-glow);
+  }
+
+  :root[data-theme="light"] .mail-preview-card {
+    background: var(--preview-background);
+    border-color: var(--border);
+    box-shadow:
+      0 2px 6px rgb(67 57 29 / 5%),
+      inset 0 1px 0 var(--popover);
+  }
+
+  :root[data-theme="light"] .mail-preview-card--active {
+    background: var(--preview-active);
+    border-color: var(--ring);
+  }
+
+  :root[data-theme="light"] .mail-preview-card--verified {
+    border-color: var(--input);
+  }
+
+  :root[data-theme="light"]
+    :is(.mail-preview-card::before, .mail-preview-card::after, .glass-modal::before) {
+    background: var(--gradient-glass);
+  }
+
+  :root[data-theme="light"] .mail-preview-card__verified-effect {
+    /* Blend the artwork into parchment without changing sender illustrations. */
+    mix-blend-mode: screen;
+    filter: saturate(0.65);
+  }
+
+  .verified-check {
+    background: linear-gradient(180deg, #71717ab3, #27272ae6);
+    color: #f4f4f5;
+    border-color: #d4d4d859;
+    box-shadow:
+      0 3px 8px rgb(0 0 0 / 50%),
+      inset 0 1px 0 rgb(255 255 255 / 20%);
+  }
+
+  :root[data-theme="light"] .verified-check {
+    background: linear-gradient(180deg, #737166, #46443c);
+    color: var(--primary-foreground);
+    border-color: #575448;
+    box-shadow:
+      0 2px 4px rgb(67 57 29 / 20%),
+      inset 0 1px 0 rgb(250 248 238 / 35%);
+  }
+
+  :root[data-theme="light"] .ambient-bg .float-orb {
+    background: radial-gradient(closest-side, var(--accent), transparent) !important;
+    opacity: 0.15;
+  }
+
+  :root[data-theme="light"] [class*="shadow-["] {
+    box-shadow: var(--shadow-elegant);
+  }
+
+  :root[data-theme="light"]
+    :is([class^="text-muted-foreground/"], [class*=" text-muted-foreground/"]) {
+    color: var(--muted-foreground);
+  }
+
+  :root[data-theme="light"] :is([class^="text-foreground/"], [class*=" text-foreground/"]) {
+    color: var(--foreground);
+  }
+
+  :root[data-theme="light"] [class*="placeholder:text-muted-foreground/"]::placeholder {
+    color: var(--muted-foreground);
+  }
 }

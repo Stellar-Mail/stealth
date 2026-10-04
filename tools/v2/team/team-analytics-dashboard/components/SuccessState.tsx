@@ -16,7 +16,7 @@ export function SuccessState({ title = "Success", message, onDismiss }: SuccessS
     <div
       role="status"
       aria-live="polite"
-      className="border-green-500/30 bg-green-500/10 text-green-700 dark:text-green-300 flex items-start justify-between gap-4 rounded-lg border p-4"
+      className="border-green-500/30 bg-green-500/10 text-green-700 dark:text-status-success flex items-start justify-between gap-4 rounded-lg border p-4"
     >
       <div className="flex items-start gap-3">
         <span aria-hidden="true" className="text-lg">
@@ -32,7 +32,7 @@ export function SuccessState({ title = "Success", message, onDismiss }: SuccessS
           type="button"
           onClick={onDismiss}
           aria-label="Dismiss notification"
-          className="text-green-700 hover:bg-green-500/20 dark:text-green-300 focus-visible:ring-green-500 rounded-md p-1.5 text-xs font-medium transition-colors focus-visible:ring-2 focus-visible:outline-none"
+          className="text-green-700 hover:bg-green-500/20 dark:text-status-success focus-visible:ring-green-500 rounded-md p-1.5 text-xs font-medium transition-colors focus-visible:ring-2 focus-visible:outline-none"
         >
           Dismiss
         </button>

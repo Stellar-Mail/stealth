@@ -6,14 +6,14 @@ import { demoLabels, labeledDemoMessages } from "./labelFixtures";
 import type { DemoLabel, LabeledDemoMessage } from "./types";
 
 const LABEL_COLORS: Record<string, string> = {
-  amber: "bg-amber-400/10 text-amber-300 ring-amber-400/30",
-  emerald: "bg-emerald-400/10 text-emerald-300 ring-emerald-400/30",
-  sky: "bg-sky-400/10 text-sky-300 ring-sky-400/30",
-  violet: "bg-violet-400/10 text-violet-300 ring-violet-400/30",
-  rose: "bg-rose-400/10 text-rose-300 ring-rose-400/30",
+  amber: "bg-amber-400/10 text-status-warning dark:text-amber-300 ring-amber-400/30",
+  emerald: "bg-emerald-400/10 text-status-success dark:text-emerald-300 ring-emerald-400/30",
+  sky: "bg-sky-400/10 text-status-info dark:text-sky-300 ring-sky-400/30",
+  violet: "bg-violet-400/10 text-status-special dark:text-violet-300 ring-violet-400/30",
+  rose: "bg-rose-400/10 text-status-danger dark:text-rose-300 ring-rose-400/30",
 };
 
-const FALLBACK_LABEL_COLOR = "bg-white/[0.06] text-foreground/80 ring-white/15";
+const FALLBACK_LABEL_COLOR = "bg-surface-tint/[0.06] text-foreground/80 ring-surface-tint/15";
 
 function labelClasses(color?: string): string {
   const mapped = color ? LABEL_COLORS[color] : undefined;
@@ -98,7 +98,7 @@ export function LabelManager({
               if (event.key === "Enter") addNewLabel();
             }}
             placeholder="e.g. Follow up"
-            className="flex-1 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-foreground outline-none focus:border-white/25"
+            className="flex-1 rounded-lg border border-surface-tint/[0.08] bg-surface-tint/[0.04] px-3 py-2 text-sm text-foreground outline-none focus:border-surface-tint/25"
           />
           <button
             type="button"
@@ -118,7 +118,7 @@ export function LabelManager({
           {usage.map(({ label, count }) => (
             <li
               key={label.id}
-              className="flex items-center justify-between gap-2 rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2"
+              className="flex items-center justify-between gap-2 rounded-lg border border-surface-tint/[0.06] bg-surface-tint/[0.02] px-3 py-2"
             >
               <span className="flex items-center gap-2">
                 <span
@@ -134,7 +134,7 @@ export function LabelManager({
                 type="button"
                 onClick={() => deleteLabel(label.id)}
                 aria-label={`Delete ${label.name}`}
-                className="rounded-md p-1 text-foreground/40 transition hover:bg-white/[0.06] hover:text-rose-300"
+                className="rounded-md p-1 text-foreground/40 transition hover:bg-surface-tint/[0.06] hover:text-status-danger dark:hover:text-rose-300"
               >
                 <Trash2 className="h-4 w-4" />
               </button>
@@ -161,8 +161,8 @@ export function LabelManager({
                 className={cn(
                   "rounded-lg border px-3 py-2 transition",
                   active
-                    ? "border-white/15 bg-white/[0.06]"
-                    : "border-white/[0.06] bg-white/[0.02]",
+                    ? "border-surface-tint/15 bg-surface-tint/[0.06]"
+                    : "border-surface-tint/[0.06] bg-surface-tint/[0.02]",
                 )}
               >
                 <button
@@ -187,7 +187,7 @@ export function LabelManager({
                             "rounded-md px-2 py-0.5 text-xs ring-1 transition",
                             checked
                               ? labelClasses(label.color)
-                              : "bg-transparent text-foreground/50 ring-white/10 hover:bg-white/[0.04]",
+                              : "bg-transparent text-foreground/50 ring-surface-tint/10 hover:bg-surface-tint/[0.04]",
                           )}
                         >
                           {label.name}

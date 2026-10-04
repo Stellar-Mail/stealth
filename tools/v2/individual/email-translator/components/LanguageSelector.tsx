@@ -114,7 +114,7 @@ export function LanguageSelector({
 
   return (
     <div className="relative">
-      <label className="mb-2 block text-sm font-medium text-slate-900" htmlFor={id}>
+      <label className="mb-2 block text-sm font-medium text-foreground" htmlFor={id}>
         {label}
       </label>
       <button
@@ -122,7 +122,7 @@ export function LanguageSelector({
         aria-expanded={isOpen}
         aria-haspopup="listbox"
         aria-labelledby={`${id}-label`}
-        className="relative w-full rounded-md border border-slate-300 bg-white px-4 py-2.5 text-left text-sm transition-colors hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-950 disabled:cursor-not-allowed disabled:opacity-50"
+        className="relative w-full rounded-md border border-border bg-card px-4 py-2.5 text-left text-sm transition-colors hover:bg-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-950 disabled:cursor-not-allowed disabled:opacity-50"
         disabled={disabled}
         id={id}
         onClick={() => !disabled && setIsOpen(!isOpen)}
@@ -134,7 +134,7 @@ export function LanguageSelector({
         </span>
         <ChevronDown
           aria-hidden="true"
-          className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-slate-500"
+          className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
         />
       </button>
 
@@ -142,7 +142,7 @@ export function LanguageSelector({
         <ul
           ref={listRef}
           aria-labelledby={`${id}-label`}
-          className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md border border-slate-300 bg-white py-1 shadow-lg"
+          className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md border border-border bg-card py-1 shadow-lg"
           role="listbox"
           tabIndex={-1}
         >
@@ -155,7 +155,7 @@ export function LanguageSelector({
                 key={language.code}
                 aria-selected={isSelected}
                 className={`relative cursor-pointer select-none px-4 py-2.5 pr-10 text-sm transition-colors ${
-                  isFocused ? "bg-slate-100 text-slate-900" : "text-slate-700"
+                  isFocused ? "bg-muted text-foreground" : "text-foreground"
                 } ${isSelected ? "font-medium" : "font-normal"}`}
                 onClick={() => {
                   onLanguageChange(language.code);

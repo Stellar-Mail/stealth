@@ -38,11 +38,11 @@ function LoadingSkeleton() {
       {[...Array(6)].map((_, i) => (
         <div
           key={i}
-          className="rounded-2xl border border-border/40 bg-white/5 p-5 backdrop-blur-sm"
+          className="rounded-2xl border border-border/40 bg-surface-tint/5 p-5 backdrop-blur-sm"
           aria-hidden="true"
         >
-          <div className="mb-3 h-3 w-20 animate-pulse rounded bg-white/10" />
-          <div className="h-8 w-24 animate-pulse rounded bg-white/10" />
+          <div className="mb-3 h-3 w-20 animate-pulse rounded bg-surface-tint/10" />
+          <div className="h-8 w-24 animate-pulse rounded bg-surface-tint/10" />
         </div>
       ))}
     </MetricsGrid>
@@ -56,7 +56,7 @@ function ErrorState({ message }: { message: string }) {
       role="alert"
       aria-live="assertive"
     >
-      <p className="text-sm font-medium text-red-400">{message}</p>
+      <p className="text-sm font-medium text-status-danger">{message}</p>
     </div>
   );
 }
@@ -64,7 +64,7 @@ function ErrorState({ message }: { message: string }) {
 function EmptyState() {
   return (
     <div className="mb-8 text-center" role="status">
-      <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-2xl border border-border/40 bg-white/5 text-muted-foreground">
+      <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-2xl border border-border/40 bg-surface-tint/5 text-muted-foreground">
         <Clock className="size-6" aria-hidden="true" />
       </div>
       <p className="text-sm text-muted-foreground">No metrics available yet.</p>

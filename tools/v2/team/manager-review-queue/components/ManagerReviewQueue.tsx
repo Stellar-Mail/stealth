@@ -60,8 +60,10 @@ export const ManagerReviewQueue: React.FC = () => {
   return (
     <div className="max-w-5xl mx-auto p-6 space-y-6">
       <header className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Manager Review Queue</h1>
-        <p className="text-gray-600">Review, approve, reject, or escalate pending requests.</p>
+        <h1 className="text-2xl font-bold text-foreground mb-2">Manager Review Queue</h1>
+        <p className="text-muted-foreground">
+          Review, approve, reject, or escalate pending requests.
+        </p>
       </header>
 
       {successMessage && (

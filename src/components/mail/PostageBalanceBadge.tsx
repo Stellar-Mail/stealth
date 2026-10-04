@@ -28,7 +28,12 @@ export function PostageBalanceBadge() {
     <Badge variant="secondary" className={`gap-1 ${isStale ? "opacity-70" : ""}`}>
       <WalletIcon className="w-3 h-3 text-muted-foreground" />
       <span>{balance} XLM</span>
-      {isStale && <RefreshCwIcon className="w-3 h-3 text-amber-500 ml-1" aria-label="Stale" />}
+      {isStale && (
+        <RefreshCwIcon
+          className="w-3 h-3 text-status-warning dark:text-amber-500 ml-1"
+          aria-label="Stale"
+        />
+      )}
     </Badge>
   );
 }

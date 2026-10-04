@@ -90,17 +90,17 @@ export function EmailTranslatorTool({ sourceText = "", onTranslated }: EmailTran
   return (
     <section
       aria-labelledby="email-translator-title"
-      className="mx-auto w-full max-w-5xl space-y-6 rounded-lg border border-slate-200 bg-slate-50 p-4 md:p-6"
+      className="mx-auto w-full max-w-5xl space-y-6 rounded-lg border border-border bg-muted p-4 md:p-6"
     >
       <header>
         <div>
-          <p className="text-sm font-medium uppercase tracking-wide text-slate-500">
+          <p className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
             Individual V2 tool
           </p>
           <h1 className="mt-1 text-2xl font-semibold text-slate-950" id="email-translator-title">
             Email Translator
           </h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
             Translate email content between languages. Automatically detects source language and
             provides accurate translations.
           </p>
@@ -112,9 +112,9 @@ export function EmailTranslatorTool({ sourceText = "", onTranslated }: EmailTran
       ) : (
         <div className="space-y-6">
           {/* Language selection */}
-          <div className="rounded-lg border border-slate-200 bg-white p-4">
+          <div className="rounded-lg border border-border bg-card p-4">
             <div className="mb-4 flex items-center gap-2">
-              <h2 className="text-sm font-semibold text-slate-900">Language settings</h2>
+              <h2 className="text-sm font-semibold text-foreground">Language settings</h2>
               {detectedLanguage && confidence && (
                 <span className="inline-flex items-center gap-1 rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-800">
                   <Sparkles aria-hidden="true" className="size-3" />
@@ -136,7 +136,10 @@ export function EmailTranslatorTool({ sourceText = "", onTranslated }: EmailTran
                 />
               </div>
 
-              <ArrowRight aria-hidden="true" className="size-5 flex-shrink-0 text-slate-400" />
+              <ArrowRight
+                aria-hidden="true"
+                className="size-5 flex-shrink-0 text-muted-foreground"
+              />
 
               <div className="flex-1">
                 <LanguageSelector
@@ -153,17 +156,17 @@ export function EmailTranslatorTool({ sourceText = "", onTranslated }: EmailTran
               <label className="flex cursor-pointer items-center gap-2 text-sm">
                 <input
                   checked={autoDetectEnabled}
-                  className="size-4 cursor-pointer rounded border-slate-300 text-slate-950 transition-colors focus:ring-2 focus:ring-slate-950 focus:ring-offset-2"
+                  className="size-4 cursor-pointer rounded border-border text-slate-950 transition-colors focus:ring-2 focus:ring-slate-950 focus:ring-offset-2"
                   onChange={(e) => setAutoDetectEnabled(e.target.checked)}
                   type="checkbox"
                 />
-                <span className="text-slate-700">Auto-detect source language</span>
+                <span className="text-foreground">Auto-detect source language</span>
               </label>
             </div>
           </div>
 
           {/* Input area */}
-          <div className="rounded-lg border border-slate-200 bg-white p-4">
+          <div className="rounded-lg border border-border bg-card p-4">
             <TranslationInput
               disabled={isTranslating}
               onChange={setInputText}
@@ -175,7 +178,7 @@ export function EmailTranslatorTool({ sourceText = "", onTranslated }: EmailTran
           {/* Action buttons */}
           <div className="flex items-center justify-between gap-3">
             <button
-              className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-950"
+              className="inline-flex items-center gap-2 rounded-md border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-950"
               onClick={handleReset}
               type="button"
             >
@@ -183,19 +186,19 @@ export function EmailTranslatorTool({ sourceText = "", onTranslated }: EmailTran
             </button>
             <button
               aria-keyshortcuts="Control+Enter"
-              className="inline-flex items-center gap-2 rounded-md border border-slate-950 bg-slate-950 px-6 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-950 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-md border border-border bg-primary px-6 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-950 disabled:cursor-not-allowed disabled:opacity-50"
               disabled={!inputText.trim() || sourceLanguage === targetLanguage}
               onClick={handleTranslate}
               type="button"
             >
               Translate
-              <span className="text-xs text-slate-400">Ctrl+Enter</span>
+              <span className="text-xs text-muted-foreground">Ctrl+Enter</span>
             </button>
           </div>
 
           {/* Translation output */}
           {translatedText && (
-            <div className="rounded-lg border border-slate-200 bg-white p-4">
+            <div className="rounded-lg border border-border bg-card p-4">
               <TranslationOutput
                 sourceLanguage={getLanguageByCode(sourceLanguage)?.name}
                 targetLanguage={getLanguageByCode(targetLanguage)?.name}

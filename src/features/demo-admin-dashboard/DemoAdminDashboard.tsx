@@ -305,22 +305,24 @@ function OverviewContent({
         {stats.map((stat) => (
           <div
             key={stat.label}
-            className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4"
+            className="rounded-xl border border-surface-tint/[0.06] bg-surface-tint/[0.02] p-4"
           >
             <p className="text-xs font-medium text-muted-foreground">{stat.label}</p>
             <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">{stat.value}</p>
             {stat.delta && (
-              <p className="mt-0.5 text-xs font-medium text-emerald-400">{stat.delta}</p>
+              <p className="mt-0.5 text-xs font-medium text-status-success dark:text-emerald-400">
+                {stat.delta}
+              </p>
             )}
           </div>
         ))}
       </div>
 
       {/* Preset Selector */}
-      <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-6 space-y-4">
+      <div className="rounded-xl border border-surface-tint/[0.06] bg-surface-tint/[0.02] p-6 space-y-4">
         <div>
           <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
-            <Shield className="h-4 w-4 text-amber-400" />
+            <Shield className="h-4 w-4 text-status-warning dark:text-amber-400" />
             Protocol Scenario Presets
           </h4>
           <p className="text-xs text-muted-foreground mt-1">
@@ -343,7 +345,7 @@ function OverviewContent({
                   "glow-ring rounded-xl border p-4 text-left transition flex flex-col justify-between h-36 w-full active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500",
                   active
                     ? "border-amber-500/50 bg-amber-500/5 ring-1 ring-amber-500/20"
-                    : "border-white/[0.06] bg-white/[0.02] hover:border-white/10 hover:bg-white/[0.04]",
+                    : "border-surface-tint/[0.06] bg-surface-tint/[0.02] hover:border-surface-tint/10 hover:bg-surface-tint/[0.04]",
                 )}
               >
                 <div>
@@ -355,7 +357,9 @@ function OverviewContent({
                 <span
                   className={cn(
                     "mt-2 text-[10px] font-medium self-start px-2 py-0.5 rounded-full",
-                    active ? "bg-amber-500/20 text-amber-400" : "bg-white/5 text-muted-foreground",
+                    active
+                      ? "bg-amber-500/20 text-status-warning dark:text-amber-400"
+                      : "bg-surface-tint/5 text-muted-foreground",
                   )}
                 >
                   {active ? "Active" : "Activate"}
@@ -388,7 +392,7 @@ function AccountsContent({
           <div className="flex items-center gap-2">
             <span>{acct.name}</span>
             {acct.relayMetadata && (
-              <span className="rounded bg-indigo-500/10 px-1.5 py-0.5 text-[9px] font-medium text-indigo-400 border border-indigo-500/20">
+              <span className="rounded bg-indigo-500/10 px-1.5 py-0.5 text-[9px] font-medium text-status-info dark:text-indigo-400 border border-indigo-500/20">
                 Inspectable
               </span>
             )}
@@ -418,9 +422,11 @@ function AccountsContent({
           <span
             className={cn(
               "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium",
-              acct.type.includes("Relay") && "bg-indigo-500/10 text-indigo-400",
-              acct.type.includes("Contract") && "bg-purple-500/10 text-purple-400",
-              acct.type === "User" && "bg-white/5 text-muted-foreground",
+              acct.type.includes("Relay") &&
+                "bg-indigo-500/10 text-status-info dark:text-indigo-400",
+              acct.type.includes("Contract") &&
+                "bg-purple-500/10 text-status-special dark:text-purple-400",
+              acct.type === "User" && "bg-surface-tint/5 text-muted-foreground",
             )}
           >
             {acct.type}
@@ -439,9 +445,12 @@ function AccountsContent({
             <span
               className={cn(
                 "inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium uppercase text-[9px] border",
-                status === "verified" && "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-                status === "pending" && "bg-amber-500/10 text-amber-400 border-amber-500/20",
-                status === "failed" && "bg-rose-500/10 text-rose-400 border-rose-500/20",
+                status === "verified" &&
+                  "bg-emerald-500/10 text-status-success dark:text-emerald-400 border-emerald-500/20",
+                status === "pending" &&
+                  "bg-amber-500/10 text-status-warning dark:text-amber-400 border-amber-500/20",
+                status === "failed" &&
+                  "bg-rose-500/10 text-status-danger dark:text-rose-400 border-rose-500/20",
               )}
             >
               {status}
@@ -496,7 +505,7 @@ function MailContent({
             <div className="flex items-center gap-2">
               <span className="font-medium">{item.subject}</span>
               {item.proofMetadata && (
-                <span className="rounded bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-medium text-emerald-400 border border-emerald-500/20">
+                <span className="rounded bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-medium text-status-success dark:text-emerald-400 border border-emerald-500/20">
                   Has Proof
                 </span>
               )}
@@ -516,9 +525,11 @@ function MailContent({
             className={cn(
               "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium border",
               item.status === "delivered" &&
-                "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-              item.status === "pending" && "bg-amber-500/10 text-amber-400 border-amber-500/20",
-              item.status === "held" && "bg-rose-500/10 text-rose-400 border-rose-500/20",
+                "bg-emerald-500/10 text-status-success dark:text-emerald-400 border-emerald-500/20",
+              item.status === "pending" &&
+                "bg-amber-500/10 text-status-warning dark:text-amber-400 border-amber-500/20",
+              item.status === "held" &&
+                "bg-rose-500/10 text-status-danger dark:text-rose-400 border-rose-500/20",
             )}
           >
             {item.status}
@@ -586,7 +597,7 @@ function AttachmentsContent({ attachments }: { attachments: PresetAttachment[] }
         header: "Type",
         sortable: true,
         render: (att) => (
-          <span className="rounded bg-white/5 px-2 py-0.5 text-[11px] font-medium text-muted-foreground border border-white/[0.04]">
+          <span className="rounded bg-surface-tint/5 px-2 py-0.5 text-[11px] font-medium text-muted-foreground border border-surface-tint/[0.04]">
             {att.fileType}
           </span>
         ),
@@ -628,7 +639,7 @@ function EventsContent({ events }: { events: PresetEvent[] }) {
         sortable: true,
         render: (evt) => (
           <div className="flex items-center gap-2 font-medium">
-            <Calendar className="h-3.5 w-3.5 text-amber-400 shrink-0" />
+            <Calendar className="h-3.5 w-3.5 text-status-warning dark:text-amber-400 shrink-0" />
             <span>{evt.title}</span>
           </div>
         ),
@@ -668,9 +679,11 @@ function EventsContent({ events }: { events: PresetEvent[] }) {
             className={cn(
               "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium uppercase text-[9px] border",
               evt.status === "confirmed" &&
-                "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-              evt.status === "tentative" && "bg-amber-500/10 text-amber-400 border-amber-500/20",
-              evt.status === "cancelled" && "bg-rose-500/10 text-rose-400 border-rose-500/20",
+                "bg-emerald-500/10 text-status-success dark:text-emerald-400 border-emerald-500/20",
+              evt.status === "tentative" &&
+                "bg-amber-500/10 text-status-warning dark:text-amber-400 border-amber-500/20",
+              evt.status === "cancelled" &&
+                "bg-rose-500/10 text-status-danger dark:text-rose-400 border-rose-500/20",
             )}
           >
             {evt.status}
@@ -802,14 +815,14 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
   return (
     <div
       className={cn(
-        "relative flex h-full flex-col overflow-hidden rounded-xl border border-white/[0.08] bg-black/60 backdrop-blur-xl",
+        "relative flex h-full flex-col overflow-hidden rounded-xl border border-surface-tint/[0.08] bg-surface-recessed/60 backdrop-blur-xl",
         className,
       )}
     >
       {/* ── Header ── */}
-      <div className="flex items-center justify-between border-b border-white/[0.06] px-6 py-4">
+      <div className="flex items-center justify-between border-b border-surface-tint/[0.06] px-6 py-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/[0.06]">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface-tint/[0.06]">
             <BarChart3 className="h-4 w-4 text-foreground" />
           </div>
           <div>
@@ -821,11 +834,11 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
         </div>
         <div className="flex items-center gap-2">
           {activePresetId !== "none" && (
-            <span className="rounded-full bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-medium text-amber-400 border border-amber-500/20">
+            <span className="rounded-full bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-medium text-status-warning dark:text-amber-400 border border-amber-500/20">
               Preset: {activePreset?.name}
             </span>
           )}
-          <span className="rounded-full bg-white/[0.06] px-2.5 py-0.5 text-[11px] font-medium text-foreground">
+          <span className="rounded-full bg-surface-tint/[0.06] px-2.5 py-0.5 text-[11px] font-medium text-foreground">
             Demo
           </span>
         </div>
@@ -833,7 +846,7 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
 
       {/* ── Navigation slots ── */}
       <nav
-        className="flex gap-1 border-b border-white/[0.06] px-4 py-2"
+        className="flex gap-1 border-b border-surface-tint/[0.06] px-4 py-2"
         role="tablist"
         aria-label="Admin dashboard sections"
       >
@@ -850,10 +863,10 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
               aria-label={item.description}
               onClick={() => handleSectionChange(item.id)}
               className={cn(
-                "glow-ring flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20",
+                "glow-ring flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-surface-tint/20",
                 isActive
-                  ? "bg-white/[0.08] text-foreground"
-                  : "text-muted-foreground hover:bg-white/[0.04] hover:text-foreground",
+                  ? "bg-surface-tint/[0.08] text-foreground"
+                  : "text-muted-foreground hover:bg-surface-tint/[0.04] hover:text-foreground",
               )}
             >
               <NavIcon className="h-3.5 w-3.5" />
@@ -878,7 +891,7 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
               <h3 className="text-sm font-semibold text-foreground capitalize">{activeSection}</h3>
             </div>
             {activePresetId !== "none" && (
-              <span className="text-xs text-amber-400 font-medium">
+              <span className="text-xs text-status-warning dark:text-amber-400 font-medium">
                 Simulated {activePreset?.name} flow active
               </span>
             )}
@@ -924,9 +937,9 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
 
       {/* ── Slide-out Inspection Panel (Drawer for Account/Relay Metadata) ── */}
       {selectedAccount && selectedAccount.relayMetadata && (
-        <div className="absolute inset-y-0 right-0 z-40 w-96 border-l border-white/[0.08] bg-black/95 p-6 shadow-2xl backdrop-blur-xl transition-all motion-reduce:transition-none flex flex-col justify-between">
+        <div className="absolute inset-y-0 right-0 z-40 w-96 border-l border-surface-tint/[0.08] bg-surface-recessed/95 p-6 shadow-2xl backdrop-blur-xl transition-all motion-reduce:transition-none flex flex-col justify-between">
           <div className="space-y-6">
-            <div className="flex items-start justify-between border-b border-white/[0.06] pb-4">
+            <div className="flex items-start justify-between border-b border-surface-tint/[0.06] pb-4">
               <div>
                 <h4 className="text-sm font-semibold text-foreground">Relay Node Inspector</h4>
                 <p className="text-xs text-muted-foreground mt-0.5">{selectedAccount.name}</p>
@@ -935,17 +948,17 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
                 type="button"
                 aria-label="Close relay node inspector"
                 onClick={() => setSelectedAccountAddress(null)}
-                className="glow-ring rounded-md p-1 text-muted-foreground transition hover:bg-white/5 hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
+                className="glow-ring rounded-md p-1 text-muted-foreground transition hover:bg-surface-tint/5 hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-surface-tint/20"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
             <div className="space-y-4">
-              <h5 className="text-[10px] uppercase tracking-wider text-indigo-400 font-semibold">
+              <h5 className="text-[10px] uppercase tracking-wider text-status-info dark:text-indigo-400 font-semibold">
                 Relay Registry Metadata
               </h5>
-              <div className="space-y-3 rounded-lg border border-white/[0.04] bg-white/[0.01] p-3 text-xs leading-normal">
+              <div className="space-y-3 rounded-lg border border-surface-tint/[0.04] bg-surface-tint/[0.01] p-3 text-xs leading-normal">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Node Address:</span>
                   <span className="font-mono text-foreground">
@@ -982,9 +995,9 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
                     className={cn(
                       "font-semibold uppercase text-[9px] px-1.5 py-0.5 rounded",
                       selectedAccount.relayMetadata.status === "verified" &&
-                        "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
+                        "bg-emerald-500/10 text-status-success dark:text-emerald-400 border border-emerald-500/20",
                       selectedAccount.relayMetadata.status === "pending" &&
-                        "bg-amber-500/10 text-amber-400 border border-amber-500/20",
+                        "bg-amber-500/10 text-status-warning dark:text-amber-400 border border-amber-500/20",
                     )}
                   >
                     {selectedAccount.relayMetadata.status}
@@ -996,7 +1009,7 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
           <button
             type="button"
             onClick={() => setSelectedAccountAddress(null)}
-            className="glow-ring w-full rounded-lg border border-white/10 bg-white/[0.02] py-2 text-xs font-semibold text-foreground hover:bg-white/5 transition active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
+            className="glow-ring w-full rounded-lg border border-surface-tint/10 bg-surface-tint/[0.02] py-2 text-xs font-semibold text-foreground hover:bg-surface-tint/5 transition active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-surface-tint/20"
           >
             Close Inspector
           </button>
@@ -1005,9 +1018,9 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
 
       {/* ── Slide-out Inspection Panel (Drawer for Cryptographic Ledger Proof) ── */}
       {selectedMail && selectedMail.proofMetadata && (
-        <div className="absolute inset-y-0 right-0 z-40 w-96 border-l border-white/[0.08] bg-black/95 p-6 shadow-2xl backdrop-blur-xl transition-all motion-reduce:transition-none flex flex-col justify-between">
+        <div className="absolute inset-y-0 right-0 z-40 w-96 border-l border-surface-tint/[0.08] bg-surface-recessed/95 p-6 shadow-2xl backdrop-blur-xl transition-all motion-reduce:transition-none flex flex-col justify-between">
           <div className="space-y-6 overflow-y-auto flex-1 pr-1">
-            <div className="flex items-start justify-between border-b border-white/[0.06] pb-4">
+            <div className="flex items-start justify-between border-b border-surface-tint/[0.06] pb-4">
               <div>
                 <h4 className="text-sm font-semibold text-foreground">Ledger Proof Inspector</h4>
                 <p className="text-xs text-muted-foreground mt-0.5">{selectedMail.subject}</p>
@@ -1016,17 +1029,17 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
                 type="button"
                 aria-label="Close ledger proof inspector"
                 onClick={() => setSelectedMailSubject(null)}
-                className="glow-ring rounded-md p-1 text-muted-foreground transition hover:bg-white/5 hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
+                className="glow-ring rounded-md p-1 text-muted-foreground transition hover:bg-surface-tint/5 hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-surface-tint/20"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
             <div className="space-y-4">
-              <h5 className="text-[10px] uppercase tracking-wider text-emerald-400 font-semibold">
+              <h5 className="text-[10px] uppercase tracking-wider text-status-success dark:text-emerald-400 font-semibold">
                 Cryptographic Details
               </h5>
-              <div className="space-y-3 rounded-lg border border-white/[0.04] bg-white/[0.01] p-3 text-xs leading-normal">
+              <div className="space-y-3 rounded-lg border border-surface-tint/[0.04] bg-surface-tint/[0.01] p-3 text-xs leading-normal">
                 <div>
                   <span className="text-muted-foreground block text-[10px]">Message Hash:</span>
                   <span className="font-mono text-foreground break-all text-[10px] block mt-0.5">
@@ -1067,17 +1080,17 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
                     className={cn(
                       "font-semibold uppercase text-[9px] px-1.5 py-0.5 rounded",
                       selectedMail.proofMetadata.postageStatus === "settled" &&
-                        "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
+                        "bg-emerald-500/10 text-status-success dark:text-emerald-400 border border-emerald-500/20",
                       selectedMail.proofMetadata.postageStatus === "pending" &&
-                        "bg-amber-500/10 text-amber-400 border border-amber-500/20",
+                        "bg-amber-500/10 text-status-warning dark:text-amber-400 border border-amber-500/20",
                     )}
                   >
                     {selectedMail.proofMetadata.postageStatus}
                   </span>
                 </div>
                 {selectedMail.folder === "encrypted" && (
-                  <div className="mt-3 rounded border border-emerald-500/20 bg-emerald-500/5 p-2.5 text-[11px] text-emerald-300 leading-relaxed">
-                    <p className="font-semibold flex items-center gap-1.5 mb-1 text-xs text-emerald-400">
+                  <div className="mt-3 rounded border border-emerald-500/20 bg-emerald-500/5 p-2.5 text-[11px] text-status-success dark:text-emerald-300 leading-relaxed">
+                    <p className="font-semibold flex items-center gap-1.5 mb-1 text-xs text-status-success dark:text-emerald-400">
                       <Lock className="h-3 w-3" />
                       Payload Decryption Notes
                     </p>
@@ -1091,7 +1104,7 @@ export function DemoAdminDashboard({ className }: DemoAdminDashboardProps) {
           <button
             type="button"
             onClick={() => setSelectedMailSubject(null)}
-            className="glow-ring w-full rounded-lg border border-white/10 bg-white/[0.02] py-2 text-xs font-semibold text-foreground hover:bg-white/5 transition mt-4 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
+            className="glow-ring w-full rounded-lg border border-surface-tint/10 bg-surface-tint/[0.02] py-2 text-xs font-semibold text-foreground hover:bg-surface-tint/5 transition mt-4 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-surface-tint/20"
           >
             Close Inspector
           </button>

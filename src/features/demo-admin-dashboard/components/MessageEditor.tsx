@@ -87,7 +87,7 @@ export function MessageEditor({
   return (
     <div
       className={cn(
-        "rounded-xl border border-white/[0.08] bg-white/[0.02] p-5 space-y-4",
+        "rounded-xl border border-surface-tint/[0.08] bg-surface-tint/[0.02] p-5 space-y-4",
         className,
       )}
       onKeyDown={handleKeyDown}
@@ -102,7 +102,7 @@ export function MessageEditor({
             type="button"
             onClick={onCancel}
             aria-label="Cancel editing"
-            className="rounded-md p-1 text-muted-foreground hover:bg-white/[0.04] hover:text-foreground"
+            className="rounded-md p-1 text-muted-foreground hover:bg-surface-tint/[0.04] hover:text-foreground"
           >
             <X className="h-4 w-4" />
           </button>
@@ -120,15 +120,17 @@ export function MessageEditor({
           onChange={(e) => handleSubjectChange(e.target.value)}
           placeholder="Enter message subject"
           className={cn(
-            "w-full rounded-lg border px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none bg-black/40",
+            "w-full rounded-lg border px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none bg-surface-recessed/40",
             subjectIssues.length > 0
               ? "border-red-500/50 focus:border-red-400"
-              : "border-white/[0.08] focus:border-white/20",
+              : "border-surface-tint/[0.08] focus:border-surface-tint/20",
           )}
           required
         />
         {subjectIssues.length > 0 && (
-          <p className="text-xs font-medium text-rose-400">{subjectIssues[0].message}</p>
+          <p className="text-xs font-medium text-status-danger dark:text-rose-400">
+            {subjectIssues[0].message}
+          </p>
         )}
       </div>
 
@@ -143,15 +145,17 @@ export function MessageEditor({
           onChange={(e) => handleRecipientsChange(e.target.value)}
           placeholder="e.g. alice@example.com, bob*stealth.demo"
           className={cn(
-            "w-full rounded-lg border px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none bg-black/40",
+            "w-full rounded-lg border px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none bg-surface-recessed/40",
             recipientIssues.length > 0
               ? "border-red-500/50 focus:border-red-400"
-              : "border-white/[0.08] focus:border-white/20",
+              : "border-surface-tint/[0.08] focus:border-surface-tint/20",
           )}
           required
         />
         {recipientIssues.length > 0 && (
-          <p className="text-xs font-medium text-rose-400">{recipientIssues[0].message}</p>
+          <p className="text-xs font-medium text-status-danger dark:text-rose-400">
+            {recipientIssues[0].message}
+          </p>
         )}
       </div>
 
@@ -166,22 +170,24 @@ export function MessageEditor({
           placeholder="Enter message body"
           rows={6}
           className={cn(
-            "w-full rounded-lg border px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none bg-black/40 resize-vertical",
+            "w-full rounded-lg border px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none bg-surface-recessed/40 resize-vertical",
             bodyIssues.length > 0
               ? "border-red-500/50 focus:border-red-400"
-              : "border-white/[0.08] focus:border-white/20",
+              : "border-surface-tint/[0.08] focus:border-surface-tint/20",
           )}
           required
         />
         {bodyIssues.length > 0 && (
-          <p className="text-xs font-medium text-rose-400">{bodyIssues[0].message}</p>
+          <p className="text-xs font-medium text-status-danger dark:text-rose-400">
+            {bodyIssues[0].message}
+          </p>
         )}
       </div>
 
       {issues.length > 0 && <ValidationResultsPanel issues={issues} title="Message validation" />}
 
       {showPreview && (
-        <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
+        <div className="rounded-xl border border-surface-tint/[0.06] bg-surface-tint/[0.02] p-4">
           <h5 className="mb-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">
             Preview
           </h5>
@@ -197,7 +203,7 @@ export function MessageEditor({
               </dd>
             </div>
           </dl>
-          <pre className="mt-3 max-h-44 overflow-y-auto whitespace-pre-wrap rounded-lg border border-white/[0.06] bg-black/30 p-3 font-sans text-xs leading-5 text-foreground/90">
+          <pre className="mt-3 max-h-44 overflow-y-auto whitespace-pre-wrap rounded-lg border border-surface-tint/[0.06] bg-surface-recessed/30 p-3 font-sans text-xs leading-5 text-foreground/90">
             {draft.body || "(no body)"}
           </pre>
         </div>
@@ -209,7 +215,7 @@ export function MessageEditor({
             <button
               type="button"
               onClick={onCancel}
-              className="rounded-lg border border-white/[0.08] bg-white/[0.01] px-4 py-2 text-xs font-medium text-muted-foreground transition hover:bg-white/[0.04] hover:text-foreground"
+              className="rounded-lg border border-surface-tint/[0.08] bg-surface-tint/[0.01] px-4 py-2 text-xs font-medium text-muted-foreground transition hover:bg-surface-tint/[0.04] hover:text-foreground"
             >
               Cancel
             </button>
@@ -222,7 +228,7 @@ export function MessageEditor({
               className={cn(
                 "rounded-lg px-4 py-2 text-xs font-semibold transition",
                 hasErrors
-                  ? "cursor-not-allowed bg-white/[0.04] text-muted-foreground"
+                  ? "cursor-not-allowed bg-surface-tint/[0.04] text-muted-foreground"
                   : "bg-foreground text-background hover:opacity-90",
               )}
             >

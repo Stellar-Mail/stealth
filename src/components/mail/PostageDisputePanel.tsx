@@ -86,11 +86,14 @@ export function PostageDisputePanel({ messageId }: PostageDisputePanelProps) {
         aria-label={open ? "Hide escrow and dispute details" : "Show escrow and dispute details"}
       >
         <div className="flex items-center gap-2">
-          <Flag className="h-3.5 w-3.5 text-amber-400/80 shrink-0" aria-hidden="true" />
-          <span className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-amber-400/80">
+          <Flag
+            className="h-3.5 w-3.5 text-status-warning/80 dark:text-amber-400/80 shrink-0"
+            aria-hidden="true"
+          />
+          <span className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-status-warning/80 dark:text-amber-400/80">
             Escrow &amp; Dispute
           </span>
-          <span className="rounded border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-amber-400/90">
+          <span className="rounded border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-status-warning/90 dark:text-amber-400/90">
             {postage.status}
           </span>
         </div>
@@ -129,7 +132,7 @@ export function PostageDisputePanel({ messageId }: PostageDisputePanelProps) {
               </div>
 
               {/* Timeline */}
-              <div className="relative pl-3 mt-4 space-y-4 before:absolute before:inset-y-0 before:left-3.5 before:w-px before:bg-white/10">
+              <div className="relative pl-3 mt-4 space-y-4 before:absolute before:inset-y-0 before:left-3.5 before:w-px before:bg-surface-tint/10">
                 {timeline.map((event, index) => (
                   <div key={event.id} className="relative flex gap-3 text-[11px]">
                     <div className="absolute -left-1.25 mt-1 h-2.5 w-2.5 rounded-full bg-background border-2 border-muted-foreground z-10 flex items-center justify-center">
@@ -155,7 +158,7 @@ export function PostageDisputePanel({ messageId }: PostageDisputePanelProps) {
                           href={explorerTxLink(event.txHash)}
                           target="_blank"
                           rel="noreferrer"
-                          className="flex items-center gap-1 mt-1 text-blue-400 hover:underline"
+                          className="flex items-center gap-1 mt-1 text-status-info dark:text-blue-400 hover:underline"
                         >
                           View Transaction <ExternalLink className="h-2.5 w-2.5" />
                         </a>
@@ -167,12 +170,12 @@ export function PostageDisputePanel({ messageId }: PostageDisputePanelProps) {
 
               {/* Action Buttons */}
               {permissions && (
-                <div className="flex flex-wrap gap-2 pt-2 border-t border-white/5">
+                <div className="flex flex-wrap gap-2 pt-2 border-t border-surface-tint/5">
                   {permissions.canSettle && (
                     <Button
                       size="sm"
                       variant="outline"
-                      className="h-7 text-xs bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 hover:text-emerald-500 border-emerald-500/20"
+                      className="h-7 text-xs bg-emerald-500/10 text-status-success dark:text-emerald-500 hover:bg-emerald-500/20 hover:text-status-success dark:hover:text-emerald-500 border-emerald-500/20"
                       onClick={() => setConfirmAction("settle")}
                     >
                       Settle
@@ -182,7 +185,7 @@ export function PostageDisputePanel({ messageId }: PostageDisputePanelProps) {
                     <Button
                       size="sm"
                       variant="outline"
-                      className="h-7 text-xs bg-red-500/10 text-red-500 hover:bg-red-500/20 hover:text-red-500 border-red-500/20"
+                      className="h-7 text-xs bg-red-500/10 text-status-danger dark:text-red-500 hover:bg-red-500/20 hover:text-status-danger dark:hover:text-red-500 border-red-500/20"
                       onClick={() => setConfirmAction("refund")}
                     >
                       Refund
@@ -192,7 +195,7 @@ export function PostageDisputePanel({ messageId }: PostageDisputePanelProps) {
                     <Button
                       size="sm"
                       variant="outline"
-                      className="h-7 text-xs bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 hover:text-amber-500 border-amber-500/20"
+                      className="h-7 text-xs bg-amber-500/10 text-status-warning dark:text-amber-500 hover:bg-amber-500/20 hover:text-status-warning dark:hover:text-amber-500 border-amber-500/20"
                       onClick={() => setConfirmAction("dispute")}
                     >
                       Dispute
@@ -212,7 +215,7 @@ export function PostageDisputePanel({ messageId }: PostageDisputePanelProps) {
                     <Button
                       size="sm"
                       variant="outline"
-                      className="h-7 text-xs bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 hover:text-blue-500 border-blue-500/20"
+                      className="h-7 text-xs bg-blue-500/10 text-status-info dark:text-blue-500 hover:bg-blue-500/20 hover:text-status-info dark:hover:text-blue-500 border-blue-500/20"
                       onClick={() => setConfirmAction("reclaim")}
                     >
                       Reclaim

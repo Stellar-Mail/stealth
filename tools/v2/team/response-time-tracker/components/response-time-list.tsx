@@ -8,14 +8,14 @@ function LoadingSkeleton() {
       {[...Array(5)].map((_, i) => (
         <div
           key={i}
-          className="flex items-center gap-4 rounded-xl border border-border/30 bg-white/[0.03] px-5 py-4"
+          className="flex items-center gap-4 rounded-xl border border-border/30 bg-surface-tint/[0.03] px-5 py-4"
         >
-          <div className="size-10 animate-pulse rounded-lg bg-white/10" />
+          <div className="size-10 animate-pulse rounded-lg bg-surface-tint/10" />
           <div className="flex-1 space-y-2">
-            <div className="h-4 w-48 animate-pulse rounded bg-white/10" />
-            <div className="h-3 w-32 animate-pulse rounded bg-white/10" />
+            <div className="h-4 w-48 animate-pulse rounded bg-surface-tint/10" />
+            <div className="h-3 w-32 animate-pulse rounded bg-surface-tint/10" />
           </div>
-          <div className="h-4 w-16 animate-pulse rounded bg-white/10" />
+          <div className="h-4 w-16 animate-pulse rounded bg-surface-tint/10" />
         </div>
       ))}
     </div>
@@ -30,14 +30,14 @@ function ErrorState({ message, onRetry }: { message: string; onRetry?: () => voi
       aria-live="assertive"
     >
       <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-2xl bg-red-500/20">
-        <Clock className="size-6 text-red-400" aria-hidden="true" />
+        <Clock className="size-6 text-status-danger" aria-hidden="true" />
       </div>
-      <p className="mb-2 text-sm font-medium text-red-400">Failed to load response times</p>
-      <p className="mb-6 text-xs text-red-400/70">{message}</p>
+      <p className="mb-2 text-sm font-medium text-status-danger">Failed to load response times</p>
+      <p className="mb-6 text-xs text-status-danger/70">{message}</p>
       {onRetry ? (
         <button
           onClick={onRetry}
-          className="inline-flex items-center gap-2 rounded-lg border border-red-500/40 px-4 py-2 text-sm font-medium text-red-300 transition-colors hover:bg-red-500/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400/50"
+          className="inline-flex items-center gap-2 rounded-lg border border-red-500/40 px-4 py-2 text-sm font-medium text-status-danger transition-colors hover:bg-red-500/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400/50"
           aria-label="Retry loading response times"
         >
           Retry
@@ -50,11 +50,11 @@ function ErrorState({ message, onRetry }: { message: string; onRetry?: () => voi
 function EmptyState() {
   return (
     <div
-      className="rounded-xl border border-border/30 bg-white/[0.02] p-12 text-center"
+      className="rounded-xl border border-border/30 bg-surface-tint/[0.02] p-12 text-center"
       role="status"
       aria-live="polite"
     >
-      <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-2xl border border-border/40 bg-white/5 text-muted-foreground">
+      <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-2xl border border-border/40 bg-surface-tint/5 text-muted-foreground">
         <Inbox className="size-6" aria-hidden="true" />
       </div>
       <p className="text-lg font-medium text-foreground">No response times yet</p>

@@ -178,14 +178,14 @@ export function SettingsModal({
             )}
           >
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-white/5 px-5 py-4">
+            <div className="flex items-center justify-between border-b border-surface-tint/5 px-5 py-4">
               <h2 id="settings-title" className="text-sm font-semibold text-foreground">
                 Settings
               </h2>
               <button
                 onClick={dismiss}
                 aria-label="Close settings"
-                className="glow-ring rounded-lg p-1.5 text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground active:scale-95"
+                className="glow-ring rounded-lg p-1.5 text-muted-foreground transition hover:bg-surface-tint/[0.06] hover:text-foreground active:scale-95"
               >
                 <X className="h-4 w-4" aria-hidden="true" />
               </button>
@@ -198,7 +198,7 @@ export function SettingsModal({
               )}
             >
               {/* Sidebar tabs */}
-              <div className="w-48 border-r border-white/5 p-3">
+              <div className="w-48 border-r border-surface-tint/5 p-3">
                 <nav
                   role="tablist"
                   aria-orientation="vertical"
@@ -221,8 +221,8 @@ export function SettingsModal({
                         className={cn(
                           "glow-ring flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition active:scale-[0.98]",
                           isActive
-                            ? "bg-white/[0.08] text-foreground"
-                            : "text-muted-foreground hover:bg-white/[0.04] hover:text-foreground",
+                            ? "bg-surface-tint/[0.08] text-foreground"
+                            : "text-muted-foreground hover:bg-surface-tint/[0.04] hover:text-foreground",
                         )}
                       >
                         <Icon className="h-4 w-4" />
@@ -268,7 +268,7 @@ export function SettingsModal({
                 {activeTab === "changelog" && <ChangelogPanel />}
               </div>
             </div>
-            <div className="flex items-center justify-between border-t border-white/5 px-5 py-3">
+            <div className="flex items-center justify-between border-t border-surface-tint/5 px-5 py-3">
               <span className="text-[11px] text-muted-foreground">
                 Manual edits apply to the draft immediately. Template changes preview before you
                 apply. Save or cancel to keep or discard.
@@ -276,7 +276,7 @@ export function SettingsModal({
               <div className="flex items-center gap-2">
                 <button
                   onClick={onCancel ?? onClose}
-                  className="rounded-lg border border-white/10 px-4 py-2 text-xs font-semibold text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-emerald-400 outline-none"
+                  className="rounded-lg border border-surface-tint/10 px-4 py-2 text-xs font-semibold text-muted-foreground transition hover:bg-surface-tint/[0.06] hover:text-foreground active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-emerald-400 outline-none"
                 >
                   Cancel
                 </button>
@@ -325,20 +325,23 @@ function AccountSettings() {
     return (
       <div className="space-y-6 animate-pulse">
         <div>
-          <div className="h-4 w-16 bg-white/10 rounded mb-2" />
-          <div className="h-3 w-40 bg-white/5 rounded" />
+          <div className="h-4 w-16 bg-surface-tint/10 rounded mb-2" />
+          <div className="h-3 w-40 bg-surface-tint/5 rounded" />
         </div>
         <div className="space-y-4">
           <div className="flex items-center gap-4">
-            <div className="h-16 w-16 rounded-full bg-white/10" />
+            <div className="h-16 w-16 rounded-full bg-surface-tint/10" />
             <div className="space-y-2">
-              <div className="h-4 w-24 bg-white/10 rounded" />
-              <div className="h-3 w-32 bg-white/5 rounded" />
+              <div className="h-4 w-24 bg-surface-tint/10 rounded" />
+              <div className="h-3 w-32 bg-surface-tint/5 rounded" />
             </div>
           </div>
           <div className="space-y-3">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-14 bg-white/5 rounded-lg border border-white/5" />
+              <div
+                key={i}
+                className="h-14 bg-surface-tint/5 rounded-lg border border-surface-tint/5"
+              />
             ))}
           </div>
         </div>
@@ -349,11 +352,13 @@ function AccountSettings() {
   if (isError || !profileData) {
     const isAuthError = isApiClientError(error) && error.status === 401;
     return (
-      <div className="rounded-lg border border-rose-500/20 bg-rose-500/10 p-4 text-sm text-rose-200">
+      <div className="rounded-lg border border-rose-500/20 bg-rose-500/10 p-4 text-sm text-status-danger dark:text-rose-200">
         <div className="flex items-start gap-3">
-          <AlertTriangle className="h-5 w-5 shrink-0 text-rose-400" />
+          <AlertTriangle className="h-5 w-5 shrink-0 text-status-danger dark:text-rose-400" />
           <div>
-            <p className="font-medium text-rose-300">Could not load profile</p>
+            <p className="font-medium text-status-danger dark:text-rose-300">
+              Could not load profile
+            </p>
             <p className="mt-1 opacity-80">
               {isAuthError
                 ? "Your session has expired. Please sign in again."
@@ -396,15 +401,15 @@ function AccountSettings() {
     <div className="space-y-6">
       {mutation.isError && isApiClientError(mutation.error) && mutation.error.status === 409 && (
         <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-sm flex items-start gap-3">
-          <AlertTriangle className="h-4 w-4 shrink-0 text-amber-400 mt-0.5" />
-          <div className="text-amber-200">
+          <AlertTriangle className="h-4 w-4 shrink-0 text-status-warning dark:text-amber-400 mt-0.5" />
+          <div className="text-status-warning dark:text-amber-200">
             <p className="font-medium">Profile updated elsewhere</p>
             <p className="mt-0.5 text-xs opacity-80">
               These settings were modified from another session or tab.
             </p>
             <button
               onClick={() => refetch()}
-              className="mt-2 text-xs font-medium text-amber-300 hover:text-amber-200 underline underline-offset-2"
+              className="mt-2 text-xs font-medium text-status-warning dark:text-amber-300 hover:text-status-warning dark:hover:text-amber-200 underline underline-offset-2"
             >
               Reload latest changes
             </button>
@@ -414,8 +419,8 @@ function AccountSettings() {
 
       {mutation.isError && isApiClientError(mutation.error) && mutation.error.status === 403 && (
         <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-sm flex items-start gap-3">
-          <Lock className="h-4 w-4 shrink-0 text-amber-400 mt-0.5" />
-          <div className="text-amber-200">
+          <Lock className="h-4 w-4 shrink-0 text-status-warning dark:text-amber-400 mt-0.5" />
+          <div className="text-status-warning dark:text-amber-200">
             <p className="font-medium">Authentication required</p>
             <p className="mt-0.5 text-xs opacity-80">
               For your security, please sign out and sign back in to make this change.
@@ -435,10 +440,10 @@ function AccountSettings() {
             <img
               src={profile.avatarUrl}
               alt={profile.displayName}
-              className="h-16 w-16 rounded-full object-cover border border-white/10"
+              className="h-16 w-16 rounded-full object-cover border border-surface-tint/10"
             />
           ) : (
-            <div className="h-16 w-16 rounded-full bg-gradient-to-br from-[#4d5560] to-[#232326] flex items-center justify-center border border-white/5">
+            <div className="h-16 w-16 rounded-full bg-gradient-to-br from-[#4d5560] to-[#232326] flex items-center justify-center border border-surface-tint/5">
               <span className="text-lg font-medium text-white/90">
                 {profile.displayName.charAt(0).toUpperCase()}
               </span>
@@ -511,28 +516,28 @@ function AccountSettings() {
         </div>
       </div>
 
-      <div className="pt-4 border-t border-white/5 flex flex-wrap gap-2">
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-400 border border-emerald-500/20">
+      <div className="pt-4 border-t border-surface-tint/5 flex flex-wrap gap-2">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-status-success dark:text-emerald-400 border border-emerald-500/20">
           <Check className="w-3 h-3" />
           {account.status.charAt(0).toUpperCase() + account.status.slice(1)}
         </span>
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-white/5 px-2.5 py-1 text-xs font-medium text-muted-foreground border border-white/5">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-surface-tint/5 px-2.5 py-1 text-xs font-medium text-muted-foreground border border-surface-tint/5">
           {account.network}
         </span>
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-white/5 px-2.5 py-1 text-xs text-muted-foreground border border-white/5">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-surface-tint/5 px-2.5 py-1 text-xs text-muted-foreground border border-surface-tint/5">
           Member since {new Date(account.createdAt).toLocaleDateString()}
         </span>
       </div>
 
       {account.betaLimitations.length > 0 && (
         <div className="mt-6 rounded-lg border border-indigo-500/20 bg-indigo-500/10 p-4">
-          <h4 className="text-xs font-medium text-indigo-300 mb-2 flex items-center gap-2">
+          <h4 className="text-xs font-medium text-status-info dark:text-indigo-300 mb-2 flex items-center gap-2">
             <AlertTriangle className="w-3.5 h-3.5" />
             Beta Limitations
           </h4>
           <ul className="list-disc pl-4 space-y-1">
             {account.betaLimitations.map((limitation, i) => (
-              <li key={i} className="text-[11px] text-indigo-200/80">
+              <li key={i} className="text-[11px] text-status-info/80 dark:text-indigo-200/80">
                 {limitation}
               </li>
             ))}
@@ -688,8 +693,8 @@ function SegmentedSetting({
               className={cn(
                 "glow-ring rounded-lg border px-4 py-2 text-xs transition active:scale-[0.97]",
                 checked
-                  ? "border-white/20 bg-white/[0.08] text-foreground shadow-[var(--shadow-glow)]"
-                  : "border-white/5 text-muted-foreground hover:border-white/10 hover:text-foreground",
+                  ? "border-surface-tint/20 bg-surface-tint/[0.08] text-foreground shadow-[var(--shadow-glow)]"
+                  : "border-surface-tint/5 text-muted-foreground hover:border-surface-tint/10 hover:text-foreground",
               )}
             >
               {optionLabel}
@@ -712,12 +717,12 @@ function AppearancePreview({ preferences }: { preferences: UiPreferences }) {
     <Surface
       variant={preferences.glassIntensity === "strong" ? "strong" : "glass"}
       padding="md"
-      className="space-y-3 border border-white/10"
+      className="space-y-3 border border-surface-tint/10"
       style={previewStyle}
     >
       <div className="flex items-center justify-between">
         <span className="text-xs font-medium text-foreground">Live preview</span>
-        <span className="rounded-full bg-emerald-400/10 px-2 py-0.5 text-[10px] text-emerald-300">
+        <span className="rounded-full bg-emerald-400/10 px-2 py-0.5 text-[10px] text-status-success dark:text-emerald-300">
           Updates instantly
         </span>
       </div>
@@ -727,7 +732,7 @@ function AppearancePreview({ preferences }: { preferences: UiPreferences }) {
             <div
               key={subject}
               className={cn(
-                "rounded-xl border border-white/10 bg-white/[0.04] p-[var(--preview-pad)]",
+                "rounded-xl border border-surface-tint/10 bg-surface-tint/[0.04] p-[var(--preview-pad)]",
                 index === 0 && "bg-emerald-300/[0.08]",
               )}
             >
@@ -741,7 +746,7 @@ function AppearancePreview({ preferences }: { preferences: UiPreferences }) {
             </div>
           ))}
         </div>
-        <div className="rounded-xl border border-white/10 bg-background/25 p-3">
+        <div className="rounded-xl border border-surface-tint/10 bg-background/25 p-3">
           <p className="text-[11px] font-semibold text-foreground">Reader sample</p>
           <p
             className={cn(
@@ -795,10 +800,10 @@ function NotificationSettings({
   if (isLoading) {
     return (
       <div className="space-y-6 animate-pulse">
-        <div className="h-4 w-24 bg-white/10 rounded mb-2" />
+        <div className="h-4 w-24 bg-surface-tint/10 rounded mb-2" />
         <div className="space-y-4 mt-4">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-12 bg-white/5 rounded-lg" />
+            <div key={i} className="h-12 bg-surface-tint/5 rounded-lg" />
           ))}
         </div>
       </div>
@@ -808,11 +813,13 @@ function NotificationSettings({
   if (isError || !profileData) {
     const isAuthError = isApiClientError(error) && error.status === 401;
     return (
-      <div className="rounded-lg border border-rose-500/20 bg-rose-500/10 p-4 text-sm text-rose-200">
+      <div className="rounded-lg border border-rose-500/20 bg-rose-500/10 p-4 text-sm text-status-danger dark:text-rose-200">
         <div className="flex items-start gap-3">
-          <AlertTriangle className="h-5 w-5 shrink-0 text-rose-400" />
+          <AlertTriangle className="h-5 w-5 shrink-0 text-status-danger dark:text-rose-400" />
           <div>
-            <p className="font-medium text-rose-300">Could not load notifications</p>
+            <p className="font-medium text-status-danger dark:text-rose-300">
+              Could not load notifications
+            </p>
             <p className="mt-1 opacity-80">
               {isAuthError
                 ? "Your session has expired. Please sign in again."
@@ -856,15 +863,15 @@ function NotificationSettings({
     <div className="space-y-6">
       {mutation.isError && isApiClientError(mutation.error) && mutation.error.status === 409 && (
         <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-sm flex items-start gap-3">
-          <AlertTriangle className="h-4 w-4 shrink-0 text-amber-400 mt-0.5" />
-          <div className="text-amber-200">
+          <AlertTriangle className="h-4 w-4 shrink-0 text-status-warning dark:text-amber-400 mt-0.5" />
+          <div className="text-status-warning dark:text-amber-200">
             <p className="font-medium">Settings updated elsewhere</p>
             <p className="mt-0.5 text-xs opacity-80">
               These settings were modified from another session or tab.
             </p>
             <button
               onClick={() => refetch()}
-              className="mt-2 text-xs font-medium text-amber-300 hover:text-amber-200 underline underline-offset-2"
+              className="mt-2 text-xs font-medium text-status-warning dark:text-amber-300 hover:text-status-warning dark:hover:text-amber-200 underline underline-offset-2"
             >
               Reload latest changes
             </button>
@@ -874,8 +881,8 @@ function NotificationSettings({
 
       {mutation.isError && isApiClientError(mutation.error) && mutation.error.status === 403 && (
         <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-sm flex items-start gap-3">
-          <Lock className="h-4 w-4 shrink-0 text-amber-400 mt-0.5" />
-          <div className="text-amber-200">
+          <Lock className="h-4 w-4 shrink-0 text-status-warning dark:text-amber-400 mt-0.5" />
+          <div className="text-status-warning dark:text-amber-200">
             <p className="font-medium">Authentication required</p>
             <p className="mt-0.5 text-xs opacity-80">
               For your security, please sign out and sign back in to make this change.
@@ -901,7 +908,7 @@ function NotificationSettings({
           checked={notifications.desktop}
           onChange={(checked) => handleToggle("desktop", checked)}
         />
-        <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
+        <div className="rounded-lg border border-surface-tint/10 bg-surface-tint/[0.03] p-3">
           <p className="text-xs font-medium text-foreground">Browser permission</p>
           <p className="mt-1 text-xs text-muted-foreground">
             {browserPermission === "granted"
@@ -916,7 +923,7 @@ function NotificationSettings({
             <button
               type="button"
               onClick={() => void requestBrowserPermission().then(setBrowserPermission)}
-              className="mt-3 rounded-md bg-white/10 px-3 py-1.5 text-xs text-foreground transition hover:bg-white/15"
+              className="mt-3 rounded-md bg-surface-tint/10 px-3 py-1.5 text-xs text-foreground transition hover:bg-surface-tint/15"
             >
               Allow browser alerts
             </button>
@@ -930,13 +937,13 @@ function NotificationSettings({
                   tag: "stealth-notification-test",
                 })
               }
-              className="mt-3 rounded-md bg-white/10 px-3 py-1.5 text-xs text-foreground transition hover:bg-white/15"
+              className="mt-3 rounded-md bg-surface-tint/10 px-3 py-1.5 text-xs text-foreground transition hover:bg-surface-tint/15"
             >
               Send test notification
             </button>
           )}
         </div>
-        <div className="space-y-3 border-t border-white/10 pt-4">
+        <div className="space-y-3 border-t border-surface-tint/10 pt-4">
           <p className="text-xs font-medium text-foreground">In-app alert categories</p>
           {(["mail", "requests", "failures", "receipts"] as const).map((category) => (
             <SettingsToggle
@@ -959,7 +966,7 @@ function NotificationSettings({
             />
           ))}
         </div>
-        <div className="space-y-3 border-t border-white/10 pt-4">
+        <div className="space-y-3 border-t border-surface-tint/10 pt-4">
           <SettingsToggle
             label="Quiet hours"
             description="Suppress browser alerts during these local times. In-app alerts remain available."
@@ -986,7 +993,7 @@ function NotificationSettings({
                       },
                     })
                   }
-                  className="ml-1 rounded border border-white/10 bg-black/20 p-1 text-foreground"
+                  className="ml-1 rounded border border-surface-tint/10 bg-surface-recessed/20 p-1 text-foreground"
                 />
               </label>
               <label>
@@ -1003,7 +1010,7 @@ function NotificationSettings({
                       },
                     })
                   }
-                  className="ml-1 rounded border border-white/10 bg-black/20 p-1 text-foreground"
+                  className="ml-1 rounded border border-surface-tint/10 bg-surface-recessed/20 p-1 text-foreground"
                 />
               </label>
             </div>
@@ -1190,7 +1197,7 @@ function InboxSettings({ open }: { open: boolean }) {
 
   if (isError) {
     return (
-      <div className="rounded-lg border border-rose-500/20 bg-rose-500/10 p-4 text-sm text-rose-200">
+      <div className="rounded-lg border border-rose-500/20 bg-rose-500/10 p-4 text-sm text-status-danger dark:text-rose-200">
         Could not load policy.{" "}
         <button onClick={() => refetch()} className="underline">
           Retry
@@ -1203,15 +1210,15 @@ function InboxSettings({ open }: { open: boolean }) {
     <div className="space-y-6">
       {mutation.isError && isApiClientError(mutation.error) && mutation.error.status === 409 && (
         <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-sm flex items-start gap-3">
-          <AlertTriangle className="h-4 w-4 shrink-0 text-amber-400 mt-0.5" />
-          <div className="text-amber-200">
+          <AlertTriangle className="h-4 w-4 shrink-0 text-status-warning dark:text-amber-400 mt-0.5" />
+          <div className="text-status-warning dark:text-amber-200">
             <p className="font-medium">Policy updated elsewhere</p>
             <p className="mt-0.5 text-xs opacity-80">
               These settings were modified from another session or tab.
             </p>
             <button
               onClick={() => refetch()}
-              className="mt-2 text-xs font-medium text-amber-300 hover:text-amber-200 underline underline-offset-2"
+              className="mt-2 text-xs font-medium text-status-warning dark:text-amber-300 hover:text-status-warning dark:hover:text-amber-200 underline underline-offset-2"
             >
               Reload latest changes
             </button>
@@ -1221,8 +1228,8 @@ function InboxSettings({ open }: { open: boolean }) {
 
       {reconciliation?.state === "pending_write" && (
         <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-3 text-sm flex items-start gap-3">
-          <RefreshCw className="h-4 w-4 shrink-0 text-emerald-400 mt-0.5 animate-spin" />
-          <div className="text-emerald-200">
+          <RefreshCw className="h-4 w-4 shrink-0 text-status-success dark:text-emerald-400 mt-0.5 animate-spin" />
+          <div className="text-status-success dark:text-emerald-200">
             <p className="font-medium">Changes pending on chain</p>
             <p className="mt-0.5 text-xs opacity-80">Your policy is confirming on the network.</p>
           </div>
@@ -1231,8 +1238,8 @@ function InboxSettings({ open }: { open: boolean }) {
 
       {reconciliation?.state === "failed" && (
         <div className="rounded-lg border border-rose-500/20 bg-rose-500/10 p-3 text-sm flex items-start gap-3">
-          <AlertTriangle className="h-4 w-4 shrink-0 text-rose-400 mt-0.5" />
-          <div className="text-rose-200">
+          <AlertTriangle className="h-4 w-4 shrink-0 text-status-danger dark:text-rose-400 mt-0.5" />
+          <div className="text-status-danger dark:text-rose-200">
             <p className="font-medium">Policy write failed</p>
             <p className="mt-0.5 text-xs opacity-80">
               {reconciliation.offchain.intentError || "An error occurred writing to the network."}
@@ -1243,7 +1250,7 @@ function InboxSettings({ open }: { open: boolean }) {
                   policy: { ...livePolicy, version: reconciliation.offchain.version ?? undefined },
                 })
               }
-              className="mt-2 text-xs font-medium text-rose-300 hover:text-rose-200 underline"
+              className="mt-2 text-xs font-medium text-status-danger dark:text-rose-300 hover:text-status-danger dark:hover:text-rose-200 underline"
             >
               Retry
             </button>
@@ -1282,7 +1289,7 @@ function InboxSettings({ open }: { open: boolean }) {
                     "rounded-2xl border p-4 text-left transition focus-visible:ring-2 focus-visible:ring-emerald-400",
                     selected
                       ? "border-emerald-300/30 bg-emerald-300/[0.08] shadow-[0_0_0_1px_rgba(110,231,183,0.12)]"
-                      : "border-white/10 bg-white/[0.025] hover:border-white/15 hover:bg-white/[0.05]",
+                      : "border-surface-tint/10 bg-surface-tint/[0.025] hover:border-surface-tint/15 hover:bg-surface-tint/[0.05]",
                   )}
                 >
                   <div className="flex items-start justify-between gap-4">
@@ -1294,8 +1301,8 @@ function InboxSettings({ open }: { open: boolean }) {
                       className={cn(
                         "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium",
                         selected
-                          ? "bg-emerald-400/20 text-emerald-300"
-                          : "bg-white/[0.06] text-muted-foreground",
+                          ? "bg-emerald-400/20 text-status-success dark:text-emerald-300"
+                          : "bg-surface-tint/[0.06] text-muted-foreground",
                       )}
                     >
                       {selected ? "Previewing" : "View"}
@@ -1303,13 +1310,13 @@ function InboxSettings({ open }: { open: boolean }) {
                   </div>
 
                   <div className="mt-3 grid gap-2 text-[11px] text-muted-foreground sm:grid-cols-2">
-                    <div className="rounded-xl border border-white/5 bg-black/15 px-3 py-2">
+                    <div className="rounded-xl border border-surface-tint/5 bg-surface-recessed/15 px-3 py-2">
                       <span className="block text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
                         Tradeoff
                       </span>
                       <span className="mt-1 block text-foreground">{template.tradeoff}</span>
                     </div>
-                    <div className="rounded-xl border border-white/5 bg-black/15 px-3 py-2">
+                    <div className="rounded-xl border border-surface-tint/5 bg-surface-recessed/15 px-3 py-2">
                       <span className="block text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
                         Sender experience
                       </span>
@@ -1330,7 +1337,7 @@ function InboxSettings({ open }: { open: boolean }) {
                 "rounded-2xl border p-4 text-left transition focus-visible:ring-2 focus-visible:ring-sky-400 outline-none",
                 previewTemplateId === "custom"
                   ? "border-sky-300/30 bg-sky-300/[0.08] shadow-[0_0_0_1px_rgba(103,232,249,0.12)]"
-                  : "border-dashed border-white/10 bg-white/[0.02] hover:border-white/15 hover:bg-white/[0.04]",
+                  : "border-dashed border-surface-tint/10 bg-surface-tint/[0.02] hover:border-surface-tint/15 hover:bg-surface-tint/[0.04]",
               )}
             >
               <div className="flex items-start justify-between gap-4">
@@ -1347,8 +1354,8 @@ function InboxSettings({ open }: { open: boolean }) {
                   className={cn(
                     "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium",
                     previewTemplateId === "custom"
-                      ? "bg-sky-400/20 text-sky-300"
-                      : "bg-white/[0.06] text-muted-foreground",
+                      ? "bg-sky-400/20 text-status-info dark:text-sky-300"
+                      : "bg-surface-tint/[0.06] text-muted-foreground",
                   )}
                 >
                   {savedCustomTemplate ? "Saved" : "Unsaved"}
@@ -1356,7 +1363,7 @@ function InboxSettings({ open }: { open: boolean }) {
               </div>
               {savedCustomTemplate ? (
                 <div className="mt-3 grid gap-2 sm:grid-cols-2 text-[11px] text-muted-foreground">
-                  <div className="rounded-xl border border-white/5 bg-black/15 px-3 py-2">
+                  <div className="rounded-xl border border-surface-tint/5 bg-surface-recessed/15 px-3 py-2">
                     <span className="block text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
                       Source
                     </span>
@@ -1364,7 +1371,7 @@ function InboxSettings({ open }: { open: boolean }) {
                       {savedCustomTemplate.sourceTemplateId ?? "Manual draft"}
                     </span>
                   </div>
-                  <div className="rounded-xl border border-white/5 bg-black/15 px-3 py-2">
+                  <div className="rounded-xl border border-surface-tint/5 bg-surface-recessed/15 px-3 py-2">
                     <span className="block text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
                       Exact values
                     </span>
@@ -1390,7 +1397,7 @@ function InboxSettings({ open }: { open: boolean }) {
           </div>
         </div>
 
-        <Surface variant="strong" padding="md" className="space-y-4 border border-white/10">
+        <Surface variant="strong" padding="md" className="space-y-4 border border-surface-tint/10">
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
@@ -1407,8 +1414,8 @@ function InboxSettings({ open }: { open: boolean }) {
               className={cn(
                 "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium",
                 previewTemplateId === "custom"
-                  ? "bg-sky-400/15 text-sky-300"
-                  : "bg-emerald-400/15 text-emerald-300",
+                  ? "bg-sky-400/15 text-status-info dark:text-sky-300"
+                  : "bg-emerald-400/15 text-status-success dark:text-emerald-300",
               )}
             >
               {previewTemplateId === "custom" ? "Custom" : "Template"}
@@ -1442,14 +1449,14 @@ function InboxSettings({ open }: { open: boolean }) {
             />
           </div>
 
-          <div className="rounded-2xl border border-white/10 bg-black/15 p-3">
+          <div className="rounded-2xl border border-surface-tint/10 bg-surface-recessed/15 p-3">
             <p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
               Sender experience
             </p>
             <p className="mt-1 text-sm text-foreground">{selectedPreview?.senderExperience}</p>
           </div>
 
-          <div className="rounded-2xl border border-white/10 bg-black/15 p-3">
+          <div className="rounded-2xl border border-surface-tint/10 bg-surface-recessed/15 p-3">
             <p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
               Tradeoff
             </p>
@@ -1459,14 +1466,14 @@ function InboxSettings({ open }: { open: boolean }) {
           {applyingWillReplaceCurrent && (
             <div className="rounded-2xl border border-amber-300/20 bg-amber-300/[0.08] p-3 flex items-start gap-2">
               <AlertTriangle
-                className="h-4 w-4 text-amber-300 shrink-0 mt-0.5"
+                className="h-4 w-4 text-status-warning dark:text-amber-300 shrink-0 mt-0.5"
                 aria-hidden="true"
               />
               <div>
-                <p className="text-sm font-medium text-amber-200">
+                <p className="text-sm font-medium text-status-warning dark:text-amber-200">
                   Applying will overwrite your current draft
                 </p>
-                <p className="mt-1 text-xs text-amber-100/70">
+                <p className="mt-1 text-xs text-status-warning dark:text-amber-100/70">
                   Your live draft stays unchanged until you click Apply. This action replaces the
                   current unsaved policy values.
                 </p>
@@ -1554,7 +1561,7 @@ function InboxSettings({ open }: { open: boolean }) {
                     "rounded-xl border p-3 text-left transition focus-visible:ring-2 focus-visible:ring-emerald-400 outline-none active:scale-[0.99]",
                     isActive
                       ? "border-emerald-200/20 bg-emerald-200/[0.06]"
-                      : "border-white/10 bg-white/[0.025] hover:border-white/15 hover:bg-white/[0.05]",
+                      : "border-surface-tint/10 bg-surface-tint/[0.025] hover:border-surface-tint/15 hover:bg-surface-tint/[0.05]",
                   )}
                 >
                   <div className="flex items-center justify-between gap-3">
@@ -1562,7 +1569,7 @@ function InboxSettings({ open }: { open: boolean }) {
                       {policy.label}
                     </span>
                     {isActive && (
-                      <span className="shrink-0 rounded-full bg-emerald-400/15 px-2 py-0.5 text-[10px] font-medium text-emerald-300">
+                      <span className="shrink-0 rounded-full bg-emerald-400/15 px-2 py-0.5 text-[10px] font-medium text-status-success dark:text-emerald-300">
                         Active
                       </span>
                     )}
@@ -1587,7 +1594,7 @@ function InboxSettings({ open }: { open: boolean }) {
 
 function PreviewStat({ label, value, meta }: { label: string; value: string; meta: string }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-black/15 px-3 py-2.5">
+    <div className="rounded-2xl border border-surface-tint/10 bg-surface-recessed/15 px-3 py-2.5">
       <span className="block text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
         {label}
       </span>
@@ -1677,7 +1684,7 @@ function ReceiptSettings({
         </p>
       </div>
 
-      <div className="rounded-lg border border-white/10 bg-white/[0.025] p-4">
+      <div className="rounded-lg border border-surface-tint/10 bg-surface-tint/[0.025] p-4">
         <div className="flex items-center justify-between">
           <div>
             <div className="text-xs font-medium text-foreground">Enable read receipts</div>
@@ -1691,7 +1698,7 @@ function ReceiptSettings({
             onClick={() => setReceiptOnDelivery(!preferences.receiptOnDelivery)}
             className={cn(
               "relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors",
-              preferences.receiptOnDelivery ? "bg-emerald-500" : "bg-white/20",
+              preferences.receiptOnDelivery ? "bg-emerald-500" : "bg-surface-tint/20",
             )}
           >
             <span
@@ -1722,7 +1729,7 @@ function ReceiptSettings({
                       "flex-1 rounded-lg border px-3 py-2 text-left transition focus-visible:ring-2 focus-visible:ring-emerald-400",
                       preferences.receipts[type.key] === opt.value
                         ? "border-emerald-200/20 bg-emerald-200/[0.06]"
-                        : "border-white/10 bg-white/[0.025] hover:bg-white/[0.05]",
+                        : "border-surface-tint/10 bg-surface-tint/[0.025] hover:bg-surface-tint/[0.05]",
                     )}
                   >
                     <div className="text-[11px] font-medium text-foreground">{opt.label}</div>
@@ -1739,7 +1746,7 @@ function ReceiptSettings({
 
       {hasAnyAuto && preferences.receiptOnDelivery && (
         <div className="rounded-lg border border-emerald-200/15 bg-emerald-200/[0.03] p-3">
-          <p className="text-[11px] text-emerald-200">
+          <p className="text-[11px] text-status-success dark:text-emerald-200">
             When &quot;Automatic&quot; is selected, the sender will be notified that you opened
             their message. No additional content is shared beyond the read timestamp.
           </p>
@@ -1764,7 +1771,7 @@ function ReceiptSettings({
             </span>
           </li>
           <li className="flex items-start gap-2">
-            <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-white/30" />
+            <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-surface-tint/30" />
             <span>
               <strong className="text-foreground">Never:</strong> Sender has no read confirmation.
               Your local read/unread state is unaffected.
@@ -1773,7 +1780,7 @@ function ReceiptSettings({
         </ul>
       </div>
 
-      <div className="rounded-lg border border-white/5 bg-white/[0.02] p-3">
+      <div className="rounded-lg border border-surface-tint/5 bg-surface-tint/[0.02] p-3">
         <p className="text-[11px] text-muted-foreground">
           Disabling read receipts prevents the read event from being published to the sender, but
           does not change how messages appear in your own inbox. Your local read/unread state is
@@ -1798,7 +1805,7 @@ function ShortcutSettings() {
         {SHORTCUT_DEFINITIONS.map((shortcut) => (
           <div
             key={shortcut.id}
-            className="flex items-center justify-between rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2"
+            className="flex items-center justify-between rounded-lg border border-surface-tint/5 bg-surface-tint/[0.02] px-3 py-2"
           >
             <div>
               <span className="text-sm text-foreground">{shortcut.label}</span>
@@ -1808,7 +1815,7 @@ function ShortcutSettings() {
               {shortcut.keys.map((key) => (
                 <kbd
                   key={`${shortcut.id}-${key}`}
-                  className="rounded border border-white/10 bg-black/30 px-2 py-1 font-mono text-[11px] text-muted-foreground"
+                  className="rounded border border-surface-tint/10 bg-surface-recessed/30 px-2 py-1 font-mono text-[11px] text-muted-foreground"
                 >
                   {key}
                 </kbd>
@@ -1912,7 +1919,7 @@ function SettingsField({
   };
 
   return (
-    <div className="group relative rounded-lg border border-white/5 bg-white/[0.02] p-3 transition-colors hover:bg-white/[0.04]">
+    <div className="group relative rounded-lg border border-surface-tint/5 bg-surface-tint/[0.02] p-3 transition-colors hover:bg-surface-tint/[0.04]">
       <div className="flex items-start justify-between">
         <div className="flex-1 pr-4">
           <div className="flex items-center gap-2">
@@ -1935,16 +1942,18 @@ function SettingsField({
                 disabled={isSaving}
                 placeholder={placeholder}
                 className={cn(
-                  "w-full rounded-md border bg-black/20 px-3 py-1.5 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 transition-colors",
-                  error ? "border-rose-500/50" : "border-white/10",
+                  "w-full rounded-md border bg-surface-recessed/20 px-3 py-1.5 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 transition-colors",
+                  error ? "border-rose-500/50" : "border-surface-tint/10",
                 )}
               />
-              {error && <p className="text-[11px] text-rose-400">{error}</p>}
+              {error && (
+                <p className="text-[11px] text-status-danger dark:text-rose-400">{error}</p>
+              )}
               <div className="flex items-center gap-2 pt-1">
                 <button
                   onClick={handleSave}
                   disabled={isSaving}
-                  className="rounded bg-emerald-500/20 px-3 py-1 text-xs font-medium text-emerald-300 transition hover:bg-emerald-500/30 disabled:opacity-50"
+                  className="rounded bg-emerald-500/20 px-3 py-1 text-xs font-medium text-status-success dark:text-emerald-300 transition hover:bg-emerald-500/30 disabled:opacity-50"
                 >
                   {isSaving ? "Saving..." : "Save"}
                 </button>
@@ -1975,10 +1984,10 @@ function SettingsField({
               <button
                 onClick={handleCopy}
                 aria-label={`Copy ${label}`}
-                className="rounded p-1.5 text-muted-foreground hover:bg-white/10 hover:text-foreground transition"
+                className="rounded p-1.5 text-muted-foreground hover:bg-surface-tint/10 hover:text-foreground transition"
               >
                 {copied ? (
-                  <Check className="w-4 h-4 text-emerald-400" />
+                  <Check className="w-4 h-4 text-status-success dark:text-emerald-400" />
                 ) : (
                   <Copy className="w-4 h-4" />
                 )}
@@ -1988,7 +1997,7 @@ function SettingsField({
               <button
                 onClick={handleEdit}
                 aria-label={`Edit ${label}`}
-                className="rounded p-1.5 text-muted-foreground hover:bg-white/10 hover:text-foreground transition"
+                className="rounded p-1.5 text-muted-foreground hover:bg-surface-tint/10 hover:text-foreground transition"
               >
                 <Edit className="w-4 h-4" />
               </button>
@@ -2096,7 +2105,7 @@ function SecuritySettings() {
                   onConfirm: () => handleRevokeOthers(),
                 })
               }
-              className="rounded-lg border border-red-500/20 bg-red-500/10 px-2.5 py-1 text-xs font-medium text-red-400 hover:bg-red-500/20 transition"
+              className="rounded-lg border border-red-500/20 bg-red-500/10 px-2.5 py-1 text-xs font-medium text-status-danger dark:text-red-400 hover:bg-red-500/20 transition"
             >
               Revoke other sessions
             </button>
@@ -2106,7 +2115,7 @@ function SecuritySettings() {
           {sessions.map((session) => (
             <div
               key={session.id}
-              className="flex items-center justify-between rounded-lg border border-white/5 bg-white/[0.02] p-3"
+              className="flex items-center justify-between rounded-lg border border-surface-tint/5 bg-surface-tint/[0.02] p-3"
             >
               <div className="flex items-center gap-3">
                 <Laptop className="h-4 w-4 text-muted-foreground" />
@@ -2114,7 +2123,7 @@ function SecuritySettings() {
                   <div className="flex items-center gap-2">
                     <p className="text-sm text-foreground">{session.device}</p>
                     {session.isCurrent && (
-                      <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-400">
+                      <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-status-success dark:text-emerald-400">
                         Current
                       </span>
                     )}
@@ -2135,7 +2144,7 @@ function SecuritySettings() {
                     onConfirm: () => handleRevoke(session.id, session.isCurrent),
                   })
                 }
-                className="rounded-lg px-3 py-1.5 text-xs text-red-400 hover:bg-red-500/10 transition"
+                className="rounded-lg px-3 py-1.5 text-xs text-status-danger dark:text-red-400 hover:bg-red-500/10 transition"
               >
                 Revoke
               </button>
@@ -2155,14 +2164,14 @@ function SecuritySettings() {
             <p className="text-xs text-muted-foreground">Your public key for verifying messages</p>
           </div>
         </div>
-        <div className="rounded-lg border border-white/5 bg-white/[0.02] p-4 space-y-3">
-          <div className="flex items-center justify-between rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2">
+        <div className="rounded-lg border border-surface-tint/5 bg-surface-tint/[0.02] p-4 space-y-3">
+          <div className="flex items-center justify-between rounded-lg border border-surface-tint/10 bg-surface-tint/[0.04] px-3 py-2">
             <code className="text-[10px] text-muted-foreground truncate">
               GDQJMSGKJGQ2X576L33OY4JFDZ7NJG5OJ3LJ44V33PUPU7D5Q5X4KJ
             </code>
             <button
               onClick={handleCopyKey}
-              className="ml-2 flex items-center gap-1 rounded px-2 py-1 text-[10px] text-muted-foreground hover:bg-white/[0.06] transition"
+              className="ml-2 flex items-center gap-1 rounded px-2 py-1 text-[10px] text-muted-foreground hover:bg-surface-tint/[0.06] transition"
             >
               {copiedKey ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
               {copiedKey ? "Copied" : "Copy"}
@@ -2177,7 +2186,7 @@ function SecuritySettings() {
                 onConfirm: () => setConfirmDialog(null),
               })
             }
-            className="flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-xs text-amber-400 hover:bg-amber-500/10 transition"
+            className="flex items-center gap-2 rounded-lg border border-surface-tint/10 px-3 py-2 text-xs text-status-warning dark:text-amber-400 hover:bg-amber-500/10 transition"
           >
             <RefreshCw className="h-3.5 w-3.5" />
             Rotate keys (roadmap)
@@ -2195,7 +2204,7 @@ function SecuritySettings() {
             </p>
           </div>
         </div>
-        <div className="rounded-lg border border-white/10 bg-white/[0.02] p-4 opacity-50 pointer-events-none">
+        <div className="rounded-lg border border-surface-tint/10 bg-surface-tint/[0.02] p-4 opacity-50 pointer-events-none">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <AlertTriangle className="h-3.5 w-3.5" />
             <span>Coming soon</span>
@@ -2206,7 +2215,7 @@ function SecuritySettings() {
       {/* Confirmation Dialog */}
       {confirmDialog && (
         <div
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm"
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-surface-recessed/70 backdrop-blur-sm"
           role="dialog"
           aria-modal="true"
           aria-labelledby="confirm-dialog-title"
@@ -2222,7 +2231,7 @@ function SecuritySettings() {
             <div className="flex gap-2 pt-2">
               <button
                 onClick={() => setConfirmDialog(null)}
-                className="flex-1 rounded-lg border border-white/10 px-4 py-2 text-xs text-foreground hover:bg-white/[0.06] transition"
+                className="flex-1 rounded-lg border border-surface-tint/10 px-4 py-2 text-xs text-foreground hover:bg-surface-tint/[0.06] transition"
               >
                 Cancel
               </button>
@@ -2265,7 +2274,7 @@ function LayoutSettings({
           onChange={(checked) => onChange({ ...layout, compactMode: checked })}
         />
 
-        <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
+        <div className="rounded-xl border border-surface-tint/5 bg-surface-tint/[0.02] p-4">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-foreground">Reset layout</p>
@@ -2275,7 +2284,7 @@ function LayoutSettings({
             </div>
             <button
               onClick={onReset}
-              className="flex items-center gap-2 rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-foreground transition hover:bg-white/[0.06]"
+              className="flex items-center gap-2 rounded-lg border border-surface-tint/10 px-3 py-1.5 text-xs font-semibold text-foreground transition hover:bg-surface-tint/[0.06]"
             >
               <RefreshCw className="h-3.5 w-3.5" />
               Reset
@@ -2319,13 +2328,13 @@ function SettingsToggle({
           "glow-ring relative h-6 w-11 shrink-0 rounded-full transition-colors duration-200",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
           "hover:brightness-110 active:scale-95",
-          checked ? "bg-emerald-500" : "bg-white/15",
+          checked ? "bg-emerald-500" : "bg-surface-tint/15",
         )}
       >
         <span
           className={cn(
             "absolute top-1 h-4 w-4 rounded-full shadow-sm transition-[left] duration-200",
-            checked ? "left-6 bg-white" : "left-1 bg-white/80",
+            checked ? "left-6 bg-white" : "left-1 bg-surface-tint/80",
           )}
         />
       </button>
@@ -2346,12 +2355,12 @@ function PostageInput({ value, onChange }: { value: string; onChange: (value: st
       </label>
       <div
         className={cn(
-          "mt-2 flex items-center rounded-lg border bg-white/[0.04] px-3 transition-colors",
+          "mt-2 flex items-center rounded-lg border bg-surface-tint/[0.04] px-3 transition-colors",
           isInvalid
             ? "border-rose-400/50 ring-1 ring-rose-400/30"
             : focused
               ? "border-emerald-400/50 ring-1 ring-emerald-400/20"
-              : "border-white/10 hover:border-white/20",
+              : "border-surface-tint/10 hover:border-surface-tint/20",
         )}
       >
         <input
@@ -2372,7 +2381,10 @@ function PostageInput({ value, onChange }: { value: string; onChange: (value: st
         </span>
       </div>
       {isInvalid ? (
-        <p id="settings-postage-hint" className="mt-1.5 text-[11px] text-rose-400">
+        <p
+          id="settings-postage-hint"
+          className="mt-1.5 text-[11px] text-status-danger dark:text-rose-400"
+        >
           Enter a valid number ≥ 0, for example 0.01.
         </p>
       ) : (

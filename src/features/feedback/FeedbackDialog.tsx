@@ -76,14 +76,26 @@ const CATEGORIES: { value: FeedbackCategory; label: string; icon: string }[] = [
 ];
 
 const SEVERITIES: { value: FeedbackSeverity; label: string; color: string }[] = [
-  { value: "low", label: "Low", color: "text-blue-400 border-blue-500/30 bg-blue-500/10" },
+  {
+    value: "low",
+    label: "Low",
+    color: "text-status-info dark:text-blue-400 border-blue-500/30 bg-blue-500/10",
+  },
   {
     value: "medium",
     label: "Medium",
-    color: "text-yellow-400 border-yellow-500/30 bg-yellow-500/10",
+    color: "text-status-warning dark:text-yellow-400 border-yellow-500/30 bg-yellow-500/10",
   },
-  { value: "high", label: "High", color: "text-orange-400 border-orange-500/30 bg-orange-500/10" },
-  { value: "critical", label: "Critical", color: "text-red-400 border-red-500/30 bg-red-500/10" },
+  {
+    value: "high",
+    label: "High",
+    color: "text-status-warning dark:text-orange-400 border-orange-500/30 bg-orange-500/10",
+  },
+  {
+    value: "critical",
+    label: "Critical",
+    color: "text-status-danger dark:text-red-400 border-red-500/30 bg-red-500/10",
+  },
 ];
 
 function collectDiagnostics(): FeedbackDiagnostics {
@@ -189,16 +201,18 @@ export function FeedbackDialog({ onClose, initialRoute }: FeedbackDialogProps) {
       aria-label="Beta Feedback Report"
       id="feedback-dialog"
     >
-      <div className="w-full max-w-lg bg-neutral-900 border border-neutral-800 rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+      <div className="w-full max-w-lg bg-card dark:bg-neutral-900 border border-border dark:border-neutral-800 rounded-2xl shadow-2xl flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-neutral-800">
+        <div className="flex items-center justify-between p-5 border-b border-border dark:border-neutral-800">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-purple-500/10 text-purple-400 rounded-lg">
+            <div className="p-2 bg-purple-500/10 text-status-special dark:text-purple-400 rounded-lg">
               <Bug className="size-4" />
             </div>
             <div>
-              <h2 className="font-semibold text-sm text-neutral-100">Report a Problem</h2>
-              <p className="text-[11px] text-neutral-500">
+              <h2 className="font-semibold text-sm text-status-neutral dark:text-neutral-100">
+                Report a Problem
+              </h2>
+              <p className="text-[11px] text-muted-foreground dark:text-neutral-500">
                 {step === "form" && "Step 1 of 2 — describe the issue"}
                 {step === "preview" && "Step 2 of 2 — review before sending"}
                 {step === "done" && "Report submitted"}
@@ -208,7 +222,7 @@ export function FeedbackDialog({ onClose, initialRoute }: FeedbackDialogProps) {
           <button
             id="feedback-dialog-close"
             onClick={onClose}
-            className="p-1.5 text-neutral-500 hover:text-neutral-200 hover:bg-neutral-800 rounded-lg transition-all"
+            className="p-1.5 text-muted-foreground dark:text-neutral-500 hover:text-status-neutral dark:hover:text-neutral-200 hover:bg-accent dark:hover:bg-neutral-800 rounded-lg transition-all"
             aria-label="Close feedback dialog"
           >
             <X className="size-4" />
@@ -217,8 +231,8 @@ export function FeedbackDialog({ onClose, initialRoute }: FeedbackDialogProps) {
 
         {/* Privacy notice — always visible */}
         <div className="mx-5 mt-4 px-3 py-2 bg-emerald-500/5 border border-emerald-500/15 rounded-lg flex items-start gap-2">
-          <Shield className="size-3.5 text-emerald-400 mt-0.5 shrink-0" />
-          <p className="text-[11px] text-emerald-300/80 leading-relaxed">
+          <Shield className="size-3.5 text-status-success dark:text-emerald-400 mt-0.5 shrink-0" />
+          <p className="text-[11px] text-status-success/80 dark:text-emerald-300/80 leading-relaxed">
             Message content, tokens, and private keys are <strong>never collected</strong>. Only the
             metadata you see in the preview is sent.
           </p>
@@ -230,8 +244,8 @@ export function FeedbackDialog({ onClose, initialRoute }: FeedbackDialogProps) {
             <>
               {/* Category */}
               <div>
-                <label className="block text-xs font-medium text-neutral-400 mb-2">
-                  Category <span className="text-red-400">*</span>
+                <label className="block text-xs font-medium text-muted-foreground dark:text-neutral-400 mb-2">
+                  Category <span className="text-status-danger dark:text-red-400">*</span>
                 </label>
                 <div className="grid grid-cols-3 gap-2">
                   {CATEGORIES.map((cat) => (
@@ -241,8 +255,8 @@ export function FeedbackDialog({ onClose, initialRoute }: FeedbackDialogProps) {
                       onClick={() => setCategory(cat.value)}
                       className={`px-3 py-2 text-left rounded-lg border text-xs transition-all flex items-center gap-1.5 ${
                         category === cat.value
-                          ? "border-purple-500/60 bg-purple-500/10 text-purple-300"
-                          : "border-neutral-800 text-neutral-400 hover:border-neutral-700 hover:text-neutral-200"
+                          ? "border-purple-500/60 bg-purple-500/10 text-status-special dark:text-purple-300"
+                          : "border-border dark:border-neutral-800 text-muted-foreground dark:text-neutral-400 hover:border-border dark:hover:border-neutral-700 hover:text-status-neutral dark:hover:text-neutral-200"
                       }`}
                     >
                       <span>{cat.icon}</span>
@@ -254,8 +268,8 @@ export function FeedbackDialog({ onClose, initialRoute }: FeedbackDialogProps) {
 
               {/* Severity */}
               <div>
-                <label className="block text-xs font-medium text-neutral-400 mb-2">
-                  Severity <span className="text-red-400">*</span>
+                <label className="block text-xs font-medium text-muted-foreground dark:text-neutral-400 mb-2">
+                  Severity <span className="text-status-danger dark:text-red-400">*</span>
                 </label>
                 <div className="flex gap-2">
                   {SEVERITIES.map((sev) => (
@@ -266,7 +280,7 @@ export function FeedbackDialog({ onClose, initialRoute }: FeedbackDialogProps) {
                       className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-lg border transition-all ${
                         severity === sev.value
                           ? sev.color
-                          : "border-neutral-800 text-neutral-500 hover:border-neutral-700"
+                          : "border-border dark:border-neutral-800 text-muted-foreground dark:text-neutral-500 hover:border-border dark:hover:border-neutral-700"
                       }`}
                     >
                       {sev.label}
@@ -279,10 +293,12 @@ export function FeedbackDialog({ onClose, initialRoute }: FeedbackDialogProps) {
               <div>
                 <label
                   htmlFor="feedback-steps"
-                  className="block text-xs font-medium text-neutral-400 mb-2"
+                  className="block text-xs font-medium text-muted-foreground dark:text-neutral-400 mb-2"
                 >
-                  Steps to reproduce <span className="text-red-400">*</span>
-                  <span className="ml-1 text-neutral-600">(no message content or keys)</span>
+                  Steps to reproduce <span className="text-status-danger dark:text-red-400">*</span>
+                  <span className="ml-1 text-muted-foreground dark:text-neutral-600">
+                    (no message content or keys)
+                  </span>
                 </label>
                 <textarea
                   id="feedback-steps"
@@ -291,16 +307,20 @@ export function FeedbackDialog({ onClose, initialRoute }: FeedbackDialogProps) {
                   placeholder="1. Open compose panel&#10;2. Click send&#10;3. See error in console..."
                   rows={5}
                   maxLength={2000}
-                  className="w-full px-3 py-2.5 bg-neutral-950 border border-neutral-800 rounded-lg text-sm text-neutral-200 placeholder-neutral-600 focus:outline-none focus:border-purple-500 resize-none transition-colors"
+                  className="w-full px-3 py-2.5 bg-background dark:bg-neutral-950 border border-border dark:border-neutral-800 rounded-lg text-sm text-status-neutral dark:text-neutral-200 placeholder-neutral-600 focus:outline-none focus:border-purple-500 resize-none transition-colors"
                 />
                 <div className="flex justify-between mt-1">
-                  <span className="text-[11px] text-neutral-600">Minimum 10 characters</span>
-                  <span className="text-[11px] text-neutral-600">{steps.length} / 2000</span>
+                  <span className="text-[11px] text-muted-foreground dark:text-neutral-600">
+                    Minimum 10 characters
+                  </span>
+                  <span className="text-[11px] text-muted-foreground dark:text-neutral-600">
+                    {steps.length} / 2000
+                  </span>
                 </div>
               </div>
 
               {/* Screenshot consent */}
-              <div className="p-3 bg-neutral-950 border border-neutral-800 rounded-lg space-y-2">
+              <div className="p-3 bg-background dark:bg-neutral-950 border border-border dark:border-neutral-800 rounded-lg space-y-2">
                 <label className="flex items-start gap-2.5 cursor-pointer">
                   <input
                     id="feedback-screenshot-consent"
@@ -312,9 +332,9 @@ export function FeedbackDialog({ onClose, initialRoute }: FeedbackDialogProps) {
                     }}
                     className="mt-0.5 accent-purple-500"
                   />
-                  <span className="text-xs text-neutral-300">
+                  <span className="text-xs text-status-neutral dark:text-neutral-300">
                     I consent to including a screenshot of the current screen.
-                    <span className="block text-[11px] text-neutral-500 mt-0.5">
+                    <span className="block text-[11px] text-muted-foreground dark:text-neutral-500 mt-0.5">
                       The screenshot will be reviewed by the Stealth team only.
                     </span>
                   </span>
@@ -323,7 +343,7 @@ export function FeedbackDialog({ onClose, initialRoute }: FeedbackDialogProps) {
                   <button
                     id="feedback-capture-screenshot"
                     onClick={captureScreenshot}
-                    className="w-full flex items-center justify-center gap-2 px-3 py-1.5 border border-neutral-700 hover:border-neutral-600 text-neutral-400 hover:text-neutral-200 rounded-lg text-xs transition-all"
+                    className="w-full flex items-center justify-center gap-2 px-3 py-1.5 border border-border dark:border-neutral-700 hover:border-border dark:hover:border-neutral-600 text-muted-foreground dark:text-neutral-400 hover:text-status-neutral dark:hover:text-neutral-200 rounded-lg text-xs transition-all"
                   >
                     <Camera className="size-3.5" />
                     {screenshotDataUrl ? "Screenshot captured ✓" : "Capture screenshot"}
@@ -340,7 +360,7 @@ export function FeedbackDialog({ onClose, initialRoute }: FeedbackDialogProps) {
                   onChange={(e) => setIncludeDiagnostics(e.target.checked)}
                   className="mt-0.5 accent-purple-500"
                 />
-                <span className="text-xs text-neutral-300">
+                <span className="text-xs text-status-neutral dark:text-neutral-300">
                   Include redacted diagnostics (app version, browser, current route, feature flags,
                   service status). No message content or credentials.
                 </span>
@@ -350,7 +370,7 @@ export function FeedbackDialog({ onClose, initialRoute }: FeedbackDialogProps) {
 
           {step === "preview" && preview && (
             <div className="space-y-3">
-              <p className="text-xs text-neutral-400">
+              <p className="text-xs text-muted-foreground dark:text-neutral-400">
                 This is exactly what will be sent. Review and confirm.
               </p>
 
@@ -366,17 +386,23 @@ export function FeedbackDialog({ onClose, initialRoute }: FeedbackDialogProps) {
               ].map(({ label, value }) => (
                 <div
                   key={label}
-                  className="rounded-lg bg-neutral-950 border border-neutral-800 p-3"
+                  className="rounded-lg bg-background dark:bg-neutral-950 border border-border dark:border-neutral-800 p-3"
                 >
-                  <div className="text-[11px] text-neutral-500 mb-1">{label}</div>
-                  <div className="text-xs text-neutral-200 font-mono break-all">{value}</div>
+                  <div className="text-[11px] text-muted-foreground dark:text-neutral-500 mb-1">
+                    {label}
+                  </div>
+                  <div className="text-xs text-status-neutral dark:text-neutral-200 font-mono break-all">
+                    {value}
+                  </div>
                 </div>
               ))}
 
               {preview.diagnostics && (
-                <div className="rounded-lg bg-neutral-950 border border-neutral-800 p-3">
-                  <div className="text-[11px] text-neutral-500 mb-2">Diagnostics</div>
-                  <pre className="text-[11px] text-neutral-400 overflow-x-auto whitespace-pre-wrap">
+                <div className="rounded-lg bg-background dark:bg-neutral-950 border border-border dark:border-neutral-800 p-3">
+                  <div className="text-[11px] text-muted-foreground dark:text-neutral-500 mb-2">
+                    Diagnostics
+                  </div>
+                  <pre className="text-[11px] text-muted-foreground dark:text-neutral-400 overflow-x-auto whitespace-pre-wrap">
                     {JSON.stringify(preview.diagnostics, null, 2)}
                   </pre>
                 </div>
@@ -386,17 +412,19 @@ export function FeedbackDialog({ onClose, initialRoute }: FeedbackDialogProps) {
 
           {step === "done" && (
             <div className="flex flex-col items-center justify-center py-8 gap-4 text-center">
-              <div className="p-4 bg-emerald-500/10 text-emerald-400 rounded-full">
+              <div className="p-4 bg-emerald-500/10 text-status-success dark:text-emerald-400 rounded-full">
                 <CheckCircle2 className="size-8" />
               </div>
               <div>
-                <h3 className="font-semibold text-neutral-100">Report submitted</h3>
-                <p className="text-xs text-neutral-400 mt-1">
+                <h3 className="font-semibold text-status-neutral dark:text-neutral-100">
+                  Report submitted
+                </h3>
+                <p className="text-xs text-muted-foreground dark:text-neutral-400 mt-1">
                   Thank you for your feedback. Our team will review it shortly.
                 </p>
               </div>
               {reportId && (
-                <div className="px-3 py-2 bg-neutral-950 border border-neutral-800 rounded-lg text-[11px] font-mono text-neutral-500 break-all">
+                <div className="px-3 py-2 bg-background dark:bg-neutral-950 border border-border dark:border-neutral-800 rounded-lg text-[11px] font-mono text-muted-foreground dark:text-neutral-500 break-all">
                   Report ID: {reportId}
                 </div>
               )}
@@ -404,7 +432,7 @@ export function FeedbackDialog({ onClose, initialRoute }: FeedbackDialogProps) {
           )}
 
           {error && (
-            <div className="flex items-start gap-2 px-3 py-2 bg-red-500/10 border border-red-500/20 rounded-lg text-xs text-red-400">
+            <div className="flex items-start gap-2 px-3 py-2 bg-red-500/10 border border-red-500/20 rounded-lg text-xs text-status-danger dark:text-red-400">
               <AlertTriangle className="size-3.5 mt-0.5 shrink-0" />
               <span>{error}</span>
             </div>
@@ -413,12 +441,12 @@ export function FeedbackDialog({ onClose, initialRoute }: FeedbackDialogProps) {
 
         {/* Footer actions */}
         {step !== "done" && (
-          <div className="flex items-center justify-between px-5 py-4 border-t border-neutral-800">
+          <div className="flex items-center justify-between px-5 py-4 border-t border-border dark:border-neutral-800">
             {step === "preview" ? (
               <button
                 id="feedback-back"
                 onClick={() => setStep("form")}
-                className="flex items-center gap-1.5 px-4 py-2 text-neutral-400 hover:text-neutral-200 text-xs transition-all"
+                className="flex items-center gap-1.5 px-4 py-2 text-muted-foreground dark:text-neutral-400 hover:text-status-neutral dark:hover:text-neutral-200 text-xs transition-all"
               >
                 <ChevronLeft className="size-3.5" />
                 Back

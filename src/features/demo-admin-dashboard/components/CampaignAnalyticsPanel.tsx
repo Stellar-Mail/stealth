@@ -25,19 +25,19 @@ const STATUS_SUMMARY_TOKENS: Record<
 > = {
   met: {
     bg: "bg-sky-500/10",
-    text: "text-sky-400",
+    text: "text-status-info dark:text-sky-400",
     border: "border-sky-500/20",
     label: "Met",
   },
   "at-risk": {
     bg: "bg-amber-500/10",
-    text: "text-amber-400",
+    text: "text-status-warning dark:text-amber-400",
     border: "border-amber-500/20",
     label: "At Risk",
   },
   missed: {
     bg: "bg-rose-500/10",
-    text: "text-rose-400",
+    text: "text-status-danger dark:text-rose-400",
     border: "border-rose-500/20",
     label: "Missed",
   },
@@ -78,7 +78,7 @@ export function CampaignAnalyticsPanel() {
                 "rounded-xl border p-4 text-left transition",
                 active
                   ? "border-teal-500/50 bg-teal-500/5 ring-1 ring-teal-500/20"
-                  : "border-white/[0.06] bg-white/[0.02] hover:border-white/10 hover:bg-white/[0.04]",
+                  : "border-surface-tint/[0.06] bg-surface-tint/[0.02] hover:border-surface-tint/10 hover:bg-surface-tint/[0.04]",
               )}
             >
               <p className="text-xs font-semibold text-foreground">{opt.label}</p>

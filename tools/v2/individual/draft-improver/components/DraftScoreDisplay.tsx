@@ -28,14 +28,16 @@ const scoreItems: Array<{ key: keyof DraftScore; label: string }> = [
 
 export function DraftScoreDisplay({ score, summary }: DraftScoreDisplayProps) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4">
-      <p className="mb-4 text-sm font-medium text-slate-700">{summary}</p>
+    <div className="rounded-lg border border-border bg-card p-4">
+      <p className="mb-4 text-sm font-medium text-foreground">{summary}</p>
       <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
         {scoreItems.map(({ key, label }) => (
           <div key={key}>
-            <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</dt>
+            <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              {label}
+            </dt>
             <dd className="mt-1 flex items-center gap-2">
-              <div className="h-2 w-full max-w-24 rounded-full bg-slate-100">
+              <div className="h-2 w-full max-w-24 rounded-full bg-muted">
                 <div
                   className={`h-2 rounded-full ${scoreColor(score[key])}`}
                   style={{ width: `${score[key]}%` }}

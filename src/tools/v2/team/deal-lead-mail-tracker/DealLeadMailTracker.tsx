@@ -15,7 +15,7 @@ export const DealLeadMailTracker: React.FC = () => {
         <h2 className="text-xl font-bold" id="tracker-heading">
           Deal/Lead Mail Tracker
         </h2>
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-muted-foreground">
           Track and manage team deals and leads isolated from the main inbox.
         </p>
       </header>
@@ -31,7 +31,7 @@ export const DealLeadMailTracker: React.FC = () => {
         </button>
         <button
           onClick={() => setState("empty")}
-          className="px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+          className="px-4 py-2 bg-muted text-foreground rounded hover:bg-muted focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
           aria-pressed={state === "empty"}
         >
           Simulate Empty
@@ -55,7 +55,7 @@ export const DealLeadMailTracker: React.FC = () => {
       {/* Live Region for Screen Readers */}
       <div aria-live="polite" aria-atomic="true" className="min-h-[200px] border-t pt-4">
         {state === "idle" && (
-          <p className="text-gray-500">Select an action above to load tracker data.</p>
+          <p className="text-muted-foreground">Select an action above to load tracker data.</p>
         )}
 
         {state === "loading" && (
@@ -74,8 +74,10 @@ export const DealLeadMailTracker: React.FC = () => {
 
         {state === "empty" && (
           <div className="text-center py-8">
-            <h3 className="text-lg font-medium text-gray-900">No deals or leads found</h3>
-            <p className="text-gray-500 mt-1">There are no tracked items in the current view.</p>
+            <h3 className="text-lg font-medium text-foreground">No deals or leads found</h3>
+            <p className="text-muted-foreground mt-1">
+              There are no tracked items in the current view.
+            </p>
           </div>
         )}
 
@@ -102,30 +104,30 @@ export const DealLeadMailTracker: React.FC = () => {
 
             <ul className="space-y-2" aria-label="Tracked Deals and Leads">
               <li
-                className="p-4 border rounded-lg bg-white shadow-sm hover:bg-gray-50 focus-within:ring-2 focus-within:ring-blue-500 outline-none"
+                className="p-4 border rounded-lg bg-card shadow-sm hover:bg-muted focus-within:ring-2 focus-within:ring-blue-500 outline-none"
                 tabIndex={0}
               >
                 <div className="flex justify-between items-center">
-                  <span className="font-semibold text-gray-900">Acme Corp</span>
+                  <span className="font-semibold text-foreground">Acme Corp</span>
                   <span className="px-2 py-1 bg-purple-100 text-purple-800 text-xs font-medium rounded-full">
                     Deal
                   </span>
                 </div>
-                <p className="text-sm text-gray-600 mt-1">
+                <p className="text-sm text-muted-foreground mt-1">
                   Negotiation phase. Last contacted 2 days ago.
                 </p>
               </li>
               <li
-                className="p-4 border rounded-lg bg-white shadow-sm hover:bg-gray-50 focus-within:ring-2 focus-within:ring-blue-500 outline-none"
+                className="p-4 border rounded-lg bg-card shadow-sm hover:bg-muted focus-within:ring-2 focus-within:ring-blue-500 outline-none"
                 tabIndex={0}
               >
                 <div className="flex justify-between items-center">
-                  <span className="font-semibold text-gray-900">Globex</span>
+                  <span className="font-semibold text-foreground">Globex</span>
                   <span className="px-2 py-1 bg-teal-100 text-teal-800 text-xs font-medium rounded-full">
                     Lead
                   </span>
                 </div>
-                <p className="text-sm text-gray-600 mt-1">Initial outreach required.</p>
+                <p className="text-sm text-muted-foreground mt-1">Initial outreach required.</p>
               </li>
             </ul>
           </div>

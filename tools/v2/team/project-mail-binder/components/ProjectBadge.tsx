@@ -16,7 +16,7 @@ export interface ProjectBadgeProps {
  */
 export const ProjectBadge: React.FC<ProjectBadgeProps> = ({
   projectName,
-  projectColor = "from-indigo-500/10 to-purple-500/10 text-indigo-400 border-indigo-500/20",
+  projectColor = "from-indigo-500/10 to-purple-500/10 text-status-info border-indigo-500/20",
   className = "",
   onClick,
 }) => {

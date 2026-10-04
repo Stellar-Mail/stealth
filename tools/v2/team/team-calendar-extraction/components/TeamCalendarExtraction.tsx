@@ -62,12 +62,12 @@ export function TeamCalendarExtraction() {
   return (
     <section
       id={sectionId}
-      className="max-w-6xl mx-auto px-4 py-8 space-y-8 bg-zinc-950/40 text-zinc-100 rounded-3xl border border-zinc-800/80 shadow-2xl backdrop-blur-xl"
+      className="max-w-6xl mx-auto px-4 py-8 space-y-8 bg-surface-panel/40 text-status-neutral rounded-3xl border border-border/80 shadow-2xl backdrop-blur-xl"
       aria-labelledby={sectionId + "-heading"}
       aria-busy={isProcessing}
       aria-describedby={sectionId + "-desc"}
     >
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-zinc-800 pb-6 gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-border pb-6 gap-4">
         <div>
           <h2
             id={sectionId + "-heading"}
@@ -75,7 +75,7 @@ export function TeamCalendarExtraction() {
           >
             Team Calendar Extraction Console
           </h2>
-          <p id={sectionId + "-desc"} className="text-sm text-zinc-400 mt-1.5">
+          <p id={sectionId + "-desc"} className="text-sm text-muted-foreground mt-1.5">
             Safe, resource-bounded extraction of iCalendar invites and meeting schedules from team
             mail streams.
           </p>
@@ -83,7 +83,7 @@ export function TeamCalendarExtraction() {
         <div className="flex gap-2">
           <button
             onClick={clear}
-            className="px-4 py-2 text-xs font-semibold bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-300 rounded-lg transition"
+            className="px-4 py-2 text-xs font-semibold bg-surface-panel border border-border hover:bg-surface-panel text-status-neutral rounded-lg transition"
             aria-label="Reset tool to initial state"
           >
             Reset Tool
@@ -93,14 +93,14 @@ export function TeamCalendarExtraction() {
 
       <div className="grid gap-6 md:grid-cols-2">
         <div
-          className="p-6 border border-zinc-800/60 rounded-2xl bg-zinc-900/20 backdrop-blur-md space-y-4"
+          className="p-6 border border-border/60 rounded-2xl bg-surface-panel/20 backdrop-blur-md space-y-4"
           role="region"
           aria-label="Simulated inbox feeds"
         >
-          <h3 className="text-sm font-semibold text-zinc-300 uppercase tracking-wider">
+          <h3 className="text-sm font-semibold text-status-neutral uppercase tracking-wider">
             Simulated Inbox Feeds
           </h3>
-          <p className="text-xs text-zinc-400">
+          <p className="text-xs text-muted-foreground">
             Simulate scanning of email folders or loading of attachments with security scanning
             active.
           </p>
@@ -109,7 +109,7 @@ export function TeamCalendarExtraction() {
             <button
               onClick={() => handleProcessEmails("valid")}
               disabled={isProcessing}
-              className="flex flex-col items-center justify-center p-4 border border-zinc-800 rounded-xl hover:bg-zinc-900/60 hover:border-emerald-500/30 transition text-center group disabled:opacity-55"
+              className="flex flex-col items-center justify-center p-4 border border-border rounded-xl hover:bg-surface-panel/60 hover:border-emerald-500/30 transition text-center group disabled:opacity-55"
               aria-label="Process standard feed with 2 normal emails"
             >
               <span
@@ -118,14 +118,14 @@ export function TeamCalendarExtraction() {
               >
                 📬
               </span>
-              <span className="text-xs font-semibold text-zinc-200">Standard Feed</span>
-              <span className="text-[10px] text-zinc-500 mt-1">2 normal emails</span>
+              <span className="text-xs font-semibold text-status-neutral">Standard Feed</span>
+              <span className="text-[10px] text-muted-foreground mt-1">2 normal emails</span>
             </button>
 
             <button
               onClick={() => handleProcessEmails("malicious")}
               disabled={isProcessing}
-              className="flex flex-col items-center justify-center p-4 border border-zinc-800 rounded-xl hover:bg-zinc-900/60 hover:border-rose-500/30 transition text-center group disabled:opacity-55"
+              className="flex flex-col items-center justify-center p-4 border border-border rounded-xl hover:bg-surface-panel/60 hover:border-rose-500/30 transition text-center group disabled:opacity-55"
               aria-label="Process malicious feed with XSS and exploit attempts"
             >
               <span
@@ -134,18 +134,20 @@ export function TeamCalendarExtraction() {
               >
                 ⚠️
               </span>
-              <span className="text-xs font-semibold text-zinc-200">Malicious/XSS Feed</span>
-              <span className="text-[10px] text-zinc-500 mt-1">Contains exploits</span>
+              <span className="text-xs font-semibold text-status-neutral">Malicious/XSS Feed</span>
+              <span className="text-[10px] text-muted-foreground mt-1">Contains exploits</span>
             </button>
           </div>
 
-          <div className="pt-2 border-t border-zinc-800/60 space-y-2">
-            <p className="text-xs font-medium text-zinc-400">Stress & Attack Simulations:</p>
+          <div className="pt-2 border-t border-border/60 space-y-2">
+            <p className="text-xs font-medium text-muted-foreground">
+              Stress & Attack Simulations:
+            </p>
             <div className="flex gap-2">
               <button
                 onClick={handleProcessLargeIcs}
                 disabled={isProcessing}
-                className="flex-1 px-3 py-2 text-[11px] font-semibold bg-zinc-900 border border-zinc-800 hover:border-amber-500/40 hover:bg-zinc-800 text-zinc-300 rounded-lg transition disabled:opacity-55"
+                className="flex-1 px-3 py-2 text-[11px] font-semibold bg-surface-panel border border-border hover:border-amber-500/40 hover:bg-surface-panel text-status-neutral rounded-lg transition disabled:opacity-55"
                 aria-label="Run stress test with 150 events to test performance limits"
               >
                 150 Events DoS Test
@@ -153,7 +155,7 @@ export function TeamCalendarExtraction() {
               <button
                 onClick={handleProcessLongLineIcs}
                 disabled={isProcessing}
-                className="flex-1 px-3 py-2 text-[11px] font-semibold bg-zinc-900 border border-zinc-800 hover:border-amber-500/40 hover:bg-zinc-800 text-zinc-300 rounded-lg transition disabled:opacity-55"
+                className="flex-1 px-3 py-2 text-[11px] font-semibold bg-surface-panel border border-border hover:border-amber-500/40 hover:bg-surface-panel text-status-neutral rounded-lg transition disabled:opacity-55"
                 aria-label="Run long property attack to test line length limits"
               >
                 Long Property Attack
@@ -163,15 +165,15 @@ export function TeamCalendarExtraction() {
         </div>
 
         <div
-          className="p-6 border border-zinc-800/60 rounded-2xl bg-zinc-900/20 backdrop-blur-md flex flex-col justify-between space-y-4"
+          className="p-6 border border-border/60 rounded-2xl bg-surface-panel/20 backdrop-blur-md flex flex-col justify-between space-y-4"
           role="region"
           aria-label="Paste iCalendar content"
         >
           <div className="space-y-2">
-            <h3 className="text-sm font-semibold text-zinc-300 uppercase tracking-wider">
+            <h3 className="text-sm font-semibold text-status-neutral uppercase tracking-wider">
               Paste iCalendar (.ics) Content
             </h3>
-            <p className="text-xs text-zinc-400">
+            <p className="text-xs text-muted-foreground">
               Paste raw iCalendar text to test safety boundaries (file size, lines limit, malformed
               tokens).
             </p>
@@ -184,7 +186,7 @@ export function TeamCalendarExtraction() {
             value={customIcs}
             onChange={(e) => setCustomIcs(e.target.value)}
             placeholder="BEGIN:VCALENDAR&#10;VERSION:2.0&#10;BEGIN:VEVENT&#10;SUMMARY:Meeting Summary...&#10;END:VEVENT&#10;END:VCALENDAR"
-            className="flex-1 w-full min-h-[120px] p-3 text-xs bg-zinc-950 border border-zinc-800 rounded-xl font-mono text-zinc-300 focus:outline-none focus:border-zinc-700 placeholder-zinc-700 resize-none"
+            className="flex-1 w-full min-h-[120px] p-3 text-xs bg-surface-panel border border-border rounded-xl font-mono text-status-neutral focus:outline-none focus:border-border placeholder-zinc-700 resize-none"
           />
           <button
             onClick={handleProcessCustomIcs}
@@ -208,7 +210,7 @@ export function TeamCalendarExtraction() {
         {isProcessing && (
           <div className="py-8 flex justify-center items-center gap-3">
             <div className="animate-spin rounded-full h-5 w-5 border-2 border-sky-500 border-t-transparent" />
-            <span className="text-sm font-medium text-zinc-400">
+            <span className="text-sm font-medium text-muted-foreground">
               Scanning content and executing threat-guards...
             </span>
           </div>
@@ -219,7 +221,7 @@ export function TeamCalendarExtraction() {
         <StatusIndicators stats={stats} errors={errors} logs={logs} />
       </div>
 
-      <div className="border-t border-zinc-800 pt-6">
+      <div className="border-t border-border pt-6">
         <h3
           ref={eventListHeadingRef}
           id={sectionId + "-events-heading"}

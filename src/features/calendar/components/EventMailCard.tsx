@@ -37,16 +37,16 @@ export function EventMailCard({
   };
 
   return (
-    <div className="event-mail-hero relative mb-6 mt-7 min-h-[246px] max-w-[640px] overflow-hidden rounded-2xl border border-white/[0.09] shadow-[0_24px_72px_-42px_rgba(0,0,0,0.95),inset_0_1px_0_rgba(255,255,255,0.12)]">
+    <div className="event-mail-hero relative mb-6 mt-7 min-h-[246px] max-w-[640px] overflow-hidden rounded-2xl border border-surface-tint/[0.09] shadow-[0_24px_72px_-42px_rgba(0,0,0,0.95),inset_0_1px_0_rgba(255,255,255,0.12)]">
       <div className="event-mail-ridges" />
-      <div className="event-calendar-card relative z-10 mx-auto mt-7 w-[300px] max-w-[calc(100%-2rem)] rounded-[20px] border border-white/[0.13] p-3 text-foreground shadow-[0_28px_70px_-36px_rgba(0,0,0,0.95),inset_0_1px_0_rgba(255,255,255,0.16)]">
+      <div className="event-calendar-card relative z-10 mx-auto mt-7 w-[300px] max-w-[calc(100%-2rem)] rounded-[20px] border border-surface-tint/[0.13] p-3 text-foreground shadow-[0_28px_70px_-36px_rgba(0,0,0,0.95),inset_0_1px_0_rgba(255,255,255,0.16)]">
         <div className="mail-reader-meta flex items-center gap-2 text-[10px] text-muted-foreground">
           <button
             onClick={() => setView("event")}
             className={
               view === "event"
-                ? "rounded-md border border-white/[0.13] bg-white/70 px-4 py-1.5 font-medium text-background"
-                : "rounded-md px-3 py-1.5 transition hover:bg-white/[0.06] hover:text-foreground"
+                ? "event-calendar-selected rounded-md border border-surface-tint/[0.13] px-4 py-1.5 font-medium"
+                : "rounded-md px-3 py-1.5 transition hover:bg-surface-tint/[0.06] hover:text-foreground"
             }
           >
             {event.cadence}
@@ -55,8 +55,8 @@ export function EventMailCard({
             onClick={() => setView("monthly")}
             className={
               view === "monthly"
-                ? "rounded-md border border-white/[0.13] bg-white/70 px-3 py-1.5 font-medium text-background"
-                : "rounded-md px-3 py-1.5 transition hover:bg-white/[0.06] hover:text-foreground"
+                ? "event-calendar-selected rounded-md border border-surface-tint/[0.13] px-3 py-1.5 font-medium"
+                : "rounded-md px-3 py-1.5 transition hover:bg-surface-tint/[0.06] hover:text-foreground"
             }
           >
             Monthly
@@ -65,7 +65,7 @@ export function EventMailCard({
             onClick={() => onOpen?.(savedEvent?.id)}
             title="Open calendar"
             aria-label="Open calendar"
-            className="ml-auto grid h-7 w-7 place-items-center rounded-md text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground"
+            className="ml-auto grid h-7 w-7 place-items-center rounded-md text-muted-foreground transition hover:bg-surface-tint/[0.06] hover:text-foreground"
           >
             <SlidersHorizontal className="h-3.5 w-3.5" />
           </button>
@@ -91,7 +91,7 @@ export function EventMailCard({
                   <div
                     className={
                       day.active
-                        ? "mx-auto grid h-4.5 w-4.5 place-items-center rounded-md bg-white/70 text-[9px] font-semibold text-background shadow-[0_0_18px_rgba(255,255,255,0.16)]"
+                        ? "event-calendar-selected mx-auto grid h-4.5 w-4.5 place-items-center rounded-md text-[9px] font-semibold"
                         : "text-[9px] font-medium text-foreground/74"
                     }
                   >
@@ -112,8 +112,8 @@ export function EventMailCard({
                   onClick={() => active && onOpen?.(savedEvent?.id)}
                   className={
                     active
-                      ? "grid h-7 place-items-center rounded-md bg-white text-[10px] font-semibold text-black"
-                      : "grid h-7 place-items-center rounded-md text-[10px] text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground"
+                      ? "grid h-7 place-items-center rounded-md bg-primary text-[10px] font-semibold text-primary-foreground"
+                      : "grid h-7 place-items-center rounded-md text-[10px] text-muted-foreground transition hover:bg-surface-tint/[0.06] hover:text-foreground"
                   }
                 >
                   {date}
@@ -139,7 +139,7 @@ export function EventMailCard({
           </div>
           {savedEvent ? (
             <>
-              <label className="relative inline-flex items-center rounded-md border border-white/10 bg-black/40 pl-2 text-[9px]">
+              <label className="relative inline-flex items-center rounded-md border border-surface-tint/10 bg-surface-recessed/40 pl-2 text-[9px]">
                 <Bell className="h-2.5 w-2.5" />
                 <select
                   value={savedEvent.reminder}
@@ -154,14 +154,14 @@ export function EventMailCard({
                 </select>
                 <ChevronDown className="pointer-events-none absolute right-1.5 h-2.5 w-2.5" />
               </label>
-              <div className="flex rounded-md border border-white/10 bg-black/40 p-0.5">
+              <div className="flex rounded-md border border-surface-tint/10 bg-surface-recessed/40 p-0.5">
                 {(["going", "maybe", "declined"] as const).map((response) => (
                   <button
                     key={response}
                     onClick={() => onResponseChange?.(savedEvent.id, response)}
                     className={
                       savedEvent.response === response
-                        ? "rounded px-2 py-1 text-[8px] capitalize text-black bg-white"
+                        ? "rounded px-2 py-1 text-[8px] capitalize text-primary-foreground bg-primary"
                         : "rounded px-2 py-1 text-[8px] capitalize text-muted-foreground hover:text-foreground"
                     }
                   >
@@ -173,7 +173,7 @@ export function EventMailCard({
           ) : (
             <button
               onClick={addEvent}
-              className="mail-reader-meta inline-flex items-center gap-1 rounded-md bg-black/60 px-2.5 py-1.5 text-[9px] font-medium text-foreground transition hover:bg-black/75"
+              className="mail-reader-meta inline-flex items-center gap-1 rounded-md bg-surface-recessed/60 px-2.5 py-1.5 text-[9px] font-medium text-foreground transition hover:bg-surface-recessed/75"
             >
               <Plus className="h-2.5 w-2.5" />
               Add to calendar
@@ -183,10 +183,11 @@ export function EventMailCard({
       </div>
 
       <div className="mail-reader-meta relative z-20 mx-4 mb-3 flex flex-wrap items-center justify-between gap-2 text-[10px] text-muted-foreground">
-        <span className="rounded-md border border-white/[0.1] bg-white/[0.04] px-2.5 py-1 backdrop-blur-xl">
+        <span className="rounded-md border border-surface-tint/[0.1] bg-surface-tint/[0.04] px-2.5 py-1 backdrop-blur-xl">
           {savedEvent ? (
             <span className="inline-flex items-center gap-1">
-              <Check className="h-3 w-3 text-emerald-300" /> Added to calendar
+              <Check className="h-3 w-3 text-status-success dark:text-emerald-300" /> Added to
+              calendar
             </span>
           ) : (
             "Upcoming event"
@@ -197,7 +198,7 @@ export function EventMailCard({
             if (event.meetingUrl) window.open(event.meetingUrl, "_blank", "noopener,noreferrer");
             else onOpen?.(savedEvent?.id);
           }}
-          className="inline-flex items-center gap-1 rounded-md border border-white/[0.1] bg-white/[0.04] px-2.5 py-1 backdrop-blur-xl transition hover:bg-white/[0.08] hover:text-foreground"
+          className="inline-flex items-center gap-1 rounded-md border border-surface-tint/[0.1] bg-surface-tint/[0.04] px-2.5 py-1 backdrop-blur-xl transition hover:bg-surface-tint/[0.08] hover:text-foreground"
         >
           {event.note}
           <ExternalLink className="h-3 w-3" />

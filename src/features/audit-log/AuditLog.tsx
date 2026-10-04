@@ -81,9 +81,9 @@ function EventRow({ event }: { event: AuditEvent }) {
   return (
     <article
       aria-label={`${CATEGORY_LABEL[event.category]} event: ${event.summary}`}
-      className="group flex gap-3 border-b border-white/[0.04] px-4 py-3 text-sm transition-colors hover:bg-white/[0.03] focus-within:bg-white/[0.03]"
+      className="group flex gap-3 border-b border-surface-tint/[0.04] px-4 py-3 text-sm transition-colors hover:bg-surface-tint/[0.03] focus-within:bg-surface-tint/[0.03]"
     >
-      <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white/[0.04] ring-1 ring-white/[0.04] transition group-hover:bg-white/[0.06]">
+      <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-surface-tint/[0.04] ring-1 ring-surface-tint/[0.04] transition group-hover:bg-surface-tint/[0.06]">
         <Icon aria-hidden className="h-3.5 w-3.5 text-muted-foreground" />
       </div>
 
@@ -172,7 +172,7 @@ export function AuditLog() {
   return (
     <div className="flex h-full flex-col gap-3">
       <div className="flex flex-col gap-2">
-        <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 transition focus-within:border-white/20 focus-within:bg-white/[0.05]">
+        <div className="flex items-center gap-2 rounded-xl border border-surface-tint/10 bg-surface-tint/[0.04] px-3 py-2 transition focus-within:border-surface-tint/20 focus-within:bg-surface-tint/[0.05]">
           <Search aria-hidden className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
           <input
             value={filter.search}
@@ -185,7 +185,7 @@ export function AuditLog() {
             <button
               type="button"
               onClick={() => setFilter({ ...filter, search: "" })}
-              className="glow-ring rounded-md p-1 text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground active:scale-[0.98]"
+              className="glow-ring rounded-md p-1 text-muted-foreground transition hover:bg-surface-tint/[0.06] hover:text-foreground active:scale-[0.98]"
               aria-label="Clear search"
             >
               <X aria-hidden className="h-3.5 w-3.5" />
@@ -211,8 +211,8 @@ export function AuditLog() {
                   className={cn(
                     "glow-ring rounded-md px-2.5 py-1 text-xs font-medium transition active:scale-[0.98]",
                     isActive
-                      ? "bg-white/[0.12] text-foreground ring-1 ring-white/10"
-                      : "text-muted-foreground hover:bg-white/[0.05] hover:text-foreground",
+                      ? "bg-surface-tint/[0.12] text-foreground ring-1 ring-surface-tint/10"
+                      : "text-muted-foreground hover:bg-surface-tint/[0.05] hover:text-foreground",
                   )}
                 >
                   {label}
@@ -251,7 +251,7 @@ export function AuditLog() {
         </div>
 
         {(copyState === "error" || exportState === "error") && (
-          <p className="rounded-lg border border-red-300/20 bg-red-500/10 px-3 py-2 text-xs text-red-100">
+          <p className="rounded-lg border border-red-300/20 bg-red-500/10 px-3 py-2 text-xs text-status-danger dark:text-red-100">
             Could not complete that action. Try again, or export fewer events if your browser
             blocked clipboard or download access.
           </p>

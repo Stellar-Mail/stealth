@@ -123,7 +123,7 @@ export function RecoveryCodesSection() {
           </p>
         </div>
       </div>
-      <div className="rounded-lg border border-white/5 bg-white/[0.02] p-4 space-y-3">
+      <div className="rounded-lg border border-surface-tint/5 bg-surface-tint/[0.02] p-4 space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             {status?.status === "none" ? (
@@ -159,7 +159,7 @@ export function RecoveryCodesSection() {
         )}
 
         {error && (
-          <p className="flex items-center gap-1.5 text-xs text-rose-400">
+          <p className="flex items-center gap-1.5 text-xs text-status-danger dark:text-rose-400">
             <AlertTriangle className="h-3 w-3 shrink-0" />
             {error}
           </p>
@@ -168,7 +168,7 @@ export function RecoveryCodesSection() {
         <button
           onClick={() => setConfirmOpen(true)}
           disabled={loading || generating}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-foreground hover:bg-white/[0.06] transition disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-surface-tint/10 bg-surface-tint/[0.04] px-3 py-2 text-xs text-foreground hover:bg-surface-tint/[0.06] transition disabled:cursor-not-allowed disabled:opacity-50"
         >
           <ShieldCheck className="h-3.5 w-3.5" />
           {generating ? "Generating…" : primaryActionLabel}
@@ -176,7 +176,7 @@ export function RecoveryCodesSection() {
       </div>
 
       {confirmOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-surface-recessed/70 backdrop-blur-sm">
           <div className="glass-strong w-full max-w-sm rounded-2xl p-5 space-y-4">
             <h4 className="text-sm font-medium text-foreground">{primaryActionLabel}?</h4>
             <p className="text-xs text-muted-foreground">
@@ -187,7 +187,7 @@ export function RecoveryCodesSection() {
             <div className="flex gap-2 pt-2">
               <button
                 onClick={() => setConfirmOpen(false)}
-                className="flex-1 rounded-lg border border-white/10 px-4 py-2 text-xs text-foreground hover:bg-white/[0.06] transition"
+                className="flex-1 rounded-lg border border-surface-tint/10 px-4 py-2 text-xs text-foreground hover:bg-surface-tint/[0.06] transition"
               >
                 Cancel
               </button>
@@ -204,11 +204,11 @@ export function RecoveryCodesSection() {
       )}
 
       {codes && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-surface-recessed/70 backdrop-blur-sm">
           <div className="glass-strong w-full max-w-lg rounded-2xl p-5 space-y-4">
             <div className="flex items-center justify-between">
               <h4 className="text-sm font-medium text-foreground">Your new recovery codes</h4>
-              <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-400">
+              <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-status-warning dark:text-amber-400">
                 Shown once
               </span>
             </div>
@@ -216,7 +216,7 @@ export function RecoveryCodesSection() {
               Save these codes now. Each one can be used exactly once to recover your account, and
               they will never be shown again.
             </p>
-            <div className="grid grid-cols-1 gap-1.5 rounded-lg border border-white/10 bg-black/30 p-3 font-mono text-[11px] text-foreground">
+            <div className="grid grid-cols-1 gap-1.5 rounded-lg border border-surface-tint/10 bg-surface-recessed/30 p-3 font-mono text-[11px] text-foreground">
               {codes.map((code, index) => (
                 <div key={`${code}-${index}`} className="flex items-center justify-between">
                   <span>{code}</span>
@@ -227,7 +227,7 @@ export function RecoveryCodesSection() {
             <div className="flex gap-2 pt-1">
               <button
                 onClick={() => void copyCodes()}
-                className="flex-1 rounded-lg border border-white/10 px-4 py-2 text-xs text-foreground hover:bg-white/[0.06] transition"
+                className="flex-1 rounded-lg border border-surface-tint/10 px-4 py-2 text-xs text-foreground hover:bg-surface-tint/[0.06] transition"
               >
                 {copied ? (
                   <>
@@ -243,7 +243,7 @@ export function RecoveryCodesSection() {
               </button>
               <button
                 onClick={downloadCodes}
-                className="flex-1 rounded-lg border border-white/10 px-4 py-2 text-xs text-foreground hover:bg-white/[0.06] transition"
+                className="flex-1 rounded-lg border border-surface-tint/10 px-4 py-2 text-xs text-foreground hover:bg-surface-tint/[0.06] transition"
               >
                 <Download className="mr-1 inline h-3 w-3" />
                 Download

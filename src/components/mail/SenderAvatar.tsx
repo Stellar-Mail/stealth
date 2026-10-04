@@ -33,7 +33,7 @@ export function SenderAvatar({
   return (
     <div
       className={cn(
-        "relative grid shrink-0 place-items-center overflow-hidden rounded-full text-white/95 ring-1 ring-white/15 shadow-[0_8px_18px_-12px_rgba(0,0,0,0.9)]",
+        "relative grid shrink-0 place-items-center overflow-hidden rounded-full text-white/95 ring-1 ring-surface-tint/15 shadow-[0_8px_18px_-12px_rgba(0,0,0,0.9)]",
         sizeClasses[size],
         className,
       )}
@@ -55,7 +55,7 @@ export function SenderAvatar({
         }}
       />
       {unread ? (
-        <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-[oklch(0.9_0.005_270)] ring-2 ring-[oklch(0.18_0.005_270)]" />
+        <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-silver ring-2 ring-background" />
       ) : null}
     </div>
   );

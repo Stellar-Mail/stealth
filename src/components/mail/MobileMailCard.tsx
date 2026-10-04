@@ -35,8 +35,8 @@ export function MobileMailCard({
       className={cn(
         "relative overflow-hidden rounded-xl border transition-all duration-300",
         selected
-          ? "border-white/20 bg-[oklch(0.38_0.007_270/0.55)] shadow-[0_18px_42px_oklch(0_0_0/0.35),0_0_0_1px_oklch(1_0_0/0.07),inset_0_1px_0_oklch(1_0_0/0.14)]"
-          : "border-white/8 bg-[oklch(0.3_0.006_270/0.42)] hover:border-white/12 hover:bg-[oklch(0.34_0.006_270/0.48)]",
+          ? "border-surface-tint/20 bg-preview-active shadow-[0_18px_42px_oklch(0_0_0/0.35),0_0_0_1px_oklch(1_0_0/0.07),inset_0_1px_0_oklch(1_0_0/0.14)]"
+          : "border-surface-tint/8 bg-preview hover:border-surface-tint/12 hover:bg-preview-hover",
       )}
     >
       {/* Ambient glow overlay */}
@@ -96,7 +96,7 @@ export function MobileMailCard({
                 {verified && (
                   <Badge
                     variant="outline"
-                    className="h-4.5 border-zinc-300/25 bg-zinc-300/10 px-1.5 text-[9px] text-zinc-200"
+                    className="h-4.5 border-border/25 dark:border-zinc-300/25 bg-secondary/10 dark:bg-zinc-300/10 px-1.5 text-[9px] text-status-neutral dark:text-zinc-200"
                   >
                     Verified
                   </Badge>
@@ -104,7 +104,7 @@ export function MobileMailCard({
                 {isProtocolFolder && folderInfo && (
                   <Badge
                     variant="outline"
-                    className="h-4.5 border-blue-500/30 bg-blue-500/10 px-1.5 text-[9px] text-blue-300"
+                    className="h-4.5 border-blue-500/30 bg-blue-500/10 px-1.5 text-[9px] text-status-info dark:text-blue-300"
                   >
                     {folderInfo.label}
                   </Badge>
@@ -141,7 +141,7 @@ export function MobileMailCard({
             </div>
           </div>
           {email.attachments && email.attachments.length > 0 && (
-            <div className="flex shrink-0 items-center gap-1 rounded-md bg-white/5 px-1.5 py-0.5">
+            <div className="flex shrink-0 items-center gap-1 rounded-md bg-surface-tint/5 px-1.5 py-0.5">
               <Paperclip className="h-3 w-3 text-muted-foreground/70" />
               <span className="text-[10px] font-medium text-muted-foreground/70">
                 {email.attachments.length}
@@ -153,8 +153,8 @@ export function MobileMailCard({
         {/* Snooze indicator */}
         {email.snooze && (
           <div className="mt-2 flex items-center gap-1.5 rounded-md bg-amber-500/10 px-2 py-1">
-            <Clock className="h-3 w-3 text-amber-300" />
-            <span className="text-[10px] text-amber-200/90">
+            <Clock className="h-3 w-3 text-status-warning dark:text-amber-300" />
+            <span className="text-[10px] text-status-warning/90 dark:text-amber-200/90">
               Snoozed until {email.snooze.label}
             </span>
           </div>
@@ -162,20 +162,20 @@ export function MobileMailCard({
       </button>
 
       {/* Touch-friendly action bar */}
-      <div className="flex border-t border-white/8 bg-white/[0.02]">
+      <div className="flex border-t border-surface-tint/8 bg-surface-tint/[0.02]">
         <motion.button
           whileTap={{ scale: 0.95 }}
           onClick={(e) => {
             e.stopPropagation();
             onStar?.();
           }}
-          className="flex flex-1 items-center justify-center gap-1.5 px-3 py-2.5 text-muted-foreground transition-colors hover:text-foreground active:bg-white/5"
+          className="flex flex-1 items-center justify-center gap-1.5 px-3 py-2.5 text-muted-foreground transition-colors hover:text-foreground active:bg-surface-tint/5"
           aria-label={email.starred ? "Unstar" : "Star"}
         >
           <Star
             className={cn(
               "h-4 w-4 transition-colors",
-              email.starred && "fill-amber-400 text-amber-400",
+              email.starred && "fill-amber-400 text-status-warning dark:text-amber-400",
             )}
           />
           <span className="text-[11px] font-medium">{email.starred ? "Starred" : "Star"}</span>
@@ -187,7 +187,7 @@ export function MobileMailCard({
             e.stopPropagation();
             onSnooze?.();
           }}
-          className="flex flex-1 items-center justify-center gap-1.5 border-l border-white/8 px-3 py-2.5 text-muted-foreground transition-colors hover:text-foreground active:bg-white/5"
+          className="flex flex-1 items-center justify-center gap-1.5 border-l border-surface-tint/8 px-3 py-2.5 text-muted-foreground transition-colors hover:text-foreground active:bg-surface-tint/5"
           aria-label="Snooze"
         >
           <Clock className="h-4 w-4" />
@@ -200,7 +200,7 @@ export function MobileMailCard({
             e.stopPropagation();
             onArchive?.();
           }}
-          className="flex flex-1 items-center justify-center gap-1.5 border-l border-white/8 px-3 py-2.5 text-muted-foreground transition-colors hover:text-foreground active:bg-white/5"
+          className="flex flex-1 items-center justify-center gap-1.5 border-l border-surface-tint/8 px-3 py-2.5 text-muted-foreground transition-colors hover:text-foreground active:bg-surface-tint/5"
           aria-label="Archive"
         >
           <Archive className="h-4 w-4" />

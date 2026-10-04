@@ -13,7 +13,7 @@ function getSnapshotStatusBadge(status: SnapshotStatus) {
     case "healthy":
       return (
         <span
-          className="bg-green-500/15 text-green-600 dark:text-green-400 inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium"
+          className="bg-green-500/15 text-green-600 dark:text-status-success inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium"
           aria-label="Status: Healthy"
         >
           <span aria-hidden="true">✓</span> Healthy
@@ -22,7 +22,7 @@ function getSnapshotStatusBadge(status: SnapshotStatus) {
     case "watch":
       return (
         <span
-          className="bg-yellow-500/15 text-yellow-600 dark:text-yellow-400 inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium"
+          className="bg-yellow-500/15 text-yellow-600 dark:text-status-warning inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium"
           aria-label="Status: Watch"
         >
           <span aria-hidden="true">👀</span> Watch
@@ -31,7 +31,7 @@ function getSnapshotStatusBadge(status: SnapshotStatus) {
     case "needs-attention":
       return (
         <span
-          className="bg-orange-500/15 text-orange-600 dark:text-orange-400 inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium"
+          className="bg-orange-500/15 text-orange-600 dark:text-status-warning inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium"
           aria-label="Status: Needs Attention"
         >
           <span aria-hidden="true">⚠️</span> Needs Attention

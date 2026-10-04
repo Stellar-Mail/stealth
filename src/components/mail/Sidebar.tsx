@@ -139,7 +139,7 @@ export function Sidebar({
         )}
         <button
           onClick={onToggle}
-          className="glow-ring ml-auto rounded-md p-1.5 text-muted-foreground transition hover:bg-white/5 hover:text-foreground"
+          className="glow-ring ml-auto rounded-md p-1.5 text-muted-foreground transition hover:bg-surface-tint/5 hover:text-foreground"
           aria-label="Toggle sidebar"
         >
           {collapsed ? <ChevronsRight className="h-4 w-4" /> : <ChevronsLeft className="h-4 w-4" />}
@@ -152,15 +152,15 @@ export function Sidebar({
         onClick={onCompose}
         className={cn(
           "group glow-ring mt-3 flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium",
-          "border border-white/10 bg-white/5 text-foreground",
-          "shadow-[0_8px_30px_-10px_rgba(0,0,0,0.6)] transition hover:bg-white/10",
+          "border border-surface-tint/10 bg-surface-tint/5 text-foreground",
+          "shadow-[0_8px_30px_-10px_rgba(0,0,0,0.6)] transition hover:bg-surface-tint/10",
           collapsed && "justify-center px-2",
         )}
       >
         <Pencil className="h-4 w-4" />
         {!collapsed && <span className="mail-preview-heading">Compose</span>}
         {!collapsed && (
-          <span className="ml-auto rounded-md border border-white/10 bg-black/30 px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
+          <span className="ml-auto rounded-md border border-surface-tint/10 bg-surface-recessed/30 px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
             Ctrl+N
           </span>
         )}
@@ -173,7 +173,7 @@ export function Sidebar({
           onClick={onOpenSenderJourney}
           className={cn(
             "group glow-ring mt-2 flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium",
-            "border border-white/10 bg-emerald-500/10 text-emerald-300",
+            "border border-surface-tint/10 bg-emerald-500/10 text-status-success dark:text-emerald-300",
             "shadow-[0_8px_30px_-10px_rgba(0,0,0,0.6)] transition hover:bg-emerald-500/20",
             collapsed && "justify-center px-2",
           )}
@@ -220,7 +220,7 @@ export function Sidebar({
               </span>
               <button
                 onClick={() => setIsAddingFolder(true)}
-                className="glow-ring rounded p-1 text-muted-foreground transition hover:bg-white/5 hover:text-foreground"
+                className="glow-ring rounded p-1 text-muted-foreground transition hover:bg-surface-tint/5 hover:text-foreground"
                 aria-label="Add folder"
               >
                 <Plus className="h-3.5 w-3.5" />
@@ -244,9 +244,9 @@ export function Sidebar({
                       aria-current={isCustomActive ? "page" : undefined}
                       aria-pressed={isCustomActive ? true : undefined}
                       className={cn(
-                        "group glow-ring flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition hover:bg-white/[0.04] hover:text-foreground",
+                        "group glow-ring flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition hover:bg-surface-tint/[0.04] hover:text-foreground",
                         isCustomActive
-                          ? "bg-white/[0.06] text-foreground"
+                          ? "bg-surface-tint/[0.06] text-foreground"
                           : "text-muted-foreground",
                       )}
                     >
@@ -263,7 +263,7 @@ export function Sidebar({
 
       <div
         className={cn(
-          "mt-3 flex items-center gap-3 rounded-md border border-white/5 bg-white/[0.03] p-2",
+          "mt-3 flex items-center gap-3 rounded-md border border-surface-tint/5 bg-surface-tint/[0.03] p-2",
           collapsed && "justify-center",
         )}
       >
@@ -283,9 +283,7 @@ export function Sidebar({
             </div>
           </div>
         )}
-        {!collapsed && (
-          <span className="pulse-dot ml-auto h-1.5 w-1.5 rounded-full bg-[oklch(0.85_0.005_270)]" />
-        )}
+        {!collapsed && <span className="pulse-dot ml-auto h-1.5 w-1.5 rounded-full bg-silver" />}
       </div>
     </motion.aside>
   );
@@ -319,7 +317,7 @@ function AddFolderInput({
       exit={{ opacity: 0, height: 0 }}
       className="mb-2 overflow-hidden px-3"
     >
-      <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.04] px-2 py-1.5">
+      <div className="flex items-center gap-2 rounded-lg border border-surface-tint/10 bg-surface-tint/[0.04] px-2 py-1.5">
         <Hash className="h-3.5 w-3.5 text-muted-foreground" />
         <input
           ref={inputRef}
@@ -394,10 +392,10 @@ function FolderButton({
       }
       className={cn(
         "glow-ring relative flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition",
-        "text-muted-foreground hover:bg-white/[0.04] hover:text-foreground",
+        "text-muted-foreground hover:bg-surface-tint/[0.04] hover:text-foreground",
         active && "text-foreground",
         collapsed && "justify-center px-2",
-        isOver && "bg-white/[0.08] ring-1 ring-white/20 text-foreground",
+        isOver && "bg-surface-tint/[0.08] ring-1 ring-surface-tint/20 text-foreground",
       )}
     >
       {active && (
@@ -405,8 +403,8 @@ function FolderButton({
           layoutId="sidebar-active"
           className="absolute inset-0 rounded-lg"
           style={{
-            background: "linear-gradient(180deg, oklch(1 0 0 / 0.06), oklch(1 0 0 / 0.02))",
-            boxShadow: "inset 0 0 0 1px oklch(1 0 0 / 0.08)",
+            background: "var(--gradient-glass)",
+            boxShadow: "inset 0 0 0 1px var(--border)",
           }}
           transition={{ type: "spring", stiffness: 400, damping: 32 }}
         />

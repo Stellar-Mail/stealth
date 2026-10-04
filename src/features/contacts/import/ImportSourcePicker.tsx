@@ -100,7 +100,7 @@ export function ImportSourcePicker({ onSelectSource }: Props) {
           onDragOver={(e) => e.preventDefault()}
           onDrop={handleDrop}
           onClick={() => fileRef.current?.click()}
-          className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-white/10 bg-white/[0.02] px-4 py-6 transition hover:bg-white/[0.04]"
+          className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-surface-tint/10 bg-surface-tint/[0.02] px-4 py-6 transition hover:bg-surface-tint/[0.04]"
         >
           <Upload className="h-5 w-5 text-muted-foreground" />
           <p className="text-xs text-muted-foreground">
@@ -123,13 +123,13 @@ export function ImportSourcePicker({ onSelectSource }: Props) {
           onChange={(e) => setCsv(e.target.value)}
           placeholder={`name,address\nAlice,alice*stealth.xyz\nBob,GABCDEFGHJK…`}
           rows={5}
-          className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 font-mono text-xs text-foreground placeholder:text-muted-foreground/50 outline-none resize-none focus:border-white/20"
+          className="w-full rounded-xl border border-surface-tint/10 bg-surface-tint/[0.04] px-3 py-2.5 font-mono text-xs text-foreground placeholder:text-muted-foreground/50 outline-none resize-none focus:border-surface-tint/20"
         />
 
         <div className="flex items-center justify-between text-[11px] text-muted-foreground">
           <span>
-            Columns: <code className="rounded bg-white/[0.06] px-1">name,address</code> or just{" "}
-            <code className="rounded bg-white/[0.06] px-1">address</code>
+            Columns: <code className="rounded bg-surface-tint/[0.06] px-1">name,address</code> or
+            just <code className="rounded bg-surface-tint/[0.06] px-1">address</code>
           </span>
           <span>{csv ? `${csv.split(/\r?\n/).filter(Boolean).length} lines` : ""}</span>
         </div>
@@ -143,7 +143,7 @@ export function ImportSourcePicker({ onSelectSource }: Props) {
             "w-full rounded-xl px-4 py-2.5 text-sm font-semibold transition",
             csv.trim()
               ? "bg-foreground text-background hover:opacity-90"
-              : "cursor-not-allowed bg-white/10 text-muted-foreground",
+              : "cursor-not-allowed bg-surface-tint/10 text-muted-foreground",
           )}
         >
           Parse contacts
@@ -178,11 +178,11 @@ export function ImportSourcePicker({ onSelectSource }: Props) {
             className={cn(
               "flex items-center gap-3 rounded-xl border p-3.5 text-left transition",
               s.disabled
-                ? "border-white/5 opacity-40 cursor-not-allowed"
-                : "border-white/10 bg-white/[0.025] hover:bg-white/[0.05] hover:border-white/20",
+                ? "border-surface-tint/5 opacity-40 cursor-not-allowed"
+                : "border-surface-tint/10 bg-surface-tint/[0.025] hover:bg-surface-tint/[0.05] hover:border-surface-tint/20",
             )}
           >
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/[0.06] text-muted-foreground">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface-tint/[0.06] text-muted-foreground">
               {s.icon}
             </span>
             <div className="min-w-0 flex-1">
@@ -190,7 +190,7 @@ export function ImportSourcePicker({ onSelectSource }: Props) {
               <span className="block text-xs text-muted-foreground">{s.description}</span>
             </div>
             {s.badge && (
-              <span className="shrink-0 rounded-md bg-white/[0.06] px-2 py-0.5 text-[10px] text-muted-foreground">
+              <span className="shrink-0 rounded-md bg-surface-tint/[0.06] px-2 py-0.5 text-[10px] text-muted-foreground">
                 {s.badge}
               </span>
             )}

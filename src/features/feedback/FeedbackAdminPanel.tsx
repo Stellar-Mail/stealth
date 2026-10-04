@@ -46,21 +46,35 @@ interface FeedbackReport {
 const ADMIN_ADDR = "GADMIN77777777777777777777777777777777777777777777777777";
 
 const STATUS_BADGES: Record<FeedbackStatus, { label: string; className: string }> = {
-  open: { label: "Open", className: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
-  triaged: { label: "Triaged", className: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20" },
+  open: {
+    label: "Open",
+    className: "bg-blue-500/10 text-status-info dark:text-blue-400 border-blue-500/20",
+  },
+  triaged: {
+    label: "Triaged",
+    className: "bg-yellow-500/10 text-status-warning dark:text-yellow-400 border-yellow-500/20",
+  },
   resolved: {
     label: "Resolved",
-    className: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+    className: "bg-emerald-500/10 text-status-success dark:text-emerald-400 border-emerald-500/20",
   },
-  closed: { label: "Closed", className: "bg-neutral-800 text-neutral-500 border-neutral-700" },
-  wont_fix: { label: "Won't Fix", className: "bg-neutral-800 text-neutral-500 border-neutral-700" },
+  closed: {
+    label: "Closed",
+    className:
+      "bg-secondary dark:bg-neutral-800 text-muted-foreground dark:text-neutral-500 border-border dark:border-neutral-700",
+  },
+  wont_fix: {
+    label: "Won't Fix",
+    className:
+      "bg-secondary dark:bg-neutral-800 text-muted-foreground dark:text-neutral-500 border-border dark:border-neutral-700",
+  },
 };
 
 const SEVERITY_BADGES: Record<FeedbackSeverity, string> = {
-  low: "text-blue-400",
-  medium: "text-yellow-400",
-  high: "text-orange-400",
-  critical: "text-red-400",
+  low: "text-status-info dark:text-blue-400",
+  medium: "text-status-warning dark:text-yellow-400",
+  high: "text-status-warning dark:text-orange-400",
+  critical: "text-status-danger dark:text-red-400",
 };
 
 export function FeedbackPanel() {
@@ -177,7 +191,7 @@ export function FeedbackPanel() {
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Beta Feedback Reports</h2>
-          <p className="text-neutral-400 text-sm mt-1">
+          <p className="text-muted-foreground dark:text-neutral-400 text-sm mt-1">
             Triage, export, and close defect reports from beta testers.
           </p>
         </div>
@@ -186,7 +200,7 @@ export function FeedbackPanel() {
             id="feedback-admin-export"
             onClick={handleExport}
             disabled={reports.length === 0}
-            className="px-3 py-1.5 bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 rounded-lg text-neutral-400 hover:text-neutral-100 transition-all flex items-center gap-1.5 text-xs disabled:opacity-40"
+            className="px-3 py-1.5 bg-card dark:bg-neutral-900 hover:bg-accent dark:hover:bg-neutral-800 border border-border dark:border-neutral-800 rounded-lg text-muted-foreground dark:text-neutral-400 hover:text-status-neutral dark:hover:text-neutral-100 transition-all flex items-center gap-1.5 text-xs disabled:opacity-40"
           >
             <Download className="size-3.5" />
             Export NDJSON
@@ -194,7 +208,7 @@ export function FeedbackPanel() {
           <button
             id="feedback-admin-refresh"
             onClick={fetchReports}
-            className="p-2 bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 rounded-lg text-neutral-400 hover:text-neutral-100 transition-all"
+            className="p-2 bg-card dark:bg-neutral-900 hover:bg-accent dark:hover:bg-neutral-800 border border-border dark:border-neutral-800 rounded-lg text-muted-foreground dark:text-neutral-400 hover:text-status-neutral dark:hover:text-neutral-100 transition-all"
           >
             <RefreshCw className="size-3.5" />
           </button>
@@ -203,7 +217,7 @@ export function FeedbackPanel() {
 
       {/* Status filter */}
       <div className="flex items-center gap-2">
-        <Filter className="size-3.5 text-neutral-500" />
+        <Filter className="size-3.5 text-muted-foreground dark:text-neutral-500" />
         <div className="flex gap-1.5">
           {(["", "open", "triaged", "resolved", "closed", "wont_fix"] as const).map((s) => (
             <button
@@ -212,8 +226,8 @@ export function FeedbackPanel() {
               onClick={() => setStatusFilter(s)}
               className={`px-3 py-1 text-xs rounded-full border transition-all ${
                 statusFilter === s
-                  ? "border-purple-500/60 bg-purple-500/10 text-purple-300"
-                  : "border-neutral-800 text-neutral-500 hover:border-neutral-700 hover:text-neutral-300"
+                  ? "border-purple-500/60 bg-purple-500/10 text-status-special dark:text-purple-300"
+                  : "border-border dark:border-neutral-800 text-muted-foreground dark:text-neutral-500 hover:border-border dark:hover:border-neutral-700 hover:text-status-neutral dark:hover:text-neutral-300"
               }`}
             >
               {s === "" ? "All" : (STATUS_BADGES[s as FeedbackStatus]?.label ?? s)}
@@ -223,21 +237,21 @@ export function FeedbackPanel() {
       </div>
 
       {error && (
-        <div className="flex items-center gap-2 p-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl text-sm">
+        <div className="flex items-center gap-2 p-3 bg-red-500/10 border border-red-500/20 text-status-danger dark:text-red-400 rounded-xl text-sm">
           <AlertTriangle className="size-4 shrink-0" />
           {error}
         </div>
       )}
 
       {/* Report list */}
-      <div className="border border-neutral-800 bg-neutral-900/10 rounded-2xl overflow-hidden">
+      <div className="border border-border dark:border-neutral-800 bg-card/10 dark:bg-neutral-900/10 rounded-2xl overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-xs text-neutral-500 flex items-center justify-center gap-2">
+          <div className="p-12 text-center text-xs text-muted-foreground dark:text-neutral-500 flex items-center justify-center gap-2">
             <Loader2 className="size-4 animate-spin" />
             Loading reports...
           </div>
         ) : reports.length === 0 ? (
-          <div className="p-12 text-center text-xs text-neutral-500">
+          <div className="p-12 text-center text-xs text-muted-foreground dark:text-neutral-500">
             No feedback reports found.
           </div>
         ) : (
@@ -249,13 +263,16 @@ export function FeedbackPanel() {
               const badge = STATUS_BADGES[report.status];
 
               return (
-                <div key={report.reportId} className="hover:bg-neutral-900/20 transition-colors">
+                <div
+                  key={report.reportId}
+                  className="hover:bg-accent/20 dark:hover:bg-neutral-900/20 transition-colors"
+                >
                   {/* Summary row */}
                   <div
                     className="flex items-center gap-3 p-4 cursor-pointer"
                     onClick={() => setExpandedId(isExpanded ? null : report.reportId)}
                   >
-                    <Bug className="size-4 text-neutral-500 shrink-0" />
+                    <Bug className="size-4 text-muted-foreground dark:text-neutral-500 shrink-0" />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span
@@ -268,55 +285,63 @@ export function FeedbackPanel() {
                         >
                           {report.severity}
                         </span>
-                        <span className="text-xs text-neutral-400 capitalize">
+                        <span className="text-xs text-muted-foreground dark:text-neutral-400 capitalize">
                           {report.category.replace("_", " ")}
                         </span>
                       </div>
-                      <p className="text-xs text-neutral-400 mt-0.5 truncate">
+                      <p className="text-xs text-muted-foreground dark:text-neutral-400 mt-0.5 truncate">
                         {report.steps.slice(0, 100)}
                       </p>
                     </div>
                     <div className="text-right shrink-0">
-                      <div className="text-[11px] text-neutral-500 font-mono">
+                      <div className="text-[11px] text-muted-foreground dark:text-neutral-500 font-mono">
                         {new Date(report.createdAt).toLocaleDateString()}
                       </div>
                       {isExpanded ? (
-                        <ChevronUp className="size-3.5 text-neutral-500 ml-auto mt-1" />
+                        <ChevronUp className="size-3.5 text-muted-foreground dark:text-neutral-500 ml-auto mt-1" />
                       ) : (
-                        <ChevronDown className="size-3.5 text-neutral-500 ml-auto mt-1" />
+                        <ChevronDown className="size-3.5 text-muted-foreground dark:text-neutral-500 ml-auto mt-1" />
                       )}
                     </div>
                   </div>
 
                   {/* Expanded detail */}
                   {isExpanded && (
-                    <div className="px-4 pb-4 space-y-3 border-t border-neutral-800/60">
+                    <div className="px-4 pb-4 space-y-3 border-t border-border/60 dark:border-neutral-800/60">
                       <div className="grid grid-cols-2 gap-3 pt-3">
-                        <div className="bg-neutral-950 rounded-lg p-3">
-                          <div className="text-[11px] text-neutral-500 mb-1">Report ID</div>
-                          <div className="text-xs font-mono text-neutral-300 break-all">
+                        <div className="bg-background dark:bg-neutral-950 rounded-lg p-3">
+                          <div className="text-[11px] text-muted-foreground dark:text-neutral-500 mb-1">
+                            Report ID
+                          </div>
+                          <div className="text-xs font-mono text-status-neutral dark:text-neutral-300 break-all">
                             {report.reportId}
                           </div>
                         </div>
-                        <div className="bg-neutral-950 rounded-lg p-3">
-                          <div className="text-[11px] text-neutral-500 mb-1">Reporter token</div>
-                          <div className="text-xs font-mono text-neutral-300 truncate">
+                        <div className="bg-background dark:bg-neutral-950 rounded-lg p-3">
+                          <div className="text-[11px] text-muted-foreground dark:text-neutral-500 mb-1">
+                            Reporter token
+                          </div>
+                          <div className="text-xs font-mono text-status-neutral dark:text-neutral-300 truncate">
                             {report.reporterId}
                           </div>
                         </div>
                       </div>
 
-                      <div className="bg-neutral-950 rounded-lg p-3">
-                        <div className="text-[11px] text-neutral-500 mb-1">Steps (redacted)</div>
-                        <div className="text-xs text-neutral-300 whitespace-pre-wrap">
+                      <div className="bg-background dark:bg-neutral-950 rounded-lg p-3">
+                        <div className="text-[11px] text-muted-foreground dark:text-neutral-500 mb-1">
+                          Steps (redacted)
+                        </div>
+                        <div className="text-xs text-status-neutral dark:text-neutral-300 whitespace-pre-wrap">
                           {report.steps}
                         </div>
                       </div>
 
                       {report.diagnostics && (
-                        <div className="bg-neutral-950 rounded-lg p-3">
-                          <div className="text-[11px] text-neutral-500 mb-1">Diagnostics</div>
-                          <pre className="text-[11px] text-neutral-400 overflow-x-auto whitespace-pre-wrap">
+                        <div className="bg-background dark:bg-neutral-950 rounded-lg p-3">
+                          <div className="text-[11px] text-muted-foreground dark:text-neutral-500 mb-1">
+                            Diagnostics
+                          </div>
+                          <pre className="text-[11px] text-muted-foreground dark:text-neutral-400 overflow-x-auto whitespace-pre-wrap">
                             {JSON.stringify(report.diagnostics, null, 2)}
                           </pre>
                         </div>
@@ -324,13 +349,17 @@ export function FeedbackPanel() {
 
                       {report.triageNotes && (
                         <div className="bg-yellow-500/5 border border-yellow-500/15 rounded-lg p-3">
-                          <div className="text-[11px] text-yellow-500 mb-1">Triage notes</div>
-                          <div className="text-xs text-yellow-200/80">{report.triageNotes}</div>
+                          <div className="text-[11px] text-status-warning dark:text-yellow-500 mb-1">
+                            Triage notes
+                          </div>
+                          <div className="text-xs text-status-warning/80 dark:text-yellow-200/80">
+                            {report.triageNotes}
+                          </div>
                         </div>
                       )}
 
                       {mutationError && (
-                        <div className="flex items-center gap-1.5 text-xs text-red-400">
+                        <div className="flex items-center gap-1.5 text-xs text-status-danger dark:text-red-400">
                           <AlertTriangle className="size-3.5" />
                           {mutationError}
                         </div>
@@ -342,7 +371,7 @@ export function FeedbackPanel() {
                           <button
                             id={`feedback-triage-${report.reportId}`}
                             onClick={() => setTriagingId(report.reportId)}
-                            className="px-3 py-1.5 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 border border-yellow-500/20 rounded-lg text-xs transition-all flex items-center gap-1.5"
+                            className="px-3 py-1.5 bg-yellow-500/10 hover:bg-yellow-500/20 text-status-warning dark:text-yellow-400 border border-yellow-500/20 rounded-lg text-xs transition-all flex items-center gap-1.5"
                           >
                             <Clock className="size-3.5" />
                             Triage
@@ -350,7 +379,7 @@ export function FeedbackPanel() {
                           <button
                             id={`feedback-close-${report.reportId}`}
                             onClick={() => setClosingId(report.reportId)}
-                            className="px-3 py-1.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-400 border border-neutral-700 rounded-lg text-xs transition-all flex items-center gap-1.5"
+                            className="px-3 py-1.5 bg-secondary dark:bg-neutral-800 hover:bg-accent dark:hover:bg-neutral-700 text-muted-foreground dark:text-neutral-400 border border-border dark:border-neutral-700 rounded-lg text-xs transition-all flex items-center gap-1.5"
                           >
                             <XCircle className="size-3.5" />
                             Close
@@ -365,7 +394,7 @@ export function FeedbackPanel() {
                             setClosingId(report.reportId);
                             setCloseStatus("resolved");
                           }}
-                          className="px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 rounded-lg text-xs transition-all flex items-center gap-1.5"
+                          className="px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-status-success dark:text-emerald-400 border border-emerald-500/20 rounded-lg text-xs transition-all flex items-center gap-1.5"
                         >
                           <CheckCircle2 className="size-3.5" />
                           Mark resolved
@@ -381,7 +410,7 @@ export function FeedbackPanel() {
                             onChange={(e) => setTriageNotes(e.target.value)}
                             placeholder="Add triage notes (min 4 characters)..."
                             rows={3}
-                            className="w-full px-3 py-2 bg-neutral-950 border border-neutral-700 rounded-lg text-xs text-neutral-200 placeholder-neutral-600 focus:outline-none resize-none"
+                            className="w-full px-3 py-2 bg-background dark:bg-neutral-950 border border-border dark:border-neutral-700 rounded-lg text-xs text-status-neutral dark:text-neutral-200 placeholder-neutral-600 focus:outline-none resize-none"
                           />
                           <div className="flex gap-2">
                             <button
@@ -398,7 +427,7 @@ export function FeedbackPanel() {
                                 setTriagingId(null);
                                 setTriageNotes("");
                               }}
-                              className="px-3 py-1.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-400 rounded-lg text-xs transition-all"
+                              className="px-3 py-1.5 bg-secondary dark:bg-neutral-800 hover:bg-accent dark:hover:bg-neutral-700 text-muted-foreground dark:text-neutral-400 rounded-lg text-xs transition-all"
                             >
                               Cancel
                             </button>
@@ -417,8 +446,8 @@ export function FeedbackPanel() {
                                 onClick={() => setCloseStatus(s)}
                                 className={`px-2.5 py-1 text-xs rounded-lg border transition-all ${
                                   closeStatus === s
-                                    ? "border-purple-500/60 bg-purple-500/10 text-purple-300"
-                                    : "border-neutral-800 text-neutral-500"
+                                    ? "border-purple-500/60 bg-purple-500/10 text-status-special dark:text-purple-300"
+                                    : "border-border dark:border-neutral-800 text-muted-foreground dark:text-neutral-500"
                                 }`}
                               >
                                 {s.replace("_", " ")}
@@ -431,14 +460,14 @@ export function FeedbackPanel() {
                             value={closeReason}
                             onChange={(e) => setCloseReason(e.target.value)}
                             placeholder="Reason for closing (min 4 chars)"
-                            className="w-full px-3 py-2 bg-neutral-950 border border-neutral-700 rounded-lg text-xs text-neutral-200 placeholder-neutral-600 focus:outline-none"
+                            className="w-full px-3 py-2 bg-background dark:bg-neutral-950 border border-border dark:border-neutral-700 rounded-lg text-xs text-status-neutral dark:text-neutral-200 placeholder-neutral-600 focus:outline-none"
                           />
                           <div className="flex gap-2">
                             <button
                               id={`feedback-close-confirm-${report.reportId}`}
                               onClick={() => handleClose(report.reportId)}
                               disabled={closeReason.length < 4 || mutating}
-                              className="px-3 py-1.5 bg-neutral-800 hover:bg-neutral-700 disabled:opacity-50 text-neutral-200 rounded-lg text-xs flex items-center gap-1.5 transition-all"
+                              className="px-3 py-1.5 bg-secondary dark:bg-neutral-800 hover:bg-accent dark:hover:bg-neutral-700 disabled:opacity-50 text-status-neutral dark:text-neutral-200 rounded-lg text-xs flex items-center gap-1.5 transition-all"
                             >
                               {mutating ? <Loader2 className="size-3 animate-spin" /> : null}
                               Confirm close
@@ -448,7 +477,7 @@ export function FeedbackPanel() {
                                 setClosingId(null);
                                 setCloseReason("");
                               }}
-                              className="px-3 py-1.5 bg-neutral-900 text-neutral-500 rounded-lg text-xs transition-all"
+                              className="px-3 py-1.5 bg-card dark:bg-neutral-900 text-muted-foreground dark:text-neutral-500 rounded-lg text-xs transition-all"
                             >
                               Cancel
                             </button>

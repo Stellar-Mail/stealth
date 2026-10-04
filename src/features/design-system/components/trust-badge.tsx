@@ -38,43 +38,50 @@ export const TRUST_STATE_META: Record<TrustState, TrustStateMeta> = {
     label: "Verified",
     tooltip: "This sender's Stellar identity has been cryptographically verified.",
     icon: BadgeCheck,
-    className: "border-zinc-300/25 bg-zinc-300/10 text-zinc-200",
+    className:
+      "border-surface-tint/25 bg-surface-tint/10 text-status-neutral dark:border-zinc-300/25 dark:bg-zinc-300/10 dark:text-zinc-200",
   },
   allowed: {
     label: "Allowed",
     tooltip: "You've marked this sender as a trusted contact.",
     icon: BadgeCheck,
-    className: "border-emerald-300/25 bg-emerald-300/10 text-emerald-200",
+    className:
+      "border-status-success/25 bg-status-success/10 text-status-success dark:border-emerald-300/25 dark:bg-emerald-300/10 dark:text-emerald-200",
   },
   unknown: {
     label: "Unknown",
     tooltip: "This sender hasn't been verified or added to your contacts yet.",
     icon: CircleHelp,
-    className: "border-zinc-300/20 bg-zinc-300/10 text-zinc-200",
+    className:
+      "border-surface-tint/20 bg-surface-tint/10 text-status-neutral dark:border-zinc-300/20 dark:bg-zinc-300/10 dark:text-zinc-200",
   },
   paid: {
     label: "Paid",
     tooltip: "This sender attached postage to reach your inbox.",
     icon: CircleDollarSign,
-    className: "border-amber-300/25 bg-amber-300/10 text-amber-200",
+    className:
+      "border-status-warning/25 bg-status-warning/10 text-status-warning dark:border-amber-300/25 dark:bg-amber-300/10 dark:text-amber-200",
   },
   blocked: {
     label: "Blocked",
     tooltip: "Mail from this sender is rejected and moved to spam.",
     icon: Ban,
-    className: "border-red-300/25 bg-red-300/10 text-red-200",
+    className:
+      "border-status-danger/25 bg-status-danger/10 text-status-danger dark:border-red-300/25 dark:bg-red-300/10 dark:text-red-200",
   },
   bridged: {
     label: "Bridged",
     tooltip: "Delivered over an email bridge, so it can't be fully verified.",
     icon: Cable,
-    className: "border-violet-300/25 bg-violet-300/10 text-violet-200",
+    className:
+      "border-status-special/25 bg-status-special/10 text-status-special dark:border-violet-300/25 dark:bg-violet-300/10 dark:text-violet-200",
   },
   encrypted: {
     label: "Encrypted",
     tooltip: "This message's contents are end-to-end encrypted.",
     icon: Lock,
-    className: "border-teal-300/25 bg-teal-300/10 text-teal-200",
+    className:
+      "border-status-success/25 bg-status-success/10 text-status-success dark:border-teal-300/25 dark:bg-teal-300/10 dark:text-teal-200",
   },
 };
 
@@ -108,7 +115,7 @@ export const TrustBadge = memo(function TrustBadge({
     const check = (
       <span
         className={cn(
-          "inline-flex h-[18px] w-[18px] items-center justify-center rounded-full border border-zinc-300/35 bg-gradient-to-b from-zinc-500/70 to-zinc-800/90 text-zinc-100 shadow-[0_3px_8px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.2)]",
+          "verified-check inline-flex h-[18px] w-[18px] items-center justify-center rounded-full border",
           className,
         )}
         aria-label={meta.label}

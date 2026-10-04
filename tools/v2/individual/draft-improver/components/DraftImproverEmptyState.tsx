@@ -20,12 +20,12 @@ export function DraftImproverEmptyState({
     >
       <div
         aria-hidden="true"
-        className="mb-5 flex size-14 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-700"
+        className="mb-5 flex size-14 items-center justify-center rounded-lg border border-border bg-muted text-foreground"
       >
         <FileText className="size-7" />
       </div>
       <h2 className="text-xl font-semibold text-slate-950">{title}</h2>
-      <p className="mt-3 text-sm leading-6 text-slate-600">{description}</p>
+      <p className="mt-3 text-sm leading-6 text-muted-foreground">{description}</p>
       {action ? <div className="mt-6">{action}</div> : null}
     </section>
   );

@@ -9,17 +9,17 @@ interface TicketItemProps {
 }
 
 const STATUS_COLORS: Record<TicketStatus, string> = {
-  open: "bg-yellow-500/20 text-yellow-400",
-  "in-progress": "bg-blue-500/20 text-blue-400",
-  resolved: "bg-green-500/20 text-green-400",
-  closed: "bg-gray-500/20 text-gray-400",
+  open: "bg-yellow-500/20 text-status-warning",
+  "in-progress": "bg-blue-500/20 text-status-info",
+  resolved: "bg-green-500/20 text-status-success",
+  closed: "bg-gray-500/20 text-muted-foreground",
 };
 
 const PRIORITY_COLORS: Record<string, string> = {
-  low: "text-green-400",
-  medium: "text-yellow-400",
-  high: "text-orange-400",
-  critical: "text-red-400",
+  low: "text-status-success",
+  medium: "text-status-warning",
+  high: "text-status-warning",
+  critical: "text-status-danger",
 };
 
 const NEXT_STATUS: Record<TicketStatus, TicketStatus> = {

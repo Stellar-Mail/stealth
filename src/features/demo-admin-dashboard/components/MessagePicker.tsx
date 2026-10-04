@@ -34,9 +34,9 @@ export function MessagePicker({ pool, campaign, onAssign, onClose }: MessagePick
       aria-label="Pick messages to assign"
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
     >
-      <div className="relative flex w-full max-w-lg flex-col rounded-2xl border border-white/[0.10] bg-black/90 shadow-2xl backdrop-blur-xl overflow-hidden max-h-[80vh]">
+      <div className="relative flex w-full max-w-lg flex-col rounded-2xl border border-surface-tint/[0.10] bg-surface-recessed/90 shadow-2xl backdrop-blur-xl overflow-hidden max-h-[80vh]">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-white/[0.06] px-5 py-4">
+        <div className="flex items-center justify-between border-b border-surface-tint/[0.06] px-5 py-4">
           <div>
             <h3 className="text-sm font-semibold text-foreground">Add messages</h3>
             <p className="mt-0.5 text-[11px] text-muted-foreground">
@@ -47,14 +47,14 @@ export function MessagePicker({ pool, campaign, onAssign, onClose }: MessagePick
             type="button"
             onClick={onClose}
             aria-label="Close message picker"
-            className="rounded-lg p-1.5 text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground"
+            className="rounded-lg p-1.5 text-muted-foreground transition hover:bg-surface-tint/[0.06] hover:text-foreground"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
         {/* Search */}
-        <div className="border-b border-white/[0.06] px-5 py-3">
+        <div className="border-b border-surface-tint/[0.06] px-5 py-3">
           <AdminSearchBar
             value={query}
             onChange={setQuery}
@@ -65,7 +65,7 @@ export function MessagePicker({ pool, campaign, onAssign, onClose }: MessagePick
         </div>
 
         {/* Message list */}
-        <div className="flex-1 overflow-y-auto divide-y divide-white/[0.04]">
+        <div className="flex-1 overflow-y-auto divide-y divide-surface-tint/[0.04]">
           {filtered.length === 0 ? (
             <p className="px-5 py-10 text-center text-sm text-muted-foreground">
               No messages available.
@@ -81,7 +81,9 @@ export function MessagePicker({ pool, campaign, onAssign, onClose }: MessagePick
                   onClick={() => !assigned && onAssign(msg)}
                   className={cn(
                     "w-full px-5 py-3 text-left transition",
-                    assigned ? "cursor-default opacity-50" : "hover:bg-white/[0.03] cursor-pointer",
+                    assigned
+                      ? "cursor-default opacity-50"
+                      : "hover:bg-surface-tint/[0.03] cursor-pointer",
                   )}
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -110,11 +112,11 @@ export function MessagePicker({ pool, campaign, onAssign, onClose }: MessagePick
                       </div>
                     </div>
                     {assigned ? (
-                      <span className="shrink-0 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 text-[10px] font-medium text-emerald-400">
+                      <span className="shrink-0 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 text-[10px] font-medium text-status-success dark:text-emerald-400">
                         Assigned
                       </span>
                     ) : (
-                      <span className="shrink-0 rounded-full bg-white/[0.04] border border-white/[0.08] px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                      <span className="shrink-0 rounded-full bg-surface-tint/[0.04] border border-surface-tint/[0.08] px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
                         {msg.folderHint}
                       </span>
                     )}

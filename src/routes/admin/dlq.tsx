@@ -122,13 +122,13 @@ function AdminDlqControl() {
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Dead Letter Queue (DLQ)</h2>
-          <p className="text-neutral-400 text-sm">
+          <p className="text-muted-foreground dark:text-neutral-400 text-sm">
             Monitor failed asynchronous jobs, inspect payloads/traces, and trigger retries.
           </p>
         </div>
         <button
           onClick={fetchDlq}
-          className="p-2 bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 rounded-lg text-neutral-400 hover:text-neutral-100 transition-all flex items-center gap-2 text-xs"
+          className="p-2 bg-card dark:bg-neutral-900 hover:bg-accent dark:hover:bg-neutral-800 border border-border dark:border-neutral-800 rounded-lg text-muted-foreground dark:text-neutral-400 hover:text-status-neutral dark:hover:text-neutral-100 transition-all flex items-center gap-2 text-xs"
         >
           <RefreshCw className="size-3.5" />
           <span>Refresh Queue</span>
@@ -137,13 +137,13 @@ function AdminDlqControl() {
 
       {/* Notifications */}
       {errorMsg && (
-        <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl text-sm flex items-center gap-2">
+        <div className="p-4 bg-red-500/10 border border-red-500/20 text-status-danger dark:text-red-400 rounded-xl text-sm flex items-center gap-2">
           <AlertTriangle className="size-4 shrink-0" />
           <span>{errorMsg}</span>
         </div>
       )}
       {successMsg && (
-        <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl text-sm flex items-center gap-2">
+        <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 text-status-success dark:text-emerald-400 rounded-xl text-sm flex items-center gap-2">
           <CheckCircle className="size-4 shrink-0" />
           <span>{successMsg}</span>
         </div>
@@ -153,15 +153,15 @@ function AdminDlqControl() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left Side: Filter Bar + Table List */}
         <div className="lg:col-span-2 space-y-4">
-          <div className="flex gap-4 bg-neutral-900/10 p-4 border border-neutral-800 rounded-2xl">
+          <div className="flex gap-4 bg-card/10 dark:bg-neutral-900/10 p-4 border border-border dark:border-neutral-800 rounded-2xl">
             <div className="flex-1">
-              <label className="block text-[10px] text-neutral-500 font-bold uppercase mb-1">
+              <label className="block text-[10px] text-muted-foreground dark:text-neutral-500 font-bold uppercase mb-1">
                 Filter Job Type
               </label>
               <select
                 value={jobTypeFilter}
                 onChange={(e) => setJobTypeFilter(e.target.value)}
-                className="w-full px-3 py-1.5 bg-neutral-950 border border-neutral-850 rounded-lg text-xs focus:outline-none focus:border-purple-500 text-neutral-300"
+                className="w-full px-3 py-1.5 bg-background dark:bg-neutral-950 border border-border dark:border-neutral-850 rounded-lg text-xs focus:outline-none focus:border-purple-500 text-status-neutral dark:text-neutral-300"
               >
                 <option value="">All Job Types</option>
                 <option value="funding">Funding Operations</option>
@@ -171,13 +171,13 @@ function AdminDlqControl() {
               </select>
             </div>
             <div className="flex-1">
-              <label className="block text-[10px] text-neutral-500 font-bold uppercase mb-1">
+              <label className="block text-[10px] text-muted-foreground dark:text-neutral-500 font-bold uppercase mb-1">
                 Filter Status
               </label>
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full px-3 py-1.5 bg-neutral-950 border border-neutral-850 rounded-lg text-xs focus:outline-none focus:border-purple-500 text-neutral-300"
+                className="w-full px-3 py-1.5 bg-background dark:bg-neutral-950 border border-border dark:border-neutral-850 rounded-lg text-xs focus:outline-none focus:border-purple-500 text-status-neutral dark:text-neutral-300"
               >
                 <option value="">All Statuses</option>
                 <option value="failed">Failed (Pending Triage)</option>
@@ -187,18 +187,20 @@ function AdminDlqControl() {
             </div>
           </div>
 
-          <div className="border border-neutral-800 bg-neutral-900/10 rounded-2xl overflow-hidden">
+          <div className="border border-border dark:border-neutral-800 bg-card/10 dark:bg-neutral-900/10 rounded-2xl overflow-hidden">
             <div className="overflow-x-auto">
               {loading ? (
-                <div className="p-12 text-center text-xs text-neutral-500">Loading DLQ logs...</div>
+                <div className="p-12 text-center text-xs text-muted-foreground dark:text-neutral-500">
+                  Loading DLQ logs...
+                </div>
               ) : dlq.length === 0 ? (
-                <div className="p-12 text-center text-xs text-neutral-500">
+                <div className="p-12 text-center text-xs text-muted-foreground dark:text-neutral-500">
                   No dead letter records found.
                 </div>
               ) : (
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
-                    <tr className="border-b border-neutral-800 text-neutral-500 bg-neutral-900/10 font-bold uppercase text-[10px] tracking-wider">
+                    <tr className="border-b border-border dark:border-neutral-800 text-muted-foreground dark:text-neutral-500 bg-card/10 dark:bg-neutral-900/10 font-bold uppercase text-[10px] tracking-wider">
                       <th className="p-4">Job Type</th>
                       <th className="p-4">DLQ Status</th>
                       <th className="p-4">Failed Error</th>
@@ -211,41 +213,41 @@ function AdminDlqControl() {
                     {dlq.map((item) => (
                       <tr
                         key={item.deadLetterId}
-                        className={`border-b border-neutral-800/60 hover:bg-neutral-900/20 cursor-pointer transition-all ${selectedItem?.deadLetterId === item.deadLetterId ? "bg-neutral-900/40" : ""}`}
+                        className={`border-b border-border/60 dark:border-neutral-800/60 hover:bg-accent/20 dark:hover:bg-neutral-900/20 cursor-pointer transition-all ${selectedItem?.deadLetterId === item.deadLetterId ? "bg-card/40 dark:bg-neutral-900/40" : ""}`}
                         onClick={() => {
                           setSelectedItem(item);
                           setMutationAction(null);
                         }}
                       >
-                        <td className="p-4 font-mono font-semibold capitalize text-neutral-200">
+                        <td className="p-4 font-mono font-semibold capitalize text-status-neutral dark:text-neutral-200">
                           {item.jobType}
                         </td>
                         <td className="p-4">
                           {item.status === "failed" ? (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] bg-red-500/10 text-red-400 border border-red-500/20">
+                            <span className="px-2 py-0.5 rounded-full text-[10px] bg-red-500/10 text-status-danger dark:text-red-400 border border-red-500/20">
                               Failed
                             </span>
                           ) : item.status === "retried" ? (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                            <span className="px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/10 text-status-success dark:text-emerald-400 border border-emerald-500/20">
                               Retried
                             </span>
                           ) : (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] bg-neutral-800 text-neutral-500 border border-neutral-700">
+                            <span className="px-2 py-0.5 rounded-full text-[10px] bg-secondary dark:bg-neutral-800 text-muted-foreground dark:text-neutral-500 border border-border dark:border-neutral-700">
                               Abandoned
                             </span>
                           )}
                         </td>
-                        <td className="p-4 text-neutral-400 max-w-[180px] truncate">
+                        <td className="p-4 text-muted-foreground dark:text-neutral-400 max-w-[180px] truncate">
                           {item.error || "Unknown Failure"}
                         </td>
-                        <td className="p-4 text-neutral-400">
+                        <td className="p-4 text-muted-foreground dark:text-neutral-400">
                           {item.attempts} / {item.maxAttempts}
                         </td>
-                        <td className="p-4 text-neutral-500">
+                        <td className="p-4 text-muted-foreground dark:text-neutral-500">
                           {new Date(item.createdAt).toLocaleTimeString()}
                         </td>
                         <td className="p-4 text-center">
-                          <ChevronRight className="size-4 mx-auto text-neutral-600" />
+                          <ChevronRight className="size-4 mx-auto text-muted-foreground dark:text-neutral-600" />
                         </td>
                       </tr>
                     ))}
@@ -257,9 +259,9 @@ function AdminDlqControl() {
         </div>
 
         {/* Right Side: DLQ Inspect View & Operations */}
-        <div className="border border-neutral-800 bg-neutral-900/10 rounded-2xl p-6 h-fit space-y-6">
+        <div className="border border-border dark:border-neutral-800 bg-card/10 dark:bg-neutral-900/10 rounded-2xl p-6 h-fit space-y-6">
           <h3 className="font-bold text-md flex items-center gap-2">
-            <Eye className="size-4 text-purple-400" />
+            <Eye className="size-4 text-status-special dark:text-purple-400" />
             <span>Triage & Inspection</span>
           </h3>
 
@@ -268,48 +270,48 @@ function AdminDlqControl() {
               {/* Item Details */}
               <div className="space-y-4">
                 <div>
-                  <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider block mb-1">
+                  <span className="text-[10px] text-muted-foreground dark:text-neutral-500 font-bold uppercase tracking-wider block mb-1">
                     Dead Letter ID
                   </span>
-                  <span className="font-mono text-xs text-neutral-300 select-all block break-all">
+                  <span className="font-mono text-xs text-status-neutral dark:text-neutral-300 select-all block break-all">
                     {selectedItem.deadLetterId}
                   </span>
                 </div>
                 <div>
-                  <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider block mb-1">
+                  <span className="text-[10px] text-muted-foreground dark:text-neutral-500 font-bold uppercase tracking-wider block mb-1">
                     Error Message
                   </span>
-                  <div className="p-3 bg-neutral-950 border border-neutral-850 rounded-xl font-mono text-xs text-red-400 break-words max-h-40 overflow-y-auto">
+                  <div className="p-3 bg-background dark:bg-neutral-950 border border-border dark:border-neutral-850 rounded-xl font-mono text-xs text-status-danger dark:text-red-400 break-words max-h-40 overflow-y-auto">
                     {selectedItem.error || "No error trace captured."}
                   </div>
                 </div>
                 {selectedItem.adminNotes && (
                   <div>
-                    <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider block mb-1">
+                    <span className="text-[10px] text-muted-foreground dark:text-neutral-500 font-bold uppercase tracking-wider block mb-1">
                       Operator Notes
                     </span>
-                    <p className="text-xs text-neutral-350 bg-neutral-900/40 p-2.5 rounded-lg border border-neutral-800">
+                    <p className="text-xs text-muted-foreground bg-card/40 dark:bg-neutral-900/40 p-2.5 rounded-lg border border-border dark:border-neutral-800">
                       {selectedItem.adminNotes}
                     </p>
                   </div>
                 )}
                 <div>
-                  <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider block mb-1">
+                  <span className="text-[10px] text-muted-foreground dark:text-neutral-500 font-bold uppercase tracking-wider block mb-1">
                     Payload Metadata
                   </span>
-                  <pre className="p-3 bg-neutral-950 border border-neutral-850 rounded-xl font-mono text-[10px] text-neutral-400 overflow-x-auto max-h-40">
+                  <pre className="p-3 bg-background dark:bg-neutral-950 border border-border dark:border-neutral-850 rounded-xl font-mono text-[10px] text-muted-foreground dark:text-neutral-400 overflow-x-auto max-h-40">
                     {JSON.stringify(selectedItem.payload, null, 2)}
                   </pre>
                 </div>
               </div>
 
-              <hr className="border-neutral-800" />
+              <hr className="border-border dark:border-neutral-800" />
 
               {/* Triage Mutations Console */}
               {selectedItem.status === "failed" &&
                 (mutationAction ? (
                   <div className="space-y-4">
-                    <span className="text-xs font-semibold text-neutral-300 capitalize">
+                    <span className="text-xs font-semibold text-status-neutral dark:text-neutral-300 capitalize">
                       Action: {mutationAction} DLQ Job
                     </span>
                     <input
@@ -317,7 +319,7 @@ function AdminDlqControl() {
                       placeholder="Audit Reason (mandatory)"
                       value={reason}
                       onChange={(e) => setReason(e.target.value)}
-                      className="w-full px-3 py-1.5 bg-neutral-905 border border-neutral-800 rounded-lg text-xs focus:outline-none focus:border-purple-500"
+                      className="w-full px-3 py-1.5 bg-card dark:bg-neutral-905 border border-border dark:border-neutral-800 rounded-lg text-xs focus:outline-none focus:border-purple-500"
                       required
                     />
                     {mutationAction === "abandon" && (
@@ -325,7 +327,7 @@ function AdminDlqControl() {
                         placeholder="Optional details / operator notes for this abandonment"
                         value={adminNotes}
                         onChange={(e) => setAdminNotes(e.target.value)}
-                        className="w-full p-2.5 bg-neutral-905 border border-neutral-800 rounded-lg text-xs focus:outline-none focus:border-purple-500"
+                        className="w-full p-2.5 bg-card dark:bg-neutral-905 border border-border dark:border-neutral-800 rounded-lg text-xs focus:outline-none focus:border-purple-500"
                         rows={2}
                       />
                     )}
@@ -343,7 +345,7 @@ function AdminDlqControl() {
                           setReason("");
                           setAdminNotes("");
                         }}
-                        className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-400 rounded-lg text-xs cursor-pointer"
+                        className="px-4 py-2 bg-secondary dark:bg-neutral-800 hover:bg-accent dark:hover:bg-neutral-700 text-muted-foreground dark:text-neutral-400 rounded-lg text-xs cursor-pointer"
                       >
                         Cancel
                       </button>
@@ -353,14 +355,14 @@ function AdminDlqControl() {
                   <div className="flex gap-3">
                     <button
                       onClick={() => setMutationAction("retry")}
-                      className="flex-1 py-2 bg-purple-600/10 hover:bg-purple-600/20 text-purple-400 rounded-xl text-xs font-semibold border border-purple-500/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                      className="flex-1 py-2 bg-purple-600/10 hover:bg-purple-600/20 text-status-special dark:text-purple-400 rounded-xl text-xs font-semibold border border-purple-500/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                     >
                       <Play className="size-3.5" />
                       <span>Retry Job</span>
                     </button>
                     <button
                       onClick={() => setMutationAction("abandon")}
-                      className="flex-1 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-xl text-xs font-semibold border border-red-500/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                      className="flex-1 py-2 bg-red-500/10 hover:bg-red-500/20 text-status-danger dark:text-red-400 rounded-xl text-xs font-semibold border border-red-500/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                     >
                       <ShieldAlert className="size-3.5" />
                       <span>Abandon</span>
@@ -369,7 +371,7 @@ function AdminDlqControl() {
                 ))}
             </div>
           ) : (
-            <div className="text-center text-xs text-neutral-500 py-12">
+            <div className="text-center text-xs text-muted-foreground dark:text-neutral-500 py-12">
               Select an item from the DLQ list to inspect payload and perform operations.
             </div>
           )}

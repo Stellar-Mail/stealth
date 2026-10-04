@@ -167,7 +167,7 @@ export function CommandPalette({
               />
             ) : (
               <>
-                <div className="flex items-center gap-3 border-b border-white/5 px-4 py-3">
+                <div className="flex items-center gap-3 border-b border-surface-tint/5 px-4 py-3">
                   <Search className="h-4 w-4 text-muted-foreground" />
                   <input
                     autoFocus
@@ -177,7 +177,7 @@ export function CommandPalette({
                     className="glow-ring w-full rounded-md bg-transparent text-sm placeholder:text-muted-foreground/70 focus:outline-none"
                   />
                   {context.email && (
-                    <span className="hidden max-w-[140px] truncate rounded-md border border-white/10 bg-black/30 px-1.5 py-0.5 text-[10px] text-muted-foreground sm:inline">
+                    <span className="hidden max-w-[140px] truncate rounded-md border border-surface-tint/10 bg-surface-recessed/30 px-1.5 py-0.5 text-[10px] text-muted-foreground sm:inline">
                       {context.email.from}
                     </span>
                   )}
@@ -199,7 +199,7 @@ export function CommandPalette({
                     />
                   ))}
                 </ul>
-                <div className="flex items-center gap-3 border-t border-white/5 px-4 py-2 text-[10px] text-muted-foreground">
+                <div className="flex items-center gap-3 border-t border-surface-tint/5 px-4 py-2 text-[10px] text-muted-foreground">
                   <Hint keyLabel="↑↓">Navigate</Hint>
                   <Hint keyLabel="↵">Run</Hint>
                   <Hint keyLabel="esc">Close</Hint>
@@ -296,12 +296,15 @@ const RowView = memo(function RowView({
         className={cn(
           "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition",
           disabled ? "cursor-not-allowed opacity-45" : "cursor-pointer",
-          active && !disabled && "bg-white/[0.07] ring-1 ring-white/10",
-          !active && !disabled && "hover:bg-white/[0.05]",
+          active && !disabled && "bg-surface-tint/[0.07] ring-1 ring-surface-tint/10",
+          !active && !disabled && "hover:bg-surface-tint/[0.05]",
         )}
       >
         <meta.Icon
-          className={cn("h-4 w-4 shrink-0", meta.danger ? "text-red-300" : "text-muted-foreground")}
+          className={cn(
+            "h-4 w-4 shrink-0",
+            meta.danger ? "text-status-danger dark:text-red-300" : "text-muted-foreground",
+          )}
         />
         <span className="min-w-0 flex-1">
           <span className="block truncate text-sm text-foreground/90">{meta.label}</span>
@@ -309,7 +312,7 @@ const RowView = memo(function RowView({
             <span
               className={cn(
                 "block truncate text-[11px]",
-                help ? "text-amber-200/80" : "text-muted-foreground",
+                help ? "text-status-warning/80 dark:text-amber-200/80" : "text-muted-foreground",
               )}
             >
               {help ?? meta.sub}
@@ -317,12 +320,12 @@ const RowView = memo(function RowView({
           )}
         </span>
         {meta.hint && !disabled && (
-          <span className="ml-auto rounded-md border border-white/10 bg-black/30 px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
+          <span className="ml-auto rounded-md border border-surface-tint/10 bg-surface-recessed/30 px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
             {meta.hint}
           </span>
         )}
         {meta.danger && !disabled && (
-          <span className="rounded-md border border-red-300/20 bg-red-300/10 px-1.5 py-0.5 text-[9px] uppercase tracking-wide text-red-200">
+          <span className="rounded-md border border-red-300/20 bg-red-300/10 px-1.5 py-0.5 text-[9px] uppercase tracking-wide text-status-danger dark:text-red-200">
             confirm
           </span>
         )}
@@ -376,7 +379,7 @@ function ConfirmPanel({
   return (
     <div className="p-6">
       <div className="flex items-start gap-3">
-        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-red-300/25 bg-red-300/10 text-red-200">
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-red-300/25 bg-red-300/10 text-status-danger dark:text-red-200">
           <AlertTriangle className="h-4 w-4" />
         </span>
         <div className="min-w-0">
@@ -387,7 +390,7 @@ function ConfirmPanel({
       <div className="mt-5 flex gap-3">
         <button
           onClick={onCancel}
-          className="glow-ring flex-1 rounded-xl border border-white/10 px-4 py-2.5 text-sm text-muted-foreground transition hover:bg-white/[0.04] hover:text-foreground active:scale-[0.98]"
+          className="glow-ring flex-1 rounded-xl border border-surface-tint/10 px-4 py-2.5 text-sm text-muted-foreground transition hover:bg-surface-tint/[0.04] hover:text-foreground active:scale-[0.98]"
         >
           Cancel
         </button>
@@ -407,7 +410,7 @@ function ConfirmPanel({
 function Hint({ keyLabel, children }: { keyLabel: string; children: React.ReactNode }) {
   return (
     <span className="flex items-center gap-1.5">
-      <kbd className="rounded border border-white/10 bg-black/30 px-1.5 py-0.5 font-mono text-[10px]">
+      <kbd className="rounded border border-surface-tint/10 bg-surface-recessed/30 px-1.5 py-0.5 font-mono text-[10px]">
         {keyLabel}
       </kbd>
       {children}

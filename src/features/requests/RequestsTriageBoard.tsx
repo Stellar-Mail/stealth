@@ -325,16 +325,16 @@ export function RequestsTriageBoard({
   };
 
   return (
-    <div className="mail-list-atmosphere relative m-3 flex h-[calc(100vh-3.5rem-1.5rem)] flex-1 flex-col overflow-hidden rounded-lg border border-white/10 bg-black/20 backdrop-blur-sm">
+    <div className="mail-list-atmosphere relative m-3 flex h-[calc(100vh-3.5rem-1.5rem)] flex-1 flex-col overflow-hidden rounded-lg border border-surface-tint/10 bg-surface-recessed/20 backdrop-blur-sm">
       {/* Triage Board Header */}
-      <div className="relative z-10 flex flex-col justify-between gap-3 border-b border-white/10 bg-white/2.5 px-4 py-4 md:flex-row md:items-center">
+      <div className="relative z-10 flex flex-col justify-between gap-3 border-b border-surface-tint/10 bg-surface-tint/2.5 px-4 py-4 md:flex-row md:items-center">
         <div>
           <div className="flex items-center gap-2">
-            <Users className="h-4 w-4 text-[oklch(0.85_0.005_270)]" />
+            <Users className="h-4 w-4 text-silver" />
             <h2 className="text-sm font-semibold tracking-normal text-foreground">
               Request Triage Board
             </h2>
-            <span className="rounded-full bg-white/8 px-2 py-0.5 text-xs font-semibold tabular-nums text-muted-foreground">
+            <span className="rounded-full bg-surface-tint/8 px-2 py-0.5 text-xs font-semibold tabular-nums text-muted-foreground">
               {requests.length} pending
             </span>
             {requests.length > 0 && (
@@ -343,7 +343,7 @@ export function RequestsTriageBoard({
                   type="checkbox"
                   checked={selectedIds.size === requests.length && requests.length > 0}
                   onChange={(e) => handleSelectAll(e.target.checked)}
-                  className="rounded border-white/20 bg-black/40 text-emerald-500 focus:ring-emerald-500/30"
+                  className="rounded border-surface-tint/20 bg-surface-recessed/40 text-status-success dark:text-emerald-500 focus:ring-emerald-500/30"
                 />
                 <span>Select All</span>
               </label>
@@ -362,7 +362,7 @@ export function RequestsTriageBoard({
                 type="checkbox"
                 checked={simulateFailure}
                 onChange={(e) => setSimulateFailure(e.target.checked)}
-                className="rounded border-white/20 bg-black/40 text-emerald-500 focus:ring-emerald-500/30 focus:ring-offset-0 focus:outline-none"
+                className="rounded border-surface-tint/20 bg-surface-recessed/40 text-status-success dark:text-emerald-500 focus:ring-emerald-500/30 focus:ring-offset-0 focus:outline-none"
               />
               <span>Simulate network failure</span>
             </label>
@@ -385,7 +385,7 @@ export function RequestsTriageBoard({
                 {...motionPresets.entrance.scaleIn(0.98)}
                 className="flex h-[300px] flex-col items-center justify-center text-center p-6"
               >
-                <div className="mb-4 rounded-full bg-emerald-500/10 p-3 text-emerald-400 border border-emerald-500/20">
+                <div className="mb-4 rounded-full bg-emerald-500/10 p-3 text-status-success dark:text-emerald-400 border border-emerald-500/20">
                   <CheckCircle className="h-6 w-6" />
                 </div>
                 <h3 className="text-sm font-semibold text-foreground">All caught up!</h3>
@@ -422,7 +422,7 @@ export function RequestsTriageBoard({
                   <div className="flex justify-center">
                     <button
                       onClick={() => setCursor(nextCursor)}
-                      className="rounded-lg border border-white/10 px-4 py-2 text-xs font-semibold text-foreground hover:bg-white/5 transition"
+                      className="rounded-lg border border-surface-tint/10 px-4 py-2 text-xs font-semibold text-foreground hover:bg-surface-tint/5 transition"
                     >
                       Load More Requests
                     </button>
@@ -441,28 +441,28 @@ export function RequestsTriageBoard({
             initial={{ y: 50, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 50, opacity: 0 }}
-            className="absolute bottom-20 md:bottom-6 left-1/2 z-40 flex max-w-[calc(100vw-1rem)] flex-wrap md:flex-nowrap -translate-x-1/2 items-center gap-2 sm:gap-4 rounded-xl border border-white/10 bg-black/90 px-3 sm:px-6 py-2.5 sm:py-3 shadow-2xl backdrop-blur-md"
+            className="absolute bottom-20 md:bottom-6 left-1/2 z-40 flex max-w-[calc(100vw-1rem)] flex-wrap md:flex-nowrap -translate-x-1/2 items-center gap-2 sm:gap-4 rounded-xl border border-surface-tint/10 bg-surface-recessed/90 px-3 sm:px-6 py-2.5 sm:py-3 shadow-2xl backdrop-blur-md"
           >
             <span className="text-xs text-foreground/80 font-medium whitespace-nowrap">
               {selectedIds.size} selected
             </span>
-            <div className="hidden sm:block h-4 w-px bg-white/10" />
+            <div className="hidden sm:block h-4 w-px bg-surface-tint/10" />
             <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
               <button
                 onClick={() => setBulkAction("block")}
-                className="rounded-lg border border-red-500/20 bg-red-500/5 px-2.5 py-1.5 text-xs font-medium text-red-400 hover:bg-red-500/10 transition"
+                className="rounded-lg border border-red-500/20 bg-red-500/5 px-2.5 py-1.5 text-xs font-medium text-status-danger dark:text-red-400 hover:bg-red-500/10 transition"
               >
                 Bulk Block
               </button>
               <button
                 onClick={() => setBulkAction("reject")}
-                className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-2.5 py-1.5 text-xs font-medium text-amber-400 hover:bg-amber-500/10 transition"
+                className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-2.5 py-1.5 text-xs font-medium text-status-warning dark:text-amber-400 hover:bg-amber-500/10 transition"
               >
                 Bulk Reject
               </button>
               <button
                 onClick={() => setBulkAction("approve_once")}
-                className="rounded-lg border border-white/10 px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-white/5 transition"
+                className="rounded-lg border border-surface-tint/10 px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-surface-tint/5 transition"
               >
                 Approve Once
               </button>
@@ -491,15 +491,15 @@ export function RequestsTriageBoard({
             <motion.div
               {...motionPresets.patterns.modal.backdrop}
               onClick={() => setBulkAction(null)}
-              className="fixed inset-0 z-100 bg-black/80 backdrop-blur-md"
+              className="fixed inset-0 z-100 bg-surface-recessed/80 backdrop-blur-md"
             />
             <motion.div
               {...motionPresets.patterns.modal.content}
               role="dialog"
               aria-modal="true"
-              className="glass-strong fixed left-1/2 top-1/2 z-101 w-[min(420px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl border border-white/10 p-6"
+              className="glass-strong fixed left-1/2 top-1/2 z-101 w-[min(420px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl border border-surface-tint/10 p-6"
             >
-              <div className="flex items-start gap-3 text-amber-400 mb-3">
+              <div className="flex items-start gap-3 text-status-warning dark:text-amber-400 mb-3">
                 <AlertTriangle className="h-5 w-5 shrink-0" />
                 <h3 className="text-sm font-semibold text-foreground">Confirm Bulk Action</h3>
               </div>
@@ -510,7 +510,7 @@ export function RequestsTriageBoard({
               <div className="flex justify-end gap-2">
                 <button
                   onClick={() => setBulkAction(null)}
-                  className="rounded-lg border border-white/10 px-4 py-2 text-xs font-semibold text-foreground hover:bg-white/5 transition"
+                  className="rounded-lg border border-surface-tint/10 px-4 py-2 text-xs font-semibold text-foreground hover:bg-surface-tint/5 transition"
                 >
                   Cancel
                 </button>
@@ -530,12 +530,12 @@ export function RequestsTriageBoard({
       <AnimatePresence>
         {bulkProcessing && (
           <>
-            <div className="fixed inset-0 z-100 bg-black/80 backdrop-blur-md" />
+            <div className="fixed inset-0 z-100 bg-surface-recessed/80 backdrop-blur-md" />
             <motion.div
               {...motionPresets.patterns.modal.content}
               role="dialog"
               aria-modal="true"
-              className="glass-strong fixed left-1/2 top-1/2 z-101 w-[min(440px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl border border-white/10 p-6"
+              className="glass-strong fixed left-1/2 top-1/2 z-101 w-[min(440px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl border border-surface-tint/10 p-6"
             >
               <h3 className="text-sm font-bold text-foreground mb-4">
                 Bulk Processing: {bulkProcessing.action.replace("_", " ")}
@@ -544,12 +544,12 @@ export function RequestsTriageBoard({
               {bulkProcessing.processed < bulkProcessing.total ? (
                 <div className="space-y-4">
                   <div className="flex items-center gap-3">
-                    <Loader2 className="h-5 w-5 animate-spin text-emerald-400" />
+                    <Loader2 className="h-5 w-5 animate-spin text-status-success dark:text-emerald-400" />
                     <span className="text-xs text-foreground/90 font-medium">
                       Processing {bulkProcessing.processed} of {bulkProcessing.total}...
                     </span>
                   </div>
-                  <div className="h-1.5 w-full rounded-full bg-white/5 overflow-hidden">
+                  <div className="h-1.5 w-full rounded-full bg-surface-tint/5 overflow-hidden">
                     <div
                       className="h-full bg-emerald-500 transition-all duration-300"
                       style={{
@@ -560,16 +560,16 @@ export function RequestsTriageBoard({
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-2 text-xs rounded-lg bg-white/2 border border-white/5 p-3">
+                  <div className="grid grid-cols-2 gap-2 text-xs rounded-lg bg-surface-tint/2 border border-surface-tint/5 p-3">
                     <div>
                       <span className="text-muted-foreground">Succeeded</span>
-                      <span className="block font-semibold text-emerald-400 mt-0.5">
+                      <span className="block font-semibold text-status-success dark:text-emerald-400 mt-0.5">
                         {bulkProcessing.succeeded} items
                       </span>
                     </div>
                     <div>
                       <span className="text-muted-foreground">Failed</span>
-                      <span className="block font-semibold text-rose-400 mt-0.5">
+                      <span className="block font-semibold text-status-danger dark:text-rose-400 mt-0.5">
                         {bulkProcessing.failed} items
                       </span>
                     </div>
@@ -580,16 +580,16 @@ export function RequestsTriageBoard({
                       <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
                         Failure Details
                       </span>
-                      <div className="max-h-[140px] overflow-y-auto rounded-lg border border-white/5 bg-black/20 p-2 space-y-2">
+                      <div className="max-h-[140px] overflow-y-auto rounded-lg border border-surface-tint/5 bg-surface-recessed/20 p-2 space-y-2">
                         {bulkProcessing.failures.map((f, i) => (
                           <div
                             key={i}
-                            className="text-[11px] leading-normal border-b border-white/4 pb-1 last:border-b-0 last:pb-0"
+                            className="text-[11px] leading-normal border-b border-surface-tint/4 pb-1 last:border-b-0 last:pb-0"
                           >
                             <span className="font-mono text-foreground/90 block truncate">
                               {f.sender}
                             </span>
-                            <span className="text-rose-400">{f.error}</span>
+                            <span className="text-status-danger dark:text-rose-400">{f.error}</span>
                           </div>
                         ))}
                       </div>
@@ -623,7 +623,7 @@ export function RequestsTriageBoard({
               {...motionPresets.patterns.modal.backdrop}
               onClick={closeInspector}
               aria-hidden="true"
-              className="fixed inset-0 z-100 bg-black/80 backdrop-blur-md"
+              className="fixed inset-0 z-100 bg-surface-recessed/80 backdrop-blur-md"
             />
 
             {/* Panel */}
@@ -633,9 +633,9 @@ export function RequestsTriageBoard({
               role="dialog"
               aria-modal="true"
               aria-label="Inspect sender request context"
-              className="glass-strong fixed left-1/2 top-1/2 z-101 w-[min(540px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl border border-white/10"
+              className="glass-strong fixed left-1/2 top-1/2 z-101 w-[min(540px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl border border-surface-tint/10"
             >
-              <div className="flex items-start justify-between border-b border-white/8 px-6 py-4">
+              <div className="flex items-start justify-between border-b border-surface-tint/8 px-6 py-4">
                 <div>
                   <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
                     Sender Inspection
@@ -646,7 +646,7 @@ export function RequestsTriageBoard({
                 </div>
                 <button
                   onClick={closeInspector}
-                  className="rounded-lg p-1 text-muted-foreground transition hover:bg-white/5 hover:text-foreground focus:outline-none focus:ring-2 focus:ring-white/10"
+                  className="rounded-lg p-1 text-muted-foreground transition hover:bg-surface-tint/5 hover:text-foreground focus:outline-none focus:ring-2 focus:ring-surface-tint/10"
                   aria-label="Close details"
                 >
                   <X className="h-4 w-4" />
@@ -655,7 +655,7 @@ export function RequestsTriageBoard({
 
               <div className="max-h-[60vh] overflow-y-auto px-6 py-4 space-y-4">
                 {/* Details grid */}
-                <div className="grid grid-cols-2 gap-4 rounded-xl bg-white/2 border border-white/4 p-3 text-xs">
+                <div className="grid grid-cols-2 gap-4 rounded-xl bg-surface-tint/2 border border-surface-tint/4 p-3 text-xs">
                   <div>
                     <span className="text-muted-foreground font-medium block">Stellar ID</span>
                     <span className="font-mono text-[10px] break-all block mt-0.5 text-foreground/90">
@@ -665,12 +665,12 @@ export function RequestsTriageBoard({
                   <div>
                     <span className="text-muted-foreground font-medium block">Verification</span>
                     {inspectEmail.verifiedSender ? (
-                      <span className="inline-flex items-center gap-1 text-emerald-400 font-medium mt-0.5">
+                      <span className="inline-flex items-center gap-1 text-status-success dark:text-emerald-400 font-medium mt-0.5">
                         <ShieldCheck className="h-3.5 w-3.5" />
                         Verified cryptographic key
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 text-amber-400 font-medium mt-0.5">
+                      <span className="inline-flex items-center gap-1 text-status-warning dark:text-amber-400 font-medium mt-0.5">
                         <HelpCircle className="h-3.5 w-3.5" />
                         Self-declared identity (Unverified)
                       </span>
@@ -688,7 +688,7 @@ export function RequestsTriageBoard({
                   </div>
                   <div>
                     <span className="text-muted-foreground font-medium block">Security Status</span>
-                    <span className="inline-flex items-center gap-1 rounded bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-400 mt-0.5">
+                    <span className="inline-flex items-center gap-1 rounded bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-status-warning dark:text-amber-400 mt-0.5">
                       Quarantined (Requests folder)
                     </span>
                   </div>
@@ -699,8 +699,8 @@ export function RequestsTriageBoard({
                   <span className="text-xs font-semibold text-muted-foreground block">
                     Message Preview
                   </span>
-                  <div className="rounded-xl border border-white/10 bg-black/20 p-4 space-y-3">
-                    <div className="border-b border-white/6 pb-2">
+                  <div className="rounded-xl border border-surface-tint/10 bg-surface-recessed/20 p-4 space-y-3">
+                    <div className="border-b border-surface-tint/6 pb-2">
                       <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
                         Subject
                       </span>
@@ -729,7 +729,7 @@ export function RequestsTriageBoard({
                       {inspectEmail.attachments.map((file, i) => (
                         <div
                           key={`${file.name}-${file.size}`}
-                          className="flex items-center gap-2 rounded-lg border border-white/5 bg-white/1 p-2 text-[11px]"
+                          className="flex items-center gap-2 rounded-lg border border-surface-tint/5 bg-surface-tint/1 p-2 text-[11px]"
                         >
                           <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                           <div className="min-w-0 flex-1">
@@ -744,10 +744,10 @@ export function RequestsTriageBoard({
               </div>
 
               {/* Inspector CTAs */}
-              <div className="flex items-center justify-end gap-2 border-t border-white/8 px-6 py-4">
+              <div className="flex items-center justify-end gap-2 border-t border-surface-tint/8 px-6 py-4">
                 <button
                   onClick={closeInspector}
-                  className="rounded-lg border border-white/10 px-4 py-2 text-xs font-semibold text-foreground transition hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-white/10"
+                  className="rounded-lg border border-surface-tint/10 px-4 py-2 text-xs font-semibold text-foreground transition hover:bg-surface-tint/5 focus:outline-none focus:ring-2 focus:ring-surface-tint/10"
                 >
                   Close
                 </button>

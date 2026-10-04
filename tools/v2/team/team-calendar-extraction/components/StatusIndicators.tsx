@@ -28,7 +28,7 @@ export function StatusIndicators({ stats, errors, logs }: StatusIndicatorsProps)
             </div>
             <div className="flex justify-between border-b border-border/30 pb-1.5">
               <span className="text-muted-foreground">Execution Time</span>
-              <span className="font-mono font-bold text-sky-400">{stats.timeElapsedMs} ms</span>
+              <span className="font-mono font-bold text-status-info">{stats.timeElapsedMs} ms</span>
             </div>
             <div className="flex justify-between border-b border-border/30 pb-1.5">
               <span className="text-muted-foreground">Events Found</span>
@@ -36,7 +36,9 @@ export function StatusIndicators({ stats, errors, logs }: StatusIndicatorsProps)
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Events Validated</span>
-              <span className="font-mono font-bold text-emerald-400">{stats.eventsExtracted}</span>
+              <span className="font-mono font-bold text-status-success">
+                {stats.eventsExtracted}
+              </span>
             </div>
           </div>
         ) : (
@@ -60,17 +62,19 @@ export function StatusIndicators({ stats, errors, logs }: StatusIndicatorsProps)
 
         <div className="flex-1 flex flex-col gap-3 min-h-[120px]">
           <div
-            className="flex-1 bg-black/40 border border-border/50 rounded-lg p-3 font-mono text-[11px] text-zinc-300 max-h-[120px] overflow-y-auto space-y-1 scrollbar-thin"
+            className="flex-1 bg-surface-recessed/40 border border-border/50 rounded-lg p-3 font-mono text-[11px] text-status-neutral max-h-[120px] overflow-y-auto space-y-1 scrollbar-thin"
             role="log"
             aria-live="polite"
             aria-label="Processing log"
           >
             {logs.length === 0 ? (
-              <span className="text-zinc-500 italic">&gt; Awaiting process activation...</span>
+              <span className="text-muted-foreground italic">
+                &gt; Awaiting process activation...
+              </span>
             ) : (
               logs.map((log, i) => (
                 <div key={i} className="leading-5">
-                  <span className="text-zinc-500 mr-2" aria-hidden="true">
+                  <span className="text-muted-foreground mr-2" aria-hidden="true">
                     &gt;
                   </span>
                   <span>{log}</span>
@@ -81,7 +85,7 @@ export function StatusIndicators({ stats, errors, logs }: StatusIndicatorsProps)
 
           {errors.length > 0 && (
             <div
-              className="bg-rose-500/5 border border-rose-500/20 rounded-lg p-3 text-xs text-rose-400 space-y-1"
+              className="bg-rose-500/5 border border-rose-500/20 rounded-lg p-3 text-xs text-status-danger space-y-1"
               role="alert"
               aria-live="assertive"
             >

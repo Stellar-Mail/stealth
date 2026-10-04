@@ -46,7 +46,7 @@ export function DraftIssueCard({ issue }: DraftIssueCardProps) {
   const SeverityIcon = config.icon;
 
   return (
-    <article className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+    <article className="rounded-lg border border-border bg-card p-4 shadow-sm">
       <div className="flex flex-col gap-3 md:flex-row md:items-start">
         <div
           aria-hidden="true"
@@ -60,23 +60,24 @@ export function DraftIssueCard({ issue }: DraftIssueCardProps) {
             <span className={`rounded-md border px-2 py-1 text-xs font-medium ${config.border}`}>
               {issue.severity}
             </span>
-            <span className="rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700">
+            <span className="rounded-md bg-muted px-2 py-1 text-xs font-medium text-foreground">
               {categoryLabels[issue.category] ?? issue.category}
             </span>
           </div>
-          <p className="mt-2 text-sm leading-6 text-slate-700">{issue.message}</p>
+          <p className="mt-2 text-sm leading-6 text-foreground">{issue.message}</p>
         </div>
       </div>
 
       {issue.suggestions.length > 0 && (
-        <div className="mt-3 space-y-2 border-t border-slate-100 pt-3">
+        <div className="mt-3 space-y-2 border-t border-border pt-3">
           {issue.suggestions.map((suggestion, index) => (
             <div className="flex items-start gap-2 text-sm" key={index}>
               <Lightbulb aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-amber-600" />
-              <div className="text-slate-600">
-                <span className="font-medium text-slate-800">Suggestion:</span> {suggestion.message}
+              <div className="text-muted-foreground">
+                <span className="font-medium text-foreground">Suggestion:</span>{" "}
+                {suggestion.message}
                 {suggestion.originalText && (
-                  <span className="block mt-1 rounded bg-slate-100 px-2 py-1 text-slate-700">
+                  <span className="block mt-1 rounded bg-muted px-2 py-1 text-foreground">
                     Original: &ldquo;{suggestion.originalText}&rdquo;
                   </span>
                 )}

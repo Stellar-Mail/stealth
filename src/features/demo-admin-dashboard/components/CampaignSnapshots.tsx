@@ -165,7 +165,7 @@ export function CampaignSnapshots({
           aria-live="assertive"
         >
           <div className="flex items-start gap-4">
-            <div className="mt-0.5 rounded-full bg-amber-500/10 p-2 text-amber-400">
+            <div className="mt-0.5 rounded-full bg-amber-500/10 p-2 text-status-warning dark:text-amber-400">
               <AlertTriangle className="h-5 w-5" />
             </div>
             <div className="flex-1 space-y-2">
@@ -194,7 +194,7 @@ export function CampaignSnapshots({
                 <button
                   type="button"
                   onClick={() => setConfirmRestoreTarget(null)}
-                  className="rounded-lg border border-white/[0.08] bg-white/[0.02] px-3.5 py-1.5 text-xs font-semibold text-foreground transition hover:bg-white/[0.06]"
+                  className="rounded-lg border border-surface-tint/[0.08] bg-surface-tint/[0.02] px-3.5 py-1.5 text-xs font-semibold text-foreground transition hover:bg-surface-tint/[0.06]"
                 >
                   Cancel
                 </button>
@@ -205,7 +205,7 @@ export function CampaignSnapshots({
       )}
 
       {/* ── Top controls & creation trigger ── */}
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/[0.06] pb-4">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-surface-tint/[0.06] pb-4">
         <div className="flex items-center gap-2">
           <FolderHeart className="h-4 w-4 text-muted-foreground" />
           <h4 className="text-sm font-semibold text-foreground">
@@ -221,7 +221,7 @@ export function CampaignSnapshots({
             className={cn(
               "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition",
               currentDataset.length === 0
-                ? "cursor-not-allowed bg-white/[0.02] text-muted-foreground"
+                ? "cursor-not-allowed bg-surface-tint/[0.02] text-muted-foreground"
                 : "bg-foreground text-background hover:opacity-90",
             )}
             title={
@@ -239,7 +239,7 @@ export function CampaignSnapshots({
       {isCreating && (
         <form
           onSubmit={handleSaveSnapshot}
-          className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-5 space-y-4"
+          className="rounded-xl border border-surface-tint/[0.08] bg-surface-tint/[0.02] p-5 space-y-4"
         >
           <div className="flex items-center justify-between">
             <h5 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
@@ -251,13 +251,15 @@ export function CampaignSnapshots({
                 setIsCreating(false);
                 setFormError("");
               }}
-              className="rounded-md p-1 text-muted-foreground hover:bg-white/[0.04] hover:text-foreground"
+              className="rounded-md p-1 text-muted-foreground hover:bg-surface-tint/[0.04] hover:text-foreground"
             >
               <X className="h-4 w-4" />
             </button>
           </div>
 
-          {formError && <p className="text-xs font-medium text-rose-400">{formError}</p>}
+          {formError && (
+            <p className="text-xs font-medium text-status-danger dark:text-rose-400">{formError}</p>
+          )}
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1">
@@ -270,7 +272,7 @@ export function CampaignSnapshots({
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g. Q3 Launch Announcement"
-                className="w-full rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/50 focus:border-white/20 focus:outline-none"
+                className="w-full rounded-lg border border-surface-tint/[0.08] bg-surface-recessed/40 px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/50 focus:border-surface-tint/20 focus:outline-none"
                 required
               />
             </div>
@@ -284,7 +286,7 @@ export function CampaignSnapshots({
                 value={targetAudience}
                 onChange={(e) => setTargetAudience(e.target.value)}
                 placeholder="e.g. New Signups"
-                className="w-full rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/50 focus:border-white/20 focus:outline-none"
+                className="w-full rounded-lg border border-surface-tint/[0.08] bg-surface-recessed/40 px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/50 focus:border-surface-tint/20 focus:outline-none"
                 required
               />
             </div>
@@ -301,7 +303,7 @@ export function CampaignSnapshots({
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Provide a detailed summary of what this campaign tests."
-                className="w-full rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/50 focus:border-white/20 focus:outline-none"
+                className="w-full rounded-lg border border-surface-tint/[0.08] bg-surface-recessed/40 px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/50 focus:border-surface-tint/20 focus:outline-none"
                 required
               />
             </div>
@@ -315,7 +317,7 @@ export function CampaignSnapshots({
                 onChange={(e) =>
                   setStatus(e.target.value as "active" | "draft" | "needs-review" | "archived")
                 }
-                className="w-full rounded-lg border border-white/[0.08] bg-black-90 px-3 py-2 text-xs text-foreground focus:border-white/20 focus:outline-none"
+                className="w-full rounded-lg border border-surface-tint/[0.08] bg-black-90 px-3 py-2 text-xs text-foreground focus:border-surface-tint/20 focus:outline-none"
                 style={{ backgroundColor: "rgb(24 24 27)" }}
               >
                 <option value="draft">Draft</option>
@@ -336,7 +338,7 @@ export function CampaignSnapshots({
               value={tagsInput}
               onChange={(e) => setTagsInput(e.target.value)}
               placeholder="e.g. stellar, onboarding, phase-1"
-              className="w-full rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/50 focus:border-white/20 focus:outline-none"
+              className="w-full rounded-lg border border-surface-tint/[0.08] bg-surface-recessed/40 px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/50 focus:border-surface-tint/20 focus:outline-none"
             />
           </div>
 
@@ -347,7 +349,7 @@ export function CampaignSnapshots({
                 setIsCreating(false);
                 setFormError("");
               }}
-              className="rounded-lg border border-white/[0.08] bg-white/[0.01] px-4 py-2 text-xs font-medium text-muted-foreground transition hover:bg-white/[0.04] hover:text-foreground"
+              className="rounded-lg border border-surface-tint/[0.08] bg-surface-tint/[0.01] px-4 py-2 text-xs font-medium text-muted-foreground transition hover:bg-surface-tint/[0.04] hover:text-foreground"
             >
               Cancel
             </button>
@@ -363,7 +365,7 @@ export function CampaignSnapshots({
 
       {/* ── Snapshots Grid List ── */}
       {snapshots.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-white/[0.08] py-12 text-center">
+        <div className="rounded-xl border border-dashed border-surface-tint/[0.08] py-12 text-center">
           <FolderHeart className="mx-auto h-8 w-8 text-muted-foreground/40" />
           <p className="mt-2 text-sm font-medium text-muted-foreground">
             No campaign snapshots found.
@@ -382,13 +384,13 @@ export function CampaignSnapshots({
             return (
               <article
                 key={snap.id}
-                className="group flex flex-col justify-between rounded-xl border border-white/[0.06] bg-white/[0.02] p-5 transition hover:border-white/[0.12] hover:bg-white/[0.03]"
+                className="group flex flex-col justify-between rounded-xl border border-surface-tint/[0.06] bg-surface-tint/[0.02] p-5 transition hover:border-surface-tint/[0.12] hover:bg-surface-tint/[0.03]"
               >
                 {/* Header */}
                 <div className="space-y-2">
                   <div className="flex items-start justify-between gap-3">
                     <div className="space-y-1">
-                      <h5 className="text-sm font-semibold text-foreground group-hover:text-sky-400 transition">
+                      <h5 className="text-sm font-semibold text-foreground group-hover:text-status-info dark:group-hover:text-sky-400 transition">
                         {snap.name}
                       </h5>
                       {/* Status Badge */}
@@ -407,7 +409,7 @@ export function CampaignSnapshots({
                       type="button"
                       onClick={() => handleDeleteSnapshot(snap.id)}
                       aria-label={`Delete campaign snapshot ${snap.name}`}
-                      className="opacity-0 group-hover:opacity-100 rounded-md p-1 text-muted-foreground transition hover:bg-white/[0.06] hover:text-rose-400"
+                      className="opacity-0 group-hover:opacity-100 rounded-md p-1 text-muted-foreground transition hover:bg-surface-tint/[0.06] hover:text-status-danger dark:hover:text-rose-400"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
@@ -417,7 +419,7 @@ export function CampaignSnapshots({
                   </p>
 
                   {/* Metadata details */}
-                  <div className="space-y-2 pt-2 border-t border-white/[0.04] text-[11px] text-muted-foreground">
+                  <div className="space-y-2 pt-2 border-t border-surface-tint/[0.04] text-[11px] text-muted-foreground">
                     <div className="flex items-center gap-1.5">
                       <Users className="h-3.5 w-3.5 shrink-0" />
                       <span>
@@ -466,7 +468,7 @@ export function CampaignSnapshots({
                     <span className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
                       Drafts ({snap.drafts.length})
                     </span>
-                    <ul className="space-y-1 rounded-lg border border-white/[0.04] bg-black/20 p-2 max-h-24 overflow-y-auto">
+                    <ul className="space-y-1 rounded-lg border border-surface-tint/[0.04] bg-surface-recessed/20 p-2 max-h-24 overflow-y-auto">
                       {snap.drafts.map((d) => (
                         <li
                           key={d.id}
@@ -488,8 +490,8 @@ export function CampaignSnapshots({
                     className={cn(
                       "inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-semibold transition",
                       currentDataset.length === 0
-                        ? "border-white/[0.04] bg-white/[0.01] text-muted-foreground/50 cursor-not-allowed"
-                        : "border-indigo-500/20 bg-indigo-500/5 text-indigo-400 hover:bg-indigo-500/10",
+                        ? "border-surface-tint/[0.04] bg-surface-tint/[0.01] text-muted-foreground/50 cursor-not-allowed"
+                        : "border-indigo-500/20 bg-indigo-500/5 text-status-info dark:text-indigo-400 hover:bg-indigo-500/10",
                     )}
                     title="Merge this snapshot into the current active dataset with conflict resolution"
                   >
@@ -498,7 +500,7 @@ export function CampaignSnapshots({
                   <button
                     type="button"
                     onClick={() => triggerRestore(snap)}
-                    className="inline-flex items-center gap-1 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-1.5 text-xs font-semibold text-foreground transition hover:bg-white/[0.08]"
+                    className="inline-flex items-center gap-1 rounded-lg border border-surface-tint/[0.08] bg-surface-tint/[0.04] px-3 py-1.5 text-xs font-semibold text-foreground transition hover:bg-surface-tint/[0.08]"
                   >
                     <History className="h-3.5 w-3.5" /> Restore Snapshot
                   </button>
@@ -510,14 +512,14 @@ export function CampaignSnapshots({
       )}
 
       {/* ── Display Tokens Reference & Badge Examples (Docs) ── */}
-      <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5">
+      <div className="rounded-xl border border-surface-tint/[0.06] bg-surface-tint/[0.02] p-5">
         <button
           type="button"
           onClick={() => setShowRef(!showRef)}
           className="flex w-full items-center justify-between text-left transition hover:text-foreground"
         >
           <div className="flex items-center gap-2">
-            <BookOpen className="h-4 w-4 text-sky-400" />
+            <BookOpen className="h-4 w-4 text-status-info dark:text-sky-400" />
             <h5 className="text-sm font-semibold text-foreground">
               Campaign Display Tokens Reference & Badge Examples
             </h5>
@@ -528,7 +530,7 @@ export function CampaignSnapshots({
         </button>
 
         {showRef && (
-          <div className="mt-4 space-y-6 border-t border-white/[0.06] pt-4 text-xs">
+          <div className="mt-4 space-y-6 border-t border-surface-tint/[0.06] pt-4 text-xs">
             <div>
               <h6 className="font-bold text-foreground mb-2">Campaign Status Badges</h6>
               <p className="text-muted-foreground mb-3 leading-relaxed">
@@ -539,7 +541,7 @@ export function CampaignSnapshots({
                 {Object.entries(CAMPAIGN_STATUS_TOKENS).map(([key, token]) => (
                   <div
                     key={key}
-                    className="flex items-center gap-2 rounded-lg border border-white/[0.04] p-2 bg-black/20"
+                    className="flex items-center gap-2 rounded-lg border border-surface-tint/[0.04] p-2 bg-surface-recessed/20"
                   >
                     <span
                       className={cn(
@@ -568,7 +570,7 @@ export function CampaignSnapshots({
                 {Object.entries(TAG_COLOR_TOKENS).map(([key, token]) => (
                   <div
                     key={key}
-                    className="flex flex-col gap-1 rounded-lg border border-white/[0.04] p-2 bg-black/20"
+                    className="flex flex-col gap-1 rounded-lg border border-surface-tint/[0.04] p-2 bg-surface-recessed/20"
                   >
                     <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">
                       {key}
@@ -598,7 +600,7 @@ export function CampaignSnapshots({
                 {Object.entries(AUDIENCE_BADGE_TOKENS).map(([key, token]) => (
                   <div
                     key={key}
-                    className="flex items-center gap-2 rounded-lg border border-white/[0.04] p-2 bg-black/20"
+                    className="flex items-center gap-2 rounded-lg border border-surface-tint/[0.04] p-2 bg-surface-recessed/20"
                   >
                     <span
                       className={cn(

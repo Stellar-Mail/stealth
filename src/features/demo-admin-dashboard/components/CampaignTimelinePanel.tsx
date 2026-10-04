@@ -93,7 +93,7 @@ function PhaseBar({ timeline }: { timeline: CampaignTimeline }) {
         </div>
 
         {/* Phase segments */}
-        <div className="flex h-7 rounded-lg overflow-hidden gap-px bg-white/[0.04]">
+        <div className="flex h-7 rounded-lg overflow-hidden gap-px bg-surface-tint/[0.04]">
           {sorted.map((phase) => {
             const phaseStart = new Date(phase.startAt).getTime();
             const phaseEnd = new Date(phase.endAt).getTime();
@@ -126,7 +126,7 @@ function PhaseBar({ timeline }: { timeline: CampaignTimeline }) {
 
         {/* "Now" needle line */}
         <div
-          className="absolute top-0 h-7 w-px bg-white/60 pointer-events-none"
+          className="absolute top-0 h-7 w-px bg-surface-tint/60 pointer-events-none"
           style={{ left: `${nowPct}%` }}
         />
       </div>
@@ -177,9 +177,9 @@ function SendsTable({ sends, demoNow }: { sends: CampaignTimeline["sends"]; demo
       header: "Segment",
       render: (row) => {
         const token = AUDIENCE_SEGMENT_TOKENS[row.recipientSegmentId] ?? {
-          bg: "bg-white/[0.04]",
+          bg: "bg-surface-tint/[0.04]",
           text: "text-muted-foreground",
-          border: "border-white/[0.08]",
+          border: "border-surface-tint/[0.08]",
         };
         return (
           <span
@@ -269,8 +269,10 @@ function WarningBanner({
 
   return (
     <div className="flex items-center gap-2 rounded-lg border border-rose-500/30 bg-rose-500/5 px-4 py-3">
-      <AlertTriangle className="h-4 w-4 text-rose-400 shrink-0" />
-      <p className="text-xs font-medium text-rose-300">{parts.join(" · ")}</p>
+      <AlertTriangle className="h-4 w-4 text-status-danger dark:text-rose-400 shrink-0" />
+      <p className="text-xs font-medium text-status-danger dark:text-rose-300">
+        {parts.join(" · ")}
+      </p>
     </div>
   );
 }
@@ -323,7 +325,7 @@ export function CampaignTimelinePanel() {
                 "rounded-xl border p-4 text-left transition",
                 active
                   ? "border-teal-500/50 bg-teal-500/5 ring-1 ring-teal-500/20"
-                  : "border-white/[0.06] bg-white/[0.02] hover:border-white/10 hover:bg-white/[0.04]",
+                  : "border-surface-tint/[0.06] bg-surface-tint/[0.02] hover:border-surface-tint/10 hover:bg-surface-tint/[0.04]",
               )}
             >
               <p className="text-xs font-semibold text-foreground">{opt.label}</p>
@@ -342,7 +344,7 @@ export function CampaignTimelinePanel() {
       <WarningBanner overdueCount={overdueCount} imminentCount={imminentCount} />
 
       {/* Phase bar */}
-      <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-5 space-y-5">
+      <div className="rounded-xl border border-surface-tint/[0.08] bg-surface-tint/[0.02] p-5 space-y-5">
         <div>
           <h4 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
             Campaign Phases

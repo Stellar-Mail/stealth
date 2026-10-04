@@ -56,7 +56,7 @@ export function ResponseTimeItem({ entry, teamMember }: ResponseTimeItemProps) {
 
   return (
     <div
-      className="flex flex-wrap items-center gap-4 rounded-xl border border-border/30 bg-white/[0.03] px-5 py-4 transition-colors hover:bg-white/[0.06] focus-within:ring-2 focus-within:ring-ring/50"
+      className="flex flex-wrap items-center gap-4 rounded-xl border border-border/30 bg-surface-tint/[0.03] px-5 py-4 transition-colors hover:bg-surface-tint/[0.06] focus-within:ring-2 focus-within:ring-ring/50"
       role="listitem"
       aria-label={`Response to "${entry.subject}" — ${status.label}`}
     >

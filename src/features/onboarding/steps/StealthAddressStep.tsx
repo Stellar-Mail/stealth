@@ -37,7 +37,7 @@ export function StealthAddressStep({ mailboxAddress, onAdvance, onRetreat }: Pro
         </p>
       </div>
 
-      <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 space-y-3">
+      <div className="rounded-xl border border-surface-tint/10 bg-surface-tint/[0.03] p-4 space-y-3">
         <div className="flex items-center gap-2 text-muted-foreground">
           <Mail className="h-3.5 w-3.5" />
           <span className="text-xs uppercase tracking-wide">Stealth address</span>
@@ -48,12 +48,12 @@ export function StealthAddressStep({ mailboxAddress, onAdvance, onRetreat }: Pro
         <button
           type="button"
           onClick={handleCopy}
-          className="flex items-center gap-1.5 rounded-sm text-xs text-muted-foreground transition hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+          className="flex items-center gap-1.5 rounded-sm text-xs text-muted-foreground transition hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-surface-tint/30"
         >
           {copied ? (
             <>
-              <Check className="h-3.5 w-3.5 text-emerald-400" />
-              <span className="text-emerald-400">Copied</span>
+              <Check className="h-3.5 w-3.5 text-status-success dark:text-emerald-400" />
+              <span className="text-status-success dark:text-emerald-400">Copied</span>
             </>
           ) : (
             <>
@@ -64,7 +64,7 @@ export function StealthAddressStep({ mailboxAddress, onAdvance, onRetreat }: Pro
         </button>
       </div>
 
-      <div className="rounded-xl border border-white/10 bg-white/[0.025] p-4 space-y-2">
+      <div className="rounded-xl border border-surface-tint/10 bg-surface-tint/[0.025] p-4 space-y-2">
         <p className="text-xs font-medium text-foreground">How this address works</p>
         <ul className="space-y-1.5">
           {[
@@ -84,7 +84,7 @@ export function StealthAddressStep({ mailboxAddress, onAdvance, onRetreat }: Pro
         <button
           type="button"
           onClick={onRetreat}
-          className="flex-1 rounded-xl border border-white/10 px-4 py-2.5 text-sm text-muted-foreground transition hover:bg-white/[0.04] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 active:scale-[0.99]"
+          className="flex-1 rounded-xl border border-surface-tint/10 px-4 py-2.5 text-sm text-muted-foreground transition hover:bg-surface-tint/[0.04] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-surface-tint/30 active:scale-[0.99]"
         >
           Back
         </button>

@@ -22,9 +22,9 @@ const STATUS_LABEL: Record<PublishChecklistStatus, string> = {
 };
 
 const STATUS_STYLES: Record<PublishChecklistStatus, string> = {
-  pass: "border-emerald-500/30 bg-emerald-500/10 text-emerald-300",
-  warning: "border-amber-500/30 bg-amber-500/10 text-amber-300",
-  blocked: "border-red-500/30 bg-red-500/10 text-red-300",
+  pass: "border-emerald-500/30 bg-emerald-500/10 text-status-success dark:text-emerald-300",
+  warning: "border-amber-500/30 bg-amber-500/10 text-status-warning dark:text-amber-300",
+  blocked: "border-red-500/30 bg-red-500/10 text-status-danger dark:text-red-300",
 };
 
 const STATUS_ORDER: PublishChecklistStatus[] = ["blocked", "warning", "pass"];
@@ -56,7 +56,7 @@ export function PublishChecklist({
   return (
     <section
       className={cn(
-        "flex flex-col gap-3 rounded-lg border border-white/10 bg-white/[0.02] p-4",
+        "flex flex-col gap-3 rounded-lg border border-surface-tint/10 bg-surface-tint/[0.02] p-4",
         className,
       )}
       aria-label={title}
@@ -71,20 +71,20 @@ export function PublishChecklist({
           </p>
         </div>
         <div className="flex items-center gap-1.5 text-[11px] font-medium">
-          <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-emerald-300">
+          <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-status-success dark:text-emerald-300">
             {summary.pass} passed
           </span>
-          <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-amber-300">
+          <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-status-warning dark:text-amber-300">
             {summary.warning} warnings
           </span>
-          <span className="rounded-full border border-red-500/30 bg-red-500/10 px-2 py-0.5 text-red-300">
+          <span className="rounded-full border border-red-500/30 bg-red-500/10 px-2 py-0.5 text-status-danger dark:text-red-300">
             {summary.blocked} blocked
           </span>
         </div>
       </header>
 
       {result.readyToPublish && summary.blocked === 0 && summary.warning === 0 ? (
-        <div className="flex items-center gap-2 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-4 text-sm text-emerald-300">
+        <div className="flex items-center gap-2 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-4 text-sm text-status-success dark:text-emerald-300">
           <CheckCircle2 className="h-4 w-4 shrink-0" />
           <span>All checks passed. You can publish this dataset to the demo UI.</span>
         </div>
@@ -128,7 +128,7 @@ export function PublishChecklist({
       )}
 
       {onPublish ? (
-        <footer className="flex items-center justify-end border-t border-white/10 pt-3">
+        <footer className="flex items-center justify-end border-t border-surface-tint/10 pt-3">
           <button
             type="button"
             disabled={publishDisabled}

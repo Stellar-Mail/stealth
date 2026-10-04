@@ -89,10 +89,10 @@ export const SuspiciousSenderWatchlist: React.FC = () => {
   };
 
   return (
-    <div className="w-full max-w-2xl mx-auto p-6 bg-white rounded-lg">
+    <div className="w-full max-w-2xl mx-auto p-6 bg-card rounded-lg">
       <header className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">Suspicious Sender Watchlist</h1>
-        <p className="text-slate-600 text-sm mt-1">
+        <h1 className="text-2xl font-bold text-foreground">Suspicious Sender Watchlist</h1>
+        <p className="text-muted-foreground text-sm mt-1">
           Monitor and manage senders you want to keep track of
         </p>
       </header>

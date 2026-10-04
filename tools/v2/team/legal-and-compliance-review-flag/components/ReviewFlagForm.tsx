@@ -13,7 +13,7 @@ interface ReviewFlagFormProps {
 }
 
 const inputClass =
-  "mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-400";
+  "mt-1 w-full rounded-md border border-border px-3 py-2 text-sm text-foreground focus:border-border focus:outline-none focus:ring-2 focus:ring-gray-400";
 
 export const ReviewFlagForm: React.FC<ReviewFlagFormProps> = ({
   values,
@@ -30,7 +30,7 @@ export const ReviewFlagForm: React.FC<ReviewFlagFormProps> = ({
       }}
     >
       <div>
-        <label htmlFor="review-flag-reviewer" className="block text-sm font-medium text-gray-700">
+        <label htmlFor="review-flag-reviewer" className="block text-sm font-medium text-foreground">
           Reviewer
         </label>
         <input
@@ -47,7 +47,7 @@ export const ReviewFlagForm: React.FC<ReviewFlagFormProps> = ({
       </div>
 
       <div>
-        <label htmlFor="review-flag-resource" className="block text-sm font-medium text-gray-700">
+        <label htmlFor="review-flag-resource" className="block text-sm font-medium text-foreground">
           Target resource
         </label>
         <input
@@ -64,7 +64,7 @@ export const ReviewFlagForm: React.FC<ReviewFlagFormProps> = ({
       </div>
 
       <div>
-        <label htmlFor="review-flag-reason" className="block text-sm font-medium text-gray-700">
+        <label htmlFor="review-flag-reason" className="block text-sm font-medium text-foreground">
           Reason
         </label>
         <textarea
@@ -81,7 +81,7 @@ export const ReviewFlagForm: React.FC<ReviewFlagFormProps> = ({
       </div>
 
       <div>
-        <label htmlFor="review-flag-severity" className="block text-sm font-medium text-gray-700">
+        <label htmlFor="review-flag-severity" className="block text-sm font-medium text-foreground">
           Severity
         </label>
         <select
@@ -103,7 +103,7 @@ export const ReviewFlagForm: React.FC<ReviewFlagFormProps> = ({
       </div>
 
       <div>
-        <label htmlFor="review-flag-evidence" className="block text-sm font-medium text-gray-700">
+        <label htmlFor="review-flag-evidence" className="block text-sm font-medium text-foreground">
           Evidence references
         </label>
         <textarea
@@ -117,7 +117,7 @@ export const ReviewFlagForm: React.FC<ReviewFlagFormProps> = ({
           aria-describedby="review-flag-evidence-hint"
           placeholder="scan:vt-8821, ticket:sec-334"
         />
-        <p id="review-flag-evidence-hint" className="mt-1 text-xs text-gray-500">
+        <p id="review-flag-evidence-hint" className="mt-1 text-xs text-muted-foreground">
           Optional. Separate multiple references with a comma or a new line.
         </p>
       </div>
@@ -125,7 +125,7 @@ export const ReviewFlagForm: React.FC<ReviewFlagFormProps> = ({
       <button
         type="submit"
         disabled={disabled}
-        className="self-start rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+        className="self-start rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
       >
         Raise review flag
       </button>

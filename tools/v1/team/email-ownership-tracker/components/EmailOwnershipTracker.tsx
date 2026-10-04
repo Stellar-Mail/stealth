@@ -50,14 +50,14 @@ export function EmailOwnershipTracker({
   return (
     <section
       aria-labelledby="ownership-tracker-title"
-      className="mx-auto w-full max-w-5xl space-y-6 rounded-lg border border-slate-200 bg-slate-50 p-4 md:p-6"
+      className="mx-auto w-full max-w-5xl space-y-6 rounded-lg border border-border bg-muted p-4 md:p-6"
     >
       <header>
         <h1 id="ownership-tracker-title" className="text-2xl font-semibold text-slate-950">
           Email Ownership Tracker
         </h1>
 
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
           Review ownership history and identify the latest owner for each email thread.
         </p>
       </header>

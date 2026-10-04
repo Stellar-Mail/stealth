@@ -196,9 +196,9 @@ export function BulkLabelPanel({
           )}
         >
           {feedback.type === "success" ? (
-            <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+            <CheckCircle2 className="h-4 w-4 text-status-success dark:text-green-400" />
           ) : (
-            <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+            <AlertCircle className="h-4 w-4 text-status-danger dark:text-red-400" />
           )}
           <p className="text-sm">{feedback.message}</p>
         </div>

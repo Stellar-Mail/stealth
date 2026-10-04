@@ -15,15 +15,15 @@ export function ConfidentialModeSuggestionLoadingState({
         <div
           key={index}
           aria-hidden="true"
-          className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
+          className="rounded-lg border border-border bg-card p-4 shadow-sm"
         >
           <div className="flex items-start gap-4">
-            <div className="size-10 animate-pulse rounded-md bg-slate-200" />
+            <div className="size-10 animate-pulse rounded-md bg-muted" />
 
             <div className="min-w-0 flex-1 space-y-3">
-              <div className="h-5 w-40 animate-pulse rounded bg-slate-200" />
-              <div className="h-4 w-full animate-pulse rounded bg-slate-200" />
-              <div className="h-4 w-3/4 animate-pulse rounded bg-slate-100" />
+              <div className="h-5 w-40 animate-pulse rounded bg-muted" />
+              <div className="h-4 w-full animate-pulse rounded bg-muted" />
+              <div className="h-4 w-3/4 animate-pulse rounded bg-muted" />
             </div>
           </div>
         </div>

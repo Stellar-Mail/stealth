@@ -74,11 +74,11 @@ export function EmailTemplateLibraryTool({
   return (
     <section
       aria-labelledby="email-template-library-title"
-      className="mx-auto w-full max-w-5xl space-y-6 rounded-lg border border-slate-200 bg-slate-50 p-4 md:p-6"
+      className="mx-auto w-full max-w-5xl space-y-6 rounded-lg border border-border bg-muted p-4 md:p-6"
     >
       <header>
         <div>
-          <p className="text-sm font-medium uppercase tracking-wide text-slate-500">
+          <p className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
             Individual V2 tool
           </p>
           <h1
@@ -87,14 +87,14 @@ export function EmailTemplateLibraryTool({
           >
             Email Template Library
           </h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
             Browse, preview, and render personalized email templates with variable substitution.
           </p>
         </div>
 
         {viewMode !== "list" && (
           <button
-            className="mt-4 inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-900 transition-colors hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-950"
+            className="mt-4 inline-flex items-center gap-2 rounded-md border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-950"
             onClick={handleBackToList}
             type="button"
           >
@@ -106,8 +106,8 @@ export function EmailTemplateLibraryTool({
       {viewMode === "list" && (
         <>
           {categories.length > 0 && (
-            <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-3 md:flex-row md:items-center md:justify-between">
-              <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
+            <div className="flex flex-col gap-3 rounded-lg border border-border bg-card p-3 md:flex-row md:items-center md:justify-between">
+              <div className="flex items-center gap-2 text-sm font-medium text-foreground">
                 <Filter aria-hidden="true" className="size-4" />
                 Filter by category
               </div>
@@ -116,8 +116,8 @@ export function EmailTemplateLibraryTool({
                 <label
                   className={`cursor-pointer rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
                     categoryFilter === null
-                      ? "border-slate-950 bg-slate-950 text-white"
-                      : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                      ? "border-border bg-primary text-primary-foreground"
+                      : "border-border bg-card text-foreground hover:bg-muted"
                   }`}
                 >
                   <input
@@ -134,8 +134,8 @@ export function EmailTemplateLibraryTool({
                   <label
                     className={`cursor-pointer rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
                       categoryFilter === category
-                        ? "border-slate-950 bg-slate-950 text-white"
-                        : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                        ? "border-border bg-primary text-primary-foreground"
+                        : "border-border bg-card text-foreground hover:bg-muted"
                     }`}
                     key={category}
                   >
@@ -167,7 +167,7 @@ export function EmailTemplateLibraryTool({
               action={
                 categoryFilter !== null ? (
                   <button
-                    className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-900 transition-colors hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-950"
+                    className="inline-flex items-center gap-2 rounded-md border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-950"
                     onClick={() => setCategoryFilter(null)}
                     type="button"
                   >
@@ -191,7 +191,7 @@ export function EmailTemplateLibraryTool({
         <div className="space-y-4">
           <TemplatePreview template={selectedTemplate} />
           <button
-            className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-slate-950 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-950"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-950"
             onClick={() => handleStartRender(selectedTemplate)}
             type="button"
           >
