@@ -1,0 +1,130 @@
+@layer components {
+  .compose-launcher {
+    --compose-cut: 9px;
+    --compose-outline: color-mix(in srgb, var(--foreground) 24%, transparent);
+    --compose-plate: color-mix(in srgb, var(--secondary) 85%, var(--card));
+    position: relative;
+    isolation: isolate;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    width: 100%;
+    height: 42px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--foreground);
+    cursor: pointer;
+    filter: drop-shadow(0 4px 5px rgb(0 0 0 / 16%));
+  }
+
+  .compose-launcher::before {
+    content: "";
+    position: absolute;
+    inset: 4px 4px -2px;
+    z-index: -2;
+    border: 1px solid var(--compose-outline);
+    border-radius: 8px;
+    background: var(--secondary);
+    pointer-events: none;
+  }
+
+  .compose-launcher__frame,
+  .compose-launcher__face {
+    position: absolute;
+    z-index: -1;
+    border-radius: 9px;
+    pointer-events: none;
+    clip-path: polygon(
+      0 0,
+      calc(100% - var(--compose-cut)) 0,
+      100% var(--compose-cut),
+      100% 100%,
+      var(--compose-cut) 100%,
+      0 calc(100% - var(--compose-cut))
+    );
+    transition: background 180ms ease;
+  }
+
+  .compose-launcher__frame {
+    inset: 0;
+    background: var(--compose-outline);
+  }
+
+  .compose-launcher__face {
+    --compose-cut: 8px;
+    inset: 1px;
+    background:
+      radial-gradient(
+        ellipse at 22% 0%,
+        color-mix(in srgb, var(--surface-tint) 10%, transparent),
+        transparent 72%
+      ),
+      linear-gradient(
+        115deg,
+        color-mix(in srgb, var(--surface-tint) 10%, transparent),
+        transparent 65%
+      ),
+      var(--compose-plate);
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--surface-tint) 18%, transparent);
+  }
+
+  .compose-launcher__content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13.5px;
+    font-weight: 600;
+  }
+
+  .compose-launcher__shortcut {
+    display: grid;
+    align-self: stretch;
+    align-items: center;
+    margin: 6px -4px 6px 8px;
+    padding: 0 8px 0 12px;
+    border-left: 1px dashed var(--compose-outline);
+    background: color-mix(in srgb, var(--surface-recessed) 12%, transparent);
+    font-size: 9.5px;
+    font-weight: 500;
+    color: var(--muted-foreground);
+  }
+
+  .compose-launcher:hover {
+    --compose-outline: color-mix(in srgb, var(--foreground) 42%, transparent);
+    --compose-plate: color-mix(in srgb, var(--accent) 75%, var(--card));
+  }
+
+  .compose-launcher:active {
+    --compose-plate: var(--secondary);
+    filter: none;
+  }
+
+  .compose-launcher:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 3px;
+  }
+
+  .compose-launcher--collapsed {
+    justify-content: center;
+    padding: 0;
+  }
+
+  :root[data-theme="light"] .compose-launcher {
+    --compose-outline: var(--input);
+    --compose-plate: color-mix(in srgb, var(--surface-glow) 52%, var(--card));
+    filter: drop-shadow(0 4px 5px rgb(117 75 24 / 14%));
+  }
+
+  :root[data-theme="light"] .compose-launcher:hover {
+    --compose-outline: var(--ring);
+    --compose-plate: var(--accent);
+  }
+
+  :root[data-theme="light"] .compose-launcher:active {
+    --compose-plate: var(--secondary);
+    filter: none;
+  }
+}

@@ -1,4 +1,5 @@
 @import "./features/design-system/styles/fonts.css";
+@import "./features/design-system/styles/compose-button.css";
 @import "./features/design-system/styles/interactions.css";
 @import "./features/design-system/styles/surfaces.css";
 @import "./features/design-system/styles/tokens.css";

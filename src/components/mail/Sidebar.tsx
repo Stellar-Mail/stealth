@@ -10,7 +10,6 @@ import {
   InboxIcon as Inbox,
   EncryptedIcon as Lock,
   AllMailIcon as Mail,
-  ComposeIcon as Pencil,
   ReceiptIcon as ReceiptText,
   SentIcon as Send,
   SentIcon as SendHorizontal,
@@ -22,6 +21,7 @@ import {
   PriorityIcon,
 } from "@/features/design-system/components/mail-icons";
 import { cn } from "@/lib/utils";
+import { ComposeButton } from "./ComposeButton";
 import type { MailFolder } from "./data";
 import { DROP_TARGET_FOLDERS } from "./useDragDrop";
 import { formatMailAddress } from "@/features/identity/mail-domain";
@@ -116,13 +116,15 @@ export function Sidebar({
       transition={{ type: "spring", stiffness: 260, damping: 30 }}
       className="glass relative z-10 hidden h-screen flex-col rounded-none border-y-0 border-l-0 p-3 md:flex"
     >
-      <div className="flex items-center gap-2 px-2 py-2">
-        <div
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
-          style={{ background: "var(--gradient-silver)" }}
-        >
-          <Sparkles className="h-4 w-4 text-primary-foreground" />
-        </div>
+      <div className={cn("flex items-center gap-2 py-2", collapsed ? "justify-center" : "px-2")}>
+        {!collapsed && (
+          <div
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
+            style={{ background: "var(--gradient-silver)" }}
+          >
+            <Sparkles className="h-4 w-4 text-primary-foreground" />
+          </div>
+        )}
         {!collapsed && (
           <div className="flex flex-col leading-tight">
             <span className="mail-preview-heading text-sm font-semibold tracking-tight silver-text">
@@ -135,32 +137,17 @@ export function Sidebar({
         )}
         <button
           onClick={onToggle}
-          className="glow-ring ml-auto rounded-md p-1.5 text-muted-foreground transition hover:bg-surface-tint/5 hover:text-foreground"
+          className={cn(
+            "glow-ring shrink-0 rounded-md p-1.5 text-muted-foreground transition hover:bg-surface-tint/5 hover:text-foreground",
+            !collapsed && "ml-auto",
+          )}
           aria-label="Toggle sidebar"
         >
           {collapsed ? <ChevronsRight className="h-4 w-4" /> : <ChevronsLeft className="h-4 w-4" />}
         </button>
       </div>
 
-      <motion.button
-        whileHover={{ y: -1 }}
-        whileTap={{ scale: 0.97 }}
-        onClick={onCompose}
-        className={cn(
-          "group glow-ring mt-3 flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium",
-          "border border-surface-tint/10 bg-surface-tint/5 text-foreground",
-          "shadow-[0_8px_30px_-10px_rgba(0,0,0,0.6)] transition hover:bg-surface-tint/10",
-          collapsed && "justify-center px-2",
-        )}
-      >
-        <Pencil className="h-4 w-4" />
-        {!collapsed && <span className="mail-preview-heading">Compose</span>}
-        {!collapsed && (
-          <span className="ml-auto rounded-md border border-surface-tint/10 bg-surface-recessed/30 px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
-            Ctrl+N
-          </span>
-        )}
-      </motion.button>
+      <ComposeButton collapsed={collapsed} onCompose={onCompose} />
 
       {onOpenSenderJourney && (
         <motion.button
