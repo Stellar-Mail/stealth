@@ -1,13 +1,13 @@
 import { motion } from "framer-motion";
+import type { LucideIcon } from "lucide-react";
 import {
-  Pencil,
-  Search,
-  Inbox,
-  Calendar,
-  ReceiptText,
-  Settings,
-  type LucideIcon,
-} from "lucide-react";
+  ComposeIcon as Pencil,
+  SearchIcon as Search,
+  InboxIcon as Inbox,
+  CalendarIcon as Calendar,
+  ProofIcon as ReceiptText,
+  SettingsIcon as Settings,
+} from "@/features/design-system/components/mail-icons";
 import { cn } from "@/lib/utils";
 import type { MailFolder } from "./data";
 import {

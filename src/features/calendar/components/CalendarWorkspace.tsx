@@ -176,7 +176,7 @@ export function CalendarWorkspace({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[240] flex items-center justify-center bg-black/70 p-3 backdrop-blur-xl sm:p-6"
+          className="fixed inset-0 z-[240] flex items-center justify-center bg-overlay/70 p-3 backdrop-blur-xl sm:p-6"
           onMouseDown={(event) => event.target === event.currentTarget && onClose()}
         >
           <motion.section

@@ -47,7 +47,7 @@ export function ShortcutOverlay({ open, onClose }: Props) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 z-[170] bg-black/55 backdrop-blur-md"
+            className="fixed inset-0 z-[170] bg-overlay/55 backdrop-blur-md"
           />
           <motion.section
             role="dialog"

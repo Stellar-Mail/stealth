@@ -107,7 +107,7 @@ export function SnoozeDialog({ target, initialState, events, onConfirm, onClose 
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 z-40 bg-black/70 backdrop-blur-md"
+            className="fixed inset-0 z-40 bg-overlay/70 backdrop-blur-md"
           />
           <motion.div
             key="snooze-panel"

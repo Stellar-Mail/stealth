@@ -1,28 +1,40 @@
+/* Unlayered so scrollbar utilities cannot restore visible indicators. */
+* {
+  scrollbar-width: none;
+}
+
+*::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.scrollbar-thin:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+}
+
 @layer base {
   ::selection {
     background: oklch(0.82 0.01 270 / 0.22);
+    color: var(--foreground);
+  }
+
+  :root[data-theme="light"] ::selection {
+    background: var(--surface-glow);
     color: var(--foreground);
   }
 }
 
 @layer utilities {
   .scrollbar-thin {
-    scrollbar-color: oklch(1 0 0 / 0.12) transparent;
-    scrollbar-width: thin;
+    scrollbar-width: none;
   }
 
   .scrollbar-thin::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-
-  .scrollbar-thin::-webkit-scrollbar-thumb {
-    background: oklch(1 0 0 / 0.08);
-    border-radius: 999px;
-  }
-
-  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-    background: oklch(1 0 0 / 0.18);
+    display: none;
+    width: 0;
+    height: 0;
   }
 
   .glow-ring:focus-visible {
@@ -38,16 +50,8 @@
     box-shadow: none;
   }
 
-  :root[data-theme="light"] .scrollbar-thin {
-    scrollbar-color: var(--input) transparent;
-  }
-
-  :root[data-theme="light"] .scrollbar-thin::-webkit-scrollbar-thumb {
-    background: var(--input);
-  }
-
-  :root[data-theme="light"] .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-    background: var(--muted-foreground);
+  .app-scrollbar {
+    display: none;
   }
 
   @keyframes pulse-dot {

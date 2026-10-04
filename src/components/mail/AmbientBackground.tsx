@@ -4,20 +4,20 @@ export function AmbientBackground() {
       <div
         className="float-orb absolute -top-32 -left-32 h-[480px] w-[480px] rounded-full opacity-40"
         style={{
-          background: "radial-gradient(closest-side, oklch(0.6 0.02 270 / 0.5), transparent)",
+          background: "var(--ambient-orb-one)",
         }}
       />
       <div
         className="float-orb absolute -bottom-40 right-0 h-[520px] w-[520px] rounded-full opacity-30"
         style={{
-          background: "radial-gradient(closest-side, oklch(0.55 0.02 240 / 0.45), transparent)",
+          background: "var(--ambient-orb-two)",
           animationDelay: "-6s",
         }}
       />
       <div
         className="float-orb absolute top-1/3 left-1/2 h-[300px] w-[300px] rounded-full opacity-20"
         style={{
-          background: "radial-gradient(closest-side, oklch(0.7 0.01 280 / 0.4), transparent)",
+          background: "var(--ambient-orb-three)",
           animationDelay: "-3s",
         }}
       />

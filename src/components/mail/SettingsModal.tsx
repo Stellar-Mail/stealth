@@ -157,7 +157,7 @@ export function SettingsModal({
             exit={{ opacity: 0 }}
             onClick={dismiss}
             aria-hidden="true"
-            className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
+            className="fixed inset-0 z-40 bg-overlay/50 backdrop-blur-sm"
           />
           <motion.div
             ref={panelRef}
@@ -443,7 +443,10 @@ function AccountSettings() {
               className="h-16 w-16 rounded-full object-cover border border-surface-tint/10"
             />
           ) : (
-            <div className="h-16 w-16 rounded-full bg-gradient-to-br from-[#4d5560] to-[#232326] flex items-center justify-center border border-surface-tint/5">
+            <div
+              className="h-16 w-16 rounded-full flex items-center justify-center border border-surface-tint/5"
+              style={{ background: "var(--gradient-avatar)" }}
+            >
               <span className="text-lg font-medium text-white/90">
                 {profile.displayName.charAt(0).toUpperCase()}
               </span>

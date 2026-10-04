@@ -135,7 +135,7 @@ export function AuthModal({ open, onClose, onSuccess }: AuthModalProps) {
           exit={{ opacity: 0 }}
           onClick={close}
           aria-hidden="true"
-          className="fixed inset-0 bg-black/60 backdrop-blur-md"
+          className="fixed inset-0 bg-overlay/60 backdrop-blur-md"
         />
         <motion.div
           ref={modalRef}

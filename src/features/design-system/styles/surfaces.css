@@ -293,39 +293,72 @@
     box-shadow: var(--shadow-elegant);
   }
 
-  :root[data-theme="light"] :is(.mail-list-atmosphere, .mail-reader-atmosphere) {
-    background: var(--glass);
+  :root[data-theme="light"] :is(.glass, .mail-list-atmosphere, .mail-reader-atmosphere) {
+    background: var(--gradient-glass), var(--glass);
+    backdrop-filter: blur(28px) saturate(135%);
+    -webkit-backdrop-filter: blur(28px) saturate(135%);
   }
 
   :root[data-theme="light"] :is(.mail-list-atmosphere::before, .mail-list-atmosphere::after) {
-    background: transparent;
+    background: var(--surface-glow);
+    opacity: 0.12;
   }
 
-  :root[data-theme="light"] :is(.glass-tile, .glass-modal) {
+  :root[data-theme="light"] :is(.glass-strong, .glass-tile, .glass-modal) {
     background: var(--gradient-glass), var(--glass-strong);
   }
 
+  :root[data-theme="light"] .auth-card {
+    background: var(--gradient-glass), var(--glass-strong);
+    border-color: var(--border);
+    box-shadow: var(--shadow-elegant);
+    backdrop-filter: blur(32px) saturate(135%);
+    -webkit-backdrop-filter: blur(32px) saturate(135%);
+  }
+
   :root[data-theme="light"] :is(.glass-hover:hover, .glass-tile:hover) {
-    background: var(--secondary);
+    background: var(--gradient-glass), color-mix(in srgb, var(--secondary) 64%, transparent);
     border-color: var(--input);
     box-shadow: var(--shadow-glow);
   }
 
-  :root[data-theme="light"] .mail-preview-card {
-    background: var(--preview-background);
+  :root[data-theme="light"] :is(.mail-preview-card, .mobile-mail-preview-card) {
+    background:
+      var(--gradient-glass), color-mix(in srgb, var(--preview-background) 68%, transparent);
     border-color: var(--border);
     box-shadow:
-      0 2px 6px rgb(67 57 29 / 5%),
-      inset 0 1px 0 var(--popover);
+      0 5px 12px -8px rgb(117 75 24 / 25%),
+      inset 0 1px 0 var(--glass-edge),
+      inset 0 -1px 0 rgb(159 114 46 / 8%);
   }
 
-  :root[data-theme="light"] .mail-preview-card--active {
-    background: var(--preview-active);
+  :root[data-theme="light"]
+    :is(.mail-preview-card, .mobile-mail-preview-card):hover:not(
+      .mail-preview-card--active,
+      .mobile-mail-preview-card--active
+    ) {
+    background: var(--gradient-glass), color-mix(in srgb, var(--preview-hover) 74%, transparent);
+    border-color: var(--input);
+  }
+
+  :root[data-theme="light"] :is(.mail-preview-card--active, .mobile-mail-preview-card--active) {
+    background: var(--gradient-glass), color-mix(in srgb, var(--preview-active) 82%, transparent);
     border-color: var(--ring);
+    box-shadow: var(--shadow-glow);
   }
 
   :root[data-theme="light"] .mail-preview-card--verified {
     border-color: var(--input);
+  }
+
+  .mobile-card-highlight {
+    background:
+      radial-gradient(circle at 18% 22%, oklch(1 0 0 / 0.12), transparent 36%),
+      linear-gradient(135deg, oklch(1 0 0 / 0.08), oklch(1 0 0 / 0.025) 44%, oklch(1 0 0 / 0.01));
+  }
+
+  :root[data-theme="light"] .mobile-card-highlight {
+    background: var(--gradient-glass);
   }
 
   :root[data-theme="light"]
@@ -334,9 +367,9 @@
   }
 
   :root[data-theme="light"] .mail-preview-card__verified-effect {
-    /* Blend the artwork into parchment without changing sender illustrations. */
-    mix-blend-mode: screen;
-    filter: saturate(0.65);
+    /* Soft light retains the scene details without a dark plate behind the text. */
+    mix-blend-mode: soft-light;
+    filter: sepia(0.25) saturate(0.7);
   }
 
   .verified-check {
@@ -349,17 +382,12 @@
   }
 
   :root[data-theme="light"] .verified-check {
-    background: linear-gradient(180deg, #737166, #46443c);
+    background: linear-gradient(180deg, #89765c, #554431);
     color: var(--primary-foreground);
-    border-color: #575448;
+    border-color: #9d8050;
     box-shadow:
-      0 2px 4px rgb(67 57 29 / 20%),
-      inset 0 1px 0 rgb(250 248 238 / 35%);
-  }
-
-  :root[data-theme="light"] .ambient-bg .float-orb {
-    background: radial-gradient(closest-side, var(--accent), transparent) !important;
-    opacity: 0.15;
+      0 2px 4px rgb(117 75 24 / 22%),
+      inset 0 1px 0 var(--glass-edge);
   }
 
   :root[data-theme="light"] [class*="shadow-["] {

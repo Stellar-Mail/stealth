@@ -28,6 +28,28 @@ function contrast(first: string, second: string) {
 }
 
 describe("warm light palette", () => {
+  it("uses a warm overlay so transparent dialogs do not inherit a black backdrop", () => {
+    expect(palette.get("--overlay")).toBe("var(--surface-depth)");
+    expect(palette.get("--surface-depth")).toBe("#e8bf6b");
+  });
+
+  it("uses the equal blend of the requested butter-yellow colors as its base", () => {
+    const endpoints = ["#FDEB9E", "#FDFBCF"].map((hex) =>
+      hex
+        .slice(1)
+        .match(/../g)!
+        .map((channel) => parseInt(channel, 16)),
+    );
+    const mixed = endpoints[0]
+      .map((channel, index) =>
+        Math.round((channel + endpoints[1][index]) / 2)
+          .toString(16)
+          .padStart(2, "0"),
+      )
+      .join("");
+    expect(palette.get("--background")).toBe(`#${mixed}`);
+  });
+
   it("uses warm off-white for every opaque content surface, never pure white", () => {
     for (const token of [
       "--background",
@@ -71,6 +93,36 @@ describe("warm light palette", () => {
     expect(
       contrast(palette.get("--primary")!, palette.get("--primary-foreground")!),
     ).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it("pairs warm brown ink and bronze icons with the yellow surfaces", () => {
+    for (const token of ["--foreground", "--muted-foreground", "--icon-foreground", "--primary"]) {
+      const [red, green, blue] = palette
+        .get(token)!
+        .slice(1)
+        .match(/../g)!
+        .map((channel) => parseInt(channel, 16));
+      expect(red, token).toBeGreaterThan(green);
+      expect(green, token).toBeGreaterThan(blue);
+    }
+    for (const surface of ["--background", "--card", "--preview-active"]) {
+      expect(
+        contrast(palette.get("--icon-foreground")!, palette.get(surface)!),
+      ).toBeGreaterThanOrEqual(3);
+    }
+  });
+
+  it("keeps both glass layers translucent at every light-theme intensity", () => {
+    postcss.parse(source).walkRules((rule) => {
+      if (!rule.selector.startsWith(':root[data-theme="light"]')) return;
+      rule.walkDecls((decl) => {
+        if (!["--glass", "--glass-strong"].includes(decl.prop)) return;
+        const alpha = decl.value.match(/\/\s*(\d+)%/);
+        expect(alpha, `${rule.selector}: ${decl.prop}`).not.toBeNull();
+        expect(Number(alpha![1])).toBeGreaterThanOrEqual(38);
+        expect(Number(alpha![1])).toBeLessThanOrEqual(84);
+      });
+    });
   });
 
   it("overrides glass intensity without bringing pure-white or dark backgrounds back", () => {

@@ -535,7 +535,7 @@ export function Modal({ open, onClose, children }) {
           <motion.div
             {...motionPresets.patterns.modal.backdrop}
             onClick={onClose}
-            className="fixed inset-0 bg-black/50"
+            className="fixed inset-0 bg-overlay/50"
           />
           <motion.div
             {...motionPresets.patterns.modal.content}

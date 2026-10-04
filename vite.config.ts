@@ -69,6 +69,6 @@ export default defineConfig(({ command }) => ({
     }),
     // The router factory exports setup, not a React component. Keeping it out
     // of the refresh boundary avoids the incompatible `getRouter` warning.
-    react({ exclude: ["src/router.tsx"] }),
+    react({ exclude: [/node_modules/, "src/router.tsx"] }),
   ],
 }));

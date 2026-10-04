@@ -43,7 +43,7 @@ export function PersonaPicker({ pool, segment, onToggle, onClose }: PersonaPicke
       role="dialog"
       aria-modal="true"
       aria-label="Pick personas to assign"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-overlay/60 backdrop-blur-sm"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div className="relative flex w-full max-w-lg flex-col rounded-2xl border border-surface-tint/[0.10] bg-surface-recessed/90 shadow-2xl backdrop-blur-xl overflow-hidden max-h-[80vh]">

@@ -37,6 +37,8 @@
   --color-glass: var(--glass);
   --color-glass-strong: var(--glass-strong);
   --color-silver: var(--silver);
+  --color-icon: var(--icon-foreground);
+  --color-overlay: var(--overlay);
   --color-surface-tint: var(--surface-tint);
   --color-surface-recessed: var(--surface-recessed);
   --color-surface-panel: var(--surface-panel);

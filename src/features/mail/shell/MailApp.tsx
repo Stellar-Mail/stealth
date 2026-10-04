@@ -185,7 +185,7 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
         </Suspense>
         <button
           onClick={() => overlays.setShowSenderJourney(false)}
-          className="fixed top-4 left-4 rounded-lg border border-surface-tint/10 bg-surface-recessed/50 px-4 py-2 text-xs text-white/80 hover:bg-surface-recessed/70 z-50"
+          className="fixed top-4 left-4 rounded-lg border border-surface-tint/10 bg-surface-recessed/50 px-4 py-2 text-xs text-foreground dark:text-white/80 hover:bg-surface-recessed/70 z-50"
         >
           Back to app
         </button>

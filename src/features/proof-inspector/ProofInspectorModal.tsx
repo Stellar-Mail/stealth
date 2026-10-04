@@ -197,7 +197,7 @@ export function ProofInspectorModal({
           <motion.div
             {...motionPresets.patterns.modal.backdrop}
             onClick={onClose}
-            className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md"
+            className="fixed inset-0 z-[100] bg-overlay/80 backdrop-blur-md"
           />
 
           {/* Modal Container */}

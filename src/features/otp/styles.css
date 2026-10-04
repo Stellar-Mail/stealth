@@ -96,6 +96,14 @@
   box-shadow: var(--shadow-elegant);
 }
 
+:root[data-theme="light"] .otp-card {
+  background: var(--gradient-glass), var(--glass-strong);
+}
+
+:root[data-theme="light"] .otp-digit {
+  background: var(--gradient-glass), var(--glass);
+}
+
 :root[data-theme="light"] .otp-scene::before {
   background: repeating-linear-gradient(
     154deg,

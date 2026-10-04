@@ -12,7 +12,7 @@ import { safeReturnTo } from "./returnTo";
 function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
     <main className="ambient-bg flex min-h-screen items-center justify-center px-4 py-8 sm:px-6">
-      <Card className="w-full max-w-md border-border/80 bg-card/95 shadow-xl backdrop-blur">
+      <Card className="auth-card w-full max-w-md border-border/80 bg-card/95 shadow-xl backdrop-blur">
         {children}
       </Card>
     </main>

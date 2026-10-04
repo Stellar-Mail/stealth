@@ -1,30 +1,26 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { ChevronsLeft, ChevronsRight, Plus, Sparkles, X, type LucideIcon } from "lucide-react";
 import {
-  Archive,
-  CalendarClock,
-  ChevronsLeft,
-  ChevronsRight,
-  Clock3,
-  FileText,
-  Hash,
-  Inbox,
-  Lock,
-  Mail,
-  Pencil,
-  Plus,
-  ReceiptText,
-  Send,
-  SendHorizontal,
-  ShieldAlert,
-  ShieldCheck,
-  Sparkles,
-  Star,
-  Trash2,
-  Users,
-  X,
-  type LucideIcon,
-} from "lucide-react";
+  ArchiveIcon as Archive,
+  CalendarIcon as CalendarClock,
+  LaterIcon as Clock3,
+  DraftIcon as FileText,
+  FolderIcon as Hash,
+  InboxIcon as Inbox,
+  EncryptedIcon as Lock,
+  AllMailIcon as Mail,
+  ComposeIcon as Pencil,
+  ReceiptIcon as ReceiptText,
+  SentIcon as Send,
+  SentIcon as SendHorizontal,
+  SpamIcon as ShieldAlert,
+  ProofIcon as ShieldCheck,
+  StarredIcon as Star,
+  TrashIcon as Trash2,
+  ContactsIcon as Users,
+  PriorityIcon,
+} from "@/features/design-system/components/mail-icons";
 import { cn } from "@/lib/utils";
 import type { MailFolder } from "./data";
 import { DROP_TARGET_FOLDERS } from "./useDragDrop";
@@ -35,7 +31,7 @@ type SidebarItem = { key: MailFolder; label: string; icon: LucideIcon };
 const mailItems: SidebarItem[] = [
   { key: "all", label: "All Mail", icon: Mail },
   { key: "inbox", label: "Inbox", icon: Inbox },
-  { key: "priority", label: "Priority", icon: Sparkles },
+  { key: "priority", label: "Priority", icon: PriorityIcon },
   { key: "snoozed", label: "Snoozed", icon: Clock3 },
   { key: "starred", label: "Starred", icon: Star },
   { key: "drafts", label: "Drafts", icon: FileText },
@@ -125,7 +121,7 @@ export function Sidebar({
           className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
           style={{ background: "var(--gradient-silver)" }}
         >
-          <Sparkles className="h-4 w-4 text-[oklch(0.2_0.005_270)]" />
+          <Sparkles className="h-4 w-4 text-primary-foreground" />
         </div>
         {!collapsed && (
           <div className="flex flex-col leading-tight">
@@ -183,7 +179,11 @@ export function Sidebar({
         </motion.button>
       )}
 
-      <nav aria-label="Mail folders" className="scrollbar-thin mt-4 flex-1 overflow-y-auto pr-1">
+      <nav
+        aria-label="Mail folders"
+        tabIndex={0}
+        className="scrollbar-thin mt-4 flex-1 overflow-y-auto pr-1"
+      >
         {sections.map((section, sectionIndex) => (
           <div key={section.title ?? "mail"} className={sectionIndex === 0 ? "" : "mt-5"}>
             {section.title && !collapsed && (
@@ -269,7 +269,7 @@ export function Sidebar({
       >
         <div
           className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full"
-          style={{ background: "linear-gradient(135deg, #4d5560, #232326)" }}
+          style={{ background: "var(--gradient-avatar)" }}
         >
           <span className="absolute inset-0 flex items-center justify-center text-xs font-medium text-white/90">
             EN
@@ -409,7 +409,7 @@ function FolderButton({
           transition={{ type: "spring", stiffness: 400, damping: 32 }}
         />
       )}
-      <Icon className="relative h-4 w-4 shrink-0" />
+      <Icon className={cn("relative h-4 w-4 shrink-0", !active && "text-icon")} />
       {!collapsed && (
         <>
           <span className="mail-preview-heading relative truncate">{item.label}</span>

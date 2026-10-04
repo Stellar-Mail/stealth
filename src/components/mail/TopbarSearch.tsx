@@ -15,22 +15,24 @@ import { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo } fr
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Search,
   Command,
   X,
   History,
-  ShieldCheck,
-  Mail,
-  User,
-  FileText,
-  Paperclip,
   Check,
-  Calendar,
   AlertCircle,
   RefreshCw,
   Clock,
   ArrowRight,
 } from "lucide-react";
+import {
+  SearchIcon as Search,
+  ProofIcon as ShieldCheck,
+  AllMailIcon as Mail,
+  IdentityIcon as User,
+  DraftIcon as FileText,
+  FilesIcon as Paperclip,
+  CalendarIcon as Calendar,
+} from "@/features/design-system/components/mail-icons";
 
 import type { Email } from "./data";
 import { cn } from "@/lib/utils";

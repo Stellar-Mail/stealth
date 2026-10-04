@@ -195,7 +195,12 @@ export function EmailView({
               </div>
             </div>
 
-            <div className="scrollbar-thin flex-1 overflow-y-auto px-4 py-4 sm:px-7 sm:py-5">
+            <div
+              role="region"
+              aria-label="Message content"
+              tabIndex={0}
+              className="scrollbar-thin flex-1 overflow-y-auto px-4 py-4 sm:px-7 sm:py-5"
+            >
               <article className="mx-auto w-full max-w-[920px]">
                 <div className="border-b border-surface-tint/[0.07] pb-5">
                   <p className="mail-reader-meta mb-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
@@ -431,7 +436,12 @@ export function EmailView({
               </div>
             </div>
 
-            <div className="scrollbar-thin flex-1 overflow-y-auto px-5 py-5 sm:px-7">
+            <div
+              role="region"
+              aria-label="Message content"
+              tabIndex={0}
+              className="scrollbar-thin flex-1 overflow-y-auto px-5 py-5 sm:px-7"
+            >
               <article className="mx-auto w-full max-w-[920px]">
                 <div className="border-b border-surface-tint/[0.07] pb-5">
                   <div className="min-w-0 flex-1">

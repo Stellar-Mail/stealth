@@ -33,7 +33,8 @@ export function MobileMailCard({
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       className={cn(
-        "relative overflow-hidden rounded-xl border transition-all duration-300",
+        "mobile-mail-preview-card relative overflow-hidden rounded-xl border transition-all duration-300",
+        selected && "mobile-mail-preview-card--active",
         selected
           ? "border-surface-tint/20 bg-preview-active shadow-[0_18px_42px_oklch(0_0_0/0.35),0_0_0_1px_oklch(1_0_0/0.07),inset_0_1px_0_oklch(1_0_0/0.14)]"
           : "border-surface-tint/8 bg-preview hover:border-surface-tint/12 hover:bg-preview-hover",
@@ -43,11 +44,7 @@ export function MobileMailCard({
       {selected && (
         <motion.div
           layoutId="mobile-card-active"
-          className="pointer-events-none absolute inset-0"
-          style={{
-            background:
-              "radial-gradient(circle at 18% 22%, oklch(1 0 0 / 0.12), transparent 36%), linear-gradient(135deg, oklch(1 0 0 / 0.08), oklch(1 0 0 / 0.025) 44%, oklch(1 0 0 / 0.01))",
-          }}
+          className="mobile-card-highlight pointer-events-none absolute inset-0"
           transition={{ type: "spring", stiffness: 400, damping: 32 }}
         />
       )}

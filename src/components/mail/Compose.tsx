@@ -499,7 +499,7 @@ export function Compose({
             transition={{ duration: 0.25 }}
             onClick={close}
             aria-hidden="true"
-            className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
+            className="fixed inset-0 z-40 bg-overlay/40 backdrop-blur-sm"
           />
           <motion.div
             ref={composerRef}

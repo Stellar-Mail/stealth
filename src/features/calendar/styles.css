@@ -175,13 +175,19 @@
 
 :root[data-theme="light"] .calendar-workspace,
 :root[data-theme="light"] .calendar-editor {
-  background: var(--gradient-glass), var(--popover);
+  background: var(--gradient-glass), var(--glass-strong);
   box-shadow: var(--shadow-elegant);
+  backdrop-filter: blur(32px) saturate(135%);
+  -webkit-backdrop-filter: blur(32px) saturate(135%);
 }
 
 :root[data-theme="light"] .calendar-primary-button {
   color: var(--primary-foreground);
   background: var(--primary);
+}
+
+:root[data-theme="light"] .calendar-primary-button:hover {
+  background: color-mix(in srgb, var(--primary) 86%, var(--foreground));
 }
 
 :root[data-theme="light"] :is(.calendar-control, .calendar-input, .calendar-icon-button) {
@@ -211,7 +217,9 @@
 }
 
 :root[data-theme="light"] .event-mail-hero {
-  background: linear-gradient(125deg, var(--accent), var(--card) 60%, var(--secondary));
+  background:
+    radial-gradient(ellipse at 12% 0%, var(--surface-highlight), transparent 64%),
+    linear-gradient(125deg, var(--surface-glow), var(--card) 60%, var(--secondary));
   border-color: var(--border);
   box-shadow: var(--shadow-elegant);
 }

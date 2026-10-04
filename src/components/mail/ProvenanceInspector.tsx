@@ -41,7 +41,7 @@ export function ProvenanceInspector({
           <motion.div
             {...motionPresets.patterns.modal.backdrop}
             onClick={onClose}
-            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
+            className="fixed inset-0 z-50 bg-overlay/60 backdrop-blur-sm"
           />
 
           {/* Modal Container */}

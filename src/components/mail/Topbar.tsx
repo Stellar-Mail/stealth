@@ -1,24 +1,20 @@
 import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import { Check, Command, LogOut, RefreshCw, type LucideIcon } from "lucide-react";
 import {
-  Bell,
-  Calendar,
-  Check,
-  CircleHelp,
-  Clock3,
-  Command,
-  Filter,
-  LogOut,
-  Paperclip,
-  RefreshCw,
-  Search,
-  Settings,
-  ShieldCheck,
-  Upload,
-  User,
-  type LucideIcon,
-} from "lucide-react";
+  NotificationsIcon as Bell,
+  CalendarIcon as Calendar,
+  HelpIcon as CircleHelp,
+  LaterIcon as Clock3,
+  FilterIcon as Filter,
+  FilesIcon as Paperclip,
+  SearchIcon as Search,
+  SettingsIcon as Settings,
+  ProofIcon as ShieldCheck,
+  ImportIcon as Upload,
+  IdentityIcon as User,
+} from "@/features/design-system/components/mail-icons";
 import { cn } from "@/lib/utils";
 import { NotificationsPanel } from "./NotificationsPanel";
 import { TopbarSearch } from "./TopbarSearch";
@@ -231,7 +227,7 @@ export function Topbar({
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     onClick={() => setFilterOpen(false)}
-                    className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-xl"
+                    className="fixed inset-0 z-[100] bg-overlay/40 backdrop-blur-xl"
                   />
                   <motion.div
                     ref={filterPopover.panelRef}
@@ -447,7 +443,7 @@ export function Topbar({
           >
             <span
               className="h-5 w-5 rounded-full"
-              style={{ background: "linear-gradient(135deg,#7a8290,#2b2b31)" }}
+              style={{ background: "var(--gradient-account)" }}
             />
             <span className="hidden xl:inline">
               {account === "personal" ? "Personal" : "Protocol"}
@@ -487,7 +483,10 @@ export function Topbar({
                     {/* Account info */}
                     <div className="border-b border-surface-tint/5 p-3">
                       <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-[#4d5560] to-[#232326] flex items-center justify-center">
+                        <div
+                          className="h-10 w-10 rounded-full flex items-center justify-center"
+                          style={{ background: "var(--gradient-avatar)" }}
+                        >
                           <span className="text-sm font-medium text-white/90">EN</span>
                         </div>
                         <div className="min-w-0 flex-1">
@@ -601,7 +600,7 @@ function IconBtn({
       onClick={onClick}
       {...rest}
       className={cn(
-        "glow-ring rounded-[6px] p-2 text-muted-foreground transition hover:bg-surface-tint/[0.06] hover:text-foreground",
+        "glow-ring rounded-[6px] p-2 text-icon transition hover:bg-surface-tint/[0.06] hover:text-foreground",
         "inline-flex items-center justify-center gap-1.5 min-h-[36px] min-w-[36px]",
         active && "bg-surface-tint/[0.06] text-foreground",
         className,

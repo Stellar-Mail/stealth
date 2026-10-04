@@ -32,7 +32,7 @@ export function MessagePicker({ pool, campaign, onAssign, onClose }: MessagePick
       role="dialog"
       aria-modal="true"
       aria-label="Pick messages to assign"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-overlay/60 backdrop-blur-sm"
     >
       <div className="relative flex w-full max-w-lg flex-col rounded-2xl border border-surface-tint/[0.10] bg-surface-recessed/90 shadow-2xl backdrop-blur-xl overflow-hidden max-h-[80vh]">
         {/* Header */}

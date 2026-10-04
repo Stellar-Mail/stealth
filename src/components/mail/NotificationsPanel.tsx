@@ -57,7 +57,7 @@ export function NotificationsPanel({
             exit={{ opacity: 0 }}
             onClick={onClose}
             aria-hidden="true"
-            className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-xl"
+            className="fixed inset-0 z-[100] bg-overlay/40 backdrop-blur-xl"
           />
           <motion.div
             ref={panelRef}
