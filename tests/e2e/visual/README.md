@@ -54,6 +54,14 @@ reviewed (never blindly updated):
    intended and not a regression.
 3. Only then run `bun run test:visual:update` and commit the changed baselines.
 
+The local-font and Compose-button refresh uses 24 reviewed Linux captures from
+[CI run 37190528807](https://github.com/Stellar-Mail/stealth/actions/runs/37190528807)
+at source commit `2d997b37`. The differences cover the original Inter, Space
+Grotesk and Newsreader families now loading under the app's CSP, the new Compose
+launcher, and the previously added custom icons. Other baselines and the strict
+CI comparison threshold are unchanged. The fonts are bundled with the app;
+check that the intended faces load before accepting future typography baselines.
+
 ## CI
 
 The `visual-e2e` job in `.github/workflows/ci.yml` installs all three browser
