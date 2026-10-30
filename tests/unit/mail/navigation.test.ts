@@ -41,8 +41,13 @@ describe("mail navigation helpers (BETA-053)", () => {
     expect(nextSelectedId(rows, "in-2")).toBe("in-2");
   });
 
-  it("falls back to the first visible row when the current thread left the folder", () => {
-    expect(nextSelectedId(visibleEmailsFor(rows, "sent", null), "in-1")).toBe("sent-1");
+  it("clears the reader when the selected thread leaves the folder", () => {
+    expect(nextSelectedId(visibleEmailsFor(rows, "sent", null), "in-1")).toBeNull();
+  });
+
+  it("does not select the first row on load or refresh", () => {
+    expect(nextSelectedId(rows, null)).toBeNull();
+    expect(nextSelectedId([], null)).toBeNull();
   });
 
   it("selects the first match in a custom folder", () => {

@@ -1,0 +1,229 @@
+.reader-empty {
+  --seal-paper-high: #45484e;
+  --seal-paper-mid: #2a2d32;
+  --seal-paper-low: #15171b;
+  --seal-fold-high: #383c43;
+  --seal-fold-low: #202329;
+  --seal-edge: #747983;
+  --seal-metal-high: #d4d7dd;
+  --seal-metal-mid: #939aa5;
+  --seal-metal-low: #535c69;
+  --seal-ink: #282d35;
+  --seal-shadow: #07090f;
+  display: grid;
+  flex: 1;
+  min-height: 0;
+  place-items: center;
+  overflow-y: auto;
+  padding: 32px 20px;
+  isolation: isolate;
+}
+
+:root[data-theme="light"] .reader-empty {
+  --seal-paper-high: #8b7656;
+  --seal-paper-mid: #655239;
+  --seal-paper-low: #34291e;
+  --seal-fold-high: #776346;
+  --seal-fold-low: #493c2c;
+  --seal-edge: #bda37d;
+  --seal-metal-high: #f4dfad;
+  --seal-metal-mid: #c4a370;
+  --seal-metal-low: #83633d;
+  --seal-ink: #49321e;
+  --seal-shadow: #6b481e;
+}
+
+.reader-empty-composition { width: min(100%, 420px); text-align: center; }
+.sealed-mail-scene { position: relative; width: min(100%, 336px); aspect-ratio: 1.2; margin: 0 auto 22px; }
+.sealed-mail-perspective { position: absolute; inset: 0; perspective: 900px; }
+.sealed-mail-assembly {
+  position: absolute;
+  width: 72%;
+  height: 56%;
+  top: 26%;
+  left: 14%;
+  transform-style: preserve-3d;
+  transform: rotateX(12deg) rotateY(-12deg) rotateZ(-5deg);
+  animation: sealed-mail-arrive 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.sealed-mail-ground {
+  position: absolute;
+  inset: 77% 12% 5%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, color-mix(in srgb, var(--seal-shadow) 65%, transparent), transparent 70%);
+  filter: blur(10px);
+  transform: rotate(-5deg);
+  animation: sealed-mail-ground-in 1s ease-out both;
+}
+.sealed-mail-layer {
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--seal-edge) 65%, transparent);
+  background: linear-gradient(135deg, var(--seal-paper-high), var(--seal-paper-mid) 55%, var(--seal-paper-low));
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--seal-metal-high) 15%, transparent), 0 8px 18px -10px var(--seal-shadow);
+}
+.sealed-mail-layer::before {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  border: 1px solid color-mix(in srgb, var(--seal-edge) 22%, transparent);
+  border-radius: 8px;
+}
+.sealed-mail-layer-back {
+  transform: translate3d(-14px, -33px, -32px) rotate(-10deg);
+  animation: sealed-mail-back-in 1s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.sealed-mail-layer-middle {
+  transform: translate3d(10px, -17px, -16px) rotate(7deg);
+  animation: sealed-mail-middle-in 1s 70ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.sealed-mail-stamp {
+  position: absolute;
+  right: 14px;
+  top: 12px;
+  width: 20px;
+  height: 24px;
+  border: 1px solid color-mix(in srgb, var(--seal-metal-high) 28%, transparent);
+  border-radius: 3px;
+  background: repeating-linear-gradient(135deg, transparent 0 3px, color-mix(in srgb, var(--seal-edge) 15%, transparent) 3px 4px);
+}
+.sealed-mail-envelope {
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  border: 1px solid var(--seal-edge);
+  background: var(--seal-paper-low);
+  box-shadow: 0 26px 30px -20px var(--seal-shadow), 0 8px 14px -8px var(--seal-shadow), inset 0 -2px 0 color-mix(in srgb, var(--seal-edge) 25%, transparent);
+  transform-style: preserve-3d;
+}
+.sealed-mail-inner {
+  position: absolute;
+  inset: 1px;
+  border-radius: 12px;
+  background: linear-gradient(140deg, var(--seal-paper-high), var(--seal-paper-mid) 55%, var(--seal-paper-low));
+}
+.sealed-mail-pocket {
+  position: absolute;
+  inset: 1px;
+  border-radius: 12px;
+  clip-path: polygon(0 0, 50% 54%, 100% 0, 100% 100%, 0 100%);
+  background:
+    linear-gradient(145deg, transparent 49.5%, color-mix(in srgb, var(--seal-edge) 25%, transparent) 50%, transparent 50.5%) left bottom / 51% 100% no-repeat,
+    linear-gradient(215deg, transparent 49.5%, color-mix(in srgb, var(--seal-edge) 20%, transparent) 50%, transparent 50.5%) right bottom / 51% 100% no-repeat,
+    linear-gradient(155deg, var(--seal-paper-high), var(--seal-fold-low) 52%, var(--seal-paper-low));
+}
+.sealed-mail-flap,
+.sealed-mail-flap-shadow {
+  position: absolute;
+  left: 1px;
+  right: 1px;
+  top: 1px;
+  height: 67%;
+  border-radius: 12px 12px 0 0;
+  clip-path: polygon(0 0, 100% 0, 100% 8%, 55% 94%, 52% 97%, 48% 97%, 45% 94%, 0 8%);
+}
+.sealed-mail-flap-shadow { background: var(--seal-shadow); transform: translateY(3px); opacity: 0.55; }
+.sealed-mail-flap {
+  background: linear-gradient(155deg, var(--seal-paper-high) 4%, var(--seal-fold-high) 35%, var(--seal-fold-low) 85%);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--seal-metal-high) 30%, transparent);
+  transform-origin: 50% 0;
+  animation: sealed-mail-close 760ms 160ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.sealed-mail-engraving {
+  position: absolute;
+  bottom: 15px;
+  left: 17px;
+  font-size: 7px;
+  font-weight: 600;
+  letter-spacing: 0.24em;
+  color: var(--seal-edge);
+  text-shadow: 0 1px 0 var(--seal-shadow);
+}
+.sealed-mail-seal {
+  position: absolute;
+  left: calc(50% - 23px);
+  top: calc(57% - 23px);
+  width: 46px;
+  height: 46px;
+  padding: 3px;
+  border-radius: 50%;
+  background: conic-gradient(from 25deg, var(--seal-metal-high), var(--seal-metal-low), var(--seal-metal-high), var(--seal-metal-mid), var(--seal-metal-high));
+  box-shadow: 0 4px 8px color-mix(in srgb, var(--seal-shadow) 55%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--seal-metal-high) 60%, transparent);
+  transform: translateZ(3px);
+  animation: sealed-mail-stamp-in 580ms 640ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.sealed-mail-seal-face {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  color: var(--seal-ink);
+  background: linear-gradient(135deg, var(--seal-metal-high), var(--seal-metal-mid) 57%, var(--seal-metal-low));
+  border: 1px solid color-mix(in srgb, var(--seal-ink) 35%, transparent);
+  box-shadow: inset 0 1px 2px color-mix(in srgb, var(--seal-metal-high) 65%, transparent);
+}
+.sealed-mail-seal-face svg { width: 29px; height: 29px; }
+.sealed-mail-edge {
+  position: absolute;
+  pointer-events: none;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(120deg, transparent 25%, color-mix(in srgb, var(--seal-metal-high) 20%, transparent) 48%, transparent 65%);
+  opacity: 0;
+  animation: sealed-mail-finish 850ms 560ms ease-out both;
+}
+.reader-empty-copy { position: relative; animation: sealed-mail-copy-in 400ms 220ms ease-out both; }
+.reader-empty-eyebrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: 0 0 13px;
+  color: var(--muted-foreground);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+}
+.reader-empty-eyebrow span { width: 20px; height: 1px; background: color-mix(in srgb, var(--foreground) 18%, transparent); }
+.reader-empty-copy h2 { margin: 0; color: var(--foreground); font-size: clamp(20px, 3.5cqi, 26px); font-weight: 600; letter-spacing: -0.035em; line-height: 1.25; text-wrap: balance; }
+.reader-empty-description { margin: 14px 0 0; color: var(--muted-foreground); font-size: 12px; line-height: 1.9; text-wrap: pretty; }
+
+/* The illustration assembles once. Frequent message selection never waits for it. */
+@keyframes sealed-mail-arrive {
+  from { opacity: 0; transform: translateY(24px) rotateX(24deg) rotateY(-25deg) rotateZ(-9deg) scale(0.96); }
+  to { opacity: 1; transform: rotateX(12deg) rotateY(-12deg) rotateZ(-5deg); }
+}
+@keyframes sealed-mail-back-in {
+  from { opacity: 0; transform: translate3d(-38px, 8px, -32px) rotate(-20deg); }
+  to { opacity: 1; transform: translate3d(-14px, -33px, -32px) rotate(-10deg); }
+}
+@keyframes sealed-mail-middle-in {
+  from { opacity: 0; transform: translate3d(35px, 10px, -16px) rotate(17deg); }
+  to { opacity: 1; transform: translate3d(10px, -17px, -16px) rotate(7deg); }
+}
+@keyframes sealed-mail-close { from { transform: rotateX(-48deg); } to { transform: rotateX(0); } }
+@keyframes sealed-mail-stamp-in {
+  0% { opacity: 0; transform: translate3d(0, -16px, 30px) scale(1.2) rotate(-20deg); }
+  62% { opacity: 1; transform: translateZ(3px) scale(0.96) rotate(2deg); }
+  100% { opacity: 1; transform: translateZ(3px) scale(1) rotate(0); }
+}
+@keyframes sealed-mail-ground-in { from { opacity: 0; transform: scale(0.75); } to { opacity: 1; transform: rotate(-5deg); } }
+@keyframes sealed-mail-finish { 0%, 100% { opacity: 0; } 40% { opacity: 0.8; } }
+@keyframes sealed-mail-copy-in { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+@media (hover: hover) and (pointer: fine) {
+  .sealed-mail-perspective { transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1); }
+  .sealed-mail-scene:hover .sealed-mail-perspective { transform: translateY(-5px) rotate(2deg); }
+}
+@container mail-reader (max-height: 500px) {
+  .sealed-mail-scene { width: 230px; margin-bottom: 12px; }
+}
+:root[data-motion="lower"] .reader-empty *,
+:root[data-motion="lower"] .sealed-mail-scene:hover .sealed-mail-perspective { animation: none !important; transition: none !important; }
+:root[data-motion="lower"] .sealed-mail-scene:hover .sealed-mail-perspective { transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  .reader-empty * { animation: none !important; transition: none !important; }
+  .sealed-mail-scene:hover .sealed-mail-perspective { transform: none; }
+}

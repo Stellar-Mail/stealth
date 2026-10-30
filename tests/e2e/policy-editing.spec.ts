@@ -1,4 +1,4 @@
-import { test, expect, openDemoMailbox } from "./fixtures";
+import { test, expect, openDemoMailbox, openMailboxSettings } from "./fixtures";
 import type { Page } from "@playwright/test";
 
 test.describe("policy editing", () => {
@@ -7,7 +7,7 @@ test.describe("policy editing", () => {
   });
 
   async function openSettings(page: Page) {
-    await page.getByRole("button", { name: "Settings" }).click();
+    await openMailboxSettings(page);
     await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
   }
 

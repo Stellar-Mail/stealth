@@ -114,7 +114,7 @@ export function Sidebar({
       initial={false}
       animate={{ width: collapsed ? 64 : 240 }}
       transition={{ type: "spring", stiffness: 260, damping: 30 }}
-      className="glass relative z-10 hidden h-screen flex-col rounded-none border-y-0 border-l-0 p-3 md:flex"
+      className="glass mail-sidebar relative z-10 hidden h-screen flex-col rounded-none border-y-0 border-l-0 px-3 pt-3 pb-0 md:flex"
     >
       <div className={cn("flex items-center gap-2 py-2", collapsed ? "justify-center" : "px-2")}>
         {!collapsed && (
@@ -169,7 +169,7 @@ export function Sidebar({
       <nav
         aria-label="Mail folders"
         tabIndex={0}
-        className="scrollbar-thin mt-4 flex-1 overflow-y-auto pr-1"
+        className="scrollbar-thin mt-4 min-h-0 flex-1 overflow-y-auto pr-1"
       >
         {sections.map((section, sectionIndex) => (
           <div key={section.title ?? "mail"} className={sectionIndex === 0 ? "" : "mt-5"}>
@@ -250,7 +250,7 @@ export function Sidebar({
 
       <div
         className={cn(
-          "mt-3 flex items-center gap-3 rounded-md border border-surface-tint/5 bg-surface-tint/[0.03] p-2",
+          "mail-sidebar-account mt-3 -mx-3 flex shrink-0 items-center gap-3 border-t border-surface-tint/10 bg-surface-tint/[0.03] px-3 py-3",
           collapsed && "justify-center",
         )}
       >
@@ -270,7 +270,6 @@ export function Sidebar({
             </div>
           </div>
         )}
-        {!collapsed && <span className="pulse-dot ml-auto h-1.5 w-1.5 rounded-full bg-silver" />}
       </div>
     </motion.aside>
   );

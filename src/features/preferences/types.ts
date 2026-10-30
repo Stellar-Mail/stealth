@@ -12,6 +12,34 @@ export type NotificationPreferences = {
   quietHours: { enabled: boolean; start: string; end: string };
 };
 
+export type CriticalAlertPreferences = {
+  enabled: boolean;
+  unknownSenders: boolean;
+  failedVerification: boolean;
+};
+
+export const defaultCriticalAlerts: CriticalAlertPreferences = {
+  enabled: false,
+  unknownSenders: true,
+  failedVerification: true,
+};
+
+export function resolveCriticalAlerts(value: unknown): CriticalAlertPreferences {
+  const stored =
+    value && typeof value === "object" ? (value as Partial<CriticalAlertPreferences>) : {};
+  return {
+    enabled: typeof stored.enabled === "boolean" ? stored.enabled : defaultCriticalAlerts.enabled,
+    unknownSenders:
+      typeof stored.unknownSenders === "boolean"
+        ? stored.unknownSenders
+        : defaultCriticalAlerts.unknownSenders,
+    failedVerification:
+      typeof stored.failedVerification === "boolean"
+        ? stored.failedVerification
+        : defaultCriticalAlerts.failedVerification,
+  };
+}
+
 export type UiPreferences = {
   theme: ThemePreference;
   compactMode: boolean;
@@ -34,6 +62,7 @@ export type UiPreferences = {
   };
   unknownSenders: UnknownSenderPolicy;
   minimumPostage: string;
+  criticalAlerts?: CriticalAlertPreferences;
 };
 
 export const defaultPreferences: UiPreferences = {
@@ -61,4 +90,5 @@ export const defaultPreferences: UiPreferences = {
   },
   unknownSenders: "request",
   minimumPostage: "0.01",
+  criticalAlerts: defaultCriticalAlerts,
 };

@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { FolderInput } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { Flag, FolderInput } from "lucide-react";
+import { getCriticalMailWarning } from "@/features/mail/critical-warnings";
+import type { CriticalAlertPreferences } from "@/features/preferences/types";
 import {
   applyMailFilters,
   getEmailsForFolder,
@@ -15,8 +16,8 @@ import { MobileMailCard } from "./MobileMailCard";
 import { EmailTrustBadges } from "./EmailTrustBadges";
 import { SenderAvatar } from "./SenderAvatar";
 import { DROP_TARGET_FOLDERS, getDropRejectionReason } from "./useDragDrop";
-import { getTrustStates } from "./trust-state";
 import { computeVirtualWindow } from "./virtual-window";
+import "@/features/mail/mail-list-motion.css";
 
 type FilterTab = "all" | "unread" | "flagged";
 
@@ -27,13 +28,6 @@ type FilterTab = "all" | "unread" | "flagged";
 // never clipped; overscan covers the gap.
 const DESKTOP_ROW_HEIGHT = 68;
 const MOBILE_ROW_HEIGHT = 104;
-const VERIFIED_PROFILE_EFFECTS = ["lunar", "ember", "tide"] as const;
-
-function getVerifiedProfileEffect(email: Email) {
-  const fingerprint = `${email.id}:${email.email}`;
-  const hash = [...fingerprint].reduce((value, character) => value + character.charCodeAt(0), 0);
-  return VERIFIED_PROFILE_EFFECTS[hash % VERIFIED_PROFILE_EFFECTS.length];
-}
 
 export function EmailList({
   emails,
@@ -51,6 +45,7 @@ export function EmailList({
   hasMore = false,
   onLoadMore,
   isLoadingMore = false,
+  criticalAlerts,
 }: {
   emails: Email[];
   selectedId: string | null;
@@ -67,8 +62,10 @@ export function EmailList({
   hasMore?: boolean;
   onLoadMore?: () => void;
   isLoadingMore?: boolean;
+  criticalAlerts?: CriticalAlertPreferences;
 }) {
   const [activeTab, setActiveTab] = useState<FilterTab>("all");
+  const [entering, setEntering] = useState(true);
   const folderLabel = customFolder ?? getFolderLabel(folder);
   const [movePicker, setMovePicker] = useState<{ emailIds: string[] } | null>(null);
 
@@ -94,7 +91,14 @@ export function EmailList({
 
   const loadMoreRef = useRef<HTMLLIElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
-  const onSelectRef = useRef(onSelect);
+  const hasRows = filtered.length > 0;
+
+  // Only the first loaded batch enters; virtualized rows must not animate on scroll.
+  useEffect(() => {
+    if (!hasRows || !entering) return;
+    const timer = window.setTimeout(() => setEntering(false), 280);
+    return () => window.clearTimeout(timer);
+  }, [entering, hasRows]);
 
   // BETA-074 — scroll window tracking for virtualization.
   const [scrollTop, setScrollTop] = useState(0);
@@ -133,10 +137,6 @@ export function EmailList({
     () => filtered.slice(virtualStart, virtualEnd),
     [filtered, virtualEnd, virtualStart],
   );
-
-  useEffect(() => {
-    onSelectRef.current = onSelect;
-  });
 
   useEffect(() => {
     const node = listRef.current;
@@ -183,26 +183,26 @@ export function EmailList({
     return () => observer.disconnect();
   }, [hasMore, isLoadingMore, onLoadMore, virtualItems.length]);
 
-  useEffect(() => {
-    const node = listRef.current;
-    if (!node) return;
-
-    const onPointerDown = (event: PointerEvent) => {
-      const target = event.target as HTMLElement | null;
-      if (!target) return;
-      const row = target.closest<HTMLElement>("[data-email-id]");
-      const id = row?.dataset.emailId;
-      if (!id || !node.contains(row)) return;
-
-      onSelectRef.current(id);
-    };
-
-    node.addEventListener("pointerdown", onPointerDown, true);
-    return () => node.removeEventListener("pointerdown", onPointerDown, true);
-  }, []);
-
   return (
-    <section className="mail-list-atmosphere relative m-3 flex h-[calc(100vh-3.5rem-1.5rem)] w-full flex-col overflow-hidden rounded-[8px] md:w-[328px] md:shrink-0 lg:w-[336px]">
+    <section
+      data-entering={entering}
+      onPointerDownCapture={(event) => {
+        event.currentTarget.dataset.motionInput = "pointer";
+        setEntering(false);
+      }}
+      onKeyDownCapture={(event) => {
+        event.currentTarget.dataset.motionInput = "keyboard";
+        setEntering(false);
+      }}
+      onFocusCapture={(event) => {
+        if (event.target.matches(":focus-visible")) {
+          event.currentTarget.dataset.motionInput = "keyboard";
+          setEntering(false);
+        }
+      }}
+      onScrollCapture={() => setEntering(false)}
+      className="mail-list-atmosphere relative mx-3 mt-2 flex h-[calc(100%_-_0.5rem)] w-[calc(100%_-_1.5rem)] flex-col overflow-hidden rounded-t-[8px] rounded-b-none md:shrink-0"
+    >
       <div className="relative z-10 flex items-center justify-between border-b border-surface-tint/10 bg-surface-tint/[0.025] px-3.5 py-3 backdrop-blur-sm">
         <div>
           <h2 className="text-[13px] font-semibold leading-5 tracking-normal text-foreground">
@@ -214,19 +214,20 @@ export function EmailList({
         </div>
         <div className="flex items-center gap-1 rounded-[6px] border border-surface-tint/12 bg-gradient-to-b from-surface-tint/[0.08] to-surface-tint/[0.03] p-0.5 text-[10px] shadow-[0_8px_24px_-12px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.12)]">
           {(["all", "unread", "flagged"] as const).map((t) => (
-            <motion.button
+            <button
               key={t}
-              whileTap={{ scale: 0.96 }}
+              type="button"
+              aria-pressed={activeTab === t}
               onClick={() => setActiveTab(t)}
               className={cn(
-                "relative rounded-[5px] px-2.5 py-1 font-medium transition capitalize",
+                "mail-card-press relative rounded-[5px] px-2.5 py-1 font-medium capitalize",
                 activeTab === t
                   ? "bg-gradient-to-b from-surface-tint/[0.12] to-surface-tint/[0.06] text-foreground shadow-[0_4px_12px_-6px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.16)]"
                   : "text-muted-foreground hover:text-foreground hover:bg-surface-tint/[0.04]",
               )}
             >
               {t}
-            </motion.button>
+            </button>
           ))}
         </div>
       </div>
@@ -247,16 +248,19 @@ export function EmailList({
           </li>
         )}
         {virtualStart > 0 && <li aria-hidden="true" style={{ height: virtualStart * rowHeight }} />}
-        {virtualItems.map((e, idx) => {
+        {virtualItems.map((e, index) => {
           const active = selectedId === e.id;
-          const verifiedSender = getTrustStates(e).includes("verified");
-          const verifiedEffect = verifiedSender ? getVerifiedProfileEffect(e) : null;
+          const warning = getCriticalMailWarning(e, criticalAlerts);
+          const entranceStyle = {
+            "--mail-enter-delay": `${Math.min(index, 4) * 24}ms`,
+          } as CSSProperties;
 
           if (useMobile) {
             return (
-              <li key={e.id} className="px-1">
+              <li key={e.id} className="mail-list-row px-1" style={entranceStyle}>
                 <MobileMailCard
                   email={e}
+                  criticalWarning={warning}
                   selected={active}
                   onSelect={() => onSelect(e.id)}
                   onArchive={() => onArchive?.(e)}
@@ -268,25 +272,17 @@ export function EmailList({
           }
 
           return (
-            <li key={e.id}>
-              <motion.button
+            <li key={e.id} className="mail-list-row" style={entranceStyle}>
+              <button
+                type="button"
                 data-email-id={e.id}
                 onClick={() => onSelect(e.id)}
-                whileTap={{ scale: 0.99 }}
-                transition={{ type: "spring", stiffness: 520, damping: 30 }}
                 aria-current={active ? "true" : undefined}
                 className={cn(
-                  "mail-preview-card group relative flex h-[60px] w-full items-center gap-3 overflow-hidden rounded-[14px] border px-3 py-2 text-left transition-[background,border-color,box-shadow] duration-200",
+                  "mail-preview-card mail-card-press group relative flex h-[60px] w-full items-center gap-3 overflow-hidden rounded-[14px] border px-3 py-2 text-left",
                   active ? "mail-preview-card--active" : "border-surface-tint/[0.09] bg-preview",
-                  verifiedSender && "mail-preview-card--verified",
                 )}
               >
-                {verifiedSender && (
-                  <span
-                    aria-hidden="true"
-                    className={`mail-preview-card__verified-effect mail-preview-card__verified-effect--${verifiedEffect}`}
-                  />
-                )}
                 {showAvatars && (
                   <SenderAvatar email={e} size="md" unread={e.unread} className="z-[1]" />
                 )}
@@ -308,6 +304,15 @@ export function EmailList({
                         showLabels={false}
                         className="shrink-0"
                       />
+                      {warning && (
+                        <Flag
+                          role="img"
+                          aria-label={`Critical warning: ${warning}`}
+                          className="h-3.5 w-3.5 shrink-0 text-status-warning"
+                        >
+                          <title>{warning}</title>
+                        </Flag>
+                      )}
                     </div>
                     <span className="shrink-0 pt-0.5 text-[10.5px] font-medium leading-4 tabular-nums text-muted-foreground/85">
                       {e.time}
@@ -322,7 +327,7 @@ export function EmailList({
                     {e.subject}
                   </div>
                 </div>
-              </motion.button>
+              </button>
             </li>
           );
         })}
@@ -345,68 +350,60 @@ export function EmailList({
       </ul>
 
       {/* M-key folder picker overlay */}
-      <AnimatePresence>
-        {movePicker && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.97 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.97 }}
-            transition={{ duration: 0.15 }}
-            className="absolute inset-0 z-30 flex items-center justify-center bg-surface-recessed/50 backdrop-blur-sm rounded-[8px]"
+      {movePicker && (
+        <div className="absolute inset-0 z-30 flex items-center justify-center bg-surface-recessed/50 backdrop-blur-sm rounded-[8px]">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Move to folder"
+            className="w-[min(224px,calc(100vw-2rem))] rounded-xl border border-surface-tint/12 bg-surface-panel shadow-2xl overflow-hidden"
           >
-            <div
-              role="dialog"
-              aria-modal="true"
-              aria-label="Move to folder"
-              className="w-[min(224px,calc(100vw-2rem))] rounded-xl border border-surface-tint/12 bg-surface-panel shadow-2xl overflow-hidden"
-            >
-              <div className="flex items-center gap-2 px-3 py-2.5 border-b border-surface-tint/10">
-                <FolderInput className="h-3.5 w-3.5 text-muted-foreground" />
-                <span className="text-xs font-medium text-foreground">Move to folder</span>
-                <span className="ml-auto text-[10px] text-muted-foreground">Esc to cancel</span>
-              </div>
-              <ul className="py-1">
-                {DROP_TARGET_FOLDERS.map((target) => {
-                  // Check if all selected emails can move to this target
-                  const targetEmails = movePicker.emailIds
-                    .map((id) => emails.find((em) => em.id === id))
-                    .filter((em): em is Email => !!em);
-                  const rejections = targetEmails
-                    .map((em) => getDropRejectionReason(em, target))
-                    .filter(Boolean);
-                  const disabled = rejections.length === targetEmails.length;
-                  const reason = disabled ? rejections[0] : null;
-
-                  return (
-                    <li key={target}>
-                      <button
-                        type="button"
-                        disabled={disabled}
-                        title={reason ?? undefined}
-                        onClick={() => {
-                          const validIds = targetEmails
-                            .filter((em) => !getDropRejectionReason(em, target))
-                            .map((em) => em.id);
-                          if (validIds.length > 0) onMove?.(validIds, target);
-                          setMovePicker(null);
-                        }}
-                        className={cn(
-                          "w-full px-3 py-2 text-left text-sm transition",
-                          disabled
-                            ? "opacity-40 cursor-not-allowed text-muted-foreground"
-                            : "hover:bg-surface-tint/[0.06] text-foreground cursor-pointer",
-                        )}
-                      >
-                        {getFolderLabel(target)}
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
+            <div className="flex items-center gap-2 px-3 py-2.5 border-b border-surface-tint/10">
+              <FolderInput className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-xs font-medium text-foreground">Move to folder</span>
+              <span className="ml-auto text-[10px] text-muted-foreground">Esc to cancel</span>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            <ul className="py-1">
+              {DROP_TARGET_FOLDERS.map((target) => {
+                // Check if all selected emails can move to this target
+                const targetEmails = movePicker.emailIds
+                  .map((id) => emails.find((em) => em.id === id))
+                  .filter((em): em is Email => !!em);
+                const rejections = targetEmails
+                  .map((em) => getDropRejectionReason(em, target))
+                  .filter(Boolean);
+                const disabled = rejections.length === targetEmails.length;
+                const reason = disabled ? rejections[0] : null;
+
+                return (
+                  <li key={target}>
+                    <button
+                      type="button"
+                      disabled={disabled}
+                      title={reason ?? undefined}
+                      onClick={() => {
+                        const validIds = targetEmails
+                          .filter((em) => !getDropRejectionReason(em, target))
+                          .map((em) => em.id);
+                        if (validIds.length > 0) onMove?.(validIds, target);
+                        setMovePicker(null);
+                      }}
+                      className={cn(
+                        "w-full px-3 py-2 text-left text-sm transition",
+                        disabled
+                          ? "opacity-40 cursor-not-allowed text-muted-foreground"
+                          : "hover:bg-surface-tint/[0.06] text-foreground cursor-pointer",
+                      )}
+                    >
+                      {getFolderLabel(target)}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

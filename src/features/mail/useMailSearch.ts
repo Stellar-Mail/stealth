@@ -25,7 +25,7 @@ import {
   addSearchHistory,
   clearSearchHistory,
   getSearchHistory,
-  mergeSearchResults,
+  mergeSearchItems,
   removeSearchHistory,
   searchLocalEmails,
 } from "./searchApi";
@@ -112,6 +112,7 @@ export function useMailSearch({
         ...(filters.recipient ? { recipient: filters.recipient } : {}),
         ...(filters.afterDate ? { afterDate: filters.afterDate } : {}),
         ...(filters.beforeDate ? { beforeDate: filters.beforeDate } : {}),
+        ...(filters.includeDeleted !== undefined ? { includeDeleted: filters.includeDeleted } : {}),
       },
     };
     return searchLocalEmails(emails, combinedParsed);
@@ -121,8 +122,8 @@ export function useMailSearch({
   const results = useMemo<SearchResultItemDto[]>(() => {
     if (!isQueryActive) return [];
     const serverItems = serverSearchQuery.data?.items ?? [];
-    return mergeSearchResults(serverItems, emails, activeQueryString);
-  }, [isQueryActive, serverSearchQuery.data?.items, emails, activeQueryString]);
+    return mergeSearchItems(serverItems, localResults);
+  }, [isQueryActive, serverSearchQuery.data?.items, localResults]);
 
   const addHistory = useCallback(
     (q: string) => {

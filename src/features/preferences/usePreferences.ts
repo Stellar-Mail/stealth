@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { defaultPreferences, type UiPreferences } from "./types";
+import { defaultPreferences, resolveCriticalAlerts, type UiPreferences } from "./types";
 
 const storageKey = "stealth-ui-preferences";
 
@@ -35,8 +35,13 @@ export function resolveStoredPreferences(
 ): { preferences: UiPreferences; corrupt: boolean } {
   if (current) {
     try {
+      const stored = JSON.parse(current);
       return {
-        preferences: { ...defaultPreferences, ...JSON.parse(current) },
+        preferences: {
+          ...defaultPreferences,
+          ...stored,
+          criticalAlerts: resolveCriticalAlerts(stored?.criticalAlerts),
+        },
         corrupt: false,
       };
     } catch {
@@ -45,8 +50,13 @@ export function resolveStoredPreferences(
   }
   if (legacy) {
     try {
+      const stored = JSON.parse(legacy);
       return {
-        preferences: { ...defaultPreferences, ...JSON.parse(legacy) },
+        preferences: {
+          ...defaultPreferences,
+          ...stored,
+          criticalAlerts: resolveCriticalAlerts(stored?.criticalAlerts),
+        },
         corrupt: false,
       };
     } catch {

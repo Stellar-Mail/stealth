@@ -98,8 +98,8 @@ export interface TrustBadgeProps {
 }
 
 /**
- * A single, consistent sender-trust pill. Presentational only so it can be
- * reused in list rows, the reader header, compose chips, and sender cards.
+ * Consistent trust labels and a standalone compact verification mark, reused
+ * in list rows, the reader header, compose chips, and sender cards.
  */
 export const TrustBadge = memo(function TrustBadge({
   state,
@@ -114,13 +114,14 @@ export const TrustBadge = memo(function TrustBadge({
   if (state === "verified" && !showLabel) {
     const check = (
       <span
-        className={cn(
-          "verified-check inline-flex h-[18px] w-[18px] items-center justify-center rounded-full border",
-          className,
-        )}
+        className={cn("verified-check inline-flex shrink-0 items-center justify-center", className)}
         aria-label={meta.label}
       >
-        <Icon className={size === "sm" ? "h-3.5 w-3.5" : "h-4 w-4"} aria-hidden />
+        <BadgeCheck
+          className={size === "sm" ? "h-4 w-4" : "h-[18px] w-[18px]"}
+          strokeWidth={2.25}
+          aria-hidden
+        />
       </span>
     );
 

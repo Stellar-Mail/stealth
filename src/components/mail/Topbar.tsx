@@ -1,25 +1,30 @@
 import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, Command, LogOut, RefreshCw, type LucideIcon } from "lucide-react";
+import {
+  Check,
+  BriefcaseBusiness,
+  Keyboard,
+  LogOut,
+  Paperclip,
+  RefreshCw,
+  ScanSearch,
+  type LucideIcon,
+} from "lucide-react";
 import {
   NotificationsIcon as Bell,
   CalendarIcon as Calendar,
-  HelpIcon as CircleHelp,
-  LaterIcon as Clock3,
   FilterIcon as Filter,
-  FilesIcon as Paperclip,
-  SearchIcon as Search,
   SettingsIcon as Settings,
-  ProofIcon as ShieldCheck,
   ImportIcon as Upload,
   IdentityIcon as User,
 } from "@/features/design-system/components/mail-icons";
 import { cn } from "@/lib/utils";
 import { NotificationsPanel } from "./NotificationsPanel";
 import { TopbarSearch } from "./TopbarSearch";
-import type { MailFilters, Email } from "./data";
+import { type MailFilters, type Email } from "./data";
 import type { InAppNotification } from "@/features/notifications";
+import "@/features/work/work.css";
 
 /**
  * Shared keyboard + focus behavior for the topbar popovers.
@@ -31,9 +36,14 @@ import type { InAppNotification } from "@/features/notifications";
  *   still inside it (Escape / click-outside), but never steals focus from an
  *   action the user already activated (e.g. a menu item that opened a dialog).
  */
-function usePopoverFocus(open: boolean, onClose: () => void) {
+function usePopoverFocus(
+  open: boolean,
+  onClose: () => void,
+  returnFocusRef?: React.RefObject<HTMLButtonElement | null>,
+) {
   const panelRef = useRef<HTMLDivElement>(null);
-  const triggerRef = useRef<HTMLButtonElement>(null);
+  const ownTriggerRef = useRef<HTMLButtonElement>(null);
+  const triggerRef = returnFocusRef ?? ownTriggerRef;
 
   useEffect(() => {
     if (!open) return;
@@ -59,7 +69,7 @@ function usePopoverFocus(open: boolean, onClose: () => void) {
         triggerRef.current?.focus();
       }
     };
-  }, [open, onClose]);
+  }, [open, onClose, triggerRef]);
 
   return { panelRef, triggerRef };
 }
@@ -73,7 +83,6 @@ type TopbarProps = {
   onOpenShortcuts: () => void;
   filters: MailFilters;
   onFiltersChange: (filters: MailFilters) => void;
-  onQuickAction: (action: "proofs" | "later" | "files") => void;
   onViewNotifications: () => void;
   onSignOut?: () => void;
   onOpenLogin?: () => void;
@@ -83,18 +92,10 @@ type TopbarProps = {
   actor?: string | null;
   emails?: Email[];
   onSelectEmail?: (emailId: string, folder?: string) => void;
+  onSelectContact?: (address: string) => void;
+  workActive?: boolean;
+  onToggleWork?: () => void;
 };
-
-const quickActions: {
-  label: string;
-  value: string;
-  action: "proofs" | "later" | "files";
-  icon: LucideIcon;
-}[] = [
-  { label: "Proofs", value: "2", action: "proofs", icon: ShieldCheck },
-  { label: "Later", value: "5", action: "later", icon: Clock3 },
-  { label: "Files", value: "9", action: "files", icon: Paperclip },
-];
 
 export function Topbar({
   onOpenPalette,
@@ -105,7 +106,6 @@ export function Topbar({
   onOpenShortcuts,
   filters,
   onFiltersChange,
-  onQuickAction,
   onViewNotifications,
   onSignOut,
   onOpenLogin,
@@ -115,41 +115,36 @@ export function Topbar({
   actor,
   emails,
   onSelectEmail,
+  onSelectContact,
+  workActive = false,
+  onToggleWork,
 }: TopbarProps) {
-  const [focused, setFocused] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
-  const [helpOpen, setHelpOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [account, setAccount] = useState<"personal" | "protocol">("personal");
 
-  const filterRef = useRef<HTMLDivElement>(null);
   const accountRef = useRef<HTMLDivElement>(null);
-  const helpRef = useRef<HTMLDivElement>(null);
   const notificationsRef = useRef<HTMLDivElement>(null);
 
   const [filterRect, setFilterRect] = useState<DOMRect | null>(null);
   const [accountRect, setAccountRect] = useState<DOMRect | null>(null);
-  const [helpRect, setHelpRect] = useState<DOMRect | null>(null);
   const [notifRect, setNotifRect] = useState<DOMRect | null>(null);
 
-  const filterPopover = usePopoverFocus(filterOpen, () => setFilterOpen(false));
-  const accountPopover = usePopoverFocus(accountOpen, () => setAccountOpen(false));
-  const helpPopover = usePopoverFocus(helpOpen, () => setHelpOpen(false));
-  const notificationsPopover = usePopoverFocus(notificationsOpen, () =>
-    setNotificationsOpen(false),
-  );
+  const closeAccount = useCallback(() => setAccountOpen(false), []);
+  const closeFilter = useCallback(() => setFilterOpen(false), []);
+  const closeNotifications = useCallback(() => setNotificationsOpen(false), []);
+  const accountPopover = usePopoverFocus(accountOpen, closeAccount);
+  const filterPopover = usePopoverFocus(filterOpen, closeFilter, accountPopover.triggerRef);
+  const notificationsPopover = usePopoverFocus(notificationsOpen, closeNotifications);
 
   useLayoutEffect(() => {
-    if (filterOpen && filterRef.current) setFilterRect(filterRef.current.getBoundingClientRect());
+    if (filterOpen && accountRef.current) setFilterRect(accountRef.current.getBoundingClientRect());
   }, [filterOpen]);
   useLayoutEffect(() => {
     if (accountOpen && accountRef.current)
       setAccountRect(accountRef.current.getBoundingClientRect());
   }, [accountOpen]);
-  useLayoutEffect(() => {
-    if (helpOpen && helpRef.current) setHelpRect(helpRef.current.getBoundingClientRect());
-  }, [helpOpen]);
   useLayoutEffect(() => {
     if (notificationsOpen && notificationsRef.current)
       setNotifRect(notificationsRef.current.getBoundingClientRect());
@@ -160,14 +155,14 @@ export function Topbar({
     // The scroll listener uses capture, so without this gate it would fire on
     // every scroll anywhere in the app (e.g. the email list and reader panes)
     // even when there is no open panel to reposition.
-    const anyOpen = filterOpen || accountOpen || helpOpen || notificationsOpen;
+    const anyOpen = filterOpen || accountOpen || notificationsOpen;
     if (!anyOpen) return;
 
     const onReposition = () => {
-      if (filterOpen && filterRef.current) setFilterRect(filterRef.current.getBoundingClientRect());
+      if (filterOpen && accountRef.current)
+        setFilterRect(accountRef.current.getBoundingClientRect());
       if (accountOpen && accountRef.current)
         setAccountRect(accountRef.current.getBoundingClientRect());
-      if (helpOpen && helpRef.current) setHelpRect(helpRef.current.getBoundingClientRect());
       if (notificationsOpen && notificationsRef.current)
         setNotifRect(notificationsRef.current.getBoundingClientRect());
     };
@@ -177,46 +172,33 @@ export function Topbar({
       window.removeEventListener("resize", onReposition);
       window.removeEventListener("scroll", onReposition, true);
     };
-  }, [filterOpen, accountOpen, helpOpen, notificationsOpen]);
+  }, [filterOpen, accountOpen, notificationsOpen]);
 
   return (
-    <header className="glass relative z-50 m-0 flex h-14 items-center gap-2 overflow-hidden rounded-none border-t-0 px-3">
+    <header className="glass mail-topbar relative z-50 m-0 flex h-12 shrink-0 items-center gap-3 overflow-hidden rounded-none border-t-0 pl-3">
       <TopbarSearch
         actor={actor}
         emails={emails}
         onOpenPalette={onOpenPalette}
         onSelectEmail={onSelectEmail}
+        onSelectContact={onSelectContact}
       />
 
-      <div className="hidden shrink-0 items-center gap-1.5 xl:flex">
-        {quickActions.map((action) => (
-          <QuickAction
-            key={action.label}
-            {...action}
-            onClick={() => onQuickAction(action.action)}
-          />
-        ))}
-      </div>
-
-      <div className="glass-tile ml-auto flex shrink-0 items-center gap-1 rounded-[8px] px-1">
-        {/* Filter dropdown */}
-        <div ref={filterRef} className="relative">
-          <IconBtn
-            label="Filter"
-            buttonRef={filterPopover.triggerRef}
-            onClick={() => setFilterOpen(!filterOpen)}
-            active={
-              filterOpen ||
-              filters.unreadOnly ||
-              filters.hasAttachments ||
-              filters.dateRange !== "all"
-            }
-            aria-expanded={filterOpen}
-            aria-haspopup="dialog"
+      <div className="glass-tile mail-account-controls ml-auto flex shrink-0 items-center overflow-hidden rounded-l-[7px] rounded-r-none border-r-0">
+        {onToggleWork && (
+          <button
+            type="button"
+            aria-label="Work"
+            aria-pressed={workActive}
+            title={workActive ? "Return to Personal mail" : "Open Stealth Work"}
+            className="work-switch mail-mode-control glow-ring"
+            onClick={onToggleWork}
           >
-            <Filter className="h-4 w-4" />
-          </IconBtn>
-        </div>
+            <span>Work</span>
+            <BriefcaseBusiness className="h-4 w-4" />
+          </button>
+        )}
+        {onToggleWork && <span aria-hidden="true" className="mail-control-divider" />}
         {typeof document !== "undefined" &&
           createPortal(
             <AnimatePresence>
@@ -324,6 +306,7 @@ export function Topbar({
         <div ref={notificationsRef} className="relative">
           <IconBtn
             label="Notifications"
+            className="mail-notifications-control"
             buttonRef={notificationsPopover.triggerRef}
             onClick={() => setNotificationsOpen(!notificationsOpen)}
             active={notificationsOpen}
@@ -347,86 +330,7 @@ export function Topbar({
           onMarkAllRead={onMarkAllNotificationsRead}
         />
 
-        {/* Import contacts */}
-        <IconBtn label="Import contacts" onClick={onImportContacts}>
-          <Upload className="h-4 w-4" />
-        </IconBtn>
-
-        <div ref={helpRef} className="relative">
-          <IconBtn
-            label="Help"
-            buttonRef={helpPopover.triggerRef}
-            onClick={() => setHelpOpen((open) => !open)}
-            active={helpOpen}
-            hint="?"
-            aria-expanded={helpOpen}
-            aria-haspopup="menu"
-          >
-            <CircleHelp className="h-4 w-4" />
-          </IconBtn>
-        </div>
-        {typeof document !== "undefined" &&
-          createPortal(
-            <AnimatePresence>
-              {helpOpen && (
-                <>
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    onClick={() => setHelpOpen(false)}
-                    aria-hidden="true"
-                    className="fixed inset-0 z-[100] bg-surface-recessed/40 backdrop-blur-xl"
-                  />
-                  <motion.div
-                    ref={helpPopover.panelRef}
-                    role="menu"
-                    aria-label="Help"
-                    initial={{ opacity: 0, y: -8, scale: 0.96 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: -8, scale: 0.96 }}
-                    transition={{ type: "spring", stiffness: 300, damping: 28 }}
-                    style={{
-                      position: "fixed",
-                      top: helpRect ? helpRect.bottom + 8 : 64,
-                      right: helpRect ? Math.max(8, window.innerWidth - helpRect.right) : 12,
-                      width: 260,
-                      zIndex: 110,
-                    }}
-                    className="glass-modal overflow-hidden rounded-xl p-1.5"
-                  >
-                    <button
-                      role="menuitem"
-                      onClick={() => {
-                        setHelpOpen(false);
-                        onOpenShortcuts();
-                      }}
-                      className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-muted-foreground transition hover:bg-surface-tint/[0.06] hover:text-foreground"
-                    >
-                      <CircleHelp className="h-4 w-4" />
-                      <span className="flex-1">Keyboard shortcuts</span>
-                      <kbd className="rounded border border-surface-tint/10 bg-surface-recessed/30 px-1.5 py-0.5 font-mono text-[10px]">
-                        ?
-                      </kbd>
-                    </button>
-                  </motion.div>
-                </>
-              )}
-            </AnimatePresence>,
-            document.body,
-          )}
-
-        {/* Proof Inspector */}
-        <IconBtn label="Proof Inspector" onClick={onOpenProofInspector} hint="I">
-          <ShieldCheck className="h-4 w-4" />
-        </IconBtn>
-
-        {/* Settings */}
-        <IconBtn label="Settings" onClick={onOpenSettings} hint=",">
-          <Settings className="h-4 w-4" />
-        </IconBtn>
-
-        <div className="mx-1 h-6 w-px bg-surface-tint/10" />
+        <span aria-hidden="true" className="mail-control-divider" />
 
         {/* Account menu */}
         <div ref={accountRef} className="relative">
@@ -437,17 +341,16 @@ export function Topbar({
             aria-expanded={accountOpen}
             aria-label="Account menu"
             className={cn(
-              "glow-ring flex items-center gap-2 rounded-[6px] border border-surface-tint/5 bg-surface-tint/[0.04] px-2 py-1.5 text-xs text-foreground transition hover:bg-surface-tint/[0.08]",
+              "glow-ring mail-account-control flex h-9 items-center gap-2 px-2.5 text-xs text-foreground transition hover:bg-surface-tint/[0.08]",
               accountOpen && "bg-surface-tint/[0.08]",
             )}
           >
-            <span
-              className="h-5 w-5 rounded-full"
-              style={{ background: "var(--gradient-account)" }}
+            <span className="hidden sm:inline">{account === "personal" ? "Mail" : "Team"}</span>
+            <img
+              src="/avatars/personal.svg"
+              alt=""
+              className="h-5 w-5 shrink-0 rounded-full object-cover"
             />
-            <span className="hidden xl:inline">
-              {account === "personal" ? "Personal" : "Protocol"}
-            </span>
           </button>
         </div>
         {typeof document !== "undefined" &&
@@ -483,12 +386,11 @@ export function Topbar({
                     {/* Account info */}
                     <div className="border-b border-surface-tint/5 p-3">
                       <div className="flex items-center gap-3">
-                        <div
-                          className="h-10 w-10 rounded-full flex items-center justify-center"
-                          style={{ background: "var(--gradient-avatar)" }}
-                        >
-                          <span className="text-sm font-medium text-white/90">EN</span>
-                        </div>
+                        <img
+                          src="/avatars/personal.svg"
+                          alt=""
+                          className="h-10 w-10 shrink-0 rounded-full object-cover"
+                        />
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-medium text-foreground">
                             {account === "personal" ? "Eve Navarro" : "Stealth Protocol"}
@@ -502,6 +404,22 @@ export function Topbar({
 
                     {/* Menu items */}
                     <div className="p-1">
+                      <AccountMenuItem
+                        icon={Settings}
+                        label="Settings"
+                        onClick={() => {
+                          setAccountOpen(false);
+                          onOpenSettings();
+                        }}
+                      />
+                      <AccountMenuItem
+                        icon={Filter}
+                        label="Filter"
+                        onClick={() => {
+                          setAccountOpen(false);
+                          setFilterOpen(true);
+                        }}
+                      />
                       <AccountMenuItem
                         icon={User}
                         label="Profile"
@@ -535,6 +453,39 @@ export function Topbar({
                       />
                       <div className="my-1 border-t border-surface-tint/5" />
                       <AccountMenuItem
+                        icon={Upload}
+                        label="Import contacts"
+                        onClick={() => {
+                          setAccountOpen(false);
+                          onImportContacts();
+                        }}
+                      />
+                      <AccountMenuItem
+                        icon={ScanSearch}
+                        label="Proof Inspector"
+                        onClick={() => {
+                          setAccountOpen(false);
+                          onOpenProofInspector();
+                        }}
+                      />
+                      <AccountMenuItem
+                        icon={ScanSearch}
+                        label="Command palette"
+                        onClick={() => {
+                          setAccountOpen(false);
+                          onOpenPalette();
+                        }}
+                      />
+                      <AccountMenuItem
+                        icon={Keyboard}
+                        label="Keyboard shortcuts"
+                        onClick={() => {
+                          setAccountOpen(false);
+                          onOpenShortcuts();
+                        }}
+                      />
+                      <div className="my-1 border-t border-surface-tint/5" />
+                      <AccountMenuItem
                         icon={LogOut}
                         label="Sign out"
                         onClick={() => {
@@ -551,23 +502,6 @@ export function Topbar({
             document.body,
           )}
       </div>
-
-      <AnimatePresence>
-        {focused && (
-          <motion.div
-            initial={{ opacity: 0, y: -4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
-            className="pointer-events-none absolute left-3 top-full mt-2 px-1 text-[11px] text-muted-foreground"
-          >
-            Press{" "}
-            <kbd className="rounded border border-surface-tint/10 bg-surface-recessed/40 px-1">
-              Ctrl+K
-            </kbd>{" "}
-            for the command palette
-          </motion.div>
-        )}
-      </AnimatePresence>
     </header>
   );
 }
@@ -577,7 +511,6 @@ function IconBtn({
   label,
   onClick,
   active,
-  hint,
   buttonRef,
   className,
   ...rest
@@ -586,7 +519,6 @@ function IconBtn({
   label: string;
   onClick?: () => void;
   active?: boolean;
-  hint?: string;
   buttonRef?: React.Ref<HTMLButtonElement>;
   className?: string;
   "aria-expanded"?: boolean;
@@ -597,6 +529,7 @@ function IconBtn({
       whileTap={{ scale: 0.92 }}
       ref={buttonRef}
       aria-label={label}
+      title={label}
       onClick={onClick}
       {...rest}
       className={cn(
@@ -607,38 +540,6 @@ function IconBtn({
       )}
     >
       {children}
-      {hint && (
-        <span className="hidden rounded border border-surface-tint/10 bg-surface-recessed/30 px-1 py-0.5 font-mono text-[10px] text-muted-foreground lg:inline">
-          {hint}
-        </span>
-      )}
-    </motion.button>
-  );
-}
-
-function QuickAction({
-  icon: Icon,
-  label,
-  value,
-  onClick,
-}: {
-  icon: LucideIcon;
-  label: string;
-  value: string;
-  onClick: () => void;
-}) {
-  return (
-    <motion.button
-      whileTap={{ scale: 0.94 }}
-      aria-label={label}
-      onClick={onClick}
-      className="group glow-ring glass-tile flex h-9 items-center gap-2 rounded-[6px] px-2.5 text-xs text-muted-foreground transition hover:text-foreground"
-    >
-      <Icon className="h-4 w-4" />
-      <span className="hidden 2xl:inline">{label}</span>
-      <span className="rounded-[4px] border border-surface-tint/[0.08] bg-surface-recessed/20 px-1.5 py-0.5 font-mono text-[10px] text-foreground/80">
-        {value}
-      </span>
     </motion.button>
   );
 }

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { renderHook, act } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { cleanup, renderHook, act } from "@testing-library/react";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React from "react";
@@ -18,6 +18,12 @@ import {
 import type { Email } from "../../../src/components/mail/data";
 import { parseSearchQuery } from "../../../src/server/api/search-service";
 import type { SearchResultItemDto } from "../../../src/lib/api";
+
+afterEach(() => {
+  cleanup();
+  vi.useRealTimers();
+  vi.unstubAllGlobals();
+});
 
 function mockLocalStorage() {
   const store = new Map<string, string>();
@@ -112,6 +118,32 @@ describe("Client Search Logic (Issue #1972 / BETA-065)", () => {
   });
 
   describe("Local Plaintext Search", () => {
+    it.each([
+      ["from:alice", ["mail-1"]],
+      ["has:attachment", ["mail-2"]],
+      ["is:read", ["mail-2"]],
+    ])("supports directive-only queries: %s", (query, ids) => {
+      expect(searchLocalEmails(mockEmails, parseSearchQuery(query)).map((item) => item.id)).toEqual(
+        ids,
+      );
+    });
+
+    it("uses original timestamps and excludes unknown dates and deleted mail", () => {
+      const mail: Email[] = [
+        { ...mockEmails[0], receivedAt: "2026-10-01T12:00:00Z" },
+        { ...mockEmails[1], receivedAt: "2026-09-01T12:00:00Z" },
+        { ...mockEmails[0], id: "deleted", folder: "trash" },
+      ];
+      expect(
+        searchLocalEmails(mail, parseSearchQuery("after:2026-09-30")).map((item) => item.id),
+      ).toEqual(["mail-1"]);
+      expect(searchLocalEmails(mail, parseSearchQuery("Roadmap")).map((item) => item.id)).toEqual([
+        "mail-1",
+      ]);
+      expect(searchLocalEmails(mail, parseSearchQuery("in:trash")).map((item) => item.id)).toEqual([
+        "deleted",
+      ]);
+    });
     it("searches decrypted message bodies and subjects locally", () => {
       const parsed = parseSearchQuery("circuits");
       const results = searchLocalEmails(mockEmails, parsed);
@@ -177,6 +209,22 @@ describe("Client Search Logic (Issue #1972 / BETA-065)", () => {
   });
 
   describe("useMailSearch Hook", () => {
+    it("does not discard explicit filters when merging local matches", () => {
+      const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+      const wrapper = ({ children }: { children: React.ReactNode }) => (
+        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      );
+      const { result, unmount } = renderHook(
+        () => useMailSearch({ actor: null, emails: mockEmails }),
+        { wrapper },
+      );
+      act(() => result.current.setFilters({ hasAttachments: true }));
+      expect(result.current.results.map((item) => item.id)).toEqual(["mail-2"]);
+      act(() => result.current.setFilters({ sender: "alice", unread: false }));
+      expect(result.current.results).toEqual([]);
+      unmount();
+      queryClient.clear();
+    });
     it("manages query state and debouncing", async () => {
       vi.useFakeTimers();
       const queryClient = new QueryClient();

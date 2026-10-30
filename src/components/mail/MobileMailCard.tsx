@@ -1,9 +1,7 @@
-import { Archive, Clock, Paperclip, Star } from "lucide-react";
-import { motion } from "framer-motion";
+import { Archive, Clock, Flag, Paperclip, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import type { Email } from "./data";
-import { isVerified, mailFolders } from "./data";
 import { EmailTrustBadges } from "./EmailTrustBadges";
 import { SenderAvatar } from "./SenderAvatar";
 
@@ -14,6 +12,7 @@ type MobileMailCardProps = {
   onArchive?: () => void;
   onStar?: () => void;
   onSnooze?: () => void;
+  criticalWarning?: string | null;
 };
 
 export function MobileMailCard({
@@ -23,17 +22,12 @@ export function MobileMailCard({
   onArchive,
   onStar,
   onSnooze,
+  criticalWarning,
 }: MobileMailCardProps) {
-  const folderInfo = mailFolders.find((f) => f.key === email.folder);
-  const isProtocolFolder = folderInfo?.group === "protocol";
-  const verified = isVerified(email);
-
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
+    <div
       className={cn(
-        "mobile-mail-preview-card relative overflow-hidden rounded-xl border transition-all duration-300",
+        "mobile-mail-preview-card relative overflow-hidden rounded-xl border",
         selected && "mobile-mail-preview-card--active",
         selected
           ? "border-surface-tint/20 bg-preview-active shadow-[0_18px_42px_oklch(0_0_0/0.35),0_0_0_1px_oklch(1_0_0/0.07),inset_0_1px_0_oklch(1_0_0/0.14)]"
@@ -41,18 +35,21 @@ export function MobileMailCard({
       )}
     >
       {/* Ambient glow overlay */}
-      {selected && (
-        <motion.div
-          layoutId="mobile-card-active"
-          className="mobile-card-highlight pointer-events-none absolute inset-0"
-          transition={{ type: "spring", stiffness: 400, damping: 32 }}
-        />
-      )}
+      <div
+        aria-hidden="true"
+        className={cn(
+          "mobile-card-highlight pointer-events-none absolute inset-0",
+          selected ? "opacity-100" : "opacity-0",
+        )}
+      />
 
       {/* Main card content */}
       <button
+        type="button"
+        data-email-id={email.id}
+        aria-current={selected ? "true" : undefined}
         onClick={onSelect}
-        className="relative w-full px-3 py-2.5 text-left"
+        className="mail-card-press relative w-full px-3 py-2.5 text-left"
         style={{ minWidth: 0 }}
       >
         {/* Header row: avatar, sender, time */}
@@ -81,6 +78,15 @@ export function MobileMailCard({
                   showLabels={false}
                   className="shrink-0"
                 />
+                {criticalWarning && (
+                  <Flag
+                    role="img"
+                    aria-label={`Critical warning: ${criticalWarning}`}
+                    className="h-3.5 w-3.5 shrink-0 text-status-warning"
+                  >
+                    <title>{criticalWarning}</title>
+                  </Flag>
+                )}
               </div>
               <span className="shrink-0 text-[10.5px] font-medium leading-none tabular-nums text-muted-foreground/85">
                 {email.time}
@@ -88,24 +94,8 @@ export function MobileMailCard({
             </div>
 
             {/* Protocol badge row */}
-            {(isProtocolFolder || verified || email.labels?.length) && (
+            {Boolean(email.labels?.length) && (
               <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                {verified && (
-                  <Badge
-                    variant="outline"
-                    className="h-4.5 border-border/25 dark:border-zinc-300/25 bg-secondary/10 dark:bg-zinc-300/10 px-1.5 text-[9px] text-status-neutral dark:text-zinc-200"
-                  >
-                    Verified
-                  </Badge>
-                )}
-                {isProtocolFolder && folderInfo && (
-                  <Badge
-                    variant="outline"
-                    className="h-4.5 border-blue-500/30 bg-blue-500/10 px-1.5 text-[9px] text-status-info dark:text-blue-300"
-                  >
-                    {folderInfo.label}
-                  </Badge>
-                )}
                 {email.labels?.slice(0, 2).map((label) => (
                   <Badge key={label} variant="secondary" className="h-4.5 px-1.5 text-[9px]">
                     {label}
@@ -160,13 +150,13 @@ export function MobileMailCard({
 
       {/* Touch-friendly action bar */}
       <div className="flex border-t border-surface-tint/8 bg-surface-tint/[0.02]">
-        <motion.button
-          whileTap={{ scale: 0.95 }}
+        <button
+          type="button"
           onClick={(e) => {
             e.stopPropagation();
             onStar?.();
           }}
-          className="flex flex-1 items-center justify-center gap-1.5 px-3 py-2.5 text-muted-foreground transition-colors hover:text-foreground active:bg-surface-tint/5"
+          className="mail-card-press flex flex-1 items-center justify-center gap-1.5 px-3 py-2.5 text-muted-foreground hover:text-foreground active:bg-surface-tint/5"
           aria-label={email.starred ? "Unstar" : "Star"}
         >
           <Star
@@ -176,34 +166,34 @@ export function MobileMailCard({
             )}
           />
           <span className="text-[11px] font-medium">{email.starred ? "Starred" : "Star"}</span>
-        </motion.button>
+        </button>
 
-        <motion.button
-          whileTap={{ scale: 0.95 }}
+        <button
+          type="button"
           onClick={(e) => {
             e.stopPropagation();
             onSnooze?.();
           }}
-          className="flex flex-1 items-center justify-center gap-1.5 border-l border-surface-tint/8 px-3 py-2.5 text-muted-foreground transition-colors hover:text-foreground active:bg-surface-tint/5"
+          className="mail-card-press flex flex-1 items-center justify-center gap-1.5 border-l border-surface-tint/8 px-3 py-2.5 text-muted-foreground hover:text-foreground active:bg-surface-tint/5"
           aria-label="Snooze"
         >
           <Clock className="h-4 w-4" />
           <span className="text-[11px] font-medium">Snooze</span>
-        </motion.button>
+        </button>
 
-        <motion.button
-          whileTap={{ scale: 0.95 }}
+        <button
+          type="button"
           onClick={(e) => {
             e.stopPropagation();
             onArchive?.();
           }}
-          className="flex flex-1 items-center justify-center gap-1.5 border-l border-surface-tint/8 px-3 py-2.5 text-muted-foreground transition-colors hover:text-foreground active:bg-surface-tint/5"
+          className="mail-card-press flex flex-1 items-center justify-center gap-1.5 border-l border-surface-tint/8 px-3 py-2.5 text-muted-foreground hover:text-foreground active:bg-surface-tint/5"
           aria-label="Archive"
         >
           <Archive className="h-4 w-4" />
           <span className="text-[11px] font-medium">Archive</span>
-        </motion.button>
+        </button>
       </div>
-    </motion.div>
+    </div>
   );
 }

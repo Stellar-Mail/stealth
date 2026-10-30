@@ -30,10 +30,10 @@ export function visibleEmailsFor(
   return getEmailsForFolder(emails, folder);
 }
 
-/** Keep the current thread if it is still visible; otherwise fall back to the first visible row. */
+/** Never open a different message without an explicit user selection. */
 export function nextSelectedId(visibleEmails: Email[], selectedId: string | null): string | null {
   if (visibleEmails.some((email) => email.id === selectedId)) return selectedId;
-  return visibleEmails[0]?.id ?? null;
+  return null;
 }
 
 export function firstCustomFolderMatch(emails: Email[], customFolder: string): string | null {

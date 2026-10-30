@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { act, cleanup, render, screen, fireEvent } from "@testing-library/react";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React from "react";
@@ -49,6 +49,12 @@ const mockEmails: Email[] = [
 
 describe("TopbarSearch Component (Issue #1972 / BETA-065)", () => {
   let queryClient: QueryClient;
+  afterEach(() => {
+    cleanup();
+    queryClient.clear();
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
 
   beforeEach(() => {
     mockLocalStorage();
@@ -63,7 +69,7 @@ describe("TopbarSearch Component (Issue #1972 / BETA-065)", () => {
     return render(
       <QueryClientProvider client={queryClient}>
         <TopbarSearch
-          actor="actor-1"
+          actor={null}
           emails={mockEmails}
           onOpenPalette={vi.fn()}
           onSelectEmail={vi.fn()}
@@ -81,13 +87,14 @@ describe("TopbarSearch Component (Issue #1972 / BETA-065)", () => {
     expect(input.getAttribute("aria-expanded")).toBe("false");
   });
 
-  it("opens dropdown on focus and shows privacy notice banner", () => {
+  it("opens a non-modal dropdown without covering the input", () => {
     renderComponent();
     const input = screen.getByRole("combobox");
     fireEvent.focus(input);
 
     expect(input.getAttribute("aria-expanded")).toBe("true");
-    expect(screen.getByText(/Privacy-Safe Index:/i)).toBeDefined();
+    expect(screen.getByText(/Unlocked message bodies/i)).toBeDefined();
+    expect(document.querySelector(".fixed.inset-0")).toBeNull();
   });
 
   it("shows filter pills and allows toggling filters", () => {
@@ -110,7 +117,7 @@ describe("TopbarSearch Component (Issue #1972 / BETA-065)", () => {
       JSON.stringify(["quarterly roadmap", "postage quote"]),
     );
 
-    renderComponent();
+    renderComponent({ actor: "actor-1" });
     const input = screen.getByRole("combobox");
     fireEvent.focus(input);
 
@@ -131,6 +138,39 @@ describe("TopbarSearch Component (Issue #1972 / BETA-065)", () => {
 
     fireEvent.keyDown(input, { key: "Escape" });
     expect(input.getAttribute("aria-expanded")).toBe("false");
+  });
+
+  it("applies sender-only filters and opens the result with the keyboard", async () => {
+    const onSelectEmail = vi.fn();
+    renderComponent({ onSelectEmail });
+    fireEvent.click(screen.getByRole("button", { name: "Search filters" }));
+    fireEvent.change(screen.getByLabelText("From", { exact: true }), {
+      target: { value: "marcus" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Search mail" }));
+    await screen.findByRole("option", { name: /Protocol Architecture Review/i });
+    const input = screen.getByRole("combobox");
+    fireEvent.keyDown(input, { key: "ArrowDown" });
+    expect(input.getAttribute("aria-activedescendant")).toBe("mail-search-option-0");
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(onSelectEmail).toHaveBeenCalledWith("mail-1", "inbox");
+  });
+
+  it("keeps accepting input after opening and clears query and filters together", () => {
+    vi.useFakeTimers();
+    renderComponent();
+    const input = screen.getByRole("combobox");
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: "Architecture" } });
+    act(() => {
+      vi.advanceTimersByTime(250);
+    });
+    expect(screen.getByRole("option", { name: /Protocol.*Architecture.*Review/i })).toBeDefined();
+    fireEvent.click(screen.getByRole("button", { name: "Attachments" }));
+    expect(screen.queryByRole("option")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Clear search text" }));
+    expect((input as HTMLInputElement).value).toBe("");
+    expect(screen.queryByText("Reset filters")).toBeNull();
   });
 
   describe("HighlightedText helper", () => {

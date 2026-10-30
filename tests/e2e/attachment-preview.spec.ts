@@ -18,10 +18,9 @@ import { test, expect, openDemoMailbox } from "./fixtures";
  * and wait for the email reader to render the subject heading.
  */
 async function openEmailWithAttachments(page: import("@playwright/test").Page) {
-  // The Priority sidebar folder contains email id "1" (Lina Park) which has
-  // 4 attachments. Clicking the folder auto-selects the first email via
-  // useMailNavigation.nextSelectedId().
+  // Folder navigation never opens private content; choose the attachment email explicitly.
   await page.getByRole("button", { name: /Priority/ }).click();
+  await page.locator('[data-email-id="1"]').click();
 
   // Wait for the email reader to render the subject as an <h1>
   await expect(page.getByRole("heading", { level: 1, name: /Q2 brand system/i })).toBeVisible({

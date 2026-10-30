@@ -83,6 +83,9 @@ export type Email = {
   preview: string;
   body: string;
   time: string;
+  /** Original metadata retained for accurate search, independent of the display time. */
+  receivedAt?: string;
+  recipient?: string;
   unread: boolean;
   starred: boolean;
   folder: MailLocation;

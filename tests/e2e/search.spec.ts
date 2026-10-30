@@ -1,18 +1,22 @@
-import { test, expect, openDemoMailbox } from "./fixtures";
+import { test, expect, openDemoMailbox, openMailboxFilters } from "./fixtures";
 
 test.describe("search and filter", () => {
   test.beforeEach(async ({ page }) => {
     await openDemoMailbox(page);
   });
 
-  test("focusing search bar opens the privacy-safe search dropdown", async ({ page }) => {
+  test("focusing search opens suggestions without covering the input", async ({ page }) => {
     const searchInput = page.getByPlaceholder("Search messages, contacts, drafts", {
       exact: false,
     });
     await searchInput.click();
 
-    await expect(page.getByText("Privacy-Safe Index:")).toBeVisible();
-    await expect(page.getByRole("listbox", { name: /Search results/i })).toBeVisible();
+    await expect(
+      page.getByText("Unlocked message bodies are searched only on this device."),
+    ).toBeVisible();
+    await searchInput.click();
+    await searchInput.pressSequentially("TOKEN2049");
+    await expect(page.getByRole("option", { name: /TOKEN2049/i })).toBeVisible();
   });
 
   test("typing query in search bar shows live search results and keyword highlighting", async ({
@@ -23,7 +27,9 @@ test.describe("search and filter", () => {
     });
     await searchInput.fill("TOKEN2049");
 
-    await expect(page.getByText("Privacy-Safe Index:")).toBeVisible();
+    await expect(
+      page.getByText("Unlocked message bodies are searched only on this device."),
+    ).toBeVisible();
     await expect(page.getByRole("option", { name: /TOKEN2049/i })).toBeVisible();
   });
 
@@ -32,9 +38,15 @@ test.describe("search and filter", () => {
     await expect(page.getByRole("dialog", { name: "Command palette" })).toBeVisible();
   });
 
-  test("clicking the Cmd+K badge in search bar opens the command palette", async ({ page }) => {
-    await page.getByRole("button", { name: "Open command palette" }).click();
-    await expect(page.getByRole("dialog", { name: "Command palette" })).toBeVisible();
+  test("search filter control filters by sender without a text query", async ({ page }) => {
+    await page.getByRole("button", { name: "Search filters", exact: true }).click();
+    await page
+      .getByRole("form", { name: "Search filters" })
+      .getByLabel("From", { exact: true })
+      .fill("Lina");
+    await page.getByRole("button", { name: "Search mail" }).click();
+    await expect(page.getByRole("option", { name: /Q2 brand system/i })).toBeVisible();
+    await expect(page.getByRole("option", { name: /TOKEN2049/i })).toHaveCount(0);
   });
 
   test("Escape closes the search dropdown", async ({ page }) => {
@@ -42,10 +54,14 @@ test.describe("search and filter", () => {
       exact: false,
     });
     await searchInput.click();
-    await expect(page.getByText("Privacy-Safe Index:")).toBeVisible();
+    await expect(
+      page.getByText("Unlocked message bodies are searched only on this device."),
+    ).toBeVisible();
 
     await page.keyboard.press("Escape");
-    await expect(page.getByText("Privacy-Safe Index:")).not.toBeVisible();
+    await expect(
+      page.getByText("Unlocked message bodies are searched only on this device."),
+    ).not.toBeVisible();
   });
 
   test("question mark opens the shortcut overlay", async ({ page }) => {
@@ -67,7 +83,7 @@ test.describe("search and filter", () => {
   });
 
   test("filter dropdown toggles unread-only filter", async ({ page }) => {
-    await page.getByRole("button", { name: "Filter", exact: true }).click();
+    await openMailboxFilters(page);
     await expect(page.getByRole("button", { name: "Unread only" })).toBeVisible();
 
     await page.getByRole("button", { name: "Unread only" }).click();
@@ -75,7 +91,7 @@ test.describe("search and filter", () => {
   });
 
   test("filter dropdown allows selecting a date range", async ({ page }) => {
-    await page.getByRole("button", { name: "Filter", exact: true }).click();
+    await openMailboxFilters(page);
     await expect(page.getByRole("button", { name: "This week" })).toBeVisible();
 
     await page.getByRole("button", { name: "This week" }).click();
