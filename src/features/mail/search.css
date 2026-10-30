@@ -1,0 +1,111 @@
+.mail-search {
+  --search-surface: color-mix(in srgb, var(--popover) 86%, transparent);
+}
+
+.mail-search-input {
+  outline: none;
+  appearance: none;
+  border: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--foreground) 18%, transparent);
+  border-radius: 0;
+  background: transparent;
+}
+
+.mail-search-input::-webkit-search-cancel-button,
+.mail-search-input::-webkit-search-decoration {
+  display: none;
+}
+
+.mail-search[data-open="true"] .mail-search-input {
+  border-radius: 0;
+  border-bottom-color: transparent;
+  background: var(--search-surface);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--foreground) 6%, transparent);
+}
+
+.mail-search-panel {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-top: 0;
+  border-radius: 0 0 6px 6px;
+  background: color-mix(in srgb, var(--popover) 86%, transparent);
+  color: var(--foreground);
+  backdrop-filter: blur(20px) saturate(115%);
+  -webkit-backdrop-filter: blur(20px) saturate(115%);
+  box-shadow: 0 18px 30px -14px #0006;
+}
+
+@media (max-width: 767px) {
+  .mail-search[data-open="true"] {
+    position: absolute;
+    inset: 6px 12px auto;
+    z-index: 2;
+    width: auto;
+  }
+
+  .mail-topbar:has(.mail-search[data-open="true"]) > .glass-tile {
+    visibility: hidden;
+  }
+}
+
+.mail-account-controls .mail-mode-control {
+  height: 36px;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.mail-control-divider {
+  width: 1px;
+  height: 24px;
+  flex-shrink: 0;
+  background: color-mix(in srgb, var(--foreground) 14%, transparent);
+}
+.mail-account-controls .mail-notifications-control {
+  width: 40px;
+  border-radius: 0;
+}
+.mail-account-control {
+  border-radius: 0;
+}
+
+.mail-search-field {
+  width: 100%;
+  min-width: 0;
+  height: 32px;
+  padding: 0 4px;
+  border: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--foreground) 25%, transparent);
+  border-radius: 0;
+  outline: none;
+  color: var(--foreground);
+  background: transparent;
+  font-size: 13px;
+}
+.mail-search-field:focus {
+  border-color: var(--primary);
+  box-shadow: 0 1px 0 var(--primary);
+}
+.mail-search-field::placeholder {
+  color: var(--muted-foreground);
+  opacity: 0.65;
+}
+.mail-search-field option {
+  background: var(--popover);
+  color: var(--foreground);
+}
+.mail-search-filter-row {
+  display: grid;
+  grid-template-columns: 100px minmax(0, 1fr);
+  align-items: center;
+  gap: 16px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+@media (max-width: 479px) {
+  .mail-search-filter-row {
+    grid-template-columns: 78px minmax(0, 1fr);
+    gap: 8px;
+  }
+}

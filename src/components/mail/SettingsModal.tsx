@@ -43,6 +43,7 @@ import { AuditLog } from "@/features/audit-log";
 import { ChangelogPanel, useChangelog } from "@/features/changelog";
 import { ExternalWalletSettings } from "@/features/settings/external-wallet-linking";
 import { ManagedWalletStatus } from "@/features/settings/ManagedWalletStatus";
+import { CriticalWarningSettings } from "@/features/settings/CriticalWarningSettings";
 import { RecoveryCodesSection } from "@/features/settings/recovery-codes";
 import { requestBrowserPermission, safeBrowserCopy } from "@/features/notifications";
 
@@ -262,7 +263,12 @@ export function SettingsModal({
                 {activeTab === "receipts" && (
                   <ReceiptSettings preferences={preferences} onChange={onChange} />
                 )}
-                {activeTab === "security" && <SecuritySettings />}
+                {activeTab === "security" && (
+                  <>
+                    <CriticalWarningSettings preferences={preferences} onChange={onChange} />
+                    <SecuritySettings />
+                  </>
+                )}
                 {activeTab === "shortcuts" && <ShortcutSettings />}
                 {activeTab === "audit" && <AuditLog />}
                 {activeTab === "changelog" && <ChangelogPanel />}

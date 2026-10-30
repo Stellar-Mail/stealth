@@ -4,7 +4,7 @@
  * Exercises first-time-user critical paths on the /demo stack with deterministic
  * mocks. Manual facilitator scripts live in usability-session-scripts.md.
  */
-import { test, expect, openDemoMailbox } from "../fixtures";
+import { test, expect, openDemoMailbox, openProofInspector } from "../fixtures";
 import AxeBuilder from "@axe-core/playwright";
 import { buildBetaFeedbackPayload, BetaFeedbackValidationError } from "@/features/feedback";
 
@@ -60,7 +60,7 @@ test.describe("BETA-098 acceptance journeys — desktop", () => {
   });
 
   test("proof-inspection: opens inspector and renders proof sections", async ({ page }) => {
-    await page.getByRole("button", { name: "Proof Inspector" }).click();
+    await openProofInspector(page);
     const dialog = page.getByRole("dialog", { name: "Cryptographic proof inspector" });
     await expect(dialog).toBeVisible();
     await page.getByPlaceholder("Enter Message Hash, Payment").fill("Lina Park");

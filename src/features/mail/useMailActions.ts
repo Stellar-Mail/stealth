@@ -244,6 +244,13 @@ export function useMailActions(input: {
     [commitFlags],
   );
 
+  const handleMarkUnread = useCallback(
+    (email: Email) => {
+      void commitFlags(email, { unread: true }, `"${email.subject}" marked unread`);
+    },
+    [commitFlags],
+  );
+
   const handleMove = useCallback(
     async (emailIds: string[], target: MailFolder) => {
       let moved = 0;
@@ -370,6 +377,10 @@ export function useMailActions(input: {
       onArchive: (email: Email) => {
         void handleArchive(email);
       },
+      onMarkUnread: handleMarkUnread,
+      onMove: (email: Email, target: MailLocation) => {
+        void handleMove([email.id], target);
+      },
       onTrash: (email: Email) => {
         void handleTrash(email);
       },
@@ -406,6 +417,8 @@ export function useMailActions(input: {
       addMailEvent,
       calendarEvents,
       handleArchive,
+      handleMarkUnread,
+      handleMove,
       handleStar,
       handleTrash,
       handleUnsnooze,

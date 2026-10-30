@@ -1,4 +1,4 @@
-import { test, expect, openDemoMailbox } from "../fixtures";
+import { test, expect, openDemoMailbox, openMailboxSettings } from "../fixtures";
 
 // ---------------------------------------------------------------------------
 // Workflow 3 (BETA-075) — Two-User Visual & Responsive User Journey
@@ -38,7 +38,7 @@ test.describe("Workflow 3 — Visual & Responsive Experience", () => {
       await expect(page.getByRole("heading", { name: "Pending Proof" })).toBeVisible();
 
       // 5. Open Settings Dialog & Inspect Identifiers
-      await page.getByRole("button", { name: "Settings" }).click();
+      await openMailboxSettings(page);
       await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
       await page.keyboard.press("Escape");
     });

@@ -51,6 +51,8 @@ export function mailboxDescriptorToEmail(descriptor: MailboxDescriptor): Email {
     preview: descriptor.isTombstone ? "This message was deleted." : "Encrypted payload",
     body: "",
     time,
+    receivedAt: descriptor.createdAt,
+    recipient: descriptor.recipientId,
     unread,
     starred: Boolean(descriptor.starred),
     folder,

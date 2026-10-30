@@ -1,19 +1,19 @@
-import { test, expect, openDemoMailbox } from "./fixtures";
+import { test, expect, openDemoMailbox, openProofInspector } from "./fixtures";
 
 test.describe("proof inspector", () => {
   test.beforeEach(async ({ page }) => {
     await openDemoMailbox(page);
   });
 
-  test("opens from the toolbar button and shows the modal", async ({ page }) => {
-    await page.getByRole("button", { name: "Proof Inspector" }).click();
+  test("opens from the account menu and shows the modal", async ({ page }) => {
+    await openProofInspector(page);
     await expect(page.getByRole("dialog", { name: "Cryptographic proof inspector" })).toBeVisible();
     await expect(page.getByText("Stealth Proof Inspector")).toBeVisible();
     await expect(page.getByPlaceholder("Enter Message Hash, Payment")).toBeVisible();
   });
 
   test("shows quick shortcut buttons for local records", async ({ page }) => {
-    await page.getByRole("button", { name: "Proof Inspector" }).click();
+    await openProofInspector(page);
     await expect(page.getByText("Quick shortcuts")).toBeVisible();
     const shortcuts = page.getByRole("dialog").getByRole("button");
     const shortcutCount = await shortcuts.count();
@@ -21,7 +21,7 @@ test.describe("proof inspector", () => {
   });
 
   test("searches by sender name and displays proof record", async ({ page }) => {
-    await page.getByRole("button", { name: "Proof Inspector" }).click();
+    await openProofInspector(page);
     const input = page.getByPlaceholder("Enter Message Hash, Payment");
     await input.fill("Lina Park");
     await page.getByRole("button", { name: "Inspect", exact: true }).click();
@@ -36,7 +36,7 @@ test.describe("proof inspector", () => {
   });
 
   test("shows not-found state for unmatched queries", async ({ page }) => {
-    await page.getByRole("button", { name: "Proof Inspector" }).click();
+    await openProofInspector(page);
     const input = page.getByPlaceholder("Enter Message Hash, Payment");
     await input.fill("zzzzzdoesnotexist");
     await page.getByRole("button", { name: "Inspect", exact: true }).click();
@@ -46,7 +46,7 @@ test.describe("proof inspector", () => {
   });
 
   test("shows format validation for valid Stellar address", async ({ page }) => {
-    await page.getByRole("button", { name: "Proof Inspector" }).click();
+    await openProofInspector(page);
     const input = page.getByPlaceholder("Enter Message Hash, Payment");
     const validAddress = `G${"A".repeat(55)}`;
     await input.fill(validAddress);
@@ -55,7 +55,7 @@ test.describe("proof inspector", () => {
   });
 
   test("shows format validation error for invalid length address", async ({ page }) => {
-    await page.getByRole("button", { name: "Proof Inspector" }).click();
+    await openProofInspector(page);
     const input = page.getByPlaceholder("Enter Message Hash, Payment");
     await input.fill("G" + "A".repeat(20));
 
@@ -63,7 +63,7 @@ test.describe("proof inspector", () => {
   });
 
   test("displays copy buttons within the proof record", async ({ page }) => {
-    await page.getByRole("button", { name: "Proof Inspector" }).click();
+    await openProofInspector(page);
     const input = page.getByPlaceholder("Enter Message Hash, Payment");
     await input.fill("Lina Park");
     await page.getByRole("button", { name: "Inspect", exact: true }).click();
@@ -74,7 +74,7 @@ test.describe("proof inspector", () => {
   });
 
   test("closes on backdrop click", async ({ page }) => {
-    await page.getByRole("button", { name: "Proof Inspector" }).click();
+    await openProofInspector(page);
     await expect(page.getByRole("dialog", { name: "Cryptographic proof inspector" })).toBeVisible();
 
     await page

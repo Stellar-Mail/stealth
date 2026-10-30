@@ -259,6 +259,24 @@ export async function openDemoMailbox(page: Page) {
   await page.waitForFunction(() => Boolean(document.documentElement.dataset.theme));
 }
 
+export async function openProofInspector(page: Page) {
+  await page.getByRole("button", { name: "Account menu" }).click();
+  await page.getByRole("menuitem", { name: "Proof Inspector" }).click();
+  await expect(page.getByRole("dialog", { name: "Cryptographic proof inspector" })).toBeVisible();
+}
+
+export async function openMailboxSettings(page: Page) {
+  await page.getByRole("button", { name: "Account menu" }).click();
+  await page.getByRole("menuitem", { name: "Settings", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Settings", exact: true })).toBeVisible();
+}
+
+export async function openMailboxFilters(page: Page) {
+  await page.getByRole("button", { name: "Account menu" }).click();
+  await page.getByRole("menuitem", { name: "Filter", exact: true }).click();
+  await expect(page.getByRole("dialog", { name: "Filters" })).toBeVisible();
+}
+
 // ---------------------------------------------------------------------------
 // Extended test fixture that exposes the API helper and pre-loads the app
 // ---------------------------------------------------------------------------

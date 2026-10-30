@@ -1,0 +1,100 @@
+@layer utilities {
+  .work-switch {
+    position: relative;
+    display: inline-flex;
+    height: 36px;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 0 12px;
+    border: 1px solid color-mix(in srgb, var(--foreground) 24%, transparent);
+    border-radius: 7px;
+    color: var(--foreground);
+    background:
+      radial-gradient(
+        ellipse at 15% 0%,
+        color-mix(in srgb, var(--surface-tint) 18%, transparent),
+        transparent 75%
+      ),
+      linear-gradient(
+        120deg,
+        color-mix(in srgb, var(--surface-tint) 9%, transparent),
+        transparent 58%
+      ),
+      var(--glass-strong);
+    box-shadow:
+      inset 0 1px 0 var(--glass-edge),
+      0 5px 16px -12px var(--foreground);
+    font-size: 12px;
+    font-weight: 600;
+    transition:
+      border-color 180ms ease,
+      box-shadow 180ms ease;
+  }
+  .work-switch:hover,
+  .work-switch[aria-pressed="true"] {
+    border-color: color-mix(in srgb, var(--foreground) 45%, transparent);
+    box-shadow:
+      inset 0 1px 0 var(--glass-edge),
+      0 3px 14px -9px var(--foreground);
+  }
+  .work-brand {
+    display: grid;
+    width: 32px;
+    height: 32px;
+    place-items: center;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--gradient-glass), var(--glass-strong);
+  }
+  .work-surface {
+    background: var(--gradient-glass), var(--glass);
+    border: 1px solid var(--border);
+    backdrop-filter: blur(24px);
+    box-shadow: var(--shadow-elegant);
+  }
+  :root:not([data-theme="light"]) .work-surface {
+    background:
+      radial-gradient(ellipse at 15% 0%, oklch(1 0 0 / 0.06), transparent 60%),
+      radial-gradient(ellipse at 100% 70%, oklch(1 0 0 / 0.025), transparent 55%), var(--glass);
+  }
+  .work-tile {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--gradient-glass), color-mix(in srgb, var(--card) 60%, transparent);
+    box-shadow: inset 0 1px 0 var(--glass-edge);
+  }
+  .work-input {
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    background: var(--background);
+    color: var(--foreground);
+    padding: 9px 12px;
+    font-size: 12px;
+  }
+  .work-input:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  .work-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 9px 12px;
+    background: var(--gradient-glass), var(--glass-strong);
+    color: var(--foreground);
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .work-action:hover {
+    border-color: var(--ring);
+  }
+  .work-action:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+}

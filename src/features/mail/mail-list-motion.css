@@ -1,0 +1,72 @@
+.mail-list-atmosphere {
+  --mail-motion-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+/* A bounded first-load entrance, not a replay on selection or virtual scrolling. */
+.mail-list-atmosphere[data-entering="true"] .mail-list-row {
+  animation: mail-card-enter 180ms var(--mail-motion-ease-out) both;
+  animation-delay: var(--mail-enter-delay, 0ms);
+}
+
+@keyframes mail-card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.mail-list-atmosphere .mail-card-press {
+  transition:
+    transform 120ms var(--mail-motion-ease-out),
+    background-color 140ms ease,
+    border-color 140ms ease,
+    box-shadow 140ms ease,
+    color 140ms ease;
+}
+
+.mail-list-atmosphere[data-motion-input="pointer"] .mail-card-press:active {
+  transform: scale(0.99);
+}
+
+.mail-list-atmosphere .mail-card-press:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+}
+
+.mail-list-atmosphere .mail-preview-card::after,
+.mail-list-atmosphere .mobile-card-highlight {
+  transition: opacity 140ms ease;
+}
+
+.mail-list-atmosphere .mobile-mail-preview-card {
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.mail-list-atmosphere[data-motion-input="keyboard"]
+  :is(.mail-list-row, .mail-card-press, .mobile-mail-preview-card, .mobile-card-highlight),
+.mail-list-atmosphere[data-motion-input="keyboard"] .mail-preview-card::after,
+:root[data-motion="lower"]
+  .mail-list-atmosphere
+  :is(.mail-list-row, .mail-card-press, .mobile-mail-preview-card, .mobile-card-highlight),
+:root[data-motion="lower"] .mail-list-atmosphere .mail-preview-card::after {
+  animation: none !important;
+  transition: none !important;
+  transform: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mail-list-atmosphere
+    :is(.mail-list-row, .mail-card-press, .mobile-mail-preview-card, .mobile-card-highlight),
+  .mail-list-atmosphere .mail-preview-card::after {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+}

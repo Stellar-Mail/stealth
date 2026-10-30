@@ -1,4 +1,4 @@
-import { test, expect, openDemoMailbox } from "./fixtures";
+import { test, expect, openDemoMailbox, openMailboxSettings } from "./fixtures";
 
 test.describe("Account Settings", () => {
   // Mutable display-name used by the route mock across GET / PATCH cycles.
@@ -59,7 +59,7 @@ test.describe("Account Settings", () => {
 
   test("can view and update profile settings", async ({ page }) => {
     // Open Settings modal
-    await page.getByRole("button", { name: "Settings" }).click();
+    await openMailboxSettings(page);
     await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
 
     // Verify initial profile data is loaded

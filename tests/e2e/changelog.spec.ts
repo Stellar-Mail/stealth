@@ -1,4 +1,4 @@
-import { test, expect, openDemoMailbox } from "./fixtures";
+import { test, expect, openDemoMailbox, openMailboxSettings } from "./fixtures";
 
 test.describe("changelog panel", () => {
   test.beforeEach(async ({ page }) => {
@@ -7,7 +7,7 @@ test.describe("changelog panel", () => {
 
   test("opens changelog tab in settings and displays release notes", async ({ page }) => {
     // Open Settings modal
-    await page.getByRole("button", { name: "Settings" }).click();
+    await openMailboxSettings(page);
     await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
 
     // Navigate to "What's new" tab
@@ -29,7 +29,7 @@ test.describe("changelog panel", () => {
   });
 
   test("marks all releases as read upon viewing panel", async ({ page }) => {
-    await page.getByRole("button", { name: "Settings" }).click();
+    await openMailboxSettings(page);
     await page.getByRole("tab", { name: "What's new" }).click();
 
     // Viewing the panel triggers markAllSeen(), showing "All read" badge

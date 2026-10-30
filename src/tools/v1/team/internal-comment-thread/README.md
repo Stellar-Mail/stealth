@@ -4,7 +4,19 @@ This folder contains the **Internal Comment Thread** component, built as an isol
 
 ## 📖 Architecture & Guidelines
 
-All work for this tool is kept inside `src/tools/v1/team/internal-comment-thread/`. It does not link to the main application shell, routing, or database layers.
+The tool remains owned by `src/tools/v1/team/internal-comment-thread/`. Its standalone
+preview retains the original simulator for isolated review. The Work preview uses
+the controlled `comments` and `onPost` props, with no seeded discussion or simulator
+controls. The host owns session state and conversation isolation; this tool does not
+make network requests or access a database.
+
+## Work Integration
+
+The controlled view uses shared glass and theme tokens for both dark and light
+themes. It labels the notes as private, session-only, and never sent to mail
+recipients. Reloading the app discards them. This is not shared team collaboration
+or durable storage; those require an authorized backend before launch. Text is
+rendered as escaped React content, not injected HTML.
 
 ## 🎨 Visual Design Specifications
 

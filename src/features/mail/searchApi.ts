@@ -91,9 +91,9 @@ export function searchLocalEmails(
 ): SearchResultItemDto[] {
   if (
     !parsed.textQuery &&
-    !parsed.filters.folder &&
-    parsed.filters.unread === undefined &&
-    parsed.filters.starred === undefined
+    !Object.entries(parsed.filters).some(([key, value]) =>
+      key === "includeDeleted" ? value === true : value !== undefined,
+    )
   ) {
     return [];
   }
@@ -102,6 +102,13 @@ export function searchLocalEmails(
   const tokens = parsed.tokens;
 
   for (const email of emails) {
+    if (
+      email.folder === "trash" &&
+      !parsed.filters.includeDeleted &&
+      parsed.filters.folder !== "trash"
+    ) {
+      continue;
+    }
     // Apply filters
     if (
       parsed.filters.folder &&
@@ -116,7 +123,10 @@ export function searchLocalEmails(
     if (parsed.filters.starred !== undefined && email.starred !== parsed.filters.starred) {
       continue;
     }
-    if (parsed.filters.hasAttachments && (!email.attachments || email.attachments.length === 0)) {
+    if (
+      parsed.filters.hasAttachments !== undefined &&
+      Boolean(email.attachments?.length) !== parsed.filters.hasAttachments
+    ) {
       continue;
     }
     if (parsed.filters.sender) {
@@ -125,6 +135,19 @@ export function searchLocalEmails(
         email.from.toLowerCase().includes(normSender) ||
         email.email.toLowerCase().includes(normSender);
       if (!match) continue;
+    }
+    if (
+      parsed.filters.recipient &&
+      !email.recipient?.toLowerCase().includes(parsed.filters.recipient.toLowerCase())
+    ) {
+      continue;
+    }
+    if (parsed.filters.afterDate || parsed.filters.beforeDate) {
+      const timestamp = Date.parse(email.receivedAt ?? "");
+      // A display label such as "Yesterday" is not a trustworthy message timestamp.
+      if (!Number.isFinite(timestamp)) continue;
+      if (parsed.filters.afterDate && timestamp < Date.parse(parsed.filters.afterDate)) continue;
+      if (parsed.filters.beforeDate && timestamp >= Date.parse(parsed.filters.beforeDate)) continue;
     }
 
     // Match text tokens against local plaintext (subject, body, preview, sender, labels)
@@ -162,11 +185,11 @@ export function searchLocalEmails(
       id: email.id,
       messageId: email.id,
       senderId: email.email,
-      recipientId: "me",
+      recipientId: email.recipient ?? "me",
       folder: email.folder,
       subject: email.subject,
       preview: email.preview || (email.body ? email.body.slice(0, 100) : "Decrypted message"),
-      createdAt: new Date().toISOString(), // Local fallback timestamp
+      createdAt: email.receivedAt ?? "",
       unread: email.unread,
       starred: email.starred,
       hasAttachments: Boolean(email.attachments && email.attachments.length > 0),
@@ -189,7 +212,13 @@ export function mergeSearchResults(
 ): SearchResultItemDto[] {
   const parsed = parseSearchQuery(rawQuery);
   const localItems = searchLocalEmails(localEmails, parsed);
+  return mergeSearchItems(serverItems, localItems);
+}
 
+export function mergeSearchItems(
+  serverItems: SearchResultItemDto[],
+  localItems: SearchResultItemDto[],
+): SearchResultItemDto[] {
   const seenIds = new Set<string>();
   const merged: SearchResultItemDto[] = [];
 

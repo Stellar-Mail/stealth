@@ -1,4 +1,4 @@
-import { test, expect, openDemoMailbox } from "../fixtures";
+import { test, expect, openDemoMailbox, openMailboxSettings } from "../fixtures";
 import AxeBuilder from "@axe-core/playwright";
 import type { Page } from "@playwright/test";
 
@@ -41,7 +41,7 @@ test.describe("Workflow 3 — Accessibility Audits", () => {
   test("settings dialog passes WCAG 2.1 A/AA audit", async ({ page }) => {
     await openDemoMailbox(page);
 
-    await page.getByRole("button", { name: "Settings" }).click();
+    await openMailboxSettings(page);
     const dialog = page.getByRole("dialog");
     await expect(dialog).toBeVisible();
     await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();

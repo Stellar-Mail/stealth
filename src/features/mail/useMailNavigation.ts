@@ -6,16 +6,11 @@ import {
   type MailFilters,
   type MailFolder,
 } from "@/components/mail/data";
-import {
-  buildFolderCounts,
-  firstCustomFolderMatch,
-  nextSelectedId,
-  visibleEmailsFor,
-} from "./navigation";
+import { buildFolderCounts, nextSelectedId, visibleEmailsFor } from "./navigation";
 
 export function useMailNavigation(emails: Email[], liveCounts?: Record<MailFolder, number> | null) {
   const [folder, setFolder] = useState<MailFolder>("inbox");
-  const [customFolder, setCustomFolder] = useState<string | null>(null);
+  const [customFolder, updateCustomFolder] = useState<string | null>(null);
   const [filters, setFilters] = useState<MailFilters>(defaultMailFilters);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -30,16 +25,31 @@ export function useMailNavigation(emails: Email[], liveCounts?: Record<MailFolde
     () => visibleEmails.filter((email) => selectedIds.includes(email.id)),
     [selectedIds, visibleEmails],
   );
-  const selected = emails.find((email) => email.id === selectedId) ?? null;
+  const visibleSelectedId = nextSelectedId(visibleEmails, selectedId);
+  const selected = visibleEmails.find((email) => email.id === visibleSelectedId) ?? null;
+
+  const closeMessage = useCallback(() => {
+    setSelectedId(null);
+    setMobileView("list");
+  }, []);
+
+  const setCustomFolder = useCallback((next: string | null) => {
+    updateCustomFolder(next);
+    setSelectedId(null);
+    setSelectedIds([]);
+    setMobileView("list");
+  }, []);
 
   const selectFolder = useCallback((next: MailFolder) => {
     setFolder(next);
-    setCustomFolder(null);
+    updateCustomFolder(null);
+    setSelectedId(null);
+    setSelectedIds([]);
     setMobileView("list");
   }, []);
 
   const openMessage = useCallback((email: Email) => {
-    setCustomFolder(null);
+    updateCustomFolder(null);
     setFilters(defaultMailFilters);
     setFolder(email.folder);
     setSelectedId(email.id);
@@ -48,14 +58,8 @@ export function useMailNavigation(emails: Email[], liveCounts?: Record<MailFolde
   }, []);
 
   useEffect(() => {
-    if (customFolder) return;
     setSelectedId((current) => nextSelectedId(visibleEmails, current));
-  }, [customFolder, folder, visibleEmails]);
-
-  useEffect(() => {
-    if (!customFolder) return;
-    setSelectedId(firstCustomFolderMatch(emails, customFolder));
-  }, [customFolder, emails]);
+  }, [visibleEmails]);
 
   return {
     folder,
@@ -64,7 +68,7 @@ export function useMailNavigation(emails: Email[], liveCounts?: Record<MailFolde
     setCustomFolder,
     filters,
     setFilters,
-    selectedId,
+    selectedId: visibleSelectedId,
     setSelectedId,
     selectedIds,
     setSelectedIds,
@@ -74,6 +78,7 @@ export function useMailNavigation(emails: Email[], liveCounts?: Record<MailFolde
     selected,
     selectFolder,
     openMessage,
+    closeMessage,
     mobileView,
     setMobileView,
   };

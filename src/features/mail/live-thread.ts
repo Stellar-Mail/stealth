@@ -242,6 +242,7 @@ export function applyThreadMessageToEmail(email: Email, message: ThreadMessage):
     preview,
     body,
     time: formatReaderTime(message.timestamp || email.time),
+    receivedAt: message.timestamp || email.receivedAt,
     attachments: message.attachments.length ? message.attachments : email.attachments,
     verifiedSender: message.trust === "verified",
     encryptedPayload: message.encryptedPayload,

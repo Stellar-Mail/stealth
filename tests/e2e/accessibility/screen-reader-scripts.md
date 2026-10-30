@@ -28,8 +28,8 @@ run `npm run dev` and open `http://localhost:5173/demo`.
 ## 3. Mailbox navigation
 
 1. `Tab` from the topbar search box through the quick actions (Proofs, Later,
-   Files), Filter, Notifications, Import contacts, Help, Proof Inspector,
-   Settings, Account menu.
+   Files), Work, Notifications, Account menu. Quick actions are
+   hidden on smaller screens; the same folders remain in the sidebar.
    Expected: each button announces a name; the active folder buttons in the
    sidebar announce `pressed` / `current page` states.
 2. Arrow keys are not intercepted in the list (no listbox role); `Tab` moves
@@ -52,17 +52,20 @@ run `npm run dev` and open `http://localhost:5173/demo`.
 
 ## 5. Filter / Notifications popovers
 
-1. Tab to "Filter", press `Enter`. NVDA announces a dialog named "Filters".
+1. Open Account menu and activate "Filter". NVDA announces a dialog named "Filters".
    The first toggle ("Unread only") receives focus.
-2. `Escape` closes; focus returns to the Filter button.
+2. `Escape` closes; focus returns to the Account menu button.
 3. "Notifications" opens a dialog named "Notifications"; `Escape` restores the
    bell button.
 
-## 6. Account and Help menus
+## 6. Account menu
 
-1. Activate "Account menu". NVDA announces "Account, menu". Arrow keys move
-   through `menuitem`s (Profile, Switch account, Sign in with password,
-   Sign out).
+1. Activate "Account menu". NVDA announces "Account, menu". Tab moves through
+   `menuitem`s (Settings, Filter, Profile, Switch account, Sign in with password, Import contacts,
+   Proof Inspector, Keyboard shortcuts, Sign out).
+2. Activate "Proof Inspector". Expected: the menu closes and focus enters the
+   "Cryptographic proof inspector" dialog. Import contacts and Keyboard
+   shortcuts likewise open their existing dialogs.
 
 ## 7. Requests triage board
 

@@ -1,6 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 
 import { openVisualMailbox } from "./helpers";
+import { openProofInspector, openMailboxSettings } from "../fixtures";
 
 // ---------------------------------------------------------------------------
 // BETA-087 (Issue #1994) — browser compatibility & visual regression coverage.
@@ -40,7 +41,7 @@ async function openSettings(page: Page) {
       .getByRole("button", { name: "Settings" })
       .click();
   } else {
-    await page.getByRole("button", { name: "Settings" }).click();
+    await openMailboxSettings(page);
   }
   await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
 }
@@ -80,13 +81,13 @@ test.describe("web beta — browser compatibility & visual regression", () => {
   });
 
   test("proof inspector renders the dialog", async ({ page }) => {
-    await page.getByRole("button", { name: "Proof Inspector" }).click();
+    await openProofInspector(page);
     await expect(page.getByRole("dialog", { name: "Cryptographic proof inspector" })).toBeVisible();
     await expect(page).toHaveScreenshot("proof-inspector.png");
   });
 
   test("proof inspector renders the not-found error state", async ({ page }) => {
-    await page.getByRole("button", { name: "Proof Inspector" }).click();
+    await openProofInspector(page);
     const input = page.getByPlaceholder("Enter Message Hash, Payment");
     await input.fill("zzzzzdoesnotexist");
     await page.getByRole("button", { name: "Inspect", exact: true }).click();

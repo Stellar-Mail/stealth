@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useId } from "react";
 
 type ThreadState = "idle" | "loading" | "success" | "error" | "empty";
 
@@ -30,7 +30,7 @@ const initialComments: Comment[] = [
   },
 ];
 
-export const InternalCommentThread: React.FC = () => {
+const PreviewCommentThread: React.FC = () => {
   const [state, setState] = useState<ThreadState>("idle");
   const [comments, setComments] = useState<Comment[]>(initialComments);
   const [newComment, setNewComment] = useState("");
@@ -309,3 +309,89 @@ export const InternalCommentThread: React.FC = () => {
     </div>
   );
 };
+
+export type ThreadComment = { id: string; author: string; content: string; timestamp: string };
+
+export function InternalCommentThread({
+  comments,
+  onPost,
+}: {
+  comments?: ThreadComment[];
+  onPost?: (content: string) => void;
+}) {
+  return comments && onPost ? (
+    <PrivateNoteThread comments={comments} onPost={onPost} />
+  ) : (
+    <PreviewCommentThread />
+  );
+}
+
+function PrivateNoteThread({
+  comments,
+  onPost,
+}: {
+  comments: ThreadComment[];
+  onPost: (content: string) => void;
+}) {
+  const [draft, setDraft] = useState("");
+  const inputId = useId();
+  return (
+    <section className="work-tile p-5" aria-label="Private conversation notes">
+      <h2 className="text-sm font-semibold text-foreground">Private notes</h2>
+      <p className="mt-1 text-xs text-muted-foreground">
+        Only in this session. Never sent to the conversation's recipients.
+      </p>
+      <ol className="my-5 space-y-4" aria-label="Conversation notes" aria-live="polite">
+        {comments.map((comment) => (
+          <li key={comment.id} className="border-b border-border pb-4">
+            <div className="flex items-center gap-2 text-xs">
+              <span className="font-medium text-foreground">{comment.author}</span>
+              <time dateTime={comment.timestamp} className="text-muted-foreground">
+                {new Date(comment.timestamp).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </time>
+            </div>
+            <p className="mt-2 whitespace-pre-wrap break-words text-sm text-foreground/85">
+              {comment.content}
+            </p>
+          </li>
+        ))}
+        {!comments.length && (
+          <li className="py-4 text-sm text-muted-foreground">No notes on this conversation yet.</li>
+        )}
+      </ol>
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          const content = draft.trim();
+          if (!content) return;
+          onPost(content);
+          setDraft("");
+        }}
+      >
+        <label htmlFor={inputId} className="text-xs text-muted-foreground">
+          Add a private note
+        </label>
+        <textarea
+          id={inputId}
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+          required
+          maxLength={2000}
+          rows={3}
+          className="work-input mt-2 w-full resize-y"
+          placeholder="Keep context for yourself..."
+        />
+        <button
+          type="submit"
+          disabled={!draft.trim()}
+          className="work-action mt-3 disabled:opacity-50"
+        >
+          Add note
+        </button>
+      </form>
+    </section>
+  );
+}
